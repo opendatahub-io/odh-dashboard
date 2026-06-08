@@ -577,7 +577,11 @@ describe('llamaStackService', () => {
         const mockResponse = {
           ok: false,
           status: 500,
-          text: jest.fn().mockResolvedValue('{"error": {"message": "Internal server error"}}'),
+          text: jest
+            .fn()
+            .mockResolvedValue(
+              '{"error": {"component": "bff", "code": "internal_error", "message": "Internal server error", "retriable": false}}',
+            ),
         };
 
         mockFetch.mockResolvedValueOnce(mockResponse);
@@ -586,7 +590,14 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toThrow('Internal server error');
+        ).rejects.toMatchObject({
+          error: {
+            component: 'bff',
+            code: 'internal_error',
+            message: 'Internal server error',
+            retriable: false,
+          },
+        });
       });
 
       it('should handle streaming HTTP error with unparseable response', async () => {
@@ -604,7 +615,14 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toThrow('HTTP error! status: 500');
+        ).rejects.toMatchObject({
+          error: {
+            component: 'bff',
+            code: 'http_500',
+            message: 'HTTP error! status: 500',
+            retriable: false,
+          },
+        });
       });
 
       it('should handle streaming error when no reader available', async () => {
@@ -651,7 +669,7 @@ describe('llamaStackService', () => {
             .mockResolvedValueOnce({
               done: false,
               value: new TextEncoder().encode(
-                'data: {"error":{"code":"500","message":"Streaming error occurred"}}\n',
+                'data: {"error":{"component":"model","code":"model_error","message":"Streaming error occurred","retriable":true}}\n',
               ),
             }),
           cancel: jest.fn().mockResolvedValueOnce(undefined),
@@ -671,7 +689,14 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toThrow('Streaming error occurred');
+        ).rejects.toMatchObject({
+          error: {
+            component: 'model',
+            code: 'model_error',
+            message: 'Streaming error occurred',
+            retriable: true,
+          },
+        });
 
         expect(mockStreamData).toHaveBeenCalledWith('Hello');
         expect(mockStreamData).toHaveBeenCalledTimes(1);
@@ -686,7 +711,9 @@ describe('llamaStackService', () => {
         const mockReader = {
           read: jest.fn().mockResolvedValueOnce({
             done: false,
-            value: new TextEncoder().encode('data: {"error":{"code":"500"}}\n'),
+            value: new TextEncoder().encode(
+              'data: {"error":{"component":"bff","code":"stream_error","message":"An error occurred during streaming","retriable":false}}\n',
+            ),
           }),
           cancel: jest.fn().mockResolvedValueOnce(undefined),
           releaseLock: jest.fn(),
@@ -705,7 +732,14 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toThrow('An error occurred during streaming');
+        ).rejects.toMatchObject({
+          error: {
+            component: 'bff',
+            code: 'stream_error',
+            message: 'An error occurred during streaming',
+            retriable: false,
+          },
+        });
 
         expect(mockStreamData).not.toHaveBeenCalled();
         expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');

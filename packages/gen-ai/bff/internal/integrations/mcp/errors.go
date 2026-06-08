@@ -26,8 +26,6 @@ const (
 	ErrCodeInvalidResponse   = "INVALID_RESPONSE"
 	ErrCodeServerUnavailable = "SERVER_UNAVAILABLE"
 	ErrCodeUnauthorized      = "UNAUTHORIZED"
-	ErrCodeInvalidConfig     = "INVALID_CONFIG"
-	ErrCodeToolNotFound      = "TOOL_NOT_FOUND"
 	ErrCodeInternalError     = "INTERNAL_ERROR"
 )
 

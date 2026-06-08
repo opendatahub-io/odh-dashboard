@@ -17,14 +17,17 @@ jest.mock('@patternfly/chatbot', () => ({
 }));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
-jest.mock('~/app/utilities/utils', () => ({
-  getId: jest.fn(() => 'mock-id'),
-  getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
-  splitLlamaModelId: jest.fn((modelId: string) => ({
-    providerId: 'provider-id',
-    id: modelId,
-  })),
-}));
+jest.mock('~/app/utilities/utils', () => {
+  let idCounter = 0;
+  return {
+    getId: jest.fn(() => `mock-id-${idCounter++}`),
+    getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+    splitLlamaModelId: jest.fn((modelId: string) => ({
+      providerId: 'provider-id',
+      id: modelId,
+    })),
+  };
+});
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
   ToolResponseCardTitle: jest.fn(() => 'ToolResponseCardTitle'),
@@ -119,7 +122,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Hello, bot!');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot
 
       // Test user message - only check what matters
       expect(result.current.messages[0]).toMatchObject({
@@ -190,11 +193,15 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: 'No model or source settings selected',
+        content: '',
         name: 'Bot',
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
@@ -215,7 +222,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot response
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: 'This is a bot response',
@@ -238,7 +245,14 @@ describe('useChatbotMessages', () => {
     });
 
     it('should handle API errors', async () => {
-      mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: 'API Error',
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -246,17 +260,28 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: 'API Error',
+        content: '',
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
 
     it('should re-enable send button even when errors occur', async () => {
-      mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: 'API Error',
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -282,11 +307,15 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: 'API is not available',
+        content: '',
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
@@ -294,7 +323,14 @@ describe('useChatbotMessages', () => {
 
     it('should display error message from streaming error', async () => {
       const customErrorMessage = 'Custom streaming error message';
-      mockCreateResponse.mockRejectedValueOnce(new Error(customErrorMessage));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: customErrorMessage,
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -302,11 +338,15 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: customErrorMessage,
+        content: '',
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
@@ -316,12 +356,19 @@ describe('useChatbotMessages', () => {
 
       // Mock streaming response that will error
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           // Simulate some streaming before error
           if (opts?.onStreamData) {
             opts.onStreamData('Hello ');
           }
-          return Promise.reject(new Error(streamingErrorMessage));
+          return Promise.reject({
+            error: {
+              component: 'bff',
+              code: 'streaming_error',
+              message: streamingErrorMessage,
+              retriable: false,
+            },
+          });
         },
       );
 
@@ -333,12 +380,16 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      // Should have user + bot (placeholder removed; bot updated with error, not added separately)
+      // Should have user + bot (updated with error, not added separately)
       expect(result.current.messages).toHaveLength(2);
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: streamingErrorMessage,
+        content: '', // Error happened before streaming content was persisted
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'partial-failure',
+        variant: 'warning',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.isLoading).toBe(false);
@@ -360,7 +411,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot response
       expect(mockCreateResponse).toHaveBeenCalledWith(
         {
           input: 'Test message',
@@ -550,7 +601,7 @@ describe('useChatbotMessages', () => {
       };
 
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           if (opts?.onStreamData) {
             opts.onStreamData('Streaming content');
           }
@@ -605,7 +656,7 @@ describe('useChatbotMessages', () => {
       };
 
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           if (opts?.onStreamData) {
             opts.onStreamData('Streaming content');
           }
@@ -764,7 +815,8 @@ describe('useChatbotMessages', () => {
           content: 'This is a bot response',
         });
       } finally {
-        mockGetId.mockImplementation(() => 'mock-id');
+        let restoreCounter = 0;
+        mockGetId.mockImplementation(() => `mock-id-${restoreCounter++}`);
       }
     });
   });

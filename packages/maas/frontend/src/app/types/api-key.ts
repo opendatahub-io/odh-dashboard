@@ -28,6 +28,7 @@ export type APIKeyListResponse = {
 export type APIKeySearchRequest = {
   filters?: {
     username?: string;
+    subscription?: string;
     status?: APIKeyStatus[];
   };
   sort?: {
