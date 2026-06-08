@@ -1,32 +1,32 @@
 package constants
 
-const PythonCodeTemplate = `# Llama Stack Quickstart Script
+const PythonCodeTemplate = `# OGX Quickstart Script
 #
 # README:
-# This example shows how to configure an assistant using the Llama Stack client.
+# This example shows how to configure an assistant using the OGX client.
 # Before using this code, make sure of the following:
 #
 # Required Packages:
 #    - Install the required dependencies using pip:
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
-#      pip install llama-stack-client requests{{if .ASRModel}} openai{{end}}
+#      pip install ogx-client requests{{if .ASRModel}} openai{{end}}
 {{- else if .ASRModel }}
-#      pip install llama-stack-client openai
+#      pip install ogx-client openai
 {{- else }}
-#      pip install llama-stack-client
+#      pip install ogx-client
 {{- end }}
-#    - NOTE: Verify the correct llama-stack-client version for your Llama Stack server instance,
+#    - NOTE: Verify the correct ogx-client version for your OGX server instance,
 #      then install that version as needed.
 #
-# Llama Stack Server:
-#    - Your Llama Stack instance must be running and accessible
-#    - Set the LLAMA_STACK_URL variable to the base URL of your Llama Stack server
+# OGX Server:
+#    - Your OGX instance must be running and accessible
+#    - Set the OGX_URL variable to the base URL of your OGX server
 #
 # Model Configuration:
-#    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment with the correct API key.
+#    - The selected model (e.g., "llama3.2:3b") must be available in your OGX deployment with the correct API key.
 #
 # Tools (MCP Integration):
-#    - Any tools used must be properly pre-configured in your Llama Stack setup.
+#    - Any tools used must be properly pre-configured in your OGX setup.
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 #
 # NeMo Guardrails:
@@ -50,12 +50,12 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 {{- if and .VectorStore .VectorStore.ID }}
 #
 # External Vector Store:
-#    - This script uses an existing vector store (ID: {{.VectorStore.ID}}), which must be registered in your Llama Stack instance.
-#    - The vector store provider "{{.VectorStore.ProviderID}}" must be installed in your Llama Stack instance.
+#    - This script uses an existing vector store (ID: {{.VectorStore.ID}}), which must be registered in your OGX instance.
+#    - The vector store provider "{{.VectorStore.ProviderID}}" must be installed in your OGX instance.
 {{- if .VectorStore.EmbeddingModel }}
-#    - The embedding model "{{.VectorStore.EmbeddingModel}}" must be registered in your Llama Stack instance.
+#    - The embedding model "{{.VectorStore.EmbeddingModel}}" must be registered in your OGX instance.
 {{- else }}
-#    - The embedding model used by this vector store must be registered in your Llama Stack instance.
+#    - The embedding model used by this vector store must be registered in your OGX instance.
 {{- end }}
 {{- end }}
 {{- if .Prompt }}
@@ -68,7 +68,7 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 {{- end }}
 
 # Configuration adjust as needed:
-LLAMA_STACK_URL = ""
+OGX_URL = ""
 {{- if .ASRModel }}
 ASR_MODEL_URL = ""
 ASR_MODEL_NAME = "{{.ASRModel}}"
@@ -126,9 +126,9 @@ import requests
 from openai import OpenAI
 {{- end }}
 
-from llama_stack_client import LlamaStackClient
+from ogx_client import OgxClient
 
-client = LlamaStackClient(base_url=LLAMA_STACK_URL)
+client = OgxClient(base_url=OGX_URL)
 {{- if .ASRModel }}
 
 # --- Audio Transcription ---

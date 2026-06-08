@@ -388,7 +388,7 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "file_search")
 		assert.Contains(t, code, "vector_store.id")
 		assert.Contains(t, code, "FILES_BASE_PATH")
-		assert.Contains(t, code, "LLAMA_STACK_URL")
+		assert.Contains(t, code, "OGX_URL")
 	})
 
 	t.Run("should generate Python code with MCP servers", func(t *testing.T) {
@@ -742,7 +742,7 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, inputPrompt)
 		assert.Contains(t, code, `if _input_result.get("status") == "blocked"`)
 		assert.Contains(t, code, "def _guardrail_check(")
-		assert.Contains(t, code, "pip install llama-stack-client requests")
+		assert.Contains(t, code, "pip install ogx-client requests")
 	})
 
 	t.Run("should include output guardrail check when guardrail config has output prompt", func(t *testing.T) {
@@ -822,7 +822,7 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.NotContains(t, code, "import requests")
 		assert.NotContains(t, code, "NEMO_GUARDRAILS_URL")
 		assert.NotContains(t, code, "guardrail/checks")
-		assert.Contains(t, code, "pip install llama-stack-client\n")
+		assert.Contains(t, code, "pip install ogx-client\n")
 	})
 
 	t.Run("should not include guardrail code when input prompt is empty", func(t *testing.T) {
@@ -888,7 +888,7 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "asr_client = OpenAI(")
 		assert.Contains(t, code, "audio.transcriptions.create")
 		assert.Contains(t, code, "input_text = transcription.text")
-		assert.Contains(t, code, "pip install llama-stack-client openai")
+		assert.Contains(t, code, "pip install ogx-client openai")
 		assert.Contains(t, code, "Audio Transcription (ASR)")
 		assert.Contains(t, code, `The model "whisper-large-v3-turbo" will be used for transcription`)
 	})
@@ -933,7 +933,7 @@ func TestGeneratePythonCode(t *testing.T) {
 		}
 
 		assert.NoError(t, err)
-		assert.Contains(t, code, "pip install llama-stack-client requests openai")
+		assert.Contains(t, code, "pip install ogx-client requests openai")
 		assert.Contains(t, code, "from openai import OpenAI")
 		assert.Contains(t, code, "import requests")
 		assert.Contains(t, code, "ASR_MODEL_URL")
@@ -1006,6 +1006,6 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, `"type": "input_image"`)
 		assert.Contains(t, code, "vision_file.id")
 		assert.Contains(t, code, "from openai import OpenAI")
-		assert.Contains(t, code, "pip install llama-stack-client openai")
+		assert.Contains(t, code, "pip install ogx-client openai")
 	})
 }
