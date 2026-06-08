@@ -26,7 +26,7 @@ const ConnectedWorkbenchesLink: React.FC = () => {
       iconPosition="start"
       isAriaDisabled
       onClick={undefined}
-      style={{ fontWeight: 'bold' }}
+      className="pf-v6-u-font-weight-bold"
       data-testid="connected-workbenches-link"
     >
       View connected workbenches
