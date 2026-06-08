@@ -20,6 +20,8 @@ func TestIsHashedAsset(t *testing.T) {
 		{"font", "fonts/RedHatDisplay.woff2", false},
 		{"non-hashed bundle", "app.bundle.js", false},
 		{"non-hashed CSS", "app.css", false},
+		{"numeric suffix image", "images/logo-20240608.png", false},
+		{"numeric suffix font", "fonts/asset-20240608.woff2", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -73,6 +75,8 @@ func TestCacheControlForStaticFile(t *testing.T) {
 		{"favicon", "favicon.ico", "public, max-age=86400"},
 		{"font", "fonts/RedHatDisplay.woff2", "public, max-age=86400"},
 		{"image", "images/logo.png", "public, max-age=86400"},
+		{"numeric suffix image", "images/logo-20240608.png", "public, max-age=86400"},
+		{"numeric suffix font", "fonts/asset-20240608.woff2", "public, max-age=86400"},
 		{"remoteEntry", "remoteEntry.js", "no-cache"},
 		{"locale JSON", "locales/en/translation.json", "no-cache"},
 		{"manifest", "manifest.json", "no-cache"},

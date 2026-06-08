@@ -29,6 +29,8 @@ describe('isHashedAsset', () => {
     'locales/en/translation.json',
     'app.bundle.js',
     'app.css',
+    'images/logo-20240608.png',
+    'fonts/asset-20240608.woff2',
   ])('should detect non-hashed filename: %s', (name) => {
     expect(isHashedAsset(name)).toBe(false);
   });
@@ -73,6 +75,11 @@ describe('getCacheControlForStaticFile', () => {
     expect(getCacheControlForStaticFile('favicon.ico')).toBe(CACHE_HEADER_SHORT);
     expect(getCacheControlForStaticFile('fonts/RedHatDisplay.woff2')).toBe(CACHE_HEADER_SHORT);
     expect(getCacheControlForStaticFile('images/logo.png')).toBe(CACHE_HEADER_SHORT);
+  });
+
+  it('should return short cache for numeric-suffix assets, not immutable', () => {
+    expect(getCacheControlForStaticFile('images/logo-20240608.png')).toBe(CACHE_HEADER_SHORT);
+    expect(getCacheControlForStaticFile('fonts/asset-20240608.woff2')).toBe(CACHE_HEADER_SHORT);
   });
 
   it('should return no-cache for non-hashed code files', () => {

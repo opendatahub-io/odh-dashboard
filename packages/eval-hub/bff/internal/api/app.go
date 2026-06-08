@@ -46,7 +46,8 @@ var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
 var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
 
 func isHashedAsset(filePath string) bool {
-	return hashPattern.MatchString(path.Base(filePath))
+	match := hashPattern.FindString(path.Base(filePath))
+	return match != "" && strings.ContainsAny(match, "abcdef")
 }
 
 func isStaticAsset(filePath string) bool {

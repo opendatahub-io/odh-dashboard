@@ -1,6 +1,6 @@
 import * as path from 'path';
 
-const HASH_PATTERN = /[.-][0-9a-f]{8,}/;
+const HASH_PATTERN = /[.-](?=[0-9a-f]*[a-f])[0-9a-f]{8,}/;
 const STATIC_ASSET_PATTERN = /\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$/i;
 
 export const isHashedAsset = (filePath: string): boolean =>
