@@ -7,7 +7,9 @@ import {
 // The session storage key used by ODH dev feature flags
 const ODH_FEATURE_FLAGS_SESSION_KEY = 'odh-feature-flags';
 
-// Mapping from ODH session storage keys (display names) to upstream technical keys
+// Mapping from ODH session storage keys to upstream technical keys.
+// Keys here are either display names (for dev-only flags from extensions.ts devFlags)
+// or camelCase CRD flag names (for techPreviewFlags toggled via the dev flags modal).
 const DEV_FLAG_MAPPINGS: Record<string, string> = {
   'KF MR Upstream: Catalog HuggingFace API Key': 'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
 };

@@ -16,6 +16,8 @@ import {
   ModelCatalogTask,
   AllLanguageCode,
   ModelCatalogNumberFilterKey,
+  ValidatedConfiguration,
+  MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING,
   isCatalogFilterKey,
   isPerformanceFilterKey,
   parseLatencyFilterKey,
@@ -32,9 +34,17 @@ import { formatLatency } from '~/app/pages/modelCatalog/utils/performanceMetrics
 
 type ModelCatalogActiveFiltersProps = {
   filtersToShow: ModelCatalogFilterKey[];
+  /** When true, all ToolbarFilter labels are forced to empty arrays. This keeps the
+   *  ToolbarFilter components mounted so their parent Toolbar's internal filter count
+   *  stays at zero — working around PF's missing componentWillUnmount cleanup
+   *  (https://github.com/patternfly/patternfly-react/issues/12247). */
+  forceHideLabels?: boolean;
 };
 
-const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ filtersToShow }) => {
+const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
+  filtersToShow,
+  forceHideLabels = false,
+}) => {
   const {
     filterData,
     setFilterData,
@@ -105,6 +115,11 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
         case ModelCatalogStringFilterKey.LANGUAGE: {
           return isEnumMember(valueStr, AllLanguageCode) ? AllLanguageCodesMap[valueStr] : valueStr;
         }
+        case ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION: {
+          return isEnumMember(valueStr, ValidatedConfiguration)
+            ? MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING[valueStr]
+            : valueStr;
+        }
         case ModelCatalogStringFilterKey.USE_CASE: {
           if (isUseCaseOptionValue(valueStr)) {
             return `${MODEL_CATALOG_FILTER_CHIP_PREFIXES.WORKLOAD_TYPE} ${getUseCaseDisplayLabel(valueStr)}`;
@@ -121,6 +136,8 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         case ModelCatalogNumberFilterKey.MAX_RPS:
           return `${MODEL_CATALOG_FILTER_CHIP_PREFIXES.MAX_RPS} ${value}`;
+        case ModelCatalogNumberFilterKey.COLD_START_LATENCY:
+          return `${MODEL_CATALOG_FILTER_CHIP_PREFIXES.COLD_START_LATENCY} ${value} ms`;
         default:
           return String(value);
       }
@@ -200,7 +217,7 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
                 key: filterKey,
                 name: MODEL_CATALOG_FILTER_CATEGORY_NAMES[filterKey],
               }}
-              labels={latencyLabels}
+              labels={forceHideLabels ? [] : latencyLabels}
               deleteLabel={(category) => {
                 const categoryKeyValue = typeof category === 'string' ? category : category.key;
                 handleClearCategory(categoryKeyValue);
@@ -219,7 +236,8 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
         // All other filters
         const isSingleValuePerformanceFilter =
           filterKey === ModelCatalogStringFilterKey.USE_CASE ||
-          filterKey === ModelCatalogNumberFilterKey.MAX_RPS;
+          filterKey === ModelCatalogNumberFilterKey.MAX_RPS ||
+          filterKey === ModelCatalogNumberFilterKey.COLD_START_LATENCY;
 
         let labels: ToolbarLabel[] = [];
 
@@ -262,7 +280,7 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
           <ToolbarFilter
             key={filterKey}
             categoryName={categoryLabelGroup}
-            labels={labels}
+            labels={forceHideLabels ? [] : labels}
             deleteLabel={(category, label) => {
               const categoryKeyValue = typeof category === 'string' ? category : category.key;
               const labelKey = typeof label === 'string' ? label : label.key;

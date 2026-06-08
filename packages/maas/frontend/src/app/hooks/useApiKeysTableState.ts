@@ -7,7 +7,7 @@ import {
   emptyApiKeyFilterData,
   APIKeyListResponse,
 } from '~/app/types/api-key';
-import { ApiKeySortField } from '~/app/pages/api-keys/allKeys/columns';
+import { ApiKeySortField } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import { useFetchApiKeys } from './useFetchApiKeys';
 
 type SortDirection = 'asc' | 'desc';
@@ -16,9 +16,10 @@ const DEFAULT_SORT_FIELD: ApiKeySortField = 'created_at';
 const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
 const DEFAULT_PER_PAGE = 50;
 
-type UseApiKeysTableStateReturn = {
+export type UseApiKeysTableStateReturn = {
   response: APIKeyListResponse;
   loaded: boolean;
+  error: Error | undefined;
   refresh: () => void;
   filterData: ApiKeyFilterDataType;
   localUsername: string;
@@ -58,7 +59,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     [filterData, sortField, sortDirection, page, perPage],
   );
 
-  const [response, loaded, , refresh] = useFetchApiKeys(searchRequest);
+  const [response, loaded, error, refresh] = useFetchApiKeys(searchRequest);
 
   React.useEffect(() => {
     setIsFetching(false);
@@ -121,6 +122,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   return {
     response,
     loaded,
+    error,
     refresh,
     filterData,
     localUsername,

@@ -21,6 +21,7 @@ filters:
       - automl-approvers
       - eval-hub-approvers
       - mlflow-approvers
+      - distributions-approvers
 
   # Catchall
   '.*':
@@ -188,6 +189,15 @@ filters:
       - eval-hub-reviewers
     labels:
       - 'area/eval-hub'
+
+  # Distributions
+  'distributions/.*':
+    approvers:
+      - distributions-approvers
+    reviewers:
+      - distributions-reviewers
+    labels:
+      - 'area/distributions'
 
   # MLflow
   'packages/mlflow.*/.*':

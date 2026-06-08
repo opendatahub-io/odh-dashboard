@@ -8,6 +8,7 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { HomeIcon, PathMissingIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 
 const NotFound: React.FC = () => (
   <PageSection hasBodyWrapper={false}>
@@ -25,8 +26,7 @@ const NotFound: React.FC = () => (
         <Button
           icon={<HomeIcon />}
           data-testid="home-page-button"
-          component="a"
-          href="/"
+          component={(props) => <Link {...props} to="/" />}
           variant="primary"
         >
           Home

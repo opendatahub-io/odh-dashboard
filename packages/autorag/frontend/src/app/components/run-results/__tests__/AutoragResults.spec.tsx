@@ -30,8 +30,8 @@ jest.mock('~/app/topology/PipelineTopology', () => ({
   ),
 }));
 
-jest.mock('~/app/topology/useAutoRAGTaskTopology', () => ({
-  useAutoRAGTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
+jest.mock('~/app/topology/useAutoragTaskTopology', () => ({
+  useAutoragTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
 }));
 
 jest.mock('~/app/components/run-results/AutoragLeaderboard', () => ({
@@ -151,7 +151,7 @@ describe('AutoragResults', () => {
     expect(topology).toHaveClass('autorag-topology-container');
   });
 
-  it('should pass nodes from useAutoRAGTaskTopology to PipelineTopology', () => {
+  it('should pass nodes from useAutoragTaskTopology to PipelineTopology', () => {
     renderWithContext();
     const topology = screen.getByTestId('pipeline-topology');
     expect(topology).toHaveAttribute('data-node-count', '2');

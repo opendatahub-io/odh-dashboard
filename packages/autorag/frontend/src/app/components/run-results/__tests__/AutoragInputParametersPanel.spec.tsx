@@ -26,10 +26,6 @@ jest.mock('react-router', () => ({
   ),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
-  isTerminalState: jest.requireActual('~/app/hooks/queries').isTerminalState,
-}));
-
 const defaultParameters: Partial<ConfigureSchema> = {
   display_name: 'My Run',
   input_data_secret_name: 's3-connection',
@@ -330,35 +326,45 @@ describe('AutoragInputParametersPanel', () => {
       expect(input).toHaveValue('s3://bucket/rag/patterns');
     });
 
-    it('should show skeleton for output directory when patterns are loading', () => {
-      renderPanel(
-        {},
-        {
-          pipelineRun: createMockPipelineRun({ state: 'SUCCEEDED' }),
-          patternsLoading: true,
-        },
-      );
-      const outputDir = screen.getByTestId('parameter-output-directory');
-      expect(outputDir.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
-    });
-
-    it('should show skeleton for output directory when run is not in terminal state', () => {
+    it('should show loading message and spinner for output directory when patterns are loading', () => {
       renderPanel(
         {},
         {
           pipelineRun: createMockPipelineRun({ state: 'RUNNING' }),
+          patternsLoading: true,
+        },
+      );
+      const outputDir = screen.getByTestId('parameter-output-directory');
+      expect(outputDir).toHaveTextContent(
+        'The output directory will be available once evaluation is complete.',
+      );
+      expect(
+        screen.getByRole('progressbar', { name: 'Spinner for the parameter output directory' }),
+      ).toBeInTheDocument();
+    });
+
+    it('should show loading message and spinner for output directory when run is not in terminal state', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ state: 'PENDING' }),
           patternsLoading: false,
         },
       );
       const outputDir = screen.getByTestId('parameter-output-directory');
-      expect(outputDir.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
+      expect(outputDir).toHaveTextContent(
+        'The output directory will be available once evaluation is complete.',
+      );
+      expect(
+        screen.getByRole('progressbar', { name: 'Spinner for the parameter output directory' }),
+      ).toBeInTheDocument();
     });
 
-    it('should show "Not available" when ragPatternsBasePath is undefined and run is terminal', () => {
+    it('should show "Not available" when ragPatternsBasePath is undefined and run is terminal (non-succeeded)', () => {
       renderPanel(
         {},
         {
-          pipelineRun: createMockPipelineRun({ state: 'SUCCEEDED' }),
+          pipelineRun: createMockPipelineRun({ state: 'FAILED' }),
           ragPatternsBasePath: undefined,
           patternsLoading: false,
         },

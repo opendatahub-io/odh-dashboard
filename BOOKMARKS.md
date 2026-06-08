@@ -94,6 +94,14 @@ Central index of key documentation in the ODH Dashboard monorepo.
 
 ---
 
+## Dashboard Module Controller
+
+| Doc | Description |
+|-----|-------------|
+| [Controller AGENTS.md](dashboard-operator/AGENTS.md) | Go operator conventions, controller-runtime patterns, CRD types, Makefile targets, reconciliation pipeline |
+
+---
+
 ## Packages
 
 ### Full Docs

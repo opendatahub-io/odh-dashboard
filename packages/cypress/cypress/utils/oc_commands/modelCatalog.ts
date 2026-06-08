@@ -329,6 +329,40 @@ export const ensureModelCatalogSourceEnabled = (sourceId: string): Cypress.Chain
   });
 };
 /**
+ * Detect which namespace contains the model-catalog deployment.
+ * Searches across all namespaces and returns the first match.
+ * @returns A Cypress chainable that resolves with the namespace name, or null if not found.
+ */
+export const detectModelCatalogNamespace = (): Cypress.Chainable<string | null> => {
+  Cypress.log({
+    name: 'detectModelCatalogNamespace',
+    message: 'Detecting deployment namespace...',
+  });
+  return cy
+    .exec(
+      'oc get deployments --all-namespaces -o json | jq -r \'.items[] | select(.metadata.name=="model-catalog") | .metadata.namespace\' | head -n1',
+      {
+        failOnNonZeroExit: false,
+      },
+    )
+    .then((result: Cypress.Exec) => {
+      const foundNamespace = result.stdout.trim();
+      if (!foundNamespace || result.stderr) {
+        Cypress.log({
+          name: 'detectModelCatalogNamespace',
+          message: 'model-catalog deployment not found in any namespace',
+        });
+      } else {
+        Cypress.log({
+          name: 'detectModelCatalogNamespace',
+          message: `✓ Found in namespace: ${foundNamespace}`,
+        });
+      }
+      return cy.wrap(!foundNamespace || result.stderr ? null : foundNamespace);
+    });
+};
+
+/**
  * Wait for the model-catalog deployment to become Available.
  * The BFF resolves the model-catalog Kubernetes Service on every catalog API request,
  * so if the deployment is not ready all catalog endpoints return 404.
@@ -544,6 +578,31 @@ export const waitForValidatedModelCards = (
 
   cy.step(`Polling for validated model cards with performance data (max ${maxAttempts} attempts)`);
   return cy.then(() => checkForValidatedCards(1));
+};
+
+/**
+ * Check if performance/benchmark data is available on the cluster.
+ * Waits for cards to load and checks if any validated models have performance metrics.
+ * @param maxWaitMs Maximum time to wait for performance data to appear (default: 15000ms)
+ * @returns A Cypress chainable that resolves with the count of validated cards with performance data.
+ */
+export const checkPerformanceDataAvailable = (maxWaitMs = 15000): Cypress.Chainable<number> => {
+  cy.log('Checking for validated models with performance data...');
+
+  // Use a retry mechanism with Cypress's built-in waiting
+  return cy.get('body', { timeout: maxWaitMs }).then(($body) => {
+    const count = $body.find(
+      '[data-testid="model-catalog-card"]:has([data-testid="validated-model-hardware"])',
+    ).length;
+
+    if (count > 0) {
+      cy.log(`Found ${count} validated model card(s) with performance data`);
+    } else {
+      cy.log('No validated models with performance data found');
+    }
+
+    return count;
+  });
 };
 
 /**

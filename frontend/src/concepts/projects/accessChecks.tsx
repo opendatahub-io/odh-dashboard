@@ -50,6 +50,20 @@ export const useProjectPermissionsTabVisible = (
     shouldRunCheck,
   );
 
+export const useProjectRolesTabVisible = (
+  projectName: string,
+  shouldRunCheck?: boolean,
+): ReturnType<typeof useAccessReview> =>
+  useAccessReview(
+    {
+      group: 'rbac.authorization.k8s.io',
+      resource: 'roles',
+      namespace: projectName,
+      verb: 'list',
+    },
+    shouldRunCheck,
+  );
+
 // TODO: expand this out to meet future needs
 export const useProjectSettingsTabVisible = (): boolean =>
   useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;

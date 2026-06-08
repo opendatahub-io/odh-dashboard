@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { useParams } from 'react-router';
 import PipelineTopology from '~/app/topology/PipelineTopology';
-import { useAutoRAGTaskTopology } from '~/app/topology/useAutoRAGTaskTopology';
+import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
@@ -36,7 +36,7 @@ function AutoragResults(): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
-  const nodes = useAutoRAGTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
+  const nodes = useAutoragTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);
