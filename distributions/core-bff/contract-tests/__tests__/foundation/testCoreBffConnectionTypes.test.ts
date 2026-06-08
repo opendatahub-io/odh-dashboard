@@ -103,8 +103,57 @@ describe('Core BFF Connection Types', () => {
       );
     });
 
+    it('should return 401 for non-admin on PATCH', async () => {
+      expectError(
+        await restrictedClient.patch('/api/connection-types/test', [
+          { op: 'replace', path: '/data/key', value: 'val' },
+        ]),
+        401,
+      );
+    });
+
     it('should return 401 for non-admin on DELETE', async () => {
       expectError(await restrictedClient.delete('/api/connection-types/test'), 401);
+    });
+  });
+
+  describe('Patch Paths', () => {
+    const ctName = 'contract-test-ct-patch';
+
+    afterAll(async () => {
+      await apiClient.delete(`/api/connection-types/${ctName}`);
+    });
+
+    it('should patch a connection type with valid JSON patch', async () => {
+      await apiClient.post('/api/connection-types', {
+        metadata: {
+          name: ctName,
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+            'opendatahub.io/connection-type': 'true',
+          },
+        },
+        data: { key: 'original' },
+      });
+
+      const result = await apiClient.patch(`/api/connection-types/${ctName}`, [
+        { op: 'replace', path: '/data/key', value: 'patched' },
+      ]);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/schemas/MutationResponse',
+        status: 200,
+      });
+      const { response } = expectSuccess(result);
+      expect((response.data as { success: boolean }).success).toBe(true);
+    });
+
+    it('should return 401 when no auth token is provided', async () => {
+      expectError(
+        await unauthenticatedClient.patch(`/api/connection-types/${ctName}`, [
+          { op: 'replace', path: '/data/key', value: 'val' },
+        ]),
+        401,
+      );
     });
   });
 });

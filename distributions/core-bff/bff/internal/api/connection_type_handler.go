@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -59,6 +60,11 @@ func (app *App) GetConnectionTypeHandler(w http.ResponseWriter, r *http.Request,
 
 // CreateConnectionTypeHandler creates a connection-type ConfigMap.
 func (app *App) CreateConnectionTypeHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	if err := app.validateCallerToken(r.Context()); err != nil {
+		app.unauthorizedResponse(w, r, err)
+		return
+	}
+
 	var cm corev1.ConfigMap
 	if err := app.ReadJSON(w, r, &cm); err != nil {
 		app.badRequestResponse(w, r, err)
@@ -78,6 +84,11 @@ func (app *App) CreateConnectionTypeHandler(w http.ResponseWriter, r *http.Reque
 
 // UpdateConnectionTypeHandler replaces a connection-type ConfigMap.
 func (app *App) UpdateConnectionTypeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	if err := app.validateCallerToken(r.Context()); err != nil {
+		app.unauthorizedResponse(w, r, err)
+		return
+	}
+
 	name := ps.ByName("name")
 
 	var cm corev1.ConfigMap
@@ -99,12 +110,22 @@ func (app *App) UpdateConnectionTypeHandler(w http.ResponseWriter, r *http.Reque
 
 // PatchConnectionTypeHandler partially updates a connection-type ConfigMap.
 func (app *App) PatchConnectionTypeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	if err := app.validateCallerToken(r.Context()); err != nil {
+		app.unauthorizedResponse(w, r, err)
+		return
+	}
+
 	name := ps.ByName("name")
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1_048_576)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("failed to read request body: %w", err))
+		return
+	}
+
+	if !json.Valid(body) {
+		app.badRequestResponse(w, r, fmt.Errorf("body contains badly-formed JSON"))
 		return
 	}
 
@@ -119,6 +140,11 @@ func (app *App) PatchConnectionTypeHandler(w http.ResponseWriter, r *http.Reques
 
 // DeleteConnectionTypeHandler deletes a connection-type ConfigMap.
 func (app *App) DeleteConnectionTypeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	if err := app.validateCallerToken(r.Context()); err != nil {
+		app.unauthorizedResponse(w, r, err)
+		return
+	}
+
 	name := ps.ByName("name")
 
 	result, err := app.repositories.ConnectionType.Delete(r.Context(), app.config.Namespace, name)

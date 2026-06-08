@@ -102,6 +102,36 @@ describe('Core BFF Config Endpoints', () => {
     });
   });
 
+  describe('Config PATCH', () => {
+    it('should return 401 for non-admin on PATCH', async () => {
+      expectError(await restrictedClient.patch('/api/config', { spec: {} }), 401);
+    });
+
+    it('should return 401 when no auth token is provided', async () => {
+      expectError(await unauthenticatedClient.patch('/api/config', { spec: {} }), 401);
+    });
+  });
+
+  describe('DashboardConfig PATCH', () => {
+    it('should return 401 for non-admin on PATCH', async () => {
+      expectError(
+        await restrictedClient.patch('/api/dashboardConfig/opendatahub/odh-dashboard-config', [
+          { op: 'replace', path: '/spec/dashboardConfig/enablement', value: true },
+        ]),
+        401,
+      );
+    });
+
+    it('should return 401 when no auth token is provided', async () => {
+      expectError(
+        await unauthenticatedClient.patch('/api/dashboardConfig/opendatahub/odh-dashboard-config', [
+          { op: 'replace', path: '/spec/dashboardConfig/enablement', value: true },
+        ]),
+        401,
+      );
+    });
+  });
+
   describe('Cluster Settings Endpoint', () => {
     it('should return cluster settings', async () => {
       const result = await apiClient.get('/api/cluster-settings');

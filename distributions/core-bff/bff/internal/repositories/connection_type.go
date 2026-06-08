@@ -2,13 +2,14 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -97,30 +98,49 @@ func (r *ConnectionTypeRepository) Update(ctx context.Context, namespace, name s
 }
 
 func (r *ConnectionTypeRepository) Patch(ctx context.Context, namespace, name string, patchData []byte) (*models.MutationResponse, error) {
-	if err := r.validateExistingConnectionType(ctx, namespace, name); err != nil {
-		return err, nil
-	}
-
-	existing, getErr := r.saClientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
-	if getErr != nil {
-		return &models.MutationResponse{Success: false, Error: fmt.Sprintf("failed to fetch baseline for revert: %v", getErr)}, nil
-	}
-
-	patched, patchErr := r.saClientset.CoreV1().ConfigMaps(namespace).Patch(ctx, name, types.JSONPatchType, patchData, metav1.PatchOptions{})
-	if patchErr != nil {
-		return &models.MutationResponse{Success: false, Error: patchErr.Error()}, nil
-	}
-
-	if !isConnectionTypeConfigMap(patched) {
-		errMsg := "patch would remove required connection-type labels"
-		existing.ResourceVersion = patched.ResourceVersion
-		if _, revertErr := r.saClientset.CoreV1().ConfigMaps(namespace).Update(ctx, existing, metav1.UpdateOptions{}); revertErr != nil {
-			errMsg = fmt.Sprintf("%s (revert failed: %v)", errMsg, revertErr)
-		}
+	existing, err := r.saClientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
 		return &models.MutationResponse{
 			Success: false,
-			Error:   errMsg,
+			Error:   fmt.Sprintf("unable to find connection type %q: %v", name, err),
 		}, nil
+	}
+	if !isConnectionTypeConfigMap(existing) {
+		return &models.MutationResponse{
+			Success: false,
+			Error:   fmt.Sprintf("unable to update connection type, object %q is not a connection type", name),
+		}, nil
+	}
+
+	originalBytes, marshalErr := json.Marshal(existing)
+	if marshalErr != nil {
+		return nil, fmt.Errorf("failed to marshal existing configmap: %w", marshalErr)
+	}
+
+	patch, decodeErr := jsonpatch.DecodePatch(patchData)
+	if decodeErr != nil {
+		return &models.MutationResponse{Success: false, Error: fmt.Sprintf("invalid JSON patch: %v", decodeErr)}, nil
+	}
+
+	modifiedBytes, applyErr := patch.Apply(originalBytes)
+	if applyErr != nil {
+		return &models.MutationResponse{Success: false, Error: fmt.Sprintf("failed to apply patch: %v", applyErr)}, nil
+	}
+
+	var modified corev1.ConfigMap
+	if unmarshalErr := json.Unmarshal(modifiedBytes, &modified); unmarshalErr != nil {
+		return &models.MutationResponse{Success: false, Error: fmt.Sprintf("patch produced invalid ConfigMap: %v", unmarshalErr)}, nil
+	}
+
+	if !isConnectionTypeConfigMap(&modified) {
+		return &models.MutationResponse{
+			Success: false,
+			Error:   "patch would remove required connection-type labels",
+		}, nil
+	}
+
+	if _, updateErr := r.saClientset.CoreV1().ConfigMaps(namespace).Update(ctx, &modified, metav1.UpdateOptions{}); updateErr != nil {
+		return &models.MutationResponse{Success: false, Error: updateErr.Error()}, nil
 	}
 
 	return &models.MutationResponse{Success: true, Error: ""}, nil
