@@ -227,8 +227,8 @@ func validateDSPAURL(rawURL string) error {
 		return fmt.Errorf("malformed URL: %w", err)
 	}
 
-	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return fmt.Errorf("unsupported scheme %q: must be http or https", parsed.Scheme)
+	if parsed.Scheme != "https" {
+		return fmt.Errorf("DSPA API URL must use HTTPS")
 	}
 
 	if parsed.User != nil {

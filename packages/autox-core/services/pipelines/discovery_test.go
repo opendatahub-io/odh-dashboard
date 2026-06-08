@@ -17,7 +17,7 @@ func TestValidateDSPAURL(t *testing.T) {
 		wantErr bool
 	}{
 		{"valid https", "https://ds-pipeline.example.svc:8443", false},
-		{"valid http", "http://ds-pipeline.my-ns.svc:8888", false},
+		{"http rejected", "http://ds-pipeline.my-ns.svc:8888", true},
 		{"unsupported scheme", "ftp://example.com", true},
 		{"no scheme", "example.com:8443", true},
 		{"credentials in URL", "https://user:pass@example.com", true},
