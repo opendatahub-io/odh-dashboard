@@ -91,6 +91,18 @@ class APIKeysPage {
     return cy.findByRole('menuitem', { name: new RegExp(status, 'i') });
   }
 
+  findSubscriptionFilterToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-key-subscription-filter-toggle');
+  }
+
+  findSubscriptionFilterOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`subscription-filter-option-${name}`);
+  }
+
+  findAllSubscriptionsOption(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-filter-option-all');
+  }
+
   findStatusFilterOptionCheckbox(status: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findStatusFilterOption(status).findByRole('checkbox');
   }
@@ -180,8 +192,8 @@ class APIKeyTableRow extends TableRow {
     return this.find().find('[data-label="Subscription"]');
   }
 
-  findSubscriptionPopoverButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findSubscription().findByTestId('subscription-popover-button');
+  findSubscriptionDetailLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSubscription().findByTestId('subscription-detail-link');
   }
 
   findCreationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
