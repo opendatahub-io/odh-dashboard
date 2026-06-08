@@ -242,14 +242,14 @@ func TestClient_ListPipelines(t *testing.T) {
 		defer ts.Close()
 
 		resp, err := c.ListPipelines(context.Background(), ts.URL, "")
-		if err != nil {
-			t.Fatal(err)
+		if err == nil {
+			t.Fatal("expected error when pagination cap is exceeded")
+		}
+		if resp != nil {
+			t.Fatalf("expected nil response on pagination cap error, got %+v", resp)
 		}
 		if pageHits != int32(maxPaginationPages) {
 			t.Errorf("expected %d page requests (cap), got %d", maxPaginationPages, pageHits)
-		}
-		if len(resp.Pipelines) != int(maxPaginationPages) {
-			t.Errorf("expected %d pipelines, got %d", maxPaginationPages, len(resp.Pipelines))
 		}
 	})
 }
