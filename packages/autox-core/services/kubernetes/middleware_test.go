@@ -45,47 +45,6 @@ func TestInjectRequestIdentity(t *testing.T) {
 		}
 	})
 
-	t.Run("skips configured paths", func(t *testing.T) {
-		extractor := &stubExtractor{err: fmt.Errorf("should not be called")}
-		called := false
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			called = true
-		})
-
-		mw := InjectRequestIdentity(InjectRequestIdentityConfig{
-			Extractor: extractor,
-			SkipPaths: []string{"/healthcheck", "/static"},
-		})
-
-		for _, p := range []string{"/healthcheck", "/healthcheck/deep", "/static/file.js"} {
-			called = false
-			req := httptest.NewRequest("GET", p, nil)
-			rr := httptest.NewRecorder()
-			mw(handler).ServeHTTP(rr, req)
-			if !called {
-				t.Errorf("handler not called for skip path %q", p)
-			}
-		}
-	})
-
-	t.Run("cleans path to prevent traversal", func(t *testing.T) {
-		extractor := &stubExtractor{err: fmt.Errorf("should not be called")}
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-
-		mw := InjectRequestIdentity(InjectRequestIdentityConfig{
-			Extractor: extractor,
-			SkipPaths: []string{"/healthcheck"},
-		})
-
-		req := httptest.NewRequest("GET", "/./healthcheck", nil)
-		rr := httptest.NewRecorder()
-		mw(handler).ServeHTTP(rr, req)
-
-		if rr.Code != http.StatusOK {
-			t.Errorf("expected 200 for cleaned path, got %d", rr.Code)
-		}
-	})
-
 	t.Run("default error handler returns 400", func(t *testing.T) {
 		extractor := &stubExtractor{err: fmt.Errorf("bad header")}
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

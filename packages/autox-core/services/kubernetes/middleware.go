@@ -3,17 +3,12 @@ package kubernetes
 import (
 	"context"
 	"net/http"
-	"path"
-	"strings"
 )
 
 // InjectRequestIdentityConfig configures the identity injection middleware
 type InjectRequestIdentityConfig struct {
 	// Extractor extracts identity from HTTP headers
 	Extractor IdentityExtractor
-	// SkipPaths are URL path prefixes that should skip identity extraction
-	// Example: []string{"/healthcheck", "/static"}
-	SkipPaths []string
 	// OnError is called when identity extraction fails (optional)
 	// If nil, a default 400 Bad Request response is returned
 	OnError func(w http.ResponseWriter, r *http.Request, err error)
@@ -32,23 +27,12 @@ type InjectRequestIdentityConfig struct {
 //
 //	middleware := corek8s.InjectRequestIdentity(corek8s.InjectRequestIdentityConfig{
 //	    Extractor: identityExtractor,
-//	    SkipPaths: []string{"/healthcheck"},
 //	    OnError: app.badRequestResponse,
 //	})
 //	router.Use(middleware)
 func InjectRequestIdentity(cfg InjectRequestIdentityConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Clean the path to prevent traversal attacks (e.g., /./healthcheck, //healthcheck)
-			cleanPath := path.Clean(r.URL.Path)
-			// Check if path should be skipped
-			for _, prefix := range cfg.SkipPaths {
-				if strings.HasPrefix(cleanPath, prefix) {
-					next.ServeHTTP(w, r)
-					return
-				}
-			}
-
 			// Extract identity from headers
 			identity, err := cfg.Extractor.Extract(r.Header)
 			if err != nil {
