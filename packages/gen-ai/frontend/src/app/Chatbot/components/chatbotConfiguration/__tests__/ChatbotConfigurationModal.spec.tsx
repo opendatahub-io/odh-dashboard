@@ -830,22 +830,4 @@ describe('ChatbotConfigurationModal tracing configuration', () => {
     });
   });
 
-  it('pre-populates toggle from lsdStatus in update mode', () => {
-    (useTracingEnabled as jest.Mock).mockReturnValue(true);
-    const lsdStatus: LlamaStackDistributionModel = {
-      name: 'test-lsd',
-      phase: 'Ready',
-      version: 'v1',
-      enableTracing: true,
-      distributionConfig: {
-        activeDistribution: 'test',
-        providers: [],
-        availableDistributions: {},
-      },
-    };
-    renderModalWithContext({ allModels, lsdStatus });
-
-    const toggle = screen.getByTestId('enable-tracing-switch');
-    expect(toggle).toBeChecked();
-  });
 });

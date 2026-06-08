@@ -289,7 +289,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const [configuringPlayground, setConfiguringPlayground] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [alertTitle, setAlertTitle] = React.useState<string>();
-  const [enableTracing, setEnableTracing] = React.useState(lsdStatus?.enableTracing ?? false);
+  const [enableTracing, setEnableTracing] = React.useState(false);
 
   const isUpdate = !!lsdStatus;
 

@@ -332,7 +332,6 @@ export type LlamaStackDistributionModel = {
   name: string;
   phase: 'Initializing' | 'Ready' | 'Failed' | 'Terminating' | 'Pending';
   version: string;
-  enableTracing?: boolean;
   distributionConfig: {
     activeDistribution: string;
     providers: Array<{
