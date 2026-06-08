@@ -11,6 +11,13 @@ describe('Configure Schema', () => {
     it('should allow remote Milvus and PGVector provider types', () => {
       expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).toEqual(['remote::milvus', 'remote::pgvector']);
     });
+
+    it('should include remote::pgvector and exclude unsupported types', () => {
+      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).toContain('remote::pgvector');
+      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).toContain('remote::milvus');
+      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).not.toContain('inline::bm25');
+      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).not.toContain('remote::unsupported');
+    });
   });
 
   describe('Default values', () => {

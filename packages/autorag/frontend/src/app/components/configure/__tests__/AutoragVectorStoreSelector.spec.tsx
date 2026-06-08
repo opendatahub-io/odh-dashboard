@@ -119,6 +119,54 @@ describe('AutoragVectorStoreSelector', () => {
     );
   });
 
+  it('should render and allow selection when pgvector is the only provider', async () => {
+    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+      data: mockVectorStoreProvidersResponse([
+        { provider_id: 'pgvector', provider_type: 'remote::pgvector' }, // eslint-disable-line camelcase
+      ]),
+      isLoading: false,
+    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+
+    let formValues: unknown;
+    renderWithProviders(<AutoragVectorStoreSelector />, {
+      onFormChange: (values: unknown) => {
+        formValues = values;
+      },
+    });
+
+    const toggle = screen.getByTestId('vector-store-select-toggle');
+    expect(toggle).not.toBeDisabled();
+
+    fireEvent.click(toggle);
+    expect(screen.getByTestId('vector-store-option-pgvector')).toBeInTheDocument();
+    expect(screen.queryByTestId('vector-store-option-milvus')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('pgvector (remote Pgvector)'));
+
+    await waitFor(() => {
+      expect(formValues).toMatchObject({
+        vector_io_provider_id: 'pgvector', // eslint-disable-line camelcase
+      });
+    });
+  });
+
+  it('should exclude unsupported provider types from the dropdown', () => {
+    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+      data: mockVectorStoreProvidersResponse([
+        { provider_id: 'milvus', provider_type: 'remote::milvus' }, // eslint-disable-line camelcase
+        { provider_id: 'pgvector', provider_type: 'remote::pgvector' }, // eslint-disable-line camelcase
+      ]),
+      isLoading: false,
+    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+
+    renderWithProviders(<AutoragVectorStoreSelector />);
+    fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
+
+    expect(screen.getByTestId('vector-store-option-milvus')).toBeInTheDocument();
+    expect(screen.getByTestId('vector-store-option-pgvector')).toBeInTheDocument();
+    expect(screen.queryByTestId('vector-store-option-unsupported')).not.toBeInTheDocument();
+  });
+
   it('should show only API providers in the dropdown', () => {
     renderWithProviders(<AutoragVectorStoreSelector />);
 
