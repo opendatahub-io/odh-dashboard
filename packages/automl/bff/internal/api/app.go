@@ -130,7 +130,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// Uses the BFF's own kubeconfig credentials (not per-request user tokens)
 	// since port-forwards are long-lived and shared across requests.
 	var pfManager *k8s.PortForwardManager
-	if cfg.DevMode && !cfg.MockK8Client {
+	if cfg.DevMode && !cfg.MockK8sClient {
 		restCfg, pfErr := helper.GetKubeconfig()
 		if pfErr != nil {
 			logger.Warn("could not initialize dynamic port-forwarding", "error", pfErr)
@@ -147,7 +147,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Create autox-core Kubernetes client and service.
 	var k8sClient kubernetes.Client
-	if cfg.MockK8Client {
+	if cfg.MockK8sClient {
 		k8sClient = &fake.K8sClient{}
 	} else {
 		if cfg.AuthMethod == config.AuthMethodUser {

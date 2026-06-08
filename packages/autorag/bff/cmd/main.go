@@ -24,7 +24,7 @@ func main() {
 	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 4000), "API server port")
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
-	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", getEnvAsBool("MOCK_K8_CLIENT", false), "Use mock Kubernetes client")
+	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockOGXClient, "mock-ogx-client", getEnvAsBool("MOCK_OGX_CLIENT", false), "Use mock Open GenAI Stack client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
@@ -80,11 +80,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// MockS3Client depends on MockK8Client since GetS3Credentials needs
+	// MockS3Client depends on MockK8sClient since GetS3Credentials needs
 	// a mock Kubernetes client to fetch secrets, and s3_handler.go depends on it
-	if cfg.MockS3Client && !cfg.MockK8Client {
+	if cfg.MockS3Client && !cfg.MockK8sClient {
 		logger.Error("mock-s3-client requires mock-k8s-client to be enabled (mock S3 depends on mock K8s for credential retrieval)",
-			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8Client)
+			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8sClient)
 		os.Exit(1)
 	}
 
