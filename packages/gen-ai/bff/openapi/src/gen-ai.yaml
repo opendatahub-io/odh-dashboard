@@ -399,6 +399,8 @@ paths:
           required: false
           schema:
             type: array
+            maxItems: 3
+            uniqueItems: true
             items:
               type: string
               enum:

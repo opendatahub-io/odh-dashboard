@@ -534,6 +534,9 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
+		// Ensure at least one custom_endpoint model is returned
+		assert.NotEmpty(t, response.Data, "Expected at least one custom_endpoint model")
+
 		// All models should be custom_endpoint models
 		for _, model := range response.Data {
 			assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
