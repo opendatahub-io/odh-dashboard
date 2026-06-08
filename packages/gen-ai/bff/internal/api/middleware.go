@@ -17,13 +17,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/rs/cors"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
