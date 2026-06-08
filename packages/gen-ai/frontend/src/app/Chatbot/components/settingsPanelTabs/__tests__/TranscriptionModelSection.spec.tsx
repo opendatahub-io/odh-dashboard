@@ -24,7 +24,7 @@ const mockAsrModel = {
   version: '1',
   usecase: 'asr',
   description: '',
-  endpoints: ['http://whisper:8080'],
+  endpoints: ['http://whisper:80'],
   status: 'Running',
   sa_token: { name: '', token_name: '', token: '' },
 } as AIModel;
@@ -40,7 +40,7 @@ const mockAsrModel2 = {
   version: '1',
   usecase: 'asr',
   description: '',
-  endpoints: ['http://whisper-small:8080'],
+  endpoints: ['http://whisper-small:80'],
   status: 'Running',
   sa_token: { name: '', token_name: '', token: '' },
 } as AIModel;

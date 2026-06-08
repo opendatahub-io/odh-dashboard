@@ -672,6 +672,7 @@ export const ERROR_COMPONENTS = {
   MODEL: 'model',
   OGX: 'ogx',
   BFF: 'bff',
+  ASR: 'asr',
 } as const;
 
 export type ErrorComponent = (typeof ERROR_COMPONENTS)[keyof typeof ERROR_COMPONENTS];
@@ -696,6 +697,7 @@ export const ERROR_COMPONENT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   [ERROR_COMPONENTS.MODEL]: 'Model',
   [ERROR_COMPONENTS.OGX]: 'OGX',
   [ERROR_COMPONENTS.BFF]: 'BFF',
+  [ERROR_COMPONENTS.ASR]: 'Audio Transcription',
 };
 
 export interface ErrorDetails {
