@@ -60,7 +60,17 @@ const initIntercepts = ({
   cy.interceptOdh('GET /api/status', mockStatus({ isAllowed: true, isAdmin: false }));
 
   cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
-    expect(req.body?.spec?.resourceAttributes).to.deep.include({
+    const attrs = req.body?.spec?.resourceAttributes;
+    if (attrs?.group !== 'monitoring.coreos.com') {
+      req.reply(
+        mockSelfSubjectAccessReview({
+          ...attrs,
+          allowed: true,
+        }),
+      );
+      return;
+    }
+    expect(attrs).to.deep.include({
       group: 'monitoring.coreos.com',
       resource: 'prometheuses',
       subresource: 'api',
