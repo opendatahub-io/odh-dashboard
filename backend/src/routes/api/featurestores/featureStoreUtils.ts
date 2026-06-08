@@ -37,13 +37,39 @@ export interface FeatureStoreCRD {
 
 export interface FeastProject {
   name?: string;
+  description?: string;
   spec?: {
     name?: string;
+    description?: string;
   };
 }
 
 export interface FeastProjectsResponse {
   projects?: FeastProject[];
+}
+
+export interface FeastIntegrationNotebook {
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: Record<string, string>;
+  };
+}
+
+export interface FeastPermission {
+  spec?: {
+    actions?: string[];
+  };
+}
+
+export interface FeastPermissionsResponse {
+  permissions?: FeastPermission[];
+}
+
+export interface ConnectedWorkbenchEntry {
+  workbenchName: string;
+  workbenchNamespace: string;
+  projectName: string;
 }
 
 export function handleError(fastify: KubeFastifyInstance, error: unknown, context: string): string {
@@ -140,6 +166,151 @@ export async function listFeastNamespaces(
     errorContext: 'Failed to list Feast namespaces for user',
   });
   return items.map((p) => p.metadata.name).filter(Boolean);
+}
+
+/**
+ * Lists all OpenShift projects accessible to the user (no label filter).
+ * Used to discover feast-integrated workbenches across namespaces the user can see.
+ */
+export async function listUserOpenShiftProjects(
+  fastify: KubeFastifyInstance,
+  kubeHeaders: Record<string, string>,
+): Promise<string[]> {
+  const items = await listCustomObjects<{ metadata: { name: string } }>(fastify, kubeHeaders, {
+    group: 'project.openshift.io',
+    version: 'v1',
+    plural: 'projects',
+    errorContext: 'Failed to list OpenShift projects for user',
+  });
+  return items.map((p) => p.metadata.name).filter(Boolean);
+}
+
+/**
+ * Lists Notebook CRs with `opendatahub.io/feast-integration=true` in a namespace.
+ * Returns [] on 403.
+ */
+export async function listFeastIntegrationNotebooks(
+  fastify: KubeFastifyInstance,
+  namespace: string,
+  kubeHeaders: Record<string, string>,
+): Promise<FeastIntegrationNotebook[]> {
+  return listCustomObjects<FeastIntegrationNotebook>(fastify, kubeHeaders, {
+    group: 'kubeflow.org',
+    version: 'v1',
+    plural: 'notebooks',
+    namespace,
+    labelSelector: 'opendatahub.io/feast-integration=true',
+    errorContext: `Failed to list feast-integrated notebooks in ${namespace}`,
+  });
+}
+
+/**
+ * Lists Feast projects from the registry for a FeatureStore CRD. Returns null on failure.
+ */
+export async function fetchFeastProjectsFromRegistry(
+  fastify: KubeFastifyInstance,
+  crd: FeatureStoreCRD,
+  token: string,
+): Promise<FeastProjectsResponse | null> {
+  try {
+    const { serviceName, namespace, protocol, port } = getServiceFromCRD(crd);
+    const registryUrl = constructRegistryProxyUrl(
+      serviceName,
+      namespace,
+      'api/v1/projects',
+      true,
+      protocol,
+      port,
+    );
+    const { data, statusCode } = await makeAuthenticatedHttpRequest<FeastProjectsResponse>(
+      fastify,
+      registryUrl,
+      token,
+      {},
+    );
+
+    if (statusCode < 200 || statusCode >= 300) {
+      throw new Error(`Registry returned ${statusCode}`);
+    }
+
+    return data;
+  } catch (error) {
+    fastify.log.info(
+      `Projects list for ${crd.metadata.namespace}/${crd.metadata.name}: unavailable ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+    return null;
+  }
+}
+
+/**
+ * Returns whether the user can see the Feast project and its description (one registry call).
+ */
+export async function getFeastProjectRegistryInfo(
+  fastify: KubeFastifyInstance,
+  crd: FeatureStoreCRD,
+  feastProjectName: string,
+  token: string,
+): Promise<{ hasAccess: boolean; description?: string }> {
+  const data = await fetchFeastProjectsFromRegistry(fastify, crd, token);
+  if (!data) {
+    return { hasAccess: false };
+  }
+
+  const project = (data.projects ?? []).find((p) => (p.spec?.name || p.name) === feastProjectName);
+  const rawDescription = project?.spec?.description ?? project?.description;
+  const description = rawDescription?.trim() || undefined;
+
+  return {
+    hasAccess: !!project,
+    description,
+  };
+}
+
+export function extractPermissionLevel(data: FeastPermissionsResponse): string[] {
+  const actions = new Set<string>();
+  for (const permission of data.permissions ?? []) {
+    for (const action of permission.spec?.actions ?? []) {
+      actions.add(action);
+    }
+  }
+  return [...actions];
+}
+
+/**
+ * Maps feast project name → workbenches that reference it via the feast-config annotation.
+ */
+export function buildWorkbenchesByFeastProjectMap(
+  notebooks: FeastIntegrationNotebook[],
+): Map<string, ConnectedWorkbenchEntry[]> {
+  const map = new Map<string, ConnectedWorkbenchEntry[]>();
+
+  for (const notebook of notebooks) {
+    const feastConfig = notebook.metadata.annotations?.['opendatahub.io/feast-config'];
+    if (!feastConfig) {
+      continue;
+    }
+
+    const workbenchNamespace = notebook.metadata.namespace;
+    const entry: ConnectedWorkbenchEntry = {
+      workbenchName: notebook.metadata.name,
+      workbenchNamespace,
+      projectName: workbenchNamespace,
+    };
+
+    feastConfig
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean)
+      .forEach((feastProjectName) => {
+        const existing = map.get(feastProjectName) ?? [];
+        existing.push(entry);
+        map.set(feastProjectName, existing);
+      });
+  }
+
+  return map;
 }
 
 /**
