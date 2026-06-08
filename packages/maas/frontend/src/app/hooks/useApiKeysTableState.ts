@@ -68,7 +68,15 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
       sort: { by: sortField, order: sortDirection },
       pagination: { limit: perPage, offset: (page - 1) * perPage },
     }),
-    [filterData.username, serverStatuses, filterData.subscription, sortField, sortDirection, page, perPage],
+    [
+      filterData.username,
+      serverStatuses,
+      filterData.subscription,
+      sortField,
+      sortDirection,
+      page,
+      perPage,
+    ],
   );
 
   const [rawResponse, loaded, error, refresh] = useFetchApiKeys(searchRequest);
