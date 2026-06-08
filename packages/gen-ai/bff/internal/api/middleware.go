@@ -17,6 +17,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
@@ -70,6 +72,12 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 
 			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helper.RequestLogValuer{Request: r}))
 		}
+
+		if sessionID := r.Header.Get("X-Session-ID"); sessionID != "" {
+			span := trace.SpanFromContext(ctx)
+			span.SetAttributes(attribute.String("session.id", sessionID))
+		}
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

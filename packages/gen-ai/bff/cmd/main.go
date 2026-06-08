@@ -15,6 +15,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/api"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/telemetry"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -108,6 +109,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	shutdownTracing, tracingErr := telemetry.Setup()
+	if tracingErr != nil {
+		logger.Error("failed to initialize OTel tracing", "error", tracingErr)
+	}
+
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      app.Routes(),
@@ -151,6 +157,13 @@ func main() {
 	// Shutdown the HTTP server gracefully
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("server shutdown failed", "error", err)
+	}
+
+	// Shutdown OTel tracing (flush remaining spans)
+	if shutdownTracing != nil {
+		if err := shutdownTracing(ctx); err != nil {
+			logger.Error("OTel tracing shutdown failed", "error", err)
+		}
 	}
 
 	// Shutdown the App gracefully
