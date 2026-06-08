@@ -83,3 +83,16 @@ export const extractNIMModelType = (): ModelTypeFieldData => ({
 });
 
 export const extractNIMModelServerTemplate = (): null => null;
+
+const AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
+
+export const isNIMAuthEnabled = (deployment?: NIMDeployment): boolean => {
+  if (!deployment) {
+    return false;
+  }
+  const annotation = deployment.model.spec.annotations?.[AUTH_ANNOTATION];
+  if (annotation !== undefined) {
+    return annotation !== 'false';
+  }
+  return false;
+};

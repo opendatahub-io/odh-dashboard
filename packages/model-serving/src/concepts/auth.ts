@@ -31,38 +31,15 @@ export const getTokenNames = (
   return { serviceAccountName, roleName, roleBindingName };
 };
 
-const AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
-
-const getSpecAnnotationValue = (model: Deployment['model'], key: string): string | undefined => {
-  if (!('spec' in model) || model.spec == null || typeof model.spec !== 'object') {
-    return undefined;
+export const isDeploymentAuthEnabled = (
+  deployment: Deployment,
+  platformAuthCheck?: (deployment: Deployment) => boolean,
+): boolean => {
+  if (platformAuthCheck) {
+    return platformAuthCheck(deployment);
   }
-  const { spec } = model;
-  if (
-    !('annotations' in spec) ||
-    spec.annotations == null ||
-    typeof spec.annotations !== 'object'
-  ) {
-    return undefined;
-  }
-  const value = Object.entries(spec.annotations).find(([k]) => k === key)?.[1];
-  return typeof value === 'string' ? value : undefined;
-};
-
-export const isDeploymentAuthEnabled = (deployment: Deployment): boolean => {
-  const modelAnno = deployment.model.metadata.annotations?.[AUTH_ANNOTATION];
-  if (modelAnno !== undefined) {
-    return modelAnno !== 'false';
-  }
-  const specAnno = getSpecAnnotationValue(deployment.model, AUTH_ANNOTATION);
-  if (specAnno !== undefined) {
-    return specAnno !== 'false';
-  }
-  const serverAnno = deployment.server?.metadata.annotations?.[AUTH_ANNOTATION];
-  if (serverAnno !== undefined) {
-    return serverAnno !== 'false';
-  }
-  return true;
+  const annotation = deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'];
+  return annotation !== 'false';
 };
 
 const useDeploymentSecrets = (

@@ -21,7 +21,7 @@ import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardw
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
-import { type Deployment } from '../../../../extension-points';
+import { type Deployment, isModelServingAuthExtension } from '../../../../extension-points';
 import {
   ExtractedFieldData,
   useWizardFieldExtractors,
@@ -92,7 +92,11 @@ const ModelSizeItem = ({ resources }: { resources?: ContainerResources }) => {
 };
 
 const TokenAuthenticationItem = ({ deployment }: { deployment: Deployment }) => {
-  const isAuthenticated = isDeploymentAuthEnabled(deployment);
+  const [authExtension] = useResolvedDeploymentExtension(isModelServingAuthExtension, deployment);
+  const isAuthenticated = isDeploymentAuthEnabled(
+    deployment,
+    authExtension?.properties.usePlatformAuthEnabled,
+  );
   const { data: deploymentSecrets, loaded, error } = useDeploymentAuthTokens(deployment);
 
   return (

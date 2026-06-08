@@ -4,6 +4,7 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 import type {
   DeployedModelServingDetails,
+  ModelServingAuthExtension,
   ModelServingExcludeDeploymentExtension,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingStartStopAction,
@@ -150,6 +151,7 @@ const extensions: (
   | DeployedModelServingDetails<NIMDeployment>
   | ModelServingExcludeDeploymentExtension
   | ModelServingStartStopAction<NIMDeployment>
+  | ModelServingAuthExtension<NIMDeployment>
   | ModelServingDeploy<NIMDeployment>
   | AssembleModelResourceExtension<NIMDeployment>
   | DeploymentWizardFieldOverrideExtension
@@ -288,6 +290,17 @@ const extensions: (
         import('./src/pages/deploymentWizard/extractNIMFormData').then(
           (m) => m.extractNIMModelServerTemplate,
         ),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.auth',
+    properties: {
+      platform: NIM_ID,
+      usePlatformAuthEnabled: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then((m) => m.isNIMAuthEnabled),
     },
     flags: {
       required: [SupportedArea.NIM_WIZARD],
