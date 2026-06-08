@@ -35,13 +35,16 @@ module.exports = merge(
   {
     mode: 'production',
     devtool: 'source-map',
+    output: {
+      filename: '[name].[contenthash].js',
+    },
     optimization: {
       minimize: true,
       minimizer: [new TerserJSPlugin(), new CssMinimizerPlugin()],
     },
     plugins: [
       new MiniCssExtractPlugin({
-        filename: '[name].css',
+        filename: '[name].[contenthash].css',
         ignoreOrder: true,
       }),
     ],
