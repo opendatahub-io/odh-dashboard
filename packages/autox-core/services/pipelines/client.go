@@ -335,15 +335,15 @@ func (c *client) ListPipelines(ctx context.Context, baseURL string, filter strin
 		totalSize = page.TotalSize
 
 		if page.NextPageToken == "" {
-			break
+			return &PipelinesResponse{
+				Pipelines: allPipelines,
+				TotalSize: totalSize,
+			}, nil
 		}
 		pageToken = page.NextPageToken
 	}
 
-	return &PipelinesResponse{
-		Pipelines: allPipelines,
-		TotalSize: totalSize,
-	}, nil
+	return nil, fmt.Errorf("pipeline listing exceeded maximum pagination pages (%d)", maxPaginationPages)
 }
 
 // GetPipelineVersion retrieves a pipeline version
