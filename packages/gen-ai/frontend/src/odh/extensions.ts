@@ -21,6 +21,7 @@ export const GEN_AI_STUDIO = 'genAiStudio';
 export const MODEL_AS_SERVICE = 'model-as-service';
 export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
 export const GUARDRAILS = 'guardrails';
+export const TRACING = 'tracing';
 export const PROMPT_MANAGEMENT = 'promptManagement';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
@@ -84,6 +85,14 @@ const extensions: (
       id: EXTERNAL_VECTOR_STORES,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [EXTERNAL_VECTOR_STORES],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: TRACING,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [TRACING],
     },
   },
   {
