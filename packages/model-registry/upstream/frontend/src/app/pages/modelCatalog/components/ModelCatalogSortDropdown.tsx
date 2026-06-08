@@ -18,10 +18,10 @@ type ModelCatalogSortDropdownProps = {
 const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
   performanceViewEnabled,
 }) => {
-  const { sortBy, setSortBy, filterData } = React.useContext(ModelCatalogContext);
+  const { sortBy, setSortBy, filters } = React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const activeLatencyField = getActiveLatencyFieldName(filterData);
+  const activeLatencyField = getActiveLatencyFieldName(filters);
   // Disable latency sort if performance view is disabled or there's no active latency field
   // Without an active latency field, sorting by latency would fallback to sorting by publish date
   const isLatencySortDisabled = !performanceViewEnabled || activeLatencyField === undefined;
