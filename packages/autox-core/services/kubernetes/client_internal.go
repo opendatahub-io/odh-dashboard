@@ -302,13 +302,12 @@ func NewSATokenTransportWrapper() (func(http.RoundTripper) http.RoundTripper, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to load kubernetes config for SA token transport: %w", err)
 	}
-	rt := &saTokenRoundTripper{
-		token:     cfg.BearerToken,
-		tokenFile: cfg.BearerTokenFile,
-	}
 	return func(base http.RoundTripper) http.RoundTripper {
-		rt.base = base
-		return rt
+		return &saTokenRoundTripper{
+			base:      base,
+			token:     cfg.BearerToken,
+			tokenFile: cfg.BearerTokenFile,
+		}
 	}, nil
 }
 
