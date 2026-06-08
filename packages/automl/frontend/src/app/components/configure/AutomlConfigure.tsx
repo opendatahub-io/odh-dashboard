@@ -271,8 +271,8 @@ function AutomlConfigure({
     notification,
   ]);
 
-  // Set eval_metric to the task-type default and re-validate top_n when task type changes
-  useEffect(() => {
+  // Set eval_metric to the task-type default and re-validate top_n when task type changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     if (isTaskTypeSelected) {
       setValue('eval_metric', DEFAULT_EVAL_METRIC_BY_TASK[taskType], { shouldValidate: true });
       void trigger('top_n');
@@ -1067,7 +1067,7 @@ function AutomlConfigure({
                             </CardHeader>
                             <CardBody>
                               <Content component="p" data-testid="optimization-metric-value">
-                                {formatMetricName(evalMetric || '')}
+                                {formatMetricName(evalMetric ?? '')}
                               </Content>
                             </CardBody>
                           </Card>

@@ -41,11 +41,11 @@ export const TASK_TYPE_MULTICLASS = 'multiclass';
 export const TASK_TYPE_REGRESSION = 'regression';
 export const TASK_TYPE_TIMESERIES = 'timeseries';
 
-export const AUTOML_OPTIMIZED_METRIC_BY_TASK = {
+export const DEFAULT_EVAL_METRIC_BY_TASK: Record<string, EvalMetric> = {
   [TASK_TYPE_BINARY]: 'accuracy',
   [TASK_TYPE_MULTICLASS]: 'accuracy',
   [TASK_TYPE_REGRESSION]: 'r2',
-  [TASK_TYPE_TIMESERIES]: 'mase',
+  [TASK_TYPE_TIMESERIES]: 'MASE',
 };
 
 // Configure constants
@@ -129,13 +129,6 @@ export const EVAL_METRICS_BY_TASK_TYPE: Partial<Record<string, readonly EvalMetr
   [TASK_TYPE_MULTICLASS]: EVAL_METRICS_CLASSIFICATION,
   [TASK_TYPE_REGRESSION]: EVAL_METRICS_REGRESSION,
   [TASK_TYPE_TIMESERIES]: EVAL_METRICS_TIMESERIES,
-};
-
-export const DEFAULT_EVAL_METRIC_BY_TASK: Record<string, EvalMetric> = {
-  [TASK_TYPE_BINARY]: 'accuracy',
-  [TASK_TYPE_MULTICLASS]: 'accuracy',
-  [TASK_TYPE_REGRESSION]: 'r2',
-  [TASK_TYPE_TIMESERIES]: 'MASE',
 };
 
 /* eslint-disable camelcase */

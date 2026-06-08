@@ -57,8 +57,19 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
 
-      cy.step('Verify optimization metric defaults to Accuracy');
-      automlConfigurePage.findOptimizationMetricValue().should('contain', 'Accuracy');
+      cy.step('Verify optimization metric defaults correctly');
+      automlConfigurePage
+        .findOptimizationMetricValue()
+        .should('contain', testData.defaultMetricLabel);
+
+      cy.step('Change optimization metric via modal');
+      automlConfigurePage.findOptimizationMetricEditButton().click();
+      automlConfigurePage.findOptimizationMetricModal().should('be.visible');
+      automlConfigurePage.findEvalMetricRadio(testData.changedMetricKey as string).click();
+      automlConfigurePage.findOptimizationMetricSaveButton().click();
+      automlConfigurePage
+        .findOptimizationMetricValue()
+        .should('contain', testData.changedMetricLabel);
 
       automlConfigurePage.submitRun();
     },

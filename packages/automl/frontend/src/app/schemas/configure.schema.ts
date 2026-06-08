@@ -16,8 +16,6 @@ export const MAX_TOP_N_TABULAR = 10;
 export const MAX_TOP_N_TIMESERIES = 7;
 export const MAX_PREDICTION_LENGTH = 100;
 
-export const EXPERIMENT_SETTINGS_FIELDS = ['top_n'] as const;
-
 const TABULAR_TASK_TYPES = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION] as const;
 export const TASK_TYPES = [...TABULAR_TASK_TYPES, TASK_TYPE_TIMESERIES] as const;
 

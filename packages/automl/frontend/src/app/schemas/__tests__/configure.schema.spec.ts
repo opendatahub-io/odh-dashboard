@@ -481,6 +481,10 @@ describe('createConfigureSchema', () => {
         eval_metric: 'r2',
       });
       expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('eval_metric');
+      }
     });
 
     it('should reject classification metric for regression task type', () => {
@@ -490,6 +494,10 @@ describe('createConfigureSchema', () => {
         eval_metric: 'accuracy',
       });
       expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('eval_metric');
+      }
     });
 
     it('should reject tabular metric for timeseries task type', () => {
@@ -502,6 +510,10 @@ describe('createConfigureSchema', () => {
         timestamp_column: 'ts_col',
       });
       expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('eval_metric');
+      }
     });
   });
 
