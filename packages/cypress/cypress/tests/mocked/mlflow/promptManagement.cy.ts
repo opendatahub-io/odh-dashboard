@@ -82,10 +82,12 @@ describe('Prompt Management page wrapper', () => {
         .should('contain', invalidWorkspace);
     });
 
-    it('should show unavailable state when MLflow is not configured', () => {
+    it('should show admin not-configured empty state when MLflow is not configured', () => {
       initIntercepts({ mlflowConfigured: false });
       promptManagement.visit(PROJECT_A);
-      promptManagement.findMlflowUnavailableState().should('be.visible');
+      promptManagement.findNotConfiguredAdminEmptyState().should('be.visible');
+      promptManagement.findNotConfiguredEmptyState().should('not.exist');
+      promptManagement.findMlflowUnavailableState().should('not.exist');
     });
 
     it('should hide nav item when genAiStudio feature flag is disabled', () => {

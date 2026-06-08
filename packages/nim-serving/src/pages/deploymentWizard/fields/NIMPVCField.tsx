@@ -32,14 +32,12 @@ export enum NIMPVCStorageMode {
 export type NIMPVCFieldValue = {
   storageMode: NIMPVCStorageMode;
   pvcName: string;
-  modelPath: string;
   subPath: string;
   storageClassName: string;
   storageSizeGi: number;
 };
 
-const DEFAULT_MODEL_PATH = '/model-store';
-const DEFAULT_SUBPATH = '/';
+const DEFAULT_SUBPATH = '';
 const DEFAULT_STORAGE_SIZE_GI = 50;
 const MIN_STORAGE_SIZE_GI = 1;
 
@@ -47,7 +45,6 @@ const nimPVCFieldSchema = z
   .object({
     storageMode: z.nativeEnum(NIMPVCStorageMode),
     pvcName: z.string().min(1, 'Cluster storage name is required'),
-    modelPath: z.string().min(1, 'Model path is required'),
     subPath: z.string(),
     storageClassName: z.string(),
     storageSizeGi: z.number().min(MIN_STORAGE_SIZE_GI, 'Storage size must be at least 1 GiB'),
@@ -71,26 +68,37 @@ type StorageClassOption = {
   displayName: string;
 };
 
+type ExistingPVCOption = {
+  name: string;
+  subPath?: string;
+};
+
 type NIMPVCExternalData = {
   storageClasses: StorageClassOption[];
   defaultStorageClassName: string;
-  existingPVCs: string[];
+  existingPVCs: ExistingPVCOption[];
 };
 
 export const NIM_PVC_ANNOTATION = 'dashboard.opendatahub.io/nim-pvc';
+export const NIM_PVC_SUBPATH_ANNOTATION = 'dashboard.opendatahub.io/nim-subpath';
 
 const isNIMPVC = (pvc: PersistentVolumeClaimKind): boolean =>
   pvc.metadata.annotations?.[NIM_PVC_ANNOTATION] === 'true';
 
-const sortPVCsNIMFirst = (pvcs: PersistentVolumeClaimKind[]): string[] => {
-  const nimPVCs: string[] = [];
-  const otherPVCs: string[] = [];
+const toPVCOption = (pvc: PersistentVolumeClaimKind): ExistingPVCOption => ({
+  name: pvc.metadata.name,
+  subPath: pvc.metadata.annotations?.[NIM_PVC_SUBPATH_ANNOTATION],
+});
+
+const sortPVCsNIMFirst = (pvcs: PersistentVolumeClaimKind[]): ExistingPVCOption[] => {
+  const nimPVCs: ExistingPVCOption[] = [];
+  const otherPVCs: ExistingPVCOption[] = [];
 
   for (const pvc of pvcs) {
     if (isNIMPVC(pvc)) {
-      nimPVCs.push(pvc.metadata.name);
+      nimPVCs.push(toPVCOption(pvc));
     } else {
-      otherPVCs.push(pvc.metadata.name);
+      otherPVCs.push(toPVCOption(pvc));
     }
   }
 
@@ -99,7 +107,7 @@ const sortPVCsNIMFirst = (pvcs: PersistentVolumeClaimKind[]): string[] => {
 
 type FetchedStorageData = {
   storageClasses: StorageClassOption[];
-  existingPVCs: string[];
+  existingPVCs: ExistingPVCOption[];
 };
 
 const DEFAULT_FETCHED_DATA: FetchedStorageData = { storageClasses: [], existingPVCs: [] };
@@ -161,7 +169,6 @@ const useNIMPVCExternalData = (dependencies?: {
 const getDefaultFieldValue = (): NIMPVCFieldValue => ({
   storageMode: NIMPVCStorageMode.NEW,
   pvcName: '',
-  modelPath: DEFAULT_MODEL_PATH,
   subPath: DEFAULT_SUBPATH,
   storageClassName: '',
   storageSizeGi: DEFAULT_STORAGE_SIZE_GI,
@@ -174,57 +181,35 @@ type NIMPVCFieldComponentProps = {
   isDisabled?: boolean;
 };
 
-type ModelPathFieldsProps = {
-  modelPath: string;
+type SubPathFieldProps = {
   subPath: string;
-  onModelPathChange: (val: string) => void;
   onSubPathChange: (val: string) => void;
   isDisabled?: boolean;
   idSuffix?: string;
 };
 
-const ModelPathFields: React.FC<ModelPathFieldsProps> = ({
-  modelPath,
+const SubPathField: React.FC<SubPathFieldProps> = ({
   subPath,
-  onModelPathChange,
   onSubPathChange,
   isDisabled,
   idSuffix = '',
 }) => (
-  <>
-    <FormGroup label="Model path" fieldId={`nim-model-path${idSuffix}`} isRequired>
-      <TextInput
-        id={`nim-model-path${idSuffix}`}
-        data-testid={`nim-model-path${idSuffix}-input`}
-        value={modelPath}
-        onChange={(_event, val) => onModelPathChange(val)}
-        placeholder={DEFAULT_MODEL_PATH}
-        isDisabled={isDisabled}
-      />
-      <HelperText>
-        <HelperTextItem>
-          Path within the container where model files will be mounted.
-        </HelperTextItem>
-      </HelperText>
-    </FormGroup>
-
-    <FormGroup label="Subpath" fieldId={`nim-subpath${idSuffix}`}>
-      <TextInput
-        id={`nim-subpath${idSuffix}`}
-        data-testid={`nim-subpath${idSuffix}-input`}
-        value={subPath}
-        onChange={(_event, val) => onSubPathChange(val)}
-        placeholder="/"
-        isDisabled={isDisabled}
-      />
-      <HelperText>
-        <HelperTextItem>
-          Optional: Subdirectory within the PVC. Use this if you have multiple models stored in the
-          same PVC. Leave blank to use the root of the PVC.
-        </HelperTextItem>
-      </HelperText>
-    </FormGroup>
-  </>
+  <FormGroup label="Subpath" fieldId={`nim-subpath${idSuffix}`}>
+    <TextInput
+      id={`nim-subpath${idSuffix}`}
+      data-testid={`nim-subpath${idSuffix}-input`}
+      value={subPath}
+      onChange={(_event, val) => onSubPathChange(val)}
+      placeholder="/"
+      isDisabled={isDisabled}
+    />
+    <HelperText>
+      <HelperTextItem>
+        Optional: Subdirectory within the PVC. Use this if you have multiple models stored in the
+        same PVC. Leave blank to use the root of the PVC.
+      </HelperTextItem>
+    </HelperText>
+  </FormGroup>
 );
 
 const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
@@ -244,8 +229,16 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
 
   const storageClasses = externalData?.data.storageClasses ?? [];
   const defaultStorageClassName = externalData?.data.defaultStorageClassName ?? '';
-  const existingPVCs = externalData?.data.existingPVCs ?? [];
+  const existingPVCs = React.useMemo(
+    () => externalData?.data.existingPVCs ?? [],
+    [externalData?.data.existingPVCs],
+  );
   const hasExistingPVCs = existingPVCs.length > 0;
+
+  const existingPVCMap = React.useMemo(
+    () => new Map(existingPVCs.map((pvc) => [pvc.name, pvc])),
+    [existingPVCs],
+  );
 
   if (!externalData || !externalData.loaded) {
     return (
@@ -276,8 +269,8 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
   }));
 
   const existingPVCOptions: SimpleSelectOption[] = existingPVCs.map((pvc) => ({
-    key: pvc,
-    label: pvc,
+    key: pvc.name,
+    label: pvc.name,
   }));
 
   return (
@@ -295,6 +288,7 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
             updateField({
               storageMode: mode,
               pvcName: '',
+              subPath: DEFAULT_SUBPATH,
               storageClassName:
                 mode === NIMPVCStorageMode.NEW
                   ? defaultStorageClassName || storageClasses[0]?.name || ''
@@ -331,10 +325,8 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
             </HelperText>
           </FormGroup>
 
-          <ModelPathFields
-            modelPath={fieldValue.modelPath}
+          <SubPathField
             subPath={fieldValue.subPath}
-            onModelPathChange={(val) => updateField({ modelPath: val })}
             onSubPathChange={(val) => updateField({ subPath: val })}
             isDisabled={isDisabled}
           />
@@ -380,17 +372,21 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
               dataTestId="nim-existing-pvc-select"
               options={existingPVCOptions}
               value={fieldValue.pvcName}
-              onChange={(val) => updateField({ pvcName: val })}
+              onChange={(val) => {
+                const selectedPVC = existingPVCMap.get(val);
+                updateField({
+                  pvcName: val,
+                  subPath: selectedPVC?.subPath ?? DEFAULT_SUBPATH,
+                });
+              }}
               isDisabled={isDisabled}
               isFullWidth
               placeholder="Select..."
             />
           </FormGroup>
 
-          <ModelPathFields
-            modelPath={fieldValue.modelPath}
+          <SubPathField
             subPath={fieldValue.subPath}
-            onModelPathChange={(val) => updateField({ modelPath: val })}
             onSubPathChange={(val) => updateField({ subPath: val })}
             isDisabled={isDisabled}
             idSuffix="-existing"
@@ -440,16 +436,11 @@ export const NIMPVCFieldWizardField: NIMPVCFieldType = {
           value: () => value.pvcName || '-',
         },
         {
-          key: 'modelPath',
-          label: 'Model path',
-          value: () => value.modelPath || '-',
-        },
-        {
           key: 'subPath',
           label: 'Subpath',
           value: () => value.subPath || '-',
           optional: true,
-          isVisible: () => !!value.subPath && value.subPath !== '/',
+          isVisible: () => !!value.subPath,
         },
         {
           key: 'storageClass',

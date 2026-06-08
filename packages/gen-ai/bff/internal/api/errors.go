@@ -47,14 +47,37 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 }
 
 func (app *App) guardrailViolationResponse(w http.ResponseWriter, r *http.Request, code string, msg string) {
-	httpError := &integrations.HTTPError{
+	frontendErr := &integrations.FrontendErrorResponse{
 		StatusCode: http.StatusBadRequest,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    code,
-			Message: msg,
+		Error: &integrations.ErrorDetail{
+			Component: "guardrails",
+			Code:      code,
+			Message:   msg,
+			Retriable: false,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {
+		app.LogError(r, writeErr)
+		w.WriteHeader(frontendErr.StatusCode)
+	}
+}
+
+func (app *App) guardrailServiceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.LogError(r, err)
+
+	frontendErr := &integrations.FrontendErrorResponse{
+		StatusCode: http.StatusServiceUnavailable,
+		Error: &integrations.ErrorDetail{
+			Component: "guardrails",
+			Code:      constants.GuardrailServiceUnavailableCode,
+			Message:   err.Error(),
+			Retriable: false,
+		},
+	}
+	if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {
+		app.LogError(r, writeErr)
+		w.WriteHeader(frontendErr.StatusCode)
+	}
 }
 
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {

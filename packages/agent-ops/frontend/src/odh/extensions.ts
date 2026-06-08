@@ -1,4 +1,3 @@
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   NavExtension,
   RouteExtension,
@@ -6,18 +5,20 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 import { agentDeploymentsPath, globAgentOpsAll } from '~/app/utilities/routes';
 
+const AGENT_OPS = 'agent-ops';
+
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.area',
     properties: {
-      id: SupportedArea.AGENT_OPS,
+      id: AGENT_OPS,
       featureFlags: ['agentOps'],
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.AGENT_OPS],
+      required: [AGENT_OPS],
     },
     properties: {
       id: 'agent-ops-deployments',
@@ -31,7 +32,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.AGENT_OPS],
+      required: [AGENT_OPS],
     },
     properties: {
       path: globAgentOpsAll,
