@@ -1,5 +1,6 @@
 import React from 'react';
 import { PageSection, Wizard, WizardStep } from '@patternfly/react-core';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
@@ -207,7 +208,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             <WizardStep
               name={WizardStepTitle.MODEL_DEPLOYMENT}
               id="model-deployment-step"
-              isDisabled={!validation.isModelSourceStepValid}
+              isDisabled={!validation.isPreconfigureStepValid || !validation.isModelSourceStepValid}
             >
               <ModelDeploymentStepContent
                 projectName={currentProjectName}
@@ -220,7 +221,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               name={WizardStepTitle.ADVANCED_SETTINGS}
               id="advanced-options-step"
               isDisabled={
-                !validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid
+                !validation.isPreconfigureStepValid ||
+                !validation.isModelSourceStepValid ||
+                !validation.isModelDeploymentStepValid
               }
             >
               <AdvancedSettingsStepContent
@@ -233,6 +236,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               name={WizardStepTitle.REVIEW}
               id="summary-step"
               isDisabled={
+                !validation.isPreconfigureStepValid ||
                 !validation.isModelSourceStepValid ||
                 !validation.isModelDeploymentStepValid ||
                 !validation.isAdvancedSettingsStepValid
