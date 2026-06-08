@@ -95,6 +95,8 @@ interface UseChatbotMessagesProps {
   guardrailsConfig?: GuardrailsConfig;
   // MaaS subscription name for API key generation
   subscription?: string;
+  // Tracing
+  isTracingEnabled?: boolean;
   // Compare-mode analytics
   configIndex?: number;
   isCompareMode?: boolean;
@@ -121,6 +123,7 @@ const useChatbotMessages = ({
   namespace,
   guardrailsConfig,
   subscription,
+  isTracingEnabled,
   configIndex,
   isCompareMode,
   isGuardrailEnabled,
@@ -154,6 +157,7 @@ const useChatbotMessages = ({
   const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
     new Map(),
   );
+  const sessionIdRef = React.useRef<string>(getId());
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
 
@@ -478,6 +482,10 @@ const useChatbotMessages = ({
       // Create abort controller for this request (works for both streaming and non-streaming)
       abortControllerRef.current = new AbortController();
 
+      const tracingHeaders: Record<string, string> = isTracingEnabled
+        ? { 'X-Session-ID': sessionIdRef.current }
+        : {};
+
       if (isStreamingEnabled) {
         // Handle streaming response with line-by-line display like ChatGPT
         const completeLines: string[] = [];
@@ -551,6 +559,7 @@ const useChatbotMessages = ({
 
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          headers: tracingHeaders,
           onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => {
             if (clearPrevious) {
               completeLines.length = 0;
@@ -689,6 +698,7 @@ const useChatbotMessages = ({
         // Handle non-streaming response
         const response = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          headers: tracingHeaders,
         });
 
         const toolResponse = response.toolCallData

@@ -22,6 +22,8 @@ import (
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/rs/cors"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -70,6 +72,12 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 
 			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helper.RequestLogValuer{Request: r}))
 		}
+
+		if sessionID := r.Header.Get("X-Session-ID"); sessionID != "" {
+			span := trace.SpanFromContext(ctx)
+			span.SetAttributes(attribute.String("session.id", sessionID))
+		}
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

@@ -105,6 +105,7 @@ build: fmt vet test ## Builds the project to produce a binary executable.
 
 .PHONY: run
 run: fmt vet envtest uv ## Runs the project.
+	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	MOCK_BFF_CLIENTS=$(MOCK_BFF_CLIENTS) \
@@ -121,6 +122,7 @@ run: fmt vet envtest uv ## Runs the project.
 debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can attach on port 2345).
 	@echo "Starting BFF with Delve debugger on port 2345..."
 	@echo "In VSCode: Press F5 and select 'Attach to Delve (make dev-start-debug)'"
+	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	MOCK_BFF_CLIENTS=$(MOCK_BFF_CLIENTS) \
