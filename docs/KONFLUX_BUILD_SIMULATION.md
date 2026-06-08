@@ -145,12 +145,13 @@ Runs BEFORE Docker build to catch issues in <1 minute:
 ## Usage
 
 ### GitHub Actions (Automatic)
-1. Copy `pr-build-validation.yml` to `.github/workflows/`
-2. Commit and push
-3. Workflow runs automatically on all PRs
+The workflow runs automatically on all PRs to `main` that modify relevant files (frontend, backend, packages, Dockerfile, manifests).
 
 **Skip validation on a PR:**
 Add `[skip konflux-sim]` to the PR title or add the `skip-konflux-sim` label.
+
+### Local Testing
+Local testing is not yet available. The validation currently only runs in GitHub Actions CI. A standalone script for local validation may be added in a future update.
 
 ## Benefits
 
@@ -190,7 +191,6 @@ Add `[skip konflux-sim]` to the PR title or add the `skip-konflux-sim` label.
 - 🎯 **Clear error messages** with context
 - 📊 **Detailed logs** for debugging
 - 🔄 **Automated** — no manual intervention needed
-- 💻 **Local testing** with same validation as CI
 
 ## Time Estimates
 
@@ -199,47 +199,14 @@ Add `[skip konflux-sim]` to the PR title or add the `skip-konflux-sim` label.
 - Phase 1 (ODH + RHOAI): 8-12 minutes (parallel)
 - Phase 2-3 (ODH + RHOAI): 3-5 minutes (parallel, after Phase 1)
 - Phase 4: 5-8 minutes
-- Phase 5: 1-2 minutes
 
 **Total: 10-20 minutes** (with parallelization)
-
-### Local Testing (Sequential)
-- Phase 0: 1-2 minutes
-- Phase 1: 8-12 minutes (per mode)
-- Phase 2: 2-3 minutes
-- Phase 3: 1 minute
-- Phase 4: 5-8 minutes
-- Phase 5: 1-2 minutes
-
-**Total: 15-30 minutes** (without parallelization)
 
 ## Requirements
 
 ### GitHub Actions
 - GitHub repository with Actions enabled
 - No additional setup required (all tools installed in workflow)
-
-### Local Testing
-- Docker (required)
-- Node.js 22+ (required for hermetic checks)
-- jq (recommended, for lockfile validation)
-- kind (optional, for Phase 4)
-- kustomize (optional, for Phase 5)
-- kubectl (optional, for Phase 4)
-- websocat (optional, for WebSocket testing)
-
-**Install optional tools:**
-```bash
-# macOS
-brew install jq kind kustomize kubectl
-brew install websocat
-
-# Linux
-# jq, kind, kustomize - follow official installation guides
-# websocat
-curl -L https://github.com/vi/websocat/releases/download/v1.12.0/websocat.x86_64-unknown-linux-musl \
-  -o /usr/local/bin/websocat && chmod +x /usr/local/bin/websocat
-```
 
 ## Troubleshooting
 
@@ -383,19 +350,18 @@ on:
 ## Maintenance
 
 ### Update Node.js version
-When updating Node.js version in the project:
+When updating Node.js version in the project, update in the workflow:
 
-1. Update in workflow:
-   ```yaml
-   - uses: actions/setup-node@v4
-     with:
-       node-version: '22'  # Update this
-   ```
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: '22'  # Update this
+```
 
-2. Update in Dockerfile base image:
-   ```dockerfile
-   ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"  # Update this
-   ```
+Also update in Dockerfile base image:
+```dockerfile
+ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"  # Update this
+```
 
 ### Add new validation checks
 Add to the appropriate phase in `.github/workflows/pr-build-validation.yml`.
