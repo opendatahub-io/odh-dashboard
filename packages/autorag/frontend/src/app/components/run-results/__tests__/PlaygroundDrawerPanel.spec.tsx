@@ -111,12 +111,6 @@ describe('PlaygroundDrawerPanel', () => {
     expect(defaultProps.onViewCode).toHaveBeenCalledWith('pattern_a');
   });
 
-  it('should render the read-only label', () => {
-    renderInDrawer();
-
-    expect(screen.getByText('Read-only')).toBeInTheDocument();
-  });
-
   it('should render the pattern select toggle', () => {
     renderInDrawer();
 

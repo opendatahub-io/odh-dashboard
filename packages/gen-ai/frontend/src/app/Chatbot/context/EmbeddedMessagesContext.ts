@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ResponsesTemplate } from '@odh-dashboard/plugin-core/types';
+import type { ResponsesTemplate } from '~/types/embeddable-chatbot';
 
 /**
  * Configuration for the embedded passthrough message flow.

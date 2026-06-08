@@ -8,9 +8,9 @@ export type AutoragPatternScoreMetric = {
 
 export type AutoragPatternScores = Partial<Record<string, AutoragPatternScoreMetric>>;
 
-import type { ResponsesTemplate } from '@odh-dashboard/plugin-core/types';
+import type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
-export type { ResponsesTemplate } from '@odh-dashboard/plugin-core/types';
+export type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
 export type AutoragPatternSettings = {
   vector_store: {

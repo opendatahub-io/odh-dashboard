@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { renderHook, act } from '@testing-library/react';
-import type { ResponsesTemplate } from '@odh-dashboard/plugin-core/types';
+import type { ResponsesTemplate } from '~/types/embeddable-chatbot';
 import { createPassthroughResponse } from '~/app/services/llamaStackService';
 import type { SimplifiedResponseData } from '~/app/types';
 import useEmbeddedChatbotMessages, {

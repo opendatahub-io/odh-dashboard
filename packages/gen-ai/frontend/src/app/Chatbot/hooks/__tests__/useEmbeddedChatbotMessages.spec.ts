@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { ResponsesTemplate } from '@odh-dashboard/plugin-core/types';
+import type { ResponsesTemplate } from '~/types/embeddable-chatbot';
 import {
   buildRequestBody,
   USER_QUERY_PLACEHOLDER,

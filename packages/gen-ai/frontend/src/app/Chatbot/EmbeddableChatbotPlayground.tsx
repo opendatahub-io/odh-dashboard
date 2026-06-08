@@ -10,7 +10,7 @@ import {
   ModularArchContextProvider,
   NotificationContextProvider,
 } from 'mod-arch-core';
-import type { EmbeddableChatbotPlaygroundProps } from '@odh-dashboard/plugin-core/types';
+import type { EmbeddableChatbotPlaygroundProps } from '~/types/embeddable-chatbot';
 import { UserContextProvider } from '~/app/context/UserContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';

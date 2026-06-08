@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import type { ResponsesTemplate } from '@odh-dashboard/plugin-core/types';
+import type { ResponsesTemplate } from '~/types/embeddable-chatbot';
 import EmbeddableChatbotPlayground from '~/app/Chatbot/EmbeddableChatbotPlayground';
 
 jest.mock('react-router-dom', () => ({

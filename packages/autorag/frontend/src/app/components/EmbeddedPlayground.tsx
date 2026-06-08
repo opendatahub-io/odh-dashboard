@@ -8,7 +8,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import type { EmbeddableChatbotPlaygroundProps } from '@odh-dashboard/plugin-core/types';
+import type { EmbeddableChatbotPlaygroundProps } from '@odh-dashboard/gen-ai/types';
 
 const EmbeddableChatbotPlayground = React.lazy(() =>
   loadRemote<{ default: React.ComponentType<EmbeddableChatbotPlaygroundProps> }>(
