@@ -11,6 +11,8 @@ import (
 //
 // HTTPS is required for external endpoints. HTTP is permitted for in-cluster
 // endpoints (*.svc.cluster.local) since traffic stays within the cluster network.
+// All hostnames — including in-cluster — are resolved and checked against blocked
+// IP ranges to guard against ExternalName service CNAME bypasses.
 // RFC-1918 private IPs are permitted (MinIO commonly runs on cluster service IPs).
 // Loopback, link-local, and reserved ranges are always blocked.
 func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (string, error) {
@@ -34,11 +36,6 @@ func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (strin
 	}
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 		return "", fmt.Errorf("endpoint URL must use http or https scheme, got: %s", parsedURL.Scheme)
-	}
-
-	// In-cluster endpoints skip DNS resolution and IP validation.
-	if isInCluster {
-		return parsedURL.String(), nil
 	}
 
 	ip := net.ParseIP(hostname)
