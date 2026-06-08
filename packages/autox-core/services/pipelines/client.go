@@ -74,6 +74,9 @@ func NewDefaultClient(cfg ClientConfig) Client {
 
 	hc := &http.Client{
 		Transport: k8s.NewBearerTokenRoundTripper(base),
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	return &client{

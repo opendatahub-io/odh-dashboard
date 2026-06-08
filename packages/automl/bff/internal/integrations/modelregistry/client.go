@@ -83,6 +83,9 @@ func NewDefaultModelRegistryClient(cfg ModelRegistryClientConfig) *ModelRegistry
 	return NewModelRegistryClient(&http.Client{
 		Transport: rt,
 		Timeout:   30 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	})
 }
 
