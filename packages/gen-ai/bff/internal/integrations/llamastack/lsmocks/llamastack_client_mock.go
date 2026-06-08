@@ -498,6 +498,15 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 	return NewMockStreamIterator(events), nil
 }
 
+// CreateResponseStreamRaw returns the same mock stream as CreateResponseStream.
+// The raw body is ignored in mock mode.
+func (m *MockLlamaStackClient) CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (llamastack.ResponseStreamIterator, error) {
+	return m.CreateResponseStream(ctx, llamastack.CreateResponseParams{
+		Input: llamastack.InputUnion{Text: "passthrough-mock"},
+		Model: "mock-model",
+	})
+}
+
 // HandleMockStreaming streams mock SSE events directly to an HTTP response writer.
 // It delegates to CreateResponseStream and writes each event as a Server-Sent Event.
 func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {

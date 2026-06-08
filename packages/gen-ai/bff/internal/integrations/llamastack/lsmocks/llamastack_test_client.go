@@ -132,6 +132,10 @@ func (c *TestLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 	return c.inner.CreateResponseStream(ctx, params)
 }
 
+func (c *TestLlamaStackClient) CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (llamastack.ResponseStreamIterator, error) {
+	return c.inner.CreateResponseStreamRaw(ctx, body)
+}
+
 func (c *TestLlamaStackClient) GetResponse(ctx context.Context, responseID string) (*responses.Response, error) {
 	return c.inner.GetResponse(ctx, responseID)
 }
