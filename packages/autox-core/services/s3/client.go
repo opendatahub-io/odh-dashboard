@@ -51,9 +51,10 @@ type ClientConfig struct {
 	// Caller's responsibility to apply only in appropriate contexts.
 	InsecureSkipVerify bool
 
-	// AllowUnresolvedEndpoint skips DNS resolution checks in SSRF validation.
+	// AllowUnresolvableEndpoint skips the error when DNS resolution fails for
+	// the S3 endpoint hostname. IP validation is still enforced if resolution succeeds.
 	// Caller's responsibility to guard this (e.g. only when a specific env var is set).
-	AllowUnresolvedEndpoint bool
+	AllowUnresolvableEndpoint bool
 
 	// WrapTransport optionally wraps the HTTP transport chain after TLS is configured.
 	// Use for port-forwarding, request tracing, or other transport-level concerns.

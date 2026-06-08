@@ -61,7 +61,7 @@ func TestValidateIPAddress(t *testing.T) {
 }
 
 func TestValidateAndNormalizeEndpoint(t *testing.T) {
-	provider := &awsClientProvider{cfg: ClientConfig{AllowUnresolvedEndpoint: true}}
+	provider := &awsClientProvider{cfg: ClientConfig{AllowUnresolvableEndpoint: true}}
 
 	t.Run("valid https external", func(t *testing.T) {
 		got, err := provider.validateAndNormalizeEndpoint("https://s3.amazonaws.com")
@@ -133,7 +133,7 @@ func TestValidateAndNormalizeEndpoint(t *testing.T) {
 	})
 
 	t.Run("unresolvable hostname allowed when configured", func(t *testing.T) {
-		p := &awsClientProvider{cfg: ClientConfig{AllowUnresolvedEndpoint: true}}
+		p := &awsClientProvider{cfg: ClientConfig{AllowUnresolvableEndpoint: true}}
 		_, err := p.validateAndNormalizeEndpoint("https://nonexistent.invalid:443")
 		if err != nil {
 			t.Errorf("should allow unresolved: %v", err)
@@ -141,7 +141,7 @@ func TestValidateAndNormalizeEndpoint(t *testing.T) {
 	})
 
 	t.Run("unresolvable hostname rejected by default", func(t *testing.T) {
-		p := &awsClientProvider{cfg: ClientConfig{AllowUnresolvedEndpoint: false}}
+		p := &awsClientProvider{cfg: ClientConfig{AllowUnresolvableEndpoint: false}}
 		_, err := p.validateAndNormalizeEndpoint("https://nonexistent.invalid:443")
 		if err == nil {
 			t.Error("expected error for unresolvable hostname")

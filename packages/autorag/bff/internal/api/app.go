@@ -170,7 +170,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		s3ClientCfg := s3.ClientConfig{
 			RootCAs:                 rootCAs,
 			InsecureSkipVerify:      cfg.InsecureSkipVerify && cfg.DevMode,
-			AllowUnresolvedEndpoint: cfg.DevMode && allowUnresolvedS3,
+			AllowUnresolvableEndpoint: cfg.DevMode && allowUnresolvedS3,
 		}
 		if pfManager != nil {
 			s3ClientCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)

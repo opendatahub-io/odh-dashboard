@@ -157,7 +157,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}, pipelinesClient, k8sService)
 
 	// Initialize autox-core S3 client and service.
-	// SECURITY: AllowUnresolvedEndpoint requires DevMode — autox-core applies these knobs
+	// SECURITY: AllowUnresolvableEndpoint requires DevMode — autox-core applies these knobs
 	// without policy judgement, so we enforce the guard here before constructing the client.
 	const envAllowUnresolvedS3Endpoints = "ALLOW_UNRESOLVED_S3_ENDPOINTS"
 	allowUnresolvedS3 := os.Getenv(envAllowUnresolvedS3Endpoints) == "true"
@@ -172,7 +172,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		s3ClientCfg := s3.ClientConfig{
 			RootCAs:                 rootCAs,
 			InsecureSkipVerify:      cfg.InsecureSkipVerify && cfg.DevMode,
-			AllowUnresolvedEndpoint: cfg.DevMode && allowUnresolvedS3,
+			AllowUnresolvableEndpoint: cfg.DevMode && allowUnresolvedS3,
 		}
 		if pfManager != nil {
 			s3ClientCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)

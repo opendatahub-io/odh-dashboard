@@ -46,7 +46,7 @@ func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (strin
 	} else {
 		ips, err := net.LookupIP(hostname)
 		if err != nil {
-			if p.cfg.AllowUnresolvedEndpoint {
+			if p.cfg.AllowUnresolvableEndpoint {
 				return parsedURL.String(), nil
 			}
 			return "", fmt.Errorf("endpoint hostname %q cannot be resolved: %w", hostname, err)
