@@ -1,6 +1,8 @@
 import type { PipelineRun, TaskType } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
+  DEFAULT_EVAL_METRIC_BY_TASK,
+  METRIC_ALIASES,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
@@ -200,18 +202,15 @@ export function toNumericMetric(value: unknown): number {
  * @param taskType - The task type to get the metric for
  * @returns The optimized metric name, or 'Unknown metric' if no mapping exists
  */
+export function normalizeMetricKey(key: string): string {
+  return METRIC_ALIASES[key.toUpperCase()] ?? key;
+}
+
 export function getOptimizedMetricForTask(taskType: string): string {
-  switch (taskType) {
-    case TASK_TYPE_BINARY:
-    case TASK_TYPE_MULTICLASS:
-      return 'accuracy';
-    case TASK_TYPE_REGRESSION:
-      return 'r2';
-    case TASK_TYPE_TIMESERIES:
-      return 'mean_absolute_scaled_error';
-    default:
-      return 'Unknown metric';
+  if (!(taskType in DEFAULT_EVAL_METRIC_BY_TASK)) {
+    return 'Unknown metric';
   }
+  return normalizeMetricKey(DEFAULT_EVAL_METRIC_BY_TASK[taskType]);
 }
 
 /**
@@ -222,8 +221,11 @@ export function getOptimizedMetricForTask(taskType: string): string {
 export function computeRankMap(
   models: Record<string, { metrics: { test_data?: Record<string, unknown> } }>,
   taskType: string,
+  evalMetric?: string,
 ): Record<string, number> {
-  const optimizedMetric = getOptimizedMetricForTask(taskType);
+  const optimizedMetric = evalMetric
+    ? normalizeMetricKey(evalMetric)
+    : getOptimizedMetricForTask(taskType);
 
   const sorted = Object.keys(models).toSorted((a, b) => {
     const aMetric = models[a].metrics.test_data?.[optimizedMetric];

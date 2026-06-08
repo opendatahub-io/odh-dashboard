@@ -39,6 +39,7 @@ import {
   formatMetricValue,
   getOptimizedMetricForTask,
   isRunInProgress,
+  normalizeMetricKey,
 } from '~/app/utilities/utils';
 import './AutomlLeaderboard.scss';
 
@@ -289,8 +290,10 @@ function AutomlLeaderboard({
   // Check if pipeline is still running
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
 
-  // Determine the optimized metric
-  const optimizedMetric = getOptimizedMetricForTask(taskType);
+  // Determine the optimized metric (prefer the user's choice, fall back to task-type default)
+  const optimizedMetric = parameters?.eval_metric
+    ? normalizeMetricKey(parameters.eval_metric)
+    : getOptimizedMetricForTask(taskType);
 
   // Extract all unique metric keys across all models
   const metricKeys = React.useMemo(() => {

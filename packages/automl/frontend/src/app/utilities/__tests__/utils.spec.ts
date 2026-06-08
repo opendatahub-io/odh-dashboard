@@ -9,6 +9,7 @@ import {
   formatMetricName,
   formatMetricValue,
   toNumericMetric,
+  normalizeMetricKey,
   getOptimizedMetricForTask,
   computeRankMap,
   generateReconfigureName,
@@ -266,6 +267,25 @@ describe('toNumericMetric', () => {
   });
 });
 
+describe('normalizeMetricKey', () => {
+  it('should normalize uppercase timeseries aliases to snake_case', () => {
+    expect(normalizeMetricKey('MASE')).toBe('mean_absolute_scaled_error');
+    expect(normalizeMetricKey('RMSE')).toBe('root_mean_squared_error');
+    expect(normalizeMetricKey('MAE')).toBe('mean_absolute_error');
+  });
+
+  it('should normalize lowercase timeseries keys via toUpperCase lookup', () => {
+    expect(normalizeMetricKey('mase')).toBe('mean_absolute_scaled_error');
+    expect(normalizeMetricKey('rmse')).toBe('root_mean_squared_error');
+  });
+
+  it('should pass through tabular metrics unchanged', () => {
+    expect(normalizeMetricKey('accuracy')).toBe('accuracy');
+    expect(normalizeMetricKey('f1')).toBe('f1');
+    expect(normalizeMetricKey('r2')).toBe('r2');
+  });
+});
+
 describe('getOptimizedMetricForTask', () => {
   it('should return accuracy for binary and multiclass', () => {
     expect(getOptimizedMetricForTask('binary')).toBe('accuracy');
@@ -402,6 +422,34 @@ describe('computeRankMap', () => {
       ModelA: 2,
       ModelB: 3,
     });
+  });
+
+  it('should use evalMetric override instead of task-type default', () => {
+    const models = {
+      ModelA: buildModel(0.75),
+      ModelB: buildModel(0.9),
+    };
+    // Both models have accuracy but we rank by f1 via override
+    const modelsWithF1 = {
+      ModelA: { metrics: { test_data: { accuracy: 0.75, f1: 0.88 } } },
+      ModelB: { metrics: { test_data: { accuracy: 0.9, f1: 0.82 } } },
+    };
+
+    // Without override: ranks by accuracy (task default)
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelB: 1, ModelA: 2 });
+
+    // With override: ranks by f1
+    expect(computeRankMap(modelsWithF1, 'binary', 'f1')).toEqual({ ModelA: 1, ModelB: 2 });
+  });
+
+  it('should normalize evalMetric override for timeseries', () => {
+    const models = {
+      ModelA: { metrics: { test_data: { mean_absolute_scaled_error: -0.15 } } },
+      ModelB: { metrics: { test_data: { mean_absolute_scaled_error: -0.05 } } },
+    };
+
+    // 'MASE' normalizes to 'mean_absolute_scaled_error'
+    expect(computeRankMap(models, 'timeseries', 'MASE')).toEqual({ ModelB: 1, ModelA: 2 });
   });
 
   it('should rank models with undefined test_data last', () => {

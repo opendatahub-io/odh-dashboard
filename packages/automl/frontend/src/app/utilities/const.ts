@@ -62,6 +62,24 @@ export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, re
     s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
   };
 
+/* eslint-disable camelcase */
+// Timeseries metrics use uppercase API names (e.g. MASE) while model result data
+// uses snake_case keys (e.g. mean_absolute_scaled_error). This map bridges the two.
+export const METRIC_ALIASES: Readonly<Record<string, string>> = {
+  MAE: 'mean_absolute_error',
+  MSE: 'mean_squared_error',
+  RMSE: 'root_mean_squared_error',
+  RMSLE: 'root_mean_squared_logarithmic_error',
+  MAPE: 'mean_absolute_percentage_error',
+  SMAPE: 'symmetric_mean_absolute_percentage_error',
+  MASE: 'mean_absolute_scaled_error',
+  RMSSE: 'root_mean_squared_scaled_error',
+  WAPE: 'weighted_absolute_percentage_error',
+  WQL: 'weighted_quantile_loss',
+  SQL: 'scaled_quantile_loss',
+};
+/* eslint-enable camelcase */
+
 // Eval metric enums per task type
 export const EVAL_METRICS_CLASSIFICATION = [
   'accuracy',
