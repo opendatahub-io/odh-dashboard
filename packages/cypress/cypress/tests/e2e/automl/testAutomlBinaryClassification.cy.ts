@@ -57,6 +57,9 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
 
+      cy.step('Verify optimization metric defaults to Accuracy');
+      automlConfigurePage.findOptimizationMetricValue().should('contain', 'Accuracy');
+
       automlConfigurePage.submitRun();
     },
   );

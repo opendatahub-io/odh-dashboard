@@ -57,6 +57,9 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
 
+      cy.step('Verify optimization metric defaults to R²');
+      automlConfigurePage.findOptimizationMetricValue().should('contain', 'R²');
+
       automlConfigurePage.submitRun();
 
       cy.step('Wait for run to complete and verify leaderboard');

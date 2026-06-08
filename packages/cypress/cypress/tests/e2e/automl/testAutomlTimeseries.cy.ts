@@ -65,6 +65,9 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
 
+      cy.step('Verify optimization metric defaults to MASE');
+      automlConfigurePage.findOptimizationMetricValue().should('contain', 'MASE');
+
       automlConfigurePage.submitRun();
 
       cy.step('Wait for run to complete and verify leaderboard');
