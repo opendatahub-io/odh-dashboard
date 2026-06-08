@@ -57,7 +57,12 @@ func (e *TokenHeaderExtractor) Extract(headers http.Header) (*RequestIdentity, e
 		token = strings.TrimPrefix(raw, e.Prefix)
 	}
 
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil, fmt.Errorf("token in header %s is empty after stripping prefix", e.Header)
+	}
+
 	return &RequestIdentity{
-		Token: strings.TrimSpace(token),
+		Token: token,
 	}, nil
 }
