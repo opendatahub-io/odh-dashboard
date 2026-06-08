@@ -53,3 +53,42 @@ When compiling findings for the checks table and inline comments:
 2. **Do not re-post** inline comments for any finding that matches a prior preflight thread — the original comment is still visible on the PR.
 3. **Exclude dismissed findings** (author replied with disagreement) from the active findings count in the Review check row.
 4. Findings with no prior match are net-new — post as inline comments and count normally.
+
+## Prior Thread Resolution
+
+After classification, resolve prior preflight threads whose findings have been addressed by new commits. This runs automatically before compiling new findings:
+
+```bash
+echo "$classified_threads" \
+  | ${CLAUDE_SKILL_DIR}/scripts/resolve-prior-threads.sh "$owner" "$repo" "$pr_number"
+```
+
+### What gets resolved
+
+Only threads meeting **all** of these criteria:
+- Identified as a preflight thread (severity badge pattern)
+- `disposition: "no_reply"` — no human has engaged
+- The thread's `line` is non-null (line-specific finding)
+- The file+line was modified in commits after the thread was posted
+
+### What does NOT get resolved
+
+- Threads where a human replied (`author_replied`, `reviewer_replied`) — human conversations are never auto-collapsed
+- File-level comments (no line anchor) — cannot determine if addressed
+- Threads on lines that were not modified — the finding may still apply
+
+### Resolution actions
+
+For each resolved thread:
+1. Post a reply: "Resolved — addressed in `<short SHA>`."
+2. Call `resolveReviewThread` GraphQL mutation to collapse the thread
+
+### Edge cases
+
+| Scenario | Behavior |
+|---|---|
+| File deleted | Resolve — finding is moot |
+| File renamed | Old path no longer exists → resolve |
+| Line moved but content unchanged | If the original line number is in a diff hunk, resolve |
+| Force-pushed branch | Uses `createdAt` timestamp, not commit ancestry |
+| Thread on null line | Skip — cannot verify |

@@ -159,6 +159,23 @@ Use the classified threads throughout the rest of the run — see [references/re
 - **Exclude dismissed findings** (author replied with disagreement) from the active findings count.
 - **Net-new findings** (no prior match) are posted and counted normally.
 
+### Prior thread resolution
+
+After classifying prior threads, resolve threads whose findings have been addressed by subsequent commits:
+
+```bash
+echo "$classified_threads" \
+  | ${CLAUDE_SKILL_DIR}/scripts/resolve-prior-threads.sh "$owner" "$repo" "$pr_number"
+```
+
+The script checks each `no_reply` preflight thread against the current diff. If the specific line was modified in commits after the thread was posted, the script:
+1. Posts a reply: "Resolved — addressed in `<commit SHA>`."
+2. Calls the GitHub GraphQL `resolveReviewThread` mutation to collapse the thread.
+
+Threads with human replies (`author_replied`, `reviewer_replied`) are never auto-resolved. See [references/reviews.md](references/reviews.md) § Prior Thread Resolution for full details and edge cases.
+
+Report the resolution count in the terminal output (e.g., "Resolved 3 prior preflight threads").
+
 If no PR exists, or PR exists but is not synced, or `--local`: no reviews have been done on this code yet. Ask the user what reviewer to run:
 
 If `--review` flag was passed, use those reviewers directly. If `--skip-review` flag was passed, run all reviewers except the listed ones (no interactive prompt). Otherwise use AskUserQuestion with `multiSelect: true` so the user can pick any combination:
