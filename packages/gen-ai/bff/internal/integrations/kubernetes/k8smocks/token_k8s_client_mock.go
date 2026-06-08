@@ -36,7 +36,7 @@ func newMockedTokenKubernetesClientFromClientset(ctrlClient client.Client, confi
 			Client: ctrlClient,
 			Logger: logger,
 			Token:  integrations.NewBearerToken(""), // Unused because impersonation is already handled in the client config
-			Config: nil,                              // Set to nil for testing to avoid REST API calls
+			Config: nil,                             // Set to nil for testing to avoid REST API calls
 		},
 	}
 }
