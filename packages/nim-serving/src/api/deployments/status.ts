@@ -1,4 +1,4 @@
-import type { InferenceServiceKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind, K8sCondition, PodKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   checkModelPodStatus,
   getInferenceServiceModelState,
@@ -7,21 +7,31 @@ import {
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
+import type { NIMServiceKind } from '../nimservices/types';
 
-/**
- * Derive deployment status from the InferenceService created by the NIM Operator.
- * The NIMService operator reconciles into an InferenceService, so we reuse the
- * KServe status utilities against that child resource.
- *
- * When the InferenceService hasn't been created yet (operator is still reconciling),
- * we return LOADING rather than undefined so the UI shows a meaningful state.
- */
+const getNIMServiceErrorCondition = (
+  nimService: NIMServiceKind,
+): K8sCondition | undefined =>
+  nimService.status?.conditions?.find(
+    (c: K8sCondition) => c.status === 'False' && c.message,
+  );
+
 export const getNIMDeploymentStatus = (
   inferenceService: InferenceServiceKind | undefined,
   deploymentPods: PodKind[],
   nimServiceName: string,
+  nimService?: NIMServiceKind,
 ): DeploymentStatus => {
   if (!inferenceService) {
+    const errorCondition = nimService
+      ? getNIMServiceErrorCondition(nimService)
+      : undefined;
+    if (errorCondition) {
+      return {
+        state: ModelDeploymentState.FAILED_TO_LOAD,
+        message: errorCondition.message ?? 'NIMService reconciliation failed',
+      };
+    }
     return {
       state: ModelDeploymentState.LOADING,
       message: 'Waiting for NIM Operator to provision InferenceService',
