@@ -270,6 +270,7 @@ const createStoreActions = (
       selectedSubscription: sourceConfig.selectedSubscription,
       activePrompt: deepCopyPrompt(sourceConfig.activePrompt),
       dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
+      variableValues: { ...sourceConfig.variableValues },
     };
 
     set(
@@ -506,6 +507,7 @@ const createStoreActions = (
         if (config) {
           config.activePrompt = deepCopyPrompt(prompt);
           config.dirtyPrompt = deepCopyPrompt(prompt);
+          config.variableValues = {};
         }
       },
       false,
@@ -546,10 +548,24 @@ const createStoreActions = (
         if (config) {
           config.activePrompt = null;
           config.dirtyPrompt = deepCopyPrompt(newDirtyPrompt);
+          config.variableValues = {};
         }
       },
       false,
       'clearPromptState',
+    );
+  },
+
+  updateVariableValues: (id: string, values: Record<string, string>) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config) {
+          config.variableValues = { ...values };
+        }
+      },
+      false,
+      'updateVariableValues',
     );
   },
 
