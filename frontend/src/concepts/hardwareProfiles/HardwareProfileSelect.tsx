@@ -342,7 +342,9 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               {previewDescription &&
               hardwareProfileConfig.selectedProfile &&
               (getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
-                hardwareProfileConfig.selectedProfile.spec.identifiers) ? (
+                hardwareProfileConfig.selectedProfile.spec.identifiers ||
+                hardwareProfileConfig.selectedProfile.spec.scheduling?.kueue
+                  ?.localQueueName) ? (
                 <FormHelperText>
                   <HelperText>
                     <HelperTextItem>
