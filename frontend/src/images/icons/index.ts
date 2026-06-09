@@ -2,6 +2,7 @@
 
 export { default as HardwareProfileIcon } from './HardwareProfileIcon.ts';
 export { default as ApiKeysAndSubscriptionsIcon } from './ApiKeysAndSubscriptionsIcon';
+export { default as AgentOpsIcon } from './AgentOpsIcon';
 export { default as ArtifactIcon } from './ArtifactIcon';
 export { default as BuildIcon } from './BuildIcon';
 export { default as ClusterSettingsIcon } from './ClusterSettingsIcon';

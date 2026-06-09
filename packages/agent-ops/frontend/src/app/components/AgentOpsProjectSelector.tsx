@@ -1,0 +1,54 @@
+import * as React from 'react';
+import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
+import { useNamespaceSelector } from 'mod-arch-core';
+import { useNavigate } from 'react-router-dom';
+
+type AgentOpsProjectSelectorProps = {
+  namespace?: string;
+  getRedirectPath: (namespace: string) => string;
+} & Omit<React.ComponentProps<typeof ProjectSelector>, 'onSelection' | 'namespace'>;
+
+const AgentOpsProjectSelector: React.FC<AgentOpsProjectSelectorProps> = ({
+  getRedirectPath,
+  namespace,
+  ...projectSelectorProps
+}) => {
+  const navigate = useNavigate();
+  const { namespaces, updatePreferredNamespace, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelector();
+
+  // When the BFF namespace list is empty but we have a namespace from the URL, synthesise an
+  // entry so the selector shows the current project rather than "No projects".
+  const effectiveNamespaces = React.useMemo(() => {
+    if (namespaces.length > 0) {
+      return namespaces;
+    }
+    if (namespace) {
+      return [{ name: namespace, displayName: namespace }];
+    }
+    return namespaces;
+  }, [namespaces, namespace]);
+
+  // Stop showing a spinner once loading has definitively ended (success or error).
+  const isLoading = !namespacesLoaded && !namespacesLoadError;
+
+  return (
+    <div data-testid="agent-ops-project-selector">
+      <ProjectSelector
+        {...projectSelectorProps}
+        onSelection={(projectName) => {
+          const match = projectName
+            ? (namespaces.find((n) => n.name === projectName) ?? undefined)
+            : undefined;
+          updatePreferredNamespace(match);
+          navigate(getRedirectPath(projectName));
+        }}
+        namespace={namespace ?? ''}
+        isLoading={isLoading}
+        namespacesOverride={effectiveNamespaces}
+      />
+    </div>
+  );
+};
+
+export default AgentOpsProjectSelector;
