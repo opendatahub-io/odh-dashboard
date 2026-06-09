@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.2
-  name: dashboards.dashboard.opendatahub.io
+  name: dashboards.components.platform.opendatahub.io
 spec:
-  group: dashboard.opendatahub.io
+  group: components.platform.opendatahub.io
   names:
     kind: Dashboard
     listKind: DashboardList
@@ -278,8 +278,8 @@ spec:
             type: object
         type: object
         x-kubernetes-validations:
-        - message: Dashboard name must be default-dashboard
-          rule: self.metadata.name == 'default-dashboard'
+        - message: Dashboard name must be default
+          rule: self.metadata.name == 'default'
         - message: persesService must be specified when observability is enabled
           rule: '!has(self.spec.observability) || !self.spec.observability.enabled
             || has(self.spec.observability.persesService)'

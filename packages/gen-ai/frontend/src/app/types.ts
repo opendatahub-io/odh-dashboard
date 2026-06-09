@@ -321,6 +321,7 @@ export type CodeExportRequest = {
     name: string;
     version: number;
   };
+  prompt_variable_values?: Record<string, string>;
   guardrail_config?: CodeExportGuardrailConfig;
 };
 

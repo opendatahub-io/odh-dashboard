@@ -2,29 +2,15 @@
  * @jest-environment node
  */
 import {
-  ContractApiClient,
-  ApiTestResultError,
-  loadOpenAPISchema,
-} from '@odh-dashboard/contract-tests';
+  apiClient,
+  unauthenticatedClient,
+  restrictedClient,
+  apiSchema,
+  expectSuccess,
+  expectError,
+} from '../helpers';
 
-describe('Core BFF API Contract Tests', () => {
-  const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
-  const apiClient = new ContractApiClient({
-    baseUrl,
-    defaultHeaders: {
-      'x-forwarded-access-token': 'FAKE_CLUSTER_ADMIN_TOKEN',
-    },
-  });
-  const unauthenticatedClient = new ContractApiClient({ baseUrl });
-  const restrictedClient = new ContractApiClient({
-    baseUrl,
-    defaultHeaders: {
-      'x-forwarded-access-token': 'FAKE_USER_B_TOKEN',
-    },
-  });
-
-  const apiSchema = loadOpenAPISchema('../bff/openapi/src/core-bff.yaml');
-
+describe('Core BFF Infrastructure', () => {
   describe('Health Check Endpoints', () => {
     it('should return health status from infrastructure endpoint', async () => {
       const result = await apiClient.get('/healthcheck');
@@ -50,22 +36,22 @@ describe('Core BFF API Contract Tests', () => {
         ref: '#/components/responses/UserResponse/content/application/json/schema',
         status: 200,
       });
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const body = result.response.data as { data: { userId: string; clusterAdmin: boolean } };
-        expect(body.data).toHaveProperty('userId');
-        expect(body.data).toHaveProperty('clusterAdmin');
-      }
+      const { response } = expectSuccess(result);
+      const body = response.data as { data: { userId: string; clusterAdmin: boolean } };
+      expect(body.data).toHaveProperty('userId');
+      expect(body.data).toHaveProperty('clusterAdmin');
     });
 
     it('should return 401 when no auth token is provided', async () => {
       const result = await unauthenticatedClient.get('/api/v1/user');
-      expect(result.success).toBe(false);
-      const { status, data, headers } = (result as ApiTestResultError).error;
-      expect({ status, data, headers }).toMatchContract(apiSchema, {
-        ref: '#/components/responses/Unauthorized/content/application~1json/schema',
-        status: 401,
-      });
+      const err = expectError(result, 401);
+      expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
+        apiSchema,
+        {
+          ref: '#/components/responses/Unauthorized/content/application~1json/schema',
+          status: 401,
+        },
+      );
     });
   });
 
@@ -76,22 +62,22 @@ describe('Core BFF API Contract Tests', () => {
         ref: '#/components/responses/NamespacesResponse/content/application/json/schema',
         status: 200,
       });
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const body = result.response.data as { data: { name: string }[] };
-        expect(Array.isArray(body.data)).toBe(true);
-        expect(body.data.length).toBeGreaterThan(0);
-      }
+      const { response } = expectSuccess(result);
+      const body = response.data as { data: { name: string }[] };
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.data.length).toBeGreaterThan(0);
     });
 
     it('should return 401 when no auth token is provided', async () => {
       const result = await unauthenticatedClient.get('/api/v1/namespaces');
-      expect(result.success).toBe(false);
-      const { status, data, headers } = (result as ApiTestResultError).error;
-      expect({ status, data, headers }).toMatchContract(apiSchema, {
-        ref: '#/components/responses/Unauthorized/content/application~1json/schema',
-        status: 401,
-      });
+      const err = expectError(result, 401);
+      expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
+        apiSchema,
+        {
+          ref: '#/components/responses/Unauthorized/content/application~1json/schema',
+          status: 401,
+        },
+      );
     });
   });
 
@@ -99,12 +85,14 @@ describe('Core BFF API Contract Tests', () => {
     describe('GET', () => {
       it('should return 401 when no auth token is provided', async () => {
         const result = await unauthenticatedClient.get('/api/k8s/api/v1/namespaces');
-        expect(result.success).toBe(false);
-        const { status, data, headers } = (result as ApiTestResultError).error;
-        expect({ status, data, headers }).toMatchContract(apiSchema, {
-          ref: '#/components/responses/Unauthorized/content/application~1json/schema',
-          status: 401,
-        });
+        const err = expectError(result, 401);
+        expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
+          apiSchema,
+          {
+            ref: '#/components/responses/Unauthorized/content/application~1json/schema',
+            status: 401,
+          },
+        );
       });
 
       it('should proxy GET to K8s API and return namespaces', async () => {
@@ -117,24 +105,28 @@ describe('Core BFF API Contract Tests', () => {
 
       it('should return 403 for unauthorized K8s resources', async () => {
         const result = await restrictedClient.get('/api/k8s/api/v1/namespaces');
-        expect(result.success).toBe(false);
-        const { status, data, headers } = (result as ApiTestResultError).error;
-        expect({ status, data, headers }).toMatchContract(apiSchema, {
-          ref: '#/components/responses/Forbidden/content/application~1json/schema',
-          status: 403,
-        });
+        const err = expectError(result, 403);
+        expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
+          apiSchema,
+          {
+            ref: '#/components/responses/Forbidden/content/application~1json/schema',
+            status: 403,
+          },
+        );
       });
 
       it('should return 404 for non-existent K8s resources', async () => {
         const result = await apiClient.get(
           '/api/k8s/api/v1/namespaces/nonexistent-namespace-12345',
         );
-        expect(result.success).toBe(false);
-        const { status, data, headers } = (result as ApiTestResultError).error;
-        expect({ status, data, headers }).toMatchContract(apiSchema, {
-          ref: '#/components/responses/NotFound/content/application~1json/schema',
-          status: 404,
-        });
+        const err = expectError(result, 404);
+        expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
+          apiSchema,
+          {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          },
+        );
       });
     });
 
@@ -153,24 +145,22 @@ describe('Core BFF API Contract Tests', () => {
           metadata: { name: 'contract-test-post-cm', namespace },
           data: { key: 'value' },
         });
-        expect(result.success).toBe(true);
-        if (result.success) {
-          const body = result.response.data as { metadata: { name: string } };
-          expect(result.response.status).toBe(201);
-          expect(body.metadata.name).toBe('contract-test-post-cm');
-        }
+        const { response } = expectSuccess(result);
+        expect(response.status).toBe(201);
+        const body = response.data as { metadata: { name: string } };
+        expect(body.metadata.name).toBe('contract-test-post-cm');
       });
 
       it('should return 403 when restricted user creates in unauthorized namespace', async () => {
-        const result = await restrictedClient.post(configMapPath, {
-          apiVersion: 'v1',
-          kind: 'ConfigMap',
-          metadata: { name: 'unauthorized-cm', namespace },
-          data: { key: 'value' },
-        });
-        expect(result.success).toBe(false);
-        const { status } = (result as ApiTestResultError).error;
-        expect(status).toBe(403);
+        expectError(
+          await restrictedClient.post(configMapPath, {
+            apiVersion: 'v1',
+            kind: 'ConfigMap',
+            metadata: { name: 'unauthorized-cm', namespace },
+            data: { key: 'value' },
+          }),
+          403,
+        );
       });
     });
 
@@ -203,10 +193,9 @@ describe('Core BFF API Contract Tests', () => {
           ref: '#/components/responses/K8sProxySuccess/content/application/json/schema',
           status: 200,
         });
-        if (result.success) {
-          const body = result.response.data as { data: { key: string } };
-          expect(body.data.key).toBe('updated');
-        }
+        const { response } = expectSuccess(result);
+        const body = response.data as { data: { key: string } };
+        expect(body.data.key).toBe('updated');
       });
     });
 
@@ -234,16 +223,21 @@ describe('Core BFF API Contract Tests', () => {
 
       it('should return 404 when deleting a non-existent resource', async () => {
         const result = await apiClient.delete(`${configMapPath}/nonexistent-cm-12345`);
-        expect(result.success).toBe(false);
-        const { status, data, headers } = (result as ApiTestResultError).error;
-        expect({ status, data, headers }).toMatchContract(apiSchema, {
-          ref: '#/components/responses/NotFound/content/application~1json/schema',
-          status: 404,
-        });
+        const err = expectError(result, 404);
+        expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
+          apiSchema,
+          {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          },
+        );
       });
     });
+  });
 
-    // PATCH is not tested because ContractApiClient does not expose a patch method.
-    // The proxy layer handles PATCH identically to POST/PUT/DELETE.
+  describe('Unmatched API Path', () => {
+    it('should return 404 for GET /api/nonexistent', async () => {
+      expectError(await apiClient.get('/api/nonexistent-path-12345'), 404);
+    });
   });
 });
