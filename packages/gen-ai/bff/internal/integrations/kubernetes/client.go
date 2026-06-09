@@ -67,4 +67,8 @@ type KubernetesClientInterface interface {
 	// LLMInferenceService whose K8s resource name matches modelName.
 	// Returns ("", nil) when no matching resource is found so callers can fall back gracefully.
 	GetInferenceServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelName string) (string, error)
+
+	// AgentProfile operations
+	CreateAgentProfile(ctx context.Context, namespace string, profile *models.AgentProfile) (*models.AgentProfileCreateResponse, error)
+	GetAgentProfile(ctx context.Context, namespace string, name string) (*models.AgentProfile, error)
 }

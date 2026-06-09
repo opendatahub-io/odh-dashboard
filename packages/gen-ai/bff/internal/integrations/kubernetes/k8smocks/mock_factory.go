@@ -125,36 +125,11 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 		return client, nil
 	}
 
-	// Accept any token in mock mode; no user mapping required
-	impersonatedCfg := rest.CopyConfig(f.restConfig)
-	impersonatedCfg.Impersonate = rest.ImpersonationConfig{}
-
-	// Create a scheme with OGXServer types for the new client
-	scheme := runtime.NewScheme()
-	if err := clientgoscheme.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := ogxapi.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := kservev1alpha1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := kservev1beta1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := gorchv1alpha1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-
-	ctrlClient, err := client.New(impersonatedCfg, client.Options{Scheme: scheme})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create impersonated client: %w", err)
-	}
-
-	client := newMockedTokenKubernetesClientFromClientset(ctrlClient, impersonatedCfg, f.logger)
-	f.clients[identity.Token] = client
-	return client, nil
+	// For testing, reuse the fake clientset instead of creating a new client
+	// This avoids REST API calls to the fake restConfig host
+	mockClient := newMockedTokenKubernetesClientFromClientset(f.clientset, f.restConfig, f.logger)
+	f.clients[identity.Token] = mockClient
+	return mockClient, nil
 }
 
 // ─── DISABLED AUTH FACTORY (envtest + "DISABLED" auth) ──────────────────────────

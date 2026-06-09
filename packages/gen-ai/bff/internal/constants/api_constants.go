@@ -78,4 +78,7 @@ const (
 	// NemoGuardrails endpoints
 	NemoGuardrailsInitPath   = ApiPathPrefix + "/nemo-guardrails/init"
 	NemoGuardrailsStatusPath = ApiPathPrefix + "/nemo-guardrails/status"
+
+	// Agent Profiles endpoints
+	AgentProfilesPath = ApiPathPrefix + "/agent-profiles"
 )
