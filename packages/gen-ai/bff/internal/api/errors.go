@@ -182,17 +182,17 @@ func (app *App) handleBFFClientError(w http.ResponseWriter, r *http.Request, err
 			statusCode = http.StatusBadGateway
 		}
 
-		// For server errors (5xx), use generic message for client and log full details
+		// For server errors (5xx), use generic message for client and log sanitized details
 		// For client errors (4xx), include the original message
 		message := bffErr.Message
 		if statusCode >= 500 {
-			// Log the full error details internally for debugging
+			// Log error with sanitized content to avoid leaking sensitive upstream data
 			logger := helper.GetContextLoggerFromReq(r)
 			logger.Error("BFF client error (5xx)",
 				"status", statusCode,
 				"code", bffErr.Code,
-				"message", bffErr.Message,
-				"target", bffErr.Target,
+				// Don't log bffErr.Message - may contain sensitive upstream response bodies
+				// Don't log bffErr.Target - may expose internal service topology
 			)
 			// Use generic message for client
 			message = http.StatusText(statusCode)
