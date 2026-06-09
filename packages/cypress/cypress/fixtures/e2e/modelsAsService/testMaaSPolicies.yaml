@@ -14,7 +14,7 @@ subscriptionGroups: ['rhods-admins','rhods-users']
 tokenRateLimit : 
   limit: 1,000
   window: 1000
-  unit: hour
+  unit: minute
 phase: 'Active'
 apiKeyName: 'a-test-maas-subscription-api-key'
 apiKeyDescription: 'Cypress test: API key for test-maas-policies-sub'

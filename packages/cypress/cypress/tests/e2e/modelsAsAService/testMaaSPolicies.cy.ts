@@ -1,3 +1,4 @@
+import { STATUS_OPTIONS } from '@odh-dashboard/maas/types/api-key';
 import {
   checkMaaSSubscriptionState,
   checkMaaSAuthPolicyState,
@@ -36,6 +37,9 @@ import { loadMaaSFixture } from '../../../utils/dataLoader';
 import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnection';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { stubClipboard, getClipboardContent } from '../../../utils/clipboardUtils';
+
+const [activeApiKeyStatus, , revokedApiKeyStatus] = STATUS_OPTIONS;
+const capitalize = (input: string): string => input.charAt(0).toUpperCase() + input.slice(1);
 
 const uuid = generateTestUUID();
 let testData: ModelAsAServiceTestData;
@@ -376,10 +380,10 @@ describe('An admin can manage MaaS authorization policies and control model acce
         adminBulkRevokeAPIKeyModal.findRevokeButton().click();
 
         apiKeysPage.findStatusFilterToggle().click();
-        apiKeysPage.findStatusFilterOptionCheckbox('active').should('be.checked');
-        apiKeysPage.findStatusFilterOptionCheckbox('revoked').click();
+        apiKeysPage.findStatusFilterOptionCheckbox(activeApiKeyStatus).should('be.checked');
+        apiKeysPage.findStatusFilterOptionCheckbox(revokedApiKeyStatus).click();
         apiKeyRow = apiKeysPage.getRow(apiKeyName);
-        apiKeyRow.findStatus().should('contain.text', 'Revoked');
+        apiKeyRow.findStatus().should('contain.text', capitalize(revokedApiKeyStatus));
         apiKeyRow.findLastUsedAt().should('contain.text', today);
         apiKeysPage.findRevokeActionsButton(apiKeyName).should('be.disabled');
       });
