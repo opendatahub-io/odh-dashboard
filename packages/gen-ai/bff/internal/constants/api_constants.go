@@ -26,6 +26,7 @@ const (
 	VectorStoresListPath       = ApiPathPrefix + "/lsd/vectorstores"
 	VectorStoresDeletePath     = ApiPathPrefix + "/lsd/vectorstores/delete"
 	ResponsesPath              = ApiPathPrefix + "/lsd/responses"
+	ResponsesPassthroughPath   = ApiPathPrefix + "/lsd/responses/passthrough"
 	FilesListPath              = ApiPathPrefix + "/lsd/files"
 	FilesUploadPath            = ApiPathPrefix + "/lsd/files/upload"
 	FilesUploadStatusPath      = ApiPathPrefix + "/lsd/files/upload/status"

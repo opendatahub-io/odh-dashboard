@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -47,6 +48,8 @@ import (
 	// Import TrustyAI GuardrailsOrchestrator types
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 )
+
+var ErrSecretKeyNotFound = errors.New("secret key not found")
 
 const (
 	// GenAIAssetLabelKey is the label key used to identify GenAI assets
@@ -2803,7 +2806,7 @@ func (kc *TokenKubernetesClient) GetSecretValue(ctx context.Context, identity *i
 	value, ok := secret.Data[secretKey]
 	if !ok {
 		kc.Logger.Warn("secret key not found in Secret", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)
-		return "", fmt.Errorf("key '%s' not found in Secret '%s'", secretKey, secretName)
+		return "", fmt.Errorf("key '%s' not found in Secret '%s': %w", secretKey, secretName, ErrSecretKeyNotFound)
 	}
 
 	kc.Logger.Debug("successfully retrieved secret value", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)

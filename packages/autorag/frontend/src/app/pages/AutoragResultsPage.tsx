@@ -13,12 +13,14 @@ import {
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useLocation, useParams } from 'react-router';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
+import PlaygroundDrawerPanel from '~/app/components/run-results/PlaygroundDrawerPanel';
+import type { PlaygroundPatternInfo } from '~/app/components/run-results/PlaygroundDrawerPanel';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
@@ -27,20 +29,40 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
-import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import {
+  formatMetricName,
+  getOptimizedMetricForRAG,
+  isRunTerminatable,
+  isRunRetryable,
+  parseErrorStatus,
+} from '~/app/utilities/utils';
+import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
+import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+
+type DrawerContentType =
+  | { type: 'run-details' }
+  | {
+      type: 'playground';
+      secretName: string;
+      responsesTemplate: ResponsesTemplate;
+      patternInfo: PlaygroundPatternInfo;
+    };
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
+  const location = useLocation();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
     useNamespaceSelectorWithPersistence();
-  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
-  const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
+  const [drawerContent, setDrawerContent] = React.useState<DrawerContentType | null>(null);
+  const isDrawerOpen = drawerContent !== null;
+  const handleDrawerClose = React.useCallback(() => setDrawerContent(null), []);
+
+  // Close drawer on route changes
+  const locationKey = location.key;
+  React.useEffect(() => {
+    setDrawerContent(null);
+  }, [locationKey]);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
-  const [stopInitiated, setStopInitiated] = React.useState(false);
-  const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
-    namespace ?? '',
-    runId ?? '',
-  );
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -57,6 +79,11 @@ function AutoragResultsPage(): React.JSX.Element {
     isError: pipelineRunError,
     error: pipelineRunLoadError,
   } = usePipelineRunQuery(runId, namespace);
+
+  const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
+    namespace ?? '',
+    runId ?? '',
+  );
 
   // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
   // notification with stale data, while initial load errors (no data yet) show a full error page.
@@ -105,20 +132,9 @@ function AutoragResultsPage(): React.JSX.Element {
   const runTerminatable = isRunTerminatable(pipelineRun?.state);
   const runRetryable = isRunRetryable(pipelineRun?.state);
 
-  // Track previous terminatable state to detect transitions
-  const prevRunTerminatable = React.useRef(runTerminatable);
-  React.useEffect(() => {
-    // Reset stopInitiated only when transitioning from non-terminatable to terminatable (e.g., after retry)
-    if (runTerminatable && !prevRunTerminatable.current) {
-      setStopInitiated(false);
-    }
-    prevRunTerminatable.current = runTerminatable;
-  }, [runTerminatable]);
-
   const handleStop = React.useCallback(async () => {
     try {
       await handleConfirmStop();
-      setStopInitiated(true);
       setIsStopModalOpen(false);
     } catch {
       // Keep modal open on failure; error notification is shown by the hook.
@@ -161,16 +177,81 @@ function AutoragResultsPage(): React.JSX.Element {
     ],
   );
 
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+  const handleTryPattern = React.useCallback(
+    (patternName: string) => {
+      const pattern = patterns?.[patternName];
+      if (!pattern) {
+        return;
+      }
+      const responsesTemplate = pattern.settings?.responses_template;
+      const secretName = contextValue.parameters?.ogx_secret_name;
+      if (!responsesTemplate || !secretName) {
+        return;
+      }
+
+      const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
+      const scoreLookup = Object.fromEntries(
+        Object.entries(pattern.scores ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
+      );
+      const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
+      setDrawerContent({
+        type: 'playground',
+        secretName,
+        responsesTemplate,
+        patternInfo: {
+          patternName,
+          modelId: pattern.settings?.generation?.model_id || 'N/A',
+          optimizedMetricName: formatMetricName(optimizedMetric),
+          optimizedMetricValue:
+            metricMean != null && Number.isFinite(metricMean) ? metricMean : 'N/A',
+          chunkMethod: pattern.settings?.chunking?.method || 'N/A',
+        },
+      });
+    },
+    [patterns, contextValue.parameters?.ogx_secret_name, pipelineRun],
+  );
+  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
+
+  const [viewCodePattern, setViewCodePattern] = React.useState<{
+    patternName: string;
+    responsesTemplate: ResponsesTemplate;
+  } | null>(null);
+
+  const handleViewCode = React.useCallback(
+    (patternName: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const responsesTemplate = patterns?.[patternName]?.settings?.responses_template;
+      if (responsesTemplate) {
+        setViewCodePattern({ patternName, responsesTemplate });
+      }
+    },
+    [patterns],
+  );
+
   return (
     <AutoragResultsContext.Provider value={contextValue}>
-      <Drawer isExpanded={isDrawerOpen}>
+      <Drawer isExpanded={isDrawerOpen} position="end">
         <DrawerContent
           panelContent={
-            <AutoragInputParametersPanel
-              onClose={handleDrawerClose}
-              parameters={contextValue.parameters}
-              isLoading={pipelineRunPending}
-            />
+            drawerContent?.type === 'run-details' ? (
+              <AutoragInputParametersPanel
+                onClose={handleDrawerClose}
+                parameters={contextValue.parameters}
+                isLoading={pipelineRunPending}
+              />
+            ) : drawerContent?.type === 'playground' ? (
+              <PlaygroundDrawerPanel
+                namespace={namespace ?? ''}
+                secretName={drawerContent.secretName}
+                responsesTemplate={drawerContent.responsesTemplate}
+                patternInfo={drawerContent.patternInfo}
+                patterns={patterns}
+                onClose={handleDrawerClose}
+                onSelectPattern={handleTryPattern}
+                onViewCode={handleViewCode}
+              />
+            ) : undefined
           }
         >
           <DrawerContentBody>
@@ -192,14 +273,11 @@ function AutoragResultsPage(): React.JSX.Element {
               headerAction={
                 <Split hasGutter>
                   <SplitItem>
-                    {runTerminatable && !stopInitiated && (
+                    {runTerminatable && (
                       <Button
                         variant="secondary"
                         icon={<StopCircleIcon />}
                         onClick={() => setIsStopModalOpen(true)}
-                        isDisabled={isTerminating || isStopModalOpen}
-                        isLoading={isTerminating || isStopModalOpen}
-                        spinnerAriaValueText="Stopping run"
                         data-testid="stop-run-button"
                       >
                         Stop
@@ -233,8 +311,12 @@ function AutoragResultsPage(): React.JSX.Element {
                     <Button
                       variant="link"
                       icon={<OpenDrawerRightIcon />}
-                      onClick={() => setIsDrawerOpen((prev) => !prev)}
-                      aria-expanded={isDrawerOpen}
+                      onClick={() =>
+                        setDrawerContent((prev) =>
+                          prev?.type === 'run-details' ? null : { type: 'run-details' },
+                        )
+                      }
+                      aria-expanded={drawerContent?.type === 'run-details'}
                       data-testid="run-details-button"
                     >
                       Run details
@@ -245,7 +327,7 @@ function AutoragResultsPage(): React.JSX.Element {
               breadcrumb={
                 <Breadcrumb>
                   <BreadcrumbItem>
-                    <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
+                    <Link to={getRedirectPath(namespace ?? '')}>AutoRAG: {namespace}</Link>
                   </BreadcrumbItem>
                   <BreadcrumbItem isActive>
                     <Truncate content={pipelineRun?.display_name || ''} />
@@ -265,7 +347,7 @@ function AutoragResultsPage(): React.JSX.Element {
               }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
-              <AutoragResults />
+              <AutoragResults onTryPattern={handleTryPattern} onViewCode={handleViewCode} />
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>
@@ -277,6 +359,14 @@ function AutoragResultsPage(): React.JSX.Element {
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
       />
+      {viewCodePattern && (
+        <ViewCodeModal
+          isOpen
+          onClose={() => setViewCodePattern(null)}
+          patternName={viewCodePattern.patternName}
+          responsesTemplate={viewCodePattern.responsesTemplate}
+        />
+      )}
     </AutoragResultsContext.Provider>
   );
 }

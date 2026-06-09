@@ -17,7 +17,7 @@ const ModelCatalog: React.FC = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const {
     selectedSourceLabel,
-    updateSelectedSourceLabel,
+    setSelectedSourceLabel,
     clearAllFilters,
     catalogSources,
     catalogLabels,
@@ -35,9 +35,9 @@ const ModelCatalog: React.FC = () => {
     const validatedParam = searchParams.get('validated');
     if (validatedParam === 'true') {
       setSearchParams({});
-      updateSelectedSourceLabel('Red Hat AI validated');
+      setSelectedSourceLabel('Red Hat AI validated');
     }
-  }, [searchParams, setSearchParams, updateSelectedSourceLabel]);
+  }, [searchParams, setSearchParams, setSelectedSourceLabel]);
 
   const handleSearch = React.useCallback((term: string) => {
     setSearchTerm(term);
@@ -73,7 +73,7 @@ const ModelCatalog: React.FC = () => {
         catalogLabels={catalogLabels}
         catalogSourcesLoaded={catalogSourcesLoaded}
         selectedSourceLabel={selectedSourceLabel}
-        onSelectSourceLabel={updateSelectedSourceLabel}
+        onSelectSourceLabel={setSelectedSourceLabel}
         isAllItemsView={isAllModelsView}
         renderEmptyCategoriesState={() => (
           <EmptyCatalogState

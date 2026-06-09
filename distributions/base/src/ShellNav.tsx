@@ -149,17 +149,6 @@ const ShellNavItem: React.FC<{ extension: LoadedExtension<NavExtension> }> = ({ 
   return null;
 };
 
-const HomeNavItem: React.FC = () => {
-  const { pathname } = useLocation();
-  const isActive = pathname === '/';
-
-  return (
-    <NavItem isActive={isActive}>
-      <Link to="/">Home</Link>
-    </NavItem>
-  );
-};
-
 const ShellNav: React.FC = () => {
   const navExtensions = useExtensions<NavExtension>(isNavExtension);
   const topLevelExtensions = React.useMemo(
@@ -172,7 +161,6 @@ const ShellNav: React.FC = () => {
       <PageSidebarBody>
         <Nav aria-label="Navigation">
           <NavList>
-            <HomeNavItem />
             {topLevelExtensions.map((extension) => (
               <ShellNavItem key={extension.uid} extension={extension} />
             ))}

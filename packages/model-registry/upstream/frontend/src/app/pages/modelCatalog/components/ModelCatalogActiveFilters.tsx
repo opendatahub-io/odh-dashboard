@@ -46,8 +46,8 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
   forceHideLabels = false,
 }) => {
   const {
-    filterData,
-    setFilterData,
+    filters,
+    setFilters,
     resetSinglePerformanceFilterToDefault,
     getPerformanceFilterDefaultValue,
   } = React.useContext(ModelCatalogContext);
@@ -65,13 +65,13 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
     }
 
     if (isEnumMember(categoryKey, ModelCatalogStringFilterKey)) {
-      const currentValues = filterData[categoryKey];
+      const currentValues = filters[categoryKey];
       if (Array.isArray(currentValues)) {
         const newValues = currentValues.filter((v) => String(v) !== String(labelKey));
-        setFilterData(categoryKey, newValues);
+        setFilters((prev) => ({ ...prev, [categoryKey]: newValues }));
       }
     } else {
-      setFilterData(categoryKey, undefined);
+      setFilters((prev) => ({ ...prev, [categoryKey]: undefined }));
     }
   };
 
@@ -86,9 +86,9 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
     }
 
     if (isEnumMember(categoryKey, ModelCatalogStringFilterKey)) {
-      setFilterData(categoryKey, []);
+      setFilters((prev) => ({ ...prev, [categoryKey]: [] }));
     } else {
-      setFilterData(categoryKey, undefined);
+      setFilters((prev) => ({ ...prev, [categoryKey]: undefined }));
     }
   };
 
@@ -151,7 +151,7 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
   return (
     <>
       {filtersToShow.map((filterKey) => {
-        const filterValue = filterData[filterKey];
+        const filterValue = filters[filterKey];
 
         // Determine whether this filter has visible chips.
         // TODO: PF's ToolbarFilter lacks componentWillUnmount cleanup for its internal

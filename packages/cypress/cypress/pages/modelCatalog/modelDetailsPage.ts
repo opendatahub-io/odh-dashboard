@@ -63,8 +63,16 @@ class ModelDetailsPage {
     return cy.findByTestId('register-catalog-model-popover');
   }
 
-  expandLabelGroup() {
-    cy.findByTestId('model-catalog-label-group').find('button').click();
+  private findModelDetailsCard() {
+    return cy.contains('h2', 'Model details').parents('.pf-v6-c-card').first();
+  }
+
+  expandModelDetailsLabelGroup() {
+    this.findModelDetailsCard().find('button.pf-v6-c-label.pf-m-overflow').click();
+  }
+
+  findModelDetailsLabelByText(text: string) {
+    return this.findModelDetailsCard().contains('[data-testid="model-catalog-label"]', text);
   }
 
   findLabelByIndex(index: number) {
@@ -94,6 +102,30 @@ class ModelDetailsPage {
 
   findWorkloadTypeFilter() {
     return cy.findByTestId('workload-type-filter');
+  }
+
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findLabelByText(text: string) {
+    return cy.findAllByTestId('model-catalog-label').contains(text);
+  }
+
+  findValidatedConfigurationsCard() {
+    return cy.findByTestId('validated-configurations-card');
+  }
+
+  findToolCallingCard() {
+    return cy.findByTestId('tool-calling-card');
+  }
+
+  findToolCallingToggle() {
+    return cy.get('#tool-calling-toggle');
+  }
+
+  findValidatedDeploymentResourceLabels() {
+    return cy.findAllByTestId('validated-deployment-resource-label');
   }
 }
 

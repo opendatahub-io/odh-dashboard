@@ -25,9 +25,9 @@ const ModelCatalogStringFilter = <K extends ModelCatalogStringFilterKey>({
   filterToNameMapping = {},
   filters,
 }: ModelCatalogStringFilterProps<K>): JSX.Element => {
-  const { filterData } = React.useContext(ModelCatalogContext);
+  const { filters: contextFilters } = React.useContext(ModelCatalogContext);
   const { setSelected } = useCatalogStringFilterState(filterKey);
-  const selectedValues = filterData[filterKey];
+  const selectedValues = contextFilters[filterKey];
 
   const getLabel = React.useCallback(
     (value: string): string =>
