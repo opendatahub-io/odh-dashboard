@@ -133,6 +133,10 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   allowFolderSelectionRef.current = allowFolderSelection;
   const selectableExtensionsRef = useRef(selectableExtensions);
   selectableExtensionsRef.current = selectableExtensions;
+  const currentPathRef = useRef(currentPath);
+  currentPathRef.current = currentPath;
+  const perPageToRenderRef = useRef(perPageToRender);
+  perPageToRenderRef.current = perPageToRender;
 
   // Track the last search query that was actually sent to the API (after debounce)
   const appliedSearchRef = useRef('');
@@ -272,12 +276,11 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     () =>
       debounce((query: string) => {
         appliedSearchRef.current = query;
-        const perPage = perPageToRender;
         setPageToRender(1);
         continuationTokensRef.current = new Map();
-        fetchPath(currentPath, perPage, 1, query || undefined);
+        fetchPath(currentPathRef.current, perPageToRenderRef.current, 1, query || undefined);
       }, 300),
-    [currentPath, perPageToRender, fetchPath],
+    [fetchPath],
   );
   debouncedSearchRef.current = debouncedSearch;
   // Cancel stale debounce when debouncedSearch is recreated
