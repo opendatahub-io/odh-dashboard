@@ -213,15 +213,27 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			InsecureSkipVerify: cfg.InsecureSkipVerify,
 			RootCAs:            rootCAs,
 		}
+
+		// Build transport wrapping chain: base → port-forward (dev only) → auth token
+		var authWrapper func(http.RoundTripper) http.RoundTripper
 		switch cfg.AuthMethod {
 		case config.AuthMethodUser:
-			mrClientCfg.WrapTransport = kubernetes.NewBearerTokenRoundTripper
+			authWrapper = kubernetes.NewBearerTokenRoundTripper
 		case config.AuthMethodInternal:
 			saWrapper, err := kubernetes.NewSATokenTransportWrapper()
 			if err != nil {
 				return nil, fmt.Errorf("failed to initialize SA token transport for model registry: %w", err)
 			}
-			mrClientCfg.WrapTransport = saWrapper
+			authWrapper = saWrapper
+		}
+		mrClientCfg.WrapTransport = func(base http.RoundTripper) http.RoundTripper {
+			if pfManager != nil {
+				base = k8s.PortForwardWrapTransport(pfManager, logger)(base)
+			}
+			if authWrapper != nil {
+				base = authWrapper(base)
+			}
+			return base
 		}
 		mrClient = modelregistry.NewDefaultModelRegistryClient(mrClientCfg)
 	}
