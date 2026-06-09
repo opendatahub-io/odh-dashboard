@@ -58,6 +58,8 @@ export async function getFiles(
     query.set('next', options.next);
   }
 
+  assertSafeApiPath(options.apiPath);
+
   const url = new URL(`${host}${options.apiPath}/files`, window.location.origin);
   url.search = query.toString();
 
@@ -87,6 +89,19 @@ export async function getFiles(
 }
 
 // Private -------------------------------------------------------------------->
+
+function assertSafeApiPath(apiPath: string): void {
+  if (
+    !apiPath.startsWith('/') ||
+    apiPath.startsWith('//') ||
+    apiPath.includes('..') ||
+    /^[a-z]+:/i.test(apiPath)
+  ) {
+    throw new Error(
+      `Unsafe apiPath: "${apiPath}" — must be an absolute path with no traversal or protocol`,
+    );
+  }
+}
 
 async function throwIfNotOk(response: Response): Promise<void> {
   if (!response.ok) {

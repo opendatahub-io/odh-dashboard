@@ -113,6 +113,16 @@ describe('getFiles', () => {
     ).rejects.toThrow('Request failed (500)');
   });
 
+  it.each([
+    ['relative path', 'no-leading-slash', 'Unsafe apiPath'],
+    ['protocol-relative', '//evil.com/api', 'Unsafe apiPath'],
+    ['path traversal', '/api/../admin', 'Unsafe apiPath'],
+    ['protocol scheme', 'javascript:alert(1)', 'Unsafe apiPath'],
+  ])('should reject unsafe apiPath (%s)', async (_label, apiPath, expectedError) => {
+    await expect(getFiles('', {}, { apiPath, namespace: 'ns' })).rejects.toThrow(expectedError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it('should throw on invalid response shape', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
