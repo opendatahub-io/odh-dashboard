@@ -53,6 +53,5 @@ func (app *App) ListAgentRuntimesHandler(w http.ResponseWriter, r *http.Request,
 			slog.String("path", r.URL.Path),
 			slog.Int("status", http.StatusOK),
 			slog.Any("error", err))
-		app.serverErrorResponse(w, r, err)
 	}
 }

@@ -59,6 +59,5 @@ func (app *App) GetAgentCardHandler(w http.ResponseWriter, r *http.Request, ps h
 			slog.String("name", name),
 			slog.Int("status", http.StatusOK),
 			slog.Any("error", err))
-		app.serverErrorResponse(w, r, err)
 	}
 }

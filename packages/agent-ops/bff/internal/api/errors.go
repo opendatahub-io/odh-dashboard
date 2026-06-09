@@ -48,7 +48,7 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.LogError(r, err)
 
-	httpError := &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: strconv.Itoa(http.StatusServiceUnavailable), Message: err.Error()}}
+	httpError := &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: strconv.Itoa(http.StatusServiceUnavailable), Message: "the service is currently unavailable"}}
 	app.errorResponse(w, r, httpError)
 }
 

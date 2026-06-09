@@ -7,6 +7,9 @@ import (
 )
 
 const (
+	// AuthMethodDisabled authentication is disabled, useful for testing and mock-only local dev.
+	AuthMethodDisabled = "disabled"
+
 	// AuthMethodInternal uses the credentials of the running backend.
 	// If running inside the cluster, it uses the pod's service account.
 	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
@@ -82,7 +85,7 @@ type EnvConfig struct {
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
-	// Valid values: "internal" or "user_token"
+	// Valid values: "internal", "user_token", or "disabled"
 	AuthMethod string
 
 	// Header used to extract the authentication token.
@@ -106,6 +109,7 @@ type EnvConfig struct {
 
 	// MockAgentClient enables mock mode for the agent data source client.
 	// When true, agent APIs return built-in demo data instead of querying the cluster.
+	// Local development only — routes are live with no RBAC gate; do not enable in staging or production.
 	MockAgentClient bool
 
 	// ─── DEPRECATED ─────────────────────────────────────────────

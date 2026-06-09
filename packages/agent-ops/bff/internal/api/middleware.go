@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
 	"github.com/rs/cors"
@@ -33,6 +34,12 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//skip use headers check if we are not on /api/v1 (i.e. we are on /healthcheck and / (static fe files) )
 		if !strings.HasPrefix(r.URL.Path, ApiPathPrefix) && !strings.HasPrefix(r.URL.Path, PathPrefix+ApiPathPrefix) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// If authentication is disabled, skip identity extraction.
+		if app.config.AuthMethod == config.AuthMethodDisabled {
 			next.ServeHTTP(w, r)
 			return
 		}
