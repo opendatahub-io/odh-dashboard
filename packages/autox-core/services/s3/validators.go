@@ -25,6 +25,10 @@ func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (strin
 		return "", fmt.Errorf("invalid endpoint URL format: %w", err)
 	}
 
+	if parsedURL.User != nil {
+		return "", fmt.Errorf("endpoint URL must not contain credentials (userinfo)")
+	}
+
 	hostname := parsedURL.Hostname()
 	if hostname == "" {
 		return "", fmt.Errorf("endpoint URL must have a valid hostname")
