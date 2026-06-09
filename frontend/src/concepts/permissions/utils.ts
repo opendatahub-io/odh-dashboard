@@ -219,6 +219,12 @@ export const getRoleAssignmentsForRoleRef = (
 };
 
 /**
+ * Returns true if the role has the dashboard label (`opendatahub.io/dashboard: "true"`).
+ */
+export const isDashboardRole = (role?: RoleKind | ClusterRoleKind): boolean =>
+  role ? getRoleLabelTypeForRole(role) === RoleLabelType.Dashboard : false;
+
+/**
  * Resolves a RoleRef to a RoleKind or ClusterRoleKind, if present in the provided lists.
  *
  * Returns undefined if the referenced role isn't present in the current lists (e.g. RBAC denies

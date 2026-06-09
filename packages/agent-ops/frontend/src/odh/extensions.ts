@@ -3,6 +3,7 @@ import type {
   RouteExtension,
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+import { agentDeploymentsPath, globAgentOpsAll } from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
 
@@ -15,38 +16,26 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
   },
   {
-    type: 'app.navigation/section',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      id: 'agent-ops',
-      title: 'Agent Ops',
-      group: '7_agent_ops_studio',
-      iconRef: () => import('./AgentOpsNavIcon'),
-    },
-  },
-  {
     type: 'app.navigation/href',
     flags: {
       required: [AGENT_OPS],
     },
     properties: {
-      id: 'agent-ops-view',
-      title: 'Agent Ops',
-      href: '/agent-ops/main-view',
-      section: 'agent-ops',
-      path: '/agent-ops/main-view/*',
+      id: 'agent-ops-deployments',
+      title: 'Agents',
+      href: agentDeploymentsPath,
+      section: 'ai-hub',
+      path: globAgentOpsAll,
       label: 'Tech Preview',
     },
   },
   {
     type: 'app.route',
     flags: {
-      required: [],
+      required: [AGENT_OPS],
     },
     properties: {
-      path: '/agent-ops/main-view/*',
+      path: globAgentOpsAll,
       component: () => import('./AgentOpsWrapper'),
     },
   },

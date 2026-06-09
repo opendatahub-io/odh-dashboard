@@ -5,11 +5,13 @@ import (
 	"net/http"
 )
 
+// HTTPError represents an HTTP error response with status code and error details.
 type HTTPError struct {
 	StatusCode int          `json:"-"`
 	Error      ErrorPayload `json:"error"`
 }
 
+// ErrorPayload holds error code and message details.
 type ErrorPayload struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
@@ -47,6 +49,12 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 	app.LogError(r, err)
 
 	httpError := &HTTPError{StatusCode: http.StatusInternalServerError, Error: ErrorPayload{Code: "INTERNAL_SERVER_ERROR", Message: "the server encountered a problem and could not process your request"}}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.logger.Warn("Forbidden access attempt", "error", err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
+	httpError := &HTTPError{StatusCode: http.StatusForbidden, Error: ErrorPayload{Code: "FORBIDDEN", Message: err.Error()}}
 	app.errorResponse(w, r, httpError)
 }
 

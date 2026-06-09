@@ -17,7 +17,7 @@ import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/_
 import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
-import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockNimResource';
+import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
 import { mockModelRegistryService } from '@odh-dashboard/internal/__mocks__/mockModelRegistryService';

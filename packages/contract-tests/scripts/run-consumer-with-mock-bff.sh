@@ -102,6 +102,9 @@ fi
 if [[ "$WATCH_MODE" == true ]]; then
   CMD+=(--watch)
 fi
+if [[ -n "${CONTRACT_TEST_PATH:-}" ]]; then
+  CMD+=(--testPathPattern "$CONTRACT_TEST_PATH")
+fi
 
 TEST_LOG="$RESULTS_DIR/contract-test-output.log"
 log_info "Test output: $TEST_LOG"

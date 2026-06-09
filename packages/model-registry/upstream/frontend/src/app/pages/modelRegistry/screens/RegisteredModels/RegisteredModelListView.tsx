@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Button, ToolbarGroup } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { ProjectObjectType, typedEmptyImage } from 'mod-arch-shared';
+import { ProjectObjectType, typedEmptyImage, ToolbarFilter, FilterState } from 'mod-arch-shared';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import {
@@ -10,19 +10,18 @@ import {
   registerModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
 import EmptyModelRegistryState from '~/app/pages/modelRegistry/screens/components/EmptyModelRegistryState';
-import { filterRegisteredModels } from '~/app/pages/modelRegistry/screens/utils';
+import { filterRegisteredModels, getTextValue } from '~/app/pages/modelRegistry/screens/utils';
 import { filterArchiveModels, filterLiveModels } from '~/app/utils';
 import {
-  initialModelRegistryFilterData,
   ModelRegistryFilterDataType,
-  modelRegistryFilterOptions,
   ModelRegistryFilterOptions,
+  registeredModelsFilterConfig,
+  registeredModelsVisibleFilterKeys,
+  registeredModelsInitialFilterValues,
 } from '~/app/pages/modelRegistry/screens/const';
-import FilterToolbar from '~/app/shared/components/FilterToolbar';
-import ThemeAwareSearchInput from '~/app/pages/modelRegistry/screens/components/ThemeAwareSearchInput';
 import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 import RegisteredModelTable from './RegisteredModelTable';
-import RegisteredModelsTableToolbar from './RegisteredModelsTableToolbar';
+import RegisteredModelsToolbarActions from './RegisteredModelsToolbarActions';
 
 type RegisteredModelListViewProps = {
   registeredModels: RegisteredModel[];
@@ -37,21 +36,21 @@ const RegisteredModelListViewContent: React.FC<RegisteredModelListViewProps> = (
 }) => {
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-  const [filterData, setFilterData] = React.useState<ModelRegistryFilterDataType>(
-    initialModelRegistryFilterData,
+  const [filterValues, setFilterValues] = React.useState<FilterState<ModelRegistryFilterOptions>>(
+    registeredModelsInitialFilterValues,
   );
   const unfilteredRegisteredModels = filterLiveModels(registeredModels);
   const archiveRegisteredModels = filterArchiveModels(registeredModels);
 
-  const onFilterUpdate = React.useCallback(
-    (key: string, value: string | { label: string; value: string } | undefined) =>
-      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
-    [setFilterData],
+  const onFilterChange = React.useCallback(
+    (key: ModelRegistryFilterOptions, value: string | string[]) =>
+      setFilterValues((prev) => ({ ...prev, [key]: value })),
+    [],
   );
 
-  const onClearFilters = React.useCallback(
-    () => setFilterData(initialModelRegistryFilterData),
-    [setFilterData],
+  const onClearAllFilters = React.useCallback(
+    () => setFilterValues(registeredModelsInitialFilterValues),
+    [],
   );
 
   if (unfilteredRegisteredModels.length === 0) {
@@ -91,52 +90,36 @@ const RegisteredModelListViewContent: React.FC<RegisteredModelListViewProps> = (
     );
   }
 
+  const filterData: ModelRegistryFilterDataType = {
+    [ModelRegistryFilterOptions.keyword]: getTextValue(
+      filterValues[ModelRegistryFilterOptions.keyword],
+    ),
+    [ModelRegistryFilterOptions.owner]: getTextValue(
+      filterValues[ModelRegistryFilterOptions.owner],
+    ),
+  };
+
   const filteredRegisteredModels = filterRegisteredModels(
     unfilteredRegisteredModels,
     modelVersions,
     filterData,
   );
 
-  const toggleGroupItems = (
-    <ToolbarGroup variant="filter-group">
-      <FilterToolbar
-        filterOptions={modelRegistryFilterOptions}
-        filterOptionRenders={{
-          [ModelRegistryFilterOptions.keyword]: ({ onChange, ...props }) => (
-            <ThemeAwareSearchInput
-              {...props}
-              placeholder="Filter by name, description or label"
-              className="toolbar-fieldset-wrapper"
-              style={{ minWidth: '270px' }}
-              onChange={(value) => onChange(value)}
-            />
-          ),
-          [ModelRegistryFilterOptions.owner]: ({ onChange, ...props }) => (
-            <ThemeAwareSearchInput
-              {...props}
-              placeholder="Filter by owner"
-              className="toolbar-fieldset-wrapper"
-              style={{ minWidth: '270px' }}
-              onChange={(value) => onChange(value)}
-            />
-          ),
-        }}
-        filterData={filterData}
-        onFilterUpdate={onFilterUpdate}
-      />
-    </ToolbarGroup>
-  );
-
   return (
     <RegisteredModelTable
       refresh={refresh}
-      clearFilters={onClearFilters}
+      clearFilters={onClearAllFilters}
       registeredModels={filteredRegisteredModels}
       modelVersions={modelVersions}
       toolbarContent={
-        <RegisteredModelsTableToolbar
-          toggleGroupItems={toggleGroupItems}
-          onClearAllFilters={onClearFilters}
+        <ToolbarFilter
+          filterConfig={registeredModelsFilterConfig}
+          visibleFilterKeys={registeredModelsVisibleFilterKeys}
+          filterValues={filterValues}
+          onFilterChange={onFilterChange}
+          onClearAllFilters={onClearAllFilters}
+          toolbarActions={<RegisteredModelsToolbarActions />}
+          testIdPrefix="registered-models-table"
         />
       }
     />
@@ -144,7 +127,6 @@ const RegisteredModelListViewContent: React.FC<RegisteredModelListViewProps> = (
 };
 
 const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = (props) => {
-  // Create deployment context at the top level for all registered models
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   return (
     <MRDeploymentsContextProvider labelSelectors={undefined} mrName={preferredModelRegistry?.name}>

@@ -3,10 +3,11 @@ import { DashboardEmptyTableView, Table, ManageColumnsModal } from 'mod-arch-sha
 import { Button, Spinner } from '@patternfly/react-core';
 import { ColumnsIcon } from '@patternfly/react-icons';
 import { OuterScrollContainer } from '@patternfly/react-table';
-import { CatalogPerformanceMetricsArtifact } from '~/app/modelCatalogTypes';
+import { CatalogPerformanceMetricsArtifact, HardwareConfiguration } from '~/app/modelCatalogTypes';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { getActiveLatencyFieldName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import { SortOrder } from '~/concepts/modelCatalog/const';
+import { getStringValue } from '~/app/utils';
+import { SortOrder, PerformancePropertyKey } from '~/concepts/modelCatalog/const';
 import {
   useHardwareConfigColumns,
   ControlledTableSortProps,
@@ -16,22 +17,24 @@ import HardwareConfigurationFilterToolbar from './HardwareConfigurationFilterToo
 
 type HardwareConfigurationTableProps = {
   performanceArtifacts: CatalogPerformanceMetricsArtifact[];
+  hardwareConfigurations?: HardwareConfiguration[];
   isLoading?: boolean;
   onSortChange?: (sort: { orderBy?: string; sortOrder?: string }) => void;
 };
 
 const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
   performanceArtifacts,
+  hardwareConfigurations,
   isLoading = false,
   onSortChange,
 }) => {
-  const { filterData, resetPerformanceFiltersToDefaults } = React.useContext(ModelCatalogContext);
+  const { filters, resetPerformanceFiltersToDefaults } = React.useContext(ModelCatalogContext);
 
   // Note: Filtering is now done server-side via the /performance_artifacts endpoint.
   // The performanceArtifacts prop contains pre-filtered data from the server.
 
   // Get the active latency filter field name (if any)
-  const activeLatencyField = getActiveLatencyFieldName(filterData);
+  const activeLatencyField = getActiveLatencyFieldName(filters);
 
   // Use the custom hook that combines manage columns with the latency filter + sort logic
   const {
@@ -116,13 +119,27 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
           {...(hasActiveSort ? { defaultSortColumn: sortIndex } : {})}
           {...controlledSortProps}
           emptyTableView={<DashboardEmptyTableView onClearFilters={handleClearFilters} />}
-          rowRenderer={(artifact: CatalogPerformanceMetricsArtifact) => (
-            <HardwareConfigurationTableRow
-              key={artifact.customProperties?.config_id?.string_value}
-              performanceArtifact={artifact}
-              columns={columns}
-            />
-          )}
+          rowRenderer={(artifact: CatalogPerformanceMetricsArtifact) => {
+            const hwConfig = getStringValue(
+              artifact.customProperties,
+              PerformancePropertyKey.HARDWARE_CONFIGURATION,
+            );
+            const hwType = getStringValue(
+              artifact.customProperties,
+              PerformancePropertyKey.HARDWARE_TYPE,
+            );
+            const matched = hardwareConfigurations?.find(
+              (c) => hwConfig.startsWith(c.gpu_type) || c.gpu_type === hwType,
+            );
+            return (
+              <HardwareConfigurationTableRow
+                key={artifact.customProperties?.config_id?.string_value}
+                performanceArtifact={artifact}
+                columns={columns}
+                matchedHardwareConfig={matched}
+              />
+            );
+          }}
         />
       </OuterScrollContainer>
       <ManageColumnsModal

@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const defaultTimeout = 30 * time.Second
+const defaultTimeout = 60 * time.Second
 
 // NemoGuardrailsClient calls the NeMo Guardrails API for content moderation.
 type NemoGuardrailsClient struct {

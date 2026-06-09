@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -26,15 +27,41 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/mlflow"
-	APIPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	StatusPath      = APIPathPrefix + "/status"
-	UserPath        = APIPathPrefix + "/user"
-	NamespacePath   = APIPathPrefix + "/namespaces"
-	ExperimentsPath = APIPathPrefix + "/experiments"
+	Version            = "1.0.0"
+	PathPrefix         = "/mlflow"
+	APIPathPrefix      = "/api/v1"
+	HealthCheckPath    = "/healthcheck"
+	StatusPath         = APIPathPrefix + "/status"
+	UserPath           = APIPathPrefix + "/user"
+	NamespacePath      = APIPathPrefix + "/namespaces"
+	ExperimentsPath    = APIPathPrefix + "/experiments"
+	PromptsPath        = APIPathPrefix + "/prompts"
+	PromptPath         = APIPathPrefix + "/prompts/:name"
+	PromptVersionsPath = APIPathPrefix + "/prompts/:name/versions"
+	PromptVersionPath  = APIPathPrefix + "/prompts/:name/versions/:version"
 )
+
+var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
+var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
+
+func isHashedAsset(filePath string) bool {
+	match := hashPattern.FindString(path.Base(filePath))
+	return match != "" && strings.ContainsAny(match, "abcdef")
+}
+
+func isStaticAsset(filePath string) bool {
+	return staticAssetPattern.MatchString(filePath)
+}
+
+func cacheControlForStaticFile(filePath string) string {
+	if isHashedAsset(filePath) {
+		return "public, max-age=31536000, immutable"
+	}
+	if isStaticAsset(filePath) {
+		return "public, max-age=86400"
+	}
+	return "no-cache"
+}
 
 type App struct {
 	config                  config.EnvConfig
@@ -52,6 +79,13 @@ type App struct {
 	testEnv                 *envtest.Environment     // used only with mocked k8s client
 	rootCAs                 *x509.CertPool           // custom CA pool for outbound TLS connections
 	mlflowState             *mlflowmocks.MLflowState // set when MockHTTPClient starts a child MLflow via uv
+
+	// Global namespace config (cached, polled from OdhDashboardConfig CR)
+	dashboardConfigReader *k8s.DashboardConfigReader
+	globalNamespacesMu    sync.RWMutex
+	globalNamespaces      []string
+	globalNsWatcherDone   chan struct{}
+	globalNsWatcherWg     sync.WaitGroup
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -89,6 +123,20 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	if app.shouldWatchMLflow() {
 		app.startMLflowWatcher()
+	}
+
+	if cfg.MockK8Client {
+		app.globalNamespaces = k8mocks.MockGlobalNamespaces()
+	} else if app.shouldWatchGlobalNamespaces() {
+		reader, err := k8s.NewDashboardConfigReader(logger)
+		if err != nil {
+			logger.Warn("Dashboard config reader unavailable, global namespace prompts disabled",
+				slog.Any("error", err))
+		} else {
+			app.dashboardConfigReader = reader
+			app.refreshGlobalNamespaces()
+			app.startGlobalNamespaceWatcher()
+		}
 	}
 
 	return app, nil
@@ -156,6 +204,11 @@ func (app *App) Shutdown() error {
 	app.shutdownOnce.Do(func() {
 		app.logger.Info("shutting down app...")
 
+		if app.globalNsWatcherDone != nil {
+			close(app.globalNsWatcherDone)
+			app.globalNsWatcherWg.Wait()
+		}
+
 		if app.mlflowWatcherDone != nil {
 			close(app.mlflowWatcherDone)
 			app.mlflowWatcherWg.Wait()
@@ -188,6 +241,12 @@ func (app *App) Routes() http.Handler {
 	// MLflow API routes
 	apiRouter.GET(StatusPath, app.RequireValidIdentity(app.StatusHandler))
 	apiRouter.GET(ExperimentsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListExperimentsHandler))))
+	apiRouter.GET(PromptsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
+	apiRouter.POST(PromptsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowRegisterPromptHandler))))
+	apiRouter.GET(PromptPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowLoadPromptHandler))))
+	apiRouter.DELETE(PromptPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowDeletePromptHandler))))
+	apiRouter.GET(PromptVersionsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListPromptVersionsHandler))))
+	apiRouter.DELETE(PromptVersionPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowDeletePromptVersionHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()
@@ -202,15 +261,18 @@ func (app *App) Routes() http.Handler {
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 		// Check if the requested file exists
-		if _, err := staticDir.Open(r.URL.Path); err == nil {
+		if f, err := staticDir.Open(r.URL.Path); err == nil {
+			f.Close()
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 			// Serve the file if it exists
+			w.Header().Set("Cache-Control", cacheControlForStaticFile(r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return
 		}
 
 		// Fallback to index.html for SPA routes
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
 	})
 

@@ -85,8 +85,8 @@ const AutoragVectorStoreSelector: React.FC = () => {
         'No compatible vector I/O providers found.',
         <>
           Vector I/O providers were found on the Open GenAI Stack server, but none are compatible
-          with AutoRAG. Ensure a remote Milvus provider is configured on your Open GenAI Stack
-          server.
+          with AutoRAG. Ensure a remote Milvus or PGVector provider is configured on your Open GenAI
+          Stack server.
         </>,
       );
     }
