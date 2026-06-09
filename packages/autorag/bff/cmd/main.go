@@ -80,6 +80,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Prevent disabling TLS verification in production — all authenticated outbound
+	// clients (pipelines, S3, OGX) send bearer or SA tokens over TLS.
+	if cfg.InsecureSkipVerify && !cfg.DevMode {
+		logger.Error("insecure-skip-verify can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
+
 	// In dev mode, auto-disable auth when any mock client is active for testing convenience.
 	if cfg.DevMode &&
 		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient) &&

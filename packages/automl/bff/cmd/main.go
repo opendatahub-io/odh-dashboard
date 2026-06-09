@@ -102,6 +102,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Prevent disabling TLS verification in production — all authenticated outbound
+	// clients (pipelines, model registry, S3) send bearer or SA tokens over TLS.
+	if cfg.InsecureSkipVerify && !cfg.DevMode {
+		logger.Error("insecure-skip-verify can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
+
 	// MockS3Client depends on MockK8sClient since GetS3Credentials needs
 	// a mock Kubernetes client to fetch secrets
 	if cfg.MockS3Client && !cfg.MockK8sClient {
