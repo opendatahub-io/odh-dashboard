@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -209,8 +208,8 @@ func convertToResponseData(llamaResponse interface{}) ResponseData {
 	return responseData
 }
 
-// citationMarkerRegex matches OGX citation markers: UUIDs and file-prefixed IDs
-var citationMarkerRegex = regexp.MustCompile(`<\|((?:file-)?[a-zA-Z0-9_-]+)\|>`)
+// citationMarkerRegex matches OGX citation markers: UUIDs, file-prefixed IDs, and filenames
+var citationMarkerRegex = regexp.MustCompile(`<\|((?:file-)?[a-zA-Z0-9_.\-]+)\|>`)
 
 // extractAttributeString extracts a string value from an OGX attributes map.
 // Attributes can be plain strings or union-typed objects with OfString/OfFloat/OfBool fields
@@ -587,19 +586,16 @@ func (app *App) checkInputModeration(ctx context.Context, messages []nemo.Messag
 
 // handleStreamingResponse handles streaming response creation
 func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams) {
-	// Track start time for latency and TTFT calculation
 	startTime := time.Now()
 	var firstTokenTime *time.Time
 	var usage *UsageData
 
-	// Check if ResponseWriter supports streaming - fail fast if not
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming not supported by client", http.StatusNotImplemented)
 		return
 	}
 
-	// Create streaming response
 	stream, err := app.repositories.Responses.CreateResponseStream(ctx, params)
 	if err != nil {
 		app.handleLlamaStackClientError(w, r, err)
@@ -607,120 +603,34 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	}
 	defer stream.Close()
 
-	// Set SSE headers only after successful stream creation
 	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	// Heartbeat keeps the connection alive through proxies (e.g., OpenShift HAProxy
-	// 30s idle timeout) during slow inference, tool calls, or vector DB retrieval.
 	var writeMu sync.Mutex
 	hb := newSSEHeartbeat(w, flusher, &writeMu, app.logger)
 	go hb.start(ctx)
 	defer hb.stop()
 
-	// Stream events to client
-	for stream.Next() {
-		// Check if client disconnected
-		select {
-		case <-ctx.Done():
-			app.logger.Info("Client disconnected, stopping stream processing",
-				"context_error", ctx.Err())
-			return
-		default:
-			// Context still active, continue processing
-		}
-
-		event := stream.Current()
-
-		// Intercept OGX error events (type: "error") before convertToStreamingEvent
-		// which would filter them out. These are top-level errors like "model not found".
-		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
-		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
-		// 429/5xx fallback for HTTP statuses.
-		if event.Type == "error" {
-			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
-			component := llamastack.ResolveComponent(event.Code)
-			statusCode, err := strconv.Atoi(event.Code)
-			if err != nil {
-				// event.Code is not an HTTP status - isRetriable will match via code switch
-				statusCode = 0
-			}
-			retriable := app.isRetriable(event.Code, statusCode)
-			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
-			flusher.Flush()
-			return
-		}
-
-		// Convert to clean streaming event
-		streamingEvent := convertToStreamingEvent(event)
-		if streamingEvent == nil {
-			// Skip events we don't care about
-			continue
-		}
-
-		// Track TTFT on first answer token only — reasoning tokens are excluded
-		if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
-			now := time.Now()
-			firstTokenTime = &now
-		}
-
-		// Intercept response.failed — extract error details from the raw SDK event
-		// since ResponseData doesn't carry the nested error fields.
-		if streamingEvent.Type == "response.failed" {
-			errorCode := string(event.Response.Error.Code)
-			errorMessage := event.Response.Error.Message
-			if errorMessage == "" {
-				errorMessage = "Response generation failed"
-			}
-			app.logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
-			component := llamastack.ResolveComponent(errorCode)
-			retriable := app.isRetriable(errorCode, 0)
-			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(errorCode, errorMessage, component, retriable))
-			flusher.Flush()
-			return
-		}
-
-		// Extract usage and process citations from completed event
-		if streamingEvent.Type == "response.completed" {
-			usage = extractUsageFromEvent(event)
-			if streamingEvent.Response != nil {
-				processResponseCitations(streamingEvent.Response)
-			}
-		}
-
-		// Convert clean streaming event to JSON
-		eventData, err := json.Marshal(streamingEvent)
-		if err != nil {
-			app.logger.Error("Failed to marshal streaming event",
-				"error", err,
-				"event_type", streamingEvent.Type,
-				"item_id", streamingEvent.ItemID,
-				"sequence", streamingEvent.SequenceNumber)
-			continue
-		}
-
-		// Write SSE format
-		writeMu.Lock()
-		_, err = fmt.Fprintf(w, "data: %s\n\n", eventData)
-		if err != nil {
-			writeMu.Unlock()
-			app.logger.Error("Failed to write streaming event", "error", err)
-			return
-		}
-		flusher.Flush()
-		writeMu.Unlock()
+	// Use unified streaming function (no delta handler = regular streaming)
+	if err := app.streamSSEEvents(StreamConfig{
+		Stream:                stream,
+		Context:               ctx,
+		Logger:                app.logger,
+		Flusher:               flusher,
+		Writer:                w,
+		WriteMu:               &writeMu,
+		StartTime:             startTime,
+		FirstTokenTime:        &firstTokenTime,
+		Usage:                 &usage,
+		UseAdvancedErrorLogic: true,
+	}); err != nil {
+		app.logger.Error("Streaming failed", "error", err)
+		return
 	}
 
-	// Check for stream errors (transport-level: connection drops, malformed SSE)
-	if err = stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
-		message, code, component, retriable := app.extractStreamingError(err)
-		fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable))
-	}
-
-	// Send metrics event after stream completes
+	// Send metrics event
 	latencyMs := time.Since(startTime).Milliseconds()
 	metricsEvent := MetricsEvent{
 		Type: "response.metrics",
@@ -730,11 +640,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			Usage:              usage,
 		},
 	}
-	eventData, err := json.Marshal(metricsEvent)
-	if err != nil {
-		app.logger.Error("failed to marshal metrics event", "error", err)
-		return
-	}
+	eventData, _ := json.Marshal(metricsEvent)
 	writeMu.Lock()
 	fmt.Fprintf(w, "data: %s\n\n", eventData)
 	flusher.Flush()

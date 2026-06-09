@@ -1810,6 +1810,107 @@ paths:
         The output array preserves LlamaStack's structure but filters out unnecessary metadata for optimal performance.
         MCP tools support multiple tools per request with individual authentication tokens provided in each tool's headers.
 
+  /gen-ai/api/v1/lsd/responses/passthrough:
+    summary: Forward pre-built OGX API request bodies as-is
+    description: >-
+      Accepts a pre-built OGX API responses template as the request body and forwards it
+      to OGX without transformation. Designed for consumers (like AutoRAG) that already
+      construct the full OGX API request format.
+
+      The OGX connection is established via a Kubernetes secret specified by the secretName
+      query parameter. The secret must contain OGX_CLIENT_BASE_URL and optionally OGX_CLIENT_API_KEY.
+
+      The endpoint always forces streaming mode (stream=true) regardless of the value in the
+      request body. Server-side storage (store=true) is rejected with a 400 error.
+    post:
+      tags:
+        - Responses
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: secretName
+          in: query
+          description: >-
+            Name of the Kubernetes Secret containing OGX connection credentials.
+            The secret must have a key OGX_CLIENT_BASE_URL with the service endpoint URL.
+            OGX_CLIENT_API_KEY is optional (empty string is valid for unauthenticated OGX).
+          required: true
+          schema:
+            type: string
+            example: 'my-ogx-secret'
+      requestBody:
+        required: true
+        description: >-
+          Opaque OGX API request body forwarded as-is to the upstream OGX service.
+          The BFF does not validate or transform this payload beyond enforcing
+          stream=true and rejecting store=true. Maximum body size is 1 MB.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              description: >-
+                Arbitrary JSON object matching the OGX Responses API format.
+                The exact shape depends on the upstream OGX API version.
+            example:
+              model: 'llama-3-2-3b-instruct'
+              input: 'What is machine learning?'
+              instructions: 'Answer concisely.'
+              stream: true
+      responses:
+        '200':
+          $ref: '#/components/responses/PassthroughStreamingResponse'
+        '400':
+          description: >-
+            Bad request — invalid JSON body, store=true is not allowed, missing
+            secretName, or invalid OGX_CLIENT_BASE_URL in the referenced secret.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                store_not_supported:
+                  summary: Server-side storage rejected
+                  value:
+                    error:
+                      code: '400'
+                      message: 'server-side storage is not supported for passthrough requests'
+                invalid_secret_url:
+                  summary: Invalid URL in secret
+                  value:
+                    error:
+                      code: '400'
+                      message: 'invalid OGX_CLIENT_BASE_URL in secret "my-secret": invalid URL scheme "ftp": only http and https are allowed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied — user cannot read the specified secret in this namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Secret not found in the specified namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '501':
+          description: Streaming not supported by the HTTP client
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'Streaming not supported by client'
+      operationId: passthroughResponse
+      summary: Passthrough AI Response (Streaming)
+      description: >-
+        Forwards a pre-built OGX API request body to the upstream OGX service and
+        streams the response back as SSE events. Always forces streaming mode.
+
   # =============================================================================
   # MODEL CONTEXT PROTOCOL (MCP) ENDPOINTS
   # =============================================================================
@@ -5268,6 +5369,43 @@ components:
             data: {"delta":"","sequence_number":0,"type":"response.completed","item_id":"","output_index":0,"response":{"id":"resp-635179f7-9f1a-4c58-8196-5ee4c41d00da","model":"ollama/llama3.2:latest","status":"completed","created_at":1758128692,"output":[{"id":"mcp_list_76f81e82-3142-41af-8462-8d7ef3975517","type":"mcp_list_tools","role":"assistant","server_label":"github","output":""},{"id":"call_stl5xt0s","type":"mcp_call","role":"assistant","server_label":"github","arguments":"{\"owner\":\"llamastack\",\"repo\":\"llama-stack\"}","name":"get_latest_release","output":"{\"tag_name\":\"1.104.0\"}"},{"id":"msg_6cb0269f-0cec-405d-af61-4e5ac01ea2b5","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"The latest release is version 1.104.0"}]}]}}
 
             data: {"type":"response.metrics","metrics":{"latency_ms":2341,"time_to_first_token_ms":892,"usage":{"input_tokens":150,"output_tokens":500,"total_tokens":650}}}
+
+    PassthroughStreamingResponse:
+      description: >-
+        Server-Sent Events (SSE) stream for passthrough AI response generation.
+        Uses the same event types as the regular streaming response, with the addition
+        of error events for upstream response.failed conditions.
+
+        Unlike the regular /lsd/responses endpoint, passthrough does not transform the
+        request body — it forwards it as-is to OGX. The response stream uses the same
+        event pipeline (filter + transform) and appends a response.metrics event after
+        stream completion.
+      content:
+        text/event-stream:
+          schema:
+            type: string
+            format: binary
+            description: >-
+              SSE stream with the following event types:
+              - response.created: Initial response metadata (id, model, status, created_at)
+              - response.content_part.added: New content part started
+              - response.output_text.delta: Individual token with delta text
+              - response.content_part.done: Content part completion
+              - response.completed: Final response with complete output array and citations
+              - response.metrics: Timing and usage data (latency_ms, time_to_first_token_ms, usage)
+              - Error event: Sent when OGX returns response.failed — contains an error object
+                with code and message fields, then the stream terminates immediately.
+              All non-error events use the same structure as the regular StreamingResponse.
+          example: |
+            data: {"delta":"","sequence_number":0,"type":"response.created","item_id":"","output_index":0,"response":{"id":"resp-abc123","model":"llama-3-2-3b-instruct","status":"in_progress","created_at":1758128692}}
+
+            data: {"delta":"Machine","sequence_number":1,"type":"response.output_text.delta","item_id":"msg_def456","output_index":0}
+
+            data: {"delta":" learning","sequence_number":2,"type":"response.output_text.delta","item_id":"msg_def456","output_index":0}
+
+            data: {"delta":"","sequence_number":0,"type":"response.completed","item_id":"","output_index":0,"response":{"id":"resp-abc123","model":"llama-3-2-3b-instruct","status":"completed","created_at":1758128692,"output":[{"id":"msg_def456","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Machine learning is a subset of artificial intelligence."}]}]}}
+
+            data: {"type":"response.metrics","metrics":{"latency_ms":1200,"time_to_first_token_ms":450,"usage":{"input_tokens":25,"output_tokens":40,"total_tokens":65}}}
 
     BadRequest:
       description: Bad Request - Invalid parameters, missing required fields, or malformed MCP Bearer token

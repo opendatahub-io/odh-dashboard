@@ -18,7 +18,7 @@ import {
   mockNimServingRuntimeTemplate,
   mockNvidiaNimAccessSecret,
   mockNvidiaNimImagePullSecret,
-} from '@odh-dashboard/internal/__mocks__/mockNimResource';
+} from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';

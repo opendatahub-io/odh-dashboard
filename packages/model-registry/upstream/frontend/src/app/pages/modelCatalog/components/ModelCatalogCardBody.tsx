@@ -44,10 +44,9 @@ const findMatchedColdStart = (
 ): number | undefined => {
   const configs = getHardwareConfigurationsFromCustomProperties(customProperties);
   const match = configs.find(
-    (c: HardwareConfiguration) =>
-      hwConfig.startsWith(c.hardware_type) || c.hardware_type === hwType,
+    (c: HardwareConfiguration) => hwConfig.startsWith(c.gpu_type) || c.gpu_type === hwType,
   );
-  return match?.cold_start_load_time_seconds;
+  return match?.cold_start_time_to_load_seconds;
 };
 
 type ModelCatalogCardBodyProps = {
@@ -62,8 +61,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
   source,
 }) => {
   const [currentPerformanceIndex, setCurrentPerformanceIndex] = useState(0);
-  const { filterData, filterOptions, performanceViewEnabled } =
-    React.useContext(ModelCatalogContext);
+  const { filters, filterOptions, performanceViewEnabled } = React.useContext(ModelCatalogContext);
   const notification = useNotification();
   const errorNotificationShown = React.useRef(false);
 
@@ -77,9 +75,9 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
 
   // Get performance-specific filter params for the /performance_artifacts endpoint
   // Always apply performance filters to get accurate benchmark counts, regardless of toggle state
-  const targetRPS = filterData[ModelCatalogNumberFilterKey.MAX_RPS];
+  const targetRPS = filters[ModelCatalogNumberFilterKey.MAX_RPS];
   // Get full filter key for display purposes
-  const latencyFieldName = getActiveLatencyFieldName(filterData);
+  const latencyFieldName = getActiveLatencyFieldName(filters);
   // Use short property key (e.g., 'ttft_p90') for the catalog API, not the full filter key
   const latencyProperty = latencyFieldName
     ? parseLatencyFilterKey(latencyFieldName).propertyKey
@@ -105,7 +103,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
           sortOrder: SortOrder.ASC,
         }),
       },
-      filterData,
+      filters,
       filterOptions,
       isValidated, // Only fetch if validated
     );

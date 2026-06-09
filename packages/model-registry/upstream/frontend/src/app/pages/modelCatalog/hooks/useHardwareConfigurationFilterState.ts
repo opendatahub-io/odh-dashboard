@@ -9,19 +9,19 @@ export const useHardwareConfigurationFilterState = (): {
   setAppliedValues: (values: string[]) => void;
   clearFilters: () => void;
 } => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const appliedValues: string[] = filterData[filterKey];
+  const { filters, setFilters } = React.useContext(ModelCatalogContext);
+  const appliedValues: string[] = filters[filterKey];
 
   const setAppliedValues = React.useCallback(
     (values: string[]) => {
-      setFilterData(filterKey, values);
+      setFilters((prev) => ({ ...prev, [filterKey]: values }));
     },
-    [setFilterData],
+    [setFilters],
   );
 
   const clearFilters = React.useCallback(() => {
-    setFilterData(filterKey, []);
-  }, [setFilterData]);
+    setFilters((prev) => ({ ...prev, [filterKey]: [] }));
+  }, [setFilters]);
 
   return { appliedValues, setAppliedValues, clearFilters };
 };

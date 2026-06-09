@@ -57,7 +57,7 @@ const PERCENTILE_OPTIONS: { value: LatencyPercentile; label: LatencyPercentile }
 ).map((percentile) => ({ value: percentile, label: percentile }));
 
 const LatencyFilter: React.FC = () => {
-  const { filterData, setFilterData, filterOptions } = React.useContext(ModelCatalogContext);
+  const { filters, setFilters, filterOptions } = React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
   const [isMetricOpen, setIsMetricOpen] = React.useState(false);
   const [isPercentileOpen, setIsPercentileOpen] = React.useState(false);
@@ -73,14 +73,14 @@ const LatencyFilter: React.FC = () => {
     for (const metric of Object.values(LatencyMetric)) {
       for (const percentile of Object.values(LatencyPercentile)) {
         const filterKey = getLatencyFilterKey(metric, percentile);
-        const value = filterData[filterKey];
+        const value = filters[filterKey];
         if (value !== undefined && typeof value === 'number') {
           return { fieldName: filterKey, metric, percentile, value };
         }
       }
     }
     return null;
-  }, [filterData]);
+  }, [filters]);
 
   const defaultFilterState = React.useMemo(() => {
     // Find the default latency filter from namedQueries
@@ -174,14 +174,18 @@ const LatencyFilter: React.FC = () => {
   };
 
   const handleApplyFilter = () => {
-    // Clear any existing latency filter
-    if (currentActiveFilter) {
-      setFilterData(currentActiveFilter.fieldName, undefined);
-    }
-
-    // Set the new latency filter using the dynamic filter key
-    const newFilterKey = getLatencyFilterKey(localFilter.metric, localFilter.percentile);
-    setFilterData(newFilterKey, localFilter.value);
+    // Clear any existing latency filter and set the new one
+    setFilters((prev) => {
+      const next = { ...prev };
+      if (currentActiveFilter) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- dynamic latency filter key
+        (next as Record<string, unknown>)[currentActiveFilter.fieldName] = undefined;
+      }
+      const newFilterKey = getLatencyFilterKey(localFilter.metric, localFilter.percentile);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- dynamic latency filter key
+      (next as Record<string, unknown>)[newFilterKey] = localFilter.value;
+      return next;
+    });
     setIsOpen(false);
   };
 

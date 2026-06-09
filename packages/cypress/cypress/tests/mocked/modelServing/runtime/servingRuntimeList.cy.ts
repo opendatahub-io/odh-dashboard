@@ -31,7 +31,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelServing/useStopModalPreference';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
-import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockNimResource';
+import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import {
   ModelStateToggleLabel,
