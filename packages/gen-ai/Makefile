@@ -96,6 +96,11 @@ dev-portforward: ## Start port-forwarding in separate terminals
 	@sleep 1
 	@echo "Starting port-forward for lsd-genai-playground-service..."
 	@oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/lsd-genai-playground-service 8321:8321 &
+	@if echo "${NEMO_GUARDRAILS_URL}" | grep -q "localhost"; then \
+		sleep 1; \
+		echo "Starting port-forward for nemoguardrails on port 9443..."; \
+		oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/nemoguardrails 9443:443 & \
+	fi
 	@echo "Port-forwarding started in background!"
 
 .PHONY: dev-start

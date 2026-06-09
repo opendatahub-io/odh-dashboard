@@ -87,6 +87,7 @@ vet:  . ## Runs static analysis tools on source files and reports suspicious con
 
 .PHONY: test
 test: fmt vet envtest uv ## Runs the full test suite.
+	UV_PYTHON=">=3.12,<3.14" \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
