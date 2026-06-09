@@ -11,6 +11,7 @@ import (
 )
 
 type OGXModelsEnvelope Envelope[*models.OGXModelsData, None]
+type OGXVectorStoresEnvelope Envelope[*models.OGXVectorStoreProvidersData, None]
 
 // OGXModelsHandler handles GET /api/v1/ogx/models
 // Returns all available models from Open GenAI Stack Distribution.
@@ -40,6 +41,40 @@ func (app *App) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 
 	err = app.WriteJSON(w, http.StatusOK, ogxModelsEnvelope, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// OGXVectorStoresHandler handles GET /api/v1/ogx/vector-stores
+// Returns available vector store providers from Open GenAI Stack Distribution,
+// filtered to only include providers with the vector_io API type.
+func (app *App) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
+	secretName := r.URL.Query().Get("secretName")
+	if secretName == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: secretName"))
+		return
+	}
+	if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
+		return
+	}
+
+	providersData, err := app.repositories.OGX.GetOGXVectorStoreProviders(ctx, namespace, secretName)
+	if err != nil {
+		app.handleOGXOrK8sError(w, r, err)
+		return
+	}
+
+	envelope := OGXVectorStoresEnvelope{
+		Data: providersData,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, envelope, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
