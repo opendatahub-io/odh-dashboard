@@ -628,12 +628,13 @@ jobs:
             --from-literal=service-ca.crt="" \
             -n opendatahub
 
-          echo "Creating mock kube-root-ca.crt ConfigMap..."
+          echo "Creating mock kube-root-ca.crt ConfigMap (if needed)..."
+          # kube-root-ca.crt may already exist (Kubernetes auto-creates it in some versions)
           kubectl create configmap kube-root-ca.crt \
             --from-literal=ca.crt="" \
-            -n opendatahub
+            -n opendatahub 2>/dev/null || echo "  (already exists, skipping)"
 
-          echo "✅ Mock OpenShift ConfigMaps created"
+          echo "✅ Mock OpenShift ConfigMaps ready"
 
       - name: Apply manifests
         run: |
