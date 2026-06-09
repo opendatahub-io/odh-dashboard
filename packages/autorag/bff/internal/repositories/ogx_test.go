@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -61,6 +62,8 @@ func defaultK8s() *mockK8sForOGX {
 // === translateOGXModel ===
 
 func TestTranslateOGXModel(t *testing.T) {
+	repo := &OGXRepository{logger: slog.Default()}
+
 	t.Run("full model with metadata", func(t *testing.T) {
 		native := models.OGXNativeModel{
 			ID: "llama3.2:3b",
@@ -70,7 +73,7 @@ func TestTranslateOGXModel(t *testing.T) {
 				ProviderResourceID: "ollama/llama3.2:3b",
 			},
 		}
-		result, ok := translateOGXModel(native)
+		result, ok := repo.translateOGXModel(native)
 		if !ok {
 			t.Fatal("expected ok")
 		}
@@ -80,7 +83,7 @@ func TestTranslateOGXModel(t *testing.T) {
 	})
 
 	t.Run("embedding model", func(t *testing.T) {
-		result, ok := translateOGXModel(models.OGXNativeModel{
+		result, ok := repo.translateOGXModel(models.OGXNativeModel{
 			ID:             "nomic-embed",
 			CustomMetadata: &models.OGXCustomMetadata{ModelType: "embedding", ProviderID: "vllm"},
 		})
@@ -90,7 +93,7 @@ func TestTranslateOGXModel(t *testing.T) {
 	})
 
 	t.Run("empty ID skipped", func(t *testing.T) {
-		_, ok := translateOGXModel(models.OGXNativeModel{
+		_, ok := repo.translateOGXModel(models.OGXNativeModel{
 			CustomMetadata: &models.OGXCustomMetadata{ModelType: "llm"},
 		})
 		if ok {
@@ -99,14 +102,14 @@ func TestTranslateOGXModel(t *testing.T) {
 	})
 
 	t.Run("nil custom_metadata degrades to unknown", func(t *testing.T) {
-		result, ok := translateOGXModel(models.OGXNativeModel{ID: "mystery"})
+		result, ok := repo.translateOGXModel(models.OGXNativeModel{ID: "mystery"})
 		if !ok || result.Type != "unknown" {
 			t.Errorf("expected ok with unknown type, got ok=%v type=%q", ok, result.Type)
 		}
 	})
 
 	t.Run("empty model_type degrades to unknown", func(t *testing.T) {
-		result, ok := translateOGXModel(models.OGXNativeModel{
+		result, ok := repo.translateOGXModel(models.OGXNativeModel{
 			ID:             "no-type",
 			CustomMetadata: &models.OGXCustomMetadata{ProviderID: "some-provider"},
 		})
@@ -235,7 +238,7 @@ func TestGetOGXModels(t *testing.T) {
 				}, nil
 			},
 		}
-		repo := NewOGXRepository(ogxClient, defaultK8s())
+		repo := NewOGXRepository(slog.Default(), ogxClient, defaultK8s())
 
 		data, err := repo.GetOGXModels(context.Background(), "ns", "ogx-creds")
 		if err != nil {
@@ -258,7 +261,7 @@ func TestGetOGXModels(t *testing.T) {
 				}, nil
 			},
 		}
-		repo := NewOGXRepository(ogxClient, defaultK8s())
+		repo := NewOGXRepository(slog.Default(), ogxClient, defaultK8s())
 
 		data, err := repo.GetOGXModels(context.Background(), "ns", "s")
 		if err != nil {
@@ -275,7 +278,7 @@ func TestGetOGXModels(t *testing.T) {
 				return []models.OGXNativeModel{{ID: "no-meta"}}, nil
 			},
 		}
-		repo := NewOGXRepository(ogxClient, defaultK8s())
+		repo := NewOGXRepository(slog.Default(), ogxClient, defaultK8s())
 
 		data, err := repo.GetOGXModels(context.Background(), "ns", "s")
 		if err != nil {
@@ -290,7 +293,7 @@ func TestGetOGXModels(t *testing.T) {
 		k8s := &mockK8sForOGX{getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 			return nil, fmt.Errorf("not found")
 		}}
-		repo := NewOGXRepository(nil, k8s)
+		repo := NewOGXRepository(slog.Default(), nil, k8s)
 
 		_, err := repo.GetOGXModels(context.Background(), "ns", "missing")
 		if err == nil {
@@ -304,7 +307,7 @@ func TestGetOGXModels(t *testing.T) {
 				return nil, fmt.Errorf("connection refused")
 			},
 		}
-		repo := NewOGXRepository(ogxClient, defaultK8s())
+		repo := NewOGXRepository(slog.Default(), ogxClient, defaultK8s())
 
 		_, err := repo.GetOGXModels(context.Background(), "ns", "s")
 		if err == nil {
@@ -318,7 +321,7 @@ func TestGetOGXModels(t *testing.T) {
 				return []models.OGXNativeModel{}, nil
 			},
 		}
-		repo := NewOGXRepository(ogxClient, defaultK8s())
+		repo := NewOGXRepository(slog.Default(), ogxClient, defaultK8s())
 
 		data, err := repo.GetOGXModels(context.Background(), "ns", "s")
 		if err != nil {
@@ -344,7 +347,7 @@ func TestGetOGXVectorStoreProviders(t *testing.T) {
 				}, nil
 			},
 		}
-		repo := NewOGXRepository(ogxClient, defaultK8s())
+		repo := NewOGXRepository(slog.Default(), ogxClient, defaultK8s())
 
 		data, err := repo.GetOGXVectorStoreProviders(context.Background(), "ns", "ogx-creds")
 		if err != nil {
@@ -366,7 +369,7 @@ func TestGetOGXVectorStoreProviders(t *testing.T) {
 				}, nil
 			},
 		}
-		repo := NewOGXRepository(ogxClient, defaultK8s())
+		repo := NewOGXRepository(slog.Default(), ogxClient, defaultK8s())
 
 		data, err := repo.GetOGXVectorStoreProviders(context.Background(), "ns", "ogx-creds")
 		if err != nil {
@@ -383,7 +386,7 @@ func TestGetOGXVectorStoreProviders(t *testing.T) {
 				return []models.OGXProvider{}, nil
 			},
 		}
-		repo := NewOGXRepository(ogxClient, defaultK8s())
+		repo := NewOGXRepository(slog.Default(), ogxClient, defaultK8s())
 
 		data, err := repo.GetOGXVectorStoreProviders(context.Background(), "ns", "ogx-creds")
 		if err != nil {
@@ -398,7 +401,7 @@ func TestGetOGXVectorStoreProviders(t *testing.T) {
 		k8s := &mockK8sForOGX{getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 			return nil, fmt.Errorf("not found")
 		}}
-		repo := NewOGXRepository(nil, k8s)
+		repo := NewOGXRepository(slog.Default(), nil, k8s)
 
 		_, err := repo.GetOGXVectorStoreProviders(context.Background(), "ns", "missing")
 		if err == nil {
@@ -412,7 +415,7 @@ func TestGetOGXVectorStoreProviders(t *testing.T) {
 				return nil, fmt.Errorf("connection refused")
 			},
 		}
-		repo := NewOGXRepository(ogxClient, defaultK8s())
+		repo := NewOGXRepository(slog.Default(), ogxClient, defaultK8s())
 
 		_, err := repo.GetOGXVectorStoreProviders(context.Background(), "ns", "ogx-creds")
 		if err == nil {
@@ -429,7 +432,7 @@ func TestGetOGXVectorStoreProviders(t *testing.T) {
 				return nil, nil
 			},
 		}
-		repo := NewOGXRepository(ogxClient, defaultK8s())
+		repo := NewOGXRepository(slog.Default(), ogxClient, defaultK8s())
 
 		_, err := repo.GetOGXVectorStoreProviders(context.Background(), "ns", "ogx-creds")
 		if err != nil {

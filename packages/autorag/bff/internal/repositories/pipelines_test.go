@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -389,7 +390,7 @@ func TestGetManagedRun(t *testing.T) {
 				return testDiscovered(), nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
 
 		run, err := repo.GetManagedRun(context.Background(), "ns", "r1")
 		if err != nil {
@@ -412,7 +413,7 @@ func TestGetManagedRun(t *testing.T) {
 				return testDiscovered(), nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
 
 		_, err := repo.GetManagedRun(context.Background(), "ns", "r1")
 		if !errors.Is(err, ErrPipelineRunNotFound) {
@@ -426,7 +427,7 @@ func TestGetManagedRun(t *testing.T) {
 				return nil, pipelines.ErrPipelineRunNotFound
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{})
 
 		_, err := repo.GetManagedRun(context.Background(), "ns", "r1")
 		if !errors.Is(err, ErrPipelineRunNotFound) {
@@ -443,7 +444,7 @@ func TestGetManagedRun(t *testing.T) {
 				return testDiscovered(), nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
 
 		_, err := repo.GetManagedRun(context.Background(), "ns", "r1")
 		if !errors.Is(err, ErrPipelineRunNotFound) {
@@ -467,7 +468,7 @@ func TestGetCombinedRuns(t *testing.T) {
 				}, nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
 
 		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, "")
 		if err != nil {
@@ -489,7 +490,7 @@ func TestGetCombinedRuns(t *testing.T) {
 				return map[string]*pipelines.DiscoveredPipeline{}, nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{})
 
 		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, "")
 		if err != nil {
@@ -508,7 +509,7 @@ func TestGetCombinedRuns(t *testing.T) {
 				}, nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{})
 
 		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, "")
 		if err != nil {
@@ -541,7 +542,7 @@ func TestMutationOwnershipGating(t *testing.T) {
 					return testDiscovered(), nil
 				},
 			}
-			repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
+			repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
 
 			err := op.call(repo)
 			if !errors.Is(err, ErrPipelineRunNotFound) {
@@ -564,7 +565,7 @@ func TestMutationOwnershipGating(t *testing.T) {
 				retryRunFn:     func(ctx context.Context, namespace, runID string) error { return nil },
 				deleteRunFn:    func(ctx context.Context, namespace, runID string) error { return nil },
 			}
-			repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
+			repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
 
 			if err := op.call(repo); err != nil {
 				t.Fatalf("expected success: %v", err)
@@ -575,7 +576,7 @@ func TestMutationOwnershipGating(t *testing.T) {
 
 func TestCreateRun(t *testing.T) {
 	t.Run("validation failure", func(t *testing.T) {
-		repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{})
+		repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{})
 		_, err := repo.CreateRun(context.Background(), "ns", models.CreateAutoRAGRunRequest{})
 		if err == nil {
 			t.Fatal("expected validation error")
@@ -597,7 +598,7 @@ func TestCreateRun(t *testing.T) {
 				return &pipelines.PipelineRun{RunID: "new-run", State: "PENDING"}, nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag-pipe"})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag-pipe"})
 
 		run, err := repo.CreateRun(context.Background(), "ns", validRequest())
 		if err != nil {
@@ -626,7 +627,7 @@ func TestCreateRun(t *testing.T) {
 				return nil, fmt.Errorf("DSPA not found")
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
 
 		_, err := repo.CreateRun(context.Background(), "ns", validRequest())
 		if err == nil {
@@ -645,7 +646,7 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinition(t *testing.T) {
 			return map[string]*pipelines.DiscoveredPipeline{}, nil
 		},
 	}
-	repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{
+	repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 		AutoRAGPipelineName:    "my-rag-pipe",
 		DefaultPipelineVersion: "2.0",
 	})
@@ -666,7 +667,7 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinition(t *testing.T) {
 }
 
 func TestPipelineDefinition(t *testing.T) {
-	repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{
+	repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{
 		AutoRAGPipelineName:    "rag-pipe",
 		DefaultPipelineVersion: "2.0",
 	})
@@ -700,12 +701,12 @@ func TestPipelineDefinition(t *testing.T) {
 }
 
 func TestNewPipelinesRepository_DefaultVersion(t *testing.T) {
-	repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{})
+	repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{})
 	if repo.config.DefaultPipelineVersion != constants.DefaultPipelineVersionSuffix {
 		t.Errorf("got %q, want %q", repo.config.DefaultPipelineVersion, constants.DefaultPipelineVersionSuffix)
 	}
 
-	repo2 := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{DefaultPipelineVersion: "custom"})
+	repo2 := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{DefaultPipelineVersion: "custom"})
 	if repo2.config.DefaultPipelineVersion != "custom" {
 		t.Errorf("should preserve explicit version, got %q", repo2.config.DefaultPipelineVersion)
 	}

@@ -121,10 +121,12 @@ type ModelRegistryRepository struct {
 	client           modelregistry.ModelRegistryClientInterface
 	k8sService       kubernetes.Service
 	pipelinesService pipelines.Service
+	logger           *slog.Logger
 }
 
 // NewModelRegistryRepository creates a new ModelRegistryRepository.
 func NewModelRegistryRepository(
+	logger *slog.Logger,
 	client modelregistry.ModelRegistryClientInterface,
 	k8sService kubernetes.Service,
 	pipelinesService pipelines.Service,
@@ -133,6 +135,7 @@ func NewModelRegistryRepository(
 		client:           client,
 		k8sService:       k8sService,
 		pipelinesService: pipelinesService,
+		logger:           logger,
 	}
 }
 
@@ -170,7 +173,7 @@ func (r *ModelRegistryRepository) RegisterModel(
 	namespace string,
 ) (string, *openapi.ModelArtifact, error) {
 	// Resolve registry and get its URL.
-	reg, err := r.ResolveModelRegistryByUID(ctx, registryUID, slog.Default())
+	reg, err := r.ResolveModelRegistryByUID(ctx, registryUID)
 	if err != nil {
 		return "", nil, err
 	}
@@ -277,9 +280,8 @@ func (r *ModelRegistryRepository) RegisterModel(
 func (r *ModelRegistryRepository) ResolveModelRegistryByUID(
 	ctx context.Context,
 	registryUID string,
-	logger *slog.Logger,
 ) (*models.ModelRegistry, error) {
-	data, err := r.ListModelRegistries(ctx, logger)
+	data, err := r.ListModelRegistries(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -305,8 +307,8 @@ func (r *ModelRegistryRepository) ResolveModelRegistryByUID(
 // from context — Bearer token for user_token auth, SA impersonation for internal auth.
 func (r *ModelRegistryRepository) ListModelRegistries(
 	ctx context.Context,
-	logger *slog.Logger,
 ) (*models.ModelRegistriesData, error) {
+	logger := r.logger
 	// All ModelRegistry instance CRs live in the operator-managed registries namespace.
 	// Identity is extracted from context by the autox-core K8s client automatically.
 	unstructuredList, err := r.k8sService.ListResources(ctx, modelRegistryGVR, modelRegistriesNamespace)

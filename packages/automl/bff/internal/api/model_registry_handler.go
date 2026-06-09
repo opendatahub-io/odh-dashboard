@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 )
@@ -31,9 +30,8 @@ type ModelRegistriesEnvelope Envelope[*models.ModelRegistriesData, None]
 //   - 500: Internal server error
 func (app *App) GetModelRegistriesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-	logger := helper.GetContextLoggerFromReq(r)
 
-	data, err := app.repositories.ModelRegistry.ListModelRegistries(ctx, logger)
+	data, err := app.repositories.ModelRegistry.ListModelRegistries(ctx)
 	if err != nil {
 		if errors.Is(err, repositories.ErrModelRegistryForbidden) {
 			app.forbiddenResponse(w, r, "insufficient permissions to list model registries")

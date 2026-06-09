@@ -238,9 +238,9 @@ func TestListModelRegistries(t *testing.T) {
 				), nil
 			},
 		}
-		repo := NewModelRegistryRepository(nil, k8s, nil)
+		repo := NewModelRegistryRepository(slog.Default(), nil, k8s, nil)
 
-		data, err := repo.ListModelRegistries(context.Background(), slog.Default())
+		data, err := repo.ListModelRegistries(context.Background())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -271,9 +271,9 @@ func TestListModelRegistries(t *testing.T) {
 				return nil, kubernetes.ErrNotFound
 			},
 		}
-		repo := NewModelRegistryRepository(nil, k8s, nil)
+		repo := NewModelRegistryRepository(slog.Default(), nil, k8s, nil)
 
-		data, err := repo.ListModelRegistries(context.Background(), slog.Default())
+		data, err := repo.ListModelRegistries(context.Background())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -288,9 +288,9 @@ func TestListModelRegistries(t *testing.T) {
 				return nil, kubernetes.ErrForbidden
 			},
 		}
-		repo := NewModelRegistryRepository(nil, k8s, nil)
+		repo := NewModelRegistryRepository(slog.Default(), nil, k8s, nil)
 
-		_, err := repo.ListModelRegistries(context.Background(), slog.Default())
+		_, err := repo.ListModelRegistries(context.Background())
 		if !errors.Is(err, ErrModelRegistryForbidden) {
 			t.Errorf("expected ErrModelRegistryForbidden, got %v", err)
 		}
@@ -302,9 +302,9 @@ func TestListModelRegistries(t *testing.T) {
 				return nil, fmt.Errorf("timeout")
 			},
 		}
-		repo := NewModelRegistryRepository(nil, k8s, nil)
+		repo := NewModelRegistryRepository(slog.Default(), nil, k8s, nil)
 
-		_, err := repo.ListModelRegistries(context.Background(), slog.Default())
+		_, err := repo.ListModelRegistries(context.Background())
 		if err == nil {
 			t.Error("expected error")
 		}
@@ -316,9 +316,9 @@ func TestListModelRegistries(t *testing.T) {
 				return registryList(), nil
 			},
 		}
-		repo := NewModelRegistryRepository(nil, k8s, nil)
+		repo := NewModelRegistryRepository(slog.Default(), nil, k8s, nil)
 
-		data, err := repo.ListModelRegistries(context.Background(), slog.Default())
+		data, err := repo.ListModelRegistries(context.Background())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -341,10 +341,10 @@ func TestResolveModelRegistryByUID(t *testing.T) {
 			), nil
 		},
 	}
-	repo := NewModelRegistryRepository(nil, k8s, nil)
+	repo := NewModelRegistryRepository(slog.Default(), nil, k8s, nil)
 
 	t.Run("found and ready", func(t *testing.T) {
-		reg, err := repo.ResolveModelRegistryByUID(context.Background(), "uid-ready", slog.Default())
+		reg, err := repo.ResolveModelRegistryByUID(context.Background(), "uid-ready")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -354,21 +354,21 @@ func TestResolveModelRegistryByUID(t *testing.T) {
 	})
 
 	t.Run("found but not ready", func(t *testing.T) {
-		_, err := repo.ResolveModelRegistryByUID(context.Background(), "uid-not-ready", slog.Default())
+		_, err := repo.ResolveModelRegistryByUID(context.Background(), "uid-not-ready")
 		if !errors.Is(err, ErrModelRegistryNotReady) {
 			t.Errorf("expected ErrModelRegistryNotReady, got %v", err)
 		}
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		_, err := repo.ResolveModelRegistryByUID(context.Background(), "uid-missing", slog.Default())
+		_, err := repo.ResolveModelRegistryByUID(context.Background(), "uid-missing")
 		if !errors.Is(err, ErrModelRegistryNotFound) {
 			t.Errorf("expected ErrModelRegistryNotFound, got %v", err)
 		}
 	})
 
 	t.Run("trims whitespace from UID", func(t *testing.T) {
-		reg, err := repo.ResolveModelRegistryByUID(context.Background(), "  uid-ready  ", slog.Default())
+		reg, err := repo.ResolveModelRegistryByUID(context.Background(), "  uid-ready  ")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -445,7 +445,7 @@ func TestRegisterModel(t *testing.T) {
 			},
 		}
 
-		repo := NewModelRegistryRepository(mrClient, k8s, pip)
+		repo := NewModelRegistryRepository(slog.Default(), mrClient, k8s, pip)
 
 		gotRegModelID, artifact, err := repo.RegisterModel(context.Background(), "uid-1", validReq, "ns")
 		if err != nil {
@@ -490,7 +490,7 @@ func TestRegisterModel(t *testing.T) {
 			},
 		}
 
-		repo := NewModelRegistryRepository(mrClient, k8s, pip)
+		repo := NewModelRegistryRepository(slog.Default(), mrClient, k8s, pip)
 		req := validReq
 		req.ArtifactName = "" // should default to version name
 		_, _, err := repo.RegisterModel(context.Background(), "uid-1", req, "ns")
@@ -508,7 +508,7 @@ func TestRegisterModel(t *testing.T) {
 				return registryList(), nil
 			},
 		}
-		repo := NewModelRegistryRepository(nil, k8s, nil)
+		repo := NewModelRegistryRepository(slog.Default(), nil, k8s, nil)
 
 		_, _, err := repo.RegisterModel(context.Background(), "missing", validReq, "ns")
 		if !errors.Is(err, ErrModelRegistryNotFound) {
@@ -525,7 +525,7 @@ func TestRegisterModel(t *testing.T) {
 				), nil
 			},
 		}
-		repo := NewModelRegistryRepository(nil, k8s, nil)
+		repo := NewModelRegistryRepository(slog.Default(), nil, k8s, nil)
 
 		_, _, err := repo.RegisterModel(context.Background(), "uid-1", validReq, "ns")
 		if !errors.Is(err, ErrModelRegistryNotReady) {
@@ -547,7 +547,7 @@ func TestRegisterModel(t *testing.T) {
 				return nil, fmt.Errorf("no ready DSPA")
 			},
 		}
-		repo := NewModelRegistryRepository(nil, k8s, pip)
+		repo := NewModelRegistryRepository(slog.Default(), nil, k8s, pip)
 
 		_, _, err := repo.RegisterModel(context.Background(), "uid-1", validReq, "ns")
 		if err == nil || !strings.Contains(err.Error(), "DSPA") {
@@ -569,7 +569,7 @@ func TestRegisterModel(t *testing.T) {
 				return &pipelines.DiscoveredDSPA{Name: "dspa1", Namespace: "ns"}, nil
 			},
 		}
-		repo := NewModelRegistryRepository(nil, k8s, pip)
+		repo := NewModelRegistryRepository(slog.Default(), nil, k8s, pip)
 
 		_, _, err := repo.RegisterModel(context.Background(), "uid-1", validReq, "ns")
 		if err == nil || !strings.Contains(err.Error(), "no object storage") {
@@ -596,7 +596,7 @@ func TestRegisterModel(t *testing.T) {
 				return nil, fmt.Errorf("conflict")
 			},
 		}
-		repo := NewModelRegistryRepository(mrClient, k8s, pip)
+		repo := NewModelRegistryRepository(slog.Default(), mrClient, k8s, pip)
 
 		_, _, err := repo.RegisterModel(context.Background(), "uid-1", validReq, "ns")
 		if err == nil {
@@ -627,7 +627,7 @@ func TestRegisterModel(t *testing.T) {
 				return nil, fmt.Errorf("version conflict")
 			},
 		}
-		repo := NewModelRegistryRepository(mrClient, k8s, pip)
+		repo := NewModelRegistryRepository(slog.Default(), mrClient, k8s, pip)
 
 		_, _, err := repo.RegisterModel(context.Background(), "uid-1", validReq, "ns")
 		if err == nil {
@@ -661,7 +661,7 @@ func TestRegisterModel(t *testing.T) {
 				return &openapi.ModelVersion{Id: &vID}, nil
 			},
 		}
-		repo := NewModelRegistryRepository(mrClient, k8s, pip)
+		repo := NewModelRegistryRepository(slog.Default(), mrClient, k8s, pip)
 
 		_, _, err := repo.RegisterModel(context.Background(), "uid-1", validReq, "ns")
 		if err == nil || !strings.Contains(err.Error(), "bucket") {

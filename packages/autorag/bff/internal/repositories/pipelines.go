@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 	"unicode/utf8"
@@ -41,6 +42,7 @@ func NewValidationError(message string) error {
 type PipelinesRepository struct {
 	core   pipelines.Service
 	config PipelinesRepositoryConfig
+	logger *slog.Logger
 }
 
 type PipelinesRepositoryConfig struct {
@@ -48,11 +50,11 @@ type PipelinesRepositoryConfig struct {
 	DefaultPipelineVersion string
 }
 
-func NewPipelinesRepository(core pipelines.Service, cfg PipelinesRepositoryConfig) *PipelinesRepository {
+func NewPipelinesRepository(logger *slog.Logger, core pipelines.Service, cfg PipelinesRepositoryConfig) *PipelinesRepository {
 	if cfg.DefaultPipelineVersion == "" {
 		cfg.DefaultPipelineVersion = constants.DefaultPipelineVersionSuffix
 	}
-	return &PipelinesRepository{core: core, config: cfg}
+	return &PipelinesRepository{core: core, config: cfg, logger: logger}
 }
 
 // --- Pipeline Discovery & Ensure ---

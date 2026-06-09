@@ -17,10 +17,11 @@ const vectorIOAPI = "vector_io"
 type OGXRepository struct {
 	ogxClient  ogx.OGXClientInterface
 	k8sService kubernetes.Service
+	logger     *slog.Logger
 }
 
-func NewOGXRepository(ogxClient ogx.OGXClientInterface, k8sService kubernetes.Service) *OGXRepository {
-	return &OGXRepository{ogxClient: ogxClient, k8sService: k8sService}
+func NewOGXRepository(logger *slog.Logger, ogxClient ogx.OGXClientInterface, k8sService kubernetes.Service) *OGXRepository {
+	return &OGXRepository{ogxClient: ogxClient, k8sService: k8sService, logger: logger}
 }
 
 // --- Models ---
@@ -40,7 +41,7 @@ func (r *OGXRepository) GetOGXModels(ctx context.Context, namespace, secretName 
 	allModels := make([]models.OGXModel, 0, len(nativeModels))
 	var skipped, degraded int
 	for _, native := range nativeModels {
-		ogxModel, ok := translateOGXModel(native)
+		ogxModel, ok := r.translateOGXModel(native)
 		if !ok {
 			skipped++
 			continue
@@ -52,7 +53,7 @@ func (r *OGXRepository) GetOGXModels(ctx context.Context, namespace, secretName 
 	}
 
 	if skipped > 0 || degraded > 0 {
-		slog.Warn("Open GenAI Stack schema drift detected — some models could not be fully parsed",
+		r.logger.Warn("Open GenAI Stack schema drift detected — some models could not be fully parsed",
 			"total", len(nativeModels),
 			"skipped", skipped,
 			"degraded_to_unknown_type", degraded)
@@ -63,16 +64,16 @@ func (r *OGXRepository) GetOGXModels(ctx context.Context, namespace, secretName 
 
 // translateOGXModel translates a Open GenAI Stack native model into our stable public API format.
 // Returns false if the model should be skipped (missing ID).
-func translateOGXModel(native models.OGXNativeModel) (models.OGXModel, bool) {
+func (r *OGXRepository) translateOGXModel(native models.OGXNativeModel) (models.OGXModel, bool) {
 	if native.ID == "" {
-		slog.Warn("skipping Open GenAI Stack model with empty ID")
+		r.logger.Warn("skipping Open GenAI Stack model with empty ID")
 		return models.OGXModel{}, false
 	}
 
 	result := models.OGXModel{ID: native.ID}
 
 	if native.CustomMetadata == nil {
-		slog.Warn("Open GenAI Stack model missing custom_metadata — upstream schema may have changed",
+		r.logger.Warn("Open GenAI Stack model missing custom_metadata — upstream schema may have changed",
 			"model_id", native.ID)
 		result.Type = "unknown"
 		return result, true

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -480,7 +481,7 @@ func TestGetManagedRun(t *testing.T) {
 				return testDiscovered(), nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 			TimeSeriesPipelineName: "ts", TabularPipelineName: "tab",
 		})
 
@@ -505,7 +506,7 @@ func TestGetManagedRun(t *testing.T) {
 				return testDiscovered(), nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 			TimeSeriesPipelineName: "ts", TabularPipelineName: "tab",
 		})
 
@@ -521,7 +522,7 @@ func TestGetManagedRun(t *testing.T) {
 				return nil, pipelines.ErrPipelineRunNotFound
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{})
 
 		_, err := repo.GetManagedRun(context.Background(), "ns", "r1")
 		if !errors.Is(err, ErrPipelineRunNotFound) {
@@ -538,7 +539,7 @@ func TestGetManagedRun(t *testing.T) {
 				return testDiscovered(), nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 			TimeSeriesPipelineName: "ts", TabularPipelineName: "tab",
 		})
 
@@ -562,7 +563,7 @@ func TestGetCombinedRuns(t *testing.T) {
 				}, nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 			TimeSeriesPipelineName: "ts", TabularPipelineName: "tab",
 		})
 
@@ -589,7 +590,7 @@ func TestGetCombinedRuns(t *testing.T) {
 				return map[string]*pipelines.DiscoveredPipeline{}, nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{})
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{})
 
 		data, err := repo.GetCombinedRuns(context.Background(), "ns", 1, 10)
 		if err != nil {
@@ -622,7 +623,7 @@ func TestMutationOwnershipGating(t *testing.T) {
 					return testDiscovered(), nil
 				},
 			}
-			repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{
+			repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 				TimeSeriesPipelineName: "ts", TabularPipelineName: "tab",
 			})
 
@@ -648,7 +649,7 @@ func TestMutationOwnershipGating(t *testing.T) {
 				retryRunFn:     func(ctx context.Context, namespace, runID string) error { return nil },
 				deleteRunFn:    func(ctx context.Context, namespace, runID string) error { return nil },
 			}
-			repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{
+			repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 				TimeSeriesPipelineName: "ts", TabularPipelineName: "tab",
 			})
 
@@ -661,7 +662,7 @@ func TestMutationOwnershipGating(t *testing.T) {
 
 func TestCreateRun(t *testing.T) {
 	t.Run("missing task_type", func(t *testing.T) {
-		repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{})
+		repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{})
 		_, err := repo.CreateRun(context.Background(), "ns", models.CreateAutoMLRunRequest{})
 		if err == nil || !strings.Contains(err.Error(), "task_type") {
 			t.Errorf("expected task_type error, got %v", err)
@@ -669,7 +670,7 @@ func TestCreateRun(t *testing.T) {
 	})
 
 	t.Run("validation failure", func(t *testing.T) {
-		repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{})
+		repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{})
 		_, err := repo.CreateRun(context.Background(), "ns", models.CreateAutoMLRunRequest{
 			TaskType: ptr("binary"),
 		})
@@ -693,7 +694,7 @@ func TestCreateRun(t *testing.T) {
 				return &pipelines.PipelineRun{RunID: "new-run", State: "PENDING"}, nil
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 			TabularPipelineName: "tabular-pipe",
 		})
 
@@ -718,7 +719,7 @@ func TestCreateRun(t *testing.T) {
 				return nil, fmt.Errorf("DSPA not found")
 			},
 		}
-		repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 			TabularPipelineName: "tabular-pipe",
 		})
 
@@ -737,7 +738,7 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinitions(t *testing.T) {
 			return map[string]*pipelines.DiscoveredPipeline{}, nil
 		},
 	}
-	repo := NewPipelinesRepository(mock, PipelinesRepositoryConfig{
+	repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 		TimeSeriesPipelineName: "my-ts-pipe",
 		TabularPipelineName:    "my-tab-pipe",
 		DefaultPipelineVersion: "2.0",
@@ -756,7 +757,7 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinitions(t *testing.T) {
 }
 
 func TestPipelineDefinition(t *testing.T) {
-	repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{
+	repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{
 		TimeSeriesPipelineName: "ts-pipe",
 		TabularPipelineName:    "tab-pipe",
 		DefaultPipelineVersion: "2.0",
@@ -808,12 +809,12 @@ func TestPipelineDefinition(t *testing.T) {
 }
 
 func TestNewPipelinesRepository_DefaultVersion(t *testing.T) {
-	repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{})
+	repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{})
 	if repo.config.DefaultPipelineVersion != constants.DefaultPipelineVersionSuffix {
 		t.Errorf("DefaultPipelineVersion = %q, want %q", repo.config.DefaultPipelineVersion, constants.DefaultPipelineVersionSuffix)
 	}
 
-	repo2 := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{DefaultPipelineVersion: "custom"})
+	repo2 := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{DefaultPipelineVersion: "custom"})
 	if repo2.config.DefaultPipelineVersion != "custom" {
 		t.Errorf("should preserve explicit version, got %q", repo2.config.DefaultPipelineVersion)
 	}

@@ -49,9 +49,11 @@ type S3Repository struct {
 	s3Service        s3.Service
 	k8sService       kubernetes.Service
 	pipelinesService pipelines.Service
+	logger           *slog.Logger
 }
 
 func NewS3Repository(
+	logger *slog.Logger,
 	s3Service s3.Service,
 	k8sService kubernetes.Service,
 	pipelinesService pipelines.Service,
@@ -60,6 +62,7 @@ func NewS3Repository(
 		s3Service:        s3Service,
 		k8sService:       k8sService,
 		pipelinesService: pipelinesService,
+		logger:           logger,
 	}
 }
 
@@ -146,7 +149,7 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 	// convention for MinIO-style secrets and take precedence when present.
 	endpointURL := spec.EndpointURL
 	if secretEndpoint, lErr := kubernetes.LookupSecretValue(secret.Data, "AWS_S3_ENDPOINT"); lErr != nil {
-		slog.Warn("ignoring ambiguous AWS_S3_ENDPOINT in DSPA secret, using spec value",
+		r.logger.Warn("ignoring ambiguous AWS_S3_ENDPOINT in DSPA secret, using spec value",
 			"secret", spec.SecretName, "error", lErr)
 	} else if secretEndpoint != "" {
 		endpointURL = secretEndpoint
@@ -154,7 +157,7 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 
 	bucket := spec.Bucket
 	if secretBucket, lErr := kubernetes.LookupSecretValue(secret.Data, "AWS_S3_BUCKET"); lErr != nil {
-		slog.Warn("ignoring ambiguous AWS_S3_BUCKET in DSPA secret, using spec value",
+		r.logger.Warn("ignoring ambiguous AWS_S3_BUCKET in DSPA secret, using spec value",
 			"secret", spec.SecretName, "error", lErr)
 	} else if secretBucket != "" {
 		bucket = secretBucket

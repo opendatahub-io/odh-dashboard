@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"log/slog"
+
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
@@ -18,6 +20,7 @@ type Repositories struct {
 
 // RepositoriesConfig holds the dependencies needed to construct all repositories.
 type RepositoriesConfig struct {
+	Logger              *slog.Logger
 	K8sService          kubernetes.Service
 	PipelinesService    pipelines.Service
 	PipelinesCfg        PipelinesRepositoryConfig
@@ -29,8 +32,8 @@ func NewRepositories(cfg RepositoriesConfig) *Repositories {
 	return &Repositories{
 		HealthCheck:   NewHealthCheckRepository(),
 		Secret:        NewSecretRepository(),
-		Pipelines:     NewPipelinesRepository(cfg.PipelinesService, cfg.PipelinesCfg),
-		S3:            NewS3Repository(cfg.S3Service, cfg.K8sService, cfg.PipelinesService),
-		ModelRegistry: NewModelRegistryRepository(cfg.ModelRegistryClient, cfg.K8sService, cfg.PipelinesService),
+		Pipelines:     NewPipelinesRepository(cfg.Logger, cfg.PipelinesService, cfg.PipelinesCfg),
+		S3:            NewS3Repository(cfg.Logger, cfg.S3Service, cfg.K8sService, cfg.PipelinesService),
+		ModelRegistry: NewModelRegistryRepository(cfg.Logger, cfg.ModelRegistryClient, cfg.K8sService, cfg.PipelinesService),
 	}
 }

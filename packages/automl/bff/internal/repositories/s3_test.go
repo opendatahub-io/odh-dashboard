@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -300,7 +301,7 @@ func TestResolveFromSecret(t *testing.T) {
 				return makeK8sSecret("my-secret", "ns", standardSecretData()), nil
 			},
 		}
-		repo := NewS3Repository(nil, k8s, nil)
+		repo := NewS3Repository(slog.Default(), nil, k8s, nil)
 
 		opts, bucket, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{
 			Namespace: "ns", SecretName: "my-secret", Bucket: "override-bucket",
@@ -322,7 +323,7 @@ func TestResolveFromSecret(t *testing.T) {
 				return makeK8sSecret("s", "ns", standardSecretData()), nil
 			},
 		}
-		repo := NewS3Repository(nil, k8s, nil)
+		repo := NewS3Repository(slog.Default(), nil, k8s, nil)
 
 		_, bucket, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{
 			Namespace: "ns", SecretName: "s",
@@ -343,7 +344,7 @@ func TestResolveFromSecret(t *testing.T) {
 				return makeK8sSecret("s", "ns", data), nil
 			},
 		}
-		repo := NewS3Repository(nil, k8s, nil)
+		repo := NewS3Repository(slog.Default(), nil, k8s, nil)
 
 		_, _, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{
 			Namespace: "ns", SecretName: "s",
@@ -359,7 +360,7 @@ func TestResolveFromSecret(t *testing.T) {
 				return nil, fmt.Errorf("not found")
 			},
 		}
-		repo := NewS3Repository(nil, k8s, nil)
+		repo := NewS3Repository(slog.Default(), nil, k8s, nil)
 
 		_, _, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{
 			Namespace: "ns", SecretName: "missing",
@@ -398,7 +399,7 @@ func TestResolveFromDSPA(t *testing.T) {
 				}, nil
 			},
 		}
-		repo := NewS3Repository(nil, k8s, pip)
+		repo := NewS3Repository(slog.Default(), nil, k8s, pip)
 
 		opts, bucket, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{
 			Namespace: "ns",
@@ -435,7 +436,7 @@ func TestResolveFromDSPA(t *testing.T) {
 				}, nil
 			},
 		}
-		repo := NewS3Repository(nil, k8s, pip)
+		repo := NewS3Repository(slog.Default(), nil, k8s, pip)
 
 		_, bucket, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{
 			Namespace: "ns", Bucket: "attacker-bucket",
@@ -466,7 +467,7 @@ func TestResolveFromDSPA(t *testing.T) {
 				}, nil
 			},
 		}
-		repo := NewS3Repository(nil, k8s, pip)
+		repo := NewS3Repository(slog.Default(), nil, k8s, pip)
 
 		opts, bucket, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{Namespace: "ns"})
 		if err != nil {
@@ -486,7 +487,7 @@ func TestResolveFromDSPA(t *testing.T) {
 				return &pipelines.DiscoveredDSPA{Name: "dspa1", Namespace: "ns"}, nil
 			},
 		}
-		repo := NewS3Repository(nil, nil, pip)
+		repo := NewS3Repository(slog.Default(), nil, nil, pip)
 
 		_, _, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{Namespace: "ns"})
 		if err == nil || !strings.Contains(err.Error(), "no object storage") {
@@ -510,7 +511,7 @@ func TestResolveFromDSPA(t *testing.T) {
 						return &pipelines.DiscoveredDSPA{Name: "dspa1", Namespace: "ns", ObjectStorage: tt.spec}, nil
 					},
 				}
-				repo := NewS3Repository(nil, nil, pip)
+				repo := NewS3Repository(slog.Default(), nil, nil, pip)
 
 				_, _, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{Namespace: "ns"})
 				if err == nil || !strings.Contains(strings.ToLower(err.Error()), tt.want) {
@@ -526,7 +527,7 @@ func TestResolveFromDSPA(t *testing.T) {
 				return nil, fmt.Errorf("no ready DSPA")
 			},
 		}
-		repo := NewS3Repository(nil, nil, pip)
+		repo := NewS3Repository(slog.Default(), nil, nil, pip)
 
 		_, _, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{Namespace: "ns"})
 		if err == nil {
@@ -547,7 +548,7 @@ func TestResolveFromDSPA(t *testing.T) {
 				return &pipelines.DiscoveredDSPA{Name: "dspa1", Namespace: "ns", ObjectStorage: dspaSpec}, nil
 			},
 		}
-		repo := NewS3Repository(nil, k8s, pip)
+		repo := NewS3Repository(slog.Default(), nil, k8s, pip)
 
 		_, _, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{Namespace: "ns"})
 		if err == nil || !strings.Contains(err.Error(), "access_key") {
@@ -570,7 +571,7 @@ func TestResolveFromDSPA(t *testing.T) {
 				return &pipelines.DiscoveredDSPA{Name: "dspa1", Namespace: "ns", ObjectStorage: &noRegionSpec}, nil
 			},
 		}
-		repo := NewS3Repository(nil, k8s, pip)
+		repo := NewS3Repository(slog.Default(), nil, k8s, pip)
 
 		opts, _, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{Namespace: "ns"})
 		if err != nil {
@@ -597,7 +598,7 @@ func TestS3Repository_GetObject(t *testing.T) {
 			return io.NopCloser(strings.NewReader("data")), "text/csv", nil
 		},
 	}
-	repo := NewS3Repository(s3svc, k8s, nil)
+	repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
 
 	result, err := repo.GetObject(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "path/file.csv")
 	if err != nil {
@@ -633,7 +634,7 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 				return nil
 			},
 		}
-		repo := NewS3Repository(s3svc, k8s, nil)
+		repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
 
 		key, err := repo.UploadCSVFile(context.Background(),
 			S3RequestContext{Namespace: "ns", SecretName: "s"},
@@ -647,7 +648,7 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 	})
 
 	t.Run("rejects non-csv content type", func(t *testing.T) {
-		repo := NewS3Repository(nil, nil, nil)
+		repo := NewS3Repository(slog.Default(), nil, nil, nil)
 		_, err := repo.UploadCSVFile(context.Background(),
 			S3RequestContext{}, "data.json", nil, "application/json", "data.json", 5)
 		if err == nil {
@@ -669,7 +670,7 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 				return nil
 			},
 		}
-		repo := NewS3Repository(s3svc, k8s, nil)
+		repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
 
 		key, err := repo.UploadCSVFile(context.Background(),
 			S3RequestContext{Namespace: "ns", SecretName: "s"},
@@ -696,7 +697,7 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 				return s3.ErrObjectAlreadyExists
 			},
 		}
-		repo := NewS3Repository(s3svc, k8s, nil)
+		repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
 
 		_, err := repo.UploadCSVFile(context.Background(),
 			S3RequestContext{Namespace: "ns", SecretName: "s"},
@@ -709,7 +710,7 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 
 func TestS3Repository_GetCSVSchema(t *testing.T) {
 	t.Run("rejects non-csv key", func(t *testing.T) {
-		repo := NewS3Repository(nil, nil, nil)
+		repo := NewS3Repository(slog.Default(), nil, nil, nil)
 		_, err := repo.GetCSVSchema(context.Background(), S3RequestContext{}, "data.parquet")
 		if err == nil || !strings.Contains(err.Error(), ".csv") {
 			t.Errorf("expected csv error, got %v", err)
@@ -730,7 +731,7 @@ func TestS3Repository_GetCSVSchema(t *testing.T) {
 				return io.NopCloser(strings.NewReader("col1,col2\n" + strings.Repeat("a,b\n", 100))), "text/csv", nil
 			},
 		}
-		repo := NewS3Repository(s3svc, k8s, nil)
+		repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
 
 		_, err := repo.GetCSVSchema(context.Background(),
 			S3RequestContext{Namespace: "ns", SecretName: "s"}, "data.csv")

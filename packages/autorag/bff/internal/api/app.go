@@ -221,6 +221,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		config: cfg,
 		logger: logger,
 		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
+			Logger:           logger,
 			K8sService:       k8sService,
 			PipelinesService: pipelinesService,
 			PipelinesCfg: repositories.PipelinesRepositoryConfig{
