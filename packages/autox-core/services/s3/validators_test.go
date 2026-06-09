@@ -47,6 +47,9 @@ func TestValidateIPAddress(t *testing.T) {
 		{"reserved future", "240.0.0.1", true},
 		{"ipv6 loopback", "::1", true},
 		{"ipv6 link-local", "fe80::1", true},
+		{"ipv4 multicast", "224.0.0.1", true},
+		{"ipv6 multicast", "ff02::1", true},
+		{"ipv6 unspecified", "::", true},
 		{"ipv6 public", "2001:db8::1", false},
 	}
 	for _, tt := range tests {

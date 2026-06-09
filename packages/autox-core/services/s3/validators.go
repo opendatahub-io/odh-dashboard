@@ -88,9 +88,16 @@ func isInternalHost(hostname string) bool {
 	return parts[0] != "" && parts[1] != ""
 }
 
-// validateIPAddress blocks loopback, link-local, and reserved ranges.
+// validateIPAddress blocks loopback, link-local, multicast, unspecified, and reserved ranges.
 // Private RFC-1918 ranges are permitted (MinIO runs on cluster service IPs).
 func validateIPAddress(ip net.IP) error {
+	if ip.IsUnspecified() {
+		return fmt.Errorf("endpoint IP %s is unspecified", ip)
+	}
+	if ip.IsMulticast() {
+		return fmt.Errorf("endpoint IP %s is multicast", ip)
+	}
+
 	blocked := []struct {
 		cidr string
 		desc string
