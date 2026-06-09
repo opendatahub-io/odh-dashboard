@@ -570,7 +570,7 @@ jobs:
           set -euo pipefail
           # Download kind with checksum verification
           KIND_URL="https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64"
-          KIND_SHA256="513a7213d6662b614ca7c7b8948b53f42dfc46a3cc7c44d9b166c71f7bca7f20"
+          KIND_SHA256="513a7213d6d3332dd9ef27c24dab35e5ef10a04fa27274fe1c14d8a246493ded"
 
           curl -sLo /tmp/kind "$KIND_URL"
           echo "${KIND_SHA256}  /tmp/kind" | sha256sum --check --status
