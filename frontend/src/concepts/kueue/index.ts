@@ -34,6 +34,15 @@ const EVICTION_REASON = {
 const FAILURE_REGEX = /error|failed|rejected|timeout|timed out/;
 const SUCCESS_REGEX = /success|succeeded/;
 
+/**
+ * Matches Kueue condition messages that indicate a workload is permanently inadmissible
+ * (can never be admitted without cluster configuration changes), even when the condition
+ * reason is 'Pending'. Examples:
+ * - "request > maximum capacity (6 > 5)" — pod set requests more than the flavor can provide
+ * - "resource nvidia.com/gpu unavailable in ClusterQueue" — resource not defined in the queue
+ */
+const INADMISSIBLE_MESSAGE_REGEX = /request > maximum capacity|resource .+ unavailable in/i;
+
 type ExtractedConditions = {
   Failed: WorkloadCondition | undefined;
   Succeeded: WorkloadCondition | undefined;
@@ -75,10 +84,10 @@ const extractWorkloadConditions = (conditions: WorkloadCondition[]): ExtractedCo
       ({ type, status }) => type === CONDITION_TYPE.Preempted && status === CONDITION_STATUS.True,
     ),
     Inadmissible: conditions.find(
-      ({ type, status, reason }) =>
+      ({ type, status, reason, message }) =>
         type === CONDITION_TYPE.QuotaReserved &&
         status === CONDITION_STATUS.False &&
-        reason === 'Inadmissible',
+        (reason === 'Inadmissible' || INADMISSIBLE_MESSAGE_REGEX.test(message || '')),
     ),
     Pending: conditions.find(
       ({ type, status }) =>
