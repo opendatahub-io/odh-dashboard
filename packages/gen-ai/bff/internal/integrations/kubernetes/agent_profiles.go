@@ -188,6 +188,9 @@ func (kc *TokenKubernetesClient) GetAgentProfile(
 		}
 	}
 
+	// Augment with Kubernetes metadata (resourceVersion for optimistic concurrency)
+	profile.Metadata.ResourceVersion = configMap.ResourceVersion
+
 	return &profile, nil
 }
 

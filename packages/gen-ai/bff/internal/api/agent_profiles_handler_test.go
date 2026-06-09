@@ -489,6 +489,7 @@ spec:
 				assert.Equal(t, "genai.redhat.com/v1alpha1", envelope.Data.APIVersion)
 				assert.Equal(t, "AgentProfile", envelope.Data.Kind)
 				assert.Equal(t, profileID, envelope.Data.Metadata.Name)
+				assert.Equal(t, "12345", envelope.Data.Metadata.ResourceVersion)
 				assert.Equal(t, "Test Agent", envelope.Data.Spec.DisplayName)
 				assert.Equal(t, "Test description", envelope.Data.Spec.Description)
 			},

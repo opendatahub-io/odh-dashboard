@@ -2350,6 +2350,7 @@ paths:
                   kind: "AgentProfile"
                   metadata:
                     name: "550e8400-e29b-41d4-a716-446655440000"
+                    resourceVersion: "12345"
                   spec:
                     displayName: "Customer Support Agent"
                     description: "Professional customer support agent"
@@ -5096,6 +5097,10 @@ components:
           format: uuid
           example: '550e8400-e29b-41d4-a716-446655440000'
           description: Profile UUID
+        resourceVersion:
+          type: string
+          example: '12345'
+          description: Kubernetes resource version for optimistic concurrency control. Required for PUT requests.
 
     AgentProfileUpdateRequest:
       type: object
