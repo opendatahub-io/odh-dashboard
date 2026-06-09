@@ -13,13 +13,13 @@ export type VerbCategory = {
 
 export const VERB_CATEGORIES: VerbCategory[] = [
   {
-    id: 'create',
+    id: 'cat-create',
     label: 'Create operations',
     description: 'Create resources',
     verbs: [{ verb: 'create', label: 'Create', description: 'Create new resources' }],
   },
   {
-    id: 'read',
+    id: 'cat-read',
     label: 'Read operations',
     description: 'View and monitor resources',
     verbs: [
@@ -29,7 +29,7 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     ],
   },
   {
-    id: 'update',
+    id: 'cat-update',
     label: 'Update operations',
     description: 'Modify resources',
     verbs: [
@@ -38,7 +38,7 @@ export const VERB_CATEGORIES: VerbCategory[] = [
     ],
   },
   {
-    id: 'delete',
+    id: 'cat-delete',
     label: 'Delete operations',
     description: 'Remove resources',
     verbs: [
