@@ -489,6 +489,9 @@ func (app *App) Routes() http.Handler {
 	// Agent Profiles API routes
 	apiRouter.GET(constants.AgentProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.ListAgentProfilesHandler)))
 	apiRouter.POST(constants.AgentProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.CreateAgentProfileHandler)))
+	apiRouter.GET(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.GetAgentProfileHandler)))
+	apiRouter.PUT(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.UpdateAgentProfileHandler)))
+	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

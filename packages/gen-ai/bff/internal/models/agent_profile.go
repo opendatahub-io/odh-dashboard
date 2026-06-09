@@ -132,3 +132,18 @@ type AgentProfileListResponse struct {
 	Profiles   []AgentProfileSummary `json:"profiles"`
 	TotalCount int                   `json:"totalCount"`
 }
+
+// AgentProfileUpdateRequest is the HTTP request body for updating an agent profile
+type AgentProfileUpdateRequest struct {
+	Spec            AgentProfileSpec `json:"spec"`
+	ResourceVersion string           `json:"resourceVersion"`
+}
+
+// AgentProfileUpdateResponse is the HTTP response for successful agent profile update
+type AgentProfileUpdateResponse struct {
+	Name            string `json:"name"`            // ConfigMap name: "agent-profile-{uuid}"
+	ProfileID       string `json:"profileId"`       // The UUID (metadata.name)
+	DisplayName     string `json:"displayName"`     // User-friendly name from spec
+	Namespace       string `json:"namespace"`       // Kubernetes namespace
+	ResourceVersion string `json:"resourceVersion"` // K8s resource version after update
+}

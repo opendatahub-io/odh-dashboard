@@ -812,3 +812,15 @@ func (m *TokenKubernetesClientMock) GetAgentProfile(ctx context.Context, namespa
 	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
 	return m.TokenKubernetesClient.GetAgentProfile(ctx, namespace, name)
 }
+
+// UpdateAgentProfile updates a mock AgentProfile ConfigMap for testing
+func (m *TokenKubernetesClientMock) UpdateAgentProfile(ctx context.Context, namespace string, profileID string, request *models.AgentProfileUpdateRequest) (*models.AgentProfileUpdateResponse, error) {
+	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
+	return m.TokenKubernetesClient.UpdateAgentProfile(ctx, namespace, profileID, request)
+}
+
+// DeleteAgentProfile deletes a mock AgentProfile ConfigMap for testing
+func (m *TokenKubernetesClientMock) DeleteAgentProfile(ctx context.Context, namespace string, profileID string) error {
+	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
+	return m.TokenKubernetesClient.DeleteAgentProfile(ctx, namespace, profileID)
+}

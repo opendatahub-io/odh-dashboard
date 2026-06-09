@@ -400,3 +400,199 @@ func getLastModifiedTimestamp(cm *corev1.ConfigMap) string {
 
 	return ""
 }
+
+// UpdateAgentProfile updates an existing AgentProfile ConfigMap with optimistic concurrency control
+func (kc *TokenKubernetesClient) UpdateAgentProfile(
+	ctx context.Context,
+	namespace string,
+	profileID string,
+	request *models.AgentProfileUpdateRequest,
+) (*models.AgentProfileUpdateResponse, error) {
+	// Construct ConfigMap name
+	configMapName := AgentProfileNamePrefix + profileID
+
+	// Get the existing ConfigMap
+	existingCM := &corev1.ConfigMap{}
+	key := client.ObjectKey{
+		Namespace: namespace,
+		Name:      configMapName,
+	}
+
+	if err := kc.Client.Get(ctx, key, existingCM); err != nil {
+		if apierrors.IsNotFound(err) {
+			kc.Logger.Warn("agent profile not found for update", "id", profileID, "namespace", namespace)
+			return nil, &integrations.HTTPError{
+				StatusCode: 404,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "not_found",
+					Message: fmt.Sprintf("agent profile %s not found", profileID),
+				},
+			}
+		}
+		if apierrors.IsForbidden(err) {
+			kc.Logger.Error("RBAC forbidden to get agent profile ConfigMap", "error", err, "namespace", namespace)
+			return nil, &integrations.HTTPError{
+				StatusCode: 403,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "forbidden",
+					Message: "insufficient permissions to access agent profile in this namespace",
+				},
+			}
+		}
+		kc.Logger.Error("failed to get agent profile ConfigMap for update", "error", err, "name", configMapName)
+		return nil, &integrations.HTTPError{
+			StatusCode: 500,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "get_error",
+				Message: "failed to retrieve agent profile",
+			},
+		}
+	}
+
+	// Check resourceVersion for optimistic concurrency control
+	if existingCM.ResourceVersion != request.ResourceVersion {
+		kc.Logger.Warn("resource version conflict during update",
+			"expected", request.ResourceVersion,
+			"actual", existingCM.ResourceVersion,
+			"name", configMapName)
+		return nil, &integrations.HTTPError{
+			StatusCode: 409,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "conflict",
+				Message: "resource version conflict: profile was modified by another client",
+			},
+		}
+	}
+
+	// Build updated profile
+	updatedProfile := &models.AgentProfile{
+		APIVersion: "genai.redhat.com/v1alpha1",
+		Kind:       "AgentProfile",
+		Metadata: models.AgentProfileMetadata{
+			Name: profileID,
+		},
+		Spec: request.Spec,
+	}
+
+	// Validate the updated profile
+	if err := validateAgentProfile(updatedProfile); err != nil {
+		return nil, &integrations.HTTPError{
+			StatusCode: 400,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "invalid_request",
+				Message: fmt.Sprintf("profile validation failed: %v", err),
+			},
+		}
+	}
+
+	// Serialize to YAML
+	profileYAML, err := yaml.Marshal(updatedProfile)
+	if err != nil {
+		kc.Logger.Error("failed to marshal updated agent profile to YAML", "error", err, "profile", profileID)
+		return nil, &integrations.HTTPError{
+			StatusCode: 500,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "serialization_error",
+				Message: "failed to serialize agent profile",
+			},
+		}
+	}
+
+	// Update ConfigMap data
+	existingCM.Data[AgentProfileDataKey] = string(profileYAML)
+
+	// Update the ConfigMap in the cluster
+	if err := kc.Client.Update(ctx, existingCM); err != nil {
+		if apierrors.IsConflict(err) {
+			kc.Logger.Warn("conflict during ConfigMap update (concurrent modification)", "name", configMapName)
+			return nil, &integrations.HTTPError{
+				StatusCode: 409,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "conflict",
+					Message: "resource version conflict: profile was modified by another client",
+				},
+			}
+		}
+		if apierrors.IsForbidden(err) {
+			kc.Logger.Error("RBAC forbidden to update agent profile ConfigMap", "error", err, "namespace", namespace)
+			return nil, &integrations.HTTPError{
+				StatusCode: 403,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "forbidden",
+					Message: "insufficient permissions to update agent profile in this namespace",
+				},
+			}
+		}
+		kc.Logger.Error("failed to update agent profile ConfigMap", "error", err, "name", configMapName)
+		return nil, &integrations.HTTPError{
+			StatusCode: 500,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "update_error",
+				Message: "failed to update agent profile",
+			},
+		}
+	}
+
+	kc.Logger.Info("updated agent profile ConfigMap", "name", configMapName, "namespace", namespace)
+
+	return &models.AgentProfileUpdateResponse{
+		Name:            configMapName,
+		ProfileID:       profileID,
+		DisplayName:     request.Spec.DisplayName,
+		Namespace:       namespace,
+		ResourceVersion: existingCM.ResourceVersion,
+	}, nil
+}
+
+// DeleteAgentProfile deletes an AgentProfile ConfigMap
+func (kc *TokenKubernetesClient) DeleteAgentProfile(
+	ctx context.Context,
+	namespace string,
+	profileID string,
+) error {
+	// Construct ConfigMap name
+	configMapName := AgentProfileNamePrefix + profileID
+
+	// Create ConfigMap object for deletion
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: namespace,
+		},
+	}
+
+	// Delete the ConfigMap
+	if err := kc.Client.Delete(ctx, configMap); err != nil {
+		if apierrors.IsNotFound(err) {
+			kc.Logger.Warn("agent profile not found for deletion", "id", profileID, "namespace", namespace)
+			return &integrations.HTTPError{
+				StatusCode: 404,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "not_found",
+					Message: fmt.Sprintf("agent profile %s not found", profileID),
+				},
+			}
+		}
+		if apierrors.IsForbidden(err) {
+			kc.Logger.Error("RBAC forbidden to delete agent profile ConfigMap", "error", err, "namespace", namespace)
+			return &integrations.HTTPError{
+				StatusCode: 403,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "forbidden",
+					Message: "insufficient permissions to delete agent profile in this namespace",
+				},
+			}
+		}
+		kc.Logger.Error("failed to delete agent profile ConfigMap", "error", err, "name", configMapName)
+		return &integrations.HTTPError{
+			StatusCode: 500,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "delete_error",
+				Message: "failed to delete agent profile",
+			},
+		}
+	}
+
+	kc.Logger.Info("deleted agent profile ConfigMap", "name", configMapName, "namespace", namespace)
+	return nil
+}

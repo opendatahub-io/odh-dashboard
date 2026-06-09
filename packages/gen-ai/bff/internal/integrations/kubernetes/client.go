@@ -72,4 +72,6 @@ type KubernetesClientInterface interface {
 	ListAgentProfiles(ctx context.Context, namespace string) (*models.AgentProfileListResponse, error)
 	CreateAgentProfile(ctx context.Context, namespace string, profile *models.AgentProfile) (*models.AgentProfileCreateResponse, error)
 	GetAgentProfile(ctx context.Context, namespace string, name string) (*models.AgentProfile, error)
+	UpdateAgentProfile(ctx context.Context, namespace string, profileID string, request *models.AgentProfileUpdateRequest) (*models.AgentProfileUpdateResponse, error)
+	DeleteAgentProfile(ctx context.Context, namespace string, profileID string) error
 }
