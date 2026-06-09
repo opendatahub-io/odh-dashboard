@@ -34,6 +34,7 @@ import {
 } from '#~/utilities/valueUnits';
 import { WorkloadWithUsage } from '#~/api';
 import { isEnumMember } from '#~/utilities/utils';
+import { INADMISSIBLE_MESSAGE_REGEX } from '#~/concepts/kueue';
 
 export enum WorkloadStatusType {
   Pending = 'Pending',
@@ -100,15 +101,6 @@ export const WorkloadStatusColorAndIcon: Record<
     icon: ExclamationCircleIcon,
   },
 };
-
-/**
- * Matches Kueue condition messages that indicate a workload is permanently inadmissible
- * (can never be admitted without cluster configuration changes), even when the condition
- * reason is 'Pending'. Examples:
- * - "request > maximum capacity (6 > 5)" — pod set requests more than the flavor can provide
- * - "resource nvidia.com/gpu unavailable in ClusterQueue" — resource not defined in the queue
- */
-const INADMISSIBLE_MESSAGE_REGEX = /request > maximum capacity|resource .+ unavailable in/i;
 
 export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo => {
   const conditions = wl.status?.conditions;

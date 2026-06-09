@@ -35,7 +35,7 @@ const SUCCESS_REGEX = /success|succeeded/;
  * - "request > maximum capacity (6 > 5)" — pod set requests more than the flavor can provide
  * - "resource nvidia.com/gpu unavailable in ClusterQueue" — resource not defined in the queue
  */
-const INADMISSIBLE_MESSAGE_REGEX = /request > maximum capacity|resource .+ unavailable in/i;
+export const INADMISSIBLE_MESSAGE_REGEX = /request > maximum capacity|resource .+ unavailable in/i;
 
 const extractWorkloadConditions = (
   conditions: WorkloadCondition[],
