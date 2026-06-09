@@ -21,6 +21,7 @@ const HIDDEN_KEYS = new Set([
   'train_data_secret_name',
   'train_data_bucket_name',
   'train_data_file_key',
+  'eval_metric',
 ]);
 
 const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, createdAt }) => {
