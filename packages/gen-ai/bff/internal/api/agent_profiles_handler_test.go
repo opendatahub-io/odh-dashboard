@@ -728,6 +728,43 @@ spec:
 				assert.Contains(t, envelope.Error.Message, "UUID")
 			},
 		},
+		{
+			name:      "update with nil ConfigMap Data field",
+			profileID: profileID,
+			namespace: testNamespace,
+			requestBody: models.AgentProfileUpdateRequest{
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Updated Agent",
+					Model: models.ModelReference{
+						ID:  "llama-3-70b",
+						URI: "https://api.example.com/v1/models",
+					},
+				},
+				ResourceVersion: "12345",
+			},
+			existingCM: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "agent-profile-550e8400-e29b-41d4-a716-446655440000",
+					Namespace:       testNamespace,
+					ResourceVersion: "12345",
+					Labels: map[string]string{
+						"opendatahub.io/dashboard":     "true",
+						"opendatahub.io/agent-profile": "true",
+					},
+				},
+				Data: nil, // Nil Data map to test defensive nil guard
+			},
+			wantStatusCode: http.StatusOK,
+			validateFunc: func(t *testing.T, responseBody []byte) {
+				var envelope AgentProfileUpdateEnvelope
+				err := json.Unmarshal(responseBody, &envelope)
+				require.NoError(t, err)
+
+				assert.Contains(t, envelope.Data.Name, "agent-profile-")
+				assert.Equal(t, profileID, envelope.Data.ProfileID)
+				assert.Equal(t, "Updated Agent", envelope.Data.DisplayName)
+			},
+		},
 	}
 
 	for _, tt := range tests {

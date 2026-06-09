@@ -500,7 +500,10 @@ func (kc *TokenKubernetesClient) UpdateAgentProfile(
 		}
 	}
 
-	// Update ConfigMap data
+	// Update ConfigMap data (initialize map if nil)
+	if existingCM.Data == nil {
+		existingCM.Data = make(map[string]string)
+	}
 	existingCM.Data[AgentProfileDataKey] = string(profileYAML)
 
 	// Update the ConfigMap in the cluster
