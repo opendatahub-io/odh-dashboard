@@ -86,24 +86,22 @@ export const useDeploymentAuthTokens = (
   } = useDeploymentSecrets(deployment?.model.metadata.namespace);
 
   const deploymentSecrets = React.useMemo(() => {
-    const namespace = deployment?.model.metadata.namespace;
-    const resourceName = deployment?.server?.metadata.name ?? deployment?.model.metadata.name;
-    if (!resourceName || !namespace) {
+    if (!deployment?.model.metadata.name || !deployment.model.metadata.namespace) {
       return [];
     }
 
-    const { serviceAccountName } = getTokenNames(resourceName, namespace);
+    // Calculate the "<k8s-deployment-name>-sa" service account name
+    const { serviceAccountName } = getTokenNames(
+      deployment.model.metadata.name,
+      deployment.model.metadata.namespace,
+    );
 
+    // Filter the secrets to only include the ones that match the service account name
     return projectSecrets.filter(
       (secret) =>
         secret.metadata.annotations?.['kubernetes.io/service-account.name'] === serviceAccountName,
     );
-  }, [
-    projectSecrets,
-    deployment?.model.metadata.name,
-    deployment?.model.metadata.namespace,
-    deployment?.server?.metadata.name,
-  ]);
+  }, [projectSecrets, deployment?.model.metadata.name, deployment?.model.metadata.namespace]);
 
   return { data: deploymentSecrets, loaded, error, refresh };
 };
