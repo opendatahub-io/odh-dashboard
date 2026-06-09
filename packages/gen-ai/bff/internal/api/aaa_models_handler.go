@@ -73,10 +73,10 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	if requestedSources[models.ModelSourceTypeMaaS] {
 		maasModels, err := app.fetchMaaSModels(ctx, namespace)
 		if err != nil {
-			// If only MaaS was requested, return the error
+			// If only MaaS was requested, return service unavailable error
 			isMaasOnly := len(requestedSources) == 1
 			if isMaasOnly {
-				app.serverErrorResponse(w, r, err)
+				app.serviceUnavailableResponse(w, r, err)
 				return
 			}
 			// For mixed-source requests, log error but don't fail the entire request

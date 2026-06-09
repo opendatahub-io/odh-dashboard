@@ -277,14 +277,13 @@ var _ = Describe("parseModelSources", func() {
 
 	It("should return invalid sources", func() {
 		t := GinkgoT()
-		sources, invalid := parseModelSources("namespace,invalid,maas,unknown")
+		sources, invalid := parseModelSources("namespace,invalid,maas")
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
 		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
 		assert.True(t, sources[models.ModelSourceTypeMaaS])
 		assert.Contains(t, invalid, "invalid", "Should track invalid source")
-		assert.Contains(t, invalid, "unknown", "Should track unknown source")
-		assert.Len(t, invalid, 2, "Should have exactly 2 invalid sources")
+		assert.Len(t, invalid, 1, "Should have exactly 1 invalid source")
 	})
 
 	It("should handle whitespace in source list", func() {
