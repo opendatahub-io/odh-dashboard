@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"gopkg.in/yaml.v2"
@@ -349,6 +350,12 @@ func (kc *TokenKubernetesClient) ListAgentProfiles(
 			continue
 		}
 		profileID := cm.Name[len(AgentProfileNamePrefix):]
+
+		// Validate profileID is a valid UUID
+		if _, err := uuid.Parse(profileID); err != nil {
+			kc.Logger.Warn("skipping ConfigMap with invalid UUID in name", "profileID", profileID, "namespace", cm.Namespace)
+			continue
+		}
 
 		// Get last modified timestamp from ManagedFields
 		lastModified := getLastModifiedTimestamp(&cm)
