@@ -331,7 +331,39 @@ describe('getKueueWorkloadStatusWithMessage', () => {
     expect(result.status).toBe(KueueWorkloadStatus.Admitted);
   });
 
-  it('should return Queued when QuotaReserved is False (Pending)', () => {
+  it('should return Inadmissible when QuotaReserved=False with reason Pending but message indicates request exceeds maximum capacity', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: insufficient quota for cpu in flavor default-flavor, request > maximum capacity (6 > 5)",
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Inadmissible);
+    expect(result.message).toContain('request > maximum capacity');
+  });
+
+  it('should return Inadmissible when QuotaReserved=False with reason Pending but message indicates resource unavailable in ClusterQueue', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: resource nvidia.com/gpu unavailable in ClusterQueue",
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Inadmissible);
+    expect(result.message).toContain('resource nvidia.com/gpu unavailable in ClusterQueue');
+  });
+
+  it('should return Queued when QuotaReserved is False (Pending) with insufficient unused quota', () => {
     const workload = workloadWithConditions([
       {
         type: 'QuotaReserved',

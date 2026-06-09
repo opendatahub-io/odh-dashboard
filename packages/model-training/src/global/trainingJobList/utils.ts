@@ -160,6 +160,15 @@ export const getStatusInfo = (
 };
 
 /**
+ * Matches Kueue condition messages that indicate a workload is permanently inadmissible
+ * (can never be admitted without cluster configuration changes), even when the condition
+ * reason is 'Pending'. Examples:
+ * - "request > maximum capacity (6 > 5)" — pod set requests more than the flavor can provide
+ * - "resource nvidia.com/gpu unavailable in ClusterQueue" — resource not defined in the queue
+ */
+const INADMISSIBLE_MESSAGE_REGEX = /request > maximum capacity|resource .+ unavailable in/i;
+
+/**
  * Extract and categorize workload conditions by status type
  * Returns a map of condition types (Failed, Succeeded, etc.) to their matching conditions
  * Similar to the pattern used in distributedWorkloads/utils.tsx
@@ -189,10 +198,10 @@ const extractWorkloadConditions = (
         type === WorkloadConditionType.Preempted && status === ConditionStatus.True,
     ),
     Inadmissible: conditions.find(
-      ({ type, status, reason }) =>
+      ({ type, status, reason, message }) =>
         type === WorkloadConditionType.QuotaReserved &&
         status === ConditionStatus.False &&
-        reason === 'Inadmissible',
+        (reason === 'Inadmissible' || INADMISSIBLE_MESSAGE_REGEX.test(message || '')),
     ),
     Pending: conditions.find(
       ({ type, status }) =>

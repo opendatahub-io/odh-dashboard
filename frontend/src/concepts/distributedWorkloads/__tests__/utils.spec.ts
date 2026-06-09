@@ -54,6 +54,62 @@ describe('getStatusInfo', () => {
     const info = getStatusInfo(wl);
     expect(getWorkloadStatusMessage(info)).toEqual('Finished');
   });
+
+  it('should return Inadmissible when QuotaReserved=False with reason Pending but message indicates request exceeds maximum capacity', () => {
+    const wl = mockWorkloadK8sResource({ k8sName: 'test-workload', mockStatus: null });
+    wl.status = {
+      conditions: [
+        {
+          lastTransitionTime: '2024-03-18T19:15:28Z',
+          message:
+            "couldn't assign flavors to pod set main: insufficient quota for cpu in flavor default-flavor, request > maximum capacity (6 > 5)",
+          reason: 'Pending',
+          status: 'False',
+          type: 'QuotaReserved',
+        },
+      ],
+    };
+    const info = getStatusInfo(wl);
+    expect(info.status).toBe(WorkloadStatusType.Inadmissible);
+    expect(info.message).toContain('request > maximum capacity');
+  });
+
+  it('should return Inadmissible when QuotaReserved=False with reason Pending but message indicates resource unavailable', () => {
+    const wl = mockWorkloadK8sResource({ k8sName: 'test-workload', mockStatus: null });
+    wl.status = {
+      conditions: [
+        {
+          lastTransitionTime: '2024-03-18T19:15:28Z',
+          message:
+            "couldn't assign flavors to pod set main: resource nvidia.com/gpu unavailable in ClusterQueue",
+          reason: 'Pending',
+          status: 'False',
+          type: 'QuotaReserved',
+        },
+      ],
+    };
+    const info = getStatusInfo(wl);
+    expect(info.status).toBe(WorkloadStatusType.Inadmissible);
+    expect(info.message).toContain('resource nvidia.com/gpu unavailable in ClusterQueue');
+  });
+
+  it('should return Pending when QuotaReserved=False with insufficient unused quota message (temporary)', () => {
+    const wl = mockWorkloadK8sResource({ k8sName: 'test-workload', mockStatus: null });
+    wl.status = {
+      conditions: [
+        {
+          lastTransitionTime: '2024-03-18T19:15:28Z',
+          message:
+            "couldn't assign flavors to pod set main: insufficient unused quota for cpu in flavor default-flavor, 2 more needed",
+          reason: 'Pending',
+          status: 'False',
+          type: 'QuotaReserved',
+        },
+      ],
+    };
+    const info = getStatusInfo(wl);
+    expect(info.status).toBe(WorkloadStatusType.Pending);
+  });
 });
 
 describe('getStatusCounts', () => {

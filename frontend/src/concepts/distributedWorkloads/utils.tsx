@@ -101,6 +101,15 @@ export const WorkloadStatusColorAndIcon: Record<
   },
 };
 
+/**
+ * Matches Kueue condition messages that indicate a workload is permanently inadmissible
+ * (can never be admitted without cluster configuration changes), even when the condition
+ * reason is 'Pending'. Examples:
+ * - "request > maximum capacity (6 > 5)" — pod set requests more than the flavor can provide
+ * - "resource nvidia.com/gpu unavailable in ClusterQueue" — resource not defined in the queue
+ */
+const INADMISSIBLE_MESSAGE_REGEX = /request > maximum capacity|resource .+ unavailable in/i;
+
 export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo => {
   const conditions = wl.status?.conditions;
   // Order matters here: The first matching condition in this order will be used for the current status.
@@ -128,8 +137,10 @@ export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo => {
     ),
     Evicted: conditions?.find(({ type, status }) => type === 'Evicted' && status === 'True'),
     Inadmissible: conditions?.find(
-      ({ type, status, reason }) =>
-        type === 'QuotaReserved' && status === 'False' && reason === 'Inadmissible',
+      ({ type, status, reason, message }) =>
+        type === 'QuotaReserved' &&
+        status === 'False' &&
+        (reason === 'Inadmissible' || INADMISSIBLE_MESSAGE_REGEX.test(message || '')),
     ),
     Pending: conditions?.find(({ type, status }) => type === 'QuotaReserved' && status === 'False'),
     Running: conditions?.find(({ type, status }) => type === 'PodsReady' && status === 'True'),
