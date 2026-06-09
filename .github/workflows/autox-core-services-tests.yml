@@ -1,0 +1,51 @@
+name: Test / AutoX Core Services Tests
+on:
+  push:
+    paths:
+      - "packages/autox-core/services/**"
+      - "!LICENSE*"
+      - "!**.gitignore"
+      - "!**.md"
+
+  pull_request:
+    paths:
+      - "packages/autox-core/services/**"
+      - ".github/workflows/autox-core-services-tests.yml"
+      - "!LICENSE*"
+      - "!**.gitignore"
+      - "!**.md"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version: "1.26.4"
+
+      - name: Lint
+        working-directory: packages/autox-core/services
+        run: make lint
+
+      - name: Build
+        working-directory: packages/autox-core/services
+        run: go build ./...
+
+      - name: Test
+        working-directory: packages/autox-core/services
+        run: make test
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/autox-core
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
