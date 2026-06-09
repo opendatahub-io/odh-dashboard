@@ -23,7 +23,9 @@
       "port": 8043
     }
   },
-  "e2eCiTags": ["@GenAICI"],
+  "e2eCiTags": [
+    "@GenAICI"
+  ],
   "bffConfig": {
     "enabled": true,
     "port": 8080,
@@ -51,10 +53,10 @@
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "@odh-dashboard/contract-tests": "*",
     "cross-env": "^10.1.0",
-    "eslint-plugin-n": "^17.23.1"
+    "eslint-plugin-n": "^17.24.0"
   }
 }
