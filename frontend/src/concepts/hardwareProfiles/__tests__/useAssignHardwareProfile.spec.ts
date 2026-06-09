@@ -1,11 +1,11 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import {
-  type Toleration,
-  type NodeSelector,
-  TolerationOperator,
+  HardwareProfileFeatureVisibility,
   TolerationEffect,
+  TolerationOperator,
+  type NodeSelector,
+  type Toleration,
 } from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {

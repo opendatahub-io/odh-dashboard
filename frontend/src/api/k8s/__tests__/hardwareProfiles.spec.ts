@@ -9,13 +9,11 @@ import {
 import * as _ from 'lodash-es';
 import {
   HardwareProfileFeatureVisibility,
-  type HardwareProfileKind,
-} from '@odh-dashboard/k8s-core';
-import {
   IdentifierResourceType,
+  SchedulingType,
   TolerationEffect,
   TolerationOperator,
-  SchedulingType,
+  type HardwareProfileKind,
 } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { HardwareProfileModel } from '#~/api/models';

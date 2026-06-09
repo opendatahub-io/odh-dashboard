@@ -1,6 +1,6 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { mockRoleK8sResource, mockClusterRoleK8sResource } from '#~/__mocks__';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { mockRoleK8sResource, mockClusterRoleK8sResource } from '#~/__mocks__';
 import useRoleListData from '#~/pages/projects/projectRoles/useRoleListData';
 
 describe('useRoleListData', () => {

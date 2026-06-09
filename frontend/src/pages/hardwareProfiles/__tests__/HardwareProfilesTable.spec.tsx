@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { HardwareProfileKind, IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
 // Mock child components
 jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {

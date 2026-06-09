@@ -22,8 +22,12 @@ import {
 } from '@odh-dashboard/internal/api/k8s/roleBindings';
 import { addOwnerReference } from '@odh-dashboard/internal/api/k8sUtils';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
-import { MetadataAnnotation, KnownLabels } from '@odh-dashboard/k8s-core';
-import type { SecretKind, SupportedModelFormats } from '@odh-dashboard/k8s-core';
+import {
+  KnownLabels,
+  MetadataAnnotation,
+  SecretKind,
+  SupportedModelFormats,
+} from '@odh-dashboard/k8s-core';
 import {
   K8sAPIOptions,
   RoleBindingKind,

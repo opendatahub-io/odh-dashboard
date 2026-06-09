@@ -23,8 +23,8 @@ import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8s
 import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import type { HardwareProfileKind, PodKind } from '@odh-dashboard/k8s-core';
-import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
+import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';

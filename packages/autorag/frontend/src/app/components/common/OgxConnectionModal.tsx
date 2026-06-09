@@ -19,6 +19,7 @@ import K8sNameDescriptionField, {
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
+
 type Props = {
   namespace: string;
   onClose: () => void;
