@@ -29,6 +29,16 @@ func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (strin
 		return "", fmt.Errorf("endpoint URL must not contain credentials (userinfo)")
 	}
 
+	if parsedURL.Path != "" && parsedURL.Path != "/" {
+		return "", fmt.Errorf("endpoint URL must not contain a path")
+	}
+	if parsedURL.RawQuery != "" {
+		return "", fmt.Errorf("endpoint URL must not contain a query string")
+	}
+	if parsedURL.Fragment != "" {
+		return "", fmt.Errorf("endpoint URL must not contain a fragment")
+	}
+
 	hostname := parsedURL.Hostname()
 	if hostname == "" {
 		return "", fmt.Errorf("endpoint URL must have a valid hostname")

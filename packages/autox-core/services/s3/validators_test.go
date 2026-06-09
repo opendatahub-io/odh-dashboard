@@ -150,4 +150,39 @@ func TestValidateAndNormalizeEndpoint(t *testing.T) {
 			t.Errorf("unexpected error: %v", err)
 		}
 	})
+
+	t.Run("path rejected", func(t *testing.T) {
+		_, err := provider.validateAndNormalizeEndpoint("https://s3.example.com/some-path")
+		if err == nil {
+			t.Error("expected error for endpoint with path")
+		}
+	})
+
+	t.Run("query string rejected", func(t *testing.T) {
+		_, err := provider.validateAndNormalizeEndpoint("https://s3.example.com?x=y")
+		if err == nil {
+			t.Error("expected error for endpoint with query string")
+		}
+	})
+
+	t.Run("fragment rejected", func(t *testing.T) {
+		_, err := provider.validateAndNormalizeEndpoint("https://s3.example.com#frag")
+		if err == nil {
+			t.Error("expected error for endpoint with fragment")
+		}
+	})
+
+	t.Run("credentials rejected", func(t *testing.T) {
+		_, err := provider.validateAndNormalizeEndpoint("https://user:pass@s3.example.com")
+		if err == nil {
+			t.Error("expected error for endpoint with credentials")
+		}
+	})
+
+	t.Run("trailing slash allowed", func(t *testing.T) {
+		_, err := provider.validateAndNormalizeEndpoint("https://s3.example.com/")
+		if err != nil {
+			t.Errorf("trailing slash should be allowed: %v", err)
+		}
+	})
 }
