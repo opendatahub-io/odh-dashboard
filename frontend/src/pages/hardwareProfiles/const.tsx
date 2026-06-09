@@ -1,6 +1,5 @@
 import React from 'react';
-import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { HardwareProfileKind, IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import { SortableData } from '#~/components/table';
 import {
   HardwareProfileFormData,

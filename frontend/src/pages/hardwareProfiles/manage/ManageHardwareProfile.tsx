@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
-import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { SchedulingType } from '@odh-dashboard/k8s-core';
+import { HardwareProfileKind, SchedulingType } from '@odh-dashboard/k8s-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import K8sNameDescriptionField, {

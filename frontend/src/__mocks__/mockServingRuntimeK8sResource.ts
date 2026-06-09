@@ -1,5 +1,4 @@
-import { KnownLabels } from '@odh-dashboard/k8s-core';
-import type { ContainerResources, NodeSelector, Toleration } from '@odh-dashboard/k8s-core';
+import { ContainerResources, KnownLabels, NodeSelector, Toleration } from '@odh-dashboard/k8s-core';
 import { ServingRuntimeKind } from '#~/k8sTypes';
 import { ServingRuntimeAPIProtocol } from '#~/types';
 

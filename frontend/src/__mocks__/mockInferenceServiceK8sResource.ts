@@ -1,6 +1,5 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
-import type { ContainerResources, NodeSelector, Toleration } from '@odh-dashboard/k8s-core';
+import { ContainerResources, KnownLabels, NodeSelector, Toleration } from '@odh-dashboard/k8s-core';
 import { DeploymentMode, InferenceServiceKind } from '#~/k8sTypes';
 import { genUID } from '#~/__mocks__/mockUtils';
 import { ServingRuntimeModelType } from '#~/types';

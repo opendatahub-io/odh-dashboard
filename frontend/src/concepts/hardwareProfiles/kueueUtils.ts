@@ -1,6 +1,10 @@
 import * as React from 'react';
-import { KnownLabels, type ProjectKind, type HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { SchedulingType } from '@odh-dashboard/k8s-core';
+import {
+  KnownLabels,
+  SchedulingType,
+  type HardwareProfileKind,
+  type ProjectKind,
+} from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 /**
  * Custom hook to manage Kueue configuration state and determine various Kueue-related behaviors.

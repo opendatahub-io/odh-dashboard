@@ -6,9 +6,12 @@ import {
   mockK8sResourceList,
 } from '@odh-dashboard/internal/__mocks__';
 import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
-import { ImageStreamAnnotation, ImageStreamLabel, ImageStreamSpecTagAnnotation } from '@odh-dashboard/internal/types';
-import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
+import { HardwareProfileFeatureVisibility, IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import {
+  ImageStreamAnnotation,
+  ImageStreamLabel,
+  ImageStreamSpecTagAnnotation,
+} from '@odh-dashboard/internal/types';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import {

@@ -1,5 +1,8 @@
-import { type Identifier, IdentifierResourceType } from '@odh-dashboard/k8s-core';
-import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
+import {
+  HardwareProfileFeatureVisibility,
+  IdentifierResourceType,
+  type Identifier,
+} from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   determineIdentifierUnit,

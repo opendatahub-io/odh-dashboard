@@ -1,10 +1,10 @@
 import * as _ from 'lodash-es';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
 import {
-  type ContainerResources,
-  type EnvironmentVariable,
+  KnownLabels,
   TolerationEffect,
   TolerationOperator,
+  type ContainerResources,
+  type EnvironmentVariable,
   type Volume,
   type VolumeMount,
 } from '@odh-dashboard/k8s-core';

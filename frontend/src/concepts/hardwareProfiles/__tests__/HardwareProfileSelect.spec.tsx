@@ -2,8 +2,12 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import { type HardwareProfileKind, type ProjectKind, KnownLabels } from '@odh-dashboard/k8s-core';
-import { SchedulingType } from '@odh-dashboard/k8s-core';
+import {
+  KnownLabels,
+  SchedulingType,
+  type HardwareProfileKind,
+  type ProjectKind,
+} from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import {
