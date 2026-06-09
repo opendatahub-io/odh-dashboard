@@ -718,4 +718,85 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		assert.True(t, hasNamespace, "Should include namespace models")
 		assert.False(t, hasMaaS, "Should not include MaaS models when fetch fails")
 	})
+
+	It("should return 5xx when MaaS-only request fails", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=maas", nil)
+		assert.NoError(t, err)
+
+		// Create mock MaaS client that returns error
+		mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		mockMaaSClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+			return bffclient.NewBFFClientError(bffclient.ErrCodeInternalError, "MaaS service unavailable", 503)
+		}
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-3")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.ModelsAAHandler(rr, req, nil)
+
+		// MaaS-only request should fail with 5xx status
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code, "Should return 503 when MaaS is unavailable and it's the only source")
+	})
+
+	It("should reject empty tokens in sources parameter", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace,,maas", nil)
+		assert.NoError(t, err)
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should return 400 for empty token in sources")
+	})
+
+	It("should reject duplicate tokens in sources parameter", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace,namespace", nil)
+		assert.NoError(t, err)
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should return 400 for duplicate tokens in sources")
+	})
+
+	It("should reject more than 3 tokens in sources parameter", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace,custom_endpoint,maas,extra", nil)
+		assert.NoError(t, err)
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should return 400 for more than 3 tokens in sources")
+	})
 })
