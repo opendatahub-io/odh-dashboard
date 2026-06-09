@@ -72,56 +72,6 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 	}
 }
 
-<<<<<<< Updated upstream
-// AgentCardToModel maps an agent card plus namespace to BFF AgentCard.
-func AgentCardToModel(namespace string, card *agents.AgentCard) *models.AgentCard {
-	if card == nil {
-		return &models.AgentCard{Namespace: namespace}
-	}
-
-	skills := make([]models.AgentSkill, 0, len(card.Skills))
-	for _, skill := range card.Skills {
-		skills = append(skills, models.AgentSkill{
-			ID:          skill.ID,
-			Name:        skill.Name,
-			Description: skill.Description,
-		})
-	}
-
-	description := card.Description
-
-	// TODO: Wire input/output modes from agents.AgentCard when upstream fields are available.
-	// Add SupportedInputModes and SupportedOutputModes fields to agents.AgentCard and map them here.
-	// For now, fallback to ["text"] when upstream fields are missing or empty.
-	inputModes := []string{"text"}
-	outputModes := []string{"text"}
-
-	return &models.AgentCard{
-		Name:        card.Name,
-		Namespace:   namespace,
-		Description: description,
-		Version:     card.Version,
-		URL:         card.URL,
-		Skills:      skills,
-		Capabilities: models.AgentCapabilities{
-			Streaming: card.Streaming,
-			// TODO: Wire PushNotifications from agents.AgentCard when the upstream field is available.
-			// Currently hardcoded to false for MVP. Add PushNotifications field to agents.AgentCard
-			// and map it here: card.PushNotifications
-			PushNotifications: false,
-		},
-		Provider: models.AgentProvider{
-			Name:        defaultProviderName,
-			DisplayName: defaultProviderLabel,
-			URL:         defaultProviderURL,
-		},
-		SupportedInputModes:  inputModes,
-		SupportedOutputModes: outputModes,
-	}
-}
-
-=======
->>>>>>> Stashed changes
 // AgentDescription resolves a human-readable description from metadata annotations.
 func AgentDescription(annotations map[string]string) string {
 	if annotations != nil {

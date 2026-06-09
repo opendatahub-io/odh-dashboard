@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	// ErrNotFound indicates the requested agent or card does not exist.
+	// ErrNotFound indicates the requested agent does not exist.
 	ErrNotFound = errors.New("agent not found")
 	// ErrUnavailable indicates agent data could not be loaded (e.g. workload unreachable).
 	ErrUnavailable = errors.New("agent data unavailable")
