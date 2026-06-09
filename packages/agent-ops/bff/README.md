@@ -15,7 +15,6 @@ This service exposes core dashboard endpoints plus agent runtime APIs backed by 
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
 - GET `/api/v1/agents/runtimes` – list deployed agent and tool runtimes
 - GET `/api/v1/agents/runtimes/{ns}/{name}` – full runtime detail for one agent
-- GET `/api/v1/agents/cards/{ns}/{name}` – agent discovery card for one agent
 
 Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. Runtime data is served from the built-in mock agent data client (sample data for `agent-ops-demo` / `sample-support-agent`). A future change will load agents from Kubernetes via the same `agents` integration layer.
 
@@ -104,7 +103,6 @@ GET /api/v1/user
 GET /api/v1/namespaces              (dev / mock mode only)
 GET /api/v1/agents/runtimes
 GET /api/v1/agents/runtimes/{ns}/{name}
-GET /api/v1/agents/cards/{ns}/{name}
 ```
 
 ### Sample local calls
@@ -124,10 +122,9 @@ curl -i localhost:4000/healthcheck
 curl -i -H "$TOKEN_HDR" localhost:4000/api/v1/user
 curl -i -H "$TOKEN_HDR" localhost:4000/api/v1/namespaces   # dev / mock only
 
-# Agent APIs (mock agent data; sample agent: agent-ops-demo / sample-support-agent)
+# Agent APIs (use -mock-agent-client for demo data; otherwise reads kagenti workloads from the cluster)
 curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/runtimes | jq .
 curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent | jq .
-curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/cards/agent-ops-demo/sample-support-agent | jq .
 ```
 
 For Kubeflow-style `internal` auth instead, use `kubeflow-userid: user@example.com` (and run with `AUTH_METHOD=internal`).

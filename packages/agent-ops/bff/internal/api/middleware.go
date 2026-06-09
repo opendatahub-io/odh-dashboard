@@ -172,3 +172,50 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 		next(w, r, ps)
 	}
 }
+
+// RequireAccessToAgent validates identity and checks whether the user can read agent
+// workloads and services in the namespace injected by AttachNamespace or AttachNamespaceFromParam.
+func (app *App) RequireAccessToAgent(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			next(w, r, ps)
+			return
+		}
+
+		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+			return
+		}
+
+		allowed, err := k8sClient.CanGetAgentInNamespace(ctx, identity, namespace, ps.ByName("name"))
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to check agent access: %w", err))
+			return
+		}
+
+		if !allowed {
+			app.forbiddenResponse(w, r, "user does not have permission to access agents in this namespace")
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Debug("User authorized to access agents in namespace", "namespace", namespace)
+
+		next(w, r, ps)
+	}
+}

@@ -10,12 +10,6 @@ import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
 )
 
-const (
-	defaultProviderName  = "opendatahub"
-	defaultProviderLabel = "Open Data Hub"
-	defaultProviderURL   = "https://opendatahub.io"
-)
-
 // AgentSummaryToRuntime maps an agent list item to a BFF AgentRuntime.
 func AgentSummaryToRuntime(item agents.AgentSummary) models.AgentRuntime {
 	return models.AgentRuntime{
@@ -23,7 +17,7 @@ func AgentSummaryToRuntime(item agents.AgentSummary) models.AgentRuntime {
 		Namespace:    item.Namespace,
 		Status:       strings.TrimSpace(item.Status),
 		Type:         strings.TrimSpace(item.ResourceType),
-		EndpointURL:  "",
+		EndpointURL:  strings.TrimSpace(item.EndpointURL),
 		LastSyncTime: ParseTime(item.CreatedAt),
 	}
 }
@@ -78,6 +72,7 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 	}
 }
 
+<<<<<<< Updated upstream
 // AgentCardToModel maps an agent card plus namespace to BFF AgentCard.
 func AgentCardToModel(namespace string, card *agents.AgentCard) *models.AgentCard {
 	if card == nil {
@@ -125,13 +120,15 @@ func AgentCardToModel(namespace string, card *agents.AgentCard) *models.AgentCar
 	}
 }
 
+=======
+>>>>>>> Stashed changes
 // AgentDescription resolves a human-readable description from metadata annotations.
 func AgentDescription(annotations map[string]string) string {
 	if annotations != nil {
 		if v := annotations[agents.AnnotationDescription]; v != "" {
 			return v
 		}
-		if v := annotations[agents.AnnotationDescriptionAlt]; v != "" {
+		if v := annotations["description"]; v != "" {
 			return v
 		}
 	}

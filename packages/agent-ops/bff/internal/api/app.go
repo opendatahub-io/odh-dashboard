@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
+	agentsk8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/kubernetes"
 	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient/bffmocks"
@@ -37,7 +38,6 @@ const (
 	NamespacePath          = ApiPathPrefix + "/namespaces"
 	AgentRuntimesPath      = ApiPathPrefix + "/agents/runtimes"
 	AgentRuntimeDetailPath = ApiPathPrefix + "/agents/runtimes/:ns/:name"
-	AgentCardPath          = ApiPathPrefix + "/agents/cards/:ns/:name"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -72,8 +72,7 @@ type App struct {
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
 	// bffClientFactory creates clients for inter-BFF communication
-	bffClientFactory      bffclient.BFFClientFactory
-	agentBackendAvailable bool
+	bffClientFactory bffclient.BFFClientFactory
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -166,15 +165,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	var agentSourceFactory agents.ClientFactory
-	var agentBackendAvailable bool
 	if cfg.MockAgentClient {
 		logger.Info("Using mock agent data client")
 		agentSourceFactory = &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
-		agentBackendAvailable = true
 	} else {
-		logger.Info("Agent backend unavailable, agent routes will be disabled")
-		agentSourceFactory = agents.NewUnavailableFactory()
-		agentBackendAvailable = false
+		logger.Info("Using Kubernetes agent data client")
+		agentSourceFactory = agentsk8s.NewFactory(k8sFactory, logger)
 	}
 
 	app := &App{
@@ -185,7 +181,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		bffClientFactory:        bffFactory,
-		agentBackendAvailable:   agentBackendAvailable,
 	}
 	return app, nil
 }
@@ -215,18 +210,11 @@ func (app *App) Routes() http.Handler {
 		return app.GetNamespacesHandler
 	}))
 
-	// Agent endpoints - only register when agent backend is available
-	if app.agentBackendAvailable {
-		// List endpoint is cluster-scoped today. When it accepts ?namespace=, wrap with:
-		// app.AttachNamespace(app.RequireAccessToService(app.ListAgentRuntimesHandler))
-		apiRouter.GET(AgentRuntimesPath, app.ListAgentRuntimesHandler)
-		apiRouter.GET(AgentRuntimeDetailPath,
-			app.AttachNamespaceFromParam("ns",
-				app.RequireAccessToService(app.GetAgentRuntimeDetailHandler)))
-		apiRouter.GET(AgentCardPath,
-			app.AttachNamespaceFromParam("ns",
-				app.RequireAccessToService(app.GetAgentCardHandler)))
-	}
+	// Agent endpoints — list skips inaccessible namespaces inside the Kubernetes client.
+	apiRouter.GET(AgentRuntimesPath, app.ListAgentRuntimesHandler)
+	apiRouter.GET(AgentRuntimeDetailPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAccessToAgent(app.GetAgentRuntimeDetailHandler)))
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:

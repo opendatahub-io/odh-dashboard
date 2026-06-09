@@ -15,12 +15,10 @@ type Client struct {
 	Namespaces []string
 	Agents     map[string][]agents.AgentSummary
 	Details    map[string]agents.AgentDetail
-	Cards      map[string]agents.AgentCard
 
 	ListNamespacesErr error
 	ListAgentsErr     error
 	GetAgentErr       error
-	GetAgentCardErr   error
 }
 
 // NewClient returns a mock client with no data.
@@ -28,7 +26,6 @@ func NewClient() *Client {
 	return &Client{
 		Agents:  map[string][]agents.AgentSummary{},
 		Details: map[string]agents.AgentDetail{},
-		Cards:   map[string]agents.AgentCard{},
 	}
 }
 
@@ -76,22 +73,6 @@ func (c *Client) GetAgent(ctx context.Context, namespace, name string) (*agents.
 	return &copy, nil
 }
 
-// GetAgentCard implements agents.Client.
-func (c *Client) GetAgentCard(ctx context.Context, namespace, name string) (*agents.AgentCard, error) {
-	_ = ctx
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if c.GetAgentCardErr != nil {
-		return nil, c.GetAgentCardErr
-	}
-	card, ok := c.Cards[detailKey(namespace, name)]
-	if !ok {
-		return nil, agents.ErrNotFound
-	}
-	copy := cloneAgentCard(card)
-	return &copy, nil
-}
-
 // cloneAgentDetail returns a defensive copy of detail. Spec and Status use maps.Clone
 // (shallow copy only); nested maps and slices inside those values remain shared.
 func cloneAgentDetail(detail agents.AgentDetail) agents.AgentDetail {
@@ -119,14 +100,6 @@ func cloneAgentMetadata(metadata agents.AgentMetadata) agents.AgentMetadata {
 	}
 	if len(metadata.Annotations) > 0 {
 		copy.Annotations = maps.Clone(metadata.Annotations)
-	}
-	return copy
-}
-
-func cloneAgentCard(card agents.AgentCard) agents.AgentCard {
-	copy := card
-	if len(card.Skills) > 0 {
-		copy.Skills = append([]agents.AgentSkill(nil), card.Skills...)
 	}
 	return copy
 }

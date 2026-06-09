@@ -15,6 +15,7 @@ type AgentSummary struct {
 	Status       string
 	ResourceType string
 	WorkloadType string
+	EndpointURL  string
 	CreatedAt    string
 }
 
@@ -52,21 +53,4 @@ type AgentServicePort struct {
 	Port       int
 	TargetPort any
 	Protocol   string
-}
-
-// AgentCard is the agent discovery card for one agent.
-type AgentCard struct {
-	Name        string
-	Description string
-	Version     string
-	URL         string
-	Streaming   bool
-	Skills      []AgentSkill
-}
-
-// AgentSkill is a skill advertised on an agent card.
-type AgentSkill struct {
-	ID          string
-	Name        string
-	Description string
 }

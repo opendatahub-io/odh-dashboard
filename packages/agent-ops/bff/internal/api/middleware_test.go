@@ -15,11 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type rbacTestK8sClient struct {
-	allowed bool
-	err     error
+	allowed    bool
+	getAllowed bool
+	err        error
 }
 
 func (c *rbacTestK8sClient) GetNamespaces(context.Context, *k8s.RequestIdentity) ([]corev1.Namespace, error) {
@@ -36,6 +38,18 @@ func (c *rbacTestK8sClient) GetUser(*k8s.RequestIdentity) (string, error) {
 
 func (c *rbacTestK8sClient) CanListServicesInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
 	return c.allowed, c.err
+}
+
+func (c *rbacTestK8sClient) CanListAgentsInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
+	return c.allowed, c.err
+}
+
+func (c *rbacTestK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
+	return c.getAllowed, c.err
+}
+
+func (c *rbacTestK8sClient) KubernetesClientset() kubernetes.Interface {
+	return nil
 }
 
 type rbacTestK8sFactory struct {
@@ -58,10 +72,17 @@ func (f *rbacTestK8sFactory) ValidateRequestIdentity(identity *k8s.RequestIdenti
 }
 
 func newRBACTestApp(allowed bool) *App {
+	return newRBACTestAppWithGet(allowed, allowed)
+}
+
+func newRBACTestAppWithGet(allowed bool, getAllowed bool) *App {
 	return &App{
 		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		kubernetesClientFactory: &rbacTestK8sFactory{
-			client: &rbacTestK8sClient{allowed: allowed},
+			client: &rbacTestK8sClient{
+				allowed:    allowed,
+				getAllowed: getAllowed,
+			},
 		},
 	}
 }
@@ -119,6 +140,45 @@ func TestAttachNamespaceFromParam_InvalidNamespace(t *testing.T) {
 
 	require.Equal(t, http.StatusBadRequest, rr.Code)
 	assert.False(t, called)
+}
+
+func TestRequireAccessToAgent_Allowed(t *testing.T) {
+	app := newRBACTestAppWithGet(true, true)
+	called := false
+
+	handler := app.RequireAccessToAgent(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/demo-ns/demo-agent", nil)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "demo-ns")
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.True(t, called)
+}
+
+func TestRequireAccessToAgent_Forbidden(t *testing.T) {
+	app := newRBACTestAppWithGet(true, false)
+
+	handler := app.RequireAccessToAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called when access is denied")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/demo-ns/demo-agent", nil)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "demo-ns")
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
+
+	require.Equal(t, http.StatusForbidden, rr.Code)
 }
 
 func TestAttachNamespace_InvalidNamespace(t *testing.T) {

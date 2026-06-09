@@ -23,13 +23,6 @@ func TestAgentRuntimesRepository_GetAgentRuntimeDetail_NotFound(t *testing.T) {
 	require.ErrorIs(t, err, bfferrors.ErrNotFound)
 }
 
-func TestAgentRuntimesRepository_GetAgentCard_NotFound(t *testing.T) {
-	repo := newTestAgentRuntimesRepository(agentsmock.NewClient())
-
-	_, err := repo.GetAgentCard(context.Background(), "agent-ops-demo", "missing-agent")
-	require.ErrorIs(t, err, bfferrors.ErrNotFound)
-}
-
 func TestAgentRuntimesRepository_GetAgentRuntimeDetail_Unavailable(t *testing.T) {
 	client := agentsmock.NewClient()
 	client.GetAgentErr = &agents.UnavailableError{Message: "agent workload unreachable"}

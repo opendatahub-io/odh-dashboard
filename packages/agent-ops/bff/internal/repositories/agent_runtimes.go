@@ -65,21 +65,6 @@ func (r *AgentRuntimesRepository) GetAgentRuntimeDetail(ctx context.Context, nam
 	return mapper.AgentDetailToRuntimeDetail(detail), nil
 }
 
-// GetAgentCard returns the agent discovery card for a single agent.
-func (r *AgentRuntimesRepository) GetAgentCard(ctx context.Context, namespace, name string) (*models.AgentCard, error) {
-	client, err := r.agentSourceFactory.GetClient(ctx)
-	if err != nil {
-		return nil, translateAgentError(err)
-	}
-
-	card, err := client.GetAgentCard(ctx, namespace, name)
-	if err != nil {
-		return nil, translateAgentError(err)
-	}
-
-	return mapper.AgentCardToModel(namespace, card), nil
-}
-
 func translateAgentError(err error) error {
 	if err == nil {
 		return nil

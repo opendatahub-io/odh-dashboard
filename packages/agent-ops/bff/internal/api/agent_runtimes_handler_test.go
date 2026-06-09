@@ -37,5 +37,5 @@ func TestListAgentRuntimesHandler(t *testing.T) {
 	assert.Equal(t, "agent-ops-demo", runtime.Namespace)
 	assert.Equal(t, "Ready", runtime.Status)
 	assert.Equal(t, "agent", runtime.Type)
-	assert.Equal(t, "", runtime.EndpointURL)
+	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", runtime.EndpointURL)
 }

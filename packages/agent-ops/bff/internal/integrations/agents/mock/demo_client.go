@@ -17,6 +17,7 @@ func NewDemoClient() *Client {
 				Status:       "Ready",
 				ResourceType: "agent",
 				WorkloadType: "deployment",
+				EndpointURL:  "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080",
 				CreatedAt:    "2026-05-12T16:00:03.214610Z",
 			},
 		},
@@ -53,19 +54,6 @@ func NewDemoClient() *Client {
 				Ports: []agents.AgentServicePort{
 					{Name: "http", Port: 8080},
 				},
-			},
-		},
-	}
-	client.Cards = map[string]agents.AgentCard{
-		"agent-ops-demo/sample-support-agent": {
-			Name:        "sample-support-agent",
-			Description: "Customer support agent that triages tickets and drafts responses.",
-			Version:     "1.2.0",
-			URL:         "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080",
-			Streaming:   true,
-			Skills: []agents.AgentSkill{
-				{ID: "ticket-triage", Name: "Ticket triage", Description: "Classifies incoming support tickets by priority and topic."},
-				{ID: "response-draft", Name: "Response drafting", Description: "Drafts customer-facing replies from ticket context and knowledge base snippets."},
 			},
 		},
 	}
