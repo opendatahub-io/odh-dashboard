@@ -41,7 +41,11 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 	return nil
 }
 
-func extractDashboardURL(ctx context.Context, cli client.Client, namespace string) (string, error) {
+func extractDashboardURL(ctx context.Context, cli client.Client, namespace string, platform cluster.Platform) (string, error) {
+	if platform == cluster.XKS {
+		return "", nil
+	}
+
 	rl := &routev1.RouteList{}
 	if err := cli.List(ctx, rl,
 		client.InNamespace(namespace),
