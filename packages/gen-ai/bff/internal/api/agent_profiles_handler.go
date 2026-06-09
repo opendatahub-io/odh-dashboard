@@ -11,6 +11,7 @@ import (
 )
 
 type AgentProfileCreateEnvelope = Envelope[models.AgentProfileCreateResponse, None]
+type AgentProfileListEnvelope = Envelope[models.AgentProfileListResponse, None]
 
 // CreateAgentProfileHandler handles POST requests to create an agent profile
 func (app *App) CreateAgentProfileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -88,6 +89,59 @@ func (app *App) CreateAgentProfileHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := app.WriteJSON(w, http.StatusCreated, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
+
+// ListAgentProfilesHandler handles GET requests to list agent profiles
+func (app *App) ListAgentProfilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	// Extract namespace from context (set by AttachNamespace middleware)
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, &integrations.HTTPError{
+			StatusCode: 400,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "missing_namespace",
+				Message: "namespace parameter is required",
+			},
+		})
+		return
+	}
+
+	// Get the Kubernetes client
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// List agent profiles
+	response, err := k8sClient.ListAgentProfiles(ctx, namespace)
+	if err != nil {
+		// Handle error based on type
+		if httpErr, ok := err.(*integrations.HTTPError); ok {
+			switch httpErr.StatusCode {
+			case 403:
+				app.forbiddenResponse(w, r, httpErr.Message)
+			default:
+				app.serverErrorResponse(w, r, httpErr)
+			}
+			return
+		}
+		// Unexpected error type
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Return success response
+	envelope := AgentProfileListEnvelope{
+		Data: *response,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}

@@ -116,3 +116,19 @@ type AgentProfileCreateResponse struct {
 	Namespace       string `json:"namespace"`       // Kubernetes namespace
 	ResourceVersion string `json:"resourceVersion"` // K8s resource version
 }
+
+// AgentProfileSummary is a lightweight representation for list operations
+type AgentProfileSummary struct {
+	Name         string `json:"name"`                  // ConfigMap name: "agent-profile-{uuid}"
+	ProfileID    string `json:"profileId"`             // The UUID (metadata.name)
+	DisplayName  string `json:"displayName"`           // User-friendly name from spec
+	Description  string `json:"description,omitempty"` // Optional description from spec
+	Namespace    string `json:"namespace"`             // Kubernetes namespace
+	LastModified string `json:"lastModified"`          // ISO 8601 timestamp
+}
+
+// AgentProfileListResponse is the HTTP response for listing agent profiles
+type AgentProfileListResponse struct {
+	Profiles   []AgentProfileSummary `json:"profiles"`
+	TotalCount int                   `json:"totalCount"`
+}

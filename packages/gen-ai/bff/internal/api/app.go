@@ -487,6 +487,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))
 
 	// Agent Profiles API routes
+	apiRouter.GET(constants.AgentProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.ListAgentProfilesHandler)))
 	apiRouter.POST(constants.AgentProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.CreateAgentProfileHandler)))
 
 	// App Router

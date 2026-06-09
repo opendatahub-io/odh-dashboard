@@ -286,3 +286,117 @@ func validateAgentProfile(profile *models.AgentProfile) error {
 
 	return nil
 }
+
+// ListAgentProfiles retrieves all AgentProfile ConfigMaps in a namespace
+func (kc *TokenKubernetesClient) ListAgentProfiles(
+	ctx context.Context,
+	namespace string,
+) (*models.AgentProfileListResponse, error) {
+	// List ConfigMaps with label filter
+	configMapList := &corev1.ConfigMapList{}
+	listOptions := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels{
+			AgentProfileLabel: "true",
+		},
+	}
+
+	if err := kc.Client.List(ctx, configMapList, listOptions...); err != nil {
+		if apierrors.IsForbidden(err) {
+			kc.Logger.Error("RBAC forbidden to list agent profile ConfigMaps", "error", err, "namespace", namespace)
+			return nil, &integrations.HTTPError{
+				StatusCode: 403,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "forbidden",
+					Message: "insufficient permissions to list agent profiles in this namespace",
+				},
+			}
+		}
+		kc.Logger.Error("failed to list agent profile ConfigMaps", "error", err, "namespace", namespace)
+		return nil, &integrations.HTTPError{
+			StatusCode: 500,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "list_error",
+				Message: "failed to list agent profiles",
+			},
+		}
+	}
+
+	// Convert ConfigMaps to summaries
+	profiles := make([]models.AgentProfileSummary, 0, len(configMapList.Items))
+	for _, cm := range configMapList.Items {
+		// Extract profile YAML
+		profileYAML, ok := cm.Data[AgentProfileDataKey]
+		if !ok {
+			kc.Logger.Warn("skipping ConfigMap with missing profile.yaml", "name", cm.Name, "namespace", cm.Namespace)
+			continue
+		}
+
+		// Deserialize to extract spec fields
+		var profile models.AgentProfile
+		if err := yaml.Unmarshal([]byte(profileYAML), &profile); err != nil {
+			kc.Logger.Warn("skipping ConfigMap with invalid YAML", "name", cm.Name, "error", err)
+			continue
+		}
+
+		// Extract UUID from ConfigMap name
+		profileID := ""
+		if len(cm.Name) > len(AgentProfileNamePrefix) {
+			profileID = cm.Name[len(AgentProfileNamePrefix):]
+		}
+
+		// Get last modified timestamp from ManagedFields
+		lastModified := getLastModifiedTimestamp(&cm)
+
+		summary := models.AgentProfileSummary{
+			Name:         cm.Name,
+			ProfileID:    profileID,
+			DisplayName:  profile.Spec.DisplayName,
+			Description:  profile.Spec.Description,
+			Namespace:    cm.Namespace,
+			LastModified: lastModified,
+		}
+
+		profiles = append(profiles, summary)
+	}
+
+	// Sort by lastModified (most recent first)
+	// Using bubble sort for small lists (AC: up to 50 profiles)
+	for i := 0; i < len(profiles)-1; i++ {
+		for j := 0; j < len(profiles)-i-1; j++ {
+			if profiles[j].LastModified < profiles[j+1].LastModified {
+				profiles[j], profiles[j+1] = profiles[j+1], profiles[j]
+			}
+		}
+	}
+
+	return &models.AgentProfileListResponse{
+		Profiles:   profiles,
+		TotalCount: len(profiles),
+	}, nil
+}
+
+// getLastModifiedTimestamp extracts the last modified timestamp from ConfigMap
+func getLastModifiedTimestamp(cm *corev1.ConfigMap) string {
+	// Prefer ManagedFields for accurate last modification time
+	if len(cm.ManagedFields) > 0 {
+		var latestTime *metav1.Time
+		for _, field := range cm.ManagedFields {
+			if field.Time != nil {
+				if latestTime == nil || field.Time.After(latestTime.Time) {
+					latestTime = field.Time
+				}
+			}
+		}
+		if latestTime != nil {
+			return latestTime.Format("2006-01-02T15:04:05Z")
+		}
+	}
+
+	// Fallback to creation timestamp
+	if !cm.CreationTimestamp.IsZero() {
+		return cm.CreationTimestamp.Format("2006-01-02T15:04:05Z")
+	}
+
+	return ""
+}
