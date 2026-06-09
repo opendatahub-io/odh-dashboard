@@ -50,7 +50,7 @@ const SubscriptionRow: React.FC<{
                 {subscription.display_name || subscription.subscription_id_header}
               </Link>
             </FlexItem>
-            <ApiKeyCountLabel keyCount={subscription.key_count} />
+            <ApiKeyCountLabel keyCount={subscription.key_count ?? 0} />
           </Flex>
         </Td>
       </Tr>
