@@ -1,5 +1,6 @@
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getNIMDeploymentStatus } from './status';
 import type { NIMServiceKind } from '../nimservices/types';
@@ -20,18 +21,11 @@ const mockNIMService = (overrides: Partial<NIMServiceKind> = {}): NIMServiceKind
 describe('getNIMDeploymentStatus', () => {
   it('should return LOADING when InferenceService is undefined and NIMService has no error conditions', () => {
     const nimService = mockNIMService();
-    const result = getNIMDeploymentStatus(undefined, [], 'test-nim', nimService);
+    const result = getNIMDeploymentStatus(nimService, undefined, []);
 
     expect(result.state).toBe(ModelDeploymentState.LOADING);
     expect(result.message).toBe('Waiting for NIM Operator to provision InferenceService');
     expect(result.stoppedStates).toBeUndefined();
-  });
-
-  it('should return LOADING when InferenceService is undefined and nimService is not provided', () => {
-    const result = getNIMDeploymentStatus(undefined, [], 'test-nim');
-
-    expect(result.state).toBe(ModelDeploymentState.LOADING);
-    expect(result.message).toBe('Waiting for NIM Operator to provision InferenceService');
   });
 
   it('should return FAILED_TO_LOAD when InferenceService is undefined and NIMService has a failed condition', () => {
@@ -49,7 +43,7 @@ describe('getNIMDeploymentStatus', () => {
       },
     });
 
-    const result = getNIMDeploymentStatus(undefined, [], 'test-nim', nimService);
+    const result = getNIMDeploymentStatus(nimService, undefined, []);
 
     expect(result.state).toBe(ModelDeploymentState.FAILED_TO_LOAD);
     expect(result.message).toContain('must be a relative path');
@@ -69,7 +63,7 @@ describe('getNIMDeploymentStatus', () => {
       },
     });
 
-    const result = getNIMDeploymentStatus(undefined, [], 'test-nim', nimService);
+    const result = getNIMDeploymentStatus(nimService, undefined, []);
 
     expect(result.state).toBe(ModelDeploymentState.LOADING);
     expect(result.message).toBe('Waiting for NIM Operator to provision InferenceService');
@@ -88,19 +82,20 @@ describe('getNIMDeploymentStatus', () => {
       },
     });
 
-    const result = getNIMDeploymentStatus(undefined, [], 'test-nim', nimService);
+    const result = getNIMDeploymentStatus(nimService, undefined, []);
 
     expect(result.state).toBe(ModelDeploymentState.LOADING);
     expect(result.message).toBe('Waiting for NIM Operator to provision InferenceService');
   });
 
   it('should derive status from InferenceService when it exists', () => {
+    const nimService = mockNIMService();
     const is = mockInferenceServiceK8sResource({
       name: 'test-nim',
       namespace: 'test-project',
     });
 
-    const result = getNIMDeploymentStatus(is, [], 'test-nim');
+    const result = getNIMDeploymentStatus(nimService, is, []);
 
     expect(result.state).toBeDefined();
     expect(typeof result.state).toBe('string');
@@ -125,12 +120,13 @@ describe('getNIMDeploymentStatus', () => {
       },
     });
 
-    const result = getNIMDeploymentStatus(is, [], 'test-nim', nimService);
+    const result = getNIMDeploymentStatus(nimService, is, []);
 
     expect(result.state).not.toBe(ModelDeploymentState.FAILED_TO_LOAD);
   });
 
   it('should match pod by app.kubernetes.io/name label', () => {
+    const nimService = mockNIMService();
     const is = mockInferenceServiceK8sResource({
       name: 'test-nim',
       namespace: 'test-project',
@@ -150,12 +146,13 @@ describe('getNIMDeploymentStatus', () => {
       labels: { 'app.kubernetes.io/name': 'other-service' },
     });
 
-    const result = getNIMDeploymentStatus(is, [unmatchedPod, matchingPod], 'test-nim');
+    const result = getNIMDeploymentStatus(nimService, is, [unmatchedPod, matchingPod]);
 
     expect(result.state).toBeDefined();
   });
 
   it('should prefer Running pod over Pending during re-rollout', () => {
+    const nimService = mockNIMService();
     const is = mockInferenceServiceK8sResource({
       name: 'test-nim',
       namespace: 'test-project',
@@ -176,18 +173,19 @@ describe('getNIMDeploymentStatus', () => {
       labels: { 'app.kubernetes.io/name': 'test-nim' },
     });
 
-    const result = getNIMDeploymentStatus(is, [pendingPod, runningPod], 'test-nim');
+    const result = getNIMDeploymentStatus(nimService, is, [pendingPod, runningPod]);
 
     expect(result.state).not.toBe(ModelDeploymentState.FAILED_TO_LOAD);
   });
 
   it('should handle empty pods array', () => {
+    const nimService = mockNIMService();
     const is = mockInferenceServiceK8sResource({
       name: 'test-nim',
       namespace: 'test-project',
     });
 
-    const result = getNIMDeploymentStatus(is, [], 'test-nim');
+    const result = getNIMDeploymentStatus(nimService, is, []);
 
     expect(result.state).toBeDefined();
     expect(result).toHaveProperty('message');
