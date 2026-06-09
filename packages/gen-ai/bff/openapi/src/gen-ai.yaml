@@ -1810,6 +1810,107 @@ paths:
         The output array preserves LlamaStack's structure but filters out unnecessary metadata for optimal performance.
         MCP tools support multiple tools per request with individual authentication tokens provided in each tool's headers.
 
+  /gen-ai/api/v1/lsd/responses/passthrough:
+    summary: Forward pre-built OGX API request bodies as-is
+    description: >-
+      Accepts a pre-built OGX API responses template as the request body and forwards it
+      to OGX without transformation. Designed for consumers (like AutoRAG) that already
+      construct the full OGX API request format.
+
+      The OGX connection is established via a Kubernetes secret specified by the secretName
+      query parameter. The secret must contain OGX_CLIENT_BASE_URL and optionally OGX_CLIENT_API_KEY.
+
+      The endpoint always forces streaming mode (stream=true) regardless of the value in the
+      request body. Server-side storage (store=true) is rejected with a 400 error.
+    post:
+      tags:
+        - Responses
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: secretName
+          in: query
+          description: >-
+            Name of the Kubernetes Secret containing OGX connection credentials.
+            The secret must have a key OGX_CLIENT_BASE_URL with the service endpoint URL.
+            OGX_CLIENT_API_KEY is optional (empty string is valid for unauthenticated OGX).
+          required: true
+          schema:
+            type: string
+            example: 'my-ogx-secret'
+      requestBody:
+        required: true
+        description: >-
+          Opaque OGX API request body forwarded as-is to the upstream OGX service.
+          The BFF does not validate or transform this payload beyond enforcing
+          stream=true and rejecting store=true. Maximum body size is 1 MB.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              description: >-
+                Arbitrary JSON object matching the OGX Responses API format.
+                The exact shape depends on the upstream OGX API version.
+            example:
+              model: 'llama-3-2-3b-instruct'
+              input: 'What is machine learning?'
+              instructions: 'Answer concisely.'
+              stream: true
+      responses:
+        '200':
+          $ref: '#/components/responses/PassthroughStreamingResponse'
+        '400':
+          description: >-
+            Bad request — invalid JSON body, store=true is not allowed, missing
+            secretName, or invalid OGX_CLIENT_BASE_URL in the referenced secret.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                store_not_supported:
+                  summary: Server-side storage rejected
+                  value:
+                    error:
+                      code: '400'
+                      message: 'server-side storage is not supported for passthrough requests'
+                invalid_secret_url:
+                  summary: Invalid URL in secret
+                  value:
+                    error:
+                      code: '400'
+                      message: 'invalid OGX_CLIENT_BASE_URL in secret "my-secret": invalid URL scheme "ftp": only http and https are allowed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied — user cannot read the specified secret in this namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Secret not found in the specified namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '501':
+          description: Streaming not supported by the HTTP client
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'Streaming not supported by client'
+      operationId: passthroughResponse
+      summary: Passthrough AI Response (Streaming)
+      description: >-
+        Forwards a pre-built OGX API request body to the upstream OGX service and
+        streams the response back as SSE events. Always forces streaming mode.
+
   # =============================================================================
   # MODEL CONTEXT PROTOCOL (MCP) ENDPOINTS
   # =============================================================================
@@ -2049,6 +2150,101 @@ paths:
                         config_map_name: 'gen-ai-aa-mcp-servers-e'
                         namespace: 'mcp-servers'
                         reason: 'ConfigMap does not exist'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # =============================================================================
+  # AGENT PROFILES ENDPOINTS
+  # =============================================================================
+
+  /gen-ai/api/v1/agent-profiles:
+    post:
+      tags:
+        - AgentProfiles
+      operationId: createAgentProfile
+      summary: Create Agent Profile
+      description: >-
+        Creates a new agent configuration profile stored as a Kubernetes ConfigMap.
+        The server auto-generates a UUID for the profile identifier (metadata.name).
+        Users provide only the spec containing displayName (required) and configuration fields.
+        ConfigMap is created with naming pattern: agent-profile-{uuid}
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      requestBody:
+        required: true
+        description: Agent profile specification (UUID is auto-generated by server)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentProfileCreateRequest'
+            example:
+              spec:
+                displayName: "Customer Support Agent"
+                description: "Professional customer support agent with RAG and guardrails"
+                model:
+                  id: "llama-3-70b"
+                  uri: "https://api.example.com/v1/models"
+                  sourceType: "custom_endpoint"
+                temperature: 0.7
+                stream: true
+                maxOutputTokens: 2048
+      responses:
+        '201':
+          description: Agent profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentProfileCreateResponseEnvelope'
+              example:
+                data:
+                  name: "agent-profile-550e8400-e29b-41d4-a716-446655440000"
+                  profileId: "550e8400-e29b-41d4-a716-446655440000"
+                  displayName: "Customer Support Agent"
+                  namespace: "my-namespace"
+                  resourceVersion: "12345"
+        '400':
+          description: Invalid request or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                missing_display_name:
+                  summary: Missing Required Field
+                  value:
+                    error:
+                      code: "invalid_request"
+                      message: "profile validation failed: spec.displayName is required"
+                invalid_temperature:
+                  summary: Invalid Temperature Range
+                  value:
+                    error:
+                      code: "invalid_request"
+                      message: "profile validation failed: spec.temperature must be between 0.0 and 2.0, got 3.0"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to create ConfigMap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: "403"
+                  message: "insufficient permissions to create agent profile in this namespace"
+        '409':
+          description: Agent profile already exists (UUID collision - extremely rare)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: "already_exists"
+                  message: "agent profile 550e8400-e29b-41d4-a716-446655440000 already exists"
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -4490,6 +4686,315 @@ components:
           nullable: true
           description: Annotations applied to the ConfigMap
 
+    # =============================================================================
+    # AGENT PROFILES SCHEMAS
+    # =============================================================================
+
+    AgentProfileCreateRequest:
+      type: object
+      required:
+        - spec
+      properties:
+        spec:
+          $ref: '#/components/schemas/AgentProfileSpec'
+      description: >-
+        Request to create a new agent profile. User provides only the spec;
+        the server auto-generates a UUID for metadata.name and creates a ConfigMap
+        with naming pattern: agent-profile-{uuid}
+
+    AgentProfileCreateResponse:
+      type: object
+      required:
+        - name
+        - profileId
+        - displayName
+        - namespace
+        - resourceVersion
+      properties:
+        name:
+          type: string
+          example: 'agent-profile-550e8400-e29b-41d4-a716-446655440000'
+          description: Full ConfigMap name with prefix
+        profileId:
+          type: string
+          format: uuid
+          example: '550e8400-e29b-41d4-a716-446655440000'
+          description: The UUID (metadata.name) for this profile
+        displayName:
+          type: string
+          example: 'Customer Support Agent'
+          description: User-friendly name from spec.displayName
+        namespace:
+          type: string
+          example: 'my-namespace'
+          description: Kubernetes namespace where the ConfigMap was created
+        resourceVersion:
+          type: string
+          example: '12345'
+          description: Kubernetes resource version for optimistic concurrency
+
+    AgentProfileCreateResponseEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentProfileCreateResponse'
+
+    AgentProfileSpec:
+      type: object
+      required:
+        - displayName
+        - model
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: 'Customer Support Agent'
+          description: User-friendly name for the agent profile (required)
+        description:
+          type: string
+          maxLength: 500
+          example: 'Professional customer support agent with RAG and guardrails'
+          description: Optional description of the agent's purpose
+        model:
+          $ref: '#/components/schemas/ModelReference'
+        prompt:
+          $ref: '#/components/schemas/SystemPromptReference'
+        temperature:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 2.0
+          example: 0.7
+          description: Sampling temperature (0.0-2.0)
+        stream:
+          type: boolean
+          example: true
+          description: Whether to stream responses
+        maxOutputTokens:
+          type: integer
+          minimum: 1
+          maximum: 32000
+          example: 2048
+          description: Maximum output tokens
+        vectorStores:
+          $ref: '#/components/schemas/VectorStoresConfig'
+        mcpServers:
+          type: array
+          items:
+            $ref: '#/components/schemas/MCPServerReference'
+          description: MCP server configurations for tool use
+        guardrails:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuardrailReference'
+          description: Guardrail configurations
+
+    ModelReference:
+      type: object
+      required:
+        - id
+        - uri
+      properties:
+        id:
+          type: string
+          example: 'llama-3-70b'
+          description: Model identifier
+        uri:
+          type: string
+          format: uri
+          example: 'https://api.example.com/v1/models'
+          description: Model endpoint URI
+        sourceType:
+          type: string
+          example: 'custom_endpoint'
+          description: Source type (e.g., custom_endpoint, maas)
+        authorization:
+          $ref: '#/components/schemas/ModelAuthorization'
+
+    ModelAuthorization:
+      type: object
+      properties:
+        credentialsRef:
+          $ref: '#/components/schemas/CredentialsRef'
+        maasSubscription:
+          type: string
+          example: 'my-subscription'
+          description: MaaS subscription identifier
+
+    CredentialsRef:
+      type: object
+      required:
+        - kind
+        - name
+        - key
+      properties:
+        kind:
+          type: string
+          enum: ['Secret']
+          example: 'Secret'
+        name:
+          type: string
+          example: 'api-key-secret'
+          description: Name of the Secret
+        key:
+          type: string
+          example: 'apiKey'
+          description: Key within the Secret
+
+    SystemPromptReference:
+      type: object
+      required:
+        - name
+        - source
+      properties:
+        name:
+          type: string
+          example: 'customer-support-prompt'
+          description: Prompt name
+        source:
+          type: string
+          example: 'mlflow'
+          description: Prompt source (e.g., mlflow)
+        namespace:
+          type: string
+          example: 'my-namespace'
+          description: Optional namespace for the prompt
+        version:
+          type: string
+          example: 'v1.0'
+          description: Optional version
+        variables:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/PromptVariable'
+          description: Template variables
+
+    PromptVariable:
+      type: object
+      required:
+        - text
+        - type
+      properties:
+        text:
+          type: string
+          example: 'company_name'
+          description: Variable text
+        type:
+          type: string
+          example: 'string'
+          description: Variable type
+
+    VectorStoresConfig:
+      type: object
+      required:
+        - stores
+      properties:
+        stores:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/VectorStoreRef'
+          description: List of vector stores
+        maxNumResults:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 5
+          description: Maximum number of results per query
+
+    VectorStoreRef:
+      description: >-
+        Reference to a vector store. Exactly one of storeRef or id must be set.
+        storeRef points to a ConfigMap key, id is a direct vector store ID.
+      oneOf:
+        - type: object
+          required:
+            - storeRef
+          properties:
+            storeRef:
+              $ref: '#/components/schemas/ConfigMapRef'
+          description: Vector store reference via ConfigMap
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              type: string
+              example: 'vs_001'
+              description: Direct vector store ID
+
+    ConfigMapRef:
+      type: object
+      required:
+        - kind
+        - name
+        - key
+      properties:
+        kind:
+          type: string
+          enum: ['ConfigMap']
+          example: 'ConfigMap'
+        name:
+          type: string
+          example: 'gen-ai-aa-vector-stores'
+          description: ConfigMap name
+        key:
+          type: string
+          example: 'vs_001'
+          description: Key within ConfigMap
+
+    MCPServerReference:
+      type: object
+      required:
+        - serverRef
+      properties:
+        serverRef:
+          $ref: '#/components/schemas/MCPServerRef'
+        credentialsRef:
+          $ref: '#/components/schemas/CredentialsRef'
+        allowedTools:
+          type: array
+          items:
+            type: string
+          example: ['search', 'retrieve']
+          description: Optional list of allowed tool names
+
+    MCPServerRef:
+      type: object
+      required:
+        - kind
+        - name
+      properties:
+        kind:
+          type: string
+          enum: ['ConfigMap', 'MCPServer']
+          example: 'ConfigMap'
+          description: ConfigMap or MCPServer CRD
+        name:
+          type: string
+          example: 'mcp-servers'
+          description: ConfigMap or MCPServer name
+        key:
+          type: string
+          example: 'server-001'
+          description: Required for ConfigMap, unused for MCPServer
+
+    GuardrailReference:
+      type: object
+      required:
+        - provider
+        - guardrailRef
+      properties:
+        provider:
+          type: string
+          example: 'guardrails-ai'
+          description: Guardrail provider
+        guardrailRef:
+          $ref: '#/components/schemas/ConfigMapRef'
+
   responses:
     HealthCheckResponse:
       description: BFF service health status
@@ -5269,6 +5774,43 @@ components:
 
             data: {"type":"response.metrics","metrics":{"latency_ms":2341,"time_to_first_token_ms":892,"usage":{"input_tokens":150,"output_tokens":500,"total_tokens":650}}}
 
+    PassthroughStreamingResponse:
+      description: >-
+        Server-Sent Events (SSE) stream for passthrough AI response generation.
+        Uses the same event types as the regular streaming response, with the addition
+        of error events for upstream response.failed conditions.
+
+        Unlike the regular /lsd/responses endpoint, passthrough does not transform the
+        request body — it forwards it as-is to OGX. The response stream uses the same
+        event pipeline (filter + transform) and appends a response.metrics event after
+        stream completion.
+      content:
+        text/event-stream:
+          schema:
+            type: string
+            format: binary
+            description: >-
+              SSE stream with the following event types:
+              - response.created: Initial response metadata (id, model, status, created_at)
+              - response.content_part.added: New content part started
+              - response.output_text.delta: Individual token with delta text
+              - response.content_part.done: Content part completion
+              - response.completed: Final response with complete output array and citations
+              - response.metrics: Timing and usage data (latency_ms, time_to_first_token_ms, usage)
+              - Error event: Sent when OGX returns response.failed — contains an error object
+                with code and message fields, then the stream terminates immediately.
+              All non-error events use the same structure as the regular StreamingResponse.
+          example: |
+            data: {"delta":"","sequence_number":0,"type":"response.created","item_id":"","output_index":0,"response":{"id":"resp-abc123","model":"llama-3-2-3b-instruct","status":"in_progress","created_at":1758128692}}
+
+            data: {"delta":"Machine","sequence_number":1,"type":"response.output_text.delta","item_id":"msg_def456","output_index":0}
+
+            data: {"delta":" learning","sequence_number":2,"type":"response.output_text.delta","item_id":"msg_def456","output_index":0}
+
+            data: {"delta":"","sequence_number":0,"type":"response.completed","item_id":"","output_index":0,"response":{"id":"resp-abc123","model":"llama-3-2-3b-instruct","status":"completed","created_at":1758128692,"output":[{"id":"msg_def456","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Machine learning is a subset of artificial intelligence."}]}]}}
+
+            data: {"type":"response.metrics","metrics":{"latency_ms":1200,"time_to_first_token_ms":450,"usage":{"input_tokens":25,"output_tokens":40,"total_tokens":65}}}
+
     BadRequest:
       description: Bad Request - Invalid parameters, missing required fields, or malformed MCP Bearer token
       content:
@@ -5353,6 +5895,14 @@ tags:
     description: User identity and authentication operations
   - name: CodeExporter
     description: Code generation for Llama Stack integration
+
+  # =============================================================================
+  # AGENT PROFILE CONFIGURATION OPERATIONS
+  # =============================================================================
+  - name: AgentProfiles
+    description: |
+      Agent profile configuration management — create, retrieve, update, and delete
+      agent configurations stored as ConfigMaps with naming pattern: agent-profile-{uuid}
 
   # =============================================================================
   # LLAMASTACK DISTRIBUTION (LSD) OPERATIONS

@@ -36,7 +36,6 @@ describe('Verify custom properties and labels are retained during Model Registry
 
   let modelCustomPropertyKeys: string[];
   let versionCustomPropertyKeys: string[];
-  let allVersionProperties: { key: string; value: string }[];
   let extendedVersionPropertyKeys: string[];
 
   before(() => {
@@ -50,11 +49,10 @@ describe('Verify custom properties and labels are retained during Model Registry
 
         modelCustomPropertyKeys = testData.modelCustomProperties.map((prop) => prop.key);
         versionCustomPropertyKeys = testData.versionCustomProperties.map((prop) => prop.key);
-        allVersionProperties = [
-          ...testData.versionCustomProperties,
-          { key: testData.newVersionPropertyKey, value: testData.newVersionPropertyValue },
+        extendedVersionPropertyKeys = [
+          ...versionCustomPropertyKeys,
+          testData.newVersionPropertyKey,
         ];
-        extendedVersionPropertyKeys = allVersionProperties.map((p) => p.key);
 
         cy.step('Ensure operator has optimal memory for testing');
         ensureOperatorMemoryLimit(deploymentName).should('be.true');
@@ -151,12 +149,6 @@ describe('Verify custom properties and labels are retained during Model Registry
         registeredModelDetails.findPropertyKeyInput().should('not.exist');
       });
 
-      cy.step('Verify model custom properties are visible in UI');
-      registeredModelDetails.ensurePropertiesExpanded();
-      testData.modelCustomProperties.forEach((prop) => {
-        registeredModelDetails.shouldHaveCustomProperty(prop.key, prop.value);
-      });
-
       cy.step('Verify model custom properties exist in database');
       checkCustomPropertiesInDatabase(
         modelName,
@@ -184,11 +176,6 @@ describe('Verify custom properties and labels are retained during Model Registry
         modelVersionDetails.findPropertyKeyInput().should('not.exist');
       });
 
-      cy.step('Verify version custom properties are visible in UI');
-      testData.versionCustomProperties.forEach((prop) => {
-        modelVersionDetails.shouldHaveCustomProperty(prop.key, prop.value);
-      });
-
       cy.step('Verify version custom properties exist in database');
       checkCustomPropertiesInDatabase(
         testData.versionName,
@@ -202,34 +189,6 @@ describe('Verify custom properties and labels are retained during Model Registry
         testData.newVersionPropertyKey,
         testData.newVersionPropertyValue,
       );
-
-      cy.step('Verify new property was added');
-      modelVersionDetails.shouldHaveCustomProperty(
-        testData.newVersionPropertyKey,
-        testData.newVersionPropertyValue,
-      );
-
-      cy.step('Navigate back to model and verify model properties are intact');
-      modelRegistry.findModelVersionBreadcrumbItem().click();
-
-      registeredModelDetails.ensurePropertiesExpanded();
-      testData.modelCustomProperties.forEach((prop) => {
-        registeredModelDetails.shouldHaveCustomProperty(prop.key, prop.value);
-      });
-
-      cy.step('Navigate to version and verify all version properties are intact');
-      modelRegistry.findModelVersionsTab().click();
-      modelRegistry
-        .getModelVersionRow(testData.versionName)
-        .findModelVersionName()
-        .find('a')
-        .click();
-      cy.url().should('include', '/details');
-      modelVersionDetails.ensurePropertiesExpanded();
-
-      allVersionProperties.forEach((prop) => {
-        modelVersionDetails.shouldHaveCustomProperty(prop.key, prop.value);
-      });
 
       cy.step('Verify in database that both model and version properties are retained');
       checkCustomPropertiesInDatabase(

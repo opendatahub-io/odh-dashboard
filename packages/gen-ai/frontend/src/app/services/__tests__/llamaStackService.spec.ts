@@ -5,6 +5,7 @@ import {
   createVectorStore,
   uploadSource,
   createResponse,
+  createPassthroughResponse,
   exportCode,
   getLSDStatus,
   installLSD,
@@ -14,6 +15,8 @@ import {
   getMCPServers,
   getMCPServerStatus,
   getMCPServerTools,
+  looksLikeRawToolCall,
+  RAW_TOOL_CALL_WARNING,
   uploadVisionFile,
 } from '~/app/services/llamaStackService';
 import { URL_PREFIX } from '~/app/utilities';
@@ -1405,6 +1408,281 @@ describe('llamaStackService', () => {
         expect.objectContaining({ namespace: TEST_NAMESPACE }),
         {},
       );
+    });
+  });
+
+  describe('createPassthroughResponse', () => {
+    const mockBody = {
+      model: 'test-model',
+      stream: true,
+      store: false,
+      input: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text: 'Hello' }] }],
+    };
+
+    it('should construct the correct URL with namespace and secretName', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'test-ns',
+        'my-secret',
+        mockBody,
+        jest.fn(),
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/gen-ai/api/v1/lsd/responses/passthrough?namespace=test-ns&secretName=my-secret',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('should append /api/v1 if bffBasePath does not end with it', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await createPassthroughResponse('/gen-ai', 'test-ns', 'my-secret', mockBody, jest.fn());
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/gen-ai/api/v1/lsd/responses/passthrough?namespace=test-ns&secretName=my-secret',
+        expect.anything(),
+      );
+    });
+
+    it('should stream text delta events and resolve with content', async () => {
+      const onStreamData = jest.fn();
+      const mockReader = {
+        read: jest
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              'data: {"delta": "Hello", "type": "response.output_text.delta"}\n',
+            ),
+          })
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              'data: {"delta": " World", "type": "response.output_text.delta"}\n',
+            ),
+          })
+          .mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      const result = await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'test-ns',
+        'my-secret',
+        mockBody,
+        onStreamData,
+      );
+
+      expect(onStreamData).toHaveBeenCalledWith('Hello');
+      expect(onStreamData).toHaveBeenCalledWith(' World');
+      expect(result.content).toBe('Hello World');
+      expect(result.id).toBe('passthrough-response');
+    });
+
+    it('should reassemble a JSON event split across two SSE chunks', async () => {
+      const onStreamData = jest.fn();
+      const mockReader = {
+        read: jest
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode('data: {"delta": "Hello'),
+          })
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(' World", "type":"response.output_text.delta"}\n'),
+          })
+          .mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      const result = await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'test-ns',
+        'my-secret',
+        mockBody,
+        onStreamData,
+      );
+
+      expect(onStreamData).toHaveBeenCalledWith('Hello World');
+      expect(result.content).toBe('Hello World');
+    });
+
+    it('should throw differentiated error for 502/503 (OGX unreachable)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        text: () => Promise.resolve(''),
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('OGX instance is not responding');
+    });
+
+    it('should throw differentiated error for 404 (secret not found)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: () => Promise.resolve(''),
+      });
+
+      await expect(
+        createPassthroughResponse(
+          '/gen-ai/api/v1',
+          'test-ns',
+          'missing-secret',
+          mockBody,
+          jest.fn(),
+        ),
+      ).rejects.toThrow("connection secret 'missing-secret' was not found in namespace 'test-ns'");
+    });
+
+    it('should throw differentiated error for 403 (RBAC denied)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        text: () => Promise.resolve(''),
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('do not have permission');
+    });
+
+    it('should reject on streaming error event', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(
+            'data: {"error": {"code": "server_error", "message": "tool_choice requires --tool-call-parser"}}\n',
+          ),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockResolvedValue(undefined),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('tool_choice requires --tool-call-parser');
+    });
+
+    it('should reject with "Response stopped by user" on AbortError', async () => {
+      const abortError = new Error('The user aborted a request.');
+      abortError.name = 'AbortError';
+      mockFetch.mockRejectedValueOnce(abortError);
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('Response stopped by user');
+    });
+
+    it('should include metrics from response.metrics event', async () => {
+      const mockReader = {
+        read: jest
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              'data: {"type": "response.metrics", "metrics": {"latency_ms": 500, "time_to_first_token_ms": 100}}\n',
+            ),
+          })
+          .mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      const result = await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+      );
+
+      expect(result.metrics).toEqual({ latency_ms: 500, time_to_first_token_ms: 100 });
+    });
+  });
+
+  describe('looksLikeRawToolCall', () => {
+    it('should detect a raw file_search tool call', () => {
+      const raw = '{"name": "file_search", "parameters": {"query": "IBM HashiCorp"}}';
+      expect(looksLikeRawToolCall(raw)).toBe(true);
+    });
+
+    it('should detect with extra whitespace', () => {
+      const raw = '  {"name": "file_search", "parameters": {"query": "test"}}  ';
+      expect(looksLikeRawToolCall(raw)).toBe(true);
+    });
+
+    it('should return false for normal text', () => {
+      expect(looksLikeRawToolCall('Hello, how can I help you?')).toBe(false);
+    });
+
+    it('should return false for empty string', () => {
+      expect(looksLikeRawToolCall('')).toBe(false);
+    });
+
+    it('should return false for JSON without name/parameters', () => {
+      expect(looksLikeRawToolCall('{"key": "value"}')).toBe(false);
+    });
+
+    it('should return false for JSON with only name', () => {
+      expect(looksLikeRawToolCall('{"name": "file_search"}')).toBe(false);
+    });
+
+    it('should return false for invalid JSON', () => {
+      expect(looksLikeRawToolCall('{name: file_search}')).toBe(false);
+    });
+
+    it('should return false for text containing JSON-like content', () => {
+      expect(
+        looksLikeRawToolCall('Here is some info: {"name": "file_search", "parameters": {}}'),
+      ).toBe(false);
+    });
+  });
+
+  describe('RAW_TOOL_CALL_WARNING', () => {
+    it('should be a non-empty string', () => {
+      expect(RAW_TOOL_CALL_WARNING).toBeTruthy();
+      expect(typeof RAW_TOOL_CALL_WARNING).toBe('string');
     });
   });
 
