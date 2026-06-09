@@ -300,7 +300,9 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(first.ModelRefs).NotTo(BeEmpty())
 			Expect(first.ModelRefs[0].DisplayName).To(Equal("Granite 3 8B Instruct"))
 			Expect(first.ModelRefs[0].Description).To(Equal("Granite 3 8B Instruct is a large language model that is used for advanced tasks."))
-			Expect(first.KeyCount).To(BeNumerically(">", 0))
+			// The fake server returns all 75 keys regardless of the per-subscription filter,
+			// so the BFF clamps the count to subscriptionKeyCountCap.
+			Expect(first.KeyCount).To(Equal(int32(subscriptionKeyCountCap)))
 		})
 
 		It("returns 400 when no identity is provided", func() {
