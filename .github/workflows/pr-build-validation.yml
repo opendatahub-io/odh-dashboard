@@ -617,6 +617,24 @@ jobs:
 
           echo "✅ Created mock OpenShift secrets and configmaps"
 
+      - name: Create mock OpenShift ConfigMaps
+        run: |
+          set -euo pipefail
+          # Dashboard pods expect OpenShift-specific ConfigMaps for volume mounts
+          # Create empty ConfigMaps to satisfy those requirements in Kind
+
+          echo "Creating mock openshift-service-ca.crt ConfigMap..."
+          kubectl create configmap openshift-service-ca.crt \
+            --from-literal=service-ca.crt="" \
+            -n opendatahub
+
+          echo "Creating mock kube-root-ca.crt ConfigMap..."
+          kubectl create configmap kube-root-ca.crt \
+            --from-literal=ca.crt="" \
+            -n opendatahub
+
+          echo "✅ Mock OpenShift ConfigMaps created"
+
       - name: Apply manifests
         run: |
           set -euo pipefail
