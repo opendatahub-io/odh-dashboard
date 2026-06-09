@@ -166,7 +166,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	var agentSourceFactory agents.ClientFactory
 	if cfg.MockAgentClient {
-		logger.Info("Using mock agent data client")
+		logger.Warn("MOCK_AGENT_CLIENT is enabled (local development only): agent routes serve fabricated demo data without RBAC checks; do not enable in staging or production")
 		agentSourceFactory = &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
 	} else {
 		logger.Info("Using Kubernetes agent data client")

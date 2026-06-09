@@ -26,6 +26,9 @@ func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (Kube
 		k8sFactory := NewTokenClientFactory(logger, cfg)
 		return k8sFactory, nil
 
+	case config.AuthMethodDisabled:
+		return nil, nil
+
 	default:
 		return nil, fmt.Errorf("invalid auth method: %q", cfg.AuthMethod)
 	}

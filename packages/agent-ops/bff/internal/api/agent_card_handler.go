@@ -10,10 +10,10 @@ import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
 )
 
-type AgentRuntimeDetailEnvelope Envelope[*models.AgentRuntimeDetail, None]
+type AgentCardEnvelope Envelope[*models.AgentCard, None]
 
-// GetAgentRuntimeDetailHandler handles GET /api/v1/agents/runtimes/:ns/:name.
-func (app *App) GetAgentRuntimeDetailHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// GetAgentCardHandler handles GET /api/v1/agents/cards/:ns/:name.
+func (app *App) GetAgentCardHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName("ns")
 	name := ps.ByName("name")
 	if err := validateAgentPathParams(namespace, name); err != nil {
@@ -22,11 +22,11 @@ func (app *App) GetAgentRuntimeDetailHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	logger := helper.GetContextLoggerFromReq(r)
-	logger.Info("Fetching agent runtime detail", slog.String("namespace", namespace), slog.String("name", name))
+	logger.Info("Fetching agent card", slog.String("namespace", namespace), slog.String("name", name))
 
-	result, err := app.repositories.AgentRuntimes.GetAgentRuntimeDetail(r.Context(), namespace, name)
+	result, err := app.repositories.AgentRuntimes.GetAgentCard(r.Context(), namespace, name)
 	if err != nil {
-		logger.Error("Failed to get agent runtime detail",
+		logger.Error("Failed to get agent card",
 			slog.String("namespace", namespace),
 			slog.String("name", name),
 			slog.Any("error", err))
@@ -34,7 +34,7 @@ func (app *App) GetAgentRuntimeDetailHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if result == nil {
-		err = fmt.Errorf("agent runtime detail repository returned nil result without error for namespace=%q name=%q", namespace, name)
+		err = fmt.Errorf("agent card repository returned nil result without error for namespace=%q name=%q", namespace, name)
 		logger.Error("Invalid repository contract",
 			slog.String("namespace", namespace),
 			slog.String("name", name),
@@ -43,7 +43,13 @@ func (app *App) GetAgentRuntimeDetailHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	envelope := AgentRuntimeDetailEnvelope{
+	version := result.Version
+	logger.Info("Agent card retrieved successfully",
+		slog.String("namespace", namespace),
+		slog.String("name", name),
+		slog.String("version", version))
+
+	envelope := AgentCardEnvelope{
 		Data: result,
 	}
 
