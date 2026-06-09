@@ -35,6 +35,7 @@ export interface ChatbotConfiguration {
   selectedSubscription: string;
   activePrompt: MLflowPromptVersion | null;
   dirtyPrompt: MLflowPromptVersion | null;
+  variableValues: Record<string, string>;
 }
 
 /**
@@ -59,6 +60,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   selectedSubscription: '',
   activePrompt: null,
   dirtyPrompt: null,
+  variableValues: {},
 };
 
 /**
@@ -113,6 +115,7 @@ export interface ChatbotConfigStoreActions {
   updateDirtyPrompt: (id: string, prompt: MLflowPromptVersion | null) => void;
   resetDirtyPrompt: (id: string) => void;
   clearPromptState: (id: string, newDirtyPrompt: MLflowPromptVersion | null) => void;
+  updateVariableValues: (id: string, values: Record<string, string>) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
