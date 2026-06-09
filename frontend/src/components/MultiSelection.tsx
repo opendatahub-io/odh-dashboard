@@ -61,6 +61,8 @@ type MultiSelectionProps = {
   createOptionMessage?: string | ((newValue: string) => string);
   filterFunction?: (filterText: string, options: SelectionOptions[]) => SelectionOptions[];
   popperProps?: SelectPopperProps;
+  /** Flag to show checkboxes next to each option */
+  hasCheckbox?: boolean;
 };
 
 const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
@@ -87,6 +89,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   createOptionMessage = defaultCreateOptionMessage,
   filterFunction = defaultFilterFunction,
   popperProps,
+  hasCheckbox = false,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>('');
@@ -359,7 +362,8 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
               <SelectList isAriaMultiselectable>
                 {g.values.map((option) => (
                   <SelectOption
-                    key={option.name}
+                    key={option.id}
+                    hasCheckbox={hasCheckbox}
                     isFocused={focusedItemIndex === option.index + (isCreateOptionOnTop ? 1 : 0)}
                     data-testid={`select-multi-typeahead-${option.name.replace(' ', '-')}`}
                     value={option.id}
@@ -384,7 +388,8 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
             ) : null}
             {selectOptions.map((option) => (
               <SelectOption
-                key={option.name}
+                key={option.id}
+                hasCheckbox={hasCheckbox}
                 isFocused={focusedItemIndex === option.index + (isCreateOptionOnTop ? 1 : 0)}
                 data-testid={`select-multi-typeahead-${option.name.replace(' ', '-')}`}
                 value={option.id}

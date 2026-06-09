@@ -1,0 +1,187 @@
+import * as React from 'react';
+import { Content, Form, FormGroup, getUniqueId } from '@patternfly/react-core';
+import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
+import ContentModal from '#~/components/modals/ContentModal';
+import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
+import { ALL_VERBS_WILDCARD } from './verbCategories';
+import VerbsTreeSelect from './VerbsTreeSelect';
+import useApiResources, { DiscoveredResource } from './useApiResources';
+import type { RuleEntry } from './types';
+
+type AddRuleModalProps = {
+  existingRule?: RuleEntry;
+  onSave: (rule: RuleEntry) => void;
+  onClose: () => void;
+};
+
+const CORE_GROUP_ID = 'core';
+
+const toApiGroupOptions = (apiGroups: string[]): SelectionOptions[] =>
+  apiGroups.map((g) => ({ id: g || CORE_GROUP_ID, name: g || CORE_GROUP_ID, selected: false }));
+
+const toResourceOptions = (resources: DiscoveredResource[]): SelectionOptions[] =>
+  resources.map((r) => ({
+    id: `${r.apiGroup}/${r.name}`,
+    name: r.name,
+    description: `${r.apiGroup || 'core'} — ${r.kind}`,
+    selected: false,
+  }));
+
+const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClose }) => {
+  const { data: apiResourcesData, loaded: apiResourcesLoaded } = useApiResources();
+
+  const [selectedApiGroups, setSelectedApiGroups] = React.useState<SelectionOptions[]>(() => {
+    if (!existingRule?.apiGroups) {
+      return [];
+    }
+    return existingRule.apiGroups.map((g) => ({
+      id: g || CORE_GROUP_ID,
+      name: g || CORE_GROUP_ID,
+      selected: true,
+    }));
+  });
+
+  const [selectedResources, setSelectedResources] = React.useState<SelectionOptions[]>(() => {
+    if (!existingRule?.resources) {
+      return [];
+    }
+    const apiGroups = existingRule.apiGroups ?? [''];
+    return existingRule.resources.map((r) => ({
+      id: `${apiGroups[0]}/${r}`,
+      name: r,
+      selected: true,
+    }));
+  });
+
+  const [selectedVerbs, setSelectedVerbs] = React.useState<string[]>(
+    () => existingRule?.verbs ?? [],
+  );
+
+  const apiGroupOptions = React.useMemo((): SelectionOptions[] => {
+    const discovered = toApiGroupOptions(apiResourcesData.apiGroups);
+    const existingIds = new Set(discovered.map((o) => o.id));
+    const custom = selectedApiGroups.filter((s) => !existingIds.has(s.id));
+    return [...discovered, ...custom].map((o) => ({
+      ...o,
+      selected: selectedApiGroups.some((s) => s.id === o.id),
+    }));
+  }, [apiResourcesData.apiGroups, selectedApiGroups]);
+
+  const resourceOptions = React.useMemo((): SelectionOptions[] => {
+    const discovered = toResourceOptions(apiResourcesData.resources);
+    const existingIds = new Set(discovered.map((o) => o.id));
+    const custom = selectedResources.filter((s) => !existingIds.has(s.id)).map((s) => ({ ...s }));
+    return [...discovered, ...custom].map((o) => ({
+      ...o,
+      selected: selectedResources.some((s) => s.id === o.id),
+    }));
+  }, [apiResourcesData.resources, selectedResources]);
+
+  const canSave =
+    selectedApiGroups.length > 0 && selectedResources.length > 0 && selectedVerbs.length > 0;
+  const isEdit = !!existingRule;
+
+  const handleSave = React.useCallback(() => {
+    const apiGroups = selectedApiGroups.map((o) =>
+      String(o.id) === CORE_GROUP_ID ? '' : String(o.id),
+    );
+    const resources = selectedResources.map((o) => {
+      const idStr = String(o.id);
+      const slashIdx = idStr.indexOf('/');
+      return slashIdx >= 0 ? idStr.substring(slashIdx + 1) : idStr;
+    });
+
+    const verbs = selectedVerbs.includes(ALL_VERBS_WILDCARD)
+      ? [ALL_VERBS_WILDCARD]
+      : [...selectedVerbs];
+
+    onSave({
+      id: existingRule?.id ?? getUniqueId('rule'),
+      apiGroups,
+      resources,
+      verbs,
+    });
+  }, [selectedApiGroups, selectedResources, selectedVerbs, existingRule, onSave]);
+
+  return (
+    <ContentModal
+      title={isEdit ? 'Edit rule' : 'Add rule'}
+      onClose={onClose}
+      dataTestId="add-rule-modal"
+      buttonActions={[
+        {
+          label: 'Save',
+          onClick: handleSave,
+          variant: 'primary',
+          isDisabled: !canSave,
+          dataTestId: 'modal-submit-button',
+        },
+        {
+          label: 'Cancel',
+          onClick: onClose,
+          variant: 'link',
+          dataTestId: 'modal-cancel-button',
+        },
+      ]}
+      contents={
+        <Form>
+          <FormGroup label="API groups" fieldId="rule-api-groups" isRequired>
+            <Content component="p">
+              Enter one or more API groups for this rule. Use * to apply to all API groups.
+            </Content>
+            <MultiSelection
+              ariaLabel="Enter or select API groups"
+              placeholder="Enter or select API groups"
+              id="rule-api-groups"
+              toggleTestId="rule-api-groups-toggle"
+              value={apiGroupOptions}
+              setValue={(selections) => {
+                setSelectedApiGroups(selections.filter((s) => s.selected));
+              }}
+              isCreatable
+              isScrollable
+              hasCheckbox
+              createOptionMessage={(val) => `Use custom API group "${val}"`}
+              isDisabled={!apiResourcesLoaded}
+            />
+          </FormGroup>
+          <FormGroup
+            label="Resource types"
+            fieldId="rule-resource-types"
+            isRequired
+            labelHelp={
+              <FieldGroupHelpLabelIcon content="Specify the Kubernetes resource types this rule applies to. You can select from discovered resources or type a custom resource name." />
+            }
+          >
+            <Content component="p">
+              Enter one or more resource types for this rule. Use * to apply to all resource types.
+            </Content>
+            <MultiSelection
+              ariaLabel="Enter or select resource types"
+              placeholder="Enter or select resource types"
+              id="rule-resource-types"
+              toggleTestId="rule-resource-types-toggle"
+              value={resourceOptions}
+              setValue={(selections) => {
+                setSelectedResources(selections.filter((s) => s.selected));
+              }}
+              isCreatable
+              isScrollable
+              hasCheckbox
+              createOptionMessage={(val) => `Use custom resource type "${val}"`}
+              isDisabled={!apiResourcesLoaded}
+            />
+          </FormGroup>
+          <FormGroup label="Verbs" fieldId="rule-verbs" isRequired>
+            <VerbsTreeSelect
+              selectedVerbs={selectedVerbs}
+              onSelectedVerbsChange={setSelectedVerbs}
+            />
+          </FormGroup>
+        </Form>
+      }
+    />
+  );
+};
+
+export default AddRuleModal;
