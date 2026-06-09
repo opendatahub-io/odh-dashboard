@@ -6,6 +6,7 @@ import type { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
 import { getRoleLabelTypeForRole, getRoleLabelTypeForRoleRef } from '#~/concepts/permissions/utils';
 import { isDefaultRoleRef } from '#~/pages/projects/projectPermissions/utils';
 import AiExperienceIcon from '#~/images/icons/AiExperienceIcon.ts';
+import RhUiClusterIcon from '#~/images/icons/RhUiClusterIcon';
 
 type RoleLabelProps = {
   roleRef: RoleRef;
@@ -48,6 +49,14 @@ const RoleLabel: React.FC<RoleLabelProps> = ({ roleRef, role, isCompact = false 
         icon={<OpenshiftIcon />}
       >
         OpenShift custom role
+      </Label>,
+    );
+  }
+
+  if (roleRef.kind === 'ClusterRole') {
+    labels.push(
+      <Label key="cluster-role" variant="outline" isCompact={isCompact} icon={<RhUiClusterIcon />}>
+        Cluster role
       </Label>,
     );
   }

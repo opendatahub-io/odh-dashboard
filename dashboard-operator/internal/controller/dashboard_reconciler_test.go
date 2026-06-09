@@ -91,11 +91,12 @@ func TestReconcile_NotFound(t *testing.T) {
 	cli := fake.NewClientBuilder().WithScheme(s).Build()
 
 	r := &ctrlpkg.DashboardReconciler{
-		Client:            cli,
-		Scheme:            s,
-		ManifestsBasePath: t.TempDir(),
-		Platform:          cluster.OpenDataHub,
-		Namespace:         testNamespace,
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
 	}
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
@@ -180,6 +181,7 @@ func TestReconcile(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       v1alpha1.DashboardInstanceName,
 					Generation: tt.generation,
+					Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 				},
 			}
 
@@ -195,11 +197,12 @@ func TestReconcile(t *testing.T) {
 			cli := builder.Build()
 
 			r := &ctrlpkg.DashboardReconciler{
-				Client:            cli,
-				Scheme:            s,
-				ManifestsBasePath: tt.manifestsBase(t),
-				Platform:          cluster.OpenDataHub,
-				Namespace:         testNamespace,
+				Client:                cli,
+				Scheme:                s,
+				ManifestsBasePath:     tt.manifestsBase(t),
+				Platform:              cluster.OpenDataHub,
+				Namespace:             testNamespace,
+				ApplicationsNamespace: testNamespace,
 			}
 
 			result, err := r.Reconcile(context.Background(), ctrl.Request{
@@ -245,6 +248,111 @@ func TestReconcile(t *testing.T) {
 			assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
 		})
 	}
+}
+
+func TestReconcile_Deletion(t *testing.T) {
+	s := testScheme(t)
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+			DeletionTimestamp: &metav1.Time{
+				Time: time.Now(),
+			},
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	updated := &v1alpha1.Dashboard{}
+	err = cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated)
+	if err == nil {
+		assert.Empty(t, updated.Finalizers, "finalizer should be removed after deletion")
+	}
+}
+
+func TestReconcile_DistinctNamespaces(t *testing.T) {
+	s := testScheme(t)
+
+	operatorNS := "operator-ns"
+	appNS := "application-ns"
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Generation: 1,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+	}
+
+	builder := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard).
+		WithStatusSubresource(dashboard).
+		WithObjects(admittedRoute(appNS))
+
+	cli := builder.Build()
+
+	base := t.TempDir()
+	overlay := filepath.Join(base, "odh")
+	require.NoError(t, os.MkdirAll(overlay, 0755))
+
+	kustomization := `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+`
+	configmap := `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config
+data:
+  key: value
+`
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(kustomization), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     base,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             operatorNS,
+		ApplicationsNamespace: appNS,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Zero(t, result.RequeueAfter)
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+	assert.Equal(t, "https://dashboard.apps.example.com", updated.Status.URL)
 }
 
 func boolPtr(b bool) *bool {

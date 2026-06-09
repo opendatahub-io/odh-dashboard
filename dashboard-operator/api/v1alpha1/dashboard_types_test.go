@@ -69,7 +69,7 @@ func TestDashboard_GetSetReleaseStatus(t *testing.T) {
 }
 
 func TestDashboard_Constants(t *testing.T) {
-	assert.Equal(t, "default-dashboard", v1alpha1.DashboardInstanceName)
+	assert.Equal(t, "default", v1alpha1.DashboardInstanceName)
 	assert.Equal(t, "Dashboard", v1alpha1.DashboardKind)
 	assert.Equal(t, "dashboard", v1alpha1.DashboardComponentName)
 }

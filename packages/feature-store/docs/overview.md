@@ -56,13 +56,14 @@ The workbench API endpoint is defined in [`frontend/src/api/featureStore/custom.
 
 ### Backend Proxy Architecture
 
-Located in [`backend/src/routes/api/featurestores/`](../../../backend/src/routes/api/featurestores/), the backend provides three endpoints:
+Located in [`backend/src/routes/api/featurestores/`](../../../backend/src/routes/api/featurestores/), the backend provides four endpoints:
 
 | Endpoint | File | Purpose |
 |----------|------|---------|
 | `GET /api/featurestores/` | `featureStores.ts` | Discovery -- lists all available Feast instances |
 | `GET /api/featurestores/:namespace/:projectName/*` | `featureStores.ts` | Proxy -- forwards requests to the Feast REST API |
 | `GET /api/featurestores/workbench-integration` | `fsworkbenchIntegration.ts` | Returns accessible Feature Stores for the workbench spawner (filtered by user RBAC) |
+| `GET /api/featurestores/projects-with-workbenches` | `connectedWorkbenches.ts` | Merged view of accessible Feast projects, user permissions, and connected workbenches |
 
 **Discovery flow:**
 1. Reads `feast-configs-registry` ConfigMap from the dashboard namespace

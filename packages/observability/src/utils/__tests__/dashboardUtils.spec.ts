@@ -70,7 +70,7 @@ describe('dashboardUtils', () => {
     });
 
     describe('admin suffix filtering', () => {
-      it('should exclude admin dashboards for non-admin users', () => {
+      it('should exclude admin dashboards for users without cluster metrics access', () => {
         const dashboards = [
           createMockDashboard('dashboard-model'),
           createMockDashboard('dashboard-cluster-admin'),
@@ -83,7 +83,7 @@ describe('dashboardUtils', () => {
         expect(result[0].metadata.name).toBe('dashboard-model');
       });
 
-      it('should include admin dashboards for admin users', () => {
+      it('should include admin dashboards for users with cluster metrics access', () => {
         const dashboards = [
           createMockDashboard('dashboard-model'),
           createMockDashboard('dashboard-cluster-admin'),
@@ -97,6 +97,68 @@ describe('dashboardUtils', () => {
           'dashboard-cluster-admin',
           'dashboard-model',
           'dashboard-settings-admin',
+        ]);
+      });
+
+      it('should prefer admin variant when both X and X-admin exist for admin users', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-cluster-admin'),
+          createMockDashboard('dashboard-model'),
+        ];
+
+        const result = filterDashboards(dashboards, true);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster-admin',
+          'dashboard-model',
+        ]);
+      });
+
+      it('should keep non-admin dashboard when no admin variant exists', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-model'),
+        ];
+
+        const result = filterDashboards(dashboards, true);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster',
+          'dashboard-model',
+        ]);
+      });
+
+      it('should deduplicate multiple pairs for admin users', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-cluster-admin'),
+          createMockDashboard('dashboard-model'),
+          createMockDashboard('dashboard-model-admin'),
+          createMockDashboard('dashboard-overview'),
+        ];
+
+        const result = filterDashboards(dashboards, true);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster-admin',
+          'dashboard-model-admin',
+          'dashboard-overview',
+        ]);
+      });
+
+      it('should not deduplicate for non-admin users', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-cluster-admin'),
+          createMockDashboard('dashboard-model'),
+        ];
+
+        const result = filterDashboards(dashboards, false);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster',
+          'dashboard-model',
         ]);
       });
 
@@ -155,7 +217,7 @@ describe('dashboardUtils', () => {
     });
 
     describe('combined filtering and sorting', () => {
-      it('should filter by prefix, filter by admin status, and sort results', () => {
+      it('should filter by prefix, filter by cluster metrics access, and sort results', () => {
         const dashboards = [
           createMockDashboard('dashboard-zebra'),
           createMockDashboard('other-panel'),

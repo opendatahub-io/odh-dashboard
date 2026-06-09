@@ -106,7 +106,7 @@ module.exports = smp.wrap(
         open: false,
         proxy: [
           {
-            context: ['/api', '/autorag/api'],
+            context: ['/api', '/autorag/api', '/gen-ai/api'],
             target: {
               host: PROXY_HOST,
               protocol: PROXY_PROTOCOL,
