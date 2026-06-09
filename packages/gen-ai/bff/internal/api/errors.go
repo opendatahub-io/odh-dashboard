@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -173,7 +174,9 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 
 // handleBFFClientError maps BFF client errors to appropriate HTTP responses
 func (app *App) handleBFFClientError(w http.ResponseWriter, r *http.Request, err error) {
-	if bffErr, ok := err.(*bffclient.BFFClientError); ok {
+	// Try direct type assertion first
+	var bffErr *bffclient.BFFClientError
+	if errors.As(err, &bffErr) {
 		statusCode := bffErr.StatusCode
 		if statusCode == 0 {
 			statusCode = http.StatusBadGateway
