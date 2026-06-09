@@ -272,7 +272,9 @@ describe('Model Catalog Details Page - Edge Cases', () => {
   });
 
   it('should show disabled register button with tooltip when no model registries exist', () => {
-    cy.intercept('GET', '/model-registry/api/v1/model_registry*', []).as('getEmptyModelRegistries');
+    cy.intercept('GET', '/model-registry/api/v1/model_registry*', mockModArchResponse([])).as(
+      'getEmptyModelRegistries',
+    );
 
     setupModelCatalogIntercepts({});
     interceptArtifactsList();
