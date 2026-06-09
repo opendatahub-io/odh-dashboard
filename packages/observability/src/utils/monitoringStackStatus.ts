@@ -1,7 +1,5 @@
-import type {
-  DataScienceClusterInitializationKindStatus,
-  K8sCondition,
-} from '@odh-dashboard/internal/k8sTypes';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
+import type { DataScienceClusterInitializationKindStatus } from '@odh-dashboard/internal/k8sTypes';
 
 export type MonitoringStatus =
   | { available: true }
