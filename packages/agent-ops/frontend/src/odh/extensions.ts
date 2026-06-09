@@ -1,13 +1,12 @@
 import type {
-  NavExtension,
-  RouteExtension,
   AreaExtension,
+  TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { agentDeploymentsPath, globAgentOpsAll } from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
+const AGENTS_TAB_PAGE = 'agents-tab-page';
 
-const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
+const extensions: (AreaExtension | TabRouteTabExtension)[] = [
   {
     type: 'app.area',
     properties: {
@@ -16,27 +15,16 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
   },
   {
-    type: 'app.navigation/href',
+    type: 'app.tab-route/tab',
     flags: {
       required: [AGENT_OPS],
     },
     properties: {
-      id: 'agent-ops-deployments',
-      title: 'Agents',
-      href: agentDeploymentsPath,
-      section: 'ai-hub',
-      path: globAgentOpsAll,
-      label: 'Tech Preview',
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      path: globAgentOpsAll,
-      component: () => import('./AgentOpsWrapper'),
+      pageId: AGENTS_TAB_PAGE,
+      id: 'deployments',
+      title: 'Deployments',
+      component: () => import('./AgentDeploymentsWrapper'),
+      group: '1_deployments',
     },
   },
 ];

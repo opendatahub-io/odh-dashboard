@@ -1,15 +1,13 @@
-import { agentDeploymentsPath, globAgentOpsAll } from '~/app/utilities/routes';
 import extensions from '~/odh/extensions';
 
 const AGENT_OPS = 'agent-ops';
 
 describe('agent-ops extensions', () => {
-  it('should register area, navigation, and route extensions', () => {
-    expect(extensions).toHaveLength(3);
+  it('should register area and tab-route tab extensions', () => {
+    expect(extensions).toHaveLength(2);
     expect(extensions.map((extension) => extension.type)).toEqual([
       'app.area',
-      'app.navigation/href',
-      'app.route',
+      'app.tab-route/tab',
     ]);
   });
 
@@ -24,35 +22,20 @@ describe('agent-ops extensions', () => {
     });
   });
 
-  it('should register deployments navigation under ai-hub', () => {
-    const nav = extensions.find((extension) => extension.type === 'app.navigation/href');
-    expect(nav).toMatchObject({
-      type: 'app.navigation/href',
+  it('should register deployments tab for the agents tab page', () => {
+    const tab = extensions.find((extension) => extension.type === 'app.tab-route/tab');
+    expect(tab).toMatchObject({
+      type: 'app.tab-route/tab',
       flags: {
         required: [AGENT_OPS],
       },
       properties: {
-        id: 'agent-ops-deployments',
-        title: 'Agents',
-        href: agentDeploymentsPath,
-        section: 'ai-hub',
-        path: globAgentOpsAll,
-        label: 'Tech Preview',
+        pageId: 'agents-tab-page',
+        id: 'deployments',
+        title: 'Deployments',
+        group: '1_deployments',
       },
     });
-  });
-
-  it('should register federated route for agent ops wrapper', () => {
-    const route = extensions.find((extension) => extension.type === 'app.route');
-    expect(route).toMatchObject({
-      type: 'app.route',
-      flags: {
-        required: [AGENT_OPS],
-      },
-      properties: {
-        path: globAgentOpsAll,
-      },
-    });
-    expect(route?.type === 'app.route' && route.properties.component).toBeTruthy();
+    expect(tab?.type === 'app.tab-route/tab' && tab.properties.component).toBeTruthy();
   });
 });

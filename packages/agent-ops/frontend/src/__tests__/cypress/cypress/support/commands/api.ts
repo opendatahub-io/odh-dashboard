@@ -3,9 +3,9 @@ import type { GenericStaticResponse, RouteHandlerController } from 'cypress/type
 import type { Namespace, UserSettings } from 'mod-arch-core';
 import { mockModArchResponse } from 'mod-arch-core';
 import type { RoleBindingKind } from '../../../shared/types';
+import type { AgentRuntimesList } from '~/app/types/agentRuntimes';
 
-const MODEL_REGISTRY_API_VERSION = 'v1';
-export { MODEL_REGISTRY_API_VERSION };
+export const CLIENT_API_VERSION = 'v1';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -40,6 +40,11 @@ declare global {
           type: 'GET /api/:apiVersion/settings/role_bindings',
           options: { path: { apiVersion: string } },
           response: ApiResponse<RoleBindingKind[]>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/agents/runtimes',
+          options: { path: { apiVersion: string } },
+          response: ApiResponse<AgentRuntimesList>,
         ) => Cypress.Chainable<null>);
     }
   }
