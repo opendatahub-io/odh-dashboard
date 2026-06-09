@@ -287,7 +287,7 @@ describe('Model Catalog Details Page - Edge Cases', () => {
     modelCatalog.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
     // Verify no focus trap: the button uses a Tooltip (not a Popover)
     modelCatalog.findRegisterModelButton().trigger('mouseenter');
-    cy.get('.pf-v6-c-tooltip').should('be.visible');
+    modelCatalog.findRegisterCatalogModelTooltip().should('be.visible');
   });
 
   it('should show error alert when artifacts fail to load', () => {

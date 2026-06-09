@@ -510,6 +510,10 @@ class ModelCatalog {
   findModelTypeSelect() {
     return cy.findByTestId('register-model-type-select');
   }
+
+  findRegisterCatalogModelTooltip() {
+    return cy.findByTestId('register-catalog-model-tooltip');
+  }
 }
 
 export const modelCatalog = new ModelCatalog();
