@@ -78,7 +78,9 @@ describe('Roles tab feature flag gating', () => {
         .findDescriptionTextarea()
         .should('have.attr', 'placeholder', 'Describe what this role is for and who should use it');
       projectRoles.findAddLabelButton().should('exist');
-      projectRoles.findPermissionsEmptyState().should('contain.text', 'No permissions set');
+      projectRoles
+        .findPermissionsEmptyState()
+        .should('contain.text', 'No rules set for this role.');
       projectRoles.findSelectRoleTemplateButton().should('be.disabled');
       projectRoles.findAddRuleButton().should('be.disabled');
       projectRoles.findImportTemplateButton().should('be.disabled');
