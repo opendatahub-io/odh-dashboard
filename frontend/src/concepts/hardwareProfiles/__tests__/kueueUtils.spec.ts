@@ -36,10 +36,7 @@ describe('filterProfilesByKueue', () => {
   });
 
   it('should return only non-Kueue profiles when state is ONLY_NON_KUEUE_PROFILES', () => {
-    const result = filterProfilesByKueue(
-      allProfiles,
-      KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
-    );
+    const result = filterProfilesByKueue(allProfiles, KueueFilteringState.ONLY_NON_KUEUE_PROFILES);
     expect(result).toHaveLength(1);
     expect(result[0].metadata.name).toBe('node-profile');
   });
@@ -88,10 +85,7 @@ describe('filterProfilesByKueue', () => {
     });
 
     it('should not filter Kueue profiles when availableLocalQueueNames is not provided', () => {
-      const result = filterProfilesByKueue(
-        allProfiles,
-        KueueFilteringState.ONLY_KUEUE_PROFILES,
-      );
+      const result = filterProfilesByKueue(allProfiles, KueueFilteringState.ONLY_KUEUE_PROFILES);
       expect(result).toHaveLength(2);
     });
   });

@@ -55,6 +55,18 @@ kueueHardwareProfile2.spec.scheduling = {
   },
 };
 
+const kueueHardwareProfile3 = mockHardwareProfile({
+  name: 'kueue-profile-3',
+  displayName: 'Kueue Profile 3',
+});
+kueueHardwareProfile3.spec.scheduling = {
+  type: SchedulingType.QUEUE,
+  kueue: {
+    localQueueName: 'test-queue-3',
+    priorityClass: 'high-priority',
+  },
+};
+
 const nodeHardwareProfile = mockHardwareProfile({
   name: 'node-profile',
   displayName: 'Node Profile',
@@ -68,6 +80,7 @@ const nodeHardwareProfile2 = mockHardwareProfile({
 const mockProfiles = [
   kueueHardwareProfile,
   kueueHardwareProfile2,
+  kueueHardwareProfile3,
   nodeHardwareProfile,
   nodeHardwareProfile2,
 ];
@@ -381,9 +394,12 @@ describe('HardwareProfileSelect - LocalQueue filtering', () => {
   it('should hide Kueue profiles whose localQueueName is not available in the project', async () => {
     const project = mockProjectK8sResource({});
 
-    const localQueuesWithOnlyQueueA: FetchStateObject<LocalQueueKind[]> = {
+    const localQueuesSubset: FetchStateObject<LocalQueueKind[]> = {
       ...DEFAULT_LIST_FETCH_STATE,
-      data: [mockLocalQueueK8sResource({ name: 'test-queue' })],
+      data: [
+        mockLocalQueueK8sResource({ name: 'test-queue' }),
+        mockLocalQueueK8sResource({ name: 'test-queue-3' }),
+      ],
       loaded: true,
     };
 
@@ -394,12 +410,13 @@ describe('HardwareProfileSelect - LocalQueue filtering', () => {
       [],
       undefined,
       false,
-      localQueuesWithOnlyQueueA,
+      localQueuesSubset,
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
 
     expect(screen.getByText('Kueue Profile')).toBeInTheDocument();
+    expect(screen.getByText('Kueue Profile 3')).toBeInTheDocument();
     expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
   });
 
@@ -424,6 +441,7 @@ describe('HardwareProfileSelect - LocalQueue filtering', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
     expect(screen.getByText('Kueue Profile')).toBeInTheDocument();
     expect(screen.getByText('Kueue Profile 2')).toBeInTheDocument();
+    expect(screen.getByText('Kueue Profile 3')).toBeInTheDocument();
   });
 
   it('should hide all Kueue profiles when no localQueues are available in the project', () => {
