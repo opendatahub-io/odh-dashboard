@@ -4,13 +4,14 @@ import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
 import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { HardwareProfileKind, ProjectKind, KnownLabels } from '#~/k8sTypes';
+import { HardwareProfileKind, LocalQueueKind, ProjectKind, KnownLabels } from '#~/k8sTypes';
 import { SchedulingType } from '#~/types';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
@@ -18,6 +19,7 @@ import {
   useKueueConfiguration,
   KueueFilteringState,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { FetchStateObject } from '#~/utilities/useFetch';
 
 jest.mock('#~/concepts/hardwareProfiles/useHardwareProfileConfig');
 
@@ -70,6 +72,15 @@ const mockProfiles = [
   nodeHardwareProfile2,
 ];
 
+const defaultLocalQueues: FetchStateObject<LocalQueueKind[]> = {
+  ...DEFAULT_LIST_FETCH_STATE,
+  data: [
+    mockLocalQueueK8sResource({ name: 'test-queue' }),
+    mockLocalQueueK8sResource({ name: 'test-queue-2' }),
+  ],
+  loaded: true,
+};
+
 const renderComponent = (
   hardwareProfiles: HardwareProfileKind[],
   currentProject: ProjectKind,
@@ -77,6 +88,7 @@ const renderComponent = (
   projects: ProjectKind[] = [],
   projectProp?: string,
   allowExistingSettings = false,
+  localQueues: FetchStateObject<LocalQueueKind[]> = defaultLocalQueues,
 ) => {
   // Mock useKueueConfiguration to return the specified filtering state
   useKueueConfigurationMock.mockReturnValue({
@@ -127,7 +139,7 @@ const renderComponent = (
           {
             currentProject,
             refresh: jest.fn(),
-            localQueues: DEFAULT_LIST_FETCH_STATE,
+            localQueues,
           } as unknown as ProjectDetailsContextType
         }
       >
@@ -355,6 +367,61 @@ describe('HardwareProfileSelect - Use existing settings', () => {
     );
 
     // Should fall back to SimpleSelect with generic message
+    expect(screen.getByRole('button')).toHaveTextContent(
+      'No enabled or valid hardware profiles are available. Contact your administrator.',
+    );
+  });
+});
+
+describe('HardwareProfileSelect - LocalQueue filtering', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should hide Kueue profiles whose localQueueName is not available in the project', async () => {
+    const project = mockProjectK8sResource({});
+
+    const localQueuesWithOnlyQueueA: FetchStateObject<LocalQueueKind[]> = {
+      ...DEFAULT_LIST_FETCH_STATE,
+      data: [mockLocalQueueK8sResource({ name: 'test-queue' })],
+      loaded: true,
+    };
+
+    renderComponent(
+      mockProfiles,
+      project,
+      KueueFilteringState.ONLY_KUEUE_PROFILES,
+      [],
+      undefined,
+      false,
+      localQueuesWithOnlyQueueA,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    expect(screen.getByText('Kueue Profile')).toBeInTheDocument();
+    expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
+  });
+
+  it('should hide all Kueue profiles when no localQueues are available in the project', () => {
+    const project = mockProjectK8sResource({});
+
+    const emptyLocalQueues: FetchStateObject<LocalQueueKind[]> = {
+      ...DEFAULT_LIST_FETCH_STATE,
+      data: [],
+      loaded: true,
+    };
+
+    renderComponent(
+      mockProfiles,
+      project,
+      KueueFilteringState.ONLY_KUEUE_PROFILES,
+      [],
+      undefined,
+      false,
+      emptyLocalQueues,
+    );
+
     expect(screen.getByRole('button')).toHaveTextContent(
       'No enabled or valid hardware profiles are available. Contact your administrator.',
     );

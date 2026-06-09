@@ -114,7 +114,7 @@ export const useHardwareProfileConfig = (
   hardwareProfileNamespace?: string | null,
 ): UseHardwareProfileConfigResult => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject, localQueues } = React.useContext(ProjectDetailsContext);
 
   const {
     globalProfiles: [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError],
@@ -140,6 +140,11 @@ export const useHardwareProfileConfig = (
 
   const isFormDataValid = React.useMemo(() => isHardwareProfileConfigValid(formData), [formData]);
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
+
+  const availableLocalQueueNames = React.useMemo(
+    () => new Set(localQueues.data.map((lq) => lq.metadata.name)),
+    [localQueues.data],
+  );
 
   React.useEffect(() => {
     if (!profilesLoaded || formData.selectedProfile) {
@@ -182,6 +187,7 @@ export const useHardwareProfileConfig = (
         const filteredProfiles = filterProfilesByKueue(
           profiles.filter(isHardwareProfileEnabled),
           kueueFilteringState,
+          availableLocalQueueNames,
         );
         selectedProfile = filteredProfiles.length > 0 ? filteredProfiles[0] : undefined;
         if (selectedProfile) {
@@ -205,6 +211,7 @@ export const useHardwareProfileConfig = (
     dashboardProfiles,
     dashboardNamespace,
     kueueFilteringState,
+    availableLocalQueueNames,
   ]);
 
   return {
