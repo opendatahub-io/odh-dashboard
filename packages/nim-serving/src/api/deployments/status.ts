@@ -56,6 +56,11 @@ export const getNIMDeploymentStatus = (
   return { state, message, stoppedStates };
 };
 
+/**
+ * Set the stopped status of the NIM deployment.
+ * The NIM Operator propagates the stopped annotation from `spec.annotations`
+ * to the child InferenceService's `metadata.annotations`.
+ */
 export const patchDeploymentStoppedStatus = (
   deployment: NIMDeployment,
   isStopped: boolean,
