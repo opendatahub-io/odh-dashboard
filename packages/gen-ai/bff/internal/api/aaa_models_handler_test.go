@@ -481,10 +481,16 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		// Should have namespace and custom_endpoint models, but not MaaS
 		assert.GreaterOrEqual(t, len(response.Data), 8, "Should return namespace and custom_endpoint models")
 
-		// Verify no MaaS models (they all have model_source_type: "maas")
+		// Verify custom_endpoint models are present
+		hasCustomEndpoint := false
 		for _, model := range response.Data {
+			if model.ModelSourceType == models.ModelSourceTypeCustomEndpoint {
+				hasCustomEndpoint = true
+			}
+			// Verify no MaaS models (they all have model_source_type: "maas")
 			assert.NotEqual(t, models.ModelSourceTypeMaaS, model.ModelSourceType, "Should not include MaaS models by default")
 		}
+		assert.True(t, hasCustomEndpoint, "Should include at least one custom_endpoint model by default")
 	})
 
 	It("should return only namespace models when sources=namespace", func() {
@@ -744,9 +750,9 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		assert.Equal(t, http.StatusServiceUnavailable, rr.Code, "Should return 503 when MaaS is unavailable and it's the only source")
 	})
 
-	It("should skip empty tokens in sources parameter", func() {
+	It("should reject empty tokens in sources parameter", func() {
 		t := GinkgoT()
-		// Empty tokens are silently filtered out during parsing
+		// Empty tokens (from trailing commas, etc.) are now rejected
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace,,maas", nil)
 		assert.NoError(t, err)
 
@@ -760,7 +766,8 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		rr := httptest.NewRecorder()
 		app.ModelsAAHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusOK, rr.Code, "Should accept sources with empty tokens (they are filtered out)")
+		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should reject sources with empty tokens")
+		assert.Contains(t, rr.Body.String(), "empty source value provided")
 	})
 
 	It("should reject duplicate tokens in sources parameter", func() {
@@ -801,6 +808,32 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 
 	It("should accept multiple sources query parameters (repeated format)", func() {
 		t := GinkgoT()
+
+		// Set up mock MaaS BFF client that returns a test model
+		mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		mockMaaSClient.CallHandler = func(ctx context.Context, method, path string, body, response any) error {
+			// Return a mock MaaS models response
+			if resp, ok := response.(*models.MaaSBFFModelsResponse); ok {
+				resp.Data = models.MaaSBFFModelsData{
+					Data: []models.MaaSBFFModel{
+						{
+							ID:    "test-maas-model",
+							URL:   "http://maas.example.com/test",
+							Ready: true,
+							ModelDetails: &models.MaaSBFFModelDetails{
+								DisplayName:  "Test MaaS Model",
+								Description:  "A test model from MaaS",
+								GenAIUseCase: "test",
+							},
+							OwnedBy:   "maas-provider",
+							ModelType: "llm",
+						},
+					},
+				}
+			}
+			return nil
+		}
+
 		// Test that ?sources=namespace&sources=maas works (standard HTTP array format)
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace&sources=maas", nil)
 		assert.NoError(t, err)
@@ -810,6 +843,8 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
+		// Attach MaaS client to context using the same pattern as middleware
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), mockMaaSClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -820,7 +855,15 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		var response ModelsAAEnvelope
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		// Should have namespace and maas models
-		assert.NotNil(t, response.Data)
+
+		// Verify MaaS model is present
+		hasMaaSModel := false
+		for _, model := range response.Data {
+			if model.ModelSourceType == models.ModelSourceTypeMaaS && model.ModelID == "test-maas-model" {
+				hasMaaSModel = true
+				break
+			}
+		}
+		assert.True(t, hasMaaSModel, "Should include the MaaS model from repeated sources parameters")
 	})
 })
