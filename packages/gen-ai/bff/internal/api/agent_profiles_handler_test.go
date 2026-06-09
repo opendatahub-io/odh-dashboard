@@ -304,6 +304,51 @@ spec:
 			},
 		},
 		{
+			name:      "skip ConfigMap with invalid name format",
+			namespace: testNamespace,
+			existingCMs: []*corev1.ConfigMap{
+				createAgentProfileConfigMap(
+					"550e8400-e29b-41d4-a716-446655440000",
+					"Valid Profile",
+					"This should be included",
+				),
+				{
+					// ConfigMap with wrong name format (missing prefix)
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "invalid-name-format",
+						Namespace: testNamespace,
+						Labels: map[string]string{
+							"opendatahub.io/dashboard":     "true",
+							"opendatahub.io/agent-profile": "true",
+						},
+					},
+					Data: map[string]string{
+						"profile.yaml": `apiVersion: genai.redhat.com/v1alpha1
+kind: AgentProfile
+metadata:
+  name: test-id
+spec:
+  displayName: Should Be Skipped
+  model:
+    id: llama-3-8b
+    uri: https://api.example.com/v1/models
+`,
+					},
+				},
+			},
+			wantStatusCode: http.StatusOK,
+			validateFunc: func(t *testing.T, responseBody []byte) {
+				var envelope AgentProfileListEnvelope
+				err := json.Unmarshal(responseBody, &envelope)
+				require.NoError(t, err)
+
+				// Should only include the valid profile, skipping the invalid one
+				assert.Equal(t, 1, envelope.Data.TotalCount)
+				assert.Len(t, envelope.Data.Profiles, 1)
+				assert.Equal(t, "Valid Profile", envelope.Data.Profiles[0].DisplayName)
+			},
+		},
+		{
 			name:           "missing namespace",
 			namespace:      "", // Empty namespace
 			existingCMs:    []*corev1.ConfigMap{},

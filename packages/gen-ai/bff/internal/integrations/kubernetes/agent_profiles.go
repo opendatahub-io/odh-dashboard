@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -340,10 +341,11 @@ func (kc *TokenKubernetesClient) ListAgentProfiles(
 		}
 
 		// Extract UUID from ConfigMap name
-		profileID := ""
-		if len(cm.Name) > len(AgentProfileNamePrefix) {
-			profileID = cm.Name[len(AgentProfileNamePrefix):]
+		if !strings.HasPrefix(cm.Name, AgentProfileNamePrefix) {
+			kc.Logger.Warn("skipping ConfigMap with invalid name format", "name", cm.Name, "namespace", cm.Namespace)
+			continue
 		}
+		profileID := cm.Name[len(AgentProfileNamePrefix):]
 
 		// Get last modified timestamp from ManagedFields
 		lastModified := getLastModifiedTimestamp(&cm)
