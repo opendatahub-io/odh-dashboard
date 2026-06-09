@@ -231,7 +231,7 @@ describe('Connected Workbenches modal', () => {
   });
 
   it('should show an error alert when the API request fails', () => {
-    cy.interceptOdh('GET /api/featurestores/projects-with-workbenches', {
+    cy.intercept('GET', '/api/featurestores/projects-with-workbenches', {
       statusCode: 500,
       body: { error: 'Failed to fetch projects with connected workbenches' },
     });
