@@ -146,6 +146,25 @@ describe('mapResultToItems', () => {
       expect(item.type).toBe('File');
     }
   });
+  it('should omit Last Modified detail when last_modified is an invalid date string', () => {
+    const result = mockS3ListObjectsResponse({
+      common_prefixes: [],
+      contents: [
+        {
+          key: 'file.txt',
+          size: 100,
+          last_modified: 'not-a-date',
+          etag: '',
+          storage_class: '',
+        },
+      ],
+    });
+    const items = mapResultToItems(result);
+
+    expect(items).toHaveLength(1);
+    expect(items[0].details).toBeDefined();
+    expect(items[0].details?.['Last Modified']).toBeUndefined();
+  });
   it('should mark contents with key "/" or "" as hidden root folder markers', () => {
     const result = mockS3ListObjectsResponse({
       common_prefixes: [],

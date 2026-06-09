@@ -77,6 +77,9 @@ export const mapResultToItems = (
       const sizeToRender = formatBytes(obj.size);
       const fileTypeToRender = ext.toLocaleUpperCase() || 'File';
 
+      const lastModified = obj.last_modified ? new Date(obj.last_modified) : undefined;
+      const isValidDate = lastModified && !Number.isNaN(lastModified.getTime());
+
       items.push({
         name: fileName,
         path: fullPath,
@@ -87,15 +90,15 @@ export const mapResultToItems = (
           options.selectableExtensions.some((se) => se.toLowerCase() === ext.toLowerCase()),
         forceShowAsSelected: false,
         details: {
-          ...(obj.last_modified && {
+          ...(isValidDate && {
             'Last Modified': (
               <Timestamp
-                date={new Date(obj.last_modified)}
+                date={lastModified}
                 tooltip={{
                   variant: TimestampTooltipVariant.default,
                 }}
               >
-                {relativeTime(Date.now(), new Date(obj.last_modified).getTime())}
+                {relativeTime(Date.now(), lastModified.getTime())}
               </Timestamp>
             ),
           }),
