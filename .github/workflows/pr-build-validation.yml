@@ -392,11 +392,14 @@ jobs:
           echo "::group::Validating Module Federation artifacts"
 
           # Check for main app bundle (always required)
-          if [ ! -f "/tmp/odh-dist/app.bundle.js" ]; then
-            echo "❌ FAIL: app.bundle.js not found - build did not complete"
+          # Webpack outputs app.[contenthash].js, not app.bundle.js
+          if ! ls /tmp/odh-dist/app.*.js >/dev/null 2>&1; then
+            echo "❌ FAIL: app.*.js not found - build did not complete"
             FAILURES=$((FAILURES + 1))
           else
-            echo "✅ PASS: Main app bundle present"
+            APP_FILE=$(ls /tmp/odh-dist/app.*.js | head -1)
+            APP_SIZE=$(stat -c%s "$APP_FILE" 2>/dev/null || stat -f%z "$APP_FILE" 2>/dev/null)
+            echo "✅ PASS: Main app bundle present ($(basename "$APP_FILE"), ${APP_SIZE} bytes)"
           fi
 
           # Check for remoteEntry.js (optional - only if federated modules exist)
