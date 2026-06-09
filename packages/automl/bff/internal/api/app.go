@@ -292,40 +292,6 @@ func (app *App) Routes() http.Handler {
 	// App Router
 	appMux := http.NewServeMux()
 
-	// handler for api calls — preserveRawPath ensures percent-encoded path parameters
-	// (e.g., S3 keys containing %2F) are forwarded to the router without decoding,
-	// so :key matches the full encoded segment rather than splitting on /.
-	rawPathRouter := preserveRawPath(apiRouter)
-	appMux.Handle(ApiPathPrefix+"/", rawPathRouter)
-	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, rawPathRouter))
-
-	// file server for the frontend file and SPA routes
-	staticDir := http.Dir(app.config.StaticAssetsDir)
-	fileServer := http.FileServer(staticDir)
-	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		ctxLogger := helper.GetContextLoggerFromReq(r)
-		// Check if the requested file exists
-		if f, err := staticDir.Open(r.URL.Path); err == nil {
-			f.Close()
-			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
-			// Serve the file if it exists
-			w.Header().Set("Cache-Control", cacheControlForStaticFile(r.URL.Path))
-			fileServer.ServeHTTP(w, r)
-			return
-		}
-
-		// Fallback to index.html for SPA routes
-		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
-		w.Header().Set("Cache-Control", "no-cache")
-		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
-	})
-
-	// Create a mux for the healthcheck endpoint
-	healthcheckMux := http.NewServeMux()
-	healthcheckRouter := httprouter.New()
-	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
-	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
-
 	// Create identity extractor based on auth method
 	var identityExtractor kubernetes.IdentityExtractor
 	switch app.config.AuthMethod {
@@ -343,18 +309,50 @@ func (app *App) Routes() http.Handler {
 		}
 	}
 
-	// Create identity middleware using autox-core
+	// Create identity middleware using autox-core — applied to API routes only
 	injectRequestIdentity := kubernetes.InjectRequestIdentity(kubernetes.InjectRequestIdentityConfig{
 		Extractor:  identityExtractor,
 		OnError:    app.badRequestResponse,
 		ContextKey: constants.RequestIdentityKey,
 	})
 
+	// handler for api calls — preserveRawPath ensures percent-encoded path parameters
+	// (e.g., S3 keys containing %2F) are forwarded to the router without decoding,
+	// so :key matches the full encoded segment rather than splitting on /.
+	authedAPI := injectRequestIdentity(preserveRawPath(apiRouter))
+	appMux.Handle(ApiPathPrefix+"/", authedAPI)
+	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, authedAPI))
+
+	// file server for the frontend files and SPA routes (no auth required)
+	staticDir := http.Dir(app.config.StaticAssetsDir)
+	fileServer := http.FileServer(staticDir)
+	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		ctxLogger := helper.GetContextLoggerFromReq(r)
+		// Check if the requested file exists
+		if f, err := staticDir.Open(r.URL.Path); err == nil {
+			f.Close()
+			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
+			w.Header().Set("Cache-Control", cacheControlForStaticFile(r.URL.Path))
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// Fallback to index.html for SPA routes
+		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
+	})
+
+	// Create a mux for the healthcheck endpoint
+	healthcheckMux := http.NewServeMux()
+	healthcheckRouter := httprouter.New()
+	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
+	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
+
 	// Combines the healthcheck endpoint with the rest of the routes
-	// Apply middleware to appMux which contains the API routes
 	combinedMux := http.NewServeMux()
 	combinedMux.Handle(HealthCheckPath, healthcheckMux)
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(injectRequestIdentity(appMux)))))
+	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(appMux))))
 
 	return combinedMux
 }
