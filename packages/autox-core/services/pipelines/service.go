@@ -682,7 +682,7 @@ func (s *service) GetAllPipelineRuns(ctx context.Context, namespace, pipelineID 
 	var allRuns []PipelineRun
 	pageToken := ""
 
-	for {
+	for page := 0; page < maxPaginationPages; page++ {
 		params := &ListRunsParams{
 			PageSize:  100,
 			PageToken: pageToken,
@@ -696,7 +696,7 @@ func (s *service) GetAllPipelineRuns(ctx context.Context, namespace, pipelineID 
 		}
 
 		if response == nil || len(response.Runs) == 0 {
-			break
+			return allRuns, nil
 		}
 
 		remaining := maxRunsPerPipeline - len(allRuns)
@@ -708,16 +708,16 @@ func (s *service) GetAllPipelineRuns(ctx context.Context, namespace, pipelineID 
 		}
 
 		if len(allRuns) >= maxRunsPerPipeline {
-			break
+			return allRuns, nil
 		}
 
 		if response.NextPageToken == "" {
-			break
+			return allRuns, nil
 		}
 		pageToken = response.NextPageToken
 	}
 
-	return allRuns, nil
+	return nil, fmt.Errorf("pipeline run listing exceeded maximum pagination pages (%d)", maxPaginationPages)
 }
 
 // GetPipelineRunWithSpec retrieves a pipeline run enriched with pipeline_spec from its version.
