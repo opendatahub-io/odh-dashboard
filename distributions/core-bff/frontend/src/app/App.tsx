@@ -21,6 +21,8 @@ import {
 } from 'mod-arch-core';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
+import { BffStatusProvider } from '~/app/context/BffStatusContext';
+import { NamespaceProvider } from '~/app/context/NamespaceContext';
 
 const App: React.FC = () => {
   const {
@@ -93,9 +95,13 @@ const App: React.FC = () => {
     </Bullseye>
   ) : (
     <AppContext.Provider value={contextValue}>
-      <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
-        <AppRoutes />
-      </Page>
+      <BffStatusProvider>
+        <NamespaceProvider>
+          <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
+            <AppRoutes />
+          </Page>
+        </NamespaceProvider>
+      </BffStatusProvider>
     </AppContext.Provider>
   );
 };
