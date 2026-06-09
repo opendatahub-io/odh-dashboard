@@ -9,10 +9,7 @@ import type {
   Folder,
   FileExplorerEmptyStateConfig,
 } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer.tsx';
-import type {
-  SecretListItem as ConnectionSecret,
-  S3ListObjectsResponse,
-} from '#~/concepts/fileExplorer/types.ts';
+import type { S3ListObjectsResponse } from '#~/concepts/fileExplorer/types.ts';
 import { getFiles, type GetFilesOptions } from '#~/concepts/fileExplorer/api/s3.ts';
 import { mapResultToItems } from '#~/concepts/fileExplorer/utils.tsx';
 
@@ -56,8 +53,8 @@ interface S3FileExplorerProps {
   /** The Kubernetes namespace used to scope S3 connection lookups. */
   namespace: string;
 
-  /** The connection secret that provides S3 credentials and endpoint configuration. */
-  s3Secret?: ConnectionSecret;
+  /** The name of the Kubernetes Secret that provides S3 credentials and endpoint configuration. */
+  s3SecretName?: string;
 
   /** The S3 bucket name to browse. When omitted, the bucket is resolved from the connection secret itself. */
   bucket?: string;
@@ -78,14 +75,12 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   onClose,
   onSelectFiles,
   namespace,
-  s3Secret,
+  s3SecretName,
   bucket = '',
   allowFolderSelection = true,
   selectableExtensions,
   unselectableReason,
 }) => {
-  const secretName = s3Secret?.name;
-
   // State -------------------------------------------------------------------->
 
   // TODO [ Gustavo ] From self-review:
@@ -98,8 +93,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [filesToRender, setFilesToRender] = useState<Files>([]);
   const [foldersToRender, setFoldersToRender] = useState<Folder[]>([]);
   const sourceToRender: Source | undefined = useMemo(
-    () => (s3Secret ? { name: s3Secret.name, bucket } : undefined),
-    [s3Secret, bucket],
+    () => (s3SecretName ? { name: s3SecretName, bucket } : undefined),
+    [s3SecretName, bucket],
   );
 
   const [fetchError, setFetchError] = useState<Error | null>(null);
@@ -153,7 +148,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const fetchPath = useCallback(
     (path: string, perPage: number, page: number, search?: string, continuationToken?: string) => {
-      if (!secretName) {
+      if (!s3SecretName) {
         return;
       }
       setLoadingToRender(true);
@@ -163,7 +158,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       const getFilesOptions: GetFilesOptions = {
         apiPath,
         namespace,
-        secretName,
+        secretName: s3SecretName,
         bucket,
         limit: perPage,
       };
@@ -210,7 +205,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           setLoadingToRender(false);
         });
     },
-    [apiPath, namespace, secretName, bucket],
+    [apiPath, namespace, s3SecretName, bucket],
   );
 
   const navigateTo = useCallback(
@@ -238,7 +233,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // Initial fetch on mount / when connection changes / when modal reopens after reset
   useEffect(() => {
-    if (!isOpen || !secretName) {
+    if (!isOpen || !s3SecretName) {
       // Clear session state so re-selecting the same secret forces a fresh fetch
       if (connectionKeyRef.current) {
         resetState();
@@ -246,7 +241,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       return;
     }
 
-    const connectionKey = `${apiPath}/${namespace}/${secretName}/${bucket}`;
+    const connectionKey = `${apiPath}/${namespace}/${s3SecretName}/${bucket}`;
     if (connectionKeyRef.current === connectionKey) {
       return;
     }
@@ -254,7 +249,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     connectionKeyRef.current = connectionKey;
 
     fetchPath('/', DEFAULT_PER_PAGE, 1);
-  }, [apiPath, isOpen, secretName, namespace, bucket, fetchPath, resetState]);
+  }, [apiPath, isOpen, s3SecretName, namespace, bucket, fetchPath, resetState]);
 
   const debouncedSearch = useMemo(
     () =>
@@ -293,7 +288,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const errorEmptyState: { isEmpty: boolean; emptyStateProps?: FileExplorerEmptyStateConfig } =
     useMemo(() => {
-      if (!s3Secret) {
+      if (!s3SecretName) {
         return {
           isEmpty: true,
           emptyStateProps: {
@@ -309,7 +304,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       }
 
       const { message } = fetchError;
-      const secretNameToRender = <strong>{secretName ?? 'unknown'}</strong>;
+      const secretNameToRender = <strong>{s3SecretName}</strong>;
 
       // TODO [ Gustavo ] Generally weak error handling: Add CommonErrorHandling strategy to AutoX BFF+UI
 
@@ -387,7 +382,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           body: <>An error occurred while retrieving files from connection: {secretNameToRender}</>,
         },
       };
-    }, [s3Secret, fetchError, secretName]);
+    }, [s3SecretName, fetchError]);
 
   const viewingASelectedFoldersChildren =
     selectedFolder && filesWithSelection.some((file) => file.forceShowAsSelected);

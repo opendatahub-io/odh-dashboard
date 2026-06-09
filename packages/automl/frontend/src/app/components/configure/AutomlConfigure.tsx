@@ -1084,7 +1084,7 @@ function AutomlConfigure({
         id="AutoMLConfigure-S3FileExplorer"
         apiPath="/automl/api/v1/s3"
         namespace={namespace}
-        s3Secret={selectedSecret}
+        s3SecretName={selectedSecret?.name}
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelectFiles={(files) => {

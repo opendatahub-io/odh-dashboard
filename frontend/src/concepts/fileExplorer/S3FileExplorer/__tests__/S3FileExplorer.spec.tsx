@@ -7,7 +7,6 @@ import S3FileExplorer, {
 } from '#~/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import { formatBytes, mapResultToItems } from '#~/concepts/fileExplorer/utils';
 import { isFolder } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer';
-import { mockStorageSecret } from '#~/concepts/fileExplorer/__mocks__/mockSecretListItem';
 import {
   mockS3ListObjectsResponse,
   mockS3EmptyResponse,
@@ -30,7 +29,6 @@ const mockGetFiles = jest.mocked(getFiles);
 describe('S3FileExplorer', () => {
   const mockOnClose = jest.fn();
   const mockOnSelectFiles = jest.fn();
-  const defaultSecret = mockStorageSecret({ name: 'my-s3-secret' });
 
   const defaultProps = {
     apiPath: '',
@@ -38,7 +36,7 @@ describe('S3FileExplorer', () => {
     onClose: mockOnClose,
     onSelectFiles: mockOnSelectFiles,
     namespace: 'test-namespace',
-    s3Secret: defaultSecret,
+    s3SecretName: 'my-s3-secret',
   };
 
   beforeEach(() => {
@@ -78,7 +76,7 @@ describe('S3FileExplorer', () => {
       expect(screen.getByText('configs')).toBeInTheDocument();
     });
     it('should not fetch when no secret is provided', () => {
-      render(<S3FileExplorer {...defaultProps} s3Secret={undefined} />);
+      render(<S3FileExplorer {...defaultProps} s3SecretName={undefined} />);
 
       expect(mockGetFiles).not.toHaveBeenCalled();
     });
@@ -86,7 +84,7 @@ describe('S3FileExplorer', () => {
 
   describe('empty state - no connection', () => {
     it('should show warning when no secret is provided', () => {
-      render(<S3FileExplorer {...defaultProps} s3Secret={undefined} />);
+      render(<S3FileExplorer {...defaultProps} s3SecretName={undefined} />);
 
       expect(screen.getByText('No connection selected')).toBeInTheDocument();
       expect(screen.getByText('Select a connection to browse its files.')).toBeInTheDocument();
@@ -569,10 +567,9 @@ describe('S3FileExplorer', () => {
       mockGetFiles.mockClear();
 
       // Change the secret
-      const newSecret = mockStorageSecret({ name: 'other-secret' });
       mockGetFiles.mockResolvedValue(mockS3ListObjectsResponse());
 
-      rerender(<S3FileExplorer {...defaultProps} s3Secret={newSecret} />);
+      rerender(<S3FileExplorer {...defaultProps} s3SecretName="other-secret" />);
 
       await waitFor(() => {
         expect(mockGetFiles).toHaveBeenCalledTimes(1);
@@ -722,7 +719,7 @@ describe('S3FileExplorer', () => {
       expect(screen.getByText('config.yaml')).toBeInTheDocument();
 
       // Remove the secret — should trigger resetState via the effect (line 349-350)
-      rerender(<S3FileExplorer {...defaultProps} s3Secret={undefined} />);
+      rerender(<S3FileExplorer {...defaultProps} s3SecretName={undefined} />);
 
       // State should be reset — files should be gone, "No connection selected" should show
       expect(screen.queryByText('config.yaml')).not.toBeInTheDocument();
@@ -805,7 +802,6 @@ describe('S3FileExplorer', () => {
 
       // While the first fetch is still pending, change the connection (secret)
       // to trigger a new fetch — this increments fetchIdRef, making the first fetch stale
-      const newSecret = mockStorageSecret({ name: 'other-secret' });
       const newResponse = mockS3ListObjectsResponse({
         common_prefixes: [],
         contents: [
@@ -820,7 +816,7 @@ describe('S3FileExplorer', () => {
       });
       mockGetFiles.mockResolvedValueOnce(newResponse);
 
-      rerender(<S3FileExplorer {...defaultProps} s3Secret={newSecret} />);
+      rerender(<S3FileExplorer {...defaultProps} s3SecretName="other-secret" />);
 
       // Wait for the second fetch to complete and render
       await waitFor(() => {
@@ -860,7 +856,6 @@ describe('S3FileExplorer', () => {
 
       // While the first fetch is still pending, change the connection to trigger a new fetch
       // — this increments fetchIdRef, making the first fetch stale
-      const newSecret = mockStorageSecret({ name: 'other-secret' });
       mockGetFiles.mockResolvedValueOnce(
         mockS3ListObjectsResponse({
           common_prefixes: [],
@@ -876,7 +871,7 @@ describe('S3FileExplorer', () => {
         }),
       );
 
-      rerender(<S3FileExplorer {...defaultProps} s3Secret={newSecret} />);
+      rerender(<S3FileExplorer {...defaultProps} s3SecretName="other-secret" />);
 
       // Wait for the second fetch to succeed
       await waitFor(() => {

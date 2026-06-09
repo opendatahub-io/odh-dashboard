@@ -1,14 +1,5 @@
 import * as z from 'zod';
 
-export type SecretListItem = {
-  uuid: string;
-  name: string;
-  type?: string;
-  data?: Record<string, string>;
-  displayName?: string;
-  description?: string;
-};
-
 /* eslint-disable camelcase */
 export const S3ObjectInfoSchema = z.object({
   key: z.string(),

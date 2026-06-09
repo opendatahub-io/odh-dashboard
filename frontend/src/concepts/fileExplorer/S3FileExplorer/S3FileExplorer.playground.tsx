@@ -15,7 +15,6 @@ import {
   FlexItem,
   Switch,
 } from '@patternfly/react-core';
-import type { SecretListItem } from '#~/concepts/fileExplorer/types.ts';
 import type { Files } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer.tsx';
 import S3FileExplorer from './S3FileExplorer.tsx';
 
@@ -37,7 +36,7 @@ const S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP =
 interface Scenario {
   label: string;
   namespace: string;
-  s3Secret?: SecretListItem;
+  s3SecretName?: string;
 }
 
 const scenarioGroups: Record<string, Scenario[]> = {
@@ -45,54 +44,29 @@ const scenarioGroups: Record<string, Scenario[]> = {
     {
       label: 'From env configuration',
       namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: {
-        uuid: 'env-secret-uuid',
-        name: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME,
-        type: 'storage',
-        data: {},
-      },
+      s3SecretName: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME,
     },
   ],
   Errors: [
     {
       label: 'Invalid secret (not found)',
       namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: {
-        uuid: 'fake-secret-uuid',
-        name: 'non-existent-secret',
-        type: 'storage',
-        data: {},
-      },
+      s3SecretName: 'non-existent-secret',
     },
     {
       label: 'No bucket configured',
       namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: {
-        uuid: 'no-bucket-secret-uuid',
-        name: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET,
-        type: 'storage',
-        data: {},
-      },
+      s3SecretName: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET,
     },
     {
       label: 'Connection using HTTP',
       namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: {
-        uuid: 'http-secret-uuid',
-        name: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP,
-        type: 'storage',
-        data: {},
-      },
+      s3SecretName: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP,
     },
     {
       label: 'Generic error',
       namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: {
-        uuid: 'env-secret-uuid',
-        name: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME,
-        type: 'storage',
-        data: {},
-      },
+      s3SecretName: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME,
     },
   ],
 };
@@ -103,7 +77,7 @@ const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [activeNamespace, setActiveNamespace] = useState('mock-playground-namespace');
-  const [activeSecret, setActiveSecret] = useState<SecretListItem | undefined>(undefined);
+  const [activeSecretName, setActiveSecretName] = useState<string | undefined>(undefined);
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
 
   useEffect(() => {
@@ -117,7 +91,7 @@ const App: React.FC = () => {
 
   const openScenario = (scenario: Scenario) => {
     setActiveNamespace(scenario.namespace);
-    setActiveSecret(scenario.s3Secret);
+    setActiveSecretName(scenario.s3SecretName);
     setIsOpen(true);
   };
 
@@ -189,7 +163,7 @@ const App: React.FC = () => {
           <CardBody>
             <p>Modal open: {isOpen ? 'Yes' : 'No'}</p>
             <p>Active namespace: {activeNamespace}</p>
-            <p>Active secret: {activeSecret?.name ?? <em>none</em>}</p>
+            <p>Active secret: {activeSecretName ?? <em>none</em>}</p>
             <p>
               Selected files ({selectedFiles.length}):{' '}
               {selectedFiles.length > 0 ? (
@@ -231,7 +205,7 @@ const App: React.FC = () => {
         id="playground-s3-file-explorer"
         apiPath="/autorag/api/v1/s3"
         namespace={activeNamespace}
-        s3Secret={activeSecret}
+        s3SecretName={activeSecretName}
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSelectFiles={(files) => setSelectedFiles(files)}

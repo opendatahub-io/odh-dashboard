@@ -1017,7 +1017,7 @@ function AutoragConfigure({
         id="AutoRagConfigure-S3FileExplorer"
         apiPath="/autorag/api/v1/s3"
         namespace={namespace}
-        s3Secret={selectedSecret}
+        s3SecretName={selectedSecret?.name}
         isOpen={Boolean(fileExplorerMode)}
         onClose={() => setFileExplorerMode(false)}
         onSelectFiles={(files) => {
