@@ -271,6 +271,25 @@ describe('Model Catalog Details Page - Edge Cases', () => {
     cy.findAllByText('N/A').should('have.length.at.least', 1);
   });
 
+  it('should show disabled register button with tooltip when no model registries exist', () => {
+    cy.intercept('GET', '/model-registry/api/v1/model_registry*', []).as(
+      'getEmptyModelRegistries',
+    );
+
+    setupModelCatalogIntercepts({});
+    interceptArtifactsList();
+
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.findBreadcrumb().should('exist');
+
+    modelCatalog.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
+    // Verify no focus trap: the button uses a Tooltip (not a Popover)
+    modelCatalog.findRegisterModelButton().trigger('mouseenter');
+    cy.get('.pf-v6-c-tooltip').should('be.visible');
+  });
+
   it('should show error alert when artifacts fail to load', () => {
     setupModelCatalogIntercepts({});
 

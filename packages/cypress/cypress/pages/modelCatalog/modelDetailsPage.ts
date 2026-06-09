@@ -59,8 +59,8 @@ class ModelDetailsPage {
     return cy.findByTestId('empty-model-catalog-state');
   }
 
-  findRegisterCatalogModelPopover() {
-    return cy.findByTestId('register-catalog-model-popover');
+  findRegisterCatalogModelTooltip() {
+    return cy.findByTestId('register-catalog-model-tooltip');
   }
 
   private findModelDetailsCard() {
