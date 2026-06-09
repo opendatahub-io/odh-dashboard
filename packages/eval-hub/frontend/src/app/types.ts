@@ -453,6 +453,7 @@ export type InferenceServicesResponse = {
 export type VerifyConnectionRequest = {
   source_type: SourceMode;
   base_url: string;
+  secret_name?: string;
   secret_value?: string;
   model_id?: string;
 };

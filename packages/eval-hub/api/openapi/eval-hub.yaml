@@ -908,9 +908,18 @@ components:
           format: uri
           description: Endpoint URL to verify
           example: 'https://api.example.com/v1'
+        secret_name:
+          type: string
+          description: >-
+            Name of a Kubernetes Secret (in the request namespace) whose "api-key"
+            data field contains the authentication credential. Mutually exclusive
+            with secret_value; secret_name takes precedence when both are provided.
+          example: 'my-api-key-secret'
         secret_value:
           type: string
-          description: Optional API key or bearer token for authentication
+          description: >-
+            Literal API key or bearer token for authentication (used for pre-recorded
+            sources or when the key is not stored in a Kubernetes Secret).
         model_id:
           type: string
           description: Model identifier to include in the test request (model/agent sources)

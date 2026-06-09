@@ -51,16 +51,28 @@ export const useConnectionValidation = ({
     setConnectionValidation({ status: 'validating' });
 
     const baseUrl = sourceMode === 'prerecorded' ? datasetUrl.trim() : endpointUrl.trim();
-    const secretValue = sourceMode === 'prerecorded' ? accessToken.trim() : apiKeySecretRef.trim();
     const modelId =
       sourceMode === 'model' ? modelName.trim() : sourceMode === 'agent' ? agentName.trim() : '';
 
     try {
       /* eslint-disable camelcase */
+      const secretFields: Pick<VerifyConnectionRequest, 'secret_name' | 'secret_value'> = {};
+      if (sourceMode === 'prerecorded') {
+        const token = accessToken.trim();
+        if (token) {
+          secretFields.secret_value = token;
+        }
+      } else {
+        const name = apiKeySecretRef.trim();
+        if (name) {
+          secretFields.secret_name = name;
+        }
+      }
+
       const request: VerifyConnectionRequest = {
         source_type: sourceMode,
         base_url: baseUrl,
-        ...(secretValue ? { secret_value: secretValue } : {}),
+        ...secretFields,
         ...(modelId ? { model_id: modelId } : {}),
       };
       /* eslint-enable camelcase */
