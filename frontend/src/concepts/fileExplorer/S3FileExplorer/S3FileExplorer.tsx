@@ -118,8 +118,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [loadingToRender, setLoadingToRender] = useState(false);
   const [hasNextPage, setHasNextPage] = useState(false);
 
-  const [pageToRender, setPageToRender] = useState<number | undefined>(1);
-  const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
+  const [pageToRender, setPageToRender] = useState(1);
+  const [perPageToRender, setPerPageToRender] = useState(DEFAULT_PER_PAGE);
   const [currentPath, setCurrentPath] = useState('/');
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
@@ -272,7 +272,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     () =>
       debounce((query: string) => {
         appliedSearchRef.current = query;
-        const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
+        const perPage = perPageToRender;
         setPageToRender(1);
         continuationTokensRef.current = new Map();
         fetchPath(currentPath, perPage, 1, query || undefined);
@@ -421,13 +421,13 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const handleNavigate = useCallback(
     (folder: Folder) => {
-      navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
+      navigateTo(folder.path, perPageToRender);
     },
     [navigateTo, perPageToRender],
   );
 
   const handleNavigateRoot = useCallback(() => {
-    navigateTo('/', perPageToRender ?? DEFAULT_PER_PAGE);
+    navigateTo('/', perPageToRender);
   }, [navigateTo, perPageToRender]);
 
   const handleSearch = useCallback(
@@ -439,8 +439,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const handleSetPage = useCallback(
     (newPage: number) => {
-      const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
-      const currentPage = pageToRender ?? 1;
+      const perPage = perPageToRender;
+      const currentPage = pageToRender;
 
       if (newPage > currentPage) {
         // Going forward: store the current result's next token for this page transition
