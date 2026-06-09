@@ -14,7 +14,77 @@ import (
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
+type UserEnvelope Envelope[*models.User, None]
+type NamespacesEnvelope Envelope[[]models.NamespaceModel, None]
 type SecretsEnvelope Envelope[[]models.SecretListItem, None]
+
+func (app *App) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	userInfo, err := app.k8sService.GetUserInfo(r.Context())
+	if err != nil {
+		switch {
+		case errors.Is(err, kubernetes.ErrUnauthorized):
+			app.unauthorizedResponse(w, r, "access unauthorized")
+			return
+		case errors.Is(err, kubernetes.ErrForbidden):
+			app.forbiddenResponse(w, r, "insufficient permissions to retrieve user information")
+			return
+		default:
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	}
+
+	user := &models.User{
+		UserID:       userInfo.UserID,
+		ClusterAdmin: userInfo.ClusterAdmin,
+	}
+
+	userRes := UserEnvelope{
+		Data: user,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, userRes, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	namespaceInfos, err := app.k8sService.GetAccessibleNamespaceInfos(ctx)
+	if err != nil {
+		switch {
+		case errors.Is(err, kubernetes.ErrUnauthorized):
+			app.unauthorizedResponse(w, r, "access unauthorized")
+			return
+		case errors.Is(err, kubernetes.ErrForbidden):
+			app.forbiddenResponse(w, r, "insufficient permissions to list namespaces")
+			return
+		default:
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	}
+
+	namespaces := make([]models.NamespaceModel, len(namespaceInfos))
+	for i, info := range namespaceInfos {
+		displayName := info.DisplayName
+		namespaces[i] = models.NamespaceModel{
+			Name:        info.Name,
+			DisplayName: &displayName,
+		}
+	}
+
+	namespacesEnvelope := NamespacesEnvelope{
+		Data: namespaces,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, namespacesEnvelope, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
 
 // GetSecretsHandler retrieves secrets from a namespace with optional filtering based on type.
 // Query parameters:
@@ -25,22 +95,18 @@ type SecretsEnvelope Envelope[[]models.SecretListItem, None]
 func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	// Get namespace from context (set by AttachNamespace middleware)
 	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
 		return
 	}
 
-	// Parse type (optional, default to empty string which means all secrets)
 	secretType := r.URL.Query().Get("type")
-	// Validate type parameter
 	if secretType != "" && secretType != "storage" && secretType != "ogx" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'type' must be 'storage', 'ogx', or omitted"))
 		return
 	}
 
-	// Call repository which uses autox-core for fetching and applies module-specific filtering
 	secrets, err := app.repositories.Secret.GetFilteredSecrets(app.k8sService, ctx, namespace, secretType)
 	if err != nil {
 		switch {
@@ -72,7 +138,6 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// Return response with envelope pattern
 	secretsEnvelope := SecretsEnvelope{
 		Data: secrets,
 	}

@@ -12,7 +12,77 @@ import (
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
+type UserEnvelope Envelope[*models.User, None]
+type NamespacesEnvelope Envelope[[]models.NamespaceModel, None]
 type SecretsEnvelope Envelope[[]models.SecretListItem, None]
+
+func (app *App) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	userInfo, err := app.k8sService.GetUserInfo(r.Context())
+	if err != nil {
+		switch {
+		case errors.Is(err, kubernetes.ErrUnauthorized):
+			app.unauthorizedResponse(w, r, "access unauthorized")
+			return
+		case errors.Is(err, kubernetes.ErrForbidden):
+			app.forbiddenResponse(w, r, "insufficient permissions to retrieve user information")
+			return
+		default:
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	}
+
+	user := &models.User{
+		UserID:       userInfo.UserID,
+		ClusterAdmin: userInfo.ClusterAdmin,
+	}
+
+	userRes := UserEnvelope{
+		Data: user,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, userRes, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	namespaceInfos, err := app.k8sService.GetAccessibleNamespaceInfos(ctx)
+	if err != nil {
+		switch {
+		case errors.Is(err, kubernetes.ErrUnauthorized):
+			app.unauthorizedResponse(w, r, "access unauthorized")
+			return
+		case errors.Is(err, kubernetes.ErrForbidden):
+			app.forbiddenResponse(w, r, "insufficient permissions to list namespaces")
+			return
+		default:
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	}
+
+	namespaces := make([]models.NamespaceModel, len(namespaceInfos))
+	for i, info := range namespaceInfos {
+		displayName := info.DisplayName
+		namespaces[i] = models.NamespaceModel{
+			Name:        info.Name,
+			DisplayName: &displayName,
+		}
+	}
+
+	namespacesEnvelope := NamespacesEnvelope{
+		Data: namespaces,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, namespacesEnvelope, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
 
 // GetSecretsHandler retrieves secrets from a namespace with optional filtering based on type.
 func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
