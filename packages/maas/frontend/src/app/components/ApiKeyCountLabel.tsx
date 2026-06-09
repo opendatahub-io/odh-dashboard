@@ -23,7 +23,7 @@ const ApiKeyCountLabel: React.FC<ApiKeyCountLabelProps> = ({ keyCount }) => {
   const displayUnit = !isCapped && keyCount === 1 ? 'key' : 'keys';
 
   return (
-    <Label isCompact icon={<KeyIcon />} color="green">
+    <Label isCompact icon={<KeyIcon />} color={keyCount > 0 ? 'green' : 'grey'}>
       {`${displayCount} ${displayUnit}`}
     </Label>
   );
