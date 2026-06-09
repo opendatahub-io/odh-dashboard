@@ -179,6 +179,18 @@ func (app *App) GetAgentProfileHandler(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
+	// Validate profile ID is a valid UUID
+	if _, err := uuid.Parse(profileID); err != nil {
+		app.badRequestResponse(w, r, &integrations.HTTPError{
+			StatusCode: 400,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "invalid_id",
+				Message: "profile ID must be a valid UUID",
+			},
+		})
+		return
+	}
+
 	// Get the Kubernetes client
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
@@ -242,6 +254,18 @@ func (app *App) UpdateAgentProfileHandler(w http.ResponseWriter, r *http.Request
 			ErrorResponse: integrations.ErrorResponse{
 				Code:    "missing_id",
 				Message: "profile ID is required",
+			},
+		})
+		return
+	}
+
+	// Validate profile ID is a valid UUID
+	if _, err := uuid.Parse(profileID); err != nil {
+		app.badRequestResponse(w, r, &integrations.HTTPError{
+			StatusCode: 400,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "invalid_id",
+				Message: "profile ID must be a valid UUID",
 			},
 		})
 		return
@@ -333,6 +357,18 @@ func (app *App) DeleteAgentProfileHandler(w http.ResponseWriter, r *http.Request
 			ErrorResponse: integrations.ErrorResponse{
 				Code:    "missing_id",
 				Message: "profile ID is required",
+			},
+		})
+		return
+	}
+
+	// Validate profile ID is a valid UUID
+	if _, err := uuid.Parse(profileID); err != nil {
+		app.badRequestResponse(w, r, &integrations.HTTPError{
+			StatusCode: 400,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "invalid_id",
+				Message: "profile ID must be a valid UUID",
 			},
 		})
 		return

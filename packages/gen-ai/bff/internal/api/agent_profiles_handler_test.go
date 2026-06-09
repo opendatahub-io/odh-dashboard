@@ -89,7 +89,7 @@ func TestCreateAgentProfileHandler(t *testing.T) {
 				err := json.Unmarshal(responseBody, &envelope)
 				require.NoError(t, err)
 
-				assert.Equal(t, "400", envelope.Error.Code)
+				assert.Equal(t, "invalid_request", envelope.Error.Code)
 				assert.Contains(t, envelope.Error.Message, "displayName is required")
 			},
 		},
@@ -106,7 +106,7 @@ func TestCreateAgentProfileHandler(t *testing.T) {
 				err := json.Unmarshal(responseBody, &envelope)
 				require.NoError(t, err)
 
-				assert.Equal(t, "400", envelope.Error.Code)
+				assert.Equal(t, "missing_namespace", envelope.Error.Code)
 				assert.Contains(t, envelope.Error.Message, "namespace")
 			},
 		},
@@ -313,7 +313,7 @@ spec:
 				err := json.Unmarshal(responseBody, &envelope)
 				require.NoError(t, err)
 
-				assert.Equal(t, "400", envelope.Error.Code)
+				assert.Equal(t, "missing_namespace", envelope.Error.Code)
 				assert.Contains(t, envelope.Error.Message, "namespace")
 			},
 		},
@@ -450,7 +450,7 @@ spec:
 		},
 		{
 			name:           "not found",
-			profileID:      "nonexistent-uuid",
+			profileID:      "00000000-0000-0000-0000-000000000000",
 			namespace:      testNamespace,
 			existingCM:     nil,
 			wantStatusCode: http.StatusNotFound,
@@ -472,6 +472,20 @@ spec:
 				err := json.Unmarshal(responseBody, &envelope)
 				require.NoError(t, err)
 				assert.Contains(t, envelope.Error.Message, "namespace")
+			},
+		},
+		{
+			name:           "invalid UUID format",
+			profileID:      "not-a-uuid",
+			namespace:      testNamespace,
+			existingCM:     nil,
+			wantStatusCode: http.StatusBadRequest,
+			validateFunc: func(t *testing.T, responseBody []byte) {
+				var envelope ErrorEnvelope
+				err := json.Unmarshal(responseBody, &envelope)
+				require.NoError(t, err)
+				assert.Equal(t, "invalid_id", envelope.Error.Code)
+				assert.Contains(t, envelope.Error.Message, "UUID")
 			},
 		},
 	}
@@ -624,7 +638,7 @@ spec:
 		},
 		{
 			name:      "not found",
-			profileID: "nonexistent-uuid",
+			profileID: "00000000-0000-0000-0000-000000000000",
 			namespace: testNamespace,
 			requestBody: models.AgentProfileUpdateRequest{
 				Spec: models.AgentProfileSpec{
@@ -643,6 +657,30 @@ spec:
 				err := json.Unmarshal(responseBody, &envelope)
 				require.NoError(t, err)
 				assert.Equal(t, "404", envelope.Error.Code)
+			},
+		},
+		{
+			name:      "invalid UUID format",
+			profileID: "not-a-uuid",
+			namespace: testNamespace,
+			requestBody: models.AgentProfileUpdateRequest{
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Updated Agent",
+					Model: models.ModelReference{
+						ID:  "llama-3-70b",
+						URI: "https://api.example.com/v1/models",
+					},
+				},
+				ResourceVersion: "12345",
+			},
+			existingCM:     nil,
+			wantStatusCode: http.StatusBadRequest,
+			validateFunc: func(t *testing.T, responseBody []byte) {
+				var envelope ErrorEnvelope
+				err := json.Unmarshal(responseBody, &envelope)
+				require.NoError(t, err)
+				assert.Equal(t, "invalid_id", envelope.Error.Code)
+				assert.Contains(t, envelope.Error.Message, "UUID")
 			},
 		},
 	}
@@ -752,7 +790,7 @@ spec:
 		},
 		{
 			name:           "not found",
-			profileID:      "nonexistent-uuid",
+			profileID:      "00000000-0000-0000-0000-000000000000",
 			namespace:      testNamespace,
 			existingCM:     nil,
 			wantStatusCode: http.StatusNotFound,
@@ -761,6 +799,13 @@ spec:
 			name:           "missing namespace",
 			profileID:      profileID,
 			namespace:      "",
+			existingCM:     nil,
+			wantStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:           "invalid UUID format",
+			profileID:      "not-a-uuid",
+			namespace:      testNamespace,
 			existingCM:     nil,
 			wantStatusCode: http.StatusBadRequest,
 		},
