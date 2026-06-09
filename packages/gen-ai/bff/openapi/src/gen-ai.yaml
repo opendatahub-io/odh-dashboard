@@ -4984,6 +4984,7 @@ components:
           description: Kubernetes namespace where the ConfigMap was created
         resourceVersion:
           type: string
+          minLength: 1
           example: '12345'
           description: Kubernetes resource version for optimistic concurrency
 
@@ -5099,6 +5100,7 @@ components:
           description: Profile UUID
         resourceVersion:
           type: string
+          minLength: 1
           example: '12345'
           description: Kubernetes resource version for optimistic concurrency control. Required for PUT requests.
 
@@ -5112,6 +5114,7 @@ components:
           $ref: '#/components/schemas/AgentProfileSpec'
         resourceVersion:
           type: string
+          minLength: 1
           example: '12345'
           description: Kubernetes resource version for optimistic concurrency control
       description: Request to update an agent profile with concurrency control
@@ -5144,6 +5147,7 @@ components:
           description: Kubernetes namespace
         resourceVersion:
           type: string
+          minLength: 1
           example: '12346'
           description: New Kubernetes resource version after update
 
