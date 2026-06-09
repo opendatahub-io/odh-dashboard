@@ -199,10 +199,10 @@ var _ = Describe("ModelsAAHandler", func() {
 	})
 })
 
-var _ = Describe("parseModelSources", func() {
+var _ = Describe("parseModelSourcesFromTokens", func() {
 	It("should return default sources when input is empty", func() {
 		t := GinkgoT()
-		sources, invalid := parseModelSources("")
+		sources, invalid := parseModelSourcesFromTokens([]string{})
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace], "Should include namespace by default")
 		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint], "Should include custom_endpoint by default")
@@ -212,7 +212,7 @@ var _ = Describe("parseModelSources", func() {
 
 	It("should parse single source: namespace", func() {
 		t := GinkgoT()
-		sources, invalid := parseModelSources("namespace")
+		sources, invalid := parseModelSourcesFromTokens([]string{"namespace"})
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
 		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
@@ -222,7 +222,7 @@ var _ = Describe("parseModelSources", func() {
 
 	It("should parse single source: custom_endpoint", func() {
 		t := GinkgoT()
-		sources, invalid := parseModelSources("custom_endpoint")
+		sources, invalid := parseModelSourcesFromTokens([]string{"custom_endpoint"})
 
 		assert.False(t, sources[models.ModelSourceTypeNamespace])
 		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
@@ -232,7 +232,7 @@ var _ = Describe("parseModelSources", func() {
 
 	It("should parse single source: maas", func() {
 		t := GinkgoT()
-		sources, invalid := parseModelSources("maas")
+		sources, invalid := parseModelSourcesFromTokens([]string{"maas"})
 
 		assert.False(t, sources[models.ModelSourceTypeNamespace])
 		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
@@ -242,7 +242,7 @@ var _ = Describe("parseModelSources", func() {
 
 	It("should parse multiple sources: namespace,maas", func() {
 		t := GinkgoT()
-		sources, invalid := parseModelSources("namespace,maas")
+		sources, invalid := parseModelSourcesFromTokens([]string{"namespace", "maas"})
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
 		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
@@ -252,7 +252,7 @@ var _ = Describe("parseModelSources", func() {
 
 	It("should parse multiple sources: custom_endpoint,maas", func() {
 		t := GinkgoT()
-		sources, invalid := parseModelSources("custom_endpoint,maas")
+		sources, invalid := parseModelSourcesFromTokens([]string{"custom_endpoint", "maas"})
 
 		assert.False(t, sources[models.ModelSourceTypeNamespace])
 		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
@@ -262,7 +262,7 @@ var _ = Describe("parseModelSources", func() {
 
 	It("should parse all sources: namespace,custom_endpoint,maas", func() {
 		t := GinkgoT()
-		sources, invalid := parseModelSources("namespace,custom_endpoint,maas")
+		sources, invalid := parseModelSourcesFromTokens([]string{"namespace", "custom_endpoint", "maas"})
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
 		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
@@ -272,7 +272,7 @@ var _ = Describe("parseModelSources", func() {
 
 	It("should return invalid sources", func() {
 		t := GinkgoT()
-		sources, invalid := parseModelSources("namespace,invalid,maas")
+		sources, invalid := parseModelSourcesFromTokens([]string{"namespace", "invalid", "maas"})
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
 		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
@@ -281,14 +281,13 @@ var _ = Describe("parseModelSources", func() {
 		assert.Len(t, invalid, 1, "Should have exactly 1 invalid source")
 	})
 
-	It("should handle whitespace in source list", func() {
+	It("should handle duplicates", func() {
 		t := GinkgoT()
-		sources, invalid := parseModelSources("namespace , maas , custom_endpoint")
+		sources, invalid := parseModelSourcesFromTokens([]string{"namespace", "namespace", "maas"})
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
-		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
 		assert.True(t, sources[models.ModelSourceTypeMaaS])
-		assert.Empty(t, invalid)
+		assert.Contains(t, invalid, "namespace (duplicate)")
 	})
 })
 
@@ -740,8 +739,9 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		assert.Equal(t, http.StatusServiceUnavailable, rr.Code, "Should return 503 when MaaS is unavailable and it's the only source")
 	})
 
-	It("should reject empty tokens in sources parameter", func() {
+	It("should skip empty tokens in sources parameter", func() {
 		t := GinkgoT()
+		// Empty tokens are silently filtered out during parsing
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace,,maas", nil)
 		assert.NoError(t, err)
 
@@ -755,7 +755,7 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		rr := httptest.NewRecorder()
 		app.ModelsAAHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should return 400 for empty token in sources")
+		assert.Equal(t, http.StatusOK, rr.Code, "Should accept sources with empty tokens (they are filtered out)")
 	})
 
 	It("should reject duplicate tokens in sources parameter", func() {
@@ -794,9 +794,10 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should return 400 for more than 3 tokens in sources")
 	})
 
-	It("should reject multiple sources query parameters", func() {
+	It("should accept multiple sources query parameters (repeated format)", func() {
 		t := GinkgoT()
-		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace&sources=invalid", nil)
+		// Test that ?sources=namespace&sources=maas works (standard HTTP array format)
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace&sources=maas", nil)
 		assert.NoError(t, err)
 
 		ctx := context.Background()
@@ -809,7 +810,12 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		rr := httptest.NewRecorder()
 		app.ModelsAAHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should return 400 for multiple sources parameters")
-		assert.Contains(t, rr.Body.String(), "multiple 'sources' parameters not allowed")
+		assert.Equal(t, http.StatusOK, rr.Code, "Should accept repeated sources parameters")
+
+		var response ModelsAAEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		// Should have namespace and maas models
+		assert.NotNil(t, response.Data)
 	})
 })

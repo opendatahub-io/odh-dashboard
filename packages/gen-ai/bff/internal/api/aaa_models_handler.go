@@ -33,20 +33,27 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 		return
 	}
 
-	// Parse sources query parameter (comma-separated list: namespace,custom_endpoint,maas)
+	// Parse sources query parameter
+	// Supports both formats:
+	//   - Comma-separated: ?sources=namespace,maas (OpenAPI explode: false)
+	//   - Repeated parameters: ?sources=namespace&sources=maas (standard HTTP arrays)
 	// Default to namespace and custom_endpoint if not specified
-	// Reject requests with multiple "sources" parameters
 	sourcesParams := r.URL.Query()["sources"]
-	if len(sourcesParams) > 1 {
-		app.badRequestResponse(w, r, fmt.Errorf("multiple 'sources' parameters not allowed"))
-		return
+
+	// Flatten comma-separated values into individual tokens
+	var sourceTokens []string
+	for _, param := range sourcesParams {
+		// Split by comma to support both ?sources=a,b and ?sources=a&sources=b
+		tokens := strings.Split(param, ",")
+		for _, token := range tokens {
+			token = strings.TrimSpace(token)
+			if token != "" {
+				sourceTokens = append(sourceTokens, token)
+			}
+		}
 	}
 
-	sourcesParam := ""
-	if len(sourcesParams) == 1 {
-		sourcesParam = sourcesParams[0]
-	}
-	requestedSources, invalidSources := parseModelSources(sourcesParam)
+	requestedSources, invalidSources := parseModelSourcesFromTokens(sourceTokens)
 
 	// Validate that no invalid sources were provided
 	if len(invalidSources) > 0 {
@@ -106,47 +113,31 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	}
 }
 
-// parseModelSources parses the sources query parameter into a map of requested source types.
-// If sourcesParam is empty, defaults to namespace and custom_endpoint.
+// parseModelSourcesFromTokens parses source tokens into a map of requested source types.
+// If tokens slice is empty, defaults to namespace and custom_endpoint.
 // Returns valid sources map and a slice of invalid source tokens.
 // Validation rules:
-//   - Empty tokens (e.g., "namespace,,maas" or trailing comma) are invalid
 //   - Duplicate tokens are invalid
-//   - Maximum 3 tokens allowed
+//   - Maximum 3 unique tokens allowed
 //
-// Example: "namespace,maas" -> {namespace: true, maas: true}, []
-// Example: "namespace,invalid" -> {namespace: true}, ["invalid"]
-// Example: "namespace,namespace" -> {namespace: true}, ["namespace (duplicate)"]
-func parseModelSources(sourcesParam string) (map[models.ModelSourceTypeEnum]bool, []string) {
+// Example: ["namespace", "maas"] -> {namespace: true, maas: true}, []
+// Example: ["namespace", "invalid"] -> {namespace: true}, ["invalid"]
+// Example: ["namespace", "namespace"] -> {namespace: true}, ["namespace (duplicate)"]
+func parseModelSourcesFromTokens(tokens []string) (map[models.ModelSourceTypeEnum]bool, []string) {
 	sources := make(map[models.ModelSourceTypeEnum]bool)
 	var invalidSources []string
 
 	// Default sources if not specified
-	if sourcesParam == "" {
+	if len(tokens) == 0 {
 		sources[models.ModelSourceTypeNamespace] = true
 		sources[models.ModelSourceTypeCustomEndpoint] = true
 		return sources, invalidSources
 	}
 
-	// Parse comma-separated list
-	tokens := strings.Split(sourcesParam, ",")
 	const maxTokens = 3
-	if len(tokens) > maxTokens {
-		invalidSources = append(invalidSources, "too many sources (max 3)")
-		return sources, invalidSources
-	}
-
 	seenTokens := make(map[string]bool)
 
 	for _, token := range tokens {
-		token = strings.TrimSpace(token)
-
-		// Reject empty tokens
-		if token == "" {
-			invalidSources = append(invalidSources, "(empty token)")
-			continue
-		}
-
 		// Reject duplicates
 		if seenTokens[token] {
 			invalidSources = append(invalidSources, token+" (duplicate)")
@@ -166,6 +157,11 @@ func parseModelSources(sourcesParam string) (map[models.ModelSourceTypeEnum]bool
 			// Track unknown/invalid source tokens
 			invalidSources = append(invalidSources, token)
 		}
+	}
+
+	// Check max tokens after deduplication
+	if len(seenTokens) > maxTokens {
+		invalidSources = append(invalidSources, "too many sources (max 3)")
 	}
 
 	return sources, invalidSources
