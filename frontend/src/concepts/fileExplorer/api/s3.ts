@@ -26,7 +26,7 @@ export type GetFilesOptions = {
 // Public --------------------------------------------------------------------->
 
 /**
- * getFiles: Fetch files from the S3 BFF endpoint `GET /api/v1/s3/files`
+ * getFiles: Fetch files from the S3 BFF endpoint `GET {apiPath}/files`
  *
  * @param {string} host - Base path for API requests (e.g. '' for same-origin)
  * @param {RequestOptions} requestOptions - Allows the request behaviour to be configured (e.g. abort signal)
