@@ -839,7 +839,8 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		assert.NoError(t, err)
 
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace")
+		// Use mock-test-namespace-2 which has namespace models
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -856,14 +857,19 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
-		// Verify MaaS model is present
+		// Verify both MaaS and namespace models are present
+		// (test uses ?sources=namespace&sources=maas)
 		hasMaaSModel := false
+		hasNamespaceModel := false
 		for _, model := range response.Data {
 			if model.ModelSourceType == models.ModelSourceTypeMaaS && model.ModelID == "test-maas-model" {
 				hasMaaSModel = true
-				break
+			}
+			if model.ModelSourceType == models.ModelSourceTypeNamespace {
+				hasNamespaceModel = true
 			}
 		}
 		assert.True(t, hasMaaSModel, "Should include the MaaS model from repeated sources parameters")
+		assert.True(t, hasNamespaceModel, "Should include namespace models from repeated sources parameters")
 	})
 })
