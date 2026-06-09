@@ -5092,6 +5092,7 @@ components:
       type: object
       required:
         - name
+        - resourceVersion
       properties:
         name:
           type: string

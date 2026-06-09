@@ -11,7 +11,7 @@ type AgentProfile struct {
 // AgentProfileMetadata contains identifying information for an agent profile
 type AgentProfileMetadata struct {
 	Name            string `json:"name" yaml:"name"`
-	ResourceVersion string `json:"resourceVersion,omitempty" yaml:"-"` // K8s metadata, not stored in YAML
+	ResourceVersion string `json:"resourceVersion" yaml:"-"` // K8s metadata, not stored in YAML
 }
 
 // AgentProfileSpec defines the desired state of an agent profile
