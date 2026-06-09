@@ -174,19 +174,38 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 
 // handleBFFClientError maps BFF client errors to appropriate HTTP responses
 func (app *App) handleBFFClientError(w http.ResponseWriter, r *http.Request, err error) {
-	// Try direct type assertion first
 	var bffErr *bffclient.BFFClientError
 	if errors.As(err, &bffErr) {
+		// Validate status code range to prevent WriteHeader panics
 		statusCode := bffErr.StatusCode
-		if statusCode == 0 {
+		if statusCode < 100 || statusCode > 999 {
 			statusCode = http.StatusBadGateway
+		}
+
+		// For server errors (5xx), use generic message for client and log full details
+		// For client errors (4xx), include the original message
+		message := bffErr.Message
+		if statusCode >= 500 {
+			// Log the full error details internally for debugging
+			logger := helper.GetContextLoggerFromReq(r)
+			logger.Error("BFF client error (5xx)",
+				"status", statusCode,
+				"code", bffErr.Code,
+				"message", bffErr.Message,
+				"target", bffErr.Target,
+			)
+			// Use generic message for client
+			message = http.StatusText(statusCode)
+			if message == "" {
+				message = "internal server error"
+			}
 		}
 
 		httpError := &integrations.HTTPError{
 			StatusCode: statusCode,
 			ErrorResponse: integrations.ErrorResponse{
 				Code:    bffErr.Code,
-				Message: bffErr.Message,
+				Message: message,
 			},
 		}
 		app.errorResponse(w, r, httpError)
