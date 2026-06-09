@@ -96,23 +96,37 @@ jobs:
           set -euo pipefail
           echo "::group::Testing hermetic npm install with network disabled"
 
-          # Remove node_modules to force fresh install from lockfile
-          rm -rf node_modules
+          # Use Docker with --network=none to simulate Konflux/Hermeto build environment
+          # GitHub Actions doesn't allow unshare (requires CAP_SYS_ADMIN)
+          # Docker network isolation is the next best alternative
 
-          # Install with network disabled using unshare
-          # --net creates new network namespace (no network access)
-          # This simulates Konflux/Hermeto build environment
-          if ! unshare --net npm install --prefer-offline --no-audit 2>&1 | tee /tmp/npm-install.log; then
+          # Create Dockerfile for hermetic test
+          cat > Dockerfile.hermetic-test <<'DOCKERFILE'
+          FROM node:22-alpine
+          WORKDIR /test
+          # Copy package files
+          COPY package.json package-lock.json ./
+          COPY packages ./packages
+          # Install with network disabled (simulates hermetic build)
+          RUN npm install --prefer-offline --no-audit
+          DOCKERFILE
+
+          # Build with network disabled
+          if ! docker build --network=none -f Dockerfile.hermetic-test -t hermetic-test . 2>&1 | tee /tmp/hermetic-build.log; then
             echo "❌ FAIL: Hermetic install failed (network disabled)"
             echo ""
             echo "This means package-lock.json is incomplete or has dynamic resolution."
             echo "All dependencies must be resolvable from the lockfile without network access."
             echo ""
-            echo "::group::Last 30 lines of npm output"
-            tail -30 /tmp/npm-install.log
+            echo "::group::Last 50 lines of build output"
+            tail -50 /tmp/hermetic-build.log
             echo "::endgroup::"
             exit 1
           fi
+
+          # Cleanup
+          docker rmi hermetic-test || true
+          rm -f Dockerfile.hermetic-test
 
           echo "✅ PASS: Hermetic install succeeded (all dependencies resolved from lockfile)"
           echo "::endgroup::"
