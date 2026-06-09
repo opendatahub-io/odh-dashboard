@@ -12,12 +12,16 @@ import './ChatbotFileSearchResults.scss';
 
 type ChatbotFileSearchResultsProps = {
   fileSearchData: FileSearchCallData;
+  citationMap?: Map<string, number>;
+  expandedCitation?: number;
+  onCitationExpanded?: () => void;
 };
 
 type FileGroup = {
   filename: string;
   chunks: FileSearchResult[];
   bestScore: number;
+  citationNumber?: number;
 };
 
 const MAX_SNIPPET_LENGTH = 200;
@@ -44,7 +48,10 @@ const getScoreColor = (score: number): string => {
 
 const formatScore = (score: number): string => score.toFixed(2);
 
-const groupResultsByFile = (results: FileSearchResult[]): FileGroup[] => {
+const groupResultsByFile = (
+  results: FileSearchResult[],
+  citationMap?: Map<string, number>,
+): FileGroup[] => {
   const groups = new Map<string, FileSearchResult[]>();
 
   for (const result of results) {
@@ -61,6 +68,7 @@ const groupResultsByFile = (results: FileSearchResult[]): FileGroup[] => {
     filename,
     chunks,
     bestScore: Math.max(...chunks.map((c) => c.score)),
+    citationNumber: citationMap?.get(filename),
   }));
 };
 
@@ -126,20 +134,34 @@ const ChunkRow: React.FC<ChunkRowProps> = ({ chunk, index, groupIndex }) => {
 type FileGroupRowProps = {
   group: FileGroup;
   index: number;
+  isForceExpanded?: boolean;
 };
 
-const FileGroupRow: React.FC<FileGroupRowProps> = ({ group, index }) => {
+const FileGroupRow: React.FC<FileGroupRowProps> = ({ group, index, isForceExpanded }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const ToggleIcon = isExpanded ? AngleDownIcon : AngleRightIcon;
+  const expanded = isForceExpanded || isExpanded;
+  const ToggleIcon = expanded ? AngleDownIcon : AngleRightIcon;
   const chunkCount = group.chunks.length;
+  const groupRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (isForceExpanded) {
+      setIsExpanded(true);
+      groupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isForceExpanded]);
 
   return (
-    <div className="chatbot-file-search__file-group" data-testid={`file-search-group-${index}`}>
+    <div
+      ref={groupRef}
+      className={`chatbot-file-search__file-group${isForceExpanded ? ' m-highlighted' : ''}`}
+      data-testid={`file-search-group-${index}`}
+    >
       <button
         type="button"
         className="chatbot-file-search__row-toggle"
         onClick={() => setIsExpanded((prev) => !prev)}
-        aria-expanded={isExpanded}
+        aria-expanded={expanded}
         data-testid={`file-search-group-${index}-toggle`}
       >
         <Flex
@@ -148,6 +170,14 @@ const FileGroupRow: React.FC<FileGroupRowProps> = ({ group, index }) => {
         >
           <FlexItem>
             <ToggleIcon className="chatbot-file-search__row-toggle-icon" />
+            {group.citationNumber != null && (
+              <span
+                className="chatbot-file-search__citation-badge"
+                data-testid={`file-search-group-${index}-citation`}
+              >
+                [{group.citationNumber}]
+              </span>
+            )}
             <span className="chatbot-file-search__filename">{group.filename}</span>
           </FlexItem>
           <FlexItem>
@@ -161,7 +191,7 @@ const FileGroupRow: React.FC<FileGroupRowProps> = ({ group, index }) => {
           </FlexItem>
         </Flex>
       </button>
-      {isExpanded && (
+      {expanded && (
         <div className="chatbot-file-search__chunks">
           {group.chunks.map((chunk, chunkIndex) => (
             <ChunkRow
@@ -177,17 +207,33 @@ const FileGroupRow: React.FC<FileGroupRowProps> = ({ group, index }) => {
   );
 };
 
-const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({ fileSearchData }) => {
+const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
+  fileSearchData,
+  citationMap,
+  expandedCitation,
+  onCitationExpanded,
+}) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const toggleId = React.useId();
   const contentId = React.useId();
 
   const { queries, results } = fileSearchData;
 
-  const fileGroups = React.useMemo(() => groupResultsByFile(results), [results]);
+  const fileGroups = React.useMemo(
+    () => groupResultsByFile(results, citationMap),
+    [results, citationMap],
+  );
 
   const totalSources = fileGroups.length;
   const totalChunks = results.length;
+
+  // Auto-expand when a citation is clicked
+  React.useEffect(() => {
+    if (expandedCitation != null) {
+      setIsExpanded(true);
+      onCitationExpanded?.();
+    }
+  }, [expandedCitation, onCitationExpanded]);
 
   return (
     <div className="chatbot-file-search" data-testid="file-search-results">
@@ -220,7 +266,14 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({ fil
           )}
           <div className="chatbot-file-search__table">
             {fileGroups.map((group, index) => (
-              <FileGroupRow key={group.filename} group={group} index={index} />
+              <FileGroupRow
+                key={group.filename}
+                group={group}
+                index={index}
+                isForceExpanded={
+                  expandedCitation != null && group.citationNumber === expandedCitation
+                }
+              />
             ))}
           </div>
         </div>

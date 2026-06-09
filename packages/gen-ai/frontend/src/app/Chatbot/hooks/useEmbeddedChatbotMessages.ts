@@ -257,18 +257,6 @@ const useEmbeddedChatbotMessages = ({
           clearTimeout(timeoutRef.current);
         }
 
-        // Build sources prop
-        const sourcesProps = streamingResponse.sources?.length
-          ? {
-              sources: {
-                sources: streamingResponse.sources.map((source) => ({
-                  ...source,
-                  onClick: (e: React.MouseEvent) => e.preventDefault(),
-                })),
-              },
-            }
-          : {};
-
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
             msg.id === botMessageId
@@ -276,7 +264,12 @@ const useEmbeddedChatbotMessages = ({
                   ...msg,
                   content: streamingResponse.content,
                   isLoading: false,
-                  ...sourcesProps,
+                  ...(streamingResponse.annotations && {
+                    annotations: streamingResponse.annotations,
+                  }),
+                  ...(streamingResponse.citationMap && {
+                    citationMap: streamingResponse.citationMap,
+                  }),
                   ...(streamingResponse.fileSearchData && {
                     fileSearchData: streamingResponse.fileSearchData,
                   }),

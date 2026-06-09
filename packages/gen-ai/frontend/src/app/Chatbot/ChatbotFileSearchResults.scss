@@ -29,6 +29,17 @@
     & + & {
       border-top: 1px solid var(--pf-t--global--border--color--default);
     }
+
+    &.m-highlighted {
+      background-color: var(--pf-t--global--background--color--primary--default);
+    }
+  }
+
+  &__citation-badge {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+    font-size: var(--pf-t--global--font--size--xs);
+    color: var(--pf-t--global--text--color--link--default);
+    margin-right: var(--pf-t--global--spacer--xs);
   }
 
   &__row-toggle {

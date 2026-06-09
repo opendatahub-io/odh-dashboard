@@ -9,6 +9,7 @@ import {
   ApiError,
   ChatMessageRole,
   CreateResponseRequest,
+  FileCitationAnnotation,
   FileSearchCallData,
   GuardrailInlineConfig,
   isApiError,
@@ -53,6 +54,8 @@ export type ChatbotMessageProps = MessageProps & {
   errorClassification?: ClassifiedError;
   onRetryError?: () => void;
   fileSearchData?: FileSearchCallData;
+  annotations?: FileCitationAnnotation[];
+  citationMap?: Map<string, number>;
 };
 
 export interface UseChatbotMessagesReturn {
@@ -678,6 +681,12 @@ const useChatbotMessages = ({
                   ...(thinkingCollapsible && {
                     extraContent: { ...msg.extraContent, beforeMainContent: thinkingCollapsible },
                   }),
+                  ...(streamingResponse.annotations && {
+                    annotations: streamingResponse.annotations,
+                  }),
+                  ...(streamingResponse.citationMap && {
+                    citationMap: streamingResponse.citationMap,
+                  }),
                   ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
                   ...(streamingResponse.fileSearchData && {
                     fileSearchData: streamingResponse.fileSearchData,
@@ -734,6 +743,8 @@ const useChatbotMessages = ({
                     extraContent: { beforeMainContent: thinkingCollapsible },
                   }),
                   ...sourcesProps,
+                  ...(response.annotations && { annotations: response.annotations }),
+                  ...(response.citationMap && { citationMap: response.citationMap }),
                   ...(response.metrics && { metrics: response.metrics }),
                   ...(response.fileSearchData && { fileSearchData: response.fileSearchData }),
                 }

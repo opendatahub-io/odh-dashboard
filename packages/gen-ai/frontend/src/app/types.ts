@@ -214,6 +214,8 @@ export type SimplifiedResponseData = {
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
+  annotations?: FileCitationAnnotation[];
+  citationMap?: Map<string, number>;
   metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
   reasoningContent?: string; // Optional - accumulated reasoning/thinking text from thinking models
   fileSearchData?: FileSearchCallData; // Optional - RAG retrieval context (queries, results with scores)
