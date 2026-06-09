@@ -403,6 +403,29 @@ describe('HardwareProfileSelect - LocalQueue filtering', () => {
     expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
   });
 
+  it('should not apply localQueueName filtering while localQueues are loading', async () => {
+    const project = mockProjectK8sResource({});
+    const loadingLocalQueues: FetchStateObject<LocalQueueKind[]> = {
+      ...DEFAULT_LIST_FETCH_STATE,
+      data: [],
+      loaded: false,
+    };
+
+    renderComponent(
+      mockProfiles,
+      project,
+      KueueFilteringState.ONLY_KUEUE_PROFILES,
+      [],
+      undefined,
+      false,
+      loadingLocalQueues,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+    expect(screen.getByText('Kueue Profile')).toBeInTheDocument();
+    expect(screen.getByText('Kueue Profile 2')).toBeInTheDocument();
+  });
+
   it('should hide all Kueue profiles when no localQueues are available in the project', () => {
     const project = mockProjectK8sResource({});
 

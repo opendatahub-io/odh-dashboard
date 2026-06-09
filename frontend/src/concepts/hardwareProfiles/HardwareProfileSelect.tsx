@@ -105,10 +105,16 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const { kueueFilteringState } = useKueueConfiguration(projectForKueue);
 
-  const availableLocalQueueNames = React.useMemo(
-    () => new Set(localQueues.data.map((lq) => lq.metadata.name)),
-    [localQueues.data],
-  );
+  const availableLocalQueueNames = React.useMemo<Set<string> | undefined>(() => {
+    if (!localQueues.loaded) {
+      return undefined;
+    }
+    return new Set(
+      localQueues.data
+        .map((lq) => lq.metadata?.name)
+        .filter((name): name is string => name != null),
+    );
+  }, [localQueues.loaded, localQueues.data]);
 
   const options = React.useMemo(() => {
     const enabledProfiles = orderHardwareProfiles(
