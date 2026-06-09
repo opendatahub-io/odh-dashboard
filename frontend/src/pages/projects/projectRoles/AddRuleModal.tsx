@@ -50,13 +50,43 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
     if (!existingRule?.resources) {
       return [];
     }
-    const apiGroups = existingRule.apiGroups ?? [''];
     return existingRule.resources.map((r) => ({
-      id: `${apiGroups[0]}/${r}`,
+      id: r,
       name: r,
       selected: true,
     }));
   });
+
+  const hasReconciled = React.useRef(false);
+  React.useEffect(() => {
+    if (!apiResourcesLoaded || !existingRule?.resources?.length || hasReconciled.current) {
+      return;
+    }
+    hasReconciled.current = true;
+
+    const discoveredByName = new Map<string, DiscoveredResource[]>();
+    for (const r of apiResourcesData.resources) {
+      const list = discoveredByName.get(r.name) ?? [];
+      list.push(r);
+      discoveredByName.set(r.name, list);
+    }
+    const ruleGroups = new Set(existingRule.apiGroups ?? ['']);
+
+    setSelectedResources((prev) =>
+      prev.map((sel) => {
+        const candidates = discoveredByName.get(sel.name);
+        if (!candidates?.length) {
+          return sel;
+        }
+        const best = candidates.find((r) => ruleGroups.has(r.apiGroup)) ?? candidates[0];
+        return {
+          ...sel,
+          id: `${best.apiGroup}/${best.name}`,
+          description: `${best.apiGroup || 'core'} — ${best.kind}`,
+        };
+      }),
+    );
+  }, [apiResourcesLoaded, apiResourcesData.resources, existingRule]);
 
   const [selectedVerbs, setSelectedVerbs] = React.useState<string[]>(
     () => existingRule?.verbs ?? [],
