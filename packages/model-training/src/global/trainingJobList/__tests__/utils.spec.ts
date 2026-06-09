@@ -775,6 +775,71 @@ describe('getTrainingJobStatus', () => {
     expect(result.isLoading).toBe(false);
   });
 
+  it('should return INADMISSIBLE when QuotaReserved=False with reason Pending but message indicates request exceeds maximum capacity', async () => {
+    const job = mockTrainJobK8sResource({
+      name: TEST_JOB_NAME,
+    });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: insufficient quota for cpu in flavor default-flavor, request > maximum capacity (6 > 5)",
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
+
+    const result = await getTrainingJobStatus(job);
+    expect(result.status).toBe(TrainingJobState.INADMISSIBLE);
+    expect(result.isLoading).toBe(false);
+  });
+
+  it('should return INADMISSIBLE when QuotaReserved=False with reason Pending but message indicates resource unavailable in ClusterQueue', async () => {
+    const job = mockTrainJobK8sResource({
+      name: TEST_JOB_NAME,
+    });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: resource nvidia.com/gpu unavailable in ClusterQueue",
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
+
+    const result = await getTrainingJobStatus(job);
+    expect(result.status).toBe(TrainingJobState.INADMISSIBLE);
+    expect(result.isLoading).toBe(false);
+  });
+
+  it('should return QUEUED when QuotaReserved=False with insufficient unused quota message (temporary)', async () => {
+    const job = mockTrainJobK8sResource({
+      name: TEST_JOB_NAME,
+      status: TrainingJobState.CREATED,
+      jobsStatus: [],
+    });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: insufficient unused quota for cpu in flavor default-flavor, 2 more needed",
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
+
+    const result = await getTrainingJobStatus(job);
+    expect(result.status).toBe(TrainingJobState.QUEUED);
+    expect(result.isLoading).toBe(false);
+  });
+
   it('should return FAILED from Workload Finished condition', async () => {
     const job = mockTrainJobK8sResource({
       name: TEST_JOB_NAME,
