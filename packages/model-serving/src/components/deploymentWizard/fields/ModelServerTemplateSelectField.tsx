@@ -18,7 +18,7 @@ import {
   ProjectScopedSearchDropdown,
 } from '@odh-dashboard/internal/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/internal/components/searchSelector/ProjectScopedToggleContent';
-import { IdentifierResourceType } from '@odh-dashboard/internal/types';
+import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 

@@ -1,7 +1,11 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
-import type { EnvironmentFromVariable } from '@odh-dashboard/k8s-core';
-import { ImageStreamAndVersion, KeyValuePair, Volume, VolumeMount } from '#~/types';
-import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type {
+  EnvironmentFromVariable,
+  Volume,
+  VolumeMount,
+  PersistentVolumeClaimKind,
+} from '@odh-dashboard/k8s-core';
+import { ImageStreamAndVersion, KeyValuePair } from '#~/types';
+import { NotebookKind } from '#~/k8sTypes';
 import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { Connection } from '#~/concepts/connectionTypes/types.ts';

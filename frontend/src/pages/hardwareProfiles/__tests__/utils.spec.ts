@@ -1,5 +1,6 @@
+import { type Identifier, IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import { Identifier, IdentifierResourceType } from '#~/types';
 import {
   determineIdentifierUnit,
   filterRecognizedVisibility,
@@ -9,7 +10,6 @@ import {
 } from '#~/pages/hardwareProfiles/utils';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, OTHER } from '#~/utilities/valueUnits';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({

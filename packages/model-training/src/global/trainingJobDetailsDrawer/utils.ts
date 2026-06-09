@@ -1,4 +1,5 @@
-import { ClusterQueueKind, PodKind } from '@odh-dashboard/internal/k8sTypes.js';
+import type { PodKind } from '@odh-dashboard/k8s-core';
+import { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes.js';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,

@@ -14,11 +14,11 @@ import {
   FormHelperText,
 } from '@patternfly/react-core';
 import * as React from 'react';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { formatResource, formatResourceValue } from '#~/concepts/hardwareProfiles/utils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import { HardwareProfileKind } from '#~/k8sTypes';
 import TruncatedText from '#~/components/TruncatedText';
 import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon.tsx';
 import {

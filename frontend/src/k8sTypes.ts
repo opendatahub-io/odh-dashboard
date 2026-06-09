@@ -1,57 +1,27 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
 import {
   KnownLabels,
   MetadataAnnotation,
-  HardwareProfileFeatureVisibility,
-} from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
-import type {
-  DisplayNameAnnotations,
-  K8sCondition,
-  PodSpec,
-  SupportedModelFormats,
-  SecretKind,
+  ContainerResourceAttributes,
+  type DisplayNameAnnotations,
+  type K8sCondition,
+  type PodSpec,
+  type SupportedModelFormats,
+  type SecretKind,
+  type ContainerResources,
+  type NodeSelector,
+  type PodAffinity,
+  type PodContainer,
+  type Toleration,
+  type Volume,
+  type VolumeMount,
+  type HardwareProfileBindingAnnotations,
 } from '@odh-dashboard/k8s-core';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
 import type { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import {
-  ContainerResourceAttributes,
-  ContainerResources,
-  ImageStreamStatusTagCondition,
-  ImageStreamStatusTagItem,
-  NodeSelector,
-  PodAffinity,
-  PodContainer,
-  Toleration,
-  Volume,
-  VolumeMount,
-  HardwareProfileBindingAnnotations,
-} from './types';
-
-export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-export { KnownLabels, MetadataAnnotation, HardwareProfileFeatureVisibility };
-export type { DisplayNameAnnotations, K8sCondition };
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
-export type {
-  DashboardLabels,
-  ModelServingProjectLabels,
-  K8sDSGResource,
-  TemplateParameter,
-  PodSpec,
-  PodContainerStatus,
-  SupportedModelFormats,
-  ProjectKind,
-  SecretKind,
-  PersistentVolumeClaimKind,
-  PodKind,
-  TemplateKind,
-  HardwareProfileKind,
-  DashboardCommonConfig,
-  DashboardConfigKind,
-} from '@odh-dashboard/k8s-core';
+import { ImageStreamStatusTagCondition, ImageStreamStatusTagItem } from './types';
 
 export type ModelRegistry = {
   name: string;

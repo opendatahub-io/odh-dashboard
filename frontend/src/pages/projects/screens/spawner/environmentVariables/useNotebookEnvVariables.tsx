@@ -1,6 +1,7 @@
 import * as React from 'react';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { getConfigMap, getSecret } from '#~/api';
-import { ConfigMapKind, NotebookKind, SecretKind } from '#~/k8sTypes';
+import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { EnvVarResourceType } from '#~/types';
 import {
   ConfigMapCategory,

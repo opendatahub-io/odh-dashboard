@@ -1,11 +1,11 @@
 import * as React from 'react';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
 } from '#~/utilities/useFetchState';
 import { getSecret } from '#~/api';
-import { SecretKind } from '#~/k8sTypes';
 
 const useExternalStorageSecret = (
   name: string | undefined,

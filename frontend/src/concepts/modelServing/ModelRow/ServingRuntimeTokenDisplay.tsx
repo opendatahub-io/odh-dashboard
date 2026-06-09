@@ -9,7 +9,7 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
-import { SecretKind } from '#~/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 
 type ServingRuntimeTokenDisplayProps = {
   token: SecretKind;

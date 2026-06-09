@@ -97,6 +97,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@odh-dashboard/k8s-core": "*",
     "@patternfly/chatbot": "^6.5.0-prerelease.22",
     "@patternfly/react-code-editor": "^6.3.1",
     "@patternfly/react-core": "^6.3.1",

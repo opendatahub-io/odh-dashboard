@@ -6,7 +6,8 @@ import { mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { IdentifierResourceType, ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,
