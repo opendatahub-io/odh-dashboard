@@ -13,6 +13,7 @@ import {
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { CodeExportRequest, FileModel, MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { GUARDRAIL_INPUT_PROMPT, GUARDRAIL_OUTPUT_PROMPT } from '~/app/Chatbot/const';
+import { substituteTemplateVariables } from '~/app/Chatbot/promptTemplateUtils';
 import { generateMCPServerConfig, getLlamaModelDisplayName } from '~/app/utilities';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -131,7 +132,6 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
 
   const [vectorStores, vectorStoresLoaded] = useFetchVectorStores();
   const { api, apiAvailable } = useGenAiAPI();
-
   // Get tool selections callback
   const toolSelections = React.useCallback(
     (cfgId: string, ns: string, url: string) =>
@@ -151,6 +151,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
       const {
         selectedModel,
         systemInstruction,
+        variableValues,
         selectedMcpServerIds,
         isRagEnabled,
         knowledgeMode,
@@ -211,7 +212,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         const request: CodeExportRequest = {
           input,
           model: selectedModel,
-          instructions: systemInstruction,
+          instructions: substituteTemplateVariables(systemInstruction, variableValues),
           stream: false,
           mcp_servers: mcpServersToUse.map((server) => {
             const serverConfig = generateMCPServerConfig(server, mcpServerTokens);
@@ -248,6 +249,9 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
             }),
           ...(activePrompt && {
             prompt: { name: activePrompt.name, version: activePrompt.version },
+            ...(Object.keys(variableValues).length > 0 && {
+              prompt_variable_values: variableValues,
+            }),
           }),
           ...(guardrail &&
             (guardrailUserInputEnabled || guardrailModelOutputEnabled) && {
