@@ -14,6 +14,7 @@ import {
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { INADMISSIBLE_MESSAGE_REGEX } from '@odh-dashboard/internal/concepts/kueue';
 import type { JobsFilterDataType } from './const';
 import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
 import {
@@ -158,15 +159,6 @@ export const getStatusInfo = (
       };
   }
 };
-
-/**
- * Matches Kueue condition messages that indicate a workload is permanently inadmissible
- * (can never be admitted without cluster configuration changes), even when the condition
- * reason is 'Pending'. Examples:
- * - "request > maximum capacity (6 > 5)" — pod set requests more than the flavor can provide
- * - "resource nvidia.com/gpu unavailable in ClusterQueue" — resource not defined in the queue
- */
-const INADMISSIBLE_MESSAGE_REGEX = /request > maximum capacity|resource .+ unavailable in/i;
 
 /**
  * Extract and categorize workload conditions by status type
