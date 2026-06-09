@@ -50,6 +50,15 @@ filters:
     labels:
       - area/manifests
 
+  # Dashboard Module Controller (operator)
+  'dashboard-operator/.*':
+    approvers:
+      - platform-approvers
+    reviewers:
+      - platform-reviewers
+    labels:
+      - 'area/platform'
+
   # Cypress tests
   'packages/cypress/.*':
     approvers:

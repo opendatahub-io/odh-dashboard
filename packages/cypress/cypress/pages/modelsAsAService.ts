@@ -319,6 +319,20 @@ class CreateApiKeyModal extends Modal {
     return this.find().findByTestId('subscription-models-table');
   }
 
+  findSubscriptionModelDisplayName(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find()
+      .findByTestId('subscription-models-table')
+      .contains('tr', modelName)
+      .findByTestId('table-row-title');
+  }
+
+  findSubscriptionModelDescription(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find()
+      .findByTestId('subscription-models-table')
+      .contains('tr', modelName)
+      .findByTestId('table-row-title-description');
+  }
+
   findSubscriptionModelRateLimit(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find()
       .findByTestId('subscription-models-table')
