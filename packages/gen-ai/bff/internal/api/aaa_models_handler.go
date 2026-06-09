@@ -41,15 +41,18 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	sourcesParams := r.URL.Query()["sources"]
 
 	// Flatten comma-separated values into individual tokens
+	// Reject empty tokens to prevent malformed queries like ?sources= or ?sources=a,,b
 	var sourceTokens []string
 	for _, param := range sourcesParams {
 		// Split by comma to support both ?sources=a,b and ?sources=a&sources=b
 		tokens := strings.Split(param, ",")
 		for _, token := range tokens {
 			token = strings.TrimSpace(token)
-			if token != "" {
-				sourceTokens = append(sourceTokens, token)
+			if token == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("empty source value provided"))
+				return
 			}
+			sourceTokens = append(sourceTokens, token)
 		}
 	}
 
