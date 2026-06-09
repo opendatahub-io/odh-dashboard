@@ -30,6 +30,7 @@ import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
+import NotebookFeatureStoreList from './NotebookFeatureStoreList';
 import NotebookSizeDetails from './NotebookSizeDetails';
 import WorkbenchMigrationLabel from './WorkbenchMigrationLabel';
 import useNotebookImage from './useNotebookImage';
@@ -70,6 +71,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const showMigrationRequired = !isWorkbenchMigrated(obj.notebook);
 
   const isMlflowAvailable = useIsAreaAvailable(SupportedArea.MLFLOW).status;
+  const isFeatureStoreAvailable = useIsAreaAvailable(SupportedArea.FEATURE_STORE).status;
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
@@ -274,7 +276,15 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             />
           </ExpandableRowContent>
         </Td>
-        <Td />
+        {isFeatureStoreAvailable ? (
+          <Td dataLabel="Connected feature stores">
+            <ExpandableRowContent>
+              <NotebookFeatureStoreList notebook={obj.notebook} />
+            </ExpandableRowContent>
+          </Td>
+        ) : (
+          <Td />
+        )}
         <Td />
         <Td />
       </Tr>
