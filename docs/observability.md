@@ -231,7 +231,7 @@ resources:
 | Use Perses when | Use custom code when |
 |---|---|
 | Standard time-series metrics (CPU, memory, request rates, latencies) | Non-time-series data (tables, topology maps, status matrices) |
-| Data comes from Prometheus or Thanos | Data comes from sources for which no Perses datasource exists |
+| Data comes from Prometheus, Loki, or another supported Perses datasource | Data comes from sources for which no Perses datasource exists |
 | Dashboard can be expressed as panels + variables | Heavy user interaction needed (drill-down, selection-driven views, inline actions) |
 | No custom interactivity beyond time range and variable filtering | Tight integration with PatternFly components or existing page state |
 | Historical trends and aggregated views over time windows | Real-time streaming or event-driven updates |
