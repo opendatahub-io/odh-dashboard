@@ -39,10 +39,16 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxRegisterModelRequestBodyBytes)
 	var req models.RegisterModelRequest
-	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRegisterModelRequestBodyBytes))
+	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, "request body exceeds maximum size")
+			return
+		}
 		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
 		return
 	}

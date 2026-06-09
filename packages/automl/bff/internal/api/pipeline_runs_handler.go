@@ -88,10 +88,16 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	var req models.CreateAutoMLRunRequest
-	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRequestBodyBytes))
+	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, "request body exceeds maximum size")
+			return
+		}
 		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
 		return
 	}
