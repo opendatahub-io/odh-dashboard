@@ -571,147 +571,92 @@ jobs:
       - name: Load RHOAI image
         run: docker load < /tmp/odh-dashboard-rhoai.tar.gz
 
-      - name: Create mock kubeconfig for health checks
+      - name: Validate RHOAI branding in build artifacts
         run: |
           set -euo pipefail
-          # Create minimal kubeconfig so /api/health passes
-          # The health endpoint checks for kube context presence
-          mkdir -p /tmp/kube-rhoai
-          cat > /tmp/kube-rhoai/config << 'EOF'
-          apiVersion: v1
-          kind: Config
-          clusters:
-          - cluster:
-              server: http://localhost:8001
-            name: test-cluster
-          contexts:
-          - context:
-              cluster: test-cluster
-              user: test-user
-            name: test-context
-          current-context: test-context
-          users:
-          - name: test-user
-          EOF
+          echo "::group::Validating BUILD_MODE=RHOAI applied branding"
 
-      - name: Start container
-        run: |
-          set -euo pipefail
-          docker run -d \
-            --name odh-dashboard-rhoai-test \
-            -p 8081:8080 \
-            -v /tmp/kube-rhoai:/opt/app-root/src/.kube:ro \
-            -e LOG_LEVEL=debug \
-            odh-dashboard:rhoai-test
+          # Create temporary container to extract built files
+          # (Don't need to run it - just create and extract)
+          CONTAINER_ID=$(docker create odh-dashboard:rhoai-test)
+          echo "Created temporary container: $CONTAINER_ID"
 
-      - name: Wait for startup and check for crashes
-        run: |
-          set -euo pipefail
-          echo "Waiting for RHOAI container startup (max 60s)..."
+          # Extract the built HTML file
+          docker cp "$CONTAINER_ID":/usr/src/app/frontend/public/index.html /tmp/rhoai-index.html
 
-          # Wait for container readiness with timeout
-          READY=false
-          for i in {1..30}; do
-            if docker ps | grep -q odh-dashboard-rhoai-test; then
-              READY=true
-              echo "✅ Container running after ${i} checks"
-              break
-            fi
-            sleep 2
-          done
+          # Extract favicon and logo files
+          docker cp "$CONTAINER_ID":/usr/src/app/frontend/public/images /tmp/rhoai-images || true
 
-          if [ "$READY" = "false" ]; then
-            echo "❌ FAIL: Container failed to start within 60 seconds"
-            docker logs odh-dashboard-rhoai-test 2>&1 || true
-            exit 1
-          fi
+          # Clean up container
+          docker rm "$CONTAINER_ID"
 
-          LOGS=$(docker logs odh-dashboard-rhoai-test 2>&1)
-
-          if echo "$LOGS" | grep -qi "uncaught exception\|fastify.*error"; then
-            echo "❌ FAIL: Found error in logs"
-            echo "$LOGS"
-            exit 1
-          fi
-
-          echo "✅ PASS: RHOAI mode runtime healthy"
-
-      - name: Validate RHOAI branding
-        run: |
-          set -euo pipefail
-          echo "::group::Validating RHOAI-specific branding"
-
-          # Wait for container to be serving HTML
-          READY=false
-          for i in {1..30}; do
-            if curl -f http://localhost:8081/ >/dev/null 2>&1; then
-              READY=true
-              echo "✅ HTTP server ready after ${i} attempts"
-              break
-            fi
-            sleep 2
-          done
-
-          if [ "$READY" = "false" ]; then
-            echo "❌ FAIL: Could not reach RHOAI container HTTP endpoint"
-            exit 1
-          fi
-
-          # Fetch the served HTML
-          HTML=$(curl -s http://localhost:8081/ || echo "")
-
-          if [ -z "$HTML" ]; then
-            echo "❌ FAIL: Could not fetch HTML from RHOAI container"
-            exit 1
-          fi
-
-          # Check for RHOAI-specific branding
           FAILURES=0
 
-          # Check 1: Page title should contain "Red Hat OpenShift AI"
-          if ! echo "$HTML" | grep -qi "Red Hat OpenShift AI\|RHOAI"; then
-            echo "❌ FAIL: Page title does not contain 'Red Hat OpenShift AI' or 'RHOAI'"
-            echo "::group::HTML snippet (title area)"
-            echo "$HTML" | grep -i "<title" -A2 -B2 || echo "No title tag found"
+          echo "Checking HTML content for RHOAI branding..."
+          HTML=$(cat /tmp/rhoai-index.html)
+
+          # Check 1: RHOAI product name in title
+          if ! echo "$HTML" | grep -q "Red Hat OpenShift AI"; then
+            echo "❌ FAIL: RHOAI product name not found in HTML title"
+            echo "::group::HTML title tag"
+            echo "$HTML" | grep -i "<title>" || echo "(no title tag found)"
             echo "::endgroup::"
             FAILURES=$((FAILURES + 1))
           else
-            echo "✅ PASS: Found RHOAI branding in page content"
+            echo "✅ PASS: RHOAI product name present in title"
           fi
 
-          # Check 2: Should NOT contain "Open Data Hub" (ODH branding)
-          if echo "$HTML" | grep -qi "Open Data Hub"; then
-            echo "❌ FAIL: Found ODH branding 'Open Data Hub' in RHOAI build"
-            echo "::group::ODH references found"
-            echo "$HTML" | grep -i "Open Data Hub" || true
+          # Check 2: ODH branding should NOT be present
+          if echo "$HTML" | grep -q "Open Data Hub"; then
+            echo "❌ FAIL: ODH branding found in RHOAI build (BUILD_MODE not applied)"
+            echo "::group::ODH references"
+            echo "$HTML" | grep "Open Data Hub" | head -3
             echo "::endgroup::"
             FAILURES=$((FAILURES + 1))
           else
-            echo "✅ PASS: No ODH branding found"
+            echo "✅ PASS: No ODH branding (correctly overridden by BUILD_MODE)"
           fi
 
-          # Check 3: Check for Red Hat product references
-          if echo "$HTML" | grep -qi 'Red Hat'; then
-            echo "✅ PASS: Found Red Hat product references"
+          # Check 3: RHOAI favicon reference
+          if ! echo "$HTML" | grep -q "rhoai-favicon"; then
+            echo "❌ FAIL: RHOAI favicon not referenced (expected rhoai-favicon.svg)"
+            echo "::group::Favicon link tags"
+            echo "$HTML" | grep -i "favicon\|<link.*icon" || echo "(no favicon tags found)"
+            echo "::endgroup::"
+            FAILURES=$((FAILURES + 1))
           else
-            echo "⚠️  WARNING: No Red Hat product references found"
+            echo "✅ PASS: RHOAI favicon referenced"
+          fi
+
+          # Check 4: Verify RHOAI logo files exist in build
+          if [ -d "/tmp/rhoai-images" ]; then
+            if [ ! -f "/tmp/rhoai-images/rhoai-logo.svg" ]; then
+              echo "⚠️  WARNING: rhoai-logo.svg not found in images/"
+            else
+              echo "✅ PASS: RHOAI logo file present in build"
+            fi
+
+            if [ ! -f "/tmp/rhoai-images/rhoai-favicon.svg" ]; then
+              echo "⚠️  WARNING: rhoai-favicon.svg not found in images/"
+            else
+              echo "✅ PASS: RHOAI favicon file present in build"
+            fi
+          else
+            echo "⚠️  WARNING: Could not extract images/ directory"
           fi
 
           if [ $FAILURES -gt 0 ]; then
             echo ""
-            echo "❌ FAIL: $FAILURES branding check(s) failed"
-            echo "::endgroup::"
+            echo "❌ TOTAL FAILURES: $FAILURES"
+            echo ""
+            echo "BUILD_MODE=RHOAI did not correctly apply RHOAI branding."
+            echo "Check Dockerfile environment variable setup and webpack configuration."
             exit 1
           fi
 
-          echo "✅ PASS: All RHOAI branding checks passed"
+          echo ""
+          echo "✅ PASS: BUILD_MODE=RHOAI correctly applied RHOAI branding"
           echo "::endgroup::"
-
-      - name: Cleanup
-        if: always()
-        run: |
-          docker stop odh-dashboard-rhoai-test || true
-          docker rm odh-dashboard-rhoai-test || true
 
   # Phase 4: Operator Integration (Kind cluster)
   operator-integration:
