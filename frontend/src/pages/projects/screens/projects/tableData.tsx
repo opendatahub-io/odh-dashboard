@@ -1,5 +1,5 @@
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SortableData } from '#~/components/table';
-import { ProjectKind } from '#~/k8sTypes';
 import { getProjectCreationTime } from '#~/concepts/projects/utils';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 

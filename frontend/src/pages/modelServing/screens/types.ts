@@ -1,9 +1,9 @@
 import { AlertVariant } from '@patternfly/react-core';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
   ImagePullSecret,
   InferenceServiceKind,
-  SecretKind,
   ServingContainer,
   ServingRuntimeKind,
 } from '#~/k8sTypes';

@@ -1,7 +1,7 @@
 import compareVersions from 'compare-versions';
+import type { Volume, VolumeMount, K8sDSGResource } from '@odh-dashboard/k8s-core';
 import type { ImageStreamStatusTag } from '#~/types';
-import { Volume, VolumeMount } from '#~/types';
-import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, K8sDSGResource } from '#~/k8sTypes';
+import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
 import {
   ConfigMapCategory,
   EnvVariable,

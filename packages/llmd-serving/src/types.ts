@@ -3,7 +3,7 @@ import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import type { DisplayNameAnnotations } from '@odh-dashboard/k8s-core';
 import type { ImagePullSecret } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
-import type { PodContainer } from '@odh-dashboard/internal/types';
+import type { PodContainer } from '@odh-dashboard/k8s-core';
 import { LLMD_SERVING_ID } from '../extensions/extensions';
 
 export const MAAS_ENDPOINT_LABEL = 'opendatahub.io/maas-endpoint';

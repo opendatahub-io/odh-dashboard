@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Button, Flex, FlexItem, Content } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookDataState } from '#~/pages/projects/notebook/types';
-import { ProjectKind } from '#~/k8sTypes';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 

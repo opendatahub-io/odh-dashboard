@@ -1,3 +1,4 @@
+import type { PodContainer } from '@odh-dashboard/k8s-core';
 import {
   compareTagVersions,
   isImageBuildInProgress,
@@ -19,7 +20,6 @@ import {
   NameVersionPair,
   ImageSoftwareType,
   ImageTag,
-  PodContainer,
 } from '#~/types';
 
 describe('compareTagVersions', () => {

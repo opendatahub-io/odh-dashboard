@@ -1,4 +1,4 @@
-import type { DashboardConfigKind } from '#~/k8sTypes.ts';
+import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import type { ModelServingSize } from '#~/pages/modelServing/screens/types.ts';
 
 export const DEFAULT_MODEL_SERVER_SIZES: ModelServingSize[] = [

@@ -9,8 +9,7 @@ import {
   ContentVariants,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { HardwareProfileKind } from '#~/k8sTypes';
-import { ContainerResources } from '#~/types';
+import type { HardwareProfileKind, ContainerResources } from '@odh-dashboard/k8s-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { HardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import HardwareProfileCustomize from '#~/concepts/hardwareProfiles/HardwareProfileCustomize';

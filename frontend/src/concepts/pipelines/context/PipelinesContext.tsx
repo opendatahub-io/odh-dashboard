@@ -11,11 +11,11 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import {
   DSPAMlflowIntegrationMode,
   DSPipelineKind,
   DSPipelineManagedPipelinesKind,
-  ProjectKind,
 } from '#~/k8sTypes';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipelineServerModal';

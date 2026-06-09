@@ -6,6 +6,7 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
@@ -24,7 +25,7 @@ import {
   updateServingRuntime,
 } from '#~/api/k8s/servingRuntimes';
 import { ProjectModel, ServingRuntimeModel } from '#~/api/models';
-import { ProjectKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { ServingRuntimeKind } from '#~/k8sTypes';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
