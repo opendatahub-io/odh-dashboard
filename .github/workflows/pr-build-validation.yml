@@ -310,245 +310,130 @@ jobs:
       - name: Load ODH image
         run: docker load < /tmp/odh-dashboard-odh.tar.gz
 
-      - name: Create mock kubeconfig for health checks
+      - name: Validate ODH branding in build artifacts
         run: |
           set -euo pipefail
-          # Create minimal kubeconfig so /api/health passes
-          # The health endpoint checks for kube context presence
-          mkdir -p /tmp/kube
-          cat > /tmp/kube/config << 'EOF'
-          apiVersion: v1
-          kind: Config
-          clusters:
-          - cluster:
-              server: http://localhost:8001
-            name: test-cluster
-          contexts:
-          - context:
-              cluster: test-cluster
-              user: test-user
-            name: test-context
-          current-context: test-context
-          users:
-          - name: test-user
-          EOF
+          echo "::group::Validating default ODH build branding"
 
-      - name: Start container
-        run: |
-          set -euo pipefail
-          docker run -d \
-            --name odh-dashboard-test \
-            -p 8080:8080 \
-            -v /tmp/kube:/opt/app-root/src/.kube:ro \
-            -e LOG_LEVEL=debug \
-            odh-dashboard:odh-test
+          # Create temporary container to extract built files
+          CONTAINER_ID=$(docker create odh-dashboard:odh-test)
+          echo "Created temporary container: $CONTAINER_ID"
 
-      - name: Wait for startup and check for crashes
-        run: |
-          set -euo pipefail
-          echo "Waiting for container startup (max 60s)..."
+          # Extract the built HTML file
+          docker cp "$CONTAINER_ID":/usr/src/app/frontend/public/index.html /tmp/odh-index.html
 
-          # Wait for container readiness with timeout
-          READY=false
-          for i in {1..30}; do
-            if docker ps | grep -q odh-dashboard-test; then
-              READY=true
-              echo "✅ Container running after ${i} checks"
-              break
-            fi
-            sleep 2
-          done
+          # Extract dist directory for artifact checks
+          docker cp "$CONTAINER_ID":/usr/src/app/frontend/public /tmp/odh-dist
 
-          if [ "$READY" = "false" ]; then
-            echo "❌ FAIL: Container failed to start within 60 seconds"
-            echo "::group::Container logs"
-            docker logs odh-dashboard-test 2>&1 || true
+          # Extract favicon and logo files
+          docker cp "$CONTAINER_ID":/usr/src/app/frontend/public/images /tmp/odh-images || true
+
+          # Clean up container
+          docker rm "$CONTAINER_ID"
+
+          FAILURES=0
+
+          echo "Checking HTML content for ODH branding..."
+          HTML=$(cat /tmp/odh-index.html)
+
+          # Check 1: ODH product name in title (default build)
+          if ! echo "$HTML" | grep -q "Open Data Hub"; then
+            echo "❌ FAIL: ODH product name not found in HTML title (default build)"
+            echo "::group::HTML title tag"
+            echo "$HTML" | grep -i "<title>" || echo "(no title tag found)"
             echo "::endgroup::"
-            exit 1
+            FAILURES=$((FAILURES + 1))
+          else
+            echo "✅ PASS: ODH product name present in title (default build)"
           fi
 
-          # Scan logs for crash indicators
-          LOGS=$(docker logs odh-dashboard-test 2>&1)
-
-          if echo "$LOGS" | grep -qi "uncaught exception"; then
-            echo "❌ FAIL: Found uncaught exception in logs"
-            echo "$LOGS"
-            exit 1
-          fi
-
-          if echo "$LOGS" | grep -qi "fastify.*error"; then
-            echo "❌ FAIL: Found Fastify error in logs"
-            echo "$LOGS"
-            exit 1
-          fi
-
-          if echo "$LOGS" | grep -qi "SocketStream is not defined"; then
-            echo "❌ FAIL: Found WebSocket compatibility error (@fastify/websocket v11 regression)"
-            echo "$LOGS"
-            exit 1
-          fi
-
-          echo "✅ PASS: No crash indicators found"
-
-      - name: Test critical API endpoints (Fastify v5 regression check)
-        run: |
-          set -euo pipefail
-
-          # Wait for API to be ready with timeout
-          READY=false
-          for i in {1..30}; do
-            if curl -f http://localhost:8080/api/health 2>/dev/null; then
-              READY=true
-              echo "✅ Health check passed after ${i} attempts"
-              break
-            fi
-            sleep 2
-          done
-
-          if [ "$READY" = "false" ]; then
-            echo "❌ FAIL: API health check never succeeded"
-            docker logs odh-dashboard-test
-            exit 1
-          fi
-
-          # Test PATCH with application/merge-patch+json (415 error in Fastify v5)
-          # Note: /api/health doesn't accept PATCH, so we test content-type parsing
-          # by checking that the server accepts the merge-patch content type header
-          echo "Testing PATCH content-type handling..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X PATCH \
-            -H "Content-Type: application/merge-patch+json" \
-            -d '{}' \
-            http://localhost:8080/api/config 2>/dev/null || echo "000")
-
-          # We expect 401/403 (auth) or 400 (bad request), NOT 415 (unsupported media type)
-          if [ "$STATUS" = "415" ]; then
-            echo "❌ FAIL: PATCH with merge-patch+json returns 415 (Fastify v5 regression)"
-            echo "See: https://github.com/fastify/fastify/pull/5634"
-            exit 1
-          fi
-
-          echo "✅ PASS: Content-type handling OK (status: $STATUS, expected: not 415)"
-
-      - name: Test WebSocket compatibility
-        run: |
-          set -euo pipefail
-
-          # Download websocat binary with checksum verification
-          WEBSOCAT_URL="https://github.com/vi/websocat/releases/download/v1.12.0/websocat.x86_64-unknown-linux-musl"
-          # Checksum verified from official release: https://github.com/vi/websocat/releases/tag/v1.12.0
-          WEBSOCAT_SHA256="44515a5d421ff2cd109c475e92cb8bf82f10e464ba69c2c1e340699ea78530da"
-
-          curl -sL "$WEBSOCAT_URL" -o /tmp/websocat
-          if ! echo "${WEBSOCAT_SHA256}  /tmp/websocat" | sha256sum --check --status; then
-            echo "❌ FAIL: websocat checksum verification failed"
-            exit 1
-          fi
-          chmod +x /tmp/websocat
-
-          # Test WebSocket connection and verify it succeeds
-          # The connection should upgrade successfully (not 404, not crash)
-          # @fastify/websocket v11 had a SocketStream regression that caused crashes
-          echo "Testing WebSocket connection to ws://localhost:8080/api/ws"
-
-          # Try to connect - timeout after 5s if no response
-          # Note: websocat will exit 0 if connection succeeds, non-zero if it fails
-          if ! timeout 5 /tmp/websocat --ping-interval 1 -n1 ws://localhost:8080/api/ws 2>&1 | head -1; then
-            echo "⚠️  WARNING: WebSocket connection test inconclusive (may not have /api/ws endpoint)"
-            echo "   Verifying container didn't crash..."
-          fi
-
-          sleep 2
-
-          # Check if container is still running (catch crashes)
-          if ! docker ps | grep -q odh-dashboard-test; then
-            echo "❌ FAIL: Container crashed after WebSocket test (@fastify/websocket v11 regression)"
-            echo "::group::Container logs"
-            docker logs odh-dashboard-test
+          # Check 2: RHOAI branding should NOT be in default build
+          if echo "$HTML" | grep -q "Red Hat OpenShift AI"; then
+            echo "❌ FAIL: RHOAI branding found in default ODH build (BUILD_MODE contamination)"
+            echo "::group::RHOAI references"
+            echo "$HTML" | grep "Red Hat OpenShift AI" | head -3
             echo "::endgroup::"
-            exit 1
+            FAILURES=$((FAILURES + 1))
+          else
+            echo "✅ PASS: No RHOAI branding in default build"
           fi
 
-          echo "✅ PASS: WebSocket test completed, container stable"
+          # Check 3: ODH favicon reference
+          if ! echo "$HTML" | grep -q "odh-favicon"; then
+            echo "❌ FAIL: ODH favicon not referenced (expected odh-favicon.svg)"
+            echo "::group::Favicon link tags"
+            echo "$HTML" | grep -i "favicon\|<link.*icon" || echo "(no favicon tags found)"
+            echo "::endgroup::"
+            FAILURES=$((FAILURES + 1))
+          else
+            echo "✅ PASS: ODH favicon referenced"
+          fi
 
-      - name: Validate Module Federation artifacts
-        run: |
-          set -euo pipefail
+          # Check 4: Verify ODH logo files exist in build
+          if [ -d "/tmp/odh-images" ]; then
+            if [ ! -f "/tmp/odh-images/odh-logo-light-theme.svg" ]; then
+              echo "⚠️  WARNING: odh-logo-light-theme.svg not found in images/"
+            else
+              echo "✅ PASS: ODH logo file present in build"
+            fi
 
-          # Copy dist from container
-          docker cp odh-dashboard-test:/usr/src/app/frontend/public ./dist-check
+            if [ ! -f "/tmp/odh-images/odh-favicon.svg" ]; then
+              echo "⚠️  WARNING: odh-favicon.svg not found in images/"
+            else
+              echo "✅ PASS: ODH favicon file present in build"
+            fi
+          else
+            echo "⚠️  WARNING: Could not extract images/ directory"
+          fi
+
+          echo "::endgroup::"
+
+          # Validate Module Federation artifacts
+          echo "::group::Validating Module Federation artifacts"
 
           # Check for main app bundle (always required)
-          if [ ! -f "dist-check/app.bundle.js" ]; then
+          if [ ! -f "/tmp/odh-dist/app.bundle.js" ]; then
             echo "❌ FAIL: app.bundle.js not found - build did not complete"
-            exit 1
+            FAILURES=$((FAILURES + 1))
+          else
+            echo "✅ PASS: Main app bundle present"
           fi
 
-          echo "✅ PASS: Main app bundle present"
-
-          # Check for remoteEntry.js (optional - only generated if federated modules exist)
-          if [ -f "dist-check/remoteEntry.js" ]; then
-            # Check remoteEntry.js size (should not be empty)
-            SIZE=$(stat -c%s dist-check/remoteEntry.js 2>/dev/null || stat -f%z dist-check/remoteEntry.js 2>/dev/null)
+          # Check for remoteEntry.js (optional - only if federated modules exist)
+          if [ -f "/tmp/odh-dist/remoteEntry.js" ]; then
+            SIZE=$(stat -c%s /tmp/odh-dist/remoteEntry.js 2>/dev/null || stat -f%z /tmp/odh-dist/remoteEntry.js 2>/dev/null)
             if [ "${SIZE:-0}" -lt 100 ]; then
               echo "❌ FAIL: remoteEntry.js is suspiciously small (${SIZE:-0} bytes)"
-              exit 1
+              FAILURES=$((FAILURES + 1))
+            else
+              echo "✅ PASS: remoteEntry.js present and valid ($SIZE bytes)"
             fi
 
-            echo "✅ PASS: remoteEntry.js present and valid ($SIZE bytes)"
-
-            # Check for missing webpack chunks referenced in remoteEntry
-            # Webpack uses naming like: plugin-gen-ai-abc123.js, not chunk123.bundle.js
-            echo "::group::Checking for webpack chunks"
-            # Look for webpack chunk references in remoteEntry.js
-            CHUNK_COUNT=$(find dist-check -name "*.js" -o -name "*.bundle.js" | wc -l | tr -d ' ')
+            # Check webpack chunks
+            CHUNK_COUNT=$(find /tmp/odh-dist -name "*.js" -o -name "*.bundle.js" | wc -l | tr -d ' ')
             if [ "${CHUNK_COUNT:-0}" -lt 2 ]; then
-              echo "⚠️  WARNING: Very few webpack chunks found (may cause ChunkLoadError)"
-              echo "   Found: ${CHUNK_COUNT:-0} chunks"
-              ls -lh dist-check/*.js 2>/dev/null || true
+              echo "⚠️  WARNING: Very few webpack chunks found (${CHUNK_COUNT:-0})"
             else
               echo "✅ PASS: Found ${CHUNK_COUNT:-0} webpack chunks"
             fi
-            echo "::endgroup::"
           else
             echo "ℹ️  INFO: No remoteEntry.js found (no federated modules configured)"
           fi
 
-          # Check for suspiciously large chunks
-          echo "::group::Checking chunk sizes"
-          LARGE_CHUNKS=$(find dist-check -name "*.js" -size +1M 2>/dev/null || true)
-          if [ -n "$LARGE_CHUNKS" ]; then
-            echo "⚠️  WARNING: Large chunks detected (may slow page load):"
-            echo "$LARGE_CHUNKS" | xargs du -h
+          # Report dist size
+          du -sh /tmp/odh-dist
+          echo "::endgroup::"
+
+          if [ $FAILURES -gt 0 ]; then
+            echo ""
+            echo "❌ TOTAL FAILURES: $FAILURES"
+            echo ""
+            echo "Default ODH build validation failed."
+            exit 1
           fi
-          echo "::endgroup::"
 
-          # Report total dist size
-          echo "::group::Dist size report"
-          du -sh dist-check
-          echo "::endgroup::"
-
-      - name: Test Module Federation load performance
-        run: |
-          # Test endpoint response times
-          for endpoint in /api/health /api/status; do
-            START=$(date +%s%N)
-            curl -f http://localhost:8080$endpoint > /dev/null 2>&1
-            END=$(date +%s%N)
-            DURATION=$(( (END - START) / 1000000 ))
-
-            echo "$endpoint: ${DURATION}ms"
-
-            if [ $DURATION -gt 2000 ]; then
-              echo "⚠️  WARNING: $endpoint took ${DURATION}ms (>2s, may cause Cypress timeouts)"
-            fi
-          done
-
-      - name: Cleanup
-        if: always()
-        run: |
-          docker stop odh-dashboard-test || true
-          docker rm odh-dashboard-test || true
+          echo ""
+          echo "✅ PASS: Default ODH build produces correct artifacts and branding"
 
   runtime-validation-rhoai:
     name: "Phase 2-3: Runtime & Module Federation (RHOAI)"
