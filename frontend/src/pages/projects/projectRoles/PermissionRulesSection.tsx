@@ -4,19 +4,14 @@ import {
   Content,
   Flex,
   FlexItem,
-  MenuToggle,
-  MenuToggleElement,
   SearchInput,
-  // eslint-disable-next-line no-restricted-imports
-  Select,
-  SelectList,
-  SelectOption,
   Title,
   ToolbarItem,
 } from '@patternfly/react-core';
 import { ImportIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { TableBase } from '#~/components/table';
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
+import SimpleSelect from '#~/components/SimpleSelect';
 
 import AddRuleModal from './AddRuleModal';
 import PermissionRulesTableRow from './PermissionRulesTableRow';
@@ -46,7 +41,6 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
   const [editingRule, setEditingRule] = React.useState<RuleEntry | undefined>();
   const [searchValue, setSearchValue] = React.useState('');
   const [filterColumn, setFilterColumn] = React.useState(FILTER_RESOURCES);
-  const [isFilterOpen, setIsFilterOpen] = React.useState(false);
 
   const handleAddRule = React.useCallback(
     (rule: RuleEntry) => {
@@ -105,18 +99,9 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
 
   const hasRules = rules.length > 0;
 
-  const filterToggle = React.useCallback(
-    (toggleRef: React.Ref<MenuToggleElement>) => (
-      <MenuToggle
-        ref={toggleRef}
-        onClick={() => setIsFilterOpen((prev) => !prev)}
-        isExpanded={isFilterOpen}
-        data-testid="rules-filter-toggle"
-      >
-        {FILTER_OPTIONS.find((o) => o.value === filterColumn)?.label}
-      </MenuToggle>
-    ),
-    [isFilterOpen, filterColumn],
+  const filterSelectOptions = React.useMemo(
+    () => FILTER_OPTIONS.map((opt) => ({ key: opt.value, label: opt.label })),
+    [],
   );
 
   return (
@@ -140,24 +125,17 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
           toolbarContent={
             <>
               <ToolbarItem>
-                <Select
-                  isOpen={isFilterOpen}
-                  onOpenChange={setIsFilterOpen}
-                  onSelect={(_e, value) => {
-                    setFilterColumn(String(value));
-                    setIsFilterOpen(false);
+                <SimpleSelect
+                  options={filterSelectOptions}
+                  value={filterColumn}
+                  onChange={(key) => {
+                    setFilterColumn(key);
+                    setSearchValue('');
                   }}
-                  selected={filterColumn}
-                  toggle={filterToggle}
-                >
-                  <SelectList>
-                    {FILTER_OPTIONS.map((opt) => (
-                      <SelectOption key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectOption>
-                    ))}
-                  </SelectList>
-                </Select>
+                  dataTestId="rules-filter-toggle"
+                  previewDescription={false}
+                  autoSelectOnlyOption={false}
+                />
               </ToolbarItem>
               <ToolbarItem>
                 <SearchInput

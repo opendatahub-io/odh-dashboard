@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Content, Form, FormGroup, getUniqueId } from '@patternfly/react-core';
+import { Alert, Content, Form, FormGroup, getUniqueId } from '@patternfly/react-core';
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 import ContentModal from '#~/components/modals/ContentModal';
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
@@ -14,10 +14,11 @@ type AddRuleModalProps = {
   onClose: () => void;
 };
 
-const CORE_GROUP_ID = 'core';
+const CORE_GROUP_ID = '__core__';
+const CORE_GROUP_LABEL = 'core';
 
 const toApiGroupOptions = (apiGroups: string[]): SelectionOptions[] =>
-  apiGroups.map((g) => ({ id: g || CORE_GROUP_ID, name: g || CORE_GROUP_ID, selected: false }));
+  apiGroups.map((g) => ({ id: g || CORE_GROUP_ID, name: g || CORE_GROUP_LABEL, selected: false }));
 
 const toResourceOptions = (resources: DiscoveredResource[]): SelectionOptions[] =>
   resources.map((r) => ({
@@ -28,7 +29,11 @@ const toResourceOptions = (resources: DiscoveredResource[]): SelectionOptions[] 
   }));
 
 const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClose }) => {
-  const { data: apiResourcesData, loaded: apiResourcesLoaded } = useApiResources();
+  const {
+    data: apiResourcesData,
+    loaded: apiResourcesLoaded,
+    error: apiResourcesError,
+  } = useApiResources();
 
   const [selectedApiGroups, setSelectedApiGroups] = React.useState<SelectionOptions[]>(() => {
     if (!existingRule?.apiGroups) {
@@ -36,7 +41,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
     }
     return existingRule.apiGroups.map((g) => ({
       id: g || CORE_GROUP_ID,
-      name: g || CORE_GROUP_ID,
+      name: g || CORE_GROUP_LABEL,
       selected: true,
     }));
   });
@@ -100,6 +105,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
       apiGroups,
       resources,
       verbs,
+      ...(existingRule?.resourceNames ? { resourceNames: existingRule.resourceNames } : {}),
     });
   }, [selectedApiGroups, selectedResources, selectedVerbs, existingRule, onSave]);
 
@@ -125,6 +131,12 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
       ]}
       contents={
         <Form>
+          {apiResourcesError ? (
+            <Alert variant="warning" isInline title="Failed to load API groups and resource types">
+              Could not discover API resources from the cluster. You can still enter custom values
+              manually.
+            </Alert>
+          ) : null}
           <FormGroup label="API groups" fieldId="rule-api-groups" isRequired>
             <Content component="p">
               Enter one or more API groups for this rule. Use * to apply to all API groups.
@@ -142,7 +154,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
               isScrollable
               hasCheckbox
               createOptionMessage={(val) => `Use custom API group "${val}"`}
-              isDisabled={!apiResourcesLoaded}
+              isDisabled={!apiResourcesLoaded && !apiResourcesError}
             />
           </FormGroup>
           <FormGroup
@@ -169,7 +181,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
               isScrollable
               hasCheckbox
               createOptionMessage={(val) => `Use custom resource type "${val}"`}
-              isDisabled={!apiResourcesLoaded}
+              isDisabled={!apiResourcesLoaded && !apiResourcesError}
             />
           </FormGroup>
           <FormGroup label="Verbs" fieldId="rule-verbs" isRequired>
