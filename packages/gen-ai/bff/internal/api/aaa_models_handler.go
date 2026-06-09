@@ -99,8 +99,14 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 // parseModelSources parses the sources query parameter into a map of requested source types.
 // If sourcesParam is empty, defaults to namespace and custom_endpoint.
 // Returns valid sources map and a slice of invalid source tokens.
+// Validation rules:
+//   - Empty tokens (e.g., "namespace,,maas" or trailing comma) are invalid
+//   - Duplicate tokens are invalid
+//   - Maximum 3 tokens allowed
+//
 // Example: "namespace,maas" -> {namespace: true, maas: true}, []
 // Example: "namespace,invalid" -> {namespace: true}, ["invalid"]
+// Example: "namespace,namespace" -> {namespace: true}, ["namespace (duplicate)"]
 func parseModelSources(sourcesParam string) (map[models.ModelSourceTypeEnum]bool, []string) {
 	sources := make(map[models.ModelSourceTypeEnum]bool)
 	var invalidSources []string
@@ -113,12 +119,33 @@ func parseModelSources(sourcesParam string) (map[models.ModelSourceTypeEnum]bool
 	}
 
 	// Parse comma-separated list
-	for _, source := range strings.Split(sourcesParam, ",") {
-		source = strings.TrimSpace(source)
-		if source == "" {
-			continue // Skip empty tokens
+	tokens := strings.Split(sourcesParam, ",")
+	const maxTokens = 3
+	if len(tokens) > maxTokens {
+		invalidSources = append(invalidSources, "too many sources (max 3)")
+		return sources, invalidSources
+	}
+
+	seenTokens := make(map[string]bool)
+
+	for _, token := range tokens {
+		token = strings.TrimSpace(token)
+
+		// Reject empty tokens
+		if token == "" {
+			invalidSources = append(invalidSources, "(empty token)")
+			continue
 		}
-		switch models.ModelSourceTypeEnum(source) {
+
+		// Reject duplicates
+		if seenTokens[token] {
+			invalidSources = append(invalidSources, token+" (duplicate)")
+			continue
+		}
+		seenTokens[token] = true
+
+		// Map valid tokens to enum
+		switch models.ModelSourceTypeEnum(token) {
 		case models.ModelSourceTypeNamespace:
 			sources[models.ModelSourceTypeNamespace] = true
 		case models.ModelSourceTypeCustomEndpoint:
@@ -126,8 +153,8 @@ func parseModelSources(sourcesParam string) (map[models.ModelSourceTypeEnum]bool
 		case models.ModelSourceTypeMaaS:
 			sources[models.ModelSourceTypeMaaS] = true
 		default:
-			// Track invalid source tokens
-			invalidSources = append(invalidSources, source)
+			// Track unknown/invalid source tokens
+			invalidSources = append(invalidSources, token)
 		}
 	}
 
