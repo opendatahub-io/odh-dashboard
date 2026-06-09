@@ -197,15 +197,15 @@ export function toNumericMetric(value: unknown): number {
   return 0;
 }
 
+export function normalizeMetricKey(key: string): string {
+  return METRIC_ALIASES[key.toUpperCase()] ?? key;
+}
+
 /**
  * Gets the optimized metric for a given task type.
  * @param taskType - The task type to get the metric for
  * @returns The optimized metric name, or 'Unknown metric' if no mapping exists
  */
-export function normalizeMetricKey(key: string): string {
-  return METRIC_ALIASES[key.toUpperCase()] ?? key;
-}
-
 export function getOptimizedMetricForTask(taskType: string): string {
   if (!(taskType in DEFAULT_EVAL_METRIC_BY_TASK)) {
     return 'Unknown metric';

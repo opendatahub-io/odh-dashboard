@@ -8,6 +8,6 @@ taskType: regression
 topN: 1
 defaultMetricLabel: 'R²'
 changedMetricKey: root_mean_squared_error
-changedMetricLabel: Root Mean Squared Error
+changedMetricLabel: RMSE
 labelColumn: price
 awsBucket: BUCKET_2

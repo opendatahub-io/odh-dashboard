@@ -150,7 +150,7 @@ export const EVAL_METRICS_BY_TASK_TYPE: Partial<Record<string, readonly EvalMetr
 };
 
 /* eslint-disable camelcase */
-export const EVAL_METRIC_DESCRIPTIONS: Record<string, string> = {
+export const EVAL_METRIC_DESCRIPTIONS: Record<EvalMetric, string> = {
   accuracy: 'Overall correctness of predictions',
   balanced_accuracy: 'Average recall per class — good for imbalanced data',
   log_loss: 'Penalizes confident wrong predictions',

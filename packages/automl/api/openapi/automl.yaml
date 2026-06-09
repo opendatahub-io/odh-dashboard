@@ -1242,7 +1242,55 @@ components:
           example: "data/train.csv"
         eval_metric:
           type: string
-          description: Evaluation metric to optimize during training. Valid values depend on task_type. When omitted, the pipeline uses its built-in default (accuracy for classification, r2 for regression, MASE for timeseries).
+          enum:
+            # Classification (binary & multiclass)
+            - accuracy
+            - balanced_accuracy
+            - log_loss
+            - f1
+            - f1_macro
+            - f1_micro
+            - f1_weighted
+            - roc_auc
+            - roc_auc_ovo
+            - roc_auc_ovo_macro
+            - roc_auc_ovo_weighted
+            - roc_auc_ovr
+            - roc_auc_ovr_macro
+            - roc_auc_ovr_micro
+            - roc_auc_ovr_weighted
+            - average_precision
+            - precision
+            - precision_macro
+            - precision_micro
+            - precision_weighted
+            - recall
+            - recall_macro
+            - recall_micro
+            - recall_weighted
+            - mcc
+            - pac_score
+            # Regression
+            - root_mean_squared_error
+            - mean_squared_error
+            - mean_absolute_error
+            - median_absolute_error
+            - mean_absolute_percentage_error
+            - r2
+            - symmetric_mean_absolute_percentage_error
+            # Timeseries
+            - SQL
+            - WQL
+            - MAE
+            - MAPE
+            - MASE
+            - MSE
+            - RMSE
+            - RMSLE
+            - RMSSE
+            - SMAPE
+            - WAPE
+          description: Evaluation metric to optimize during training. Valid values depend on task_type — the BFF rejects metrics that do not match the task type. When omitted, the pipeline uses its built-in default (accuracy for classification, r2 for regression, MASE for timeseries).
           example: "accuracy"
         top_n:
           type: integer

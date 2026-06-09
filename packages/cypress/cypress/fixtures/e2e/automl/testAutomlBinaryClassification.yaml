@@ -8,6 +8,6 @@ taskType: binary
 topN: 1
 defaultMetricLabel: Accuracy
 changedMetricKey: f1
-changedMetricLabel: 'F'
+changedMetricLabel: 'F₁'
 labelColumn: target
 awsBucket: BUCKET_2
