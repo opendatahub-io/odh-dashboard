@@ -57,13 +57,14 @@ func NewDefaultClient(cfg ClientConfig) Client {
 	transport.ResponseHeaderTimeout = 20 * time.Second
 
 	if cfg.InsecureSkipVerify || cfg.RootCAs != nil {
-		if transport.TLSClientConfig == nil {
-			transport.TLSClientConfig = &tls.Config{}
+		tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12} //nolint:gosec
+		if cfg.InsecureSkipVerify {
+			tlsCfg.InsecureSkipVerify = true
 		}
-		transport.TLSClientConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
 		if cfg.RootCAs != nil {
-			transport.TLSClientConfig.RootCAs = cfg.RootCAs
+			tlsCfg.RootCAs = cfg.RootCAs
 		}
+		transport.TLSClientConfig = tlsCfg
 	}
 
 	// Transport chain: auth (outermost) → caller wrapper (e.g. port-forward) → base HTTP
