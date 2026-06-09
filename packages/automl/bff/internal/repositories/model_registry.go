@@ -170,7 +170,7 @@ func (r *ModelRegistryRepository) RegisterModel(
 	namespace string,
 ) (string, *openapi.ModelArtifact, error) {
 	// Resolve registry and get its URL.
-	reg, err := r.ResolveModelRegistryByUID(ctx, registryUID, nil)
+	reg, err := r.ResolveModelRegistryByUID(ctx, registryUID, slog.Default())
 	if err != nil {
 		return "", nil, err
 	}
