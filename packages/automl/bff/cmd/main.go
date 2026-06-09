@@ -61,9 +61,10 @@ func main() {
 	cfg.AutoMLTimeSeriesPipelineNamePrefix = strings.TrimSpace(cfg.AutoMLTimeSeriesPipelineNamePrefix)
 	cfg.AutoMLTabularPipelineNamePrefix = strings.TrimSpace(cfg.AutoMLTabularPipelineNamePrefix)
 
-	// Auto-detect mock mode: if mock clients are enabled and auth method is still default,
-	// automatically switch to disabled auth for testing convenience
-	if (cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockModelRegistryClient) && cfg.AuthMethod == "user_token" {
+	// In dev mode, auto-disable auth when any mock client is active for testing convenience.
+	if cfg.DevMode &&
+		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockModelRegistryClient) &&
+		cfg.AuthMethod == config.AuthMethodUser {
 		cfg.AuthMethod = config.AuthMethodDisabled
 	}
 
@@ -95,9 +96,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
-	if cfg.MockS3Client && !cfg.DevMode {
-		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
+	// Prevent mock clients from being enabled in production
+	if !cfg.DevMode && (cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockModelRegistryClient) {
+		logger.Error("mock clients can only be enabled in development mode (set -dev-mode flag)")
 		os.Exit(1)
 	}
 

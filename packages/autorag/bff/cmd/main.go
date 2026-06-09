@@ -74,10 +74,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
-	if cfg.MockS3Client && !cfg.DevMode {
-		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
+	// Prevent mock clients from being enabled in production
+	if !cfg.DevMode && (cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient) {
+		logger.Error("mock clients can only be enabled in development mode (set -dev-mode flag)")
 		os.Exit(1)
+	}
+
+	// In dev mode, auto-disable auth when any mock client is active for testing convenience.
+	if cfg.DevMode &&
+		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient) &&
+		cfg.AuthMethod == config.AuthMethodUser {
+		cfg.AuthMethod = config.AuthMethodDisabled
 	}
 
 	// MockS3Client depends on MockK8sClient since GetS3Credentials needs
