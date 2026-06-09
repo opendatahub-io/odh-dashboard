@@ -131,6 +131,7 @@ export enum DataScienceStackComponent {
   OGX_OPERATOR = 'ogx',
   TRAINER = 'trainer',
   MLFLOW = 'mlflowoperator',
+  NIM = 'nim',
 }
 
 /**
