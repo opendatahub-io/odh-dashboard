@@ -388,11 +388,13 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 	shortForm := fmt.Sprintf("%s.%s", name, modelRegistriesNamespace)
 	for _, host := range hosts {
 		// Classify the host.
-		// Internal: contains ".svc." or ".cluster.local" (cluster-DNS FQDN).
+		// Internal: ends with ".svc.cluster.local" (exact cluster-DNS suffix).
+		// Substring matching (e.g. Contains(".svc.")) is unsafe — a host like
+		// "registry.svc.attacker.example.com" would be misclassified as internal.
 		// External: not internal, not a short form (bare name or name.namespace),
 		//           and contains no spaces — avoids hardcoding platform-specific
 		//           suffixes like ".apps." that do not apply outside OpenShift.
-		isInternal := strings.Contains(host, ".svc.") || strings.Contains(host, ".cluster.local")
+		isInternal := strings.HasSuffix(strings.ToLower(host), ".svc.cluster.local")
 		isExternal := !isInternal && host != name && host != shortForm && !strings.Contains(host, " ")
 
 		if isInternal && serverURL == "" {
