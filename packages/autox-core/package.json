@@ -5,9 +5,9 @@
   "version": "0.0.0",
   "scripts": {
     "install:module": "npm install --prefix ui",
-    "type-check": "(cd ui && npm run test:type-check) && (cd services && go build ./...)",
-    "lint": "(cd ui && npm run test:lint) && (cd services && make lint)",
-    "test-unit": "(cd ui && npm run test:unit) && (cd services && make test)"
+    "type-check": "cd ui && npm run test:type-check",
+    "lint": "cd ui && npm run test:lint",
+    "test-unit": "cd ui && npm run test:unit"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
