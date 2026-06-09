@@ -3,6 +3,7 @@ import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from '.
 
 export const techPreviewFlags = {
   genAiStudio: false,
+  tracing: false,
   automl: false,
   autorag: false,
   guardrails: false,

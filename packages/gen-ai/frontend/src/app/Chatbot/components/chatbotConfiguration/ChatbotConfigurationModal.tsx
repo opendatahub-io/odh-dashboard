@@ -577,35 +577,33 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             onClose={onSuccessClose}
           />
         ) : (
-          <>
-            {currentStep.component}
-            {tracingEnabled && isFirstStep && (
-              <FormGroup
-                fieldId="enable-tracing"
-                style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
-              >
-                <Switch
-                  id="enable-tracing-switch"
-                  label="Enable tracing"
-                  isChecked={enableTracing}
-                  onChange={(_event, checked) => setEnableTracing(checked)}
-                  aria-label="Toggle tracing for this playground"
-                  data-testid="enable-tracing-switch"
-                />
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem>
-                      When enabled, execution traces are collected for debugging and observability.
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-              </FormGroup>
-            )}
-          </>
+          currentStep.component
         )}
       </ModalBody>
       {!configuringPlayground && (
-        <ModalFooter>
+        <ModalFooter style={tracingEnabled && isFirstStep ? { flexWrap: 'wrap' } : undefined}>
+          {tracingEnabled && isFirstStep && (
+            <FormGroup
+              fieldId="enable-tracing"
+              style={{ flexBasis: '100%', marginBottom: 'var(--pf-t--global--spacer--md)' }}
+            >
+              <Switch
+                id="enable-tracing-switch"
+                label="Enable tracing"
+                isChecked={enableTracing}
+                onChange={(_event, checked) => setEnableTracing(checked)}
+                aria-label="Toggle tracing for this playground"
+                data-testid="enable-tracing-switch"
+              />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    When enabled, execution traces are collected for debugging and observability.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </FormGroup>
+          )}
           {!isStepsLoading && isLastStep ? (
             <Button
               variant="primary"
