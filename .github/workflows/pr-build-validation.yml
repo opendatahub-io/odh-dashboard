@@ -19,18 +19,35 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  # Centralized skip condition - change once, applies to all jobs
-  SKIP_VALIDATION: ${{ contains(github.event.pull_request.title, '[skip konflux-sim]') || contains(github.event.pull_request.labels.*.name, 'skip-konflux-sim') }}
-
 jobs:
+  # Gate job: Centralized skip condition check
+  # All other jobs depend on this to avoid duplicating the skip logic
+  check-skip:
+    name: "Check Skip Condition"
+    runs-on: ubuntu-latest
+    outputs:
+      should-skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - name: Check if validation should be skipped
+        id: check
+        run: |
+          if [[ "${{ contains(github.event.pull_request.title, '[skip konflux-sim]') }}" == "true" ]] || \
+             [[ "${{ contains(github.event.pull_request.labels.*.name, 'skip-konflux-sim') }}" == "true" ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "ℹ️  Validation will be skipped ([skip konflux-sim] marker found)"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Validation will run"
+          fi
+
   # Phase 0: Early Static Checks (runs first, fails fast)
   hermetic-preflight:
     name: "Phase 0: Hermetic Build Preflight"
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    if: env.SKIP_VALIDATION != 'true'
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -187,8 +204,8 @@ jobs:
     permissions:
       contents: read
       actions: write  # for upload-artifact
-    needs: hermetic-preflight
-    if: env.SKIP_VALIDATION != 'true'
+    needs: [check-skip, hermetic-preflight]
+    if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -220,8 +237,8 @@ jobs:
     permissions:
       contents: read
       actions: write  # for upload-artifact
-    needs: hermetic-preflight
-    if: env.SKIP_VALIDATION != 'true'
+    needs: [check-skip, hermetic-preflight]
+    if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -254,8 +271,8 @@ jobs:
     permissions:
       contents: read
       actions: read  # for download-artifact
-    needs: docker-build-odh
-    if: env.SKIP_VALIDATION != 'true'
+    needs: [check-skip, docker-build-odh]
+    if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -515,8 +532,8 @@ jobs:
     permissions:
       contents: read
       actions: read  # for download-artifact
-    needs: docker-build-rhoai
-    if: env.SKIP_VALIDATION != 'true'
+    needs: [check-skip, docker-build-rhoai]
+    if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -679,8 +696,8 @@ jobs:
     permissions:
       contents: read
       actions: read  # for download-artifact
-    needs: [runtime-validation-odh, runtime-validation-rhoai]
-    if: env.SKIP_VALIDATION != 'true'
+    needs: [check-skip, runtime-validation-odh, runtime-validation-rhoai]
+    if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -879,6 +896,7 @@ jobs:
     permissions:
       contents: read
     needs:
+      - check-skip
       - hermetic-preflight
       - docker-build-odh
       - docker-build-rhoai
@@ -886,7 +904,7 @@ jobs:
       - runtime-validation-rhoai
       - operator-integration
     # Run summary even when jobs are skipped, but not when workflow is skipped
-    if: always() && env.SKIP_VALIDATION != 'true'
+    if: always() && needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Check results
         run: |
