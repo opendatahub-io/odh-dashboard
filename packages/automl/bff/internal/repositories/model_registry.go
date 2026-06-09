@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	neturl "net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/kubeflow/model-registry/pkg/openapi"
@@ -177,12 +179,9 @@ func (r *ModelRegistryRepository) RegisterModel(
 	if err != nil {
 		return "", nil, err
 	}
-	baseURL := strings.TrimSpace(reg.ExternalURL)
+	baseURL := strings.TrimSpace(reg.ServerURL)
 	if baseURL == "" {
-		baseURL = strings.TrimSpace(reg.ServerURL)
-	}
-	if baseURL == "" {
-		return "", nil, fmt.Errorf("model registry %q has no usable URL", reg.Name)
+		return "", nil, fmt.Errorf("model registry %q has no usable internal URL", reg.Name)
 	}
 
 	// Discover DSPA object storage for artifact URI construction.
@@ -397,9 +396,17 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 		isExternal := !isInternal && host != name && host != shortForm && !strings.Contains(host, " ")
 
 		if isInternal && serverURL == "" {
-			serverURL = fmt.Sprintf("https://%s:%d%s", host, modelRegistryServicePort, modelRegistryRESTAPIPath())
+			serverURL = (&neturl.URL{
+				Scheme: "https",
+				Host:   net.JoinHostPort(host, strconv.Itoa(modelRegistryServicePort)),
+				Path:   modelRegistryRESTAPIPath(),
+			}).String()
 		} else if isExternal && externalURL == "" {
-			externalURL = fmt.Sprintf("https://%s%s", host, modelRegistryRESTAPIPath())
+			externalURL = (&neturl.URL{
+				Scheme: "https",
+				Host:   host,
+				Path:   modelRegistryRESTAPIPath(),
+			}).String()
 		}
 	}
 
@@ -408,14 +415,12 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 	if serverURL == "" {
 		logger.Warn("ModelRegistry status.hosts is empty, constructing fallback in-cluster URL",
 			"name", name)
-		serverURL = fmt.Sprintf(
-			"https://%s.%s.%s:%d%s",
-			name,
-			modelRegistriesNamespace,
-			modelRegistryClusterDomain(),
-			modelRegistryServicePort,
-			modelRegistryRESTAPIPath(),
-		)
+		fallbackHost := fmt.Sprintf("%s.%s.%s", name, modelRegistriesNamespace, modelRegistryClusterDomain())
+		serverURL = (&neturl.URL{
+			Scheme: "https",
+			Host:   net.JoinHostPort(fallbackHost, strconv.Itoa(modelRegistryServicePort)),
+			Path:   modelRegistryRESTAPIPath(),
+		}).String()
 	}
 
 	return serverURL, externalURL
