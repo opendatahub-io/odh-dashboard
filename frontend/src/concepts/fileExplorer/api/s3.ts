@@ -70,7 +70,12 @@ export async function getFiles(
   });
   await throwIfNotOk(response);
 
-  const json: unknown = await response.json();
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch {
+    throw new Error('Server returned a non-JSON response');
+  }
 
   // The BFF wraps responses in { data: <payload> }
   const payload = hasDataProperty(json) ? json.data : json;

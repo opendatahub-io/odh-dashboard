@@ -123,6 +123,28 @@ describe('getFiles', () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it('should throw a descriptive error when response body is not valid JSON', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.reject(new SyntaxError('Unexpected token < in JSON')),
+    });
+
+    await expect(
+      getFiles('', {}, { apiPath: '/autorag/api/v1/s3', namespace: 'ns' }),
+    ).rejects.toThrow('Server returned a non-JSON response');
+  });
+
+  it('should throw a descriptive error when response body is empty', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')),
+    });
+
+    await expect(
+      getFiles('', {}, { apiPath: '/autorag/api/v1/s3', namespace: 'ns' }),
+    ).rejects.toThrow('Server returned a non-JSON response');
+  });
+
   it('should throw on invalid response shape', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
