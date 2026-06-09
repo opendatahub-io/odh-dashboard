@@ -1,4 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import {
   createExtensionGuard,
   type DetailCardProperties,
@@ -6,7 +7,9 @@ import {
 
 export type ModelDetailsDeploymentCardExtension = Extension<
   'model-registry.model-details/details-card',
-  DetailCardProperties
+  Omit<DetailCardProperties, 'component'> & {
+    component: ComponentCodeRef<{ rmId?: string; mrName?: string }>;
+  }
 >;
 
 export const isModelDetailsDeploymentCardExtension =

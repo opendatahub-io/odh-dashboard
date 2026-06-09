@@ -1,4 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import {
   createExtensionGuard,
   type DetailTabProperties,
@@ -6,7 +7,9 @@ import {
 
 export type ModelRegistryVersionDetailsTabExtension = Extension<
   'model-registry.version-details/tab',
-  DetailTabProperties
+  Omit<DetailTabProperties, 'component'> & {
+    component: ComponentCodeRef<{ rmId?: string; mvId?: string; mrName?: string }>;
+  }
 >;
 
 export const isModelRegistryVersionDetailsTabExtension =
@@ -16,7 +19,9 @@ export const isModelRegistryVersionDetailsTabExtension =
 
 export type ModelRegistryDetailsTabExtension = Extension<
   'model-registry.details/tab',
-  DetailTabProperties
+  Omit<DetailTabProperties, 'component'> & {
+    component: ComponentCodeRef<{ rmId?: string; mrName?: string }>;
+  }
 >;
 
 export const isModelRegistryDetailsTabExtension =

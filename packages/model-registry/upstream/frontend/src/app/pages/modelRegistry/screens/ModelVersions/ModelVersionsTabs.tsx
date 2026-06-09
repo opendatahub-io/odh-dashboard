@@ -35,6 +35,15 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
   const { registeredModelId: rmId } = useParams();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
 
+  const filterExtension = React.useMemo(
+    () =>
+      isArchiveModel
+        ? (ext: (typeof tabExtensions)[number]) =>
+            ext.properties.id !== DEPLOYMENTS_TAB_EXTENSION_ID
+        : undefined,
+    [isArchiveModel],
+  );
+
   return (
     <ExtensibleDetailTabs
       activeKey={tab}
@@ -68,9 +77,7 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
       componentProps={{ rmId, mrName: preferredModelRegistry?.name }}
       ariaLabel="Model versions page tabs"
       testId="model-versions-page-tabs"
-      filterExtension={
-        isArchiveModel ? (ext) => ext.properties.id !== DEPLOYMENTS_TAB_EXTENSION_ID : undefined
-      }
+      filterExtension={filterExtension}
     />
   );
 };
