@@ -35,7 +35,17 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 
 	// Parse sources query parameter (comma-separated list: namespace,custom_endpoint,maas)
 	// Default to namespace and custom_endpoint if not specified
-	sourcesParam := r.URL.Query().Get("sources")
+	// Reject requests with multiple "sources" parameters
+	sourcesParams := r.URL.Query()["sources"]
+	if len(sourcesParams) > 1 {
+		app.badRequestResponse(w, r, fmt.Errorf("multiple 'sources' parameters not allowed"))
+		return
+	}
+
+	sourcesParam := ""
+	if len(sourcesParams) == 1 {
+		sourcesParam = sourcesParams[0]
+	}
 	requestedSources, invalidSources := parseModelSources(sourcesParam)
 
 	// Validate that no invalid sources were provided

@@ -793,4 +793,23 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should return 400 for more than 3 tokens in sources")
 	})
+
+	It("should reject multiple sources query parameters", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace&sources=invalid", nil)
+		assert.NoError(t, err)
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should return 400 for multiple sources parameters")
+		assert.Contains(t, rr.Body.String(), "multiple 'sources' parameters not allowed")
+	})
 })
