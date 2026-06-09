@@ -1,3 +1,22 @@
+/**
+ * @module FileExplorer
+ *
+ * A reusable, presentation-only file browser modal.
+ *
+ * FileExplorer handles rendering a table of files/folders with breadcrumb navigation,
+ * search, pagination, selection (radio or checkbox), and a details side-panel — but
+ * performs **no data fetching or side effects**.
+ *
+ * All data and callbacks are passed in via props, making it storage-agnostic.
+ *
+ * Wrapper components (e.g. {@link S3FileExplorer}) supply the data-fetching layer and
+ * map storage-specific responses into the {@link File} / {@link Folder} shapes this
+ * component expects.
+ *
+ * Intended for reuse across packages — import types and the default export from this
+ * module to build new storage-specific file explorers.
+ */
+
 // Modules -------------------------------------------------------------------->
 
 import {
@@ -72,6 +91,7 @@ import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState 
 
 // Types ---------------------------------------------------------------------->
 
+/** A data source that the file explorer can browse (e.g. an S3 connection). */
 export interface Source {
   name: string;
   bucket?: string;
@@ -79,6 +99,10 @@ export interface Source {
 }
 export type Sources = Source[];
 
+/**
+ * A single item (file or folder) displayed in the file explorer table.
+ * Storage-specific wrappers map their API responses into this shape.
+ */
 export interface File {
   name: string;
   path: string;
@@ -92,12 +116,14 @@ export interface File {
 }
 export type Files<T extends File = File> = T[];
 
+/** A {@link File} whose `type` is `'folder'`, making it navigable in the breadcrumb trail. */
 export interface Folder extends File {
   type: 'folder';
   items: number;
 }
 export const isFolder = (file: File): file is Folder => file.type === 'folder';
 
+/** Configuration for the empty-state banner shown when no files are available or an error occurs. */
 export type FileExplorerEmptyStateConfig = Pick<
   EmptyStateProps,
   'titleText' | 'headingLevel' | 'icon' | 'variant' | 'status'

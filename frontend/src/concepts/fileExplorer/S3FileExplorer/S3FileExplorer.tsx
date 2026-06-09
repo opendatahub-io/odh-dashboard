@@ -1,3 +1,20 @@
+/**
+ * @module S3FileExplorer
+ *
+ * S3-specific wrapper around the generic {@link FileExplorer} modal.
+ *
+ * This component owns all S3 data-fetching, pagination-token management, search
+ * debouncing, and error-to-empty-state mapping. It translates S3 list-objects
+ * responses into the {@link File}/{@link Folder} shapes that FileExplorer expects
+ * and forwards user interactions (navigation, search, page changes) back to the
+ * S3 BFF API.
+ *
+ * Consumers provide an `apiPath` (the BFF route prefix) and Kubernetes coordinates
+ * (`namespace`, `s3SecretName`, optional `bucket`). S3FileExplorer handles the rest.
+ *
+ * @see {@link FileExplorer} for the underlying presentation component.
+ */
+
 // Modules -------------------------------------------------------------------->
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
