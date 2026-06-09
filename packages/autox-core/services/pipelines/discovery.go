@@ -245,6 +245,12 @@ func validateDSPAURL(rawURL string) error {
 		if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
 			return fmt.Errorf("URL must not point to loopback or link-local address")
 		}
+		if ip.IsUnspecified() {
+			return fmt.Errorf("URL must not point to unspecified address")
+		}
+		if ip.IsMulticast() {
+			return fmt.Errorf("URL must not point to multicast address")
+		}
 		if strings.HasPrefix(hostname, "169.254.") {
 			return fmt.Errorf("URL must not point to cloud metadata endpoint")
 		}

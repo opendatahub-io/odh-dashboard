@@ -26,6 +26,10 @@ func TestValidateDSPAURL(t *testing.T) {
 		{"loopback IPv6", "https://[::1]:8443", true},
 		{"link-local", "https://169.254.169.254", true},
 		{"cloud metadata", "https://169.254.169.254/latest/meta-data", true},
+		{"unspecified IPv4", "https://0.0.0.0:8443", true},
+		{"unspecified IPv6", "https://[::]:8443", true},
+		{"multicast IPv4", "https://224.0.0.1:8443", true},
+		{"multicast IPv6", "https://[ff02::1]:8443", true},
 	}
 
 	for _, tt := range tests {
