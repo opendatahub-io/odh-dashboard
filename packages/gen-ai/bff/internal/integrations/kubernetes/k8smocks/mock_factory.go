@@ -16,7 +16,9 @@ import (
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -261,12 +263,20 @@ func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *integr
 type ConfigurableMockTokenClientFactory struct {
 	CanListLSDAllowed bool
 	CanListLSDError   error
+	GetClientError    error
+	SecretValues      map[string]map[string]string // secretName → key → value
+	SecretError       error
 }
 
 func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	if f.GetClientError != nil {
+		return nil, f.GetClientError
+	}
 	return &ConfigurableMockKubernetesClient{
 		CanListLSDAllowed: f.CanListLSDAllowed,
 		CanListLSDError:   f.CanListLSDError,
+		SecretValues:      f.SecretValues,
+		SecretError:       f.SecretError,
 	}, nil
 }
 
@@ -286,6 +296,8 @@ type ConfigurableMockKubernetesClient struct {
 	k8s.KubernetesClientInterface
 	CanListLSDAllowed bool
 	CanListLSDError   error
+	SecretValues      map[string]map[string]string // secretName → key → value
+	SecretError       error
 }
 
 func (c *ConfigurableMockKubernetesClient) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
@@ -305,8 +317,18 @@ func (c *ConfigurableMockKubernetesClient) GetExternalModelsConfig(ctx context.C
 }
 
 func (c *ConfigurableMockKubernetesClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
-	// Return error to simulate inability to access Secret
-	return "", fmt.Errorf("mock: secret not accessible")
+	if c.SecretError != nil {
+		return "", c.SecretError
+	}
+	if c.SecretValues != nil {
+		if secret, ok := c.SecretValues[secretName]; ok {
+			if val, ok := secret[secretKey]; ok {
+				return val, nil
+			}
+			return "", fmt.Errorf("key %q not found in secret %q: %w", secretKey, secretName, k8s.ErrSecretKeyNotFound)
+		}
+	}
+	return "", apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, secretName)
 }
 
 // Helper functions to create k8s error types for testing

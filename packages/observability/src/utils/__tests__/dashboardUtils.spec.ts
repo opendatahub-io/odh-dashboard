@@ -70,7 +70,7 @@ describe('dashboardUtils', () => {
     });
 
     describe('admin suffix filtering', () => {
-      it('should exclude admin dashboards for non-admin users', () => {
+      it('should exclude admin dashboards for users without cluster metrics access', () => {
         const dashboards = [
           createMockDashboard('dashboard-model'),
           createMockDashboard('dashboard-cluster-admin'),
@@ -83,7 +83,7 @@ describe('dashboardUtils', () => {
         expect(result[0].metadata.name).toBe('dashboard-model');
       });
 
-      it('should include admin dashboards for admin users', () => {
+      it('should include admin dashboards for users with cluster metrics access', () => {
         const dashboards = [
           createMockDashboard('dashboard-model'),
           createMockDashboard('dashboard-cluster-admin'),
@@ -217,7 +217,7 @@ describe('dashboardUtils', () => {
     });
 
     describe('combined filtering and sorting', () => {
-      it('should filter by prefix, filter by admin status, and sort results', () => {
+      it('should filter by prefix, filter by cluster metrics access, and sort results', () => {
         const dashboards = [
           createMockDashboard('dashboard-zebra'),
           createMockDashboard('other-panel'),

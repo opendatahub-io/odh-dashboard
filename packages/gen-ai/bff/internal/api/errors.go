@@ -91,9 +91,6 @@ func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err
 	app.errorResponse(w, r, httpError)
 }
 
-// TODO: remove nolint comment below when we use this method
-//
-//nolint:unused
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusForbidden,

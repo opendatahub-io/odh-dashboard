@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Button, Content, ContentVariants, List, ListItem, Popover } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
+import { URL_PREFIX } from '~/app/utilities/const';
 import { SubscriptionDetail } from '~/app/types/api-key';
 
 type SubscriptionCellProps = {
@@ -17,34 +18,20 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
 
   const displayLabel = subscriptionDetail?.displayName || subscriptionName;
 
-  if (!subscriptionDetail || subscriptionDetail.models.length === 0) {
+  // Only link to the details page when the subscription still exists (detail is present).
+  // If subscriptionDetail is undefined the subscription may have been deleted, so show
+  // plain text to avoid navigating to a page that no longer exists.
+  if (!subscriptionDetail) {
     return <>{displayLabel}</>;
   }
 
-  const modelCount = subscriptionDetail.models.length;
-
   return (
-    <Popover
-      headerContent={displayLabel}
-      bodyContent={
-        <div data-testid="subscription-popover-body">
-          <Content component={ContentVariants.small}>
-            {modelCount} {modelCount === 1 ? 'model' : 'models'}
-          </Content>
-          <List isPlain>
-            {subscriptionDetail.models.map((model) => (
-              <ListItem key={model}>
-                <Content component={ContentVariants.small}>{model}</Content>
-              </ListItem>
-            ))}
-          </List>
-        </div>
-      }
+    <Link
+      to={`${URL_PREFIX}/keys-and-subs/subscriptions/${encodeURIComponent(subscriptionName)}`}
+      data-testid="subscription-detail-link"
     >
-      <Button variant="link" isInline data-testid="subscription-popover-button">
-        {displayLabel}
-      </Button>
-    </Popover>
+      {displayLabel}
+    </Link>
   );
 };
 

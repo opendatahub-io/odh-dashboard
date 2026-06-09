@@ -668,6 +668,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId2: string;
   sourceName3: string;
   redhatAiSourceId3: string;
+  toolCallingLabel: string;
+  toolCallingArg: string;
 };
 
 export type TrainJobTestData = {

@@ -71,23 +71,16 @@ class RegisteredModelDetails {
   }
 
   shouldHaveCustomProperty(key: string, value: string) {
-    // Validate the key and value are in the same row of the properties table
-    // Use generous timeout for CI environments where rendering and API calls may be slower
-    this.findPropertiesExpandableSection().within(() => {
-      cy.findByTestId('properties-table', { timeout: 30000 }).should('be.visible');
-
-      // Find the row containing the key, then verify value is in the same row
-      // Cypress will automatically retry this entire chain until it succeeds or times out
-      cy.findByTestId('properties-table')
-        .find('tbody tr')
-        .contains('td', key, { timeout: 30000 })
-        .should('be.visible')
-        .parent('tr')
-        .within(() => {
-          // Within the same row, verify the value exists and is visible
-          cy.contains('td', value).should('be.visible');
-        });
-    });
+    this.ensurePropertiesExpanded();
+    // Avoid .within() — the table can remount after save/navigation causing a stale
+    // DOM reference. Chaining from the expandable section lets Cypress retry against
+    // the live DOM until the property text appears.
+    this.findPropertiesExpandableSection()
+      .contains('td', key, { timeout: 15000 })
+      .should('be.visible');
+    this.findPropertiesExpandableSection()
+      .contains('td', value, { timeout: 15000 })
+      .should('be.visible');
     return this;
   }
 

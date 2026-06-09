@@ -38,6 +38,8 @@ export type MastheadToolbarItemExtension = Extension<
     component: ComponentCodeRef;
     /** Group used for lexicographic sorting of toolbar items. */
     group?: string;
+    /** Where to render relative to the theme toggle. Defaults to 'leading'. */
+    position?: 'leading' | 'trailing';
   }
 >;
 

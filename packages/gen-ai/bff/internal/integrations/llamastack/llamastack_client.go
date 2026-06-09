@@ -588,6 +588,23 @@ func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params Crea
 	return stream, nil
 }
 
+// CreateResponseStreamRaw creates a streaming AI response from a raw JSON body.
+// The body is forwarded to OGX as-is — no parameter validation or transformation.
+// This is used by the passthrough endpoint where the caller already constructed the full OGX API request.
+func (c *LlamaStackClient) CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (ResponseStreamIterator, error) {
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal raw request body: %w", err)
+	}
+
+	opts := []option.RequestOption{
+		option.WithRequestBody("application/json", jsonBody),
+	}
+
+	stream := c.client.Responses.NewStreaming(ctx, responses.ResponseNewParams{}, opts...)
+	return stream, nil
+}
+
 // buildRequestOptions creates option functions for custom headers
 func (c *LlamaStackClient) buildRequestOptions(providerData map[string]interface{}) []option.RequestOption {
 	if len(providerData) == 0 {
