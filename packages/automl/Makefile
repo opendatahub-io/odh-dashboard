@@ -31,17 +31,17 @@ dev-install-dependencies:
 	cd frontend && npm install
 
 .PHONY: dev-bff-mock
-dev-bff-mock: ## Run BFF with all mocks enabled (K8s, Pipeline Server)
-	cd bff && make run LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+dev-bff-mock: ## Run BFF with all mocks enabled
+	cd bff && make run LOG_LEVEL=debug DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_MODEL_REGISTRY_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-bff-mock-debug
 dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
-	cd bff && make debug LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+	cd bff && make debug LOG_LEVEL=debug DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_MODEL_REGISTRY_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-bff
 dev-bff:
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4003 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone
+	cd bff && make run PORT=4003 MOCK_K8S_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-frontend
 dev-frontend:
@@ -98,7 +98,7 @@ E2E_BFF_PORT ?= 4003
 
 .PHONY: dev-bff-e2e-mock
 dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
