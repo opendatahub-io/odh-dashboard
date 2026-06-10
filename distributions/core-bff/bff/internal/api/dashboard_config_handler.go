@@ -5,23 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"k8s.io/apimachinery/pkg/types"
 )
-
-// isResourceUnavailable returns true when the resource or its CRD is absent.
-// Broader than repositories.isDiscoveryError: also matches IsNotFound (instance missing).
-func isResourceUnavailable(err error) bool {
-	if k8serrors.IsNotFound(err) || k8serrors.IsMethodNotSupported(err) {
-		return true
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "no matches for kind") ||
-		strings.Contains(msg, "the server could not find the requested resource")
-}
 
 // GetDashboardConfigByNameHandler fetches a specific OdhDashboardConfig by namespace/name.
 func (app *App) GetDashboardConfigByNameHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -35,7 +23,7 @@ func (app *App) GetDashboardConfigByNameHandler(w http.ResponseWriter, r *http.R
 
 	raw, err := app.repositories.DashboardConfig.GetRawDashboardConfig(r.Context(), namespace, name)
 	if err != nil {
-		if isResourceUnavailable(err) {
+		if k8sutil.IsResourceUnavailable(err) {
 			app.notFoundResponse(w, r)
 		} else {
 			app.serverErrorResponse(w, r, err)
@@ -72,7 +60,7 @@ func (app *App) PatchDashboardConfigByNameHandler(w http.ResponseWriter, r *http
 
 	raw, err := app.repositories.DashboardConfig.PatchRawDashboardConfig(r.Context(), namespace, name, body, types.JSONPatchType)
 	if err != nil {
-		if isResourceUnavailable(err) {
+		if k8sutil.IsResourceUnavailable(err) {
 			app.notFoundResponse(w, r)
 		} else {
 			app.serverErrorResponse(w, r, err)

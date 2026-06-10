@@ -159,6 +159,30 @@ func TestResolveStartupPlatform_ExplicitOverridesProbeError(t *testing.T) {
 	assert.Equal(t, config.PlatformXKS, result)
 }
 
+func TestResolveStartupPlatform_ExplicitOpenShift_MismatchDetected(t *testing.T) {
+	ci := clusterInfo{}
+	result := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
+	assert.Equal(t, config.PlatformOpenShift, result)
+}
+
+func TestResolveStartupPlatform_ExplicitOpenShift_MatchesProbe(t *testing.T) {
+	ci := clusterInfo{clusterID: "real-cluster-id"}
+	result := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
+	assert.Equal(t, config.PlatformOpenShift, result)
+}
+
+func TestResolveStartupPlatform_ExplicitXKS_NoProbeError(t *testing.T) {
+	ci := clusterInfo{clusterID: "real-cluster-id"}
+	result := resolveStartupPlatform(ci, nil, true, config.PlatformXKS, testLogger())
+	assert.Equal(t, config.PlatformXKS, result)
+}
+
+func TestResolveStartupPlatform_AutoDetect_OpenShift(t *testing.T) {
+	ci := clusterInfo{clusterID: "abc-123"}
+	result := resolveStartupPlatform(ci, nil, false, "", testLogger())
+	assert.Equal(t, config.PlatformOpenShift, result)
+}
+
 func TestQueryClusterInfo_BothFail(t *testing.T) {
 	typedClient := k8sfake.NewSimpleClientset()
 	scheme := runtime.NewScheme()

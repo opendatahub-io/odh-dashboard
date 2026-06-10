@@ -1,5 +1,7 @@
 package models
 
+import "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/ptr"
+
 // ModelServingPlatformEnabled indicates which model serving platforms are enabled.
 type ModelServingPlatformEnabled struct {
 	KServe bool `json:"kServe"`
@@ -21,11 +23,9 @@ var DefaultClusterSettings = ClusterSettings{
 	PVCSize:                         20,
 	CullerTimeout:                   31536000,
 	UserTrackingEnabled:             false,
-	IsDistributedInferencingDefault: boolPtr(true),
+	IsDistributedInferencingDefault: ptr.To(true),
 	ModelServingPlatformEnabled: ModelServingPlatformEnabled{
 		KServe: true,
 		LLMd:   true,
 	},
 }
-
-func boolPtr(b bool) *bool { return &b }

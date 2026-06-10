@@ -61,6 +61,14 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		outboundHeadersFn = impersonateFromIdentity
 	}
 
+	var devFallbackToken string
+	if cfg.DevMode && !cfg.MockK8Client {
+		kc, _ := helpers.GetKubeconfig()
+		if kc != nil {
+			devFallbackToken = kc.BearerToken
+		}
+	}
+
 	k8sProxyHandler, err := proxy.NewK8sProxyHandler(proxy.K8sProxyConfig{
 		K8sHost:              k8sHost,
 		RootCAs:              app.rootCAs,
@@ -70,6 +78,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		AuthTokenHeader:      cfg.AuthTokenHeader,
 		SetOutboundHeadersFn: outboundHeadersFn,
 		SSRFValidateTarget:   true,
+		DevFallbackToken:     devFallbackToken,
 		Logger:               app.logger,
 	})
 	if err != nil {
@@ -87,6 +96,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		AllowHTTP:          allowHTTP,
 		AllowedOrigins:     cfg.AllowedOrigins,
 		SSRFValidateTarget: true,
+		DevFallbackToken:   devFallbackToken,
 		Tracker:            app.wsTracker,
 		Logger:             app.logger,
 	})
