@@ -61,7 +61,13 @@ func NewDefaultOGXClient(cfg OGXClientConfig) *OGXClient {
 	if cfg.WrapTransport != nil {
 		rt = cfg.WrapTransport(rt)
 	}
-	return NewOGXClient(&http.Client{Transport: rt, Timeout: 8 * time.Minute})
+	return NewOGXClient(&http.Client{
+		Transport: rt,
+		Timeout:   8 * time.Minute,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	})
 }
 
 // ListModels retrieves all available models from OGX.
