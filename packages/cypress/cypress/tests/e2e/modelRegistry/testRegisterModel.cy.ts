@@ -239,14 +239,7 @@ describe('Verify models can be registered in a model registry', () => {
   it(
     'Registers and stores a model to an OCI destination',
     {
-      tags: [
-        '@Dashboard',
-        '@ModelRegistry',
-        '@ModelRegistryCI',
-        '@NonConcurrent',
-        '@Smoke',
-        '@SmokeSet4',
-      ],
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Log into the application');
@@ -363,14 +356,7 @@ describe('Verify models can be registered in a model registry', () => {
   it(
     'Registers and stores a model to an OCI destination using URI origin',
     {
-      tags: [
-        '@Dashboard',
-        '@ModelRegistry',
-        '@ModelRegistryCI',
-        '@NonConcurrent',
-        '@Smoke',
-        '@SmokeSet4',
-      ],
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Log into the application');
