@@ -20,7 +20,7 @@ type APIGroupDiscoveryVersion = {
   resources: APIGroupDiscoveryResource[];
 };
 
-type APIGroupDiscoveryItem = {
+export type APIGroupDiscoveryItem = {
   metadata: {
     name: string;
   };
@@ -58,7 +58,7 @@ const fetchDiscovery = async (
   return response.json();
 };
 
-const parseDiscoveryItems = (items: APIGroupDiscoveryItem[]): ApiResourcesData => {
+export const parseDiscoveryItems = (items: APIGroupDiscoveryItem[]): ApiResourcesData => {
   const apiGroups: string[] = [];
   const resources: DiscoveredResource[] = [];
   const seenResources = new Set<string>();

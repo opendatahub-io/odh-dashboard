@@ -3,19 +3,22 @@ import { Alert, Content, Form, FormGroup, getUniqueId } from '@patternfly/react-
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 import ContentModal from '#~/components/modals/ContentModal';
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
-import { ALL_VERBS_WILDCARD } from './verbCategories';
 import VerbsTreeSelect from './VerbsTreeSelect';
 import useApiResources, { DiscoveredResource } from './useApiResources';
 import type { RuleEntry } from './types';
+import {
+  CORE_GROUP_ID,
+  CORE_GROUP_LABEL,
+  extractApiGroups,
+  extractResources,
+  normalizeVerbs,
+} from './ruleModalUtils';
 
 type AddRuleModalProps = {
   existingRule?: RuleEntry;
   onSave: (rule: RuleEntry) => void;
   onClose: () => void;
 };
-
-const CORE_GROUP_ID = '__core__';
-const CORE_GROUP_LABEL = 'core';
 
 const toApiGroupOptions = (apiGroups: string[]): SelectionOptions[] =>
   apiGroups.map((g) => ({ id: g || CORE_GROUP_ID, name: g || CORE_GROUP_LABEL, selected: false }));
@@ -117,18 +120,9 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
   const isEdit = !!existingRule;
 
   const handleSave = React.useCallback(() => {
-    const apiGroups = selectedApiGroups.map((o) =>
-      String(o.id) === CORE_GROUP_ID ? '' : String(o.id),
-    );
-    const resources = selectedResources.map((o) => {
-      const idStr = String(o.id);
-      const slashIdx = idStr.indexOf('/');
-      return slashIdx >= 0 ? idStr.substring(slashIdx + 1) : idStr;
-    });
-
-    const verbs = selectedVerbs.includes(ALL_VERBS_WILDCARD)
-      ? [ALL_VERBS_WILDCARD]
-      : [...selectedVerbs];
+    const apiGroups = extractApiGroups(selectedApiGroups);
+    const resources = extractResources(selectedResources);
+    const verbs = normalizeVerbs(selectedVerbs);
 
     onSave({
       id: existingRule?.id ?? getUniqueId('rule'),
