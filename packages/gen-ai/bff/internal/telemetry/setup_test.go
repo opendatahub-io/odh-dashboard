@@ -2,6 +2,8 @@ package telemetry
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,11 +12,12 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
+var testLogger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
 func TestSetup_DisabledWhenEndpointUnset(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 
-	shutdown, err := Setup()
-	require.NoError(t, err)
+	shutdown := Setup(testLogger)
 	require.NotNil(t, shutdown)
 
 	assert.NoError(t, shutdown(context.Background()))
@@ -24,8 +27,7 @@ func TestSetup_EnabledWhenEndpointSet(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://192.0.2.1:4318")
 	t.Setenv("OTEL_SERVICE_NAME", "test-bff")
 
-	shutdown, err := Setup()
-	require.NoError(t, err)
+	shutdown := Setup(testLogger)
 	require.NotNil(t, shutdown)
 
 	tp := otel.GetTracerProvider()
@@ -38,8 +40,7 @@ func TestSetup_EnabledWhenEndpointSet(t *testing.T) {
 func TestSetup_ShutdownIsIdempotent(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 
-	shutdown, err := Setup()
-	require.NoError(t, err)
+	shutdown := Setup(testLogger)
 
 	assert.NoError(t, shutdown(context.Background()))
 	assert.NoError(t, shutdown(context.Background()))

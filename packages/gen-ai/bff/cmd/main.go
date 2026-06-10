@@ -103,15 +103,12 @@ func main() {
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)
 
+	shutdownTelemetry := telemetry.Setup(logger)
+
 	app, err := api.NewApp(cfg, slog.New(logger.Handler()))
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
-	}
-
-	shutdownTracing, tracingErr := telemetry.Setup()
-	if tracingErr != nil {
-		logger.Error("failed to initialize OTel tracing", "error", tracingErr)
 	}
 
 	srv := &http.Server{
@@ -159,11 +156,9 @@ func main() {
 		logger.Error("server shutdown failed", "error", err)
 	}
 
-	// Shutdown OTel tracing (flush remaining spans)
-	if shutdownTracing != nil {
-		if err := shutdownTracing(ctx); err != nil {
-			logger.Error("OTel tracing shutdown failed", "error", err)
-		}
+	// Shutdown telemetry (flush pending spans)
+	if err := shutdownTelemetry(ctx); err != nil {
+		logger.Error("telemetry shutdown failed", "error", err)
 	}
 
 	// Shutdown the App gracefully

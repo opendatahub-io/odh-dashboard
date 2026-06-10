@@ -2,7 +2,6 @@ package telemetry
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -26,23 +25,25 @@ const defaultServiceName = "gen-ai-bff"
 //   - OTEL_EXPORTER_OTLP_ENDPOINT — collector endpoint (required to enable tracing)
 //   - OTEL_SERVICE_NAME — service name resource attribute (default: gen-ai-bff)
 //   - OTEL_RESOURCE_ATTRIBUTES — comma-separated key=value pairs for resource attributes
-func Setup() (shutdown func(context.Context) error, err error) {
+func Setup(logger *slog.Logger) func(context.Context) error {
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if endpoint == "" {
-		slog.Info("OTel tracing disabled (OTEL_EXPORTER_OTLP_ENDPOINT not set)")
-		return func(context.Context) error { return nil }, nil
+		logger.Info("OTel tracing disabled (OTEL_EXPORTER_OTLP_ENDPOINT not set)")
+		return func(context.Context) error { return nil }
 	}
 
 	ctx := context.Background()
 
 	exporter, err := otlptracehttp.New(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("creating OTLP trace exporter: %w", err)
+		logger.Error("failed to create OTLP trace exporter", "error", err)
+		return func(context.Context) error { return nil }
 	}
 
 	res, err := buildResource(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("building OTel resource: %w", err)
+		logger.Error("failed to build OTel resource", "error", err)
+		return func(context.Context) error { return nil }
 	}
 
 	tp := sdktrace.NewTracerProvider(
@@ -56,9 +57,9 @@ func Setup() (shutdown func(context.Context) error, err error) {
 		propagation.Baggage{},
 	))
 
-	slog.Info("OTel tracing enabled", "endpoint", endpoint, "service", res.String())
+	logger.Info("OTel tracing enabled", "endpoint", endpoint)
 
-	return tp.Shutdown, nil
+	return tp.Shutdown
 }
 
 func buildResource(ctx context.Context) (*resource.Resource, error) {
