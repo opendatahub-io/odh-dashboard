@@ -2,6 +2,8 @@ import type { DashboardResource } from '@perses-dev/core';
 import type { K8sCondition } from '@odh-dashboard/internal/k8sTypes';
 import { mockDashboardConfig, mockStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
+import { SelfSubjectAccessReviewModel } from '@odh-dashboard/internal/api/models';
 import { observabilityDashboardPage } from '../../pages/observabilityDashboard';
 
 // Minimal test fixtures following the naming pattern from packages/observability/setup
@@ -21,8 +23,9 @@ const createMockPersesDashboard = (name: string, displayName: string): Dashboard
   return dashboard;
 };
 
-const mockAdminDashboard = createMockPersesDashboard('dashboard-0-cluster-admin', 'Cluster');
-const mockNonAdminDashboard = createMockPersesDashboard('dashboard-1-model', 'Model');
+const mockClusterDashboard = createMockPersesDashboard('dashboard-0-cluster-admin', 'Cluster');
+const mockModelDashboard = createMockPersesDashboard('dashboard-1-model', 'Model');
+const mockTenancyDashboard = createMockPersesDashboard('dashboard-2-tenancy', 'Tenancy');
 
 const HEALTHY_DSCI_CONDITIONS: K8sCondition[] = [
   {
@@ -43,18 +46,50 @@ const HEALTHY_DSCI_CONDITIONS: K8sCondition[] = [
 
 type InitInterceptsOptions = {
   dashboards?: DashboardResource[];
-  isAdmin?: boolean;
+  hasClusterMetricsAccess?: boolean;
   dsciConditions?: K8sCondition[];
 };
 
 const initIntercepts = ({
   dashboards = [],
-  isAdmin = false,
+  hasClusterMetricsAccess = false,
   dsciConditions = HEALTHY_DSCI_CONDITIONS,
 }: InitInterceptsOptions = {}) => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ observabilityDashboard: true }));
 
-  cy.interceptOdh('GET /api/status', mockStatus({ isAllowed: true, isAdmin }));
+  cy.interceptOdh('GET /api/status', mockStatus({ isAllowed: true, isAdmin: false }));
+
+  cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+    const attrs = req.body?.spec?.resourceAttributes;
+    if (attrs?.group !== 'monitoring.coreos.com') {
+      req.reply(
+        mockSelfSubjectAccessReview({
+          ...attrs,
+          allowed: true,
+        }),
+      );
+      return;
+    }
+    expect(attrs).to.deep.include({
+      group: 'monitoring.coreos.com',
+      resource: 'prometheuses',
+      subresource: 'api',
+      verb: 'get',
+      name: 'k8s',
+      namespace: 'openshift-monitoring',
+    });
+    req.reply(
+      mockSelfSubjectAccessReview({
+        group: 'monitoring.coreos.com',
+        resource: 'prometheuses',
+        subresource: 'api',
+        verb: 'get',
+        name: 'k8s',
+        namespace: 'openshift-monitoring',
+        allowed: hasClusterMetricsAccess,
+      }),
+    );
+  });
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({ conditions: dsciConditions }));
 
@@ -67,7 +102,7 @@ const initIntercepts = ({
 
 describe('Observability Dashboard', () => {
   it('should show empty state when no dashboards exist', () => {
-    initIntercepts({ dashboards: [], isAdmin: true });
+    initIntercepts({ dashboards: [], hasClusterMetricsAccess: true });
 
     observabilityDashboardPage.visit();
 
@@ -79,7 +114,7 @@ describe('Observability Dashboard', () => {
   it('should hide nav and route when DSCI reports monitoring is not ready', () => {
     initIntercepts({
       dashboards: [],
-      isAdmin: true,
+      hasClusterMetricsAccess: true,
       dsciConditions: [
         {
           lastTransitionTime: '2023-10-20T11:45:04Z',
@@ -98,7 +133,7 @@ describe('Observability Dashboard', () => {
   it('should hide nav and route when MonitoringReady is True but PersesAvailable is False', () => {
     initIntercepts({
       dashboards: [],
-      isAdmin: true,
+      hasClusterMetricsAccess: true,
       dsciConditions: [
         {
           lastTransitionTime: '2023-10-20T11:45:04Z',
@@ -122,7 +157,7 @@ describe('Observability Dashboard', () => {
   });
 
   it('should show a load error when the Perses dashboards API is unreachable', () => {
-    initIntercepts({ isAdmin: true });
+    initIntercepts({ hasClusterMetricsAccess: true });
 
     cy.intercept('GET', '/perses/api/api/v1/dashboards', {
       statusCode: 503,
@@ -136,47 +171,29 @@ describe('Observability Dashboard', () => {
     observabilityDashboardPage.shouldHavePersesLoadError();
   });
 
-  it('should show both admin and non-admin dashboard tabs when user is admin', () => {
+  it('should show all dashboard tabs when user has cluster metrics access', () => {
     initIntercepts({
-      dashboards: [mockAdminDashboard, mockNonAdminDashboard],
-      isAdmin: true,
+      dashboards: [mockClusterDashboard, mockModelDashboard, mockTenancyDashboard],
+      hasClusterMetricsAccess: true,
     });
 
     observabilityDashboardPage.visit();
 
-    // Admin users should see both dashboards
     observabilityDashboardPage.shouldHaveTab('Cluster');
     observabilityDashboardPage.shouldHaveTab('Model');
-    observabilityDashboardPage.shouldHaveTabCount(2);
+    observabilityDashboardPage.shouldHaveTab('Tenancy');
+    observabilityDashboardPage.shouldHaveTabCount(3);
   });
 
-  // it('should show only non-admin dashboard tabs when user is not admin', () => {
-  //   // Non-admin users should only see the non-admin dashboard
-  //   // The filtering happens on the frontend, so we still return all dashboards
-  //   // but the usePersesDashboards hook filters based on user admin status
-  //   initIntercepts({
-  //     dashboards: [mockAdminDashboard, mockNonAdminDashboard],
-  //     isAdmin: false,
-  //   });
-
-  //   observabilityDashboardPage.visit();
-
-  //   // Non-admin users should only see non-admin dashboards
-  //   observabilityDashboardPage.shouldHaveTab('Model');
-  //   observabilityDashboardPage.shouldHaveTabCount(1);
-  // });
-
-  // FIXME This is a temporary test to ensure that the dashboard tabs are only available for admins
-  it('should show only dashboard tabs for admins', () => {
-    // Non-admin users should only see the non-admin dashboard
-    // The filtering happens on the frontend, so we still return all dashboards
-    // but the usePersesDashboards hook filters based on user admin status
+  it('should show only tenancy dashboard tabs when user does not have cluster metrics access', () => {
     initIntercepts({
-      dashboards: [mockAdminDashboard, mockNonAdminDashboard],
-      isAdmin: false,
+      dashboards: [mockClusterDashboard, mockModelDashboard, mockTenancyDashboard],
+      hasClusterMetricsAccess: false,
     });
 
-    cy.visitWithLogin('/observe-and-monitor/dashboard');
-    cy.findByTestId('not-found-page').should('exist');
+    observabilityDashboardPage.visit();
+
+    observabilityDashboardPage.shouldHaveTab('Tenancy');
+    observabilityDashboardPage.shouldHaveTabCount(1);
   });
 });

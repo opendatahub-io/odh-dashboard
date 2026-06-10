@@ -3,6 +3,7 @@ import { createDataConnection } from './dataConnection';
 import { AWS_BUCKETS } from '../s3Buckets';
 import type { DataConnectionReplacements } from '../../types';
 import { createCleanProject } from '../projectChecker';
+import { failOnDeploymentStatus } from '../failEarly';
 
 /**
  * Provision (using oc) a Project in order to make it usable with model seving
@@ -275,7 +276,10 @@ export const checkInferenceServiceState = (
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(5000).then(() => checkState());
+        return cy.wait(5000).then(() => {
+          failOnDeploymentStatus(serviceName);
+          return checkState();
+        });
       }
     });
 
@@ -424,7 +428,10 @@ export const checkLLMInferenceServiceState = (
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(5000).then(() => checkState());
+        return cy.wait(5000).then(() => {
+          failOnDeploymentStatus(serviceName);
+          return checkState();
+        });
       }
     });
 

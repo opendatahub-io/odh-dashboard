@@ -4,9 +4,13 @@ import {
   getInferenceServiceModelState,
   getInferenceServiceStatusMessage,
 } from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
+import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
+import type { NIMDeployment } from '../nimservices/types';
+import { NIMServiceModel } from '../nimservices/types';
 
 /**
  * Derive deployment status from the InferenceService created by the NIM Operator.
@@ -51,3 +55,27 @@ export const getNIMDeploymentStatus = (
 
   return { state, message, stoppedStates };
 };
+
+/**
+ * Set the stopped status of the NIM deployment.
+ * The NIM Operator propagates the stopped annotation from `spec.annotations`
+ * to the child InferenceService's `metadata.annotations`.
+ */
+export const patchDeploymentStoppedStatus = (
+  deployment: NIMDeployment,
+  isStopped: boolean,
+): Promise<NIMDeployment['model']> =>
+  k8sPatchResource({
+    model: NIMServiceModel,
+    queryOptions: {
+      name: deployment.model.metadata.name,
+      ns: deployment.model.metadata.namespace,
+    },
+    patches: [
+      {
+        op: 'add',
+        path: '/spec/annotations/serving.kserve.io~1stop',
+        value: isStopped ? 'true' : 'false',
+      },
+    ],
+  });

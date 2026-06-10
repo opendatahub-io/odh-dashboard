@@ -1,11 +1,13 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // handleK8sClientError maps Kubernetes client errors to appropriate HTTP status codes
@@ -67,4 +69,27 @@ func (app *App) mapK8sErrorToHTTPError(k8sErr *kubernetes.K8sError, statusCode i
 			Message: message,
 		},
 	}
+}
+
+// handleSecretReadError maps K8s secret read errors to appropriate HTTP responses,
+// preserving 403/404 from the API server instead of flattening them to 400.
+func (app *App) handleSecretReadError(w http.ResponseWriter, r *http.Request, err error, secretName, secretKey string) {
+	switch {
+	case isSecretKeyMissing(err):
+		app.badRequestResponse(w, r, fmt.Errorf("key %s not found in secret %q", secretKey, secretName))
+	case apierrors.IsNotFound(err):
+		app.notFoundResponse(w, r)
+	case apierrors.IsForbidden(err):
+		app.forbiddenResponse(w, r, fmt.Sprintf("access denied reading secret %q", secretName))
+	case apierrors.IsUnauthorized(err):
+		app.unauthorizedResponse(w, r, fmt.Errorf("unauthorized to read secret %q: %w", secretName, err))
+	default:
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to read %s from secret %q: %w", secretKey, secretName, err))
+	}
+}
+
+// isSecretKeyMissing returns true when the error indicates a specific key was
+// not found inside an existing Secret (as opposed to a K8s API error).
+func isSecretKeyMissing(err error) bool {
+	return errors.Is(err, kubernetes.ErrSecretKeyNotFound)
 }

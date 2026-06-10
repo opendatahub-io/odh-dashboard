@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -498,6 +499,15 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 	return NewMockStreamIterator(events), nil
 }
 
+// CreateResponseStreamRaw returns the same mock stream as CreateResponseStream.
+// The raw body is ignored in mock mode.
+func (m *MockLlamaStackClient) CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (llamastack.ResponseStreamIterator, error) {
+	return m.CreateResponseStream(ctx, llamastack.CreateResponseParams{
+		Input: llamastack.InputUnion{Text: "passthrough-mock"},
+		Model: "mock-model",
+	})
+}
+
 // HandleMockStreaming streams mock SSE events directly to an HTTP response writer.
 // It delegates to CreateResponseStream and writes each event as a Server-Sent Event.
 func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {
@@ -616,6 +626,16 @@ func (m *MockLlamaStackClient) GetFile(ctx context.Context, fileID string) (*ope
 		Filename:  "unknown_file.txt",
 		Purpose:   "assistants",
 	}, nil
+}
+
+// GetFileContent returns mock audio content for testing
+func (m *MockLlamaStackClient) GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error) {
+	if fileID == "" {
+		return nil, "", fmt.Errorf("fileID is required")
+	}
+	// WAV header magic bytes for mock audio content
+	wavHeader := []byte("RIFF\x00\x00\x00\x00WAVEfmt ")
+	return io.NopCloser(strings.NewReader(string(wavHeader))), "audio/wav", nil
 }
 
 // DeleteFile returns success for mock deletion

@@ -54,17 +54,18 @@ type CodeExportGuardrailConfig struct {
 }
 
 type CodeExportRequest struct {
-	Input           string                     `json:"input"`
-	Model           string                     `json:"model"`
-	Temperature     *float64                   `json:"temperature,omitempty"`
-	Instructions    string                     `json:"instructions,omitempty"`
-	Stream          bool                       `json:"stream,omitempty"`
-	MCPServers      []MCPServer                `json:"mcp_servers,omitempty"`
-	Tools           []CodeExportTool           `json:"tools,omitempty"`
-	VectorStore     *VectorStoreConfig         `json:"vector_store,omitempty"`
-	Files           []FileUpload               `json:"files,omitempty"`
-	Prompt          *PromptConfig              `json:"prompt,omitempty"`
-	GuardrailConfig *CodeExportGuardrailConfig `json:"guardrail_config,omitempty"`
+	Input                string                     `json:"input"`
+	Model                string                     `json:"model"`
+	Temperature          *float64                   `json:"temperature,omitempty"`
+	Instructions         string                     `json:"instructions,omitempty"`
+	Stream               bool                       `json:"stream,omitempty"`
+	MCPServers           []MCPServer                `json:"mcp_servers,omitempty"`
+	Tools                []CodeExportTool           `json:"tools,omitempty"`
+	VectorStore          *VectorStoreConfig         `json:"vector_store,omitempty"`
+	Files                []FileUpload               `json:"files,omitempty"`
+	Prompt               *PromptConfig              `json:"prompt,omitempty"`
+	PromptVariableValues map[string]string          `json:"prompt_variable_values,omitempty"`
+	GuardrailConfig      *CodeExportGuardrailConfig `json:"guardrail_config,omitempty"`
 }
 
 type CodeExportResponse struct {
