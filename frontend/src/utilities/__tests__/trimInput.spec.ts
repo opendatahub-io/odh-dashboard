@@ -30,7 +30,17 @@ describe('trimInputOnBlur', () => {
 });
 
 describe('trimInputOnPaste', () => {
-  it('trims pasted text before inserting it', () => {
+  const execCommandMock = jest.fn().mockReturnValue(true);
+
+  beforeEach(() => {
+    document.execCommand = execCommandMock;
+  });
+
+  afterEach(() => {
+    execCommandMock.mockClear();
+  });
+
+  it('trims pasted text via execCommand to preserve undo stack', () => {
     const handleChange = jest.fn();
 
     const mockEvent = {
@@ -46,10 +56,13 @@ describe('trimInputOnPaste', () => {
     } as unknown as React.ClipboardEvent<HTMLInputElement>;
 
     trimInputOnPaste(handleChange)(mockEvent);
-    expect(handleChange).toHaveBeenCalledWith('foo');
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
+    expect(execCommandMock).toHaveBeenCalledWith('insertText', false, 'foo');
+    // onChange is not called directly; execCommand triggers the input's onChange
+    expect(handleChange).not.toHaveBeenCalled();
   });
 
-  it('reads current text from the DOM, not from React state', () => {
+  it('lets the browser paste when text has no surrounding whitespace', () => {
     const handleChange = jest.fn();
 
     const mockEvent = {
@@ -65,10 +78,13 @@ describe('trimInputOnPaste', () => {
     } as unknown as React.ClipboardEvent<HTMLInputElement>;
 
     trimInputOnPaste(handleChange)(mockEvent);
-    expect(handleChange).toHaveBeenCalledWith('dom-valuePASTED');
+    // No trimming needed – browser handles it natively
+    expect(mockEvent.preventDefault).not.toHaveBeenCalled();
+    expect(execCommandMock).not.toHaveBeenCalled();
+    expect(handleChange).not.toHaveBeenCalled();
   });
 
-  it('inserts trimmed pasted text at cursor position within existing value', () => {
+  it('uses execCommand to insert trimmed text when pasted text has whitespace', () => {
     const handleChange = jest.fn();
 
     const mockEvent = {
@@ -84,10 +100,11 @@ describe('trimInputOnPaste', () => {
     } as unknown as React.ClipboardEvent<HTMLInputElement>;
 
     trimInputOnPaste(handleChange)(mockEvent);
-    expect(handleChange).toHaveBeenCalledWith('helloPASTED world');
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
+    expect(execCommandMock).toHaveBeenCalledWith('insertText', false, 'PASTED');
   });
 
-  it('replaces selected text with trimmed pasted text', () => {
+  it('uses execCommand for trimmed text when replacing selected text', () => {
     const handleChange = jest.fn();
     const mockEvent = {
       preventDefault: jest.fn(),
@@ -102,15 +119,15 @@ describe('trimInputOnPaste', () => {
     } as unknown as React.ClipboardEvent<HTMLInputElement>;
 
     trimInputOnPaste(handleChange)(mockEvent);
-    expect(handleChange).toHaveBeenCalledWith('hello REPLACEMENT');
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
+    expect(execCommandMock).toHaveBeenCalledWith('insertText', false, 'REPLACEMENT');
   });
 
-  it('defaults selectionEnd to selectionStart when both are null', () => {
-    const handleChange = jest.fn();
+  it('falls back to default browser paste when onChange is not provided', () => {
     const mockEvent = {
       preventDefault: jest.fn(),
       clipboardData: {
-        getData: () => 'PASTED',
+        getData: () => '  trimme  ',
       },
       currentTarget: {
         value: 'existing',
@@ -119,7 +136,8 @@ describe('trimInputOnPaste', () => {
       },
     } as unknown as React.ClipboardEvent<HTMLInputElement>;
 
-    trimInputOnPaste(handleChange)(mockEvent);
-    expect(handleChange).toHaveBeenCalledWith('PASTEDexisting');
+    trimInputOnPaste(undefined)(mockEvent);
+    expect(mockEvent.preventDefault).not.toHaveBeenCalled();
+    expect(execCommandMock).not.toHaveBeenCalled();
   });
 });
