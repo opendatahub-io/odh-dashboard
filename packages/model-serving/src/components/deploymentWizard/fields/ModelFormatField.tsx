@@ -5,11 +5,14 @@ import SimpleSelect, {
   type SimpleSelectOption,
 } from '@odh-dashboard/internal/components/SimpleSelect';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,
+  getServingRuntimeNameFromTemplate,
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { type ModelTypeFieldData } from './ModelTypeSelectField';
 import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 
@@ -47,15 +50,46 @@ export const useModelFormatField = (
   modelType?: ModelTypeFieldData,
   projectName?: string,
 ): ModelFormatState => {
+  const { dashboardNamespace } = useDashboardNamespace();
   const [servingRuntimeTemplates, servingRuntimeTemplatesLoaded, servingRuntimeTemplatesError] =
     useServingRuntimeTemplates();
   const [projectTemplates, projectTemplatesLoaded, projectTemplatesError] =
     useServingRuntimeTemplates(projectName);
 
-  const allModelServerTemplates = React.useMemo(
-    () => servingRuntimeTemplates.concat(projectTemplates),
-    [servingRuntimeTemplates, projectTemplates],
-  );
+  // Whether the project namespace is distinct from the dashboard namespace.
+  // When projectName is falsy or equals dashboardNamespace, both
+  // useServingRuntimeTemplates calls resolve to the same namespace, so
+  // concatenating them would produce exact duplicates.
+  const hasDistinctProjectNamespace = !!projectName && projectName !== dashboardNamespace;
+
+  const allModelServerTemplates = React.useMemo(() => {
+    if (!hasDistinctProjectNamespace) {
+      return servingRuntimeTemplates;
+    }
+
+    // Merge global and project-scoped templates, deduplicating by the
+    // embedded ServingRuntime name.  Project-scoped templates take precedence
+    // so they are added first and the global duplicate is skipped.
+    const seen = new Set<string>();
+    const merged: TemplateKind[] = [];
+
+    for (const t of projectTemplates) {
+      const runtimeName = getServingRuntimeNameFromTemplate(t);
+      if (!seen.has(runtimeName)) {
+        seen.add(runtimeName);
+        merged.push(t);
+      }
+    }
+    for (const t of servingRuntimeTemplates) {
+      const runtimeName = getServingRuntimeNameFromTemplate(t);
+      if (!seen.has(runtimeName)) {
+        seen.add(runtimeName);
+        merged.push(t);
+      }
+    }
+
+    return merged;
+  }, [servingRuntimeTemplates, projectTemplates, hasDistinctProjectNamespace]);
 
   const templatesFilteredForModelType = React.useMemo(() => {
     return allModelServerTemplates.filter((template) => {

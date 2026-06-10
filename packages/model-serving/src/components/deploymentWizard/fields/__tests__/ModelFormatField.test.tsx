@@ -10,6 +10,10 @@ jest.mock('../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplat
 jest.mock('@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils', () => ({
   getModelTypesFromTemplate: jest.fn(),
   getServingRuntimeFromTemplate: jest.fn(),
+  getServingRuntimeNameFromTemplate: jest.fn(),
+}));
+jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
+  useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'dashboard-ns' })),
 }));
 
 const mockUseServingRuntimeTemplates = useServingRuntimeTemplates as jest.MockedFunction<
@@ -19,6 +23,7 @@ const mockUseServingRuntimeTemplates = useServingRuntimeTemplates as jest.Mocked
 const {
   getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,
+  getServingRuntimeNameFromTemplate,
 } = require('@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils');
 
 describe('ModelFormatField', () => {
@@ -43,6 +48,7 @@ describe('ModelFormatField', () => {
     mockUseServingRuntimeTemplates.mockReturnValue([[], false, undefined]);
     getModelTypesFromTemplate.mockReturnValue([]);
     getServingRuntimeFromTemplate.mockReturnValue(mockServingRuntime);
+    getServingRuntimeNameFromTemplate.mockImplementation((t: TemplateKind) => t.metadata.name);
   });
 
   describe('useModelFormatField hook', () => {
@@ -220,6 +226,103 @@ describe('ModelFormatField', () => {
         { name: 'pytorch' },
         { name: 'tensorflow', version: '2.0' },
       ]);
+    });
+
+    it('should not duplicate templates when projectName is undefined', () => {
+      const globalTemplates = [
+        { metadata: { name: 'vllm-runtime', namespace: 'dashboard-ns' } },
+      ] as TemplateKind[];
+
+      // Both calls resolve to dashboardNamespace when projectName is undefined
+      mockUseServingRuntimeTemplates.mockReturnValue([globalTemplates, true, undefined]);
+      getModelTypesFromTemplate.mockReturnValue([ServingRuntimeModelType.PREDICTIVE]);
+
+      const { result } = renderHook(() =>
+        useModelFormatField(undefined, {
+          type: ServingRuntimeModelType.PREDICTIVE,
+          legacyVLLM: false,
+        }),
+      );
+
+      // Should have only 1 template, not 2 duplicates
+      expect(result.current.templatesFilteredForModelType).toHaveLength(1);
+    });
+
+    it('should not duplicate templates when projectName equals dashboardNamespace', () => {
+      const globalTemplates = [
+        { metadata: { name: 'vllm-runtime', namespace: 'dashboard-ns' } },
+      ] as TemplateKind[];
+
+      mockUseServingRuntimeTemplates.mockReturnValue([globalTemplates, true, undefined]);
+      getModelTypesFromTemplate.mockReturnValue([ServingRuntimeModelType.PREDICTIVE]);
+
+      const { result } = renderHook(() =>
+        useModelFormatField(
+          undefined,
+          { type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false },
+          'dashboard-ns',
+        ),
+      );
+
+      expect(result.current.templatesFilteredForModelType).toHaveLength(1);
+    });
+
+    it('should deduplicate templates across global and project namespaces', () => {
+      const globalTemplate = {
+        metadata: { name: 'vllm-global', namespace: 'dashboard-ns' },
+      } as TemplateKind;
+      const projectTemplate = {
+        metadata: { name: 'vllm-project', namespace: 'my-project' },
+      } as TemplateKind;
+
+      // Both templates have the same embedded ServingRuntime name
+      getServingRuntimeNameFromTemplate.mockReturnValue('vllm-runtime');
+
+      // First call returns global templates, second returns project templates
+      mockUseServingRuntimeTemplates
+        .mockReturnValueOnce([[globalTemplate], true, undefined])
+        .mockReturnValueOnce([[projectTemplate], true, undefined]);
+      getModelTypesFromTemplate.mockReturnValue([ServingRuntimeModelType.PREDICTIVE]);
+
+      const { result } = renderHook(() =>
+        useModelFormatField(
+          undefined,
+          { type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false },
+          'my-project',
+        ),
+      );
+
+      // Should have only 1 template (project-scoped takes precedence)
+      expect(result.current.templatesFilteredForModelType).toHaveLength(1);
+      expect(result.current.templatesFilteredForModelType?.[0]).toBe(projectTemplate);
+    });
+
+    it('should include unique templates from both namespaces', () => {
+      const globalTemplate = {
+        metadata: { name: 'triton-global', namespace: 'dashboard-ns' },
+      } as TemplateKind;
+      const projectTemplate = {
+        metadata: { name: 'custom-project', namespace: 'my-project' },
+      } as TemplateKind;
+
+      // Different embedded ServingRuntime names
+      getServingRuntimeNameFromTemplate.mockImplementation((t: TemplateKind) => t.metadata.name);
+
+      mockUseServingRuntimeTemplates
+        .mockReturnValueOnce([[globalTemplate], true, undefined])
+        .mockReturnValueOnce([[projectTemplate], true, undefined]);
+      getModelTypesFromTemplate.mockReturnValue([ServingRuntimeModelType.PREDICTIVE]);
+
+      const { result } = renderHook(() =>
+        useModelFormatField(
+          undefined,
+          { type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false },
+          'my-project',
+        ),
+      );
+
+      // Should have 2 templates since they have different runtime names
+      expect(result.current.templatesFilteredForModelType).toHaveLength(2);
     });
   });
 
