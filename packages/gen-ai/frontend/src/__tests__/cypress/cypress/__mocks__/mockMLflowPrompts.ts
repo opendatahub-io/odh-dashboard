@@ -13,24 +13,28 @@ export const mockMLflowPrompt = (overrides: Partial<MLflowPrompt> = {}): MLflowP
 export const mockMLflowPromptsList = (
   prompts?: MLflowPrompt[],
   nextPageToken?: string,
-): { data: { prompts: MLflowPrompt[]; next_page_token?: string } } => ({
-  data: {
-    prompts: prompts ?? [
-      mockMLflowPrompt({ name: 'summarization-prompt', description: 'Summarize content' }),
-      mockMLflowPrompt({
-        name: 'code-review-prompt',
-        description: 'Review code',
-        latest_version: 3,
-      }),
-      mockMLflowPrompt({
-        name: 'translation-prompt',
-        description: 'Translate text',
-        latest_version: 2,
-      }),
-    ],
-    next_page_token: nextPageToken,
-  },
-});
+): { data: { prompts: MLflowPrompt[]; next_page_token?: string; total_count: number } } => {
+  const promptsList = prompts ?? [
+    mockMLflowPrompt({ name: 'summarization-prompt', description: 'Summarize content' }),
+    mockMLflowPrompt({
+      name: 'code-review-prompt',
+      description: 'Review code',
+      latest_version: 3,
+    }),
+    mockMLflowPrompt({
+      name: 'translation-prompt',
+      description: 'Translate text',
+      latest_version: 2,
+    }),
+  ];
+  return {
+    data: {
+      prompts: promptsList,
+      total_count: promptsList.length,
+      next_page_token: nextPageToken,
+    },
+  };
+};
 
 export const mockMLflowPromptVersion = (
   overrides: Partial<MLflowPromptVersion> = {},
