@@ -61,6 +61,13 @@ class RegisteredModelDetails {
     this.findPropertyKeyInput().type(key);
     this.findPropertyValueInput().type(value);
     this.findSavePropertyButton().click();
+    // Wait for the input form to disappear after save
+    this.findPropertyKeyInput().should('not.exist');
+    // Wait for the properties table to be visible and stable before proceeding
+    // This ensures the UI has finished re-rendering after the save operation
+    this.findPropertiesTable().should('be.visible');
+    // Wait for the Add Property button to be enabled again, indicating the section is ready
+    this.findAddPropertyButton().should('be.visible').and('not.be.disabled');
   }
 
   shouldHaveCustomProperty(key: string, value: string) {

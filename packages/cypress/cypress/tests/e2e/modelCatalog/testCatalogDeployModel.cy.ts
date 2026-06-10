@@ -63,11 +63,6 @@ describe('Verify a model can be deployed from model catalog', () => {
     { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-      // Enable model catalog
-      cy.window().then((win) => {
-        win.sessionStorage.setItem('odh-feature-flags', '{"disableModelCatalog":false}');
-      });
-      cy.reload();
 
       cy.step('Navigate to Model Catalog');
       modelCatalog.visit();

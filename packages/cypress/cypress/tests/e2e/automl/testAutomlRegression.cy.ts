@@ -43,7 +43,7 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit an AutoML regression run',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
@@ -66,7 +66,7 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
 
   it(
     'Can interact with results page (leaderboard, model details, download)',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       automlResultsPage.verifyResultsInteraction('regression');
     },

@@ -142,6 +142,8 @@ export type WBVariablesTestData = {
   FAKE_CM_KEY: string;
   FAKE_CM_VALUE: string;
   notebookImage: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
 };
 
 export type WBTolerationsTestData = {

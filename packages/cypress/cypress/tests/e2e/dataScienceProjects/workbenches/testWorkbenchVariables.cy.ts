@@ -20,6 +20,10 @@ import {
   getImageStreamDisplayName,
 } from '../../../../utils/oc_commands/imageStreams';
 import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
+import {
+  createCleanHardwareProfile,
+  cleanupHardwareProfiles,
+} from '../../../../utils/oc_commands/hardwareProfiles';
 
 describe('Workbenches - variable tests', () => {
   let projectName: string;
@@ -43,14 +47,27 @@ describe('Workbenches - variable tests', () => {
       })
       .then(() => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+
+        // Load Hardware Profile
+        cy.log(`Creating Hardware Profile: ${testData.hardwareProfileName}`);
+        // Cleanup Hardware Profile if it already exists and create a new one
+        createCleanHardwareProfile(testData.resourceYamlPath);
       }),
   );
+
+  // Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
-    // Delete provisioned Project
-    if (projectName) {
-      cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-    }
+    // Cleanup hardware profile
+    cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
+
+    return cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
+      // Delete provisioned Project
+      if (projectName) {
+        cy.log(`Deleting Project ${projectName} after the test has finished.`);
+        return deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+      }
+      return cy.wrap(null);
+    });
   });
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
@@ -85,6 +102,9 @@ describe('Workbenches - variable tests', () => {
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream for first workbench: ${selectedImageStream}`);
+
+          // Explicitly select hardware profile to avoid relying on cluster defaults
+          createSpawnerPage.selectHardwareProfile(testData.hardwareProfileName);
 
           createSpawnerPage.findAddVariableButton().click();
           const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -122,6 +142,9 @@ describe('Workbenches - variable tests', () => {
               (imageStreamName2) => {
                 selectedImageStream2 = imageStreamName2;
                 cy.log(`Selected imagestream for second workbench: ${selectedImageStream2}`);
+
+                // Explicitly select hardware profile to avoid relying on cluster defaults
+                createSpawnerPage.selectHardwareProfile(testData.hardwareProfileName);
 
                 createSpawnerPage.findAddVariableButton().click();
                 const secretEnvVarField2 = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -193,6 +216,9 @@ describe('Workbenches - variable tests', () => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream for workbench: ${selectedImageStream}`);
 
+          // Explicitly select hardware profile to avoid relying on cluster defaults
+          createSpawnerPage.selectHardwareProfile(testData.hardwareProfileName);
+
           createSpawnerPage.findAddVariableButton().click();
           const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
           secretEnvVarField.selectEnvironmentVariableTypeByTestId(EnvironmentVariableType.SECRET);
@@ -253,6 +279,9 @@ describe('Workbenches - variable tests', () => {
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream for workbench: ${selectedImageStream}`);
+
+          // Explicitly select hardware profile to avoid relying on cluster defaults
+          createSpawnerPage.selectHardwareProfile(testData.hardwareProfileName);
 
           createSpawnerPage.findAddVariableButton().click();
           const configMapEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
