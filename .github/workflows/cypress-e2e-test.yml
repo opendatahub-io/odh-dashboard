@@ -420,54 +420,6 @@ jobs:
             done
           fi
 
-          # --- BFF detection pass 2: label/manual-triggered tags ---
-          # When tests are triggered via PR labels (test:*) or manual input,
-          # the corresponding package may not have code changes, but its BFF
-          # is still needed. Match scheduled tags against each package's
-          # e2eCiTags to discover additional BFFs to start.
-          SCHEDULED_TAGS=""
-          # Collect tags from PR labels
-          for label in $(echo "${{ steps.labels.outputs.labels }}" | tr ',' ' '); do
-            if [[ "$label" == test:* ]]; then
-              tag="@${label#test:}"
-              SCHEDULED_TAGS="$SCHEDULED_TAGS $tag"
-            fi
-          done
-          # Collect tags from manual input
-          for tag in $(echo "${{ inputs.additional_tags }}" | tr ',' ' '); do
-            SCHEDULED_TAGS="$SCHEDULED_TAGS $tag"
-          done
-          SCHEDULED_TAGS=$(echo "$SCHEDULED_TAGS" | xargs)
-
-          if [[ -n "$SCHEDULED_TAGS" ]]; then
-            echo ""
-            echo "🔍 Checking BFF needs for scheduled tags: $SCHEDULED_TAGS"
-            for pkg_dir in packages/*/; do
-              pkg_name=$(jq -r '.name // empty' "$pkg_dir/package.json" 2>/dev/null)
-              bff_enabled=$(jq -r '.bffConfig.enabled // false' "$pkg_dir/package.json" 2>/dev/null)
-              [[ "$bff_enabled" != "true" ]] && continue
-
-              # Skip if already added by Turbo detection
-              if echo "$BFF_PACKAGES" | jq -e --arg name "$pkg_name" '.[] | select(.name == $name)' > /dev/null 2>&1; then
-                continue
-              fi
-
-              # Check if any scheduled tag matches this package's e2eCiTags
-              pkg_ci_tags=$(jq -r '.e2eCiTags[]? // empty' "$pkg_dir/package.json" 2>/dev/null)
-              for sched_tag in $SCHEDULED_TAGS; do
-                if echo "$pkg_ci_tags" | grep -qx "$sched_tag"; then
-                  bff_port=$(jq -r '.bffConfig.port // 4000' "$pkg_dir/package.json" 2>/dev/null)
-                  bff_health=$(jq -r '.bffConfig.healthEndpoint // "/api/health"' "$pkg_dir/package.json" 2>/dev/null)
-                  bff_cmd=$(jq -r '.bffConfig.startCommandCluster // .bffConfig.startCommand' "$pkg_dir/package.json" 2>/dev/null)
-                  pkg_dir_name=$(basename "$pkg_dir")
-                  echo "  ✅ $pkg_name via label tag $sched_tag (port: $bff_port, health: $bff_health)"
-                  BFF_PACKAGES=$(echo "$BFF_PACKAGES" | jq -c --arg name "$pkg_name" --arg dir "$pkg_dir_name" --arg port "$bff_port" --arg health "$bff_health" --arg cmd "$bff_cmd" '. + [{"name": $name, "dir": $dir, "port": ($port | tonumber), "healthEndpoint": $health, "startCommand": $cmd}]')
-                  break
-                fi
-              done
-            done
-          fi
-
           if [[ "$BFF_PACKAGES" == "[]" ]]; then
             echo "  ℹ️  No BFF packages detected for this change"
           fi
