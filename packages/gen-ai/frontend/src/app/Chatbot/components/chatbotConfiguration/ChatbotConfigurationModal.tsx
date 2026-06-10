@@ -7,6 +7,7 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Label,
   Modal,
   ModalBody,
   ModalFooter,
@@ -589,7 +590,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             >
               <Switch
                 id="enable-tracing-switch"
-                label="Enable tracing"
+                label={<>Enable tracing <Label isCompact>Tech Preview</Label></>}
                 isChecked={enableTracing}
                 onChange={(_event, checked) => setEnableTracing(checked)}
                 aria-label="Toggle tracing for this playground"

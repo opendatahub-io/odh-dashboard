@@ -62,6 +62,23 @@ func Setup(logger *slog.Logger) func(context.Context) error {
 	return tp.Shutdown
 }
 
+const namespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+
+// detectNamespace returns the Kubernetes namespace this pod is running in.
+// It checks POD_NAMESPACE env var first (explicit override for dev/testing),
+// then falls back to the service account namespace file that K8s automatically
+// mounts into every pod at /var/run/secrets/kubernetes.io/serviceaccount/namespace.
+// Returns empty string when running outside K8s (e.g. local development).
+func detectNamespace() string {
+	if ns := os.Getenv("POD_NAMESPACE"); ns != "" {
+		return ns
+	}
+	if data, err := os.ReadFile(namespacePath); err == nil {
+		return strings.TrimSpace(string(data))
+	}
+	return ""
+}
+
 func buildResource(ctx context.Context) (*resource.Resource, error) {
 	serviceName := os.Getenv("OTEL_SERVICE_NAME")
 	if serviceName == "" {
@@ -70,6 +87,12 @@ func buildResource(ctx context.Context) (*resource.Resource, error) {
 
 	attrs := []attribute.KeyValue{
 		semconv.ServiceName(serviceName),
+	}
+
+	// Attach the pod's namespace so the OTel Collector routing connector can
+	// dispatch spans to the correct per-namespace backend (Tempo/MLflow).
+	if ns := detectNamespace(); ns != "" {
+		attrs = append(attrs, semconv.K8SNamespaceName(ns))
 	}
 
 	if extra := os.Getenv("OTEL_RESOURCE_ATTRIBUTES"); extra != "" {

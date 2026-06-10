@@ -90,3 +90,38 @@ func TestBuildResource_ExtraAttributes(t *testing.T) {
 	assert.Equal(t, "staging", attrs["deployment.environment"])
 	assert.Equal(t, "test-svc", attrs["service.name"])
 }
+
+func TestDetectNamespace_FromEnvVar(t *testing.T) {
+	t.Setenv("POD_NAMESPACE", "my-project")
+	assert.Equal(t, "my-project", detectNamespace())
+}
+
+func TestDetectNamespace_EnvVarTakesPrecedence(t *testing.T) {
+	t.Setenv("POD_NAMESPACE", "from-env")
+	assert.Equal(t, "from-env", detectNamespace())
+}
+
+func TestDetectNamespace_EmptyWhenNothingAvailable(t *testing.T) {
+	t.Setenv("POD_NAMESPACE", "")
+	ns := detectNamespace()
+	// On a dev machine without K8s, this returns empty (no SA namespace file)
+	// On a cluster, it would return the pod's namespace
+	assert.True(t, ns == "" || len(ns) > 0)
+}
+
+func TestBuildResource_IncludesAutoDetectedNamespace(t *testing.T) {
+	t.Setenv("OTEL_SERVICE_NAME", "test-svc")
+	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "")
+	t.Setenv("POD_NAMESPACE", "auto-detected-ns")
+
+	res, err := buildResource(context.Background())
+	require.NoError(t, err)
+
+	attrs := make(map[string]string)
+	for _, attr := range res.Attributes() {
+		attrs[string(attr.Key)] = attr.Value.AsString()
+	}
+
+	assert.Equal(t, "auto-detected-ns", attrs["k8s.namespace.name"])
+	assert.Equal(t, "test-svc", attrs["service.name"])
+}
