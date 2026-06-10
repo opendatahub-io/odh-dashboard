@@ -59,13 +59,19 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
 
               return (
                 <ListItem key={name}>
-                  <Content component={isUnavailable ? 'small' : undefined}>{name}</Content>
+                  {name}
                   {isUnavailable && (
-                    <Tooltip content="This feature store is no longer available. It may have been deleted or access has been revoked.">
-                      <Icon isInline status="warning" data-testid="feature-store-unavailable-icon">
-                        <ExclamationTriangleIcon />
-                      </Icon>
-                    </Tooltip>
+                    <span style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}>
+                      <Tooltip content="This feature store is no longer available. It may have been deleted or access has been revoked.">
+                        <Icon
+                          isInline
+                          status="warning"
+                          data-testid="feature-store-unavailable-icon"
+                        >
+                          <ExclamationTriangleIcon />
+                        </Icon>
+                      </Tooltip>
+                    </span>
                   )}
                 </ListItem>
               );
