@@ -17,6 +17,15 @@ import (
 func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
+	// Get MaaS BFF client from context (set by AttachBFFMaaSClient middleware)
+	// Check infrastructure prerequisites before parsing request body to avoid
+	// 400 (malformed JSON) masking 503 (BFF unavailable)
+	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
+	if maasClient == nil {
+		app.maasBFFUnavailableResponse(w, r)
+		return
+	}
+
 	var tokenRequest models.MaaSTokenRequest
 
 	// Only try to parse JSON if there's actually a body
@@ -27,13 +36,6 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 			app.badRequestResponse(w, r, err)
 			return
 		}
-	}
-
-	// Get MaaS BFF client from context (set by AttachBFFMaaSClient middleware)
-	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
-	if maasClient == nil {
-		app.maasBFFUnavailableResponse(w, r)
-		return
 	}
 
 	// Validate required fields (trim whitespace to catch whitespace-only values)
