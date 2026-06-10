@@ -5,6 +5,7 @@ import (
 
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // ⚠️ WHY THIS FILE EXISTS:
@@ -16,13 +17,14 @@ type TokenKubernetesClientMock struct {
 	*k8s.TokenKubernetesClient
 }
 
-func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface, logger *slog.Logger) k8s.KubernetesClientInterface {
+func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface, restConfig *rest.Config, logger *slog.Logger) k8s.KubernetesClientInterface {
 	return &TokenKubernetesClientMock{
 		TokenKubernetesClient: &k8s.TokenKubernetesClient{
 			SharedClientLogic: k8s.SharedClientLogic{
-				Client: clientset,
-				Logger: logger,
-				Token:  k8s.NewBearerToken(""), // Unused because impersonation is already handled in the client config
+				Client:     clientset,
+				Logger:     logger,
+				RestConfig: restConfig,
+				Token:      k8s.NewBearerToken(""), // Unused because impersonation is already handled in the client config
 			},
 		},
 	}

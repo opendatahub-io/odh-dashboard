@@ -1,20 +1,58 @@
 # Observability Dashboards
 
-This document describes how to add new Perses dashboards to the ODH Dashboard UI.
+This document describes how component teams contribute Perses dashboards to the ODH Dashboard UI.
 
 ## Overview
 
-The ODH Dashboard uses [Perses](https://perses.dev/) dashboards for observability features. Dashboards are defined as Kubernetes `PersesDashboard` custom resources and are loaded dynamically by the UI.
+The ODH Dashboard uses [Perses](https://perses.dev/) dashboards for observability features. Dashboards are defined as Kubernetes `PersesDashboard` custom resources and are loaded dynamically by the UI. The UI fetches all dashboards and filters them by name prefix and admin status regardless of which project they belong to.
 
-## Creating a New Dashboard
+## Dashboard Ownership
 
-### Resource Location
+Component teams should own their `PersesDashboard` CRDs alongside their component deployments. This is the **default and recommended** approach.
 
-Dashboard resources can be created in any Perses project. The UI fetches all dashboards via the global Perses API (`/api/v1/dashboards`) and automatically loads them. Dashboards are filtered by name prefix and admin status regardless of which project they belong to.
+Contributing a dashboard directly into the `odh-dashboard` repository is the **exception** — reserved for dashboards that have no owning component or no better location (e.g. cluster-wide infrastructure metrics with no single owning operator).
 
-### File Location
+### Why component-owned is preferred
 
-Dashboard manifest files should be placed in:
+A `PersesDashboard` CR deployed alongside its component is present **only when that component is installed**. This ties the dashboard's lifecycle directly to the resource it monitors.
+
+By contrast, dashboards contributed into `odh-dashboard` are governed by the dashboard's own enablement and the monitoring stack availability. They appear regardless of whether the dependent component is actually installed, which can lead to empty or broken panels when the component is absent.
+
+## Component-Owned Dashboards (Recommended)
+
+If your team manages a component with its own deployment manifests, your Perses dashboard belongs there.
+
+### Workflow
+
+1. **Author** your dashboard spec locally. Use the [Perses UI](https://perses.dev/perses/docs/overview/), the Cluster Observability Operator (v1.4+) built-in UI editor, or write YAML/JSON directly.
+2. **Validate** the dashboard renders correctly in a local or dev Perses instance.
+3. **Add** the `PersesDashboard` CR to your component's manifest directory so it deploys alongside your component.
+4. **Follow the naming convention** below — the ODH Dashboard UI only loads resources with the `dashboard-` prefix.
+5. **Deploy** — the dashboard appears in the ODH UI automatically when your component is installed in a cluster with the Perses operator and monitoring stack active.
+
+### Requirements for ODH Dashboard pickup
+
+- The resource name must follow the `dashboard-{order}-{name}[-admin]` naming convention (see [Naming Convention](#naming-convention) below).
+- The `PersesDashboard` CR must reference valid Perses datasources (Prometheus, Loki, etc.) that are accessible from the cluster.
+- The monitoring stack must be configured and enabled in the DSCI.
+- No coordination with the dashboard team is required for deployment — the UI discovers the resource automatically.
+
+---
+
+## Contributing to odh-dashboard (Exception)
+
+Use this path only when there is no owning component for the dashboard or when the dashboard team has approved this as the appropriate location. Examples include cluster-wide infrastructure metrics or cross-cutting observability that doesn't belong to a single operator.
+
+### Workflow
+
+1. **Author and validate** your dashboard spec locally (same as above).
+2. **Submit a PR** adding your dashboard YAML to `manifests/observability/` in this repository.
+3. **Review**: The PR must be reviewed by `@openshift/odh-dashboard-maintainers`. Net-new tabs (new UX surface area) require PM approval.
+4. **Merge and deploy**: Merged dashboards are applied by the dashboard operator as part of the standard reconciliation loop.
+
+### File location
+
+Dashboard manifest files in this repo are placed in:
 
 ```
 manifests/observability/
@@ -188,6 +226,18 @@ resources:
 
 ---
 
+## When to Use Perses vs Custom Visualizations
+
+| Use Perses when | Use custom code when |
+|---|---|
+| Standard time-series metrics (CPU, memory, request rates, latencies) | Non-time-series data (tables, topology maps, status matrices) |
+| Data comes from Prometheus, Loki, or another supported Perses datasource | Data comes from sources for which no Perses datasource exists |
+| Dashboard can be expressed as panels + variables | Heavy user interaction needed (drill-down, selection-driven views, inline actions) |
+| No custom interactivity beyond time range and variable filtering | Tight integration with PatternFly components or existing page state |
+| Historical trends and aggregated views over time windows | Real-time streaming or event-driven updates |
+
+---
+
 ## Embedding Perses Dashboards in Other Packages
 
 The `@odh-dashboard/observability` package provides a composable embeddable API that any package can use to render Perses dashboards within its own feature pages. This is useful when you want to show metrics inline (e.g. in a detail tab) rather than directing users to the central observability page.
@@ -354,7 +404,7 @@ When rendering multiple dashboards, use the default `syncToUrl={false}` so each 
 
 ### Theming
 
-Theming is handled automatically by `PersesProvider`. It reads the current PatternFly light/dark mode and maps it to MUI theme overrides and ECharts chart colors. The MUI `ThemeProvider` is scoped to the Perses render boundary only — it does not leak into surrounding PatternFly components.
+Theming is handled automatically by `PersesProvider`. It reads the current PatternFly light/dark mode and maps it to MUI theme overrides and ECharts chart colors.
 
 ### Component reference
 
@@ -443,5 +493,5 @@ The embeddable API fetches data via the `/perses/api` proxy path. This proxy is 
 
 ## Related Resources
 
-- [Perses Documentation](https://perses.dev/docs/)
-- [Perses Dashboard Spec](https://perses.dev/docs/api/dashboard/)
+- [Perses Documentation](https://perses.dev/perses/docs/overview/)
+- [Perses Dashboard Spec](https://perses.dev/perses/docs/api/dashboard/)

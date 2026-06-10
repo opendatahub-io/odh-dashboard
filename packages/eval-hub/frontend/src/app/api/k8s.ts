@@ -17,11 +17,14 @@ import {
   CreateEvaluationJobResponse,
   EvaluationJob,
   EvaluationJobsResponse,
+  InferenceServicesResponse,
   ListCollectionsParams,
   ListEvaluationJobsParams,
   NamespaceKind,
   Provider,
   ProvidersResponse,
+  VerifyConnectionRequest,
+  VerifyConnectionResponse,
 } from '~/app/types';
 
 export const getUser =
@@ -239,6 +242,41 @@ export const createEvaluationJob =
       ),
     ).then((response) => {
       if (isModArchResponse<CreateEvaluationJobResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getInferenceServices =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<InferenceServicesResponse> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/inferenceservices`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<InferenceServicesResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const verifyConnection =
+  (hostPath: string, namespace: string, request: VerifyConnectionRequest) =>
+  (opts: APIOptions): Promise<VerifyConnectionResponse> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/verify-connection`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<VerifyConnectionResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');
