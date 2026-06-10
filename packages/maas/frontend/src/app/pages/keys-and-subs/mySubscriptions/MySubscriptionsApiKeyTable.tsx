@@ -177,6 +177,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
                 apiKey={apiKey}
                 columns={subscriptionApiKeyColumns}
                 onRevokeApiKey={setRevokeApiKey}
+                isSubscriptionUnavailable={false}
               />
             ))
           )}
