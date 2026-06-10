@@ -28,7 +28,7 @@ const dashboardNotificationReducer = (
 ): DashboardNotification[] => {
   switch (action.type) {
     case DashboardNotificationActionTypes.ADD: {
-      return [...state, { ...action.payload, id: action.payload.id ?? -1 }];
+      return [...state, action.payload];
     }
     case DashboardNotificationActionTypes.HIDE: {
       const index = state.findIndex((n) => n.id === action.payload.id);
@@ -138,7 +138,7 @@ export const useAddNotification = (): ((notification: DashboardNotification) => 
           id,
           status: withId.status,
           title: withId.title,
-          message: typeof withId.message === 'string' ? withId.message : undefined,
+          message: withId.message,
           timestamp: withId.timestamp,
         },
       });

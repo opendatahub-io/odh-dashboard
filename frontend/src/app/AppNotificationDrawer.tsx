@@ -48,6 +48,9 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
   }, []);
 
   const markNotificationRead = (notification: DashboardNotification): void => {
+    if (notification.id == null) {
+      return;
+    }
     dispatch({
       type: DashboardNotificationActionTypes.ACK,
       payload: { id: notification.id },
@@ -55,6 +58,9 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
   };
 
   const onRemoveNotification = (notification: DashboardNotification): void => {
+    if (notification.id == null) {
+      return;
+    }
     dispatch({
       type: DashboardNotificationActionTypes.REMOVE,
       payload: { id: notification.id },

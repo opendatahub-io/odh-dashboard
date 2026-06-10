@@ -26,6 +26,6 @@ export enum DashboardNotificationActionTypes {
 
 export type DashboardNotificationDispatchAction =
   | { type: DashboardNotificationActionTypes.ADD; payload: DashboardNotification }
-  | { type: DashboardNotificationActionTypes.HIDE; payload: { id: number | undefined } }
-  | { type: DashboardNotificationActionTypes.ACK; payload: { id: number | undefined } }
-  | { type: DashboardNotificationActionTypes.REMOVE; payload: { id: number | undefined } };
+  | { type: DashboardNotificationActionTypes.HIDE; payload: { id: number } }
+  | { type: DashboardNotificationActionTypes.ACK; payload: { id: number } }
+  | { type: DashboardNotificationActionTypes.REMOVE; payload: { id: number } };
