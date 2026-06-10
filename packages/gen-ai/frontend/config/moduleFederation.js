@@ -13,6 +13,7 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
+    'mod-arch-core': { singleton: true, requiredVersion: deps['mod-arch-core'] },
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
     },

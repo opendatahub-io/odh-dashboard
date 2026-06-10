@@ -1,12 +1,11 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
-import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
+import { Button, Stack, StackItem } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAppContext } from '#~/app/AppContext';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { ClusterSettingsType, ModelServingPlatformEnabled } from '#~/types';
-import { addNotification } from '#~/redux/actions/actions';
-import { useAppDispatch } from '#~/redux/hooks';
+import useNotification from '#~/utilities/useNotification';
 import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';
 import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
@@ -41,7 +40,7 @@ const ClusterSettings: React.FC = () => {
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
     React.useState<ModelServingPlatformEnabled>(clusterSettings.modelServingPlatformEnabled);
 
-  const dispatch = useAppDispatch();
+  const notification = useNotification();
 
   React.useEffect(() => {
     fetchClusterSettings()
@@ -131,23 +130,12 @@ const ClusterSettings: React.FC = () => {
 
       setClusterSettings(newClusterSettings);
 
-      dispatch(
-        addNotification({
-          status: AlertVariant.success,
-          title: 'Cluster settings changes saved',
-          message: 'It can take up to 2 minutes for configuration changes to be applied.',
-          timestamp: new Date(),
-        }),
+      notification.success(
+        'Cluster settings changes saved',
+        'It can take up to 2 minutes for configuration changes to be applied.',
       );
     } catch (error) {
-      dispatch(
-        addNotification({
-          status: AlertVariant.danger,
-          title: 'Error',
-          message: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date(),
-        }),
-      );
+      notification.error('Error', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setSaving(false);
     }

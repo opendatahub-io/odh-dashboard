@@ -18,25 +18,26 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import { AppNotification } from '#~/redux/types';
-import { ackNotification, removeNotification } from '#~/redux/actions/actions';
+import {
+  DashboardNotification,
+  DashboardNotificationActionTypes,
+} from '#~/concepts/notifications/types';
+import {
+  useDashboardNotificationContext,
+  useUnreadNotificationCount,
+} from '#~/concepts/notifications/DashboardNotificationContext';
 import { calculateRelativeTime } from '#~/utilities/utils';
-import { useAppDispatch, useAppSelector } from '#~/redux/hooks';
 
 interface AppNotificationDrawerProps {
   onClose: () => void;
 }
 
 const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }) => {
-  const stateNotifications: AppNotification[] = useAppSelector((state) => state.notifications);
+  const { notifications: stateNotifications, dispatch } = useDashboardNotificationContext();
   const notifications = stateNotifications.toSorted(
     (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
   );
-  const dispatch = useAppDispatch();
-  const newNotifications = React.useMemo(
-    () => notifications.filter((notification) => !notification.read).length,
-    [notifications],
-  );
+  const newNotifications = useUnreadNotificationCount();
   const [currentTime, setCurrentTime] = React.useState<Date>(new Date());
 
   React.useEffect(() => {
@@ -46,12 +47,18 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
     };
   }, []);
 
-  const markNotificationRead = (notification: AppNotification): void => {
-    dispatch(ackNotification(notification));
+  const markNotificationRead = (notification: DashboardNotification): void => {
+    dispatch({
+      type: DashboardNotificationActionTypes.ACK,
+      payload: { id: notification.id },
+    });
   };
 
-  const onRemoveNotification = (notification: AppNotification): void => {
-    dispatch(removeNotification(notification));
+  const onRemoveNotification = (notification: DashboardNotification): void => {
+    dispatch({
+      type: DashboardNotificationActionTypes.REMOVE,
+      payload: { id: notification.id },
+    });
   };
 
   return (

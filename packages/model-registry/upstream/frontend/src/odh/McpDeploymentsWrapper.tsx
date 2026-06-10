@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   BrowserStorageContextProvider,
-  NotificationContextProvider,
   ModularArchContextProvider,
   ModularArchConfig,
   DeploymentMode,
@@ -12,7 +11,6 @@ import { Bullseye } from '@patternfly/react-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
 import McpDeploymentsRoutes from '~/odh/pages/mcpDeployments/McpDeploymentsRoutes';
-import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 import ProjectsBridgeProviderWrapper from '~/odh/components/ProjectsBridgeProviderWrapper';
 
@@ -33,13 +31,9 @@ const McpDeploymentsWrapperContent: React.FC = () => {
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
           <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
-            <NotificationContextProvider>
-              <NotificationListener>
-                <ProjectsBridgeProviderWrapper>
-                  <McpDeploymentsRoutes />
-                </ProjectsBridgeProviderWrapper>
-              </NotificationListener>
-            </NotificationContextProvider>
+            <ProjectsBridgeProviderWrapper>
+              <McpDeploymentsRoutes />
+            </ProjectsBridgeProviderWrapper>
           </OdhDevFeatureFlagOverridesProvider>
         </BrowserStorageContextProvider>
       </ThemeProvider>

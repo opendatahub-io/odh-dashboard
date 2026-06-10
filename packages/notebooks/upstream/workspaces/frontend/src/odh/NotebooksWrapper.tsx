@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   BrowserStorageContextProvider,
-  NotificationContextProvider,
   ModularArchContextProvider,
   ModularArchConfig,
   DeploymentMode,
@@ -24,14 +23,12 @@ const NotebooksWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
     <ThemeProvider theme={Theme.Patternfly}>
       <BrowserStorageContextProvider>
-        <NotificationContextProvider>
-          <AppContextProvider>
-            <NotebookContextProvider>
-              <AppRoutes />
-              <ToastNotifications />
-            </NotebookContextProvider>
-          </AppContextProvider>
-        </NotificationContextProvider>
+        <AppContextProvider>
+          <NotebookContextProvider>
+            <AppRoutes />
+            <ToastNotifications />
+          </NotebookContextProvider>
+        </AppContextProvider>
       </BrowserStorageContextProvider>
     </ThemeProvider>
   </ModularArchContextProvider>

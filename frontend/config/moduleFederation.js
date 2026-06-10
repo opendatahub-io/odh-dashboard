@@ -185,6 +185,11 @@ module.exports = {
                 singleton: true,
                 requiredVersion: deps['@tanstack/react-query'],
               },
+              'mod-arch-core': {
+                singleton: true,
+                requiredVersion: deps['mod-arch-core'],
+                eager: true,
+              },
               ...odhDashboardShared,
             },
             exposes: {},

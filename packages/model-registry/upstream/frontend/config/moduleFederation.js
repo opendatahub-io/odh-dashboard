@@ -16,6 +16,7 @@ const moduleFederationConfig = {
       requiredVersion: deps['@patternfly/react-code-editor'],
     },
     '@patternfly/react-core': { singleton: true, requiredVersion: deps['@patternfly/react-core'] },
+    'mod-arch-core': { singleton: true, requiredVersion: deps['mod-arch-core'] },
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
       requiredVersion: '*',

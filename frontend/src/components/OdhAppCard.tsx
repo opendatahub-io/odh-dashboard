@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertVariant,
   Button,
   capitalize,
   Card,
@@ -22,7 +21,7 @@ import { OdhApplication } from '#~/types';
 import { getLaunchStatus, launchQuickStart } from '#~/utilities/quickStartUtils';
 import EnableModal from '#~/pages/exploreApplication/EnableModal';
 import { removeComponent } from '#~/services/componentsServices';
-import { addNotification, forceComponentsUpdate } from '#~/redux/actions/actions';
+import { forceComponentsUpdate } from '#~/redux/actions/actions';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useAppContext } from '#~/app/AppContext';
 import { useAppDispatch } from '#~/redux/hooks';
@@ -32,6 +31,7 @@ import { deleteIntegrationApp } from '#~/services/integrationAppService';
 import { useUser } from '#~/redux/selectors';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { mlflowExperimentsPath } from '#~/routes/pipelines/mlflow';
+import useNotification from '#~/utilities/useNotification';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -54,6 +54,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
   const { isAdmin } = useUser();
+  const notification = useNotification();
 
   if (odhApp.metadata.name === 'mlflow' && !mlflowEnabled) {
     return null;
@@ -70,25 +71,12 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const removeApplication = () => {
     const handleSuccess = () => {
-      dispatch(
-        addNotification({
-          status: AlertVariant.success,
-          title: `${odhApp.metadata.name} has been removed from the Enabled page.`,
-          timestamp: new Date(),
-        }),
-      );
+      notification.success(`${odhApp.metadata.name} has been removed from the Enabled page.`);
       dispatch(forceComponentsUpdate());
     };
 
     const handleError = (e: Error) => {
-      dispatch(
-        addNotification({
-          status: AlertVariant.danger,
-          title: `Error attempting to remove ${odhApp.metadata.name}.`,
-          message: e.message,
-          timestamp: new Date(),
-        }),
-      );
+      notification.error(`Error attempting to remove ${odhApp.metadata.name}.`, e.message);
     };
 
     if (isInternalRouteIntegrationsApp(odhApp.spec.internalRoute)) {
