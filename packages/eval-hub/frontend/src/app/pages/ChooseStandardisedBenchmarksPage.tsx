@@ -196,6 +196,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                             [BenchmarkFilterOptions.name]: ({ onChange, ...props }) => (
                               <SearchInput
                                 {...props}
+                                data-testid="benchmarks-name-filter"
                                 aria-label="Filter by name"
                                 placeholder="Filter by name"
                                 onChange={(_event, value) => onChange(value)}

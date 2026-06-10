@@ -4,6 +4,8 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
+import useEmbeddedChatbotMessages from './hooks/useEmbeddedChatbotMessages';
+import { useEmbeddedMessagesConfig } from './context/EmbeddedMessagesContext';
 import {
   useChatbotConfigStore,
   selectSystemInstruction,
@@ -20,7 +22,9 @@ import {
   selectKnowledgeMode,
   selectSelectedVectorStoreId,
   selectActivePrompt,
+  selectVariableValues,
 } from './store';
+import { substituteTemplateVariables } from './promptTemplateUtils';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { sampleWelcomePrompts, PLACEHOLDER_BOT_CONTENT } from './const';
 
@@ -33,11 +37,14 @@ interface ChatbotConfigInstanceProps {
   mcpServerTokens: Map<string, TokenInfo>;
   namespace?: string;
   showWelcomePrompt?: boolean;
+  welcomeContent?: React.ReactNode;
+  placeholderBotContent?: string;
   welcomeDescription?: string;
   onWelcomePromptClick?: (message: string) => void;
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
   configIndex?: number;
   isCompareMode?: boolean;
+  hasImagesInConversation?: boolean;
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -49,13 +56,21 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   mcpServerTokens,
   namespace,
   showWelcomePrompt = false,
+  welcomeContent,
+  placeholderBotContent: placeholderBotContentProp,
   welcomeDescription = 'Welcome to the playground',
   onWelcomePromptClick,
   onMessagesHookReady,
   configIndex,
   isCompareMode,
+  hasImagesInConversation,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
+  const variableValues = useChatbotConfigStore(selectVariableValues(configId));
+  const resolvedInstruction = React.useMemo(
+    () => substituteTemplateVariables(systemInstruction, variableValues),
+    [systemInstruction, variableValues],
+  );
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
@@ -114,10 +129,12 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     [configId],
   );
 
-  const messagesHook = useChatbotMessages({
+  const embeddedConfig = useEmbeddedMessagesConfig();
+
+  const standardMessagesHook = useChatbotMessages({
     configId,
     modelId: selectedModel,
-    systemInstruction,
+    systemInstruction: resolvedInstruction,
     isRagEnabled,
     username,
     isStreamingEnabled,
@@ -138,6 +155,29 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     promptVersion: activePrompt?.version ?? 0,
     promptName: activePrompt?.name ?? '',
   });
+
+  const embeddedMessagesHook = useEmbeddedChatbotMessages({
+    bffBasePath: embeddedConfig?.bffBasePath ?? '',
+    namespace: embeddedConfig?.namespace ?? '',
+    secretName: embeddedConfig?.secretName ?? '',
+    responsesTemplate: embeddedConfig?.responsesTemplate ?? {
+      model: '',
+      stream: true,
+      store: false,
+      input: [],
+      // eslint-disable-next-line camelcase
+      metadata: { autorag_run_id: '', rag_pattern_name: '' },
+      instructions: '',
+      tools: [],
+      // eslint-disable-next-line camelcase
+      tool_choice: { type: 'auto' },
+      include: [],
+    },
+    username,
+  });
+
+  // Use embedded hook when embedded config is present, otherwise standard
+  const messagesHook = embeddedConfig ? embeddedMessagesHook : standardMessagesHook;
 
   // Expose the messages hook to parent and update when it changes
   React.useEffect(() => {
@@ -166,21 +206,23 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
 
   return (
     <MessageBox position="top">
-      {showWelcomePrompt && messagesHook.messages.length === 0 && (
-        <ChatbotWelcomePrompt
-          title={username ? `Hello, ${username}` : 'Hello'}
-          description={welcomeDescription}
-          data-testid="chatbot-welcome-prompt"
-          prompts={clickablePrompts}
-        />
-      )}
+      {showWelcomePrompt &&
+        messagesHook.messages.length === 0 &&
+        (welcomeContent ?? (
+          <ChatbotWelcomePrompt
+            title={username ? `Hello, ${username}` : 'Hello'}
+            description={welcomeDescription}
+            data-testid="chatbot-welcome-prompt"
+            prompts={clickablePrompts}
+          />
+        ))}
       <ChatbotMessages
         messageList={messagesHook.messages}
         scrollRef={messagesHook.scrollToBottomRef}
         isLoading={messagesHook.isLoading}
-        isStreamingWithoutContent={messagesHook.isStreamingWithoutContent}
         modelDisplayName={messagesHook.modelDisplayName}
-        placeholderContent={PLACEHOLDER_BOT_CONTENT}
+        placeholderContent={placeholderBotContentProp ?? PLACEHOLDER_BOT_CONTENT}
+        hasImagesInConversation={hasImagesInConversation}
       />
     </MessageBox>
   );

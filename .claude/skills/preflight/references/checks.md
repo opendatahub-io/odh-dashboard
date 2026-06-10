@@ -92,6 +92,26 @@ Report: `Claude (local)` as the source.
 
 Report: `RBAC (local)` as the source. Any critical findings → ❌. Warnings only → ⚠️. None or info only → ✅.
 
+### Jira Eval Review
+
+Evaluates code changes against Jira acceptance criteria using the `/jira-eval-review` skill. This is separate from the basic Jira check (which only verifies a key is present).
+
+| Context | How to check |
+|---|---|
+| Ran in Step 2 | Results from `/jira-eval-review` invocation. Verdicts: PASS, PARTIAL, MISS, SKIP. |
+| Not run | ➖ "not run" |
+| No Jira key found | ➖ "no Jira key" |
+| Jira MCP unavailable | ➖ "Jira MCP unavailable" |
+| Issue has no acceptance criteria | ➖ "no acceptance criteria" |
+
+**Prerequisites:** Requires both a Jira issue key (extracted in Step 1) and a working Jira MCP connection. In CI mode, the `mcp-atlassian` server provides Jira access via GitHub Actions secrets. Locally, the developer's existing Jira MCP authentication is used.
+
+**How to invoke:** Pass the Jira issue key and current PR number (if available) to `/jira-eval-review`. The skill fetches the issue's acceptance criteria, evaluates the code changes against each criterion, and returns per-criterion verdicts.
+
+**Status mapping:** All PASS → ✅. Any PARTIAL → ⚠️. Any MISS → ❌. All SKIP → ➖.
+
+Report: `Jira Eval (local)` as the source. Include the verdict summary (e.g., "5/5 criteria satisfied" or "3/5 satisfied, 1 partial, 1 missed").
+
 ## Jira
 
 Checks that the work is tracked in Jira.

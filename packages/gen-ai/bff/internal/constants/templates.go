@@ -123,7 +123,16 @@ mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 _request_header_provider_registry.register(_make_workspace_header_provider(MLFLOW_WORKSPACE))
 
 prompt = mlflow.genai.load_prompt(f"prompts:/{prompt_name}/{prompt_version}")
+{{- if .PromptVariableValues }}
+prompt_variable_values = {
+  {{- range $key, $value := .PromptVariableValues }}
+    "{{$key}}": "{{$value}}",
+  {{- end }}
+}
+system_instructions = next(m["content"] for m in prompt.format(**prompt_variable_values) if m["role"] == "system")
+{{- else }}
 system_instructions = next(m["content"] for m in prompt.format() if m["role"] == "system")
+{{- end }}
 {{- end }}
 {{- if and .VectorStore .VectorStore.ID }}
 

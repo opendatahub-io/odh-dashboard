@@ -9,11 +9,13 @@ import (
 	"strings"
 )
 
+// Envelope wraps API response data with optional metadata.
 type Envelope[D any, M any] struct {
 	Data     D `json:"data"`
 	Metadata M `json:"metadata,omitempty"`
 }
 
+// None represents an empty metadata type for Envelope.
 type None *struct{}
 
 func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
@@ -81,7 +83,7 @@ func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error 
 			return fmt.Errorf("body contains unknown key %s", fieldName)
 
 		case errors.As(err, &invalidUnmarshalError):
-			panic(err)
+			return err
 		default:
 			return err
 		}
@@ -95,6 +97,7 @@ func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error 
 	return nil
 }
 
+// ParseURLTemplate replaces placeholders in a URL template with parameter values.
 func ParseURLTemplate(tmpl string, params map[string]string) string {
 	args := make([]string, 0, len(params)*2)
 

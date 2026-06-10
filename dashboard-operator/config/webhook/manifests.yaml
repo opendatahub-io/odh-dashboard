@@ -5,7 +5,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: CERTIFICATE_NAMESPACE/dashboard-operator-webhook-cert
 webhooks:
-  - name: validate.dashboard.opendatahub.io
+  - name: validate.dashboards.components.platform.opendatahub.io
     admissionReviewVersions:
       - v1
     clientConfig:
@@ -15,7 +15,7 @@ webhooks:
         path: /validate-dashboard
     rules:
       - apiGroups:
-          - dashboard.opendatahub.io
+          - components.platform.opendatahub.io
         apiVersions:
           - v1alpha1
         operations:

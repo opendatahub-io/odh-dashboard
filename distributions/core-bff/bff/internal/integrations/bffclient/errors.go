@@ -21,19 +21,29 @@ func (e *BFFClientError) Error() string {
 
 // BFF client error codes
 const (
-	ErrCodeConnectionFailed  = "CONNECTION_FAILED"
-	ErrCodeTimeout           = "TIMEOUT"
-	ErrCodeInvalidResponse   = "INVALID_RESPONSE"
+	// ErrCodeConnectionFailed indicates a connection failure to the target BFF.
+	ErrCodeConnectionFailed = "CONNECTION_FAILED"
+	// ErrCodeTimeout indicates a request timeout.
+	ErrCodeTimeout = "TIMEOUT"
+	// ErrCodeInvalidResponse indicates an invalid response from the target BFF.
+	ErrCodeInvalidResponse = "INVALID_RESPONSE"
+	// ErrCodeServerUnavailable indicates the target BFF is unavailable.
 	ErrCodeServerUnavailable = "SERVER_UNAVAILABLE"
-	ErrCodeUnauthorized      = "UNAUTHORIZED"
-	ErrCodeForbidden         = "FORBIDDEN"
-	ErrCodeNotFound          = "NOT_FOUND"
-	ErrCodeBadRequest        = "BAD_REQUEST"
-	ErrCodeInternalError     = "INTERNAL_ERROR"
-	ErrCodeNotConfigured     = "NOT_CONFIGURED"
+	// ErrCodeUnauthorized indicates unauthorized access.
+	ErrCodeUnauthorized = "UNAUTHORIZED"
+	// ErrCodeForbidden indicates forbidden access.
+	ErrCodeForbidden = "FORBIDDEN"
+	// ErrCodeNotFound indicates a resource was not found.
+	ErrCodeNotFound = "NOT_FOUND"
+	// ErrCodeBadRequest indicates a bad request.
+	ErrCodeBadRequest = "BAD_REQUEST"
+	// ErrCodeInternalError indicates an internal error.
+	ErrCodeInternalError = "INTERNAL_ERROR"
+	// ErrCodeNotConfigured indicates the target BFF is not configured.
+	ErrCodeNotConfigured = "NOT_CONFIGURED"
 )
 
-// NewBFFClientError creates a new BFF client error
+// NewBFFClientError creates a new BFF client error.
 func NewBFFClientError(code, message string, statusCode int) *BFFClientError {
 	return &BFFClientError{
 		Code:       code,
@@ -42,7 +52,7 @@ func NewBFFClientError(code, message string, statusCode int) *BFFClientError {
 	}
 }
 
-// NewBFFClientErrorWithTarget creates a new BFF client error with target information
+// NewBFFClientErrorWithTarget creates a new BFF client error with target information.
 func NewBFFClientErrorWithTarget(code, message string, target BFFTarget, statusCode int) *BFFClientError {
 	return &BFFClientError{
 		Code:       code,
@@ -52,47 +62,47 @@ func NewBFFClientErrorWithTarget(code, message string, target BFFTarget, statusC
 	}
 }
 
-// NewConnectionError creates a connection-related error
+// NewConnectionError creates a connection-related error.
 func NewConnectionError(target BFFTarget, message string) *BFFClientError {
 	return NewBFFClientErrorWithTarget(ErrCodeConnectionFailed, message, target, 503)
 }
 
-// NewTimeoutError creates a timeout error
+// NewTimeoutError creates a timeout error.
 func NewTimeoutError(target BFFTarget) *BFFClientError {
-	return NewBFFClientErrorWithTarget(ErrCodeTimeout, "Request to target BFF timed out", target, 408)
+	return NewBFFClientErrorWithTarget(ErrCodeTimeout, "request to target BFF timed out", target, 408)
 }
 
-// NewInvalidResponseError creates an invalid response error
+// NewInvalidResponseError creates an invalid response error.
 func NewInvalidResponseError(target BFFTarget, message string) *BFFClientError {
 	return NewBFFClientErrorWithTarget(ErrCodeInvalidResponse, message, target, 502)
 }
 
-// NewServerUnavailableError creates a server unavailable error
+// NewServerUnavailableError creates a server unavailable error.
 func NewServerUnavailableError(target BFFTarget) *BFFClientError {
-	return NewBFFClientErrorWithTarget(ErrCodeServerUnavailable, "Target BFF service is not available", target, 503)
+	return NewBFFClientErrorWithTarget(ErrCodeServerUnavailable, "target BFF service is not available", target, 503)
 }
 
-// NewUnauthorizedError creates an unauthorized error
+// NewUnauthorizedError creates an unauthorized error.
 func NewUnauthorizedError(target BFFTarget, message string) *BFFClientError {
 	return NewBFFClientErrorWithTarget(ErrCodeUnauthorized, message, target, 401)
 }
 
-// NewForbiddenError creates a forbidden error
+// NewForbiddenError creates a forbidden error.
 func NewForbiddenError(target BFFTarget, message string) *BFFClientError {
 	return NewBFFClientErrorWithTarget(ErrCodeForbidden, message, target, 403)
 }
 
-// NewNotFoundError creates a not found error
+// NewNotFoundError creates a not found error.
 func NewNotFoundError(target BFFTarget, message string) *BFFClientError {
 	return NewBFFClientErrorWithTarget(ErrCodeNotFound, message, target, 404)
 }
 
-// NewBadRequestError creates a bad request error
+// NewBadRequestError creates a bad request error.
 func NewBadRequestError(target BFFTarget, message string) *BFFClientError {
 	return NewBFFClientErrorWithTarget(ErrCodeBadRequest, message, target, 400)
 }
 
-// NewNotConfiguredError creates an error for when a target BFF is not configured
+// NewNotConfiguredError creates an error for when a target BFF is not configured.
 func NewNotConfiguredError(target BFFTarget) *BFFClientError {
-	return NewBFFClientErrorWithTarget(ErrCodeNotConfigured, fmt.Sprintf("Target BFF %s is not configured", target), target, 503)
+	return NewBFFClientErrorWithTarget(ErrCodeNotConfigured, fmt.Sprintf("target BFF %s is not configured", target), target, 503)
 }

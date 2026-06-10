@@ -25,6 +25,7 @@ import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
 import FeatureStoreAccessDenied from '../../../components/FeatureStoreAccessDenied';
 import { isNotFoundError } from '../../../utils';
 import { getFeatureStoreErrorMessage } from '../../../api/errorUtils';
+import ConnectedWorkbenchesLink from '../../../components/ConnectedWorkbenchesLink';
 
 const FeatureViewDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -99,6 +100,7 @@ const FeatureViewDetails = (): React.ReactElement => {
       loadErrorPage={featureViewError ? loadErrorState : undefined}
       loaded={featureViewLoaded}
       provideChildrenPadding
+      headerContent={featureViewLoaded ? <ConnectedWorkbenchesLink /> : undefined}
       breadcrumb={
         <FeatureStorePageTitle
           isDetailsPage

@@ -38,10 +38,15 @@ var imagesMap = map[string]string{
 }
 
 func defaultManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
+	sourcePath, ok := overlaysSourcePaths[platform]
+	if !ok {
+		sourcePath = overlaysSourcePaths[cluster.OpenDataHub]
+	}
+
 	return render.ManifestInfo{
 		Path:       basePath,
 		ContextDir: "",
-		SourcePath: overlaysSourcePaths[platform],
+		SourcePath: sourcePath,
 	}
 }
 
@@ -103,5 +108,5 @@ func writeParamsEnv(manifestPath string, params map[string]string) error {
 		sb.WriteString(params[k])
 		sb.WriteString("\n")
 	}
-	return os.WriteFile(manifestPath+"/params.env", []byte(sb.String()), 0664)
+	return os.WriteFile(manifestPath+"/params.env", []byte(sb.String()), 0600)
 }

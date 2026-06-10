@@ -20,6 +20,7 @@ module.exports = {
         'no-unused-vars': 'off',
         'react/react-in-jsx-scope': 'off',
         'react/jsx-no-undef': 'off',
+        'react-hooks/rules-of-hooks': 'off',
         '@typescript-eslint/no-redeclare': 'off',
         '@typescript-eslint/no-unused-expressions': 'off',
         '@typescript-eslint/no-unused-vars': 'off',

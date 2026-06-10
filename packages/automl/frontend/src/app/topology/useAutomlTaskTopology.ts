@@ -7,6 +7,7 @@ import { createNode } from './utils';
 import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseUtils';
 
 const TASK_DISPLAY_NAMES: Record<string, string> = {
+  'publish-component-stage-map': 'Pipeline preparation',
   'automl-data-loader': 'Input data loader',
   'timeseries-data-loader': 'Input data loader',
   'models-selection': 'Model selection',
@@ -15,6 +16,7 @@ const TASK_DISPLAY_NAMES: Record<string, string> = {
   'for-loop-1': 'Model generation', // used in timeseries
   'autogluon-models-training': 'Model generation', // used in tabular
   'timeseries-models-full-refit': 'Model generation',
+  'autogluon-timeseries-models-training': 'Model generation',
   'autogluon-timeseries-models-full-refit': 'Model generation',
   'leaderboard-evaluation': 'Leaderboard evaluation',
   'timeseries-leaderboard-evaluation': 'Leaderboard evaluation',

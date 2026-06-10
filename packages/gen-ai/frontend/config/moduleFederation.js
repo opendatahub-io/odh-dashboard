@@ -22,6 +22,7 @@ const moduleFederationConfig = {
   exposes: {
     './extensions': './src/odh/extensions',
     './extension-points': './src/odh/extension-points',
+    './EmbeddableChatbotPlayground': './src/app/Chatbot/EmbeddableChatbotPlayground',
   },
   runtime: false,
   // Enable runtime for proper HMR in development
