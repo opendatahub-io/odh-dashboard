@@ -1,7 +1,7 @@
 import { ChatbotConfiguration, McpToolSelectionsMap } from '~/app/Chatbot/store/types';
 import { AIModel } from '~/app/types';
 import { MCPServerFromAPI } from '~/app/types/mcp';
-import { AgentProfileMcpServer, AgentProfileSpec } from './types';
+import { AgentProfileMcpServer, AgentProfileSpec, AgentProfilePromptVariable } from './types';
 
 export type AgentProfileSerializationContext = {
   /** Full model object needed for URI and sourceType (not stored in config) */
@@ -20,7 +20,8 @@ export type AgentProfileSerializationContext = {
 const getToolsForServer = (toolSelections: McpToolSelectionsMap, serverUrl: string): string[] => {
   const tools: string[] = [];
   for (const nsMap of Object.values(toolSelections)) {
-    const serverTools = nsMap?.[serverUrl];
+    const serverMap: Record<string, string[]> | undefined = nsMap;
+    const serverTools = serverMap?.[serverUrl];
     if (serverTools) {
       tools.push(...serverTools);
     }
@@ -66,8 +67,12 @@ export const serializeToAgentProfileSpec = (
       version: String(config.activePrompt.version),
       variables:
         variableEntries.length > 0
-          ? Object.fromEntries(
-              variableEntries.map(([key, text]) => [key, { text, type: 'string' }]),
+          ? variableEntries.reduce<Record<string, AgentProfilePromptVariable>>(
+              (acc, [key, text]) => {
+                acc[key] = { text, type: 'string' };
+                return acc;
+              },
+              {},
             )
           : undefined,
     };

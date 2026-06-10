@@ -8,7 +8,11 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AgentProfile } from '~/app/agentProfile/types';
+import {
+  AgentProfile,
+  AgentProfileCreateRequest,
+  AgentProfileCreateResponse,
+} from '~/app/agentProfile/types';
 import {
   ApiErrorClass,
   BackendResponseData,
@@ -1107,6 +1111,11 @@ export const listMLflowPromptVersions =
       throw new Error('Invalid response format');
     });
   };
+
+export const createAgentProfile = modArchRestCREATE<
+  AgentProfileCreateResponse,
+  AgentProfileCreateRequest
+>('/agent-profiles');
 
 export const getAgentProfile =
   (hostPath: string, baseQueryParams: Record<string, unknown> = {}): ModArchRestGET<AgentProfile> =>

@@ -571,6 +571,7 @@ export type GenAiAPIs = {
   verifyExternalModel: VerifyExternalModel;
   deleteExternalModel: DeleteExternalModel;
   getAgentProfile: GetAgentProfile;
+  createAgentProfile: CreateAgentProfile;
 };
 
 export interface SubscriptionInfo {
@@ -662,6 +663,10 @@ type VerifyExternalModel = ModArchRestCREATE<
 >;
 type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
 type GetAgentProfile = ModArchRestGET<import('./agentProfile/types').AgentProfile>;
+type CreateAgentProfile = ModArchRestCREATE<
+  import('./agentProfile/types').AgentProfileCreateResponse,
+  import('./agentProfile/types').AgentProfileCreateRequest
+>;
 
 export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
 export type ErrorVariant = 'danger' | 'warning';
