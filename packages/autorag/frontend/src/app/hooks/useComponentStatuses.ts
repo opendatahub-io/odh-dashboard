@@ -128,9 +128,15 @@ async function fetchComponentStatus(
   return { componentId, data };
 }
 
+export type ComponentStatusError = {
+  componentId: string;
+  message: string;
+};
+
 type UseComponentStatusesReturn = {
   mergedStageMap?: ComponentStageMap;
   isLoading: boolean;
+  errors: ComponentStatusError[];
 };
 
 export function useComponentStatuses(
@@ -143,7 +149,9 @@ export function useComponentStatuses(
   const { rootDir } = useAutoragOutputDir(pipelineRun);
   const completedRef = React.useRef(new Set<string>());
   const statusCacheRef = React.useRef(new Map<string, ComponentStatusFile>());
+  const errorsRef = React.useRef(new Map<string, ComponentStatusError>());
   const [statusFiles, setStatusFiles] = React.useState(new Map<string, ComponentStatusFile>());
+  const [errors, setErrors] = React.useState<ComponentStatusError[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
 
   React.useEffect(() => {
@@ -175,21 +183,45 @@ export function useComponentStatuses(
         }
 
         let changed = false;
-        for (const result of results) {
-          if (result.status !== 'fulfilled' || !result.value) {
+        let errorsChanged = false;
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          const componentId = componentsToFetch[i];
+
+          if (result.status === 'rejected') {
+            const message =
+              result.reason instanceof Error ? result.reason.message : String(result.reason);
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[useComponentStatuses] Failed to fetch status for ${componentId}:`,
+              message,
+            );
+            errorsRef.current.set(componentId, { componentId, message });
+            errorsChanged = true;
             continue;
           }
-          const { componentId, data } = result.value;
-          statusCacheRef.current.set(componentId, data);
+
+          if (!result.value) {
+            continue;
+          }
+
+          const { componentId: cId, data } = result.value;
+          statusCacheRef.current.set(cId, data);
+          if (errorsRef.current.delete(cId)) {
+            errorsChanged = true;
+          }
           changed = true;
 
           if (isComponentFullyComplete(data)) {
-            completedRef.current.add(componentId);
+            completedRef.current.add(cId);
           }
         }
 
         if (changed) {
           setStatusFiles(new Map(statusCacheRef.current));
+        }
+        if (errorsChanged) {
+          setErrors(Array.from(errorsRef.current.values()));
         }
       })
       .finally(() => {
@@ -213,5 +245,5 @@ export function useComponentStatuses(
     return mergeStatusIntoStageMap(componentStageMap, statusFiles);
   }, [componentStageMap, statusFiles]);
 
-  return { mergedStageMap, isLoading };
+  return { mergedStageMap, isLoading, errors };
 }

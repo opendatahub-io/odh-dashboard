@@ -98,15 +98,23 @@ export async function fetchS3File(
   return response.blob();
 }
 
+const DEFAULT_MAX_JSON_BYTES = 50 * 1024 * 1024; // 50 MB
+
 export async function fetchS3Json<T>(
   namespace: string,
   key: string,
   options?: {
     signal?: AbortSignal;
+    maxBytes?: number;
   },
 ): Promise<T> {
-  const { signal } = options ?? {};
+  const { signal, maxBytes = DEFAULT_MAX_JSON_BYTES } = options ?? {};
   const blob = await fetchS3File(namespace, key, { signal });
+  if (blob.size > maxBytes) {
+    throw new Error(
+      `S3 JSON response too large: ${blob.size} bytes exceeds limit of ${maxBytes} bytes`,
+    );
+  }
   const text = await blob.text();
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- caller accepts risk
   return JSON.parse(text) as T;

@@ -280,16 +280,24 @@ const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.nu
  * @param options.schema - Optional Zod schema for runtime validation
  * @returns Parsed JSON cast to type T (validated if schema provided)
  */
+const DEFAULT_MAX_JSON_BYTES = 50 * 1024 * 1024; // 50 MB
+
 export async function fetchS3Json<T>(
   namespace: string,
   key: string,
   options?: {
     signal?: AbortSignal;
     schema?: z.ZodSchema<T>;
+    maxBytes?: number;
   },
 ): Promise<T> {
-  const { signal, schema } = options ?? {};
+  const { signal, schema, maxBytes = DEFAULT_MAX_JSON_BYTES } = options ?? {};
   const blob = await fetchS3File(namespace, key, { signal });
+  if (blob.size > maxBytes) {
+    throw new Error(
+      `S3 JSON response too large: ${blob.size} bytes exceeds limit of ${maxBytes} bytes`,
+    );
+  }
   const text = await blob.text();
 
   try {

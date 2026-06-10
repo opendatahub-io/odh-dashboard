@@ -126,10 +126,14 @@ describe('fetchS3Json', () => {
     jest.clearAllMocks();
   });
 
-  const mockBlobResponse = (content: string) =>
+  const mockBlobResponse = (content: string, size?: number) =>
     ({
       ok: true,
-      blob: () => Promise.resolve({ text: () => Promise.resolve(content) }),
+      blob: () =>
+        Promise.resolve({
+          size: size ?? new Blob([content]).size,
+          text: () => Promise.resolve(content),
+        }),
     }) as unknown as Response;
 
   it('should parse JSON from the fetched blob', async () => {
@@ -156,6 +160,14 @@ describe('fetchS3Json', () => {
     jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse('not valid json'));
 
     await expect(fetchS3Json('ns', 'bad.json')).rejects.toThrow();
+  });
+
+  it('should throw when blob exceeds maxBytes', async () => {
+    jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse('{}', 100));
+
+    await expect(fetchS3Json('ns', 'big.json', { maxBytes: 50 })).rejects.toThrow(
+      'S3 JSON response too large: 100 bytes exceeds limit of 50 bytes',
+    );
   });
 
   it('should propagate fetch errors from fetchS3File', async () => {
