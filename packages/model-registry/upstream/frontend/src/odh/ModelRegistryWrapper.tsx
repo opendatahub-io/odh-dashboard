@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   BrowserStorageContextProvider,
-  NotificationContextProvider,
   ModularArchContextProvider,
   ModularArchConfig,
   DeploymentMode,
@@ -14,7 +13,6 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import ModelRegistryRoutes from '~/app/pages/modelRegistry/ModelRegistryRoutes';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
 import { AppContext } from '~/app/context/AppContext';
-import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 
 const ModelRegistryWrapperContent: React.FC = () => {
@@ -35,14 +33,9 @@ const ModelRegistryWrapperContent: React.FC = () => {
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
           <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
-            <NotificationContextProvider>
-              {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
-              <NotificationListener>
-                <ModelRegistrySelectorContextProvider>
-                  <ModelRegistryRoutes />
-                </ModelRegistrySelectorContextProvider>
-              </NotificationListener>
-            </NotificationContextProvider>
+            <ModelRegistrySelectorContextProvider>
+              <ModelRegistryRoutes />
+            </ModelRegistrySelectorContextProvider>
           </OdhDevFeatureFlagOverridesProvider>
         </BrowserStorageContextProvider>
       </ThemeProvider>

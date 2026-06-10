@@ -4,12 +4,7 @@ import * as React from 'react';
 // which is where the chatbot stylesheet is normally imported.
 import '@patternfly/chatbot/dist/css/main.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  ModularArchConfig,
-  DeploymentMode,
-  ModularArchContextProvider,
-  NotificationContextProvider,
-} from 'mod-arch-core';
+import { ModularArchConfig, DeploymentMode, ModularArchContextProvider } from 'mod-arch-core';
 import type { EmbeddableChatbotPlaygroundProps } from '~/types/embeddable-chatbot';
 import { UserContextProvider } from '~/app/context/UserContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -142,27 +137,25 @@ const EmbeddableChatbotPlayground: React.FC<EmbeddableChatbotPlaygroundProps> = 
   return (
     <QueryClientProvider client={queryClient}>
       <ModularArchContextProvider config={modularArchConfig}>
-        <NotificationContextProvider>
-          <UserContextProvider>
-            <GenAiContext.Provider value={stubGenAiContextValue}>
-              <ChatbotContext.Provider value={stubChatbotContextValue}>
-                <ChatbotConfigStoreContext.Provider value={scopedStore}>
-                  <EmbeddedMessagesContext.Provider value={embeddedMessagesConfig}>
-                    <ChatbotPlayground
-                      isViewCodeModalOpen={isViewCodeModalOpen}
-                      setIsViewCodeModalOpen={setIsViewCodeModalOpen}
-                      isNewChatModalOpen={isNewChatModalOpen}
-                      setIsNewChatModalOpen={setIsNewChatModalOpen}
-                      activePaneConfigId={DEFAULT_CONFIG_ID}
-                      welcomeContent={welcomeContent}
-                      placeholderBotContent={placeholderBotContent}
-                    />
-                  </EmbeddedMessagesContext.Provider>
-                </ChatbotConfigStoreContext.Provider>
-              </ChatbotContext.Provider>
-            </GenAiContext.Provider>
-          </UserContextProvider>
-        </NotificationContextProvider>
+        <UserContextProvider>
+          <GenAiContext.Provider value={stubGenAiContextValue}>
+            <ChatbotContext.Provider value={stubChatbotContextValue}>
+              <ChatbotConfigStoreContext.Provider value={scopedStore}>
+                <EmbeddedMessagesContext.Provider value={embeddedMessagesConfig}>
+                  <ChatbotPlayground
+                    isViewCodeModalOpen={isViewCodeModalOpen}
+                    setIsViewCodeModalOpen={setIsViewCodeModalOpen}
+                    isNewChatModalOpen={isNewChatModalOpen}
+                    setIsNewChatModalOpen={setIsNewChatModalOpen}
+                    activePaneConfigId={DEFAULT_CONFIG_ID}
+                    welcomeContent={welcomeContent}
+                    placeholderBotContent={placeholderBotContent}
+                  />
+                </EmbeddedMessagesContext.Provider>
+              </ChatbotConfigStoreContext.Provider>
+            </ChatbotContext.Provider>
+          </GenAiContext.Provider>
+        </UserContextProvider>
       </ModularArchContextProvider>
     </QueryClientProvider>
   );

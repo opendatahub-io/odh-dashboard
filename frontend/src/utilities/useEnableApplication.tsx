@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { AlertVariant } from '@patternfly/react-core';
 import { getValidationStatus, postValidateIsv } from '#~/services/validateIsvService';
 import {
   enableIntegrationApp,
   getIntegrationAppEnablementStatus,
 } from '#~/services/integrationAppService';
-import { addNotification, forceComponentsUpdate } from '#~/redux/actions/actions';
+import { forceComponentsUpdate } from '#~/redux/actions/actions';
 import { useAppDispatch } from '#~/redux/hooks';
 import { IntegrationAppStatus } from '#~/types';
+import useNotification from '#~/utilities/useNotification';
 import { isInternalRouteIntegrationsApp } from './utils';
 
 export enum EnableApplicationStatus {
@@ -30,25 +30,18 @@ export const useEnableApplication = (
   }>({ status: EnableApplicationStatus.IDLE, error: '' });
 
   const dispatch = useAppDispatch();
+  const notification = useNotification();
 
   const dispatchResults = React.useCallback(
     (error?: string) => {
-      dispatch(
-        addNotification({
-          status: error ? AlertVariant.danger : AlertVariant.success,
-          title: error
-            ? `Error attempting to validate ${appName}`
-            : `${appName} has been added to the Enabled page.`,
-          message: error,
-          timestamp: new Date(),
-        }),
-      );
-
-      if (!error) {
+      if (error) {
+        notification.error(`Error attempting to validate ${appName}`, error);
+      } else {
+        notification.success(`${appName} has been added to the Enabled page.`);
         dispatch(forceComponentsUpdate());
       }
     },
-    [appName, dispatch],
+    [appName, dispatch, notification],
   );
 
   React.useEffect(() => {

@@ -3,7 +3,6 @@ import {
   ModularArchConfig,
   DeploymentMode,
   ModularArchContextProvider,
-  NotificationContextProvider,
   BrowserStorageContextProvider,
   useSettings,
 } from 'mod-arch-core';
@@ -63,9 +62,7 @@ const EvalHubWrapperContent: React.FC = () => {
   return (
     <AppContext.Provider value={contextValue}>
       <BrowserStorageContextProvider>
-        <NotificationContextProvider>
-          <AppRoutes />
-        </NotificationContextProvider>
+        <AppRoutes />
       </BrowserStorageContextProvider>
     </AppContext.Provider>
   );

@@ -18,7 +18,7 @@ import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '#~/utilities/const';
 import useNotification from '#~/utilities/useNotification';
 import { updateImpersonateSettings } from '#~/services/impersonateService';
-import { AppNotification } from '#~/redux/types';
+import { useUnreadNotificationCount } from '#~/concepts/notifications/DashboardNotificationContext';
 import { useAppSelector } from '#~/redux/hooks';
 import AboutDialog from '#~/app/AboutDialog';
 import AppLauncher from './AppLauncher';
@@ -37,7 +37,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
   const [aboutShown, setAboutShown] = React.useState(false);
-  const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
+  const newNotifications = useUnreadNotificationCount();
   const userName: string = useAppSelector((state) => state.user || '');
   const isImpersonating: boolean = useAppSelector((state) => state.isImpersonating || false);
   const { dashboardConfig } = useAppContext();
@@ -52,11 +52,6 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
       htmlElement.classList.remove('pf-v6-theme-dark');
     }
   }, [theme]);
-
-  const newNotifications = React.useMemo(
-    () => notifications.filter((currentNotification) => !currentNotification.read).length,
-    [notifications],
-  );
 
   const handleLogout = () => {
     setUserMenuOpen(false);

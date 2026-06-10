@@ -3,7 +3,6 @@ import {
   ModularArchConfig,
   DeploymentMode,
   ModularArchContextProvider,
-  NotificationContextProvider,
   BrowserStorageContextProvider,
 } from 'mod-arch-core';
 import { URL_PREFIX } from '~/app/utilities/const';
@@ -18,9 +17,7 @@ const modularArchConfig: ModularArchConfig = {
 const MlflowWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
     <BrowserStorageContextProvider>
-      <NotificationContextProvider>
-        <MainPage />
-      </NotificationContextProvider>
+      <MainPage />
     </BrowserStorageContextProvider>
   </ModularArchContextProvider>
 );

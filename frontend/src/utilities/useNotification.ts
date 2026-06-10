@@ -1,13 +1,12 @@
 import { AlertVariant } from '@patternfly/react-core';
 import * as React from 'react';
-import { addNotification } from '#~/redux/actions/actions';
-import { useAppDispatch } from '#~/redux/hooks';
-import { AppNotificationAction } from '#~/redux/types';
+import { useAddNotification } from '#~/concepts/notifications/DashboardNotificationContext';
+import { DashboardNotificationAction } from '#~/concepts/notifications/types';
 
 type NotificationProps = (
   title: string,
   message?: React.ReactNode,
-  actions?: AppNotificationAction[],
+  actions?: DashboardNotificationAction[],
 ) => void;
 
 type NotificationFunc = {
@@ -22,65 +21,58 @@ enum NotificationTypes {
 }
 
 const useNotification = (): NotificationFunc => {
-  const dispatch = useAppDispatch();
+  const addNotification = useAddNotification();
+
   const success: NotificationProps = React.useCallback(
     (title, message, actions?) => {
-      dispatch(
-        addNotification({
-          status: AlertVariant.success,
-          title,
-          message,
-          actions,
-          timestamp: new Date(),
-        }),
-      );
+      addNotification({
+        status: AlertVariant.success,
+        title,
+        message,
+        actions,
+        timestamp: new Date(),
+      });
     },
-    [dispatch],
+    [addNotification],
   );
 
   const error: NotificationProps = React.useCallback(
     (title, message?, actions?) => {
-      dispatch(
-        addNotification({
-          status: AlertVariant.danger,
-          title,
-          message,
-          actions,
-          timestamp: new Date(),
-        }),
-      );
+      addNotification({
+        status: AlertVariant.danger,
+        title,
+        message,
+        actions,
+        timestamp: new Date(),
+      });
     },
-    [dispatch],
+    [addNotification],
   );
 
   const info: NotificationProps = React.useCallback(
     (title, message?, actions?) => {
-      dispatch(
-        addNotification({
-          status: AlertVariant.info,
-          title,
-          message,
-          actions,
-          timestamp: new Date(),
-        }),
-      );
+      addNotification({
+        status: AlertVariant.info,
+        title,
+        message,
+        actions,
+        timestamp: new Date(),
+      });
     },
-    [dispatch],
+    [addNotification],
   );
 
   const warning: NotificationProps = React.useCallback(
     (title, message?, actions?) => {
-      dispatch(
-        addNotification({
-          status: AlertVariant.warning,
-          title,
-          message,
-          actions,
-          timestamp: new Date(),
-        }),
-      );
+      addNotification({
+        status: AlertVariant.warning,
+        title,
+        message,
+        actions,
+        timestamp: new Date(),
+      });
     },
-    [dispatch],
+    [addNotification],
   );
 
   const notification = React.useMemo(

@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   BrowserStorageContextProvider,
-  NotificationContextProvider,
   ModularArchContextProvider,
   ModularArchConfig,
   DeploymentMode,
@@ -13,7 +12,6 @@ import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDs
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
 import McpCatalogRoutes from '~/app/pages/mcpCatalog/McpCatalogRoutes';
-import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 
 const McpCatalogWrapperContent: React.FC = () => {
@@ -33,11 +31,7 @@ const McpCatalogWrapperContent: React.FC = () => {
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
           <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
-            <NotificationContextProvider>
-              <NotificationListener>
-                <McpCatalogRoutes />
-              </NotificationListener>
-            </NotificationContextProvider>
+            <McpCatalogRoutes />
           </OdhDevFeatureFlagOverridesProvider>
         </BrowserStorageContextProvider>
       </ThemeProvider>

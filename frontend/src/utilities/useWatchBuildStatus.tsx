@@ -2,8 +2,7 @@ import * as React from 'react';
 import { AlertVariant, List, ListItem, Stack, StackItem } from '@patternfly/react-core';
 import { BuildPhase, BuildStatus } from '#~/types';
 import { fetchBuildStatuses } from '#~/services/buildsService';
-import { addNotification } from '#~/redux/actions/actions';
-import { useAppDispatch } from '#~/redux/hooks';
+import { useAddNotification } from '#~/concepts/notifications/DashboardNotificationContext';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { POLL_INTERVAL } from './const';
 
@@ -21,7 +20,7 @@ const filterBuilds = (buildStatuses: BuildStatus[], filterStatuses: BuildPhase[]
 export const useWatchBuildStatus = (): BuildStatus[] => {
   const [statuses, setStatuses] = React.useState<BuildStatus[]>([]);
   const prevBuildStatuses = React.useRef<BuildStatus[]>([]);
-  const dispatch = useAppDispatch();
+  const addNotification = useAddNotification();
 
   React.useEffect(() => {
     let watchHandle: ReturnType<typeof setTimeout>;
@@ -56,49 +55,43 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
     if (failed.length > 0) {
       failed.forEach((failedBuild) => {
         if (!wasFailed.find((prevFailedBuild) => failedBuild.name === prevFailedBuild.name)) {
-          dispatch(
-            addNotification({
-              status: AlertVariant.danger,
-              title: `Notebook image build ${failedBuild.name} failed.`,
-              timestamp: new Date(),
-            }),
-          );
+          addNotification({
+            status: AlertVariant.danger,
+            title: `Notebook image build ${failedBuild.name} failed.`,
+            timestamp: new Date(),
+          });
         }
       });
     }
 
     // Add notifications for new not started
     if (notStarted.length && !wasNotStarted.length) {
-      dispatch(
-        addNotification({
-          status: AlertVariant.danger,
-          title: 'These notebook image builds have not started:',
-          message: (
-            <Stack hasGutter>
-              <StackItem>
-                <List>
-                  {notStarted.map((build) => (
-                    <ListItem key={build.name}>{build.name}</ListItem>
-                  ))}
-                </List>
-              </StackItem>
-              <StackItem>Contact your administrator to start the builds.</StackItem>
-            </Stack>
-          ),
-          timestamp: new Date(),
-        }),
-      );
+      addNotification({
+        status: AlertVariant.danger,
+        title: 'These notebook image builds have not started:',
+        message: (
+          <Stack hasGutter>
+            <StackItem>
+              <List>
+                {notStarted.map((build) => (
+                  <ListItem key={build.name}>{build.name}</ListItem>
+                ))}
+              </List>
+            </StackItem>
+            <StackItem>Contact your administrator to start the builds.</StackItem>
+          </Stack>
+        ),
+        timestamp: new Date(),
+      });
     }
 
     // Add notification if builds are now running
     if (building.length && !wasBuilding.length) {
-      dispatch(
-        addNotification({
-          status: AlertVariant.info,
-          title: 'Workbench images are building.',
-          timestamp: new Date(),
-        }),
-      );
+      addNotification({
+        status: AlertVariant.info,
+        title: 'Workbench images are building.',
+        timestamp: new Date(),
+      });
     }
 
     // Add notification if all builds are now complete
@@ -128,18 +121,16 @@ export const useWatchBuildStatus = (): BuildStatus[] => {
           </Stack>
         );
       }
-      dispatch(
-        addNotification({
-          status,
-          title: 'All notebook image builds are complete.',
-          message,
-          timestamp: new Date(),
-        }),
-      );
+      addNotification({
+        status,
+        title: 'All notebook image builds are complete.',
+        message,
+        timestamp: new Date(),
+      });
     }
 
     prevBuildStatuses.current = buildStatuses;
-  }, [buildStatuses, dispatch]);
+  }, [buildStatuses, addNotification]);
 
   return buildStatuses;
 };
