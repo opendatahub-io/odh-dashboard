@@ -93,6 +93,11 @@ func main() {
 
 	flag.Parse()
 
+	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
 	if cfg.LogLevel == slog.LevelDebug {
 		log.SetLogger(zap.New(zap.UseDevMode(true)))
 		klog.SetLogger(log.Log)
@@ -173,4 +178,43 @@ func main() {
 	logger.Info("server stopped")
 	os.Exit(0)
 
+}
+
+// validateInsecureSkipVerify validates the InsecureSkipVerify configuration at startup.
+// Returns an error if the configuration is invalid or poses a security risk.
+func validateInsecureSkipVerify(insecureSkipVerify bool) error {
+	if !insecureSkipVerify {
+		return nil
+	}
+
+	allowInsecure := os.Getenv("ALLOW_INSECURE_TLS")
+	env := os.Getenv("ENV")
+
+	if allowInsecure != "true" {
+		slog.Error("SECURITY: InsecureSkipVerify requires explicit ALLOW_INSECURE_TLS=true",
+			"insecure_skip_verify", insecureSkipVerify,
+			"allow_insecure_tls", allowInsecure,
+			"env", env,
+		)
+		slog.Error("InsecureSkipVerify disables TLS certificate verification and MUST NOT be used in production")
+		slog.Error("To fix: For local development only, set ALLOW_INSECURE_TLS=true")
+		slog.Error("NEVER set ALLOW_INSECURE_TLS=true in production deployments")
+		return fmt.Errorf("InsecureSkipVerify requires ALLOW_INSECURE_TLS=true")
+	}
+
+	if env == "prod" || env == "production" || env == "staging" {
+		slog.Error("SECURITY: InsecureSkipVerify cannot be used in production/staging environments",
+			"env", env,
+			"insecure_skip_verify", insecureSkipVerify,
+		)
+		slog.Error("To fix: Remove --insecure-skip-verify flag and INSECURE_SKIP_VERIFY env var")
+		return fmt.Errorf("InsecureSkipVerify cannot be used in %s environment", env)
+	}
+
+	slog.Warn("SECURITY WARNING: TLS certificate verification is DISABLED (InsecureSkipVerify=true)",
+		"env", env,
+		"allow_insecure_tls", allowInsecure,
+		"use_case", "local development only - NEVER use in production",
+	)
+	return nil
 }
