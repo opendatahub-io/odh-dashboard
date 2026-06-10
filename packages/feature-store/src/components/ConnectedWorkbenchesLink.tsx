@@ -22,7 +22,6 @@ const ConnectedWorkbenchesLink: React.FC = () => {
 
   const hasProjects = accessibleProjects.length > 0;
   const hasNoProjects = projectsLoaded && !projectsError && !hasProjects;
-  const isDisabled = !projectsLoaded || !!projectsError || hasNoProjects;
 
   const button = (
     <Button
@@ -31,7 +30,7 @@ const ConnectedWorkbenchesLink: React.FC = () => {
       iconPosition="start"
       isDisabled={!projectsLoaded || !!projectsError}
       isAriaDisabled={hasNoProjects}
-      onClick={isDisabled ? undefined : () => setIsModalOpen(true)}
+      onClick={() => setIsModalOpen(true)}
       className="pf-v6-u-font-weight-bold"
       data-testid="connected-workbenches-link"
     >

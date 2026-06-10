@@ -2,6 +2,7 @@ import * as React from 'react';
 /* eslint-disable @odh-dashboard/no-restricted-imports -- custom modal with table, selector, and toolbar; ContentModal does not support this layout */
 import {
   Alert,
+  Bullseye,
   Content,
   Flex,
   FlexItem,
@@ -9,7 +10,7 @@ import {
   Modal,
   ModalBody,
   ModalHeader,
-  Skeleton,
+  Spinner,
   Stack,
   StackItem,
   Switch,
@@ -64,9 +65,9 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
     projects.find((project) => project.feastProjectName === selectedFeastProjectName);
 
   const tableRows = React.useMemo(() => {
-    const rows = buildConnectedWorkbenchRows(activeProject);
+    const rows = buildConnectedWorkbenchRows(selectedFeastProjectName ? activeProject : projects);
     return filterRowsByToggle(rows, hideProjectsWithConnectedWorkbenches);
-  }, [activeProject, hideProjectsWithConnectedWorkbenches]);
+  }, [selectedFeastProjectName, activeProject, projects, hideProjectsWithConnectedWorkbenches]);
 
   const filteredProjects = React.useMemo(
     () =>
@@ -88,7 +89,9 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
 
   React.useEffect(() => {
     setPage(1);
-  }, [activeProject, hideProjectsWithConnectedWorkbenches]);
+  }, [selectedFeastProjectName, hideProjectsWithConnectedWorkbenches, tableRows.length]);
+
+  const isLoading = !loaded && !error;
 
   const selector = (
     <SearchSelector
@@ -100,8 +103,19 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
       searchValue={searchText}
       onSearchChange={setSearchText}
       onSearchClear={() => setSearchText('')}
-      toggleContent={selectedFeastProjectName || 'Select feature store'}
+      isDisabled={isLoading}
+      toggleContent={selectedFeastProjectName || 'All feature stores'}
     >
+      <MenuItem
+        key="__all__"
+        isSelected={!selectedFeastProjectName}
+        onClick={() => {
+          setSearchText('');
+          setSelectedFeastProjectName('');
+        }}
+      >
+        All feature stores
+      </MenuItem>
       {filteredProjects.map((project) => (
         <MenuItem
           key={project.feastProjectName}
@@ -150,7 +164,15 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
           </StackItem>
 
           <StackItem>
-            {!loaded && !error && <Skeleton height="200px" />}
+            {!loaded && !error && (
+              <Bullseye aria-live="polite" aria-busy>
+                <Spinner
+                  size="xl"
+                  aria-label="Loading connected workbenches"
+                  data-testid="connected-workbenches-loading-spinner"
+                />
+              </Bullseye>
+            )}
 
             {error && (
               <Alert variant="danger" title="Failed to load connected workbenches" isInline />

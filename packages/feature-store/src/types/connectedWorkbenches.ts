@@ -20,6 +20,7 @@ export type ConnectedWorkbenchesResponse = {
 export type ConnectedWorkbenchTableRow = {
   id: string;
   workbenchName?: string;
+  workbenchNamespace?: string;
   authorizedProject: string;
   permissionLevel: string[];
   hasConnectedWorkbench: boolean;

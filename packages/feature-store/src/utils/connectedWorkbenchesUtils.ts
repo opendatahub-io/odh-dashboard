@@ -3,32 +3,10 @@ import {
   FeastProjectWithWorkbenches,
 } from '../types/connectedWorkbenches';
 
-export const buildConnectedWorkbenchRows = (
-  project: FeastProjectWithWorkbenches | undefined,
-): ConnectedWorkbenchTableRow[] => {
-  if (!project) {
-    return [];
-  }
-
-  const seen = new Set<string>();
-  const rows: ConnectedWorkbenchTableRow[] = [];
-
-  for (const workbench of project.connectedWorkbenches) {
-    const key = `${workbench.projectName}-${workbench.workbenchName}`;
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    rows.push({
-      id: key,
-      workbenchName: workbench.workbenchName,
-      authorizedProject: workbench.projectName,
-      permissionLevel: project.permissionLevel,
-      hasConnectedWorkbench: true,
-    });
-  }
-
-  return rows.toSorted((a, b) => {
+const sortConnectedWorkbenchRows = (
+  rows: ConnectedWorkbenchTableRow[],
+): ConnectedWorkbenchTableRow[] =>
+  rows.toSorted((a, b) => {
     if (a.hasConnectedWorkbench && !b.hasConnectedWorkbench) {
       return -1;
     }
@@ -37,6 +15,52 @@ export const buildConnectedWorkbenchRows = (
     }
     return 0;
   });
+
+const buildRowsForProject = (
+  project: FeastProjectWithWorkbenches,
+): ConnectedWorkbenchTableRow[] => {
+  if (project.connectedWorkbenches.length === 0) {
+    return [
+      {
+        id: `${project.feastProjectName}-no-workbench`,
+        authorizedProject: project.namespace,
+        permissionLevel: project.permissionLevel,
+        hasConnectedWorkbench: false,
+      },
+    ];
+  }
+
+  const seenRowIds = new Set<string>();
+  const rows: ConnectedWorkbenchTableRow[] = [];
+
+  for (const workbench of project.connectedWorkbenches) {
+    const rowId = `${project.feastProjectName}-${workbench.projectName}-${workbench.workbenchName}`;
+    if (seenRowIds.has(rowId)) {
+      continue;
+    }
+    seenRowIds.add(rowId);
+    rows.push({
+      id: rowId,
+      workbenchName: workbench.workbenchName,
+      workbenchNamespace: workbench.workbenchNamespace,
+      authorizedProject: workbench.projectName,
+      permissionLevel: project.permissionLevel,
+      hasConnectedWorkbench: Boolean(workbench.workbenchName),
+    });
+  }
+
+  return rows;
+};
+
+export const buildConnectedWorkbenchRows = (
+  projects: FeastProjectWithWorkbenches | FeastProjectWithWorkbenches[] | undefined,
+): ConnectedWorkbenchTableRow[] => {
+  if (!projects) {
+    return [];
+  }
+
+  const projectList = Array.isArray(projects) ? projects : [projects];
+  return sortConnectedWorkbenchRows(projectList.flatMap(buildRowsForProject));
 };
 
 export const filterRowsByToggle = (

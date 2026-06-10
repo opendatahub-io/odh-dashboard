@@ -299,17 +299,6 @@ export async function getFeastProjectRegistryInfo(
   };
 }
 
-/** Whether the Feast project appears in the registry projects list for this user. */
-export async function hasAccessToFeastProject(
-  fastify: KubeFastifyInstance,
-  crd: FeatureStoreCRD,
-  feastProjectName: string,
-  token: string,
-): Promise<boolean> {
-  const { hasAccess } = await getFeastProjectRegistryInfo(fastify, crd, feastProjectName, token);
-  return hasAccess;
-}
-
 export function extractPermissionLevel(data: FeastPermissionsResponse): string[] {
   const actions = new Set<string>();
   for (const permission of data.permissions ?? []) {

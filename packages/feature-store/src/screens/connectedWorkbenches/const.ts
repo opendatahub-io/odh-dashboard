@@ -3,6 +3,9 @@ import { ConnectedWorkbenchTableRow } from '../../types/connectedWorkbenches';
 
 export const CONNECTED_WORKBENCH_PERMISSION_LABEL_THRESHOLD = 4;
 
+export const NO_CONNECTED_WORKBENCH_TOOLTIP =
+  'Go to the Authorized project page, edit a workbench or create a new one to connect with desired feature stores.';
+
 export const getConnectedWorkbenchColumns = (
   featureStoreName?: string,
 ): SortableData<ConnectedWorkbenchTableRow>[] => {

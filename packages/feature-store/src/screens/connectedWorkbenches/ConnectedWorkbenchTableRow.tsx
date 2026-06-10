@@ -1,14 +1,22 @@
 import * as React from 'react';
-import { Label, LabelGroup, Truncate } from '@patternfly/react-core';
+import { Button, Label, LabelGroup, Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { CONNECTED_WORKBENCH_PERMISSION_LABEL_THRESHOLD } from './const';
+import {
+  CONNECTED_WORKBENCH_PERMISSION_LABEL_THRESHOLD,
+  NO_CONNECTED_WORKBENCH_TOOLTIP,
+} from './const';
 import FeatureStoreLabels from '../../components/FeatureStoreLabels';
 import type { ConnectedWorkbenchTableRow as ConnectedWorkbenchTableRowData } from '../../types/connectedWorkbenches';
 
 type Props = {
   row: ConnectedWorkbenchTableRowData;
+};
+
+const getWorkbenchLaunchPath = (row: ConnectedWorkbenchTableRowData): string => {
+  const workbenchNamespace = row.workbenchNamespace ?? row.authorizedProject;
+  return `/notebook/${workbenchNamespace}/${row.workbenchName ?? ''}`;
 };
 
 const PermissionLabels: React.FC<{ permissions: string[] }> = ({ permissions }) => {
@@ -34,7 +42,6 @@ const PermissionLabels: React.FC<{ permissions: string[] }> = ({ permissions }) 
           variant="overflow"
           isCompact
           onClick={() => setIsExpanded(true)}
-          style={{ cursor: 'pointer' }}
         >
           {overflowCount} more
         </Label>
@@ -44,34 +51,32 @@ const PermissionLabels: React.FC<{ permissions: string[] }> = ({ permissions }) 
 };
 
 const ConnectedWorkbenchTableRow: React.FC<Props> = ({ row }) => {
-  const workbenchHref = `/projects/${row.authorizedProject}/spawner/${row.workbenchName ?? ''}`;
   const projectHref = `/projects/${row.authorizedProject}?section=workbenches`;
 
   return (
     <Tr>
       <Td dataLabel="Workbench">
         {row.workbenchName ? (
-          <Link
-            to={workbenchHref}
+          <Button
+            variant="link"
+            isInline
+            component="a"
+            href={getWorkbenchLaunchPath(row)}
             target="_blank"
             rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 'var(--pf-t--global--spacer--xs)',
-            }}
+            icon={<ExternalLinkAltIcon />}
+            iconPosition="end"
           >
-            <Truncate content={row.workbenchName} style={{ textDecoration: 'underline' }} />
-            <ExternalLinkAltIcon />
-          </Link>
+            {row.workbenchName}
+          </Button>
         ) : (
-          'No connected workbench'
+          <Tooltip content={NO_CONNECTED_WORKBENCH_TOOLTIP}>
+            <span data-testid="connected-workbench-none">No connected workbench</span>
+          </Tooltip>
         )}
       </Td>
       <Td dataLabel="Authorized project">
-        <Link to={projectHref}>
-          <Truncate content={row.authorizedProject} style={{ textDecoration: 'underline' }} />
-        </Link>
+        <Link to={projectHref}>{row.authorizedProject}</Link>
       </Td>
       <Td dataLabel="Permission">
         {row.permissionLevel.length > 0 ? (

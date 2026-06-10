@@ -188,7 +188,7 @@ describe('Connected Workbenches modal', () => {
       .should('contain.text', fsProjectName);
   });
 
-  it('should show an empty state when no authorized projects are returned', () => {
+  it('should show a no-workbench row when the feature store has no connected workbenches', () => {
     interceptConnectedWorkbenches([
       {
         feastProjectName: fsProjectName,
@@ -197,6 +197,21 @@ describe('Connected Workbenches modal', () => {
         connectedWorkbenches: [],
       },
     ]);
+
+    featureStoreGlobal.visitEntities(fsProjectName);
+    featureStoreGlobal.openConnectedWorkbenchesModal();
+    featureStoreGlobal.findConnectedWorkbenchesEmptyState().should('not.exist');
+    cy.findByTestId('connected-workbench-none').should('be.visible');
+    cy.findByTestId('connected-workbench-none').trigger('mouseenter');
+    cy.findByText(
+      'Go to the Authorized project page, edit a workbench or create a new one to connect with desired feature stores.',
+    ).should('be.visible');
+    cy.findByRole('link', { name: k8sNamespace }).should('be.visible');
+    cy.findByText('read').should('be.visible');
+  });
+
+  it('should show an empty state when no feature stores are returned', () => {
+    interceptConnectedWorkbenches([]);
 
     featureStoreGlobal.visitEntities(fsProjectName);
     featureStoreGlobal.openConnectedWorkbenchesModal();
@@ -224,7 +239,11 @@ describe('Connected Workbenches modal', () => {
     featureStoreGlobal.openConnectedWorkbenchesModal();
 
     cy.findByTestId('connected-workbenches-table').should('be.visible');
-    cy.findByRole('link', { name: new RegExp(workbenchName) }).should('be.visible');
+    cy.findByRole('link', { name: new RegExp(workbenchName) }).should(
+      'have.attr',
+      'href',
+      `/notebook/${authorizedProject}/${workbenchName}`,
+    );
     cy.findByRole('link', { name: authorizedProject }).should('be.visible');
     cy.findByText('read').should('be.visible');
     cy.findByText('write').should('be.visible');
