@@ -473,17 +473,14 @@ func (c *client) UploadPipelineVersion(ctx context.Context, baseURL string, pipe
 	if _, err := part.Write(fileContent); err != nil {
 		return nil, fmt.Errorf("failed to write file content: %w", err)
 	}
-	if err := writer.WriteField("name", versionName); err != nil {
-		return nil, fmt.Errorf("failed to write name field: %w", err)
-	}
-	if err := writer.WriteField("pipelineid", pipelineID); err != nil {
-		return nil, fmt.Errorf("failed to write pipelineid field: %w", err)
-	}
 	if err := writer.Close(); err != nil {
 		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 
-	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/upload_version", baseURL)
+	queryParams := url.Values{}
+	queryParams.Set("name", versionName)
+	queryParams.Set("pipelineid", pipelineID)
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/upload_version?%s", baseURL, queryParams.Encode())
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, &buf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
