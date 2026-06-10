@@ -972,7 +972,7 @@ paths:
             example: 10
         - name: filter_name
           in: query
-          description: Filter prompts by name prefix (e.g. "pet" matches "pet-health-bella", "pet-adoption-letter")
+          description: Filter prompts by name substring (e.g. "reminder" matches "medication-reminder-patient")
           required: false
           schema:
             type: string
@@ -995,8 +995,12 @@ paths:
                       next_page_token:
                         type: string
                         description: Token for fetching the next page of results
+                      total_count:
+                        type: integer
+                        description: Total number of prompts matching the filter criteria (up to 1000)
                     required:
                       - prompts
+                      - total_count
                   metadata:
                     type: object
                     nullable: true
@@ -1493,25 +1497,28 @@ paths:
       summary: Upload File to Vector Store
       description: Uploads a file and adds it to the specified vector store for RAG functionality. Supports custom chunking strategies for optimal document processing.
 
-  /gen-ai/api/v1/lsd/files/vision:
-    summary: Upload vision image file
+  /gen-ai/api/v1/lsd/files/media:
+    summary: Upload media file (vision images or audio)
     description: >-
-      Synchronous proxy to OGX Files API for vision image uploads.
-      Accepts JPEG or PNG images up to 10MB. Returns the OGX file object
-      with a file_id that can be referenced in multimodal input.
+      Synchronous proxy to OGX Files API for media file uploads.
+      The required `type` form field determines which MIME types are accepted
+      and how the file is stored in OGX. Currently supports `vision` (images)
+      and `audio` (WAV/MP3). Returns the OGX file object with a file_id.
     post:
       tags:
         - Files
-      operationId: uploadVisionFile
-      summary: Upload Vision Image File
+      operationId: uploadMediaFile
+      summary: Upload Media File
       description: >-
-        Uploads an image file for use in multimodal (vision) conversations.
+        Uploads a media file (image or audio) to OGX. The `type` form field
+        controls validation: `vision` accepts image/jpeg and image/png;
+        `audio` accepts audio/wav and audio/mpeg. Max 10MB per file.
         The response contains `data.id` (e.g. `file-cf63f9d8...`); pass this
-        value as `file_id` in an `input_image` content part.
+        value as `file_id` in vision input parts or ASR transcription requests.
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace for vision file upload
+          description: Kubernetes namespace for media file upload
           required: true
           schema:
             type: string
@@ -1523,11 +1530,19 @@ paths:
               type: object
               required:
                 - file
+                - type
               properties:
                 file:
                   type: string
                   format: binary
-                  description: Image file to upload (JPEG or PNG, max 10MB)
+                  description: Media file to upload (max 10MB)
+                type:
+                  type: string
+                  enum: [vision, audio]
+                  description: >-
+                    Media type that determines MIME validation and OGX purpose mapping.
+                    vision: image/jpeg, image/png (OGX purpose=vision).
+                    audio: audio/wav, audio/mpeg (OGX purpose=user_data).
       responses:
         '200':
           description: File uploaded successfully
@@ -1548,16 +1563,116 @@ paths:
                         enum: [file]
                       filename:
                         type: string
-                      purpose:
+                      type:
                         type: string
-                        enum: [vision]
+                        enum: [vision, audio]
+                        description: The media type that was uploaded
                       status:
                         type: string
                         enum: [processed]
         '400':
-          description: Invalid file type or missing file
+          description: Invalid file type, missing file, or missing/invalid type field
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized — missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '413':
-          description: File size exceeds 10MB limit
+          description: File size exceeds limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /gen-ai/api/v1/lsd/audio/transcriptions:
+    summary: Transcribe audio file using ASR model
+    description: >-
+      Retrieves audio from OGX Files API and forwards it to a user-selected
+      ASR AI Asset endpoint (vLLM /v1/audio/transcriptions) for transcription.
+      Only namespace-deployed models with the audio-transcription modality label
+      are accepted (SSRF prevention).
+    post:
+      tags:
+        - Audio
+      operationId: transcribeAudio
+      summary: Transcribe Audio File
+      description: >-
+        Accepts a file_id (previously uploaded to OGX) and an ASR model ID.
+        Retrieves the audio bytes from OGX, validates the format (WAV or MP3),
+        and forwards to the ASR endpoint as multipart/form-data.
+        Returns the transcribed text.
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for model resolution
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AudioTranscriptionRequest'
+      responses:
+        '200':
+          description: Transcription successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudioTranscriptionResponse'
+        '400':
+          description: >-
+            Invalid request: missing fields, unsupported audio format,
+            model is not namespace-deployed, or model is not running.
+            Error codes: invalid_format, model_invalid, model_not_running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendErrorResponse'
+        '401':
+          description: 'ASR model authentication failed (code: auth_failed)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendErrorResponse'
+        '403':
+          description: 'ASR model access forbidden (code: auth_failed)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendErrorResponse'
+        '404':
+          description: 'ASR model not found or lacks modality label (code: model_not_found)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendErrorResponse'
+        '422':
+          description: 'No speech detected in the audio file (code: no_speech)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendErrorResponse'
+        '502':
+          description: >-
+            Bad gateway - OGX file retrieval failed or ASR returned
+            invalid response format (codes file_retrieval_failed, invalid_response)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendErrorResponse'
+        '504':
+          description: 'ASR endpoint unreachable or transcription timed out (codes: unreachable, timeout)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendErrorResponse'
 
   /gen-ai/api/v1/lsd/files/delete:
     summary: Delete file
@@ -2158,6 +2273,74 @@ paths:
   # =============================================================================
 
   /gen-ai/api/v1/agent-profiles:
+    get:
+      tags:
+        - AgentProfiles
+      operationId: listAgentProfiles
+      summary: List Agent Profiles
+      description: >-
+        Lists all agent configuration profiles in the specified namespace.
+        Returns ConfigMaps filtered by label opendatahub.io/agent-profile: true.
+        Results are sorted by last-modified timestamp (most recent first).
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      responses:
+        '200':
+          description: Agent profiles retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentProfileListResponseEnvelope'
+              examples:
+                with_profiles:
+                  summary: Namespace with profiles
+                  value:
+                    data:
+                      profiles:
+                        - name: "agent-profile-550e8400-e29b-41d4-a716-446655440000"
+                          profileId: "550e8400-e29b-41d4-a716-446655440000"
+                          displayName: "Customer Support Agent"
+                          description: "Professional customer support agent with RAG and guardrails"
+                          namespace: "my-namespace"
+                          lastModified: "2024-01-15T10:30:00Z"
+                        - name: "agent-profile-7c1e5f23-9a8b-4d12-b3c6-789012345678"
+                          profileId: "7c1e5f23-9a8b-4d12-b3c6-789012345678"
+                          displayName: "Code Assistant"
+                          namespace: "my-namespace"
+                          lastModified: "2024-01-14T15:20:00Z"
+                      totalCount: 2
+                empty:
+                  summary: Empty namespace
+                  value:
+                    data:
+                      profiles: []
+                      totalCount: 0
+        '400':
+          description: Invalid request (e.g., missing namespace parameter)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: "400"
+                  message: "HTTP 400: missing_namespace - namespace parameter is required"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to list ConfigMaps
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: "403"
+                  message: "insufficient permissions to list agent profiles in this namespace"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     post:
       tags:
         - AgentProfiles
@@ -2248,6 +2431,192 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /gen-ai/api/v1/agent-profiles/{id}:
+    get:
+      tags:
+        - AgentProfiles
+      operationId: getAgentProfile
+      summary: Get Agent Profile by ID
+      description: >-
+        Retrieves a single agent profile by its UUID.
+        Returns the full AgentProfile resource with all configuration details.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: id
+          in: path
+          required: true
+          description: Agent profile UUID (without 'agent-profile-' prefix)
+          schema:
+            type: string
+            format: uuid
+            example: '550e8400-e29b-41d4-a716-446655440000'
+      responses:
+        '200':
+          description: Agent profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentProfileEnvelope'
+              example:
+                data:
+                  apiVersion: "genai.redhat.com/v1alpha1"
+                  kind: "AgentProfile"
+                  metadata:
+                    name: "550e8400-e29b-41d4-a716-446655440000"
+                    resourceVersion: "12345"
+                  spec:
+                    displayName: "Customer Support Agent"
+                    description: "Professional customer support agent"
+                    model:
+                      id: "llama-3-70b"
+                      uri: "https://api.example.com/v1/models"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to access the profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Agent profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: "404"
+                  message: "agent profile 550e8400-e29b-41d4-a716-446655440000 not found"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - AgentProfiles
+      operationId: updateAgentProfile
+      summary: Update Agent Profile
+      description: >-
+        Updates an existing agent profile. Requires resourceVersion for optimistic concurrency control.
+        Returns 409 Conflict if resourceVersion does not match current version.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: id
+          in: path
+          required: true
+          description: Agent profile UUID (without 'agent-profile-' prefix)
+          schema:
+            type: string
+            format: uuid
+            example: '550e8400-e29b-41d4-a716-446655440000'
+      requestBody:
+        required: true
+        description: Updated agent profile specification with resourceVersion
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentProfileUpdateRequest'
+            example:
+              spec:
+                displayName: "Updated Customer Support Agent"
+                description: "Enhanced customer support with new features"
+                model:
+                  id: "llama-3-70b"
+                  uri: "https://api.example.com/v1/models"
+                temperature: 0.8
+              resourceVersion: "12345"
+      responses:
+        '200':
+          description: Agent profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentProfileUpdateResponseEnvelope'
+              example:
+                data:
+                  name: "agent-profile-550e8400-e29b-41d4-a716-446655440000"
+                  profileId: "550e8400-e29b-41d4-a716-446655440000"
+                  displayName: "Updated Customer Support Agent"
+                  namespace: "my-namespace"
+                  resourceVersion: "12346"
+        '400':
+          description: Invalid request or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to update the profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Agent profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Conflict - resourceVersion mismatch (concurrent modification detected)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: "409"
+                  message: "resource version conflict: profile was modified by another client"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - AgentProfiles
+      operationId: deleteAgentProfile
+      summary: Delete Agent Profile
+      description: >-
+        Deletes an agent profile ConfigMap. Returns 204 No Content on success.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: id
+          in: path
+          required: true
+          description: Agent profile UUID (without 'agent-profile-' prefix)
+          schema:
+            type: string
+            format: uuid
+            example: '550e8400-e29b-41d4-a716-446655440000'
+      responses:
+        '204':
+          description: Agent profile deleted successfully (no content)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to delete the profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Agent profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   securitySchemes:
     Bearer:
@@ -2279,6 +2648,66 @@ components:
               type: string
               description: Human-readable error message
               example: 'request body exceeds the 20MB limit'
+
+    FrontendErrorResponse:
+      type: object
+      description: >-
+        Structured error response with component attribution and retriability.
+        Used by endpoints that provide fine-grained error classification for
+        frontend microcopy rendering.
+      properties:
+        error:
+          type: object
+          required:
+            - component
+            - code
+            - message
+            - retriable
+          properties:
+            component:
+              type: string
+              description: System component that generated the error
+              example: 'asr'
+            code:
+              type: string
+              description: Machine-readable error code within the component
+              example: 'model_not_found'
+            message:
+              type: string
+              description: Human-readable error description
+              example: 'ASR model "whisper" not found in namespace'
+            retriable:
+              type: boolean
+              description: Whether the client should offer a retry action
+              example: false
+
+    AudioTranscriptionRequest:
+      type: object
+      required:
+        - file_id
+        - asr_model_id
+      properties:
+        file_id:
+          type: string
+          pattern: '^file-[a-f0-9]+$'
+          description: OGX file ID of the uploaded audio file
+          example: 'file-abc123def456'
+        asr_model_id:
+          type: string
+          description: >-
+            ID of the ASR-capable model (must have label
+            opendatahub.io/modality=audio-transcription)
+          example: 'whisper-asr'
+
+    AudioTranscriptionResponse:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Transcribed text from the audio file
+          example: 'And so, my fellow Americans, ask not what your country can do for you.'
 
     HealthCheckModel:
       type: object
@@ -2738,6 +3167,13 @@ components:
           type: string
           example: 'Llama 3.2 3B Instruct'
           description: Human-readable display name for the model
+        modality:
+          type: string
+          example: 'audio-transcription'
+          description: >-
+            Model modality capability from InferenceService label
+            (opendatahub.io/modality). Empty for standard text models.
+            Known values: 'audio-transcription' for ASR models.
         sa_token:
           $ref: '#/components/schemas/SAToken'
 
@@ -4730,6 +5166,7 @@ components:
           description: Kubernetes namespace where the ConfigMap was created
         resourceVersion:
           type: string
+          minLength: 1
           example: '12345'
           description: Kubernetes resource version for optimistic concurrency
 
@@ -4740,6 +5177,170 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/AgentProfileCreateResponse'
+
+    AgentProfileSummary:
+      type: object
+      required:
+        - name
+        - profileId
+        - displayName
+        - namespace
+        - lastModified
+      properties:
+        name:
+          type: string
+          example: 'agent-profile-550e8400-e29b-41d4-a716-446655440000'
+          description: Full ConfigMap name with prefix
+        profileId:
+          type: string
+          format: uuid
+          example: '550e8400-e29b-41d4-a716-446655440000'
+          description: The UUID (metadata.name) for this profile
+        displayName:
+          type: string
+          example: 'Customer Support Agent'
+          description: User-friendly name from spec.displayName
+        description:
+          type: string
+          example: 'Professional customer support agent with RAG and guardrails'
+          description: Optional description from spec.description
+        namespace:
+          type: string
+          example: 'my-namespace'
+          description: Kubernetes namespace containing the ConfigMap
+        lastModified:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+          description: Timestamp when the ConfigMap was last modified
+
+    AgentProfileListResponse:
+      type: object
+      required:
+        - profiles
+        - totalCount
+      properties:
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentProfileSummary'
+          description: Array of agent profile summaries
+        totalCount:
+          type: integer
+          minimum: 0
+          example: 2
+          description: Total number of profiles in the namespace
+
+    AgentProfileListResponseEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentProfileListResponse'
+
+    AgentProfileEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentProfile'
+      description: Envelope for single AgentProfile GET response
+
+    AgentProfile:
+      type: object
+      required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+      properties:
+        apiVersion:
+          type: string
+          example: 'genai.redhat.com/v1alpha1'
+          description: API version
+        kind:
+          type: string
+          example: 'AgentProfile'
+          description: Resource kind
+        metadata:
+          $ref: '#/components/schemas/AgentProfileMetadata'
+        spec:
+          $ref: '#/components/schemas/AgentProfileSpec'
+      description: Complete AgentProfile resource
+
+    AgentProfileMetadata:
+      type: object
+      required:
+        - name
+        - resourceVersion
+      properties:
+        name:
+          type: string
+          format: uuid
+          example: '550e8400-e29b-41d4-a716-446655440000'
+          description: Profile UUID
+        resourceVersion:
+          type: string
+          minLength: 1
+          example: '12345'
+          description: Kubernetes resource version for optimistic concurrency control. Required for PUT requests.
+
+    AgentProfileUpdateRequest:
+      type: object
+      required:
+        - spec
+        - resourceVersion
+      properties:
+        spec:
+          $ref: '#/components/schemas/AgentProfileSpec'
+        resourceVersion:
+          type: string
+          minLength: 1
+          example: '12345'
+          description: Kubernetes resource version for optimistic concurrency control
+      description: Request to update an agent profile with concurrency control
+
+    AgentProfileUpdateResponse:
+      type: object
+      required:
+        - name
+        - profileId
+        - displayName
+        - namespace
+        - resourceVersion
+      properties:
+        name:
+          type: string
+          example: 'agent-profile-550e8400-e29b-41d4-a716-446655440000'
+          description: Full ConfigMap name with prefix
+        profileId:
+          type: string
+          format: uuid
+          example: '550e8400-e29b-41d4-a716-446655440000'
+          description: The UUID for this profile
+        displayName:
+          type: string
+          example: 'Customer Support Agent'
+          description: User-friendly name from spec.displayName
+        namespace:
+          type: string
+          example: 'my-namespace'
+          description: Kubernetes namespace
+        resourceVersion:
+          type: string
+          minLength: 1
+          example: '12346'
+          description: New Kubernetes resource version after update
+
+    AgentProfileUpdateResponseEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentProfileUpdateResponse'
 
     AgentProfileSpec:
       type: object

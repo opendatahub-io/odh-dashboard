@@ -64,6 +64,7 @@ let subscriptionPriority: number;
 let secondSubscriptionPriority: number;
 let subscriptionGroups: string[];
 let subscriptionName: string;
+let subscriptionNamespace: string;
 let tokenRateLimit: { limit: number; window: string };
 const uuid = generateTestUUID();
 let apiKeyName: string;
@@ -89,6 +90,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         modelURI = testData.modelLocationURI;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
+        subscriptionNamespace = testData.subscriptionNamespace;
         subscriptionDescription = 'This is a test MaaS subscription';
         subscriptionPriority = 256;
         secondSubscriptionPriority = subscriptionPriority + 1;
@@ -98,6 +100,13 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
           limit: 1000,
           window: '1000',
         };
+
+        // Clean up any stale MaaS resources from a previous attempt so retries are idempotent
+        cleanupSubscription(subscriptionName, subscriptionNamespace);
+        cleanupSubscription(`${subscriptionName}-2`, subscriptionNamespace);
+        cleanupAuthPolicy(`${subscriptionName}-policy`, subscriptionNamespace);
+        cleanupAuthPolicy(`${subscriptionName}-2-policy`, subscriptionNamespace);
+
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
       })
@@ -133,14 +142,14 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
     cy.log(`Cleaning up LLMInferenceServiceConfig: ${llmInferenceServiceConfigName}`);
     cleanupLLMInferenceServiceConfig(llmInferenceServiceConfigName);
     cy.log(`Cleaning up Subscription: ${subscriptionName}`);
-    cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
+    cleanupSubscription(subscriptionName, subscriptionNamespace);
     cy.log(`Just in case, cleaning up second subscription: ${subscriptionName}-2`);
-    cleanupSubscription(`${subscriptionName}-2`, modelsAsAServiceNamespace);
+    cleanupSubscription(`${subscriptionName}-2`, subscriptionNamespace);
 
     cy.log(`Cleaning up Auth Policy: ${subscriptionName}-policy`);
-    cleanupAuthPolicy(`${subscriptionName}-policy`, modelsAsAServiceNamespace);
+    cleanupAuthPolicy(`${subscriptionName}-policy`, subscriptionNamespace);
     cy.log(`Just in case, cleaning up second auth policy: ${subscriptionName}-2-policy`);
-    cleanupAuthPolicy(`${subscriptionName}-2-policy`, modelsAsAServiceNamespace);
+    cleanupAuthPolicy(`${subscriptionName}-2-policy`, subscriptionNamespace);
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -149,7 +158,14 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
   it(
     'Verify User can deploy a model by selecting a MaaS subscription and API key',
     {
-      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@ModelServing', '@MaaS', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@MaasSubscriptions',
+      ],
     },
     () => {
       cy.step('Log into the application as admin');
@@ -260,7 +276,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the subscription exists on the cluster');
       cy.then(() => {
-        checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace);
+        checkMaaSSubscriptionState(subscriptionName, subscriptionNamespace);
       });
 
       cy.step('Verify the subscription is created');
@@ -309,7 +325,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the second subscription exists on the cluster');
       cy.then(() => {
-        checkMaaSSubscriptionState(`${subscriptionName}-2`, modelsAsAServiceNamespace);
+        checkMaaSSubscriptionState(`${subscriptionName}-2`, subscriptionNamespace);
       });
 
       cy.step('Verify the second subscription is created');
@@ -379,7 +395,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the second subscription is deleted from the cluster');
       cy.then(() => {
-        checkMaaSSubscriptionState(`${subscriptionName}-2`, modelsAsAServiceNamespace, {
+        checkMaaSSubscriptionState(`${subscriptionName}-2`, subscriptionNamespace, {
           expectDeleted: true,
         });
       });

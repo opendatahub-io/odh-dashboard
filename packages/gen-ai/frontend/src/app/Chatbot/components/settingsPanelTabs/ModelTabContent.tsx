@@ -5,6 +5,7 @@ import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabCon
 import ModelParameterFormGroup from '~/app/Chatbot/components/ModelParameterFormGroup';
 import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
 import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
+import TranscriptionModelSection from '~/app/Chatbot/components/settingsPanelTabs/TranscriptionModelSection';
 
 interface ModelTabContentProps {
   temperature: number;
@@ -17,6 +18,7 @@ interface ModelTabContentProps {
   onModelChange: (model: string) => void;
   selectedSubscription: string;
   onSubscriptionChange: (subscription: string) => void;
+  configId: string;
 }
 
 const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
@@ -29,6 +31,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
   onModelChange,
   selectedSubscription,
   onSubscriptionChange,
+  configId,
 }) => (
   <TabContentWrapper title={title}>
     <Form>
@@ -71,6 +74,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
           data-testid="streaming-toggle"
         />
       </FormGroup>
+      <TranscriptionModelSection configId={configId} />
     </Form>
   </TabContentWrapper>
 );

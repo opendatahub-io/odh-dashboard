@@ -1311,4 +1311,63 @@ describe('useChatbotConfigStore', () => {
       );
     });
   });
+
+  describe('ASR model selection', () => {
+    it('should update selectedAsrModel', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
+    });
+
+    it('should update isAsrModelEnabled', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.isAsrModelEnabled).toBe(true);
+    });
+
+    it('should not affect ASR fields when updating selectedModel', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'new-chat-model');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.isAsrModelEnabled).toBe(true);
+    });
+
+    it('should copy ASR fields in duplicateConfiguration', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      const newConfigId = state.configIds[1];
+      const newConfig = state.configurations[newConfigId];
+
+      expect(newConfig?.selectedAsrModel).toBe('whisper-large-v3');
+      expect(newConfig?.isAsrModelEnabled).toBe(true);
+    });
+  });
 });

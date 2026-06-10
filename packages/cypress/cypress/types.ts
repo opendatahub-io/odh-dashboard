@@ -308,6 +308,7 @@ export type DataScienceProjectData = {
   legacyHardwareProfileName?: string;
   subscriptionDisplayName: string;
   subscriptionName: string;
+  subscriptionNamespace: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
