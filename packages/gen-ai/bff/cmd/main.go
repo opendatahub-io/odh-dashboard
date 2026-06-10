@@ -87,20 +87,37 @@ func main() {
 	// Security: Reject InsecureSkipVerify in production
 	// This flag disables TLS certificate verification and must only be used for local development
 	if cfg.InsecureSkipVerify {
-		// Allow in explicit development/test scenarios only
+		// Require explicit opt-in via ALLOW_INSECURE_TLS environment variable
+		// This prevents accidental bypass by setting ENV=dev in production
+		allowInsecure := os.Getenv("ALLOW_INSECURE_TLS")
 		env := os.Getenv("ENV")
-		if env != "dev" && env != "development" && env != "test" {
-			slog.Error("SECURITY: InsecureSkipVerify is enabled but ENV is not 'dev', 'development', or 'test'",
+
+		if allowInsecure != "true" {
+			slog.Error("SECURITY: InsecureSkipVerify requires explicit ALLOW_INSECURE_TLS=true",
+				"insecure_skip_verify", cfg.InsecureSkipVerify,
+				"allow_insecure_tls", allowInsecure,
+				"env", env,
+			)
+			slog.Error("InsecureSkipVerify disables TLS certificate verification and MUST NOT be used in production")
+			slog.Error("To fix: For local development only, set ALLOW_INSECURE_TLS=true")
+			slog.Error("NEVER set ALLOW_INSECURE_TLS=true in production deployments")
+			os.Exit(1)
+		}
+
+		// Additional check: reject if ENV looks like production
+		if env == "prod" || env == "production" || env == "staging" {
+			slog.Error("SECURITY: InsecureSkipVerify cannot be used in production/staging environments",
 				"env", env,
 				"insecure_skip_verify", cfg.InsecureSkipVerify,
 			)
-			slog.Error("InsecureSkipVerify disables TLS certificate verification and MUST NOT be used in production")
-			slog.Error("To fix: Set ENV=dev for local development, or remove --insecure-skip-verify / INSECURE_SKIP_VERIFY=false")
+			slog.Error("To fix: Remove --insecure-skip-verify flag and INSECURE_SKIP_VERIFY env var")
 			os.Exit(1)
 		}
+
 		slog.Warn("SECURITY WARNING: TLS certificate verification is DISABLED (InsecureSkipVerify=true)",
 			"env", env,
-			"use_case", "local development only",
+			"allow_insecure_tls", allowInsecure,
+			"use_case", "local development only - NEVER use in production",
 		)
 	}
 
