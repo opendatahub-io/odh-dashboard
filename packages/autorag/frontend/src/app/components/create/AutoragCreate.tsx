@@ -56,6 +56,7 @@ function AutoragCreate({ initialOgxSecret }: AutoragCreateProps): React.JSX.Elem
             <TextInput
               {...field}
               id={field.name}
+              data-testid="autorag-name-input"
               type="text"
               isRequired
               validated={fieldState.invalid ? 'error' : undefined}
@@ -75,7 +76,7 @@ function AutoragCreate({ initialOgxSecret }: AutoragCreateProps): React.JSX.Elem
         name="description"
         render={({ field }) => (
           <FormGroup fieldId={field.name} label="Description">
-            <TextArea {...field} id={field.name} />
+            <TextArea {...field} id={field.name} data-testid="autorag-description-input" />
           </FormGroup>
         )}
       />
