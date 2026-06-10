@@ -29,7 +29,7 @@ const (
 
 	// DefaultPipelineVersionSuffix is the release version suffix appended to pipeline version names.
 	// Override at runtime with the PIPELINE_VERSION_SUFFIX env var.
-	DefaultPipelineVersionSuffix = "3.5.0-ea.1"
+	DefaultPipelineVersionSuffix = "3.5.0-ea.2"
 )
 
 var ValidTaskTypes = map[string]bool{

@@ -18,6 +18,7 @@ import {
   useChatbotConfigStore,
   selectActivePrompt,
   selectDirtyPrompt,
+  selectVariableValues,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
@@ -25,6 +26,7 @@ import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
+import PromptVariableInputPanel from '~/app/Chatbot/components/PromptVariableInputPanel';
 
 type PromptAssistantFormGroupProps = {
   configId?: string;
@@ -56,6 +58,8 @@ export default function PromptAssistantFormGroup({
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
   const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
   const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
+  const variableValues = useChatbotConfigStore(selectVariableValues(configId));
+  const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
   const [editMode, setEditMode] = React.useState(true);
   const activeTemplate =
     activePrompt?.template ??
@@ -163,7 +167,18 @@ export default function PromptAssistantFormGroup({
             <span>Instructions</span>
             <Popover
               headerContent="System instructions"
-              bodyContent="The instructions field is used as a system instruction when chatting with the model in the playground. It guides the model's behavior and response style."
+              bodyContent={
+                <>
+                  <p>
+                    The instructions field is used as a system instruction when chatting with the
+                    model in the playground. It guides the model&apos;s behavior and response style.
+                  </p>
+                  <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                    Wrap variables with double curly braces, e.g. {'{{ name }}'}. Variable slots
+                    appear below the instructions when placeholders are detected.
+                  </p>
+                </>
+              }
             >
               <OutlinedQuestionCircleIcon className="pf-v6-u-color-200" />
             </Popover>
@@ -276,6 +291,11 @@ export default function PromptAssistantFormGroup({
               )}
             </Flex>
           )}
+          <PromptVariableInputPanel
+            systemInstruction={systemInstruction}
+            variableValues={variableValues}
+            onVariableValuesChange={(values) => updateVariableValues(configId, values)}
+          />
         </Stack>
       </Panel>
     </>

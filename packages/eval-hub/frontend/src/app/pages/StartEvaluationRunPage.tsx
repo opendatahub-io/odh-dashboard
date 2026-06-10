@@ -7,17 +7,20 @@ import {
   Button,
   Checkbox,
   Content,
+  Divider,
   FileUpload,
   Form,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
+  MenuToggle,
   PageSection,
   Radio,
+  Select,
+  SelectList,
+  SelectOption,
   Spinner,
-  Stack,
-  StackItem,
   TextInput,
   EmptyState,
   EmptyStateBody,
@@ -40,16 +43,28 @@ import {
   evaluationCreateRoute,
 } from '~/app/routes';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
+import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField';
+import SourceModelFields from '~/app/components/SourceModelFields';
+import SourceAgentFields from '~/app/components/SourceAgentFields';
+import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
+import type { SourceMode } from '~/app/types';
 import {
   useStartEvaluationRunForm,
   EXPERIMENT_FILTER,
   DEFAULT_EXPERIMENT_NAME,
+  EXTERNAL_ENDPOINT_VALUE,
 } from './useStartEvaluationRunForm';
 
 import './StartEvaluationRunPage.css';
+
+const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
+  { value: 'model', label: 'Model' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'prerecorded', label: 'Pre-recorded responses' },
+];
 
 const StartEvaluationRunPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -62,6 +77,13 @@ const StartEvaluationRunPage: React.FC = () => {
     filter: EXPERIMENT_FILTER,
   });
 
+  const {
+    inferenceServices,
+    loaded: isLoaded,
+    loadError: isLoadError,
+    warning: isWarning,
+  } = useInferenceServices(namespace ?? '');
+
   const form = useStartEvaluationRunForm({
     namespace,
     benchmark,
@@ -72,6 +94,41 @@ const StartEvaluationRunPage: React.FC = () => {
   });
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
+
+  // ── Source dropdown state ────────────────────────────────────────────
+
+  const [isSourceOpen, setIsSourceOpen] = React.useState(false);
+  const [isModelOpen, setIsModelOpen] = React.useState(false);
+
+  const handleSourceSelect = React.useCallback(
+    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
+      if (typeof value === 'string') {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        form.handleSourceModeChange(value as SourceMode);
+      }
+      setIsSourceOpen(false);
+    },
+    [form],
+  );
+
+  const handleModelSelect = React.useCallback(
+    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
+      if (typeof value === 'string') {
+        form.handleModelDropdownSelect(value, inferenceServices);
+      }
+      setIsModelOpen(false);
+    },
+    [form, inferenceServices],
+  );
+
+  const modelDropdownDisplayValue = React.useMemo(() => {
+    if (form.modelSelection === 'external') {
+      return 'Other (External endpoint)';
+    }
+    return form.selectedInferenceService?.name ?? 'Choose model';
+  }, [form.modelSelection, form.selectedInferenceService]);
+
+  // ── Loading & error states ──────────────────────────────────────────
 
   if (!dataLoaded) {
     return (
@@ -106,6 +163,8 @@ const StartEvaluationRunPage: React.FC = () => {
       </Bullseye>
     );
   }
+
+  const showExternalModelFields = form.sourceMode === 'model' && form.modelSelection === 'external';
 
   return (
     <ApplicationsPage
@@ -146,6 +205,7 @@ const StartEvaluationRunPage: React.FC = () => {
           Start evaluation run
         </Content>
         <Form style={{ maxWidth: 700 }} data-testid="start-evaluation-form">
+          {/* ── Evaluation name ─────────────────────────────────── */}
           <FormGroup label="Evaluation name" isRequired fieldId="evaluation-name">
             <TextInput
               id="evaluation-name"
@@ -156,6 +216,7 @@ const StartEvaluationRunPage: React.FC = () => {
             />
           </FormGroup>
 
+          {/* ── MLflow Experiment ───────────────────────────────── */}
           <FormGroup
             label="MLflow Experiment"
             isRequired
@@ -228,145 +289,182 @@ const StartEvaluationRunPage: React.FC = () => {
             )}
           </FormGroup>
 
-          <FormGroup
-            label="Source"
-            fieldId="source-input-mode"
-            role="group"
-            style={{ marginBlockStart: 'var(--pf-t--global--spacer--sm)' }}
-          >
-            <Radio
-              id="input-inference"
-              data-testid="input-mode-inference"
-              name="input-mode"
-              label="Inference endpoint"
-              isChecked={form.inputMode === 'inference'}
-              onChange={() => form.setInputMode('inference')}
-              className="eval-hub-start-evaluation-run__source-inference-radio"
-              body={
-                form.inputMode === 'inference' ? (
-                  <Stack hasGutter>
-                    <StackItem>
-                      <FormGroup label="Model or agent name" isRequired fieldId="model-name">
-                        <TextInput
-                          id="model-name"
-                          data-testid="model-name-input"
-                          value={form.modelName}
-                          onChange={(_e, val) => form.setModelName(val)}
-                          isRequired
-                        />
-                        <FormHelperText>
-                          <HelperText>
-                            <HelperTextItem>
-                              The model or agent name is case-sensitive.
-                            </HelperTextItem>
-                          </HelperText>
-                        </FormHelperText>
-                      </FormGroup>
-                    </StackItem>
-                    <StackItem>
-                      <FormGroup label="Endpoint URL" isRequired fieldId="endpoint-url">
-                        <TextInput
-                          id="endpoint-url"
-                          data-testid="endpoint-url-input"
-                          value={form.endpointUrl}
-                          onChange={(_e, val) => form.setEndpointUrl(val)}
-                          placeholder="https://api.example.com/v1/model"
-                          isRequired
-                        />
-                      </FormGroup>
-                    </StackItem>
-                    <StackItem>
-                      <FormGroup
-                        label="API key secret name"
-                        fieldId="api-key"
-                        labelHelp={
-                          <LabelHelpPopover
-                            ariaLabel="More info for API key secret name"
-                            content="The name of the Kubernetes Secret that contains your API key. The secret is stored securely in your cluster and referenced by name — the actual key value is never exposed in the evaluation configuration."
-                          />
-                        }
-                      >
-                        <TextInput
-                          id="api-key"
-                          data-testid="api-key-input"
-                          value={form.apiKeySecretRef}
-                          onChange={(_e, val) => form.setApiKeySecretRef(val)}
-                        />
-                      </FormGroup>
-                    </StackItem>
-                  </Stack>
-                ) : undefined
-              }
-            />
-
-            <Radio
-              id="input-prerecorded"
-              data-testid="input-mode-prerecorded"
-              name="input-mode"
-              label="Pre-recorded responses"
-              isChecked={form.inputMode === 'prerecorded'}
-              onChange={() => form.setInputMode('prerecorded')}
-              body={
-                form.inputMode === 'prerecorded' ? (
-                  <Stack hasGutter>
-                    <StackItem>
-                      <FormGroup
-                        label="Source name"
-                        isRequired
-                        fieldId="source-name"
-                        labelHelp={
-                          <LabelHelpPopover
-                            ariaLabel="More info for source name"
-                            content="Enter the name of the tool or agent used to generate the response. This is for your reference only."
-                          />
-                        }
-                      >
-                        <TextInput
-                          id="source-name"
-                          data-testid="source-name-input"
-                          value={form.sourceName}
-                          onChange={(_e, val) => form.setSourceName(val)}
-                          isRequired
-                        />
-                      </FormGroup>
-                    </StackItem>
-                    <StackItem>
-                      <FormGroup label="Dataset URL" isRequired fieldId="dataset-url">
-                        <TextInput
-                          id="dataset-url"
-                          data-testid="dataset-url-input"
-                          value={form.datasetUrl}
-                          onChange={(_e, val) => form.setDatasetUrl(val)}
-                          isRequired
-                        />
-                      </FormGroup>
-                    </StackItem>
-                    <StackItem>
-                      <FormGroup
-                        label="Access token"
-                        fieldId="access-token"
-                        labelHelp={
-                          <LabelHelpPopover
-                            ariaLabel="More info for access token secret"
-                            content="Name of the Kubernetes Secret that contains the access token for the dataset source."
-                          />
-                        }
-                      >
-                        <TextInput
-                          id="access-token"
-                          data-testid="access-token-input"
-                          value={form.accessToken}
-                          onChange={(_e, val) => form.setAccessToken(val)}
-                          placeholder="e.g. my-dataset-credentials"
-                        />
-                      </FormGroup>
-                    </StackItem>
-                  </Stack>
-                ) : undefined
-              }
-            />
+          {/* ── Source dropdown ─────────────────────────────────── */}
+          <FormGroup label="Source" isRequired fieldId="source-mode">
+            <Select
+              id="source-mode"
+              data-testid="source-mode-select"
+              isOpen={isSourceOpen}
+              selected={form.sourceMode}
+              onSelect={handleSourceSelect}
+              onOpenChange={setIsSourceOpen}
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsSourceOpen((prev) => !prev)}
+                  isExpanded={isSourceOpen}
+                  isFullWidth
+                  data-testid="source-mode-toggle"
+                >
+                  {SOURCE_OPTIONS.find((o) => o.value === form.sourceMode)?.label}
+                </MenuToggle>
+              )}
+              shouldFocusToggleOnSelect
+            >
+              <SelectList>
+                {SOURCE_OPTIONS.map((opt) => (
+                  <SelectOption
+                    key={opt.value}
+                    value={opt.value}
+                    isSelected={opt.value === form.sourceMode}
+                  >
+                    {opt.label}
+                  </SelectOption>
+                ))}
+              </SelectList>
+            </Select>
           </FormGroup>
 
+          {/* ── Model mode: model picker ───────────────────────── */}
+          {form.sourceMode === 'model' && (
+            <FormGroup
+              label="Model"
+              isRequired
+              fieldId="model-picker"
+              labelHelp={
+                <LabelHelpPopover
+                  ariaLabel="More info for model selection"
+                  content="Select a deployed model from your namespace, or choose 'Other (External endpoint)' to enter an external model URL."
+                />
+              }
+            >
+              <Select
+                id="model-picker"
+                data-testid="model-picker-select"
+                isOpen={isModelOpen}
+                selected={
+                  form.modelSelection === 'external'
+                    ? EXTERNAL_ENDPOINT_VALUE
+                    : form.selectedInferenceService?.name
+                }
+                onSelect={handleModelSelect}
+                onOpenChange={setIsModelOpen}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsModelOpen((prev) => !prev)}
+                    isExpanded={isModelOpen}
+                    isFullWidth
+                    data-testid="model-picker-toggle"
+                  >
+                    {modelDropdownDisplayValue}
+                  </MenuToggle>
+                )}
+                shouldFocusToggleOnSelect
+              >
+                <SelectList>
+                  {isLoaded && inferenceServices.length > 0 ? (
+                    <>
+                      {inferenceServices.map((is) => (
+                        <SelectOption
+                          key={is.name}
+                          value={is.name}
+                          data-testid={`model-option-${is.name}`}
+                          isSelected={
+                            form.modelSelection === 'cluster' &&
+                            form.selectedInferenceService?.name === is.name
+                          }
+                        >
+                          {is.name}
+                        </SelectOption>
+                      ))}
+                      <Divider />
+                    </>
+                  ) : null}
+                  <SelectOption
+                    key={EXTERNAL_ENDPOINT_VALUE}
+                    value={EXTERNAL_ENDPOINT_VALUE}
+                    data-testid="model-option-external"
+                    isSelected={form.modelSelection === 'external'}
+                  >
+                    Other (External endpoint)
+                  </SelectOption>
+                </SelectList>
+              </Select>
+              {isLoadError ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="warning">
+                      Could not load cluster models. You can still use an external endpoint.
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
+              {!isLoadError && isWarning ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="warning">{isWarning}</HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
+            </FormGroup>
+          )}
+
+          {/* ── Model (external) fields ────────────────────────── */}
+          {showExternalModelFields && (
+            <SourceModelFields
+              modelName={form.modelName}
+              onModelNameChange={form.setModelName}
+              endpointUrl={form.endpointUrl}
+              onEndpointUrlChange={form.setEndpointUrl}
+              apiKeySecretRef={form.apiKeySecretRef}
+              onApiKeyChange={form.setApiKeySecretRef}
+              endpointUrlError={form.endpointUrlError}
+              touched={form.touched}
+              markTouched={form.markTouched}
+              connectionValidation={form.connectionValidation}
+              canVerifyConnection={form.canVerifyConnection}
+              onVerifyConnection={form.handleVerifyConnection}
+            />
+          )}
+
+          {/* ── Agent mode fields ──────────────────────────────── */}
+          {form.sourceMode === 'agent' && (
+            <SourceAgentFields
+              agentName={form.agentName}
+              onAgentNameChange={form.setAgentName}
+              endpointUrl={form.endpointUrl}
+              onEndpointUrlChange={form.setEndpointUrl}
+              apiKeySecretRef={form.apiKeySecretRef}
+              onApiKeyChange={form.setApiKeySecretRef}
+              endpointUrlError={form.endpointUrlError}
+              touched={form.touched}
+              markTouched={form.markTouched}
+              connectionValidation={form.connectionValidation}
+              canVerifyConnection={form.canVerifyConnection}
+              onVerifyConnection={form.handleVerifyConnection}
+            />
+          )}
+
+          {/* ── Pre-recorded responses fields ──────────────────── */}
+          {form.sourceMode === 'prerecorded' && (
+            <SourcePrerecordedFields
+              sourceName={form.sourceName}
+              onSourceNameChange={form.setSourceName}
+              datasetUrl={form.datasetUrl}
+              onDatasetUrlChange={form.setDatasetUrl}
+              accessToken={form.accessToken}
+              onAccessTokenChange={form.setAccessToken}
+              datasetUrlError={form.datasetUrlError}
+              touched={form.touched}
+              markTouched={form.markTouched}
+              connectionValidation={form.connectionValidation}
+              canVerifyConnection={form.canVerifyConnection}
+              onVerifyConnection={form.handleVerifyConnection}
+            />
+          )}
+
+          {/* ── Benchmark display ──────────────────────────────── */}
           <FormGroup
             label={isCollectionFlow ? 'Benchmark suite' : 'Benchmark'}
             fieldId="benchmark-name"
@@ -376,6 +474,7 @@ const StartEvaluationRunPage: React.FC = () => {
             </Content>
           </FormGroup>
 
+          {/* ── Threshold ──────────────────────────────────────── */}
           <BenchmarkThresholdField
             value={form.threshold}
             onChange={form.handleThresholdChange}
@@ -383,14 +482,16 @@ const StartEvaluationRunPage: React.FC = () => {
             fieldId="benchmark-threshold"
           />
 
-          {!isCollectionFlow && form.availableMetrics.length > 0 && (
+          {/* ── Primary scorer metric ──────────────────────────── */}
+          {!isCollectionFlow && form.availableMetrics.length > 0 ? (
             <PrimaryScorerMetricField
               metrics={form.availableMetrics}
               selected={form.primaryMetric}
               onChange={form.handlePrimaryMetricChange}
             />
-          )}
+          ) : null}
 
+          {/* ── Benchmark parameters ───────────────────────────── */}
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <FlexItem>
               <Checkbox
@@ -408,7 +509,7 @@ const StartEvaluationRunPage: React.FC = () => {
               />
             </FlexItem>
           </Flex>
-          {form.showAdditionalArgs && (
+          {form.showAdditionalArgs ? (
             <FormGroup fieldId="additional-args">
               <FileUpload
                 id="additional-args"
@@ -433,8 +534,9 @@ const StartEvaluationRunPage: React.FC = () => {
                 </HelperText>
               </FormHelperText>
             </FormGroup>
-          )}
+          ) : null}
 
+          {/* ── Actions ────────────────────────────────────────── */}
           <ActionGroup>
             <Button
               variant="primary"

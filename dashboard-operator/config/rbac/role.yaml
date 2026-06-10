@@ -5,7 +5,7 @@ metadata:
 rules:
   # Dashboard CR access
   - apiGroups:
-      - dashboard.opendatahub.io
+      - components.platform.opendatahub.io
     resources:
       - dashboards
     verbs:
@@ -17,7 +17,7 @@ rules:
       - patch
       - delete
   - apiGroups:
-      - dashboard.opendatahub.io
+      - components.platform.opendatahub.io
     resources:
       - dashboards/status
     verbs:
@@ -25,7 +25,7 @@ rules:
       - update
       - patch
   - apiGroups:
-      - dashboard.opendatahub.io
+      - components.platform.opendatahub.io
     resources:
       - dashboards/finalizers
     verbs:

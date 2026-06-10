@@ -110,7 +110,7 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 		return nil, fmt.Errorf("failed to create impersonated client: %w", err)
 	}
 
-	client := newMockedTokenKubernetesClientFromClientset(clientset, f.logger)
+	client := newMockedTokenKubernetesClientFromClientset(clientset, impersonatedCfg, f.logger)
 	f.clients[identity.Token.Raw()] = client
 	return client, nil
 }

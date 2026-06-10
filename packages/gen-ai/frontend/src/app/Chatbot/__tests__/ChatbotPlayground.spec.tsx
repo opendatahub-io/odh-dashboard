@@ -119,7 +119,8 @@ jest.mock('~/app/hooks/useMCPServerStatuses', () => ({
 }));
 
 jest.mock('~/app/services/llamaStackService', () => ({
-  uploadVisionFile: jest.fn(),
+  uploadMediaFile: jest.fn(),
+  transcribeAudio: jest.fn(),
 }));
 
 jest.mock('~/app/context/UserContext', () => ({
@@ -254,6 +255,8 @@ jest.mock('@patternfly/chatbot', () => {
       hasStopButton?: boolean;
       handleStopButton?: () => void;
       alwayShowSendButton?: boolean;
+      value?: string;
+      onChange?: (e: unknown, val: string) => void;
       attachMenuProps?: {
         isAttachMenuOpen: boolean;
         setIsAttachMenuOpen: (v: boolean) => void;
@@ -289,6 +292,17 @@ jest.mock('@patternfly/chatbot', () => {
           },
           'Send Empty',
         ),
+        props.onChange
+          ? React.createElement(
+              'button',
+              {
+                'data-testid': 'clear-message-button',
+                onClick: () => props.onChange!(null, ''),
+                type: 'button',
+              },
+              'Clear',
+            )
+          : null,
         props.hasAttachButton && props.attachMenuProps
           ? React.createElement(
               'button',
@@ -1069,10 +1083,10 @@ describe('ChatbotPlayground — inline document chips', () => {
 
   describe('default message injection and alwaysShowSendButton', () => {
     const triggerImageUpload = async () => {
-      const { uploadVisionFile } = require('~/app/services/llamaStackService') as {
-        uploadVisionFile: jest.Mock;
+      const { uploadMediaFile } = require('~/app/services/llamaStackService') as {
+        uploadMediaFile: jest.Mock;
       };
-      uploadVisionFile.mockReturnValue({
+      uploadMediaFile.mockReturnValue({
         promise: Promise.resolve({ data: { id: 'img-file-123' } }),
         xhr: { abort: jest.fn() },
       });
@@ -1218,14 +1232,14 @@ describe('ChatbotPlayground — inline document chips', () => {
 
   describe('replace media modal', () => {
     const setupImageUpload = () => {
-      const { uploadVisionFile } = require('~/app/services/llamaStackService') as {
-        uploadVisionFile: jest.Mock;
+      const { uploadMediaFile } = require('~/app/services/llamaStackService') as {
+        uploadMediaFile: jest.Mock;
       };
-      uploadVisionFile.mockReturnValue({
+      uploadMediaFile.mockReturnValue({
         promise: Promise.resolve({ data: { id: 'img-file-1' } }),
         xhr: { abort: jest.fn() },
       });
-      return uploadVisionFile;
+      return uploadMediaFile;
     };
 
     const triggerImageFileChange = async (fileName = 'photo.png') => {
@@ -1241,28 +1255,28 @@ describe('ChatbotPlayground — inline document chips', () => {
     };
 
     it('opens replace-media modal when uploading a second image before sending', async () => {
-      const uploadVisionFile = setupImageUpload();
+      const uploadMediaFile = setupImageUpload();
       renderPlayground();
 
       // First upload
       await triggerImageFileChange('first.png');
       await waitFor(() => {
-        expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+        expect(uploadMediaFile).toHaveBeenCalledTimes(1);
       });
 
       // Second upload triggers the modal instead of uploading
       await triggerImageFileChange('second.png');
       expect(screen.getByTestId('replace-media-modal')).toBeInTheDocument();
-      expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+      expect(uploadMediaFile).toHaveBeenCalledTimes(1);
     });
 
     it('confirm replaces image and revokes old blob', async () => {
-      const uploadVisionFile = setupImageUpload();
+      const uploadMediaFile = setupImageUpload();
       renderPlayground();
 
       await triggerImageFileChange('first.png');
       await waitFor(() => {
-        expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+        expect(uploadMediaFile).toHaveBeenCalledTimes(1);
       });
 
       // Trigger replace modal
@@ -1278,17 +1292,17 @@ describe('ChatbotPlayground — inline document chips', () => {
       expect(screen.queryByTestId('replace-media-modal')).not.toBeInTheDocument();
       expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-preview-url');
       await waitFor(() => {
-        expect(uploadVisionFile).toHaveBeenCalledTimes(2);
+        expect(uploadMediaFile).toHaveBeenCalledTimes(2);
       });
     });
 
     it('cancel closes modal without uploading', async () => {
-      const uploadVisionFile = setupImageUpload();
+      const uploadMediaFile = setupImageUpload();
       renderPlayground();
 
       await triggerImageFileChange('first.png');
       await waitFor(() => {
-        expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+        expect(uploadMediaFile).toHaveBeenCalledTimes(1);
       });
 
       // Trigger replace modal
@@ -1302,7 +1316,240 @@ describe('ChatbotPlayground — inline document chips', () => {
 
       // Modal closes, no new upload
       expect(screen.queryByTestId('replace-media-modal')).not.toBeInTheDocument();
-      expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+      expect(uploadMediaFile).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('ChatbotPlayground — audio transcription', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    uuidCounter = 0;
+    mockFilesWithSettings = [];
+    mockFileManagementFiles = [];
+
+    act(() => {
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: {
+            ...DEFAULT_CONFIGURATION,
+            selectedModel: 'test-model',
+          },
+        },
+        configIds: [DEFAULT_CONFIG_ID],
+      });
+    });
+  });
+
+  const enableAsrAndRender = () => {
+    renderPlayground();
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-model');
+      useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+    });
+  };
+
+  it('renders audio file input', () => {
+    renderPlayground();
+    expect(screen.getByTestId('audio-file-input')).toBeInTheDocument();
+  });
+
+  it('audio upload triggers uploadMediaFile with audio type', async () => {
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: new Promise(() => {
+        /* never resolves */
+      }),
+      xhr: { abort: jest.fn() },
+    });
+
+    enableAsrAndRender();
+
+    const audioInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+    const file = new File(['audio-data'], 'test.wav', { type: 'audio/wav' });
+
+    await act(async () => {
+      fireEvent.change(audioInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(uploadMediaFile).toHaveBeenCalledWith(
+        expect.stringContaining('namespace=test-ns'),
+        file,
+        'audio',
+        expect.any(Function),
+      );
+    });
+  });
+
+  it('per-message modal shows when trying to attach second audio', async () => {
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: new Promise(() => {
+        /* never resolves */
+      }),
+      xhr: { abort: jest.fn() },
+    });
+
+    enableAsrAndRender();
+
+    const audioInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+    const file1 = new File(['audio-data'], 'first.wav', { type: 'audio/wav' });
+
+    await act(async () => {
+      fireEvent.change(audioInput, { target: { files: [file1] } });
+    });
+
+    const file2 = new File(['audio-data'], 'second.wav', { type: 'audio/wav' });
+    await act(async () => {
+      fireEvent.change(audioInput, { target: { files: [file2] } });
+    });
+
+    expect(screen.getByTestId('audio-per-message-modal')).toBeInTheDocument();
+  });
+
+  it('send resets hasAudioInCurrentMessage allowing new audio', async () => {
+    const { uploadMediaFile, transcribeAudio } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'file-123' } }),
+      xhr: { abort: jest.fn() },
+    });
+    transcribeAudio.mockResolvedValue({ text: 'Hello world' });
+
+    enableAsrAndRender();
+
+    const audioInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+    const file = new File(['audio-data'], 'test.wav', { type: 'audio/wav' });
+
+    await act(async () => {
+      fireEvent.change(audioInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(transcribeAudio).toHaveBeenCalled();
+    });
+
+    // Send the message
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('send-button'));
+    });
+
+    // Now a new audio upload should work (no per-message modal)
+    const file2 = new File(['audio-data'], 'second.wav', { type: 'audio/wav' });
+    await act(async () => {
+      fireEvent.change(audioInput, { target: { files: [file2] } });
+    });
+
+    expect(screen.queryByTestId('audio-per-message-modal')).not.toBeInTheDocument();
+  });
+
+  it('clearing transcribed text resets hasAudioInCurrentMessage allowing new audio', async () => {
+    const { uploadMediaFile, transcribeAudio } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'file-123' } }),
+      xhr: { abort: jest.fn() },
+    });
+    transcribeAudio.mockResolvedValue({ text: 'Hello world' });
+
+    enableAsrAndRender();
+
+    const audioInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+    const file = new File(['audio-data'], 'test.wav', { type: 'audio/wav' });
+
+    await act(async () => {
+      fireEvent.change(audioInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(transcribeAudio).toHaveBeenCalled();
+    });
+
+    // Clear the transcribed text (simulates user selecting all + deleting)
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('clear-message-button'));
+    });
+
+    // Now a new audio upload should work (no per-message modal)
+    const file2 = new File(['audio-data'], 'second.wav', { type: 'audio/wav' });
+    await act(async () => {
+      fireEvent.change(audioInput, { target: { files: [file2] } });
+    });
+
+    expect(screen.queryByTestId('audio-per-message-modal')).not.toBeInTheDocument();
+  });
+
+  it('namespace is included in the audio transcription API URL', async () => {
+    const { uploadMediaFile, transcribeAudio } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'file-123' } }),
+      xhr: { abort: jest.fn() },
+    });
+    transcribeAudio.mockResolvedValue({ text: 'Hello' });
+
+    enableAsrAndRender();
+
+    const audioInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+    const file = new File(['audio-data'], 'test.wav', { type: 'audio/wav' });
+
+    await act(async () => {
+      fireEvent.change(audioInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(transcribeAudio).toHaveBeenCalledWith(
+        expect.stringContaining('namespace=test-ns'),
+        'file-123',
+        'whisper-model',
+        expect.any(AbortSignal),
+      );
+    });
+  });
+
+  it('clearAllMessagesRef aborts in-flight audio upload', async () => {
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    const mockXhrAbort = jest.fn();
+    uploadMediaFile.mockReturnValue({
+      promise: new Promise(() => {
+        /* never resolves */
+      }),
+      xhr: { abort: mockXhrAbort },
+    });
+
+    const clearAllMessagesRef = { current: null } as React.MutableRefObject<(() => void) | null>;
+
+    render(
+      <MemoryRouter initialEntries={['/gen-ai-studio/playground/test-ns']}>
+        <ChatbotPlayground
+          isViewCodeModalOpen={false}
+          setIsViewCodeModalOpen={jest.fn()}
+          isNewChatModalOpen={false}
+          setIsNewChatModalOpen={jest.fn()}
+          clearAllMessagesRef={clearAllMessagesRef}
+        />
+      </MemoryRouter>,
+    );
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-model');
+      useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+    });
+
+    const audioInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+    const file = new File(['audio-data'], 'test.wav', { type: 'audio/wav' });
+
+    await act(async () => {
+      fireEvent.change(audioInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(uploadMediaFile).toHaveBeenCalled();
+    });
+
+    // Invoke clearAllMessages (same as New Chat confirm)
+    act(() => {
+      clearAllMessagesRef.current?.();
+    });
+
+    expect(mockXhrAbort).toHaveBeenCalled();
   });
 });

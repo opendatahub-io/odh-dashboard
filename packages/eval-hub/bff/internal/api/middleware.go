@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	"github.com/rs/cors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -126,12 +128,22 @@ func (app *App) evalHubServiceURL(ctx context.Context) (serviceURL, authToken st
 	}
 
 	// Try the user-selected namespace first (set by AttachNamespace middleware on API routes).
+	// Permission errors (Forbidden/NotFound) are non-fatal — fall through to the dashboard
+	// namespace where the CR typically lives.  Operational failures (API unavailable, network
+	// errors, etc.) are surfaced immediately so they are not silently masked.
 	if userNS, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && userNS != "" {
 		crStatus, err := k8sClient.GetEvalHubCRStatus(ctx, identity, userNS)
 		if err != nil {
-			return "", "", false, fmt.Errorf("EvalHub CR lookup failed in namespace %q: %w", userNS, err)
-		}
-		if crStatus != nil && strings.TrimSpace(crStatus.URL) != "" {
+			var statusErr *k8serrors.StatusError
+			if errors.As(err, &statusErr) && (k8serrors.IsForbidden(statusErr) || k8serrors.IsNotFound(statusErr)) {
+				if logger := helper.GetContextLogger(ctx); logger != nil {
+					logger.Debug("EvalHub CR lookup not permitted in user namespace, falling through to dashboard namespace",
+						"namespace", userNS, "reason", statusErr.Status().Reason)
+				}
+			} else {
+				return "", "", false, fmt.Errorf("EvalHub CR lookup failed in namespace %q: %w", userNS, err)
+			}
+		} else if crStatus != nil && strings.TrimSpace(crStatus.URL) != "" {
 			return crStatus.URL, authToken, false, nil
 		}
 	}
