@@ -640,7 +640,9 @@ const createStoreActions = (
           default: {
             ...DEFAULT_CONFIGURATION,
             ...config,
-            mcpToolSelections: skipSessionStorage ? {} : loadMcpToolSelectionsForConfig('default'),
+            // Profile load always starts with a clean slate — never read from sessionStorage.
+            // The correct tool selections are applied explicitly via saveToolSelections afterward.
+            mcpToolSelections: config.mcpToolSelections ?? {},
           },
         },
       }),
