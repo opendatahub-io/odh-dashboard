@@ -49,8 +49,24 @@ class EvalHubEvaluationFlow {
     return cy.findByTestId('new-experiment-name-input');
   }
 
-  findInputModeInference() {
-    return cy.findByTestId('input-mode-inference');
+  findSourceModeToggle() {
+    return cy.findByTestId('source-mode-toggle');
+  }
+
+  findModelPickerToggle() {
+    return cy.findByTestId('model-picker-toggle');
+  }
+
+  /** Select "Other (External endpoint)" from the model picker dropdown. */
+  selectExternalEndpoint() {
+    this.findModelPickerToggle().click();
+    cy.findByTestId('model-option-external').click();
+  }
+
+  /** Select a cluster InferenceService by name from the model picker dropdown. */
+  selectClusterModel(name: string) {
+    this.findModelPickerToggle().click();
+    cy.findByTestId(`model-option-${name}`).click();
   }
 
   findModelNameInput() {
@@ -59,6 +75,10 @@ class EvalHubEvaluationFlow {
 
   findEndpointUrlInput() {
     return cy.findByTestId('endpoint-url-input');
+  }
+
+  findValidateConnectionButton() {
+    return cy.findByTestId('validate-connection-button');
   }
 
   findBenchmarkParametersCheckbox() {

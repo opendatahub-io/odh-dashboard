@@ -820,16 +820,19 @@ export const getFileUploadStatus = modArchRestGET<FileUploadStatusResponse>(
   '/lsd/files/upload/status',
 );
 
-// Vision image upload -- uses XHR for progress tracking
-export const uploadVisionFile = (
+// Media file upload (vision images, audio) -- uses XHR for progress tracking.
+// The `type` field tells the BFF which MIME allowlist to apply.
+export const uploadMediaFile = (
   url: string,
   file: File,
+  type: 'vision' | 'audio',
   onProgress?: (percent: number) => void,
 ): { promise: Promise<{ data: { id: string } }>; xhr: XMLHttpRequest } => {
   const xhr = new XMLHttpRequest();
   const promise = new Promise<{ data: { id: string } }>((resolve, reject) => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('type', type);
 
     xhr.open('POST', url);
     xhr.timeout = 60_000;
@@ -869,6 +872,31 @@ export const uploadVisionFile = (
     xhr.send(formData);
   });
   return { promise, xhr };
+};
+
+// Audio transcription via ASR model
+export const transcribeAudio = async (
+  url: string,
+  fileId: string,
+  asrModelId: string,
+  signal?: AbortSignal,
+): Promise<{ text: string }> => {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_id: fileId, asr_model_id: asrModelId }),
+    signal,
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    if (body?.error?.component && body?.error?.code) {
+      throw new ApiErrorClass(body.error);
+    }
+    const message =
+      body?.error?.message || body?.message || `Transcription failed (${response.status})`;
+    throw Object.assign(new Error(message), { status: response.status });
+  }
+  return response.json();
 };
 
 // LSD Models
