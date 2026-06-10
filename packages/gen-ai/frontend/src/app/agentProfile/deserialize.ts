@@ -123,11 +123,13 @@ export const deserializeAgentProfile = (
     );
   }
 
-  // MCP tool selections pending: server name → allowed tools
+  // MCP tool selections pending: server name → allowed tools.
+  // Filter on !== undefined so allowedTools: [] (block all tools) is preserved;
+  // allowedTools: undefined means "all tools allowed" and needs no restriction applied.
   const mcpToolsPending: Record<string, string[]> | undefined = spec.mcpServers?.length
     ? Object.fromEntries(
         spec.mcpServers
-          .filter((s) => s.allowedTools?.length)
+          .filter((s) => s.allowedTools !== undefined)
           .map((s) => [s.serverRef.key ?? s.serverRef.name, s.allowedTools ?? []]),
       )
     : undefined;

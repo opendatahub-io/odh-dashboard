@@ -249,7 +249,7 @@ describe('deserializeAgentProfile', () => {
       expect(mcpToolsPending).toEqual({ 'weather-server': ['get_forecast', 'get_alerts'] });
     });
 
-    it('should return undefined mcpToolsPending when no servers have tools', () => {
+    it('should return undefined mcpToolsPending when no servers have allowedTools defined', () => {
       const profile = makeProfile({
         mcpServers: [
           { serverRef: { kind: 'ConfigMap', name: 'mcp-config', key: 'weather-server' } },
@@ -258,6 +258,20 @@ describe('deserializeAgentProfile', () => {
       const { mcpToolsPending } = deserializeAgentProfile(profile, makeContext());
 
       expect(mcpToolsPending).toBeUndefined();
+    });
+
+    it('should preserve allowedTools: [] (block all tools) in mcpToolsPending', () => {
+      const profile = makeProfile({
+        mcpServers: [
+          {
+            serverRef: { kind: 'ConfigMap', name: 'mcp-config', key: 'weather-server' },
+            allowedTools: [],
+          },
+        ],
+      });
+      const { mcpToolsPending } = deserializeAgentProfile(profile, makeContext());
+
+      expect(mcpToolsPending).toEqual({ 'weather-server': [] });
     });
 
     it('should clear selectedMcpServerIds and mcpToolSelections when no servers', () => {
