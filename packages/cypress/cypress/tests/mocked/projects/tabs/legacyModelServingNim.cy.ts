@@ -7,7 +7,7 @@ import {
   mockMultipleNimServingRuntimes,
   mockNimImages,
   mockNimServingResource,
-} from '@odh-dashboard/internal/__mocks__/mockNimResource';
+} from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { InferenceServiceModel, ServingRuntimeModel } from '../../../../utils/models';
 import { projectDetails, projectDetailsOverviewTab } from '../../../../pages/projects';
 import { nimDeployModal } from '../../../../pages/components/NIMDeployModal';
@@ -16,7 +16,7 @@ import {
   initInterceptsForDeleteModel,
   initInterceptsToDeployModel,
   initInterceptsToEnableNim,
-} from '../../../../utils/nimUtils';
+} from '../../../../utils/legacyNimUtils';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 
 describe('NIM Model Serving', () => {

@@ -12,6 +12,7 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -80,8 +81,9 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 
 	return &TokenKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client: clientset,
-			Logger: logger,
+			Client:     clientset,
+			Logger:     logger,
+			RestConfig: cfg,
 			// Token is retained for follow-up calls; do not log it.
 			Token: NewBearerToken(token),
 		},
@@ -197,4 +199,73 @@ func (kc *TokenKubernetesClient) GetUser(ctx context.Context, _ *RequestIdentity
 	}
 
 	return username, nil
+}
+
+// IsUserAdmin checks if the user can patch the auths/default-auth singleton,
+func (kc *TokenKubernetesClient) IsUserAdmin(ctx context.Context, _ *RequestIdentity) (bool, error) {
+	return kc.checkAuthSingletonAccess(ctx, "patch")
+}
+
+// IsUserAllowed checks if the user can get the auths/default-auth singleton,
+func (kc *TokenKubernetesClient) IsUserAllowed(ctx context.Context, _ *RequestIdentity) (bool, error) {
+	return kc.checkAuthSingletonAccess(ctx, "get")
+}
+
+func (kc *TokenKubernetesClient) checkAuthSingletonAccess(ctx context.Context, verb string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Group:    "services.platform.opendatahub.io",
+				Resource: "auths",
+				Name:     "default-auth",
+				Verb:     verb,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to perform auth singleton SAR (verb=%s): %w", verb, err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
+func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, namespace, name string) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (kc *TokenKubernetesClient) ListConfigMaps(ctx context.Context, namespace string, labelSelector string) (*corev1.ConfigMapList, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
+}
+
+func (kc *TokenKubernetesClient) CreateConfigMap(ctx context.Context, namespace string, cm *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
+}
+
+func (kc *TokenKubernetesClient) UpdateConfigMap(ctx context.Context, namespace string, cm *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
+}
+
+func (kc *TokenKubernetesClient) PatchConfigMap(ctx context.Context, namespace, name string, patchData []byte, patchType types.PatchType) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).Patch(ctx, name, patchType, patchData, metav1.PatchOptions{})
+}
+
+func (kc *TokenKubernetesClient) DeleteConfigMap(ctx context.Context, namespace, name string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 }

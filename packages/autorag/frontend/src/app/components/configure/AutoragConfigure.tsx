@@ -525,7 +525,9 @@ function AutoragConfigure({
                                 <Tbody>
                                   <Tr>
                                     <Td dataLabel="Name">
-                                      <Truncate content={selectedInputDataFile.name} />
+                                      <span title={selectedInputDataFile.path}>
+                                        <Truncate content={selectedInputDataFile.name} />
+                                      </span>
                                     </Td>
                                     <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
                                     <Td isActionCell>

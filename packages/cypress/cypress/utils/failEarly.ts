@@ -23,6 +23,25 @@ const getRunTypeRetries = () => {
   return configuredRetries;
 };
 
+/**
+ * Check the deployment grid for a "Failed" status badge.
+ * Call this during polling loops to stop retrying immediately
+ * when the UI already shows the deployment has failed.
+ */
+export const failOnDeploymentStatus = (modelName: string): void => {
+  cy.get('body').then(($body) => {
+    const hasFailed = $body
+      .find('[data-testid="model-status-text"]')
+      .toArray()
+      .some((el) => el.textContent.includes('Failed'));
+    if (hasFailed) {
+      throw new Error(
+        `Model deployment "${modelName}" shows "Failed" status in the UI — stopping poll`,
+      );
+    }
+  });
+};
+
 export const failEarly = (): void => {
   const failedTest: Record<string, string | undefined> = {};
   beforeEach(() => {

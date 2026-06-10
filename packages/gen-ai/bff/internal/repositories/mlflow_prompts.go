@@ -19,8 +19,15 @@ func NewMLflowPromptsRepository() *MLflowPromptsRepository {
 	return &MLflowPromptsRepository{}
 }
 
+// maxCountResults is the maximum number of results to fetch for counting.
+// MLflow's API maximum is 1000. For registries larger than this, the total
+// count will be capped at 1000.
+const maxCountResults = 1000
+
 // ListPrompts retrieves available MLflow prompts with optional pagination and filtering.
-// The MLflow client is expected to be in the context (set by AttachMLflowClient middleware).
+// It also returns a total count of matching prompts by performing a single large fetch
+// (up to 1000 results). If the paginated request fits within a single page and has no
+// next_page_token, the count is derived directly without an extra query.
 func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken string, maxResults string, nameFilter string) (*models.MLflowPromptsResponse, error) {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
@@ -38,7 +45,7 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 		}
 	}
 	if nameFilter != "" {
-		opts = append(opts, promptregistry.WithNameFilter(nameFilter+"%"))
+		opts = append(opts, promptregistry.WithNameFilter("%"+nameFilter+"%"))
 	}
 
 	promptList, err := client.ListPrompts(ctx, opts...)
@@ -57,10 +64,47 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 		}
 	}
 
+	totalCount := len(prompts)
+	if pageToken != "" || promptList.NextPageToken != "" {
+		totalCount, err = r.countPrompts(ctx, nameFilter)
+		if err != nil {
+			if promptList.NextPageToken != "" {
+				totalCount = len(prompts) + 1
+				if totalCount > maxCountResults {
+					totalCount = maxCountResults
+				}
+			} else {
+				totalCount = len(prompts)
+			}
+		}
+	}
+
 	return &models.MLflowPromptsResponse{
 		Prompts:       prompts,
 		NextPageToken: promptList.NextPageToken,
+		TotalCount:    totalCount,
 	}, nil
+}
+
+// countPrompts fetches up to maxCountResults prompts with the same filter
+// to determine the total count. This avoids N+1 page iteration.
+func (r *MLflowPromptsRepository) countPrompts(ctx context.Context, nameFilter string) (int, error) {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	var countOpts []promptregistry.ListPromptsOption
+	countOpts = append(countOpts, promptregistry.WithMaxResults(maxCountResults))
+	if nameFilter != "" {
+		countOpts = append(countOpts, promptregistry.WithNameFilter("%"+nameFilter+"%"))
+	}
+
+	countList, err := client.ListPrompts(ctx, countOpts...)
+	if err != nil {
+		return 0, err
+	}
+	return len(countList.Prompts), nil
 }
 
 // RegisterPrompt creates a new prompt or adds a new version to an existing prompt.

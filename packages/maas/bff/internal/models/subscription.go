@@ -30,7 +30,7 @@ type SubscriptionListItem struct {
 	SubscriptionDescription string            `json:"subscription_description"`
 	DisplayName             string            `json:"display_name,omitempty"`
 	Priority                int32             `json:"priority"`
-	KeyCount                int32             `json:"key_count,omitempty"`
+	KeyCount                int32             `json:"key_count"`
 	ModelRefs               []ModelRefInfo    `json:"model_refs"`
 	OrganizationID          string            `json:"organization_id,omitempty"`
 	CostCenter              string            `json:"cost_center,omitempty"`

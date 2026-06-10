@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/nim-serving",
   "description": "NIM serving extensions for the model deployment wizard.",
   "version": "0.0.0",
+  "e2eCiTags": ["@NIMServingCI"],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -66,7 +66,9 @@ describe('A model can be deployed with token auth', () => {
 
   it(
     'Verify that a model can be deployed with token auth',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
+    {
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@ModelServingCI', '@KServeCI'],
+    },
     () => {
       cy.log('Model Name:', modelName);
       cy.step('Log into the application as admin');

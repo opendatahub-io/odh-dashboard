@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
@@ -24,23 +25,27 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
+const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
+
 // Version is set at build time via -ldflags.
 var Version = "unknown"
 
 // Options configures the dashboard controller.
 type Options struct {
-	ManifestsBasePath string
-	Platform          cluster.Platform
-	Namespace         string
+	ManifestsBasePath     string
+	Platform              cluster.Platform
+	Namespace             string
+	ApplicationsNamespace string
 }
 
 // DashboardReconciler reconciles a Dashboard object.
 type DashboardReconciler struct {
 	client.Client
-	Scheme            *runtime.Scheme
-	ManifestsBasePath string
-	Platform          cluster.Platform
-	Namespace         string
+	Scheme                *runtime.Scheme
+	ManifestsBasePath     string
+	Platform              cluster.Platform
+	Namespace             string
+	ApplicationsNamespace string
 }
 
 func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -57,7 +62,33 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	logger.Info("Reconciling Dashboard", "name", dashboard.Name)
 
+	if !dashboard.DeletionTimestamp.IsZero() {
+		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
+			if err := r.cleanupCrossNamespaceResources(ctx, dashboard); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to cleanup cross-namespace resources: %w", err)
+			}
+
+			controllerutil.RemoveFinalizer(dashboard, dashboardFinalizer)
+			if err := r.Update(ctx, dashboard); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %w", err)
+			}
+		}
+
+		return ctrl.Result{}, nil
+	}
+
+	if !controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
+		controllerutil.AddFinalizer(dashboard, dashboardFinalizer)
+		if err := r.Update(ctx, dashboard); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to add finalizer: %w", err)
+		}
+
+		return ctrl.Result{}, nil
+	}
+
 	dashboard.Status.ObservedGeneration = dashboard.Generation
+
+	cfg := readOperatorConfig(ctx, r.Client, r.Namespace)
 
 	// Ready is the rollup condition — auto-derived by the Manager from
 	// ProvisioningSucceeded and Degraded. It is never set explicitly.
@@ -68,7 +99,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		string(common.ConditionTypeDegraded),
 	)
 
-	result, err := r.reconcile(ctx, dashboard, cm)
+	result, err := r.reconcile(ctx, dashboard, cm, cfg)
 
 	dashboard.SetReleaseStatus(common.ComponentReleaseStatus{
 		Releases: []common.ComponentRelease{{
@@ -96,9 +127,9 @@ func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
+	cfg OperatorConfig,
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	dashboard.Status.URL = ""
 
 	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
 
@@ -114,7 +145,7 @@ func (r *DashboardReconciler) reconcile(
 
 	var allResources []unstructured.Unstructured
 	for _, m := range manifests {
-		rendered, err := engine.Render(m.String(), kustomize.WithNamespace(r.Namespace))
+		rendered, err := engine.Render(m.String(), kustomize.WithNamespace(r.ApplicationsNamespace))
 		if err != nil {
 			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 				conditions.WithReason("RenderFailed"),
@@ -149,10 +180,12 @@ func (r *DashboardReconciler) reconcile(
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard manifests applied successfully"))
 
-	url, err := extractDashboardURL(ctx, r.Client, r.Namespace)
+	url, err := extractDashboardURL(ctx, r.Client, r.ApplicationsNamespace, r.Platform)
 
 	var requeueAfter time.Duration
 
+	// URL is intentionally not cleared on error — "last known good" semantic.
+	// Conditions (Ready, Degraded) communicate the actual state.
 	switch {
 	case errors.Is(err, ErrDashboardRouteNotReady):
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
@@ -162,7 +195,6 @@ func (r *DashboardReconciler) reconcile(
 		cm.MarkFalse(string(common.ConditionTypeReady),
 			conditions.WithReason("RouteNotReady"),
 			conditions.WithMessage("Dashboard route is not yet admitted"))
-		dashboard.Status.URL = ""
 		logger.Info("Dashboard route not yet available, requeuing")
 		requeueAfter = 10 * time.Second
 	case err != nil:
@@ -173,7 +205,6 @@ func (r *DashboardReconciler) reconcile(
 		cm.MarkFalse(string(common.ConditionTypeReady),
 			conditions.WithReason("URLExtractionFailed"),
 			conditions.WithError(err))
-		dashboard.Status.URL = ""
 		logger.Error(err, "Failed to extract dashboard URL")
 
 		return ctrl.Result{}, fmt.Errorf("failed to extract dashboard URL: %w", err)
@@ -185,19 +216,49 @@ func (r *DashboardReconciler) reconcile(
 		dashboard.Status.URL = url
 	}
 
-	logger.Info("Dashboard reconciled successfully", "url", url)
+	nextStatuses := resolveModuleStatuses(&dashboard.Spec)
+	for name, next := range nextStatuses {
+		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
+			prev.Phase == next.Phase &&
+			prev.Reason == next.Reason &&
+			prev.Message == next.Message {
+			next.LastTransitionTime = prev.LastTransitionTime
+			nextStatuses[name] = next
+		}
+	}
+	dashboard.Status.ModuleStatuses = nextStatuses
+
+	if requeueAfter > 0 {
+		logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", requeueAfter, "modules", len(dashboard.Status.ModuleStatuses))
+	} else {
+		logger.Info("Dashboard reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
+	}
+
+	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
+		requeueAfter = cfg.ReconcileInterval
+	}
 
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
+}
+
+// TODO(RHOAIENG-59938): delete Perses monitoring resources in the observability namespace
+// and any SSA-adopted resources not covered by ownerReference GC.
+func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, _ *v1alpha1.Dashboard) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Cleaning up cross-namespace resources")
+
+	return nil
 }
 
 // SetupWithManager registers the dashboard controller with the manager.
 func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	r := &DashboardReconciler{
-		Client:            mgr.GetClient(),
-		Scheme:            mgr.GetScheme(),
-		ManifestsBasePath: opts.ManifestsBasePath,
-		Platform:          opts.Platform,
-		Namespace:         opts.Namespace,
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		ManifestsBasePath:     opts.ManifestsBasePath,
+		Platform:              opts.Platform,
+		Namespace:             opts.Namespace,
+		ApplicationsNamespace: opts.ApplicationsNamespace,
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).

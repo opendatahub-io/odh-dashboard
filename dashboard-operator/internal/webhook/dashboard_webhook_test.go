@@ -26,7 +26,7 @@ func testScheme(t *testing.T) *runtime.Scheme {
 }
 
 func TestDashboardGVK(t *testing.T) {
-	assert.Equal(t, "dashboard.opendatahub.io", dashwebhook.DashboardGVK.Group)
+	assert.Equal(t, "components.platform.opendatahub.io", dashwebhook.DashboardGVK.Group)
 	assert.Equal(t, "v1alpha1", dashwebhook.DashboardGVK.Version)
 	assert.Equal(t, "Dashboard", dashwebhook.DashboardGVK.Kind)
 }
@@ -38,7 +38,7 @@ func TestSingletonHandler_AllowFirstCreate(t *testing.T) {
 	resp := handler.Handle(context.Background(), admission.Request{
 		AdmissionRequest: admissionv1.AdmissionRequest{
 			Operation: admissionv1.Create,
-			Resource:  metav1.GroupVersionResource{Group: "dashboard.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+			Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
 		},
 	})
 
@@ -69,7 +69,7 @@ func TestSingletonHandler_WithExistingInstance(t *testing.T) {
 			resp := handler.Handle(context.Background(), admission.Request{
 				AdmissionRequest: admissionv1.AdmissionRequest{
 					Operation: tt.operation,
-					Resource:  metav1.GroupVersionResource{Group: "dashboard.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+					Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
 				},
 			})
 
