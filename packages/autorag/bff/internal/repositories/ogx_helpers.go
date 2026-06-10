@@ -65,6 +65,9 @@ func validateOGXIP(ip net.IP) error {
 	if ip.IsUnspecified() {
 		return fmt.Errorf("unspecified addresses are not allowed")
 	}
+	if ip.IsMulticast() {
+		return fmt.Errorf("multicast addresses are not allowed")
+	}
 	return nil
 }
 
@@ -81,6 +84,19 @@ func isValidOGXURL(rawURL string) error {
 
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 		return fmt.Errorf("invalid URL scheme %q: only http and https are allowed", parsedURL.Scheme)
+	}
+
+	if parsedURL.User != nil {
+		return fmt.Errorf("URL must not contain credentials")
+	}
+	if parsedURL.Path != "" && parsedURL.Path != "/" {
+		return fmt.Errorf("URL must not contain a path")
+	}
+	if parsedURL.RawQuery != "" {
+		return fmt.Errorf("URL must not contain a query string")
+	}
+	if parsedURL.Fragment != "" {
+		return fmt.Errorf("URL must not contain a fragment")
 	}
 
 	host := parsedURL.Hostname()

@@ -213,6 +213,13 @@ func TestIsValidOGXURL(t *testing.T) {
 		{"unspecified IP", "https://0.0.0.0", true},
 		{"private IP allowed", "https://10.0.0.1:8080", false},
 		{"ipv6 loopback", "https://[::1]:8080", true},
+		{"multicast IPv4", "https://224.0.0.1:8080", true},
+		{"multicast IPv6", "https://[ff02::1]:8080", true},
+		{"credentials in URL", "https://user:pass@ogx.example.com", true},
+		{"path rejected", "https://ogx.example.com/some-path", true},
+		{"query string rejected", "https://ogx.example.com?x=y", true},
+		{"fragment rejected", "https://ogx.example.com#frag", true},
+		{"trailing slash allowed", "https://ogx.example.com/", false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			err := isValidOGXURL(tt.url)
