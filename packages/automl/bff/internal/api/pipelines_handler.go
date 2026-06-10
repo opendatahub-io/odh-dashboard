@@ -12,6 +12,7 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
@@ -165,6 +166,23 @@ func (app *App) mapPipelineError(w http.ResponseWriter, r *http.Request, err err
 	}
 	if errors.Is(err, pipelines.ErrInvalidInput) || errors.Is(err, pipelines.ErrInvalidRunState) {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+	if errors.Is(err, pipelines.ErrNoDSPAFound) {
+		app.notFoundResponseWithMessage(w, r, "no Pipeline Server (DSPipelineApplication) found in namespace")
+		return
+	}
+	if errors.Is(err, pipelines.ErrDSPANotReady) {
+		app.serviceUnavailableResponseWithMessage(w, r, err,
+			"Pipeline Server exists but is not ready - check that the APIServer component is running")
+		return
+	}
+	if errors.Is(err, kubernetes.ErrForbidden) {
+		app.forbiddenResponse(w, r, err.Error())
+		return
+	}
+	if errors.Is(err, kubernetes.ErrNotFound) {
+		app.notFoundResponse(w, r)
 		return
 	}
 	app.serverErrorResponse(w, r, err)

@@ -15,6 +15,7 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
 // maxRegisterModelRequestBodyBytes caps the request body size to 1 MiB for register model requests.
@@ -117,6 +118,11 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		}
 		if errors.Is(err, repositories.ErrModelRegistryNotReady) {
 			app.serviceUnavailableResponseWithMessage(w, r, err, "model registry is not ready")
+			return
+		}
+		if errors.Is(err, pipelines.ErrNoDSPAFound) || errors.Is(err, pipelines.ErrDSPANotReady) {
+			app.serviceUnavailableResponseWithMessage(w, r, err,
+				"DSPA object storage discovery unavailable; cannot construct artifact URI - ensure a DSPipelineApplication with external storage is configured in this namespace")
 			return
 		}
 		var httpErr *modelregistry.HTTPError

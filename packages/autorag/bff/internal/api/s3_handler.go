@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 )
 
@@ -46,6 +47,18 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 		app.unauthorizedResponse(w, r, err.Error())
 		return
 	}
+
+	// DSPA discovery errors (S3 GET without explicit secretName falls back to DSPA)
+	if errors.Is(err, pipelines.ErrNoDSPAFound) {
+		app.notFoundResponseWithMessage(w, r, "no Pipeline Server (DSPipelineApplication) found in namespace")
+		return
+	}
+	if errors.Is(err, pipelines.ErrDSPANotReady) {
+		app.serviceUnavailableResponseWithMessage(w, r, err,
+			"Pipeline Server exists but is not ready - check that the APIServer component is running")
+		return
+	}
+
 	// S3 domain errors
 	if errors.Is(err, s3.ErrObjectNotFound) {
 		app.notFoundResponseWithMessage(w, r, fmt.Sprintf("object %q not found in S3 storage", key))

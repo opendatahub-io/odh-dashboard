@@ -7,6 +7,7 @@ import (
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
@@ -29,6 +30,10 @@ func (app *App) handleOGXOrK8sError(w http.ResponseWriter, r *http.Request, err 
 		return
 	}
 	if errors.Is(err, kubernetes.ErrInvalid) || errors.Is(err, kubernetes.ErrBadRequest) {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) || errors.Is(err, repositories.ErrOGXCredentialValidation) {
 		app.badRequestResponse(w, r, err)
 		return
 	}

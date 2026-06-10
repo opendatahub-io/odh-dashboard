@@ -9,6 +9,8 @@ var (
 	ErrPipelineNotFound    = errors.New("pipeline not found")
 	ErrInvalidInput        = errors.New("invalid input")
 	ErrInvalidRunState     = errors.New("invalid run state for operation")
+	ErrNoDSPAFound         = errors.New("no pipeline server found in namespace")
+	ErrDSPANotReady        = errors.New("pipeline server exists but is not ready")
 )
 
 // KFP v2beta1 run state sets — which states allow which mutations.

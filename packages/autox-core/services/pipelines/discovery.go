@@ -101,7 +101,10 @@ func (s *service) DiscoverReadyDSPA(ctx context.Context, namespace string) (*Dis
 		return result, nil
 	}
 
-	return nil, fmt.Errorf("no ready DSPA found in namespace %s", namespace)
+	if len(dspas.Items) == 0 {
+		return nil, fmt.Errorf("%w %q", ErrNoDSPAFound, namespace)
+	}
+	return nil, fmt.Errorf("%w in namespace %q", ErrDSPANotReady, namespace)
 }
 
 // extractObjectStorageSpec extracts the S3-compatible object storage configuration

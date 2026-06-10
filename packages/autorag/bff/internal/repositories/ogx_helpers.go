@@ -2,12 +2,15 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
 
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
+
+var ErrOGXCredentialValidation = errors.New("OGX credential validation failed")
 
 // resolveOGXCredentials fetches the named secret from Kubernetes and extracts the OGX
 // base URL and API key using case-insensitive key lookups.
@@ -28,7 +31,7 @@ func resolveOGXCredentials(ctx context.Context, k8sService kubernetes.Service, n
 		return "", "", fmt.Errorf("invalid secret %q: %w", secretName, err)
 	}
 	if baseURL == "" {
-		return "", "", fmt.Errorf("secret %q is missing or has empty value for required key: ogx_client_base_url", secretName)
+		return "", "", fmt.Errorf("secret %q is missing or has empty value for required key: ogx_client_base_url: %w", secretName, ErrOGXCredentialValidation)
 	}
 
 	apiKey, err := kubernetes.LookupSecretValue(secret.Data, "ogx_client_api_key")
@@ -41,12 +44,12 @@ func resolveOGXCredentials(ctx context.Context, k8sService kubernetes.Service, n
 		// Case-insensitive fallback: check if any case variant exists
 		if apiKey == "" {
 			// key not found by any variant — reject
-			return "", "", fmt.Errorf("secret %q is missing required key: ogx_client_api_key", secretName)
+			return "", "", fmt.Errorf("secret %q is missing required key: ogx_client_api_key: %w", secretName, ErrOGXCredentialValidation)
 		}
 	}
 
 	if err := isValidOGXURL(baseURL); err != nil {
-		return "", "", fmt.Errorf("invalid ogx_client_base_url in secret %q: %w", secretName, err)
+		return "", "", fmt.Errorf("invalid ogx_client_base_url in secret %q: %s: %w", secretName, err, ErrOGXCredentialValidation)
 	}
 
 	return baseURL, apiKey, nil
