@@ -90,7 +90,15 @@ describe(
     it(
       'Verify User Can Create an OCI Connection, Deploy Model with Token Auth, and Verify Token Access',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+        tags: [
+          '@Smoke',
+          '@SmokeSet3',
+          '@Dashboard',
+          '@ModelServing',
+          '@NonConcurrent',
+          '@KServeCI',
+          '@ModelServingCI',
+        ],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);

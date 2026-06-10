@@ -913,6 +913,18 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('spinner');
   }
 
+  findPreconfigureStep() {
+    return this.findStep('preconfigure-step');
+  }
+
+  findPreconfigureProjectSelector() {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  findPreconfigureProjectSelectorOption(name: string) {
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
+  }
+
   findModelSourceStep() {
     return this.findStep('source-model-step');
   }

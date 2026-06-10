@@ -67,7 +67,7 @@ var DefaultPipelineVersion = getEnvOrDefault("PIPELINE_VERSION_SUFFIX", constant
 type PipelineDefinition struct {
 	Name        string // Exact pipeline display name for discovery and creation
 	PipelineDir string // Directory name containing pipeline.yaml (matches upstream repo structure)
-	Version     string // Release version suffix for the version name (e.g. "3.5.0-ea.1")
+	Version     string // Release version suffix for the version name (e.g. "3.5.0-ea.2")
 }
 
 // pipelineCacheEntry wraps a map of discovered pipelines with expiration and LRU tracking.
@@ -498,6 +498,12 @@ func (r *PipelineRepository) ensurePipelineAndVersion(
 	yamlBytes, err := pipelines.GetPipelineYAML(def.PipelineDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load embedded pipeline YAML %q: %w", def.PipelineDir, err)
+	}
+
+	if override := os.Getenv("RELATED_IMAGE_ODH_AUTOML_IMAGE"); override != "" {
+		yamlBytes = pipelines.ReplaceImageRef(yamlBytes, pipelines.AutoMLImagePattern, override)
+		logger.Info("Replaced pipeline image with RELATED_IMAGE_ODH_AUTOML_IMAGE",
+			"pipelineDir", def.PipelineDir, "overrideImage", override)
 	}
 
 	// Step 1: Find or create the pipeline shell

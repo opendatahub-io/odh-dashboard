@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
+import { EmptyStateBody, EmptyStateVariant, EmptyState, Flex } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -12,6 +12,7 @@ import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProj
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
+import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
 
 const title = 'Features';
 const description =
@@ -68,11 +69,14 @@ const Features = (): React.ReactElement => {
       loadError={featuresLoadError}
       loaded={featuresLoaded}
       headerContent={
-        <FeatureStoreProjectSelectorNavigator
-          getRedirectPath={(featureStoreObject, featureStoreProject) =>
-            featureStoreRoute(featureStoreObject, featureStoreProject)
-          }
-        />
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          <FeatureStoreProjectSelectorNavigator
+            getRedirectPath={(featureStoreObject, featureStoreProject) =>
+              featureStoreRoute(featureStoreObject, featureStoreProject)
+            }
+          />
+          <ConnectedWorkbenchesLink />
+        </Flex>
       }
       provideChildrenPadding
     >

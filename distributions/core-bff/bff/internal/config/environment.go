@@ -1,3 +1,4 @@
+// Package config defines environment-driven configuration for the BFF server.
 package config
 
 import (
@@ -67,16 +68,61 @@ func (d DeploymentMode) IsFederatedMode() bool {
 	return d == DeploymentModeFederated
 }
 
+// PlatformType represents the target platform enum
+type PlatformType string
+
+const (
+	// PlatformOpenShift probes for OpenShift-specific cluster info at startup
+	PlatformOpenShift PlatformType = "OpenShift"
+	// PlatformXKS represents vanilla Kubernetes; skips OpenShift API detection
+	PlatformXKS PlatformType = "XKS"
+)
+
+// String implements the fmt.Stringer interface
+func (p PlatformType) String() string {
+	return string(p)
+}
+
+// Set implements the flag.Value interface
+func (p *PlatformType) Set(value string) error {
+	switch value {
+	case "OpenShift":
+		*p = PlatformOpenShift
+	case "XKS":
+		*p = PlatformXKS
+	case "":
+		*p = ""
+	default:
+		return fmt.Errorf("invalid platform type: %s (must be OpenShift, XKS, or empty for auto-detect)", value)
+	}
+	return nil
+}
+
+// IsXKS returns true if the platform is XKS (non-OpenShift)
+func (p PlatformType) IsXKS() bool {
+	return p == PlatformXKS
+}
+
+// EnvConfig holds environment-driven configuration for the BFF server.
 type EnvConfig struct {
-	Port              int
-	MockK8Client      bool
-	MockHTTPClient    bool
-	DevMode           bool
-	DeploymentMode    DeploymentMode
+	// Port is the HTTP server port.
+	Port int
+	// MockK8Client enables mock Kubernetes client mode.
+	MockK8Client bool
+	// MockHTTPClient enables mock HTTP client mode.
+	MockHTTPClient bool
+	// DevMode enables development mode.
+	DevMode bool
+	// DeploymentMode specifies federated or standalone deployment.
+	DeploymentMode DeploymentMode
+	// DevModeClientPort is the frontend dev server port.
 	DevModeClientPort int
-	StaticAssetsDir   string
-	LogLevel          slog.Level
-	AllowedOrigins    []string
+	// StaticAssetsDir is the directory for serving static assets.
+	StaticAssetsDir string
+	// LogLevel is the logging level.
+	LogLevel slog.Level
+	// AllowedOrigins lists CORS allowed origins.
+	AllowedOrigins []string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
 	// If provided, the application will attempt to load these files and add the
 	// certificates to the HTTP client's Root CAs for outbound TLS connections.
@@ -108,11 +154,21 @@ type EnvConfig struct {
 	MockBFFClients bool
 
 	// ─── CORE BFF ───────────────────────────────────────────────
+	// PlatformType indicates the target platform.
+	PlatformType PlatformType
+
 	// Namespace is the Kubernetes namespace where the dashboard is deployed.
 	Namespace string
 
+	// WorkbenchNamespace is the Kubernetes namespace for workbenches.
+	// Defaults to Namespace if not set. Used in namespace allowlist validation.
+	WorkbenchNamespace string
+
 	// DashboardConfigName is the name of the OdhDashboardConfig CR to read.
 	DashboardConfigName string
+
+	// EnabledAppsCM is the name of the ConfigMap that tracks enabled applications.
+	EnabledAppsCM string
 
 	// MFRemotesConfig is the filesystem path to the module federation remotes config file.
 	MFRemotesConfig string

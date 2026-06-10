@@ -267,6 +267,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             data-testid="chatbot-settings-page-tab-model"
           >
             <ModelTabContent
+              configId={configId}
               temperature={temperature}
               onTemperatureChange={handleTemperatureChange}
               isStreamingEnabled={isStreamingEnabled}

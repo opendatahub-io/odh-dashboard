@@ -60,7 +60,7 @@ const ProjectDetails: React.FC = () => {
   const projectRBACEnabled = useIsAreaAvailable(SupportedArea.PROJECT_RBAC_SETTINGS).status;
   const roleManagementEnabled = useIsAreaAvailable(SupportedArea.ROLE_MANAGEMENT).status;
   const settingsCardExtensions = useExtensions(isProjectDetailsSettingsCardExtension);
-  const hasSettingsCards = settingsCardExtensions.length > 0;
+  const hasSettingsCards = settingsCardExtensions.length > 0 || biasMetricsAreaAvailable; // Bias metrics is not yet an extension
   const deploymentsTab = useDeploymentsTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
@@ -201,7 +201,11 @@ const ProjectDetails: React.FC = () => {
                         Dev preview
                       </Label>
                     ),
-                    component: <ProjectRoles />,
+                    component: (
+                      <PermissionsContextProvider namespace={currentProject.metadata.name}>
+                        <ProjectRoles />
+                      </PermissionsContextProvider>
+                    ),
                   },
                 ]
               : []),
@@ -220,7 +224,7 @@ const ProjectDetails: React.FC = () => {
                   },
                 ]
               : []),
-            ...((biasMetricsAreaAvailable || hasSettingsCards) && allowCreate
+            ...(hasSettingsCards
               ? [
                   {
                     id: ProjectSectionID.SETTINGS,
@@ -240,7 +244,6 @@ const ProjectDetails: React.FC = () => {
             roleManagementEnabled,
             allowRoles,
             currentProject.metadata.name,
-            biasMetricsAreaAvailable,
             hasSettingsCards,
           ],
         )}

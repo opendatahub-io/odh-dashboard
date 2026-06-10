@@ -29,11 +29,11 @@ func TestUserHandler_AdminUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var body map[string]interface{}
+	var body map[string]any
 	err := json.Unmarshal(rr.Body.Bytes(), &body)
 	require.NoError(t, err)
 
-	data, ok := body["data"].(map[string]interface{})
+	data, ok := body["data"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, admin.UserName, data["userId"])
 	assert.Equal(t, true, data["clusterAdmin"])
@@ -55,11 +55,11 @@ func TestUserHandler_NonAdminUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var body map[string]interface{}
+	var body map[string]any
 	err := json.Unmarshal(rr.Body.Bytes(), &body)
 	require.NoError(t, err)
 
-	data, ok := body["data"].(map[string]interface{})
+	data, ok := body["data"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, userA.UserName, data["userId"])
 	assert.Equal(t, false, data["clusterAdmin"])
@@ -75,11 +75,11 @@ func TestUserHandler_MissingIdentity(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 
-	var body map[string]interface{}
+	var body map[string]any
 	err := json.Unmarshal(rr.Body.Bytes(), &body)
 	require.NoError(t, err)
 
-	errObj, ok := body["error"].(map[string]interface{})
+	errObj, ok := body["error"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "BAD_REQUEST", errObj["code"])
 }
@@ -99,11 +99,11 @@ func TestUserHandler_DisabledAuthUsesDefaultToken(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var body map[string]interface{}
+	var body map[string]any
 	err := json.Unmarshal(rr.Body.Bytes(), &body)
 	require.NoError(t, err)
 
-	data, ok := body["data"].(map[string]interface{})
+	data, ok := body["data"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, true, data["clusterAdmin"])
 }

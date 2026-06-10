@@ -634,7 +634,9 @@ function AutomlConfigure({
                                 <Tbody>
                                   <Tr>
                                     <Td dataLabel="Name">
-                                      <Truncate content={selectedTrainingDataFile.name} />
+                                      <span title={selectedTrainingDataFile.path}>
+                                        <Truncate content={selectedTrainingDataFile.name} />
+                                      </span>
                                     </Td>
                                     <Td dataLabel="Type">{selectedTrainingDataFile.type}</Td>
                                     <Td isActionCell>

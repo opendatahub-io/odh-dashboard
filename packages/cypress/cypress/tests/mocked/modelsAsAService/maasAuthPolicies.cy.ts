@@ -90,6 +90,28 @@ describe('MaaS Auth Policies', () => {
     authPoliciesPage.findCreateAuthPolicyButton().should('exist');
   });
 
+  it('should display a useful error state when the auth policies search fails', () => {
+    cy.intercept('GET', '/maas/api/v1/all-policies', {
+      statusCode: 500,
+      body: {
+        error: {
+          code: '500',
+          message:
+            'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/all-policies',
+        },
+      },
+    }).as('searchError');
+    authPoliciesPage.visit();
+    cy.wait('@searchError');
+    authPoliciesPage.findErrorState().should('exist');
+    authPoliciesPage
+      .findErrorState()
+      .should(
+        'contain.text',
+        'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/all-policies',
+      );
+  });
+
   it('should display the auth policies table with correct page content', () => {
     authPoliciesPage.findTitle().should('contain.text', 'Authorization policies');
     authPoliciesPage.findTable().should('exist');

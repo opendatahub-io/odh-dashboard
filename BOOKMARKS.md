@@ -94,6 +94,15 @@ Central index of key documentation in the ODH Dashboard monorepo.
 
 ---
 
+## Dashboard Module Controller
+
+| Doc | Description |
+|-----|-------------|
+| [Operator Architecture](docs/dashboard-operator.md) | CRD design, reconciliation pipeline, module registry, dependency resolution, manifest management |
+| [Controller AGENTS.md](dashboard-operator/AGENTS.md) | Go operator conventions, controller-runtime patterns, CRD types, Makefile targets, reconciliation pipeline |
+
+---
+
 ## Packages
 
 ### Full Docs

@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/kserve",
   "description": "KServe model serving platform extension",
   "version": "0.0.0",
+  "e2eCiTags": ["@KServeCI"],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

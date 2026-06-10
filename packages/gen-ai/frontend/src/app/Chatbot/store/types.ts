@@ -35,6 +35,13 @@ export interface ChatbotConfiguration {
   selectedSubscription: string;
   activePrompt: MLflowPromptVersion | null;
   dirtyPrompt: MLflowPromptVersion | null;
+  variableValues: Record<string, string>;
+  /** The model_id of the selected ASR (audio transcription) model, or '' if none */
+  selectedAsrModel: string;
+  /** Whether the user has opted in to the transcription model section */
+  isAsrModelEnabled: boolean;
+  /** Whether a vision image has been attached/sent in this conversation */
+  hasVisionImage: boolean;
 }
 
 /**
@@ -59,6 +66,10 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   selectedSubscription: '',
   activePrompt: null,
   dirtyPrompt: null,
+  variableValues: {},
+  selectedAsrModel: '',
+  isAsrModelEnabled: false,
+  hasVisionImage: false,
 };
 
 /**
@@ -104,6 +115,13 @@ export interface ChatbotConfigStoreActions {
 
   updateSelectedSubscription: (id: string, value: string) => void;
 
+  // ASR model selection (per-pane)
+  updateSelectedAsrModel: (id: string, value: string) => void;
+  updateAsrModelEnabled: (id: string, value: boolean) => void;
+
+  // Vision image state
+  updateHasVisionImage: (id: string, value: boolean) => void;
+
   // RAG toggle (per-pane)
   updateRagEnabled: (id: string, value: boolean) => void;
   updateKnowledgeMode: (id: string, value: 'inline' | 'external') => void;
@@ -113,6 +131,7 @@ export interface ChatbotConfigStoreActions {
   updateDirtyPrompt: (id: string, prompt: MLflowPromptVersion | null) => void;
   resetDirtyPrompt: (id: string) => void;
   clearPromptState: (id: string, newDirtyPrompt: MLflowPromptVersion | null) => void;
+  updateVariableValues: (id: string, values: Record<string, string>) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;

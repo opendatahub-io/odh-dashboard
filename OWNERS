@@ -50,6 +50,15 @@ filters:
     labels:
       - area/manifests
 
+  # Dashboard Module Controller (operator)
+  'dashboard-operator/.*':
+    approvers:
+      - platform-approvers
+    reviewers:
+      - platform-reviewers
+    labels:
+      - 'area/platform'
+
   # Cypress tests
   'packages/cypress/.*':
     approvers:
@@ -207,12 +216,3 @@ filters:
       - mlflow-reviewers
     labels:
       - 'area/mlflow'
-
-  # Core BFF
-  'distributions/core-bff/.*':
-    approvers:
-      - core-bff-approvers
-    reviewers:
-      - core-bff-reviewers
-    labels:
-      - 'area/core-bff'

@@ -85,6 +85,7 @@ export enum ModelStateToggleLabel {
 }
 
 export enum WizardStepTitle {
+  PRECONFIGURE = 'Preconfigure deployment',
   MODEL_DETAILS = 'Model details',
   MODEL_DEPLOYMENT = 'Model deployment',
   ADVANCED_SETTINGS = 'Advanced settings',
@@ -318,6 +319,7 @@ export const resolveFieldValue = (
 
 export type ModelTypeFieldOverride = DeploymentWizardFieldBase<'modelType'> & {
   extraOption: SimpleSelectOption;
+  forced?: boolean;
 };
 export type ModelServerTemplateFieldOverride = DeploymentWizardFieldBase<'modelServerTemplate'> & {
   extraOptions?: ModelServerOption[];
