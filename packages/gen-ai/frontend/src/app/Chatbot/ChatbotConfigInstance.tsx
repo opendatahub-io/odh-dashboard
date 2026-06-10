@@ -4,6 +4,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
+import useTracingEnabled from './hooks/useTracingEnabled';
 import {
   useChatbotConfigStore,
   selectSystemInstruction,
@@ -69,6 +70,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   const updateSelectedVectorStoreId = useChatbotConfigStore(
     (state) => state.updateSelectedVectorStoreId,
   );
+  const isTracingEnabled = useTracingEnabled();
 
   // Keep selectedVectorStoreId in sync with the active knowledge mode:
   // - inline: always the auto-provisioned store ID
@@ -134,7 +136,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     namespace,
     guardrailsConfig,
     subscription: selectedSubscription,
-    isTracingEnabled: false,
+    isTracingEnabled,
     configIndex,
     isCompareMode,
     isGuardrailEnabled: Boolean(guardrail),
