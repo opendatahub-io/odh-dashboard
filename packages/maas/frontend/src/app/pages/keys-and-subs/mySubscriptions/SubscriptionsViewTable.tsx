@@ -1,10 +1,10 @@
-import { Label } from '@patternfly/react-core';
-import { KeyIcon } from '@patternfly/react-icons';
+import { Flex, FlexItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { TokenRateLimitInfo, UserSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
+import ApiKeyCountLabel from '~/app/components/ApiKeyCountLabel';
 import SubscriptionModelsTable from './SubscriptionModelsTable';
 import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
 
@@ -41,20 +41,17 @@ const SubscriptionRow: React.FC<{
           }}
         />
         <Td dataLabel="Subscription">
-          <Link
-            className="pf-v6-u-font-weight-bold"
-            to={`${URL_PREFIX}/keys-and-subs/subscriptions/${subscription.subscription_id_header}`}
-          >
-            {subscription.display_name || subscription.subscription_id_header}
-          </Link>
-          {subscription.key_count != null && subscription.key_count > 0 && (
-            <>
-              {' '}
-              <Label isCompact icon={<KeyIcon />} color="green">
-                {subscription.key_count} {subscription.key_count === 1 ? 'key' : 'keys'}
-              </Label>
-            </>
-          )}
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <Link
+                className="pf-v6-u-font-weight-bold"
+                to={`${URL_PREFIX}/keys-and-subs/subscriptions/${subscription.subscription_id_header}`}
+              >
+                {subscription.display_name || subscription.subscription_id_header}
+              </Link>
+            </FlexItem>
+            <ApiKeyCountLabel keyCount={subscription.key_count ?? 0} />
+          </Flex>
         </Td>
       </Tr>
       <Tr isExpanded={isExpanded}>
