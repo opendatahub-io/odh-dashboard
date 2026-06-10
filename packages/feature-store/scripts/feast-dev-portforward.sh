@@ -146,7 +146,7 @@ cmd_status() {
     echo -e "  ${BLUE}${SVC}${NC}  (namespace: ${NS})"
     echo -e "    PID      : $PID"
     echo -e "    Port     : localhost:${LOCAL_PORT}"
-    echo -e "    Status   : $(echo -e $REACHABLE)"
+    echo -e "    Status   : $(echo -e "$REACHABLE")"
     echo ""
   done <<< "$ROWS"
 
@@ -250,7 +250,7 @@ log_info "Using CLI: $KUBECTL"
 # --------------------------------------------------------------------------- #
 log_info "Checking cluster connectivity..."
 
-if ! $KUBECTL cluster-info &>/dev/null 2>&1; then
+if ! "$KUBECTL" cluster-info &>/dev/null 2>&1; then
   log_error "Cannot connect to the cluster. Are you logged in?"
   echo ""
   echo "  Try: oc login --server=<url> -u <user> -p <password>"
@@ -258,9 +258,9 @@ if ! $KUBECTL cluster-info &>/dev/null 2>&1; then
   exit 1
 fi
 
-CURRENT_SERVER=$($KUBECTL config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || echo "unknown")
-CURRENT_USER=$($KUBECTL auth whoami --output=jsonpath='{.status.userInfo.username}' 2>/dev/null \
-  || $KUBECTL config view --minify -o jsonpath='{.users[0].user.username}' 2>/dev/null \
+CURRENT_SERVER=$("$KUBECTL" config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || echo "unknown")
+CURRENT_USER=$("$KUBECTL" auth whoami --output=jsonpath='{.status.userInfo.username}' 2>/dev/null \
+  || "$KUBECTL" config view --minify -o jsonpath='{.users[0].user.username}' 2>/dev/null \
   || echo "unknown")
 
 log_ok "Cluster : $CURRENT_SERVER"
@@ -274,7 +274,7 @@ log_info "Discovering namespaces with label opendatahub.io/feast=true ..."
 
 NAMESPACES=()
 
-if $KUBECTL api-resources --api-group=project.openshift.io 2>/dev/null | grep -q projects; then
+if "$KUBECTL" api-resources --api-group=project.openshift.io 2>/dev/null | grep -q projects; then
   RESOURCE="projects.project.openshift.io"
 else
   RESOURCE="namespaces"
@@ -282,7 +282,7 @@ fi
 
 while IFS= read -r ns; do
   [[ -n "$ns" ]] && NAMESPACES+=("$ns")
-done < <($KUBECTL get "$RESOURCE" \
+done < <("$KUBECTL" get "$RESOURCE" \
     -l 'opendatahub.io/feast=true' \
     -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null || true)
 
@@ -311,7 +311,7 @@ CRD_NS_LIST=()    # same index as CRD_NAMES
 CRD_TLS_LIST=()   # same index as CRD_NAMES
 
 for NS in "${NAMESPACES[@]}"; do
-  CRD_JSON=$($KUBECTL get featurestores.feast.dev \
+  CRD_JSON=$("$KUBECTL" get featurestores.feast.dev \
     -n "$NS" \
     -l 'feature-store-ui=enabled' \
     -o json 2>/dev/null || echo '{"items":[]}')
@@ -394,10 +394,10 @@ echo ""
 kill_stale_forward() {
   local SVC="$1" NS="$2"
   local PIDS
-  PIDS=$(pgrep -f "port-forward.*${SVC}.*${NS}" 2>/dev/null || true)
+  PIDS=$(ps -eo pid,args | grep "port-forward" | grep -F "svc/$SVC" | grep -F -- "-n $NS" | grep -v grep | awk '{print $1}' || true)
   if [[ -n "$PIDS" ]]; then
     log_info "Stopping stale port-forward for $SVC in $NS (PIDs: $PIDS)"
-    echo "$PIDS" | xargs kill 2>/dev/null || true
+    for pid in $PIDS; do kill "$pid" 2>/dev/null || true; done
     sleep 0.5
   fi
 }
@@ -445,7 +445,7 @@ for CRD_NAME in "${CRD_NAMES[@]}"; do
   LOG_FILE=$(mktemp /tmp/feast-pf-XXXXXX)
   PF_LOG_FILES+=("$LOG_FILE")
 
-  $KUBECTL port-forward "svc/$SVC_NAME" "$LOCAL_PORT:$TARGET_PORT" -n "$NS" \
+  "$KUBECTL" port-forward "svc/$SVC_NAME" "$LOCAL_PORT:$TARGET_PORT" -n "$NS" \
     >"$LOG_FILE" 2>&1 &
   PF_PID=$!
   PF_PIDS+=("$PF_PID")
@@ -495,13 +495,15 @@ ${MARKER_END}"
   fi
 
   if grep -qF "$MARKER_BEGIN" "$ENV_FILE"; then
-    python3 - <<PYEOF
-import re, pathlib
+    ENV_FILE="$ENV_FILE" ENV_BLOCK="$ENV_BLOCK" \
+      MARKER_BEGIN="$MARKER_BEGIN" MARKER_END="$MARKER_END" \
+      python3 - <<'PYEOF'
+import re, pathlib, os
 
-env_file = pathlib.Path("""$ENV_FILE""")
-new_block = """$ENV_BLOCK"""
-begin  = """$MARKER_BEGIN"""
-end    = """$MARKER_END"""
+env_file = pathlib.Path(os.environ['ENV_FILE'])
+new_block = os.environ['ENV_BLOCK']
+begin  = os.environ['MARKER_BEGIN']
+end    = os.environ['MARKER_END']
 
 content = env_file.read_text()
 pattern = re.compile(
