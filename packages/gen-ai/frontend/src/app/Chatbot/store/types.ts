@@ -79,9 +79,9 @@ export interface ChatbotConfigStoreState {
   configurations: { [id: string]: ChatbotConfiguration | undefined };
   configIds: string[];
   /**
-   * Transient signal set by applyAgentProfile(). Consumed and cleared by
-   * ChatbotConfigInstance's knowledge-mode sync effect to distinguish a profile
-   * load from a user-initiated inline→external switch.
+   * True when the current configuration was loaded from an AgentProfile.
+   * Set by applyAgentProfile(), cleared by resetConfiguration().
+   * Use this to drive loaded-profile UI state (e.g. header indicators, save/discard flows).
    */
   profileApplied: boolean;
 }
