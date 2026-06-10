@@ -8,6 +8,7 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { AgentProfile } from '~/app/agentProfile/types';
 import {
   ApiErrorClass,
   BackendResponseData,
@@ -1101,6 +1102,24 @@ export const listMLflowPromptVersions =
       ),
     ).then((response) => {
       if (isModArchResponse<MLflowPromptVersionsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const getAgentProfile =
+  (hostPath: string, baseQueryParams: Record<string, unknown> = {}): ModArchRestGET<AgentProfile> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { id, ...restParams } = queryParams;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restGET<AgentProfile>(hostPath, path, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<AgentProfile>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

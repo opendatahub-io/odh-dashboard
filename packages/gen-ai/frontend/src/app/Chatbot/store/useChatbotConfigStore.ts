@@ -151,6 +151,7 @@ export const createChatbotConfigStore = (
       },
     },
     configIds: ['default'],
+    profileApplied: false,
   };
 
   return create<ChatbotConfigStore>()(
@@ -627,6 +628,24 @@ const createStoreActions = (
       }),
       false,
       'resetConfiguration',
+    );
+  },
+
+  applyAgentProfile: (config: Partial<ChatbotConfiguration>) => {
+    set(
+      () => ({
+        ...storeInitialState,
+        profileApplied: true,
+        configurations: {
+          default: {
+            ...DEFAULT_CONFIGURATION,
+            ...config,
+            mcpToolSelections: skipSessionStorage ? {} : loadMcpToolSelectionsForConfig('default'),
+          },
+        },
+      }),
+      false,
+      'applyAgentProfile',
     );
   },
 

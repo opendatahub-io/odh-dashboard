@@ -31,6 +31,7 @@ import {
   createExternalModel,
   verifyExternalModel,
   deleteExternalModel,
+  getAgentProfile,
 } from '~/app/services/llamaStackService';
 
 export type GenAiAPIState = APIState<GenAiAPIs>;
@@ -70,6 +71,7 @@ const useGenAiAPIState = (
       createExternalModel: createExternalModel(path, queryParameters),
       verifyExternalModel: verifyExternalModel(path, queryParameters),
       deleteExternalModel: deleteExternalModel(path, queryParameters),
+      getAgentProfile: getAgentProfile(path, queryParameters),
     }),
     [queryParameters],
   );

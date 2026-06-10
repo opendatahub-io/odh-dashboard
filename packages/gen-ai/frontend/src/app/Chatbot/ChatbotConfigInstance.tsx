@@ -87,13 +87,18 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   // - inline: always the auto-provisioned store ID
   // - external: cleared to null only when transitioning FROM inline, not on remount
   //   (remount occurs when entering compare mode; we must not clobber the user's existing selection)
+  // When applyAgentProfile() was the cause of the transition, profileApplied is true and
+  // we skip the clear so the profile's external vector store ID is preserved.
   const prevKnowledgeModeRef = React.useRef<string | null>(null);
   React.useEffect(() => {
     if (knowledgeMode === 'inline') {
       updateSelectedVectorStoreId(configId, currentVectorStoreId);
     } else if (prevKnowledgeModeRef.current === 'inline') {
-      // Only clear when the user explicitly switches from inline → external
-      updateSelectedVectorStoreId(configId, null);
+      if (useChatbotConfigStore.getState().profileApplied) {
+        useChatbotConfigStore.setState({ profileApplied: false });
+      } else {
+        updateSelectedVectorStoreId(configId, null);
+      }
     }
     prevKnowledgeModeRef.current = knowledgeMode;
   }, [knowledgeMode, currentVectorStoreId, configId, updateSelectedVectorStoreId]);
