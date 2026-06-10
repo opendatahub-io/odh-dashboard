@@ -173,6 +173,10 @@ class MySubscriptionsPage {
   findCreateApiKeyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('create-api-key-button');
   }
+
+  findColumnSortButton(columnLabel: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findApiKeysTable().find('thead').contains('th', columnLabel).findByRole('button');
+  }
 }
 
 class APIKeyTableRow extends TableRow {
