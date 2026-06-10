@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -189,6 +190,7 @@ func validateInsecureSkipVerify(insecureSkipVerify bool) error {
 
 	allowInsecure := os.Getenv("ALLOW_INSECURE_TLS")
 	env := os.Getenv("ENV")
+	normalizedEnv := strings.ToLower(strings.TrimSpace(env))
 
 	if allowInsecure != "true" {
 		slog.Error("SECURITY: InsecureSkipVerify requires explicit ALLOW_INSECURE_TLS=true",
@@ -202,7 +204,7 @@ func validateInsecureSkipVerify(insecureSkipVerify bool) error {
 		return fmt.Errorf("InsecureSkipVerify requires ALLOW_INSECURE_TLS=true")
 	}
 
-	if env == "prod" || env == "production" || env == "staging" {
+	if normalizedEnv == "prod" || normalizedEnv == "production" || normalizedEnv == "staging" {
 		slog.Error("SECURITY: InsecureSkipVerify cannot be used in production/staging environments",
 			"env", env,
 			"insecure_skip_verify", insecureSkipVerify,

@@ -96,8 +96,16 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 			insecureSkipVerify:    true,
 			allowInsecureTLS:      "true",
 			env:                   "PRODUCTION",
-			expectedError:         false,
-			expectedErrorContains: "",
+			expectedError:         true,
+			expectedErrorContains: "cannot be used in PRODUCTION environment",
+		},
+		{
+			name:                  "InsecureSkipVerify enabled with ENV=' production ' (whitespace) - should fail",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "true",
+			env:                   " production ",
+			expectedError:         true,
+			expectedErrorContains: "cannot be used in  production  environment",
 		},
 	}
 
