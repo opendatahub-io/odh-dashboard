@@ -189,7 +189,7 @@ const K8sWatchCard: React.FC<K8sWatchCardProps> = ({ bffConnected, clusterReacha
         <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>K8s Watch</FlexItem>
           <FlexItem>
-            <Label color="teal" isCompact>
+            <Label color="purple" isCompact>
               /wss/k8s
             </Label>
           </FlexItem>

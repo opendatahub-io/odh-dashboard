@@ -1,19 +1,29 @@
 import * as React from 'react';
 import {
+  Button,
   Divider,
   Drawer,
   DrawerContent,
   DrawerContentBody,
   DropEvent,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
 } from '@patternfly/react-core';
 import { Chatbot, ChatbotContent, ChatbotDisplayMode } from '@patternfly/chatbot';
+// Imported here (not just App.tsx) so the CSS is bundled when loaded via Module Federation
+import '@patternfly/chatbot/dist/css/main.css';
 import { useLocation } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
-import { isLlamaModelEnabled } from '~/app/utilities';
+import { uploadMediaFile } from '~/app/services/llamaStackService';
+import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
+import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
 import { getId } from '~/app/utilities/utils';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
@@ -27,7 +37,10 @@ import useFileManagement from './hooks/useFileManagement';
 import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import ChatbotPaneHeader from './components/ChatbotPaneHeader';
-import ChatbotMessageInput from './components/ChatbotMessageInput';
+import ChatbotMessageInput, {
+  ImageUploadState,
+  PendingDocChip,
+} from './components/ChatbotMessageInput';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
@@ -38,10 +51,13 @@ import CloseChatCompareModal from './components/CloseChatCompareModal';
 import {
   useChatbotConfigStore,
   selectSelectedModel,
+  selectSelectedAsrModel,
+  selectIsAsrModelEnabled,
   selectConfigIds,
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
 } from './store';
+import { useIsEmbeddedPlayground } from './context/EmbeddedMessagesContext';
 
 /**
  * Wrapper for compare mode panes that subscribes to Zustand store for reactive model updates.
@@ -102,6 +118,8 @@ type ChatbotPlaygroundProps = {
   hasConversationMessagesRef?: React.MutableRefObject<(() => boolean) | null>;
   isDrawerExpanded?: boolean;
   setIsDrawerExpanded?: (expanded: boolean) => void;
+  welcomeContent?: React.ReactNode;
+  placeholderBotContent?: string;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -116,9 +134,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   hasConversationMessagesRef,
   isDrawerExpanded: isDrawerExpandedProp,
   setIsDrawerExpanded: setIsDrawerExpandedProp,
+  welcomeContent,
+  placeholderBotContent,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
+  const isEmbedded = useIsEmbeddedPlayground();
   const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
     React.useContext(ChatbotContext);
 
@@ -130,6 +151,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
   const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
+  const primarySelectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(primaryConfigId));
+  const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
+
+  const isAudioUploadDisabled = !primaryIsAsrEnabled || !primarySelectedAsrModel;
 
   // Router state
   const location = useLocation();
@@ -179,6 +204,40 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const [disabledStates, setDisabledStates] = React.useState<Map<string, boolean>>(new Map());
   const [metricsStates, setMetricsStates] = React.useState<Map<string, ResponseMetrics | null>>(
     new Map(),
+  );
+
+  // Vision image upload state
+  const [imageUploadState, setImageUploadState] = React.useState<ImageUploadState>({
+    uploading: false,
+    progress: 0,
+    fileId: null,
+    previewUrl: null,
+    fileName: null,
+  });
+  const [hasImageInConversation, setHasImageInConversation] = React.useState(false);
+  const [pendingDocChips, setPendingDocChips] = React.useState<PendingDocChip[]>([]);
+  const [showReplaceMediaModal, setShowReplaceMediaModal] = React.useState(false);
+  const pendingReplaceFileRef = React.useRef<File | null>(null);
+  const visionXhrRef = React.useRef<XMLHttpRequest | null>(null);
+  const uploadGenRef = React.useRef(0);
+  const previewUrlRef = React.useRef<string | null>(null);
+  previewUrlRef.current = imageUploadState.previewUrl;
+
+  // Audio transcription state
+  const audioTranscription = useAudioTranscription();
+  const [hasAudioInCurrentMessage, setHasAudioInCurrentMessage] = React.useState(false);
+  const audioUploadLatchRef = React.useRef(false);
+  const [showAudioPerMessageModal, setShowAudioPerMessageModal] = React.useState(false);
+  const [messageBarValue, setMessageBarValue] = React.useState<string>('');
+
+  // Revoke unsent image preview blob URL on unmount
+  React.useEffect(
+    () => () => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    },
+    [],
   );
 
   // Callbacks
@@ -234,31 +293,317 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [],
   );
 
+  const hasReadyImage = !!imageUploadState.fileId && !imageUploadState.uploading;
+  const hasReadyDocs = pendingDocChips.some((c) => c.status === 'uploaded');
+  const hasReadyAttachments = hasReadyImage || hasReadyDocs;
+
   const handleSendMessage = React.useCallback(
     (message: string) => {
+      let effectiveMessage = message;
+      if (!message.trim() && hasReadyAttachments) {
+        if (hasReadyImage && hasReadyDocs) {
+          effectiveMessage = 'Describe the image and summarize the attached documents';
+        } else if (hasReadyImage) {
+          effectiveMessage = 'Describe the image';
+        } else {
+          effectiveMessage = 'Summarize the attached documents';
+        }
+      }
+
       const compareID = isCompareMode ? getId() : '';
-      messageHooksRef.current.forEach((hook) => hook.handleMessageSend(message, compareID));
-      setLastInput(message);
+      const fileId = imageUploadState.fileId || undefined;
+      const imagePreview =
+        imageUploadState.previewUrl && imageUploadState.fileName
+          ? { previewUrl: imageUploadState.previewUrl, fileName: imageUploadState.fileName }
+          : undefined;
+
+      const docAttachments = pendingDocChips
+        .filter((c) => c.status === 'uploaded')
+        .map((c) => c.fileName);
+
+      messageHooksRef.current.forEach((hook) =>
+        hook.handleMessageSend(
+          effectiveMessage,
+          compareID,
+          fileId,
+          imagePreview,
+          docAttachments.length > 0 ? docAttachments : undefined,
+        ),
+      );
+      setLastInput(effectiveMessage);
+
+      if (fileId) {
+        setHasImageInConversation(true);
+        setImageUploadState({
+          uploading: false,
+          progress: 0,
+          fileId: null,
+          previewUrl: null,
+          fileName: null,
+        });
+      }
+
+      setPendingDocChips([]);
+      audioUploadLatchRef.current = false;
+      setHasAudioInCurrentMessage(false);
+      setMessageBarValue('');
     },
-    [setLastInput, isCompareMode],
+    [
+      setLastInput,
+      isCompareMode,
+      imageUploadState.fileId,
+      imageUploadState.previewUrl,
+      imageUploadState.fileName,
+      pendingDocChips,
+      hasReadyAttachments,
+      hasReadyImage,
+      hasReadyDocs,
+    ],
   );
 
   const handleStopStreaming = React.useCallback(() => {
     messageHooksRef.current.forEach((hook) => hook.handleStopStreaming());
   }, []);
 
+  React.useEffect(() => {
+    setPendingDocChips((prev) => {
+      const updated = prev.map((chip) => {
+        const match = sourceManagement.filesWithSettings.find((f) => f.file.name === chip.fileName);
+        if (!match) {
+          return chip;
+        }
+        if (match.status === 'uploaded' && chip.status !== 'uploaded') {
+          return { ...chip, status: 'uploaded' as const };
+        }
+        if (match.status === 'failed' && chip.status !== 'failed') {
+          return { ...chip, status: 'failed' as const };
+        }
+        return chip;
+      });
+      // Remove chips whose files were removed from filesWithSettings (e.g. modal cancelled)
+      const filtered = updated.filter(
+        (chip) =>
+          chip.status === 'uploaded' ||
+          chip.status === 'failed' ||
+          sourceManagement.filesWithSettings.some((f) => f.file.name === chip.fileName),
+      );
+      const hasChanges =
+        filtered.length !== prev.length || filtered.some((chip, i) => chip !== prev[i]);
+      return hasChanges ? filtered : prev;
+    });
+  }, [sourceManagement.filesWithSettings]);
+
   const handleAttach = React.useCallback(
     <T extends File>(acceptedFiles: T[], _fileRejections: unknown, event: DropEvent) => {
+      const newChips: PendingDocChip[] = acceptedFiles.map((file) => ({
+        id: crypto.randomUUID(),
+        fileName: file.name,
+        status: 'uploading' as const,
+      }));
+      setPendingDocChips((prev) => [...prev, ...newChips]);
+
       sourceManagement.handleSourceDrop(event, acceptedFiles).catch((error) => {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         alertManagement.onShowErrorAlert(
           `Failed to process files: ${errorMessage}`,
           'File Upload Error',
         );
+        const failedNames = new Set(acceptedFiles.map((f) => f.name));
+        setPendingDocChips((prev) => prev.filter((c) => !failedNames.has(c.fileName)));
       });
     },
     [sourceManagement, alertManagement],
   );
+
+  const handleRemoveDocChip = React.useCallback(
+    (chipId: string) => {
+      const chip = pendingDocChips.find((c) => c.id === chipId);
+      if (!chip) {
+        return;
+      }
+
+      if (chip.status === 'uploaded') {
+        const matchedFile = fileManagement.files.find((f) => f.filename === chip.fileName);
+        if (matchedFile) {
+          Promise.resolve(fileManagement.deleteFileById(matchedFile.id)).catch(() => {
+            // Best-effort deletion — chip is already removed from UI
+          });
+        }
+      }
+      sourceManagement.removeUploadedSource(chip.fileName);
+
+      setPendingDocChips((prev) => prev.filter((c) => c.id !== chipId));
+    },
+    [pendingDocChips, fileManagement, sourceManagement],
+  );
+
+  const performImageUpload = React.useCallback(
+    (file: File) => {
+      uploadGenRef.current += 1;
+      const gen = uploadGenRef.current;
+
+      const previewUrl = URL.createObjectURL(file);
+      const ext = file.name.lastIndexOf('.');
+      const normalizedName =
+        ext !== -1 ? file.name.slice(0, ext) + file.name.slice(ext).toLowerCase() : file.name;
+      setImageUploadState({
+        uploading: true,
+        progress: 0,
+        fileId: null,
+        previewUrl,
+        fileName: normalizedName,
+      });
+
+      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(namespace?.name || '')}`;
+      const { promise, xhr } = uploadMediaFile(url, file, 'vision', (percent) => {
+        setImageUploadState((prev) => ({ ...prev, progress: percent }));
+      });
+      visionXhrRef.current = xhr;
+
+      promise
+        .then((response) => {
+          if (uploadGenRef.current !== gen) {
+            return;
+          }
+          setImageUploadState((prev) => ({
+            ...prev,
+            uploading: false,
+            fileId: response.data.id,
+          }));
+        })
+        .catch((error) => {
+          if (uploadGenRef.current !== gen) {
+            return;
+          }
+          URL.revokeObjectURL(previewUrl);
+          setImageUploadState({
+            uploading: false,
+            progress: 0,
+            fileId: null,
+            previewUrl: null,
+            fileName: null,
+          });
+          if (error instanceof Error && error.message !== 'Upload aborted') {
+            alertManagement.onShowErrorAlert(
+              `${file.name} failed to upload. Please try again.`,
+              'Image Upload Error',
+            );
+          }
+        })
+        .finally(() => {
+          if (uploadGenRef.current === gen) {
+            visionXhrRef.current = null;
+          }
+        });
+    },
+    [namespace?.name, alertManagement],
+  );
+
+  const handleImageUpload = React.useCallback(
+    (file: File) => {
+      if (imageUploadState.fileName && !hasImageInConversation) {
+        pendingReplaceFileRef.current = file;
+        setShowReplaceMediaModal(true);
+        return;
+      }
+      performImageUpload(file);
+    },
+    [imageUploadState.fileName, hasImageInConversation, performImageUpload],
+  );
+
+  const handleReplaceMediaConfirm = React.useCallback(() => {
+    if (imageUploadState.uploading) {
+      visionXhrRef.current?.abort();
+    }
+    if (imageUploadState.previewUrl) {
+      URL.revokeObjectURL(imageUploadState.previewUrl);
+    }
+    setShowReplaceMediaModal(false);
+    const file = pendingReplaceFileRef.current;
+    pendingReplaceFileRef.current = null;
+    if (file) {
+      performImageUpload(file);
+    }
+  }, [imageUploadState.uploading, imageUploadState.previewUrl, performImageUpload]);
+
+  const handleReplaceMediaCancel = React.useCallback(() => {
+    setShowReplaceMediaModal(false);
+    pendingReplaceFileRef.current = null;
+  }, []);
+
+  const handleRemoveImage = React.useCallback(() => {
+    if (imageUploadState.uploading) {
+      visionXhrRef.current?.abort();
+    }
+    if (imageUploadState.previewUrl) {
+      URL.revokeObjectURL(imageUploadState.previewUrl);
+    }
+    setImageUploadState({
+      uploading: false,
+      progress: 0,
+      fileId: null,
+      previewUrl: null,
+      fileName: null,
+    });
+  }, [imageUploadState.uploading, imageUploadState.previewUrl]);
+
+  // Audio upload handler
+  const handleAudioUpload = React.useCallback(
+    (file: File) => {
+      if (hasAudioInCurrentMessage || audioUploadLatchRef.current) {
+        setShowAudioPerMessageModal(true);
+        return;
+      }
+      if (!primarySelectedAsrModel) {
+        return;
+      }
+      audioUploadLatchRef.current = true;
+      setHasAudioInCurrentMessage(true);
+      audioTranscription.startUpload(file, primarySelectedAsrModel, namespace?.name || '');
+    },
+    [hasAudioInCurrentMessage, primarySelectedAsrModel, namespace?.name, audioTranscription],
+  );
+
+  const handleAudioCancel = React.useCallback(() => {
+    audioTranscription.abort();
+    audioUploadLatchRef.current = false;
+    setHasAudioInCurrentMessage(false);
+  }, [audioTranscription]);
+
+  // Append transcribed text to message bar on completion
+  const { phase, transcribedText } = audioTranscription.state;
+  React.useEffect(() => {
+    if (phase === 'complete' && transcribedText) {
+      setMessageBarValue((prev) => {
+        const trimmed = prev.trim();
+        if (trimmed) {
+          return `${trimmed}\n${transcribedText}`;
+        }
+        return transcribedText;
+      });
+      audioUploadLatchRef.current = false;
+      audioTranscription.reset();
+    }
+  }, [phase, transcribedText, audioTranscription]);
+
+  // Reset audio state on error
+  React.useEffect(() => {
+    if (audioTranscription.state.phase === 'error') {
+      audioUploadLatchRef.current = false;
+      setHasAudioInCurrentMessage(false);
+    }
+  }, [audioTranscription.state.phase]);
+
+  // Allow re-upload when user clears transcribed text from input
+  React.useEffect(() => {
+    if (
+      hasAudioInCurrentMessage &&
+      !messageBarValue.trim() &&
+      audioTranscription.state.phase === 'idle'
+    ) {
+      setHasAudioInCurrentMessage(false);
+    }
+  }, [messageBarValue, hasAudioInCurrentMessage, audioTranscription.state.phase]);
 
   const openSettingsToTab = location.state?.openSettingsToTab;
 
@@ -346,6 +691,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     if (ref) {
       ref.current = () => {
         messageHooksRef.current.forEach((hook) => hook.clearConversation());
+        setHasImageInConversation(false);
+        handleRemoveImage();
+        setPendingDocChips([]);
+        audioTranscription.abort();
+        audioUploadLatchRef.current = false;
+        setHasAudioInCurrentMessage(false);
+        setMessageBarValue('');
       };
     }
     return () => {
@@ -353,7 +705,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         ref.current = null;
       }
     };
-  }, [clearAllMessagesRef]);
+  }, [clearAllMessagesRef, handleRemoveImage, audioTranscription]);
 
   // Expose hasConversationMessages to parent (beyond the initial welcome message)
   React.useEffect(() => {
@@ -419,11 +771,14 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
           showWelcomePrompt
+          welcomeContent={welcomeContent}
+          placeholderBotContent={placeholderBotContent}
           welcomeDescription={isCompareMode ? 'Send a message to compare models' : undefined}
           onWelcomePromptClick={handleSendMessage}
           onMessagesHookReady={getHookReadyCallback(configId)}
           configIndex={isCompareMode ? index + 1 : 0}
           isCompareMode={isCompareMode}
+          hasImagesInConversation={hasImageInConversation}
         />
       </ChatbotContent>
     </Chatbot>
@@ -440,54 +795,66 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         isUploading={sourceManagement.isUploading}
         uploadProgress={sourceManagement.uploadProgress}
       />
-      <ViewCodeModal
-        isOpen={isViewCodeModalOpen}
-        onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
-        input={lastInput}
-        files={fileManagement.files}
-        mcpServers={mcpServers}
-        mcpServerTokens={mcpServerTokens}
-        namespace={namespace?.name}
-      />
-      <ChatModal
-        isOpen={isNewChatModalOpen}
-        onClose={() => setIsNewChatModalOpen(false)}
-        onConfirm={() => {
-          messageHooksRef.current.forEach((hook) => hook.clearConversation());
-          if (isCompareMode) {
-            fireMiscTrackingEvent('Playground Compare Chat Cleared', { success: true });
-          }
-          setIsNewChatModalOpen(false);
-        }}
-      />
+      {!isEmbedded && (
+        <ViewCodeModal
+          isOpen={isViewCodeModalOpen}
+          onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
+          input={lastInput}
+          files={fileManagement.files}
+          mcpServers={mcpServers}
+          mcpServerTokens={mcpServerTokens}
+          namespace={namespace?.name}
+        />
+      )}
+      {!isEmbedded && (
+        <ChatModal
+          isOpen={isNewChatModalOpen}
+          onClose={() => setIsNewChatModalOpen(false)}
+          onConfirm={() => {
+            messageHooksRef.current.forEach((hook) => hook.clearConversation());
+            setHasImageInConversation(false);
+            handleRemoveImage();
+            setPendingDocChips([]);
+            audioTranscription.abort();
+            setHasAudioInCurrentMessage(false);
+            setMessageBarValue('');
+            if (isCompareMode) {
+              fireMiscTrackingEvent('Playground Compare Chat Cleared', { success: true });
+            }
+            setIsNewChatModalOpen(false);
+          }}
+        />
+      )}
 
       {/* Main layout */}
-      <Drawer isExpanded={isDrawerExpanded} isInline position="left">
+      <Drawer isExpanded={isDrawerExpanded && !isEmbedded} isInline position="left">
         <Divider />
         <DrawerContent
           panelContent={
-            <ChatbotSettingsPanel
-              configId={activePaneConfigId}
-              alerts={alerts}
-              sourceManagement={sourceManagement}
-              fileManagement={fileManagement}
-              initialServerStatuses={mcpServerStatusesFromRoute}
-              mcpServers={mcpServers}
-              mcpServersLoaded={mcpServersLoaded}
-              mcpServersLoadError={mcpServersLoadError}
-              mcpServerTokens={mcpServerTokens}
-              onMcpServerTokensChange={setMcpServerTokens}
-              checkMcpServerStatus={checkMcpServerStatus}
-              onCloseClick={() => setIsDrawerExpanded(false)}
-              onActiveConfigChange={setActivePaneConfigId}
-              defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
-            />
+            !isEmbedded ? (
+              <ChatbotSettingsPanel
+                configId={activePaneConfigId}
+                alerts={alerts}
+                sourceManagement={sourceManagement}
+                fileManagement={fileManagement}
+                initialServerStatuses={mcpServerStatusesFromRoute}
+                mcpServers={mcpServers}
+                mcpServersLoaded={mcpServersLoaded}
+                mcpServersLoadError={mcpServersLoadError}
+                mcpServerTokens={mcpServerTokens}
+                onMcpServerTokensChange={setMcpServerTokens}
+                checkMcpServerStatus={checkMcpServerStatus}
+                onCloseClick={() => setIsDrawerExpanded(false)}
+                onActiveConfigChange={setActivePaneConfigId}
+                defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
+              />
+            ) : undefined
           }
         >
           <DrawerContentBody style={{ padding: 0, height: '100%' }}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               {/* Single mode header */}
-              {!isCompareMode && (
+              {!isCompareMode && !isEmbedded && (
                 <ChatbotPaneHeader
                   selectedModel={primarySelectedModel || ''}
                   onModelChange={setSelectedModel}
@@ -542,12 +909,34 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 isSendDisabled={
                   !modelsLoaded ||
                   !primarySelectedModel ||
-                  Array.from(disabledStates.values()).some(Boolean)
+                  Array.from(disabledStates.values()).some(Boolean) ||
+                  imageUploadState.uploading ||
+                  pendingDocChips.some((c) => c.status === 'uploading') ||
+                  audioTranscription.state.phase === 'uploading' ||
+                  audioTranscription.state.phase === 'transcribing' ||
+                  audioTranscription.state.phase === 'complete'
                 }
-                showAttachButton={!isCompareMode}
-                onAttach={handleAttach}
-                onShowErrorAlert={alertManagement.onShowErrorAlert}
+                showAttachButton={!isCompareMode && !isEmbedded}
+                onDocumentAttach={handleAttach}
                 isDarkMode={isDarkMode}
+                onImageUpload={handleImageUpload}
+                imageUploadState={imageUploadState}
+                onRemoveImage={handleRemoveImage}
+                isImageUploadDisabled={hasImageInConversation}
+                isAudioUploadDisabled={isAudioUploadDisabled}
+                audioDisabledTooltip={
+                  isAudioUploadDisabled
+                    ? 'Select a transcription model in settings to enable audio upload'
+                    : undefined
+                }
+                onAudioUpload={handleAudioUpload}
+                audioTranscriptionState={audioTranscription.state}
+                onAudioCancel={handleAudioCancel}
+                pendingDocChips={pendingDocChips}
+                onRemoveDocChip={handleRemoveDocChip}
+                alwaysShowSendButton={hasReadyAttachments}
+                messageBarValue={messageBarValue}
+                onMessageBarValueChange={setMessageBarValue}
               />
             </div>
           </DrawerContentBody>
@@ -563,6 +952,58 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           }}
           onCancel={() => setPendingCloseConfigId(null)}
         />
+      )}
+
+      {showReplaceMediaModal && (
+        <Modal
+          isOpen
+          onClose={handleReplaceMediaCancel}
+          variant="small"
+          data-testid="replace-media-modal"
+        >
+          <ModalHeader title="Replace media file?" />
+          <ModalBody>
+            <p>
+              This conversation already has a media file attached. Only one image, audio, or video
+              file is supported per conversation.
+            </p>
+            <p style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              The new file will replace the existing media attachment. Text file attachments are not
+              affected.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <DashboardModalFooter
+              submitLabel="Replace"
+              onSubmit={handleReplaceMediaConfirm}
+              onCancel={handleReplaceMediaCancel}
+            />
+          </ModalFooter>
+        </Modal>
+      )}
+
+      {showAudioPerMessageModal && (
+        <Modal
+          isOpen
+          onClose={() => setShowAudioPerMessageModal(false)}
+          variant="small"
+          data-testid="audio-per-message-modal"
+        >
+          <ModalHeader title="Audio already attached" />
+          <ModalBody>
+            Only one audio file can be transcribed per message. Send the current message or clear
+            the transcription to attach another audio file.
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="primary"
+              onClick={() => setShowAudioPerMessageModal(false)}
+              data-testid="audio-per-message-modal-ok"
+            >
+              OK
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </>
   );

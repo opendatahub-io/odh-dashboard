@@ -16,7 +16,7 @@ import {
   mockNimInferenceService,
   mockNimProject,
   mockNimServingRuntime,
-} from '@odh-dashboard/internal/__mocks__/mockNimResource';
+} from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import {

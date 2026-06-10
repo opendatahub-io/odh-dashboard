@@ -43,7 +43,8 @@
     "lint:fix": "cd frontend && npm run lint:fix"
   },
   "exports": {
-    "./extension-points": "./frontend/src/odh/extension-points/index.ts"
+    "./extension-points": "./frontend/src/odh/extension-points/index.ts",
+    "./types": "./frontend/src/types/index.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

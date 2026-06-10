@@ -27,7 +27,12 @@ import './AutoragResults.scss';
 
 const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
 
-function AutoragResults(): React.JSX.Element {
+type AutoragResultsProps = {
+  onTryPattern?: (patternName: string) => void;
+  onViewCode?: (patternName: string) => void;
+};
+
+function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
   const { pipelineRun, patterns, ragPatternsBasePath } = useAutoragResultsContext();
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
@@ -157,6 +162,8 @@ function AutoragResults(): React.JSX.Element {
           <AutoragLeaderboard
             onViewDetails={handleViewDetails}
             onSaveNotebook={handleSaveNotebook}
+            onTryPattern={onTryPattern}
+            onViewCode={onViewCode}
           />
         </StackItem>
       </Stack>
@@ -173,6 +180,8 @@ function AutoragResults(): React.JSX.Element {
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}
             onSaveNotebook={handleSaveNotebook}
+            onTryPattern={onTryPattern}
+            onViewCode={onViewCode}
           />
         </React.Suspense>
       )}

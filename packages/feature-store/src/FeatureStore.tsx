@@ -9,6 +9,7 @@ import {
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
 import FeatureStorePageTitle from './components/FeatureStorePageTitle';
 import FeatureStoreWarningAlert from './components/FeatureStoreWarningAlert';
+import ConnectedWorkbenchesLink from './components/ConnectedWorkbenchesLink';
 import { featureStoreRoute } from './routes';
 import { FeatureStoreTabs, FeatureStoreObject } from './const';
 import Metrics from './screens/metrics/Metrics';
@@ -68,11 +69,14 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
       headerContent={
         <Flex direction={{ default: 'column' }}>
           <FeatureStoreWarningAlert />
-          <FeatureStoreProjectSelectorNavigator
-            getRedirectPath={(featureStoreObject, featureStoreProject) =>
-              `${featureStoreRoute(featureStoreObject, featureStoreProject)}`
-            }
-          />
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+            <FeatureStoreProjectSelectorNavigator
+              getRedirectPath={(featureStoreObject, featureStoreProject) =>
+                `${featureStoreRoute(featureStoreObject, featureStoreProject)}`
+              }
+            />
+            <ConnectedWorkbenchesLink />
+          </Flex>
         </Flex>
       }
       loaded

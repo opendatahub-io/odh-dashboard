@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
@@ -36,6 +37,28 @@ import (
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/services"
 )
+
+var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
+var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
+
+func isHashedAsset(filePath string) bool {
+	match := hashPattern.FindString(path.Base(filePath))
+	return match != "" && strings.ContainsAny(match, "abcdef")
+}
+
+func isStaticAsset(filePath string) bool {
+	return staticAssetPattern.MatchString(filePath)
+}
+
+func cacheControlForStaticFile(filePath string) string {
+	if isHashedAsset(filePath) {
+		return "public, max-age=31536000, immutable"
+	}
+	if isStaticAsset(filePath) {
+		return "public, max-age=86400"
+	}
+	return "no-cache"
+}
 
 type App struct {
 	config                  config.EnvConfig
@@ -374,6 +397,10 @@ func (app *App) Routes() http.Handler {
 	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
 	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
 
+	// Responses passthrough — forwards pre-built OGX API request bodies as-is.
+	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).
+	apiRouter.POST(constants.ResponsesPassthroughPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.LlamaStackPassthroughResponseHandler))))
+
 	// Vector Stores (LlamaStack)
 	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoresHandler))))
 	apiRouter.POST(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackCreateVectorStoreHandler))))
@@ -384,6 +411,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackUploadFileHandler))))
 	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteFileHandler))))
+	apiRouter.POST(constants.MediaFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackMediaFileUploadHandler))))
+
+	// Audio Transcription (ASR)
+	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler))))
 
 	// Vector Store Files (LlamaStack)
 	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoreFilesHandler))))
@@ -458,16 +489,19 @@ func (app *App) Routes() http.Handler {
 	// Guardrails API route
 	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))
 
+	// Agent Profiles API routes
+	apiRouter.POST(constants.AgentProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.CreateAgentProfileHandler)))
+
 	// App Router
 	appMux := http.NewServeMux()
 
 	// handler for api calls
-	appMux.Handle(constants.PathPrefix+constants.ApiPathPrefix+"/", http.StripPrefix(constants.PathPrefix, apiRouter))
+	appMux.Handle(constants.PathPrefix+constants.ApiPathPrefix+"/", app.MaxBodySize(http.StripPrefix(constants.PathPrefix, apiRouter)))
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
-	appMux.Handle(constants.ApiPathPrefix+"/", apiRouter)
+	appMux.Handle(constants.ApiPathPrefix+"/", app.MaxBodySize(apiRouter))
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 
@@ -477,15 +511,17 @@ func (app *App) Routes() http.Handler {
 
 			// Check if the requested file exists
 			cleanPath := path.Clean(r.URL.Path)
-			if _, err := staticDir.Open(cleanPath); err == nil {
+			if f, err := staticDir.Open(cleanPath); err == nil {
+				f.Close()
 				ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
-				// Serve the file if it exists
+				w.Header().Set("Cache-Control", cacheControlForStaticFile(cleanPath))
 				fileServer.ServeHTTP(w, r)
 				return
 			}
 
 			// Fallback to index.html for SPA routes
 			ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+			w.Header().Set("Cache-Control", "no-cache")
 			http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
 			return
 		}

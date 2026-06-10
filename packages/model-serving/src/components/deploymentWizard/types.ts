@@ -85,6 +85,7 @@ export enum ModelStateToggleLabel {
 }
 
 export enum WizardStepTitle {
+  PRECONFIGURE = 'Preconfigure deployment',
   MODEL_DETAILS = 'Model details',
   MODEL_DEPLOYMENT = 'Model deployment',
   ADVANCED_SETTINGS = 'Advanced settings',

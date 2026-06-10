@@ -1,9 +1,86 @@
 /* eslint-disable camelcase */
 import { ModelRegistryMetadataType, ModelRegistryCustomProperties } from '~/app/types';
 import {
+  getValueLabels,
   getValidatedOnPlatforms,
   getValidatedDeploymentResources,
 } from '~/app/pages/modelRegistry/screens/utils';
+
+describe('getValueLabels', () => {
+  it('should return empty array when customProperties is empty', () => {
+    expect(getValueLabels({}, ['foo'])).toEqual([]);
+  });
+
+  it('should return empty array when keys list is empty', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      hardware_tag: {
+        string_value: 'Example Tag',
+        metadataType: ModelRegistryMetadataType.STRING,
+      },
+    };
+    expect(getValueLabels(customProperties, [])).toEqual([]);
+  });
+
+  it('should return value when key is present with a valid string value', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      hardware_tag: {
+        string_value: 'Example Tag',
+        metadataType: ModelRegistryMetadataType.STRING,
+      },
+    };
+    expect(getValueLabels(customProperties, ['hardware_tag'])).toEqual(['Example Tag']);
+  });
+
+  it('should exclude key whose string_value is empty', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      hardware_tag: {
+        string_value: '',
+        metadataType: ModelRegistryMetadataType.STRING,
+      },
+    };
+    expect(getValueLabels(customProperties, ['hardware_tag'])).toEqual([]);
+  });
+
+  it('should exclude key with non-STRING metadata type', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      count: {
+        int_value: '42',
+        metadataType: ModelRegistryMetadataType.INT,
+      },
+    };
+    expect(getValueLabels(customProperties, ['count'])).toEqual([]);
+  });
+
+  it('should skip keys that are missing from customProperties', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      hardware_tag: {
+        string_value: 'Example Tag',
+        metadataType: ModelRegistryMetadataType.STRING,
+      },
+    };
+    expect(getValueLabels(customProperties, ['missing_key'])).toEqual([]);
+  });
+
+  it('should return values only for matching keys in order', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      hardware_tag: {
+        string_value: 'Example Tag',
+        metadataType: ModelRegistryMetadataType.STRING,
+      },
+      provider: {
+        string_value: 'Red Hat',
+        metadataType: ModelRegistryMetadataType.STRING,
+      },
+      count: {
+        int_value: '5',
+        metadataType: ModelRegistryMetadataType.INT,
+      },
+    };
+    expect(
+      getValueLabels(customProperties, ['provider', 'missing', 'count', 'hardware_tag']),
+    ).toEqual(['Red Hat', 'Example Tag']);
+  });
+});
 
 describe('getValidatedOnPlatforms', () => {
   it('should return empty array when customProperties is undefined', () => {

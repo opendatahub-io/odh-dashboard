@@ -18,6 +18,7 @@ type MockEvaluationJobOptions = Partial<{
   scorePass: boolean;
   threshold: number;
   benchmarkResults: EvaluationJob['results']['benchmarks'];
+  mlflowExperimentId: string;
 }>;
 
 export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): EvaluationJob => ({
@@ -27,6 +28,9 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
     created_at: options.createdAt ?? '2026-03-10T14:30:00Z',
     updated_at: options.createdAt ?? '2026-03-10T14:30:00Z',
     owner: options.owner ?? 'user@example.com',
+    ...(options.mlflowExperimentId !== undefined && {
+      mlflow_experiment_id: options.mlflowExperimentId,
+    }),
   },
   status: {
     state: options.state ?? 'completed',
