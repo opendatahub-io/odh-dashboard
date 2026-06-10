@@ -51,7 +51,33 @@ export function usePromptsList(options: UsePromptsListOptions = {}): UsePromptsL
           // eslint-disable-next-line camelcase -- MLflow API uses snake_case
           queryParams.page_token = pageParam;
         }
-        return api.listMLflowPrompts(queryParams);
+        const response = await api.listMLflowPrompts(queryParams);
+
+        // MLflow latest_version may not be workspace-scoped. Correct it by
+        // fetching the actual version per prompt, batched to limit concurrency.
+        const CONCURRENCY_LIMIT = 5;
+        const correctedPrompts: MLflowPrompt[] = [];
+        for (let i = 0; i < response.prompts.length; i += CONCURRENCY_LIMIT) {
+          const batch = response.prompts.slice(i, i + CONCURRENCY_LIMIT);
+          const correctedBatch = await Promise.all(
+            batch.map(async (prompt) => {
+              try {
+                const latest = await api.getMLflowPrompt({ name: prompt.name });
+                const safeLatestVersion =
+                  typeof latest.version === 'number' && Number.isFinite(latest.version)
+                    ? latest.version
+                    : prompt.latest_version;
+                // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+                return { ...prompt, latest_version: safeLatestVersion };
+              } catch {
+                return prompt;
+              }
+            }),
+          );
+          correctedPrompts.push(...correctedBatch);
+        }
+
+        return { ...response, prompts: correctedPrompts };
       },
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.next_page_token,
@@ -161,6 +187,9 @@ export function useCreatePrompt(options: UseCreatePromptOptions = {}): UseCreate
       queryClient.invalidateQueries({ queryKey: [`${namespace?.name}_prompts`, 'list'] });
       queryClient.invalidateQueries({
         queryKey: [`${namespace?.name}_prompts`, data.name, 'versions'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`${namespace?.name}_prompts`, data.name, 'latest'],
       });
       onSuccess?.(data);
     },
