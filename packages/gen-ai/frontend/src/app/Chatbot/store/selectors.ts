@@ -107,5 +107,11 @@ export const selectIsAsrModelEnabled =
   (state: ChatbotConfigStore): boolean =>
     state.configurations[configId]?.isAsrModelEnabled ?? DEFAULT_CONFIGURATION.isAsrModelEnabled;
 
+// Vision image selector
+export const selectHasVisionImage =
+  (configId: string) =>
+  (state: ChatbotConfigStore): boolean =>
+    state.configurations[configId]?.hasVisionImage ?? DEFAULT_CONFIGURATION.hasVisionImage;
+
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;

@@ -40,6 +40,8 @@ export interface ChatbotConfiguration {
   selectedAsrModel: string;
   /** Whether the user has opted in to the transcription model section */
   isAsrModelEnabled: boolean;
+  /** Whether a vision image has been attached/sent in this conversation */
+  hasVisionImage: boolean;
 }
 
 /**
@@ -67,6 +69,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   variableValues: {},
   selectedAsrModel: '',
   isAsrModelEnabled: false,
+  hasVisionImage: false,
 };
 
 /**
@@ -115,6 +118,9 @@ export interface ChatbotConfigStoreActions {
   // ASR model selection (per-pane)
   updateSelectedAsrModel: (id: string, value: string) => void;
   updateAsrModelEnabled: (id: string, value: boolean) => void;
+
+  // Vision image state
+  updateHasVisionImage: (id: string, value: boolean) => void;
 
   // RAG toggle (per-pane)
   updateRagEnabled: (id: string, value: boolean) => void;
