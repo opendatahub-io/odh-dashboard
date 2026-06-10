@@ -38,10 +38,9 @@
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@hookform/resolvers": "^3.9.1",
-    "@mui/material": "^6.1.10",
-    "marked": "^15.0.4",
+    "@mui/material": "^6.5.0",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*",
     "@perses-dev/bar-chart-plugin": "^0.11.1",
@@ -70,17 +69,13 @@
     "@perses-dev/timeseries-table-plugin": "^0.11.1",
     "@perses-dev/trace-table-plugin": "^0.10.1",
     "@perses-dev/tracing-gantt-chart-plugin": "^0.12.1",
-    "@tanstack/react-query": "^4.36.1",
-    "use-query-params": "^2.2.1"
+    "@tanstack/react-query": "^4.44.0",
+    "use-query-params": "^2.2.2"
   },
   "devDependencies": {
     "@odh-dashboard/cypress": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
-  },
-  "peerDependencies": {
-    "react": "^18",
-    "react-dom": "^18"
   }
 }

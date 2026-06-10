@@ -19,8 +19,7 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/kserve": "*",
     "@odh-dashboard/model-serving": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@openshift/dynamic-plugin-sdk-utils": "*"
+    "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",

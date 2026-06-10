@@ -16,13 +16,9 @@
     "./extension-points": "./src/extension-points/index.ts",
     "./testing": "./src/testing/utils.ts"
   },
-  "dependencies": {
-    "@openshift/dynamic-plugin-sdk": "^5.0.1"
-  },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*",
-    "@types/node": "^22.0.0"
+    "@odh-dashboard/tsconfig": "*"
   }
 }

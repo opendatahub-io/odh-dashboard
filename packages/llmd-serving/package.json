@@ -20,11 +20,13 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
+    "@odh-dashboard/kserve": "*",
     "@odh-dashboard/model-serving": "*",
-    "@odh-dashboard/kserve": "*"
+    "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
   }
 }

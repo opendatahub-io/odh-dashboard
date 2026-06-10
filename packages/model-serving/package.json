@@ -30,8 +30,7 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/model-registry": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "yaml": "^2.8.2"
+    "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
