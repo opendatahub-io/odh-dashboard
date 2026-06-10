@@ -794,6 +794,12 @@ func (m *TokenKubernetesClientMock) GetInferenceServiceURL(_ context.Context, _ 
 	return "", nil
 }
 
+// ListAgentProfiles lists mock AgentProfile ConfigMaps for testing
+func (m *TokenKubernetesClientMock) ListAgentProfiles(ctx context.Context, namespace string) (*models.AgentProfileListResponse, error) {
+	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
+	return m.TokenKubernetesClient.ListAgentProfiles(ctx, namespace)
+}
+
 // CreateAgentProfile creates a mock AgentProfile ConfigMap for testing
 func (m *TokenKubernetesClientMock) CreateAgentProfile(ctx context.Context, namespace string, profile *models.AgentProfile) (*models.AgentProfileCreateResponse, error) {
 	// Use the embedded TokenKubernetesClient which already has all the validation and logic,
@@ -805,4 +811,16 @@ func (m *TokenKubernetesClientMock) CreateAgentProfile(ctx context.Context, name
 func (m *TokenKubernetesClientMock) GetAgentProfile(ctx context.Context, namespace string, name string) (*models.AgentProfile, error) {
 	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
 	return m.TokenKubernetesClient.GetAgentProfile(ctx, namespace, name)
+}
+
+// UpdateAgentProfile updates a mock AgentProfile ConfigMap for testing
+func (m *TokenKubernetesClientMock) UpdateAgentProfile(ctx context.Context, namespace string, profileID string, request *models.AgentProfileUpdateRequest) (*models.AgentProfileUpdateResponse, error) {
+	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
+	return m.TokenKubernetesClient.UpdateAgentProfile(ctx, namespace, profileID, request)
+}
+
+// DeleteAgentProfile deletes a mock AgentProfile ConfigMap for testing
+func (m *TokenKubernetesClientMock) DeleteAgentProfile(ctx context.Context, namespace string, profileID string) error {
+	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
+	return m.TokenKubernetesClient.DeleteAgentProfile(ctx, namespace, profileID)
 }
