@@ -36,6 +36,10 @@ export interface ChatbotConfiguration {
   activePrompt: MLflowPromptVersion | null;
   dirtyPrompt: MLflowPromptVersion | null;
   variableValues: Record<string, string>;
+  /** The model_id of the selected ASR (audio transcription) model, or '' if none */
+  selectedAsrModel: string;
+  /** Whether the user has opted in to the transcription model section */
+  isAsrModelEnabled: boolean;
 }
 
 /**
@@ -61,6 +65,8 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   activePrompt: null,
   dirtyPrompt: null,
   variableValues: {},
+  selectedAsrModel: '',
+  isAsrModelEnabled: false,
 };
 
 /**
@@ -105,6 +111,10 @@ export interface ChatbotConfigStoreActions {
   updateGuardrailSubscription: (id: string, value: string) => void;
 
   updateSelectedSubscription: (id: string, value: string) => void;
+
+  // ASR model selection (per-pane)
+  updateSelectedAsrModel: (id: string, value: string) => void;
+  updateAsrModelEnabled: (id: string, value: boolean) => void;
 
   // RAG toggle (per-pane)
   updateRagEnabled: (id: string, value: boolean) => void;
