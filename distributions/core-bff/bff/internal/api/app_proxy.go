@@ -3,6 +3,7 @@ package api
 import (
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
@@ -63,8 +64,10 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 
 	var devFallbackToken string
 	if cfg.DevMode && !cfg.MockK8Client {
-		kc, _ := helpers.GetKubeconfig()
-		if kc != nil {
+		kc, kcErr := helpers.GetKubeconfig()
+		if kcErr != nil {
+			app.logger.Warn("Failed to get kubeconfig for dev fallback token", slog.Any("error", kcErr))
+		} else if kc != nil {
 			devFallbackToken = kc.BearerToken
 		}
 	}

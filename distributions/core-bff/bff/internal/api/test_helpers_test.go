@@ -56,7 +56,8 @@ func (h *captureHandler) findAuditRecord() *slog.Record {
 	defer h.mu.Unlock()
 	for i := range h.records {
 		if h.records[i].Message == "audit" {
-			return &h.records[i]
+			rec := h.records[i]
+			return &rec
 		}
 	}
 	return nil
