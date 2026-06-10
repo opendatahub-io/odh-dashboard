@@ -273,6 +273,7 @@ const createStoreActions = (
       variableValues: { ...sourceConfig.variableValues },
       selectedAsrModel: sourceConfig.selectedAsrModel,
       isAsrModelEnabled: sourceConfig.isAsrModelEnabled,
+      hasVisionImage: sourceConfig.hasVisionImage,
     };
 
     set(
@@ -595,6 +596,19 @@ const createStoreActions = (
       },
       false,
       'updateAsrModelEnabled',
+    );
+  },
+
+  updateHasVisionImage: (id: string, value: boolean) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.hasVisionImage !== value) {
+          config.hasVisionImage = value;
+        }
+      },
+      false,
+      'updateHasVisionImage',
     );
   },
 

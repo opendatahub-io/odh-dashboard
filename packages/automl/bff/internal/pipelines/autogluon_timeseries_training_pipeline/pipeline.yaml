@@ -1,7 +1,8 @@
 # PIPELINE DEFINITION
 # Name: autogluon-timeseries-training-pipeline
-# Description: End-to-end AutoGluon time series forecasting pipeline. Loads time series data from S3 in TimeSeriesDataFrame format (item_id, timestamp, target), trains multiple AutoGluon TimeSeries models (local statistical and global deep learning), ranks them by the chosen eval metric, and produces a leaderboard and the top N trained predictors for deployment. Supports optional known covariates and configurable prediction_length.
+# Description: AutoML time series forecasting pipeline for building accurate, deployment-ready forecasters with minimal tuning. Powered by AutoGluon TimeSeries, it compares statistical and deep learning approaches, refits the best models, and delivers top predictors, back-testing insights, and a ranked leaderboard for model selection.
 # Inputs:
+#    eval_metric: str [Default: 'MASE']
 #    id_column: str
 #    known_covariates_names: list
 #    prediction_length: int [Default: 1.0]
@@ -22,6 +23,12 @@ components:
             schemaVersion: 0.0.1
           description: Test dataset artifact for evaluation.
       parameters:
+        eval_metric:
+          defaultValue: MASE
+          description: Metric for model ranking (e.g. ``"MASE"``, ``"WQL"``). Defaults
+            to ``"MASE"``.
+          isOptional: true
+          parameterType: STRING
         extra_train_data_path:
           description: Path to extra train split for full refit.
           parameterType: STRING
@@ -103,8 +110,7 @@ components:
             with ``metadata["model_names"]`` and per-model subdirectories.'
       parameters:
         eval_metric:
-          description:
-            'Metric name for ranking (e.g. ``"accuracy"``, ``"root_mean_squared_error"``);
+          description: 'Metric name for ranking (e.g. ``"accuracy"``, ``"root_mean_squared_error"``);
 
             leaderboard sorted descending (AutoGluon uses higher-is-better convention).'
           parameterType: STRING
@@ -192,276 +198,307 @@ deploymentSpec:
     exec-autogluon-timeseries-models-training:
       container:
         args:
-          - --executor_input
-          - '{{$}}'
-          - --function_to_execute
-          - autogluon_timeseries_models_training
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - autogluon_timeseries_models_training
         command:
-          - sh
-          - -c
-          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
-            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-            $0\" \"$@\"\n"
-          - sh
-          - -ec
-          - 'program_path=$(mktemp -d)
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
 
 
-            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-            '
-          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-            \ *\n\ndef autogluon_timeseries_models_training(\n    target: str,\n   \
-            \ id_column: str,\n    timestamp_column: str,\n    train_data_path: str,\n\
-            \    test_data: dsl.Input[dsl.Dataset],\n    top_n: int,\n    workspace_path:\
-            \ str,\n    pipeline_name: str,\n    run_id: str,\n    models_artifact:\
-            \ dsl.Output[dsl.Model],\n    extra_train_data_path: str,\n    component_status:\
-            \ dsl.Output[dsl.Artifact],\n    sample_rows: str = \"[]\",\n    sampling_config:\
-            \ Optional[dict] = None,\n    split_config: Optional[dict] = None,\n   \
-            \ prediction_length: int = 1,\n    known_covariates_names: Optional[List[str]]\
-            \ = None,\n) -> NamedTuple(\n    \"outputs\",\n    top_models=List[str],\n\
-            \    predictor_path=str,\n    eval_metric=str,\n    model_config=dict,\n\
-            ):\n    \"\"\"Train, select, and full-refit top N AutoGluon timeseries models.\n\
-            \n    This component combines model generation and full-refit into one step\
-            \ to avoid\n    pipeline-level ``ParallelFor``. It trains multiple AutoGluon\
-            \ TimeSeries models on\n    the selection training data, ranks them on the\
-            \ test set, then sequentially refits\n    the top N models on full train\
-            \ data (selection split + extra split).\n\n    Refit outputs for all selected\
-            \ models are written under one ``models_artifact`` in\n    a layout compatible\
-            \ with ``autogluon_leaderboard_evaluation``.\n\n    Args:\n        target:\
-            \ Name of the target column to forecast.\n        id_column: Name of the\
-            \ column identifying each time series (item_id).\n        timestamp_column:\
-            \ Name of the timestamp/datetime column.\n        train_data_path: Path\
-            \ to the selection training CSV file.\n        test_data: Test dataset artifact\
-            \ for evaluation.\n        top_n: Number of top models to select for full\
-            \ refit.\n        workspace_path: Workspace directory where predictor will\
-            \ be saved.\n        pipeline_name: Pipeline name used in generated notebook\
-            \ placeholders.\n        run_id: Pipeline run id used in generated notebook\
-            \ placeholders.\n        models_artifact: Combined output artifact containing\
-            \ all refitted models.\n        extra_train_data_path: Path to extra train\
-            \ split for full refit.\n        sample_rows: Sample rows JSON string used\
-            \ in generated notebook placeholders.\n        sampling_config: Optional\
-            \ sampling config stored in artifact metadata.\n        split_config: Optional\
-            \ split config stored in artifact metadata.\n        prediction_length:\
-            \ Forecast horizon (number of timesteps).\n        known_covariates_names:\
-            \ Optional list of known covariate column names.\n        component_status:\
-            \ Output artifact containing stage-level progress tracking for this component.\n\
-            \n    Returns:\n        NamedTuple: top_models list, predictor_path, eval_metric,\
-            \ model_config.\n    \"\"\"\n    import json\n    import logging\n    import\
-            \ math\n    from pathlib import Path\n\n    import pandas as pd\n    from\
-            \ autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor\n\
-            \n    logger = logging.getLogger(__name__)\n\n    from kfp_components.components.training.automl.shared.component_status\
-            \ import ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.run_status\
-            \ import shared_automl_dir\n\n    status = ComponentStatusTracker(component_status.path,\
-            \ \"autogluon_timeseries_models_training\")\n    with status:\n        #\
-            \ Set constants\n        DEFAULT_PRESETS = \"fast_training\"\n        DEFAULT_EVAL_METRIC\
-            \ = \"MASE\"\n        DEFAULT_TIME_LIMIT = 600  # 10 minutes\n\n       \
-            \ TOP_N_MAX = 7\n\n        # Input validation\n        for param, value\
-            \ in (\n            (\"target\", target),\n            (\"id_column\", id_column),\n\
-            \            (\"timestamp_column\", timestamp_column),\n            (\"\
-            train_data_path\", train_data_path),\n            (\"workspace_path\", workspace_path),\n\
-            \        ):\n            if not isinstance(value, str) or not value.strip():\n\
-            \                raise TypeError(f\"{param} must be a non-empty string.\"\
-            )\n        if not isinstance(top_n, int):\n            raise TypeError(\"\
-            top_n must be an integer.\")\n        if top_n <= 0 or top_n > TOP_N_MAX:\n\
-            \            raise ValueError(f\"top_n must be an integer in the range (0,\
-            \ {TOP_N_MAX}]; got {top_n}.\")\n        if not isinstance(prediction_length,\
-            \ int):\n            raise TypeError(\"prediction_length must be an integer.\"\
-            )\n        if prediction_length <= 0:\n            raise ValueError(\"prediction_length\
-            \ must be greater than 0.\")\n        if known_covariates_names is not None:\n\
-            \            if not isinstance(known_covariates_names, list) or any(\n \
-            \               (not isinstance(v, str) or not v.strip()) for v in known_covariates_names\n\
-            \            ):\n                raise TypeError(\"known_covariates_names\
-            \ must be a list of non-empty strings or None.\")\n        for param, value\
-            \ in (\n            (\"pipeline_name\", pipeline_name),\n            (\"\
-            run_id\", run_id),\n            (\"extra_train_data_path\", extra_train_data_path),\n\
-            \        ):\n            if not isinstance(value, str) or not value.strip():\n\
-            \                raise TypeError(f\"{param} must be a non-empty string.\"\
-            )\n        if not isinstance(sample_rows, str):\n            raise TypeError(\"\
-            sample_rows must be a string.\")\n        if models_artifact is not None\
-            \ and not hasattr(models_artifact, \"path\"):\n            raise TypeError(\"\
-            models_artifact must be a KFP output artifact or None.\")\n        if not\
-            \ hasattr(component_status, \"path\"):\n            raise TypeError(\"component_status\
-            \ must be a KFP output artifact.\")\n        if not hasattr(models_artifact,\
-            \ \"path\"):\n            raise TypeError(\"models_artifact must be a KFP\
-            \ output artifact.\")\n        if sampling_config is not None and not isinstance(sampling_config,\
-            \ dict):\n            raise TypeError(\"sampling_config must be a dictionary\
-            \ or None.\")\n        if split_config is not None and not isinstance(split_config,\
-            \ dict):\n            raise TypeError(\"split_config must be a dictionary\
-            \ or None.\")\n        sampling_config = sampling_config or {}\n       \
-            \ split_config = split_config or {}\n\n        status.record(\"load_data\"\
-            , \"started\")\n        train_df = pd.read_csv(train_data_path)\n      \
-            \  test_df = pd.read_csv(test_data.path)\n        logger.info(\"Loaded train=%s\
-            \ test=%s rows\", len(train_df), len(test_df))\n\n        train_ts = TimeSeriesDataFrame.from_data_frame(\n\
-            \            train_df,\n            id_column=id_column,\n            timestamp_column=timestamp_column,\n\
-            \        )\n        test_ts = TimeSeriesDataFrame.from_data_frame(\n   \
-            \         test_df,\n            id_column=id_column,\n            timestamp_column=timestamp_column,\n\
-            \        )\n        logger.info(\n            \"Train TimeSeriesDataFrame:\
-            \ %s rows, %s items; test: %s rows, %s items\",\n            len(train_ts),\n\
-            \            train_ts.num_items,\n            len(test_ts),\n          \
-            \  test_ts.num_items,\n        )\n        status.record(\n            \"\
-            load_data\",\n            \"completed\",\n            train_rows=len(train_ts),\n\
-            \            test_rows=len(test_ts),\n        )\n\n        # Create predictor\
-            \ path in workspace\n        predictor_path = Path(workspace_path) / \"\
-            timeseries_predictor\"\n\n        eval_metric = DEFAULT_EVAL_METRIC\n  \
-            \      # Create TimeSeriesPredictor\n        predictor = TimeSeriesPredictor(\n\
-            \            prediction_length=prediction_length,\n            target=target,\n\
-            \            eval_metric=eval_metric,\n            path=str(predictor_path),\n\
-            \            verbosity=2,\n            known_covariates_names=known_covariates_names,\n\
-            \        )\n\n        logger.info(\n            \"Timeseries selection:\
-            \ training (preset=%s, time_limit=%ss, prediction_length=%s)...\",\n   \
-            \         DEFAULT_PRESETS,\n            DEFAULT_TIME_LIMIT,\n          \
-            \  prediction_length,\n        )\n        status.record(\"model_selection\"\
-            , \"started\")\n        try:\n            predictor.fit(\n             \
-            \   train_data=train_ts,\n                presets=DEFAULT_PRESETS,\n   \
-            \             time_limit=DEFAULT_TIME_LIMIT,\n                # exclude\
-            \ deep learning models pretrained on large time series datasets\n      \
-            \          excluded_model_types=[\"Chronos\", \"Toto\", \"Chronos2\"],\n\
-            \            )\n        except Exception as e:\n            logger.error(f\"\
-            Training failed: {str(e)}\")\n            raise ValueError(f\"TimeSeriesPredictor\
-            \ training failed: {str(e)}\") from e\n\n        try:\n            leaderboard\
-            \ = predictor.leaderboard(test_ts)\n        except Exception as e:\n   \
-            \         logger.error(f\"Leaderboard generation failed: {str(e)}\")\n \
-            \           raise ValueError(f\"Failed to generate leaderboard: {str(e)}\"\
-            ) from e\n\n        if top_n > len(leaderboard):\n            raise ValueError(\n\
-            \                f\"top_n must be less than or equal to number_of_models_trained\
-            \ ({len(leaderboard)}); got {top_n}.\"\n            )\n\n        top_models\
-            \ = leaderboard.head(top_n)[\"model\"].values.tolist()\n        status.record(\n\
-            \            \"model_selection\",\n            \"completed\",\n        \
-            \    top_n=top_n,\n            selected_models=top_models,\n           \
-            \ steps=[\"model_training\", \"holdout_evaluation\"],\n        )\n     \
-            \   logger.info(\n            \"Timeseries selection done: top_%s=%s best_score_test=%s\"\
-            ,\n            top_n,\n            top_models,\n            leaderboard.iloc[0][\"\
-            score_test\"],\n        )\n\n        # Create model config\n        model_config\
-            \ = {\n            \"prediction_length\": prediction_length,\n         \
-            \   \"eval_metric\": eval_metric,\n            \"target\": target,\n   \
-            \         \"id_column\": id_column,\n            \"timestamp_column\": timestamp_column,\n\
-            \            \"presets\": DEFAULT_PRESETS,\n            \"time_limit\":\
-            \ DEFAULT_TIME_LIMIT,\n            \"known_covariates_names\": known_covariates_names\
-            \ or [],\n            \"num_models_trained\": len(leaderboard),\n      \
-            \  }\n\n        # Stage 2: Full refit of selected models on full train data\
-            \ (selection + extra).\n        if models_artifact is None or not extra_train_data_path.strip():\n\
-            \            logger.info(\n                \"Skipping combined full-refit\
-            \ stage; missing models_artifact or extra_train_data_path. \"\n        \
-            \        \"Returning selection-only outputs for backward compatibility.\"\
-            \n            )\n            component_status.metadata[\"display_name\"\
-            ] = \"Timeseries Models Training Status\"\n            outputs = NamedTuple(\n\
-            \                \"outputs\",\n                top_models=List[str],\n \
-            \               predictor_path=str,\n                eval_metric=str,\n\
-            \                model_config=dict,\n            )\n            return outputs(\n\
-            \                top_models=top_models,\n                predictor_path=str(predictor_path),\n\
-            \                eval_metric=eval_metric,\n                model_config=model_config,\n\
-            \            )\n        from autogluon.timeseries.metrics import AVAILABLE_METRICS\n\
-            \        from autogluon.timeseries.models.ensemble import AbstractTimeSeriesEnsembleModel\n\
-            \n        selection_ts_df = train_ts\n        extra_train_ts_df = TimeSeriesDataFrame.from_path(\n\
-            \            path=extra_train_data_path,\n            id_column=id_column,\n\
-            \            timestamp_column=timestamp_column,\n        )\n        full_train_ts_df\
-            \ = TimeSeriesDataFrame(pd.concat([selection_ts_df, extra_train_ts_df],\
-            \ axis=0))\n        model_hyperparams = predictor.fit_summary()[\"model_hyperparams\"\
-            ]\n\n        sample_row_list = json.loads(sample_rows or \"[]\")\n     \
-            \   if not isinstance(sample_row_list, list):\n            raise ValueError(\"\
-            sample_rows must be a JSON list.\")\n\n        def retrieve_pipeline_name(name:\
-            \ str) -> str:\n            if not name:\n                return name\n\
-            \            trimmed_name = name.rstrip(\"-\")\n            if \"-\" not\
-            \ in trimmed_name:\n                return trimmed_name\n            tokens\
-            \ = trimmed_name.split(\"-\")\n            return \"-\".join(tokens[:-1])\
-            \ if len(tokens) > 1 else tokens[0]\n\n        pipeline_name_trimmed = retrieve_pipeline_name(pipeline_name)\n\
-            \        model_names_full = []\n        models_metadata = []\n        failed_models\
-            \ = []\n\n        status.record(\"refit_full\", \"started\")\n\n       \
-            \ def replace_placeholder_in_notebook(notebook, replacements):\n       \
-            \     for cell in notebook.get(\"cells\", []):\n                if cell.get(\"\
-            cell_type\") != \"code\":\n                    continue\n              \
-            \  new_source = []\n                src = cell.get(\"source\", [])\n   \
-            \             if isinstance(src, str):\n                    src = [src]\n\
-            \                for line in src:\n                    for placeholder,\
-            \ value in replacements.items():\n                        line = line.replace(placeholder,\
-            \ value)\n                    new_source.append(line)\n                cell[\"\
-            source\"] = new_source\n            return notebook\n\n        for model_name\
-            \ in top_models:\n            try:\n                model_name_full = f\"\
-            {model_name}_FULL\"\n                output_path = Path(models_artifact.path)\
-            \ / model_name_full\n                output_path.mkdir(parents=True, exist_ok=True)\n\
-            \                predictor_output = output_path / \"predictor\"\n\n    \
-            \            model_type = predictor._trainer.get_model_attribute(model_name,\
-            \ \"type\")\n                is_ensemble = issubclass(model_type, AbstractTimeSeriesEnsembleModel)\n\
-            \                hyperparams_option = \"ensemble_hyperparameters\" if is_ensemble\
-            \ else \"hyperparameters\"\n                additional_fit_params = {hyperparams_option:\
-            \ {model_name: model_hyperparams[model_name]}}\n\n                predictor_refit\
-            \ = TimeSeriesPredictor(\n                    prediction_length=prediction_length,\n\
-            \                    target=target,\n                    eval_metric=eval_metric,\n\
-            \                    path=predictor_output,\n                    verbosity=2,\n\
-            \                    known_covariates_names=known_covariates_names,\n  \
-            \              )\n                # fit() automatically saves the predictor\
-            \ to path specified in constructor\n                predictor_refit.fit(\n\
-            \                    train_data=full_train_ts_df,\n                    **additional_fit_params,\n\
-            \                    time_limit=DEFAULT_TIME_LIMIT,\n                  \
-            \  excluded_model_types=[\"Chronos\", \"Chronos2\", \"Toto\"],\n       \
-            \         )\n                metrics = predictor_refit.evaluate(test_ts,\
-            \ metrics=list(AVAILABLE_METRICS.keys()))\n\n                metrics_dict\
-            \ = {}\n                for k, v in metrics.items():\n                 \
-            \   if hasattr(v, \"item\"):\n                        v = float(v)\n   \
-            \                 if isinstance(v, (int, float)) and math.isfinite(v):\n\
-            \                        metrics_dict[k] = v\n\n                if eval_metric\
-            \ not in metrics_dict:\n                    raise ValueError(\n        \
-            \                f\"Eval metric '{eval_metric}' was NaN/Inf for model '{model_name_full}'\
-            \ \"\n                        \"and was dropped from metrics. Cannot produce\
-            \ a valid leaderboard entry.\"\n                    )\n\n              \
-            \  metrics_path = output_path / \"metrics\"\n                metrics_path.mkdir(parents=True,\
-            \ exist_ok=True)\n                with (metrics_path / \"metrics.json\"\
-            ).open(\"w\", encoding=\"utf-8\") as f:\n                    json.dump(metrics_dict,\
-            \ f, indent=2)\n\n                notebook_file = \"timeseries_notebook.ipynb\"\
-            \n                with (shared_automl_dir() / \"notebook_templates\" / notebook_file).open(\"\
-            r\", encoding=\"utf-8\") as f:\n                    notebook = json.load(f)\n\
-            \                replacements = {\n                    \"<REPLACE_RUN_ID>\"\
-            : run_id,\n                    \"<REPLACE_PIPELINE_NAME>\": pipeline_name_trimmed,\n\
-            \                    \"<REPLACE_MODEL_NAME>\": model_name_full,\n      \
-            \              \"<REPLACE_SAMPLE_ROW>\": str(sample_row_list),\n       \
-            \             \"<REPLACE_ID_COLUMN>\": id_column,\n                    \"\
-            <REPLACE_TIMESTAMP_COLUMN>\": timestamp_column,\n                    \"\
-            <REPLACE_KNOWN_COVARIATES_NAMES>\": str(known_covariates_names or []),\n\
-            \                }\n                notebook = replace_placeholder_in_notebook(notebook,\
-            \ replacements)\n\n                notebook_path = output_path / \"notebooks\"\
-            \n                notebook_path.mkdir(parents=True, exist_ok=True)\n   \
-            \             with (notebook_path / \"automl_predictor_notebook.ipynb\"\
-            ).open(\"w\", encoding=\"utf-8\") as f:\n                    json.dump(notebook,\
-            \ f)\n\n                model_metadata = {\n                    \"name\"\
-            : model_name_full,\n                    \"location\": {\n              \
-            \          \"model_directory\": model_name_full,\n                     \
-            \   \"predictor\": str(Path(model_name_full) / \"predictor\"),\n       \
-            \                 \"notebook\": str(Path(model_name_full) / \"notebooks\"\
-            \ / \"automl_predictor_notebook.ipynb\"),\n                        \"metrics\"\
-            : str(Path(model_name_full) / \"metrics\"),\n                    },\n  \
-            \                  \"metrics\": {\n                        \"test_data\"\
-            : metrics_dict,\n                    },\n                }\n           \
-            \     with (output_path / \"model.json\").open(\"w\", encoding=\"utf-8\"\
-            ) as f:\n                    json.dump(model_metadata, f, indent=2)\n\n\
-            \                # Only append to successful models lists after all operations\
-            \ succeed\n                model_names_full.append(model_name_full)\n  \
-            \              models_metadata.append(model_metadata)\n\n            except\
-            \ Exception as e:\n                logger.error(\"Refit failed for model\
-            \ '%s': %s\", model_name, e)\n                failed_models.append(model_name)\n\
-            \n        # Report partial failures\n        if failed_models:\n       \
-            \     logger.warning(\"The following models failed refit: %s\", failed_models)\n\
-            \n        # Ensure at least one model succeeded\n        if not model_names_full:\n\
-            \            raise RuntimeError(\"All models failed refit. No artifacts\
-            \ written.\")\n\n        status.record(\"refit_full\", \"completed\", model_count=len(model_names_full))\n\
-            \        status.record(\"evaluate_models\", \"completed\", eval_metric=eval_metric)\n\
-            \        component_status.metadata[\"display_name\"] = \"Timeseries Models\
-            \ Training Status\"\n\n        models_artifact.metadata[\"model_names\"\
-            ] = json.dumps(model_names_full)\n        models_artifact.metadata[\"context\"\
-            ] = {\n            \"data_config\": {\n                \"sampling_config\"\
-            : sampling_config,\n                \"split_config\": split_config,\n  \
-            \          },\n            \"model_config\": model_config,\n           \
-            \ \"models\": models_metadata,\n        }\n\n        outputs = NamedTuple(\n\
-            \            \"outputs\",\n            top_models=List[str],\n         \
-            \   predictor_path=str,\n            eval_metric=str,\n            model_config=dict,\n\
-            \        )\n        return outputs(\n            top_models=top_models,\n\
-            \            predictor_path=str(predictor_path),\n            eval_metric=eval_metric,\n\
-            \            model_config=model_config,\n        )\n\n"
-        image: registry.redhat.io/rhoai/odh-automl-rhel9@sha256:e212039c1e2e6f9a9ead493eba3018bf23425b60554b47169746136d8c7d8c8a
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef autogluon_timeseries_models_training(\n    target: str,\n   \
+          \ id_column: str,\n    timestamp_column: str,\n    train_data_path: str,\n\
+          \    test_data: dsl.Input[dsl.Dataset],\n    top_n: int,\n    workspace_path:\
+          \ str,\n    pipeline_name: str,\n    run_id: str,\n    models_artifact:\
+          \ dsl.Output[dsl.Model],\n    extra_train_data_path: str,\n    component_status:\
+          \ dsl.Output[dsl.Artifact],\n    sample_rows: str = \"[]\",\n    sampling_config:\
+          \ Optional[dict] = None,\n    split_config: Optional[dict] = None,\n   \
+          \ prediction_length: int = 1,\n    known_covariates_names: Optional[List[str]]\
+          \ = None,\n    eval_metric: str = \"MASE\",\n) -> NamedTuple(\n    \"outputs\"\
+          ,\n    top_models=List[str],\n    predictor_path=str,\n    eval_metric=str,\n\
+          \    model_config=dict,\n):\n    \"\"\"Train, select, and full-refit top\
+          \ N AutoGluon timeseries models.\n\n    This component combines model generation\
+          \ and full-refit into one step to avoid\n    pipeline-level ``ParallelFor``.\
+          \ It trains multiple AutoGluon TimeSeries models on\n    the selection training\
+          \ data, ranks them on the test set, then sequentially refits\n    the top\
+          \ N models on full train data (selection split + extra split).\n\n    Refit\
+          \ outputs for all selected models are written under one ``models_artifact``\
+          \ in\n    a layout compatible with ``autogluon_leaderboard_evaluation``.\n\
+          \n    Args:\n        target: Name of the target column to forecast.\n  \
+          \      id_column: Name of the column identifying each time series (item_id).\n\
+          \        timestamp_column: Name of the timestamp/datetime column.\n    \
+          \    train_data_path: Path to the selection training CSV file.\n       \
+          \ test_data: Test dataset artifact for evaluation.\n        top_n: Number\
+          \ of top models to select for full refit.\n        workspace_path: Workspace\
+          \ directory where predictor will be saved.\n        pipeline_name: Pipeline\
+          \ name used in generated notebook placeholders.\n        run_id: Pipeline\
+          \ run id used in generated notebook placeholders.\n        models_artifact:\
+          \ Combined output artifact containing all refitted models.\n        extra_train_data_path:\
+          \ Path to extra train split for full refit.\n        sample_rows: Sample\
+          \ rows JSON string used in generated notebook placeholders.\n        sampling_config:\
+          \ Optional sampling config stored in artifact metadata.\n        split_config:\
+          \ Optional split config stored in artifact metadata.\n        prediction_length:\
+          \ Forecast horizon (number of timesteps).\n        known_covariates_names:\
+          \ Optional list of known covariate column names.\n        component_status:\
+          \ Output artifact containing stage-level progress tracking for this component.\n\
+          \        eval_metric: Metric for model ranking (e.g. ``\"MASE\"``, ``\"\
+          WQL\"``). Defaults to ``\"MASE\"``.\n\n    Returns:\n        NamedTuple:\
+          \ top_models list, predictor_path, eval_metric, model_config.\n    \"\"\"\
+          \n    import json\n    import logging\n    import math\n    from pathlib\
+          \ import Path\n\n    import pandas as pd\n    from autogluon.timeseries\
+          \ import TimeSeriesDataFrame, TimeSeriesPredictor\n    from autogluon.timeseries.metrics\
+          \ import AVAILABLE_METRICS\n    from kfp_components.components.training.automl.shared.component_status\
+          \ import ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.run_status\
+          \ import shared_automl_dir\n\n    logger = logging.getLogger(__name__)\n\
+          \n    from kfp_components.components.training.automl.shared.back_testing\
+          \ import build_back_testing_json\n    from kfp_components.components.training.automl.shared.timeseries_notebook_utils\
+          \ import (\n        build_predict_sample_artifact,\n    )\n\n    status\
+          \ = ComponentStatusTracker(component_status.path, \"autogluon_timeseries_models_training\"\
+          )\n    with status:\n        TOP_N_MAX = 7\n        DEFAULT_PRESETS = \"\
+          fast_training\"\n        DEFAULT_TIME_LIMIT = 600  # 10 minutes\n\n    \
+          \    # Input validation\n        for param, value in (\n            (\"\
+          target\", target),\n            (\"id_column\", id_column),\n          \
+          \  (\"timestamp_column\", timestamp_column),\n            (\"train_data_path\"\
+          , train_data_path),\n            (\"workspace_path\", workspace_path),\n\
+          \            (\"eval_metric\", eval_metric),\n        ):\n            if\
+          \ not isinstance(value, str) or not value.strip():\n                raise\
+          \ TypeError(f\"{param} must be a non-empty string.\")\n        if eval_metric\
+          \ not in AVAILABLE_METRICS:\n            raise ValueError(f\"eval_metric\
+          \ must be one of {sorted(AVAILABLE_METRICS)}; got {eval_metric!r}.\")\n\
+          \        if not isinstance(top_n, int):\n            raise TypeError(\"\
+          top_n must be an integer.\")\n        if top_n <= 0 or top_n > TOP_N_MAX:\n\
+          \            raise ValueError(f\"top_n must be an integer in the range (0,\
+          \ {TOP_N_MAX}]; got {top_n}.\")\n        if not isinstance(prediction_length,\
+          \ int):\n            raise TypeError(\"prediction_length must be an integer.\"\
+          )\n        if prediction_length <= 0:\n            raise ValueError(\"prediction_length\
+          \ must be greater than 0.\")\n        if known_covariates_names is not None:\n\
+          \            if not isinstance(known_covariates_names, list) or any(\n \
+          \               (not isinstance(v, str) or not v.strip()) for v in known_covariates_names\n\
+          \            ):\n                raise TypeError(\"known_covariates_names\
+          \ must be a list of non-empty strings or None.\")\n        for param, value\
+          \ in (\n            (\"pipeline_name\", pipeline_name),\n            (\"\
+          run_id\", run_id),\n            (\"extra_train_data_path\", extra_train_data_path),\n\
+          \        ):\n            if not isinstance(value, str) or not value.strip():\n\
+          \                raise TypeError(f\"{param} must be a non-empty string.\"\
+          )\n        if not isinstance(sample_rows, str):\n            raise TypeError(\"\
+          sample_rows must be a string.\")\n        if models_artifact is not None\
+          \ and not hasattr(models_artifact, \"path\"):\n            raise TypeError(\"\
+          models_artifact must be a KFP output artifact or None.\")\n        if not\
+          \ hasattr(component_status, \"path\"):\n            raise TypeError(\"component_status\
+          \ must be a KFP output artifact.\")\n        if not hasattr(models_artifact,\
+          \ \"path\"):\n            raise TypeError(\"models_artifact must be a KFP\
+          \ output artifact.\")\n        if sampling_config is not None and not isinstance(sampling_config,\
+          \ dict):\n            raise TypeError(\"sampling_config must be a dictionary\
+          \ or None.\")\n        if split_config is not None and not isinstance(split_config,\
+          \ dict):\n            raise TypeError(\"split_config must be a dictionary\
+          \ or None.\")\n        sampling_config = sampling_config or {}\n       \
+          \ split_config = split_config or {}\n\n        status.record(\"load_data\"\
+          , \"started\")\n        train_df = pd.read_csv(train_data_path)\n      \
+          \  test_df = pd.read_csv(test_data.path)\n        logger.info(\"Loaded train=%s\
+          \ test=%s rows\", len(train_df), len(test_df))\n\n        train_ts = TimeSeriesDataFrame.from_data_frame(\n\
+          \            train_df,\n            id_column=id_column,\n            timestamp_column=timestamp_column,\n\
+          \        )\n        test_ts = TimeSeriesDataFrame.from_data_frame(\n   \
+          \         test_df,\n            id_column=id_column,\n            timestamp_column=timestamp_column,\n\
+          \        )\n        logger.info(\n            \"Train TimeSeriesDataFrame:\
+          \ %s rows, %s items; test: %s rows, %s items\",\n            len(train_ts),\n\
+          \            train_ts.num_items,\n            len(test_ts),\n          \
+          \  test_ts.num_items,\n        )\n        status.record(\n            \"\
+          load_data\",\n            \"completed\",\n            train_rows=len(train_ts),\n\
+          \            test_rows=len(test_ts),\n        )\n\n        # Create predictor\
+          \ path in workspace\n        predictor_path = Path(workspace_path) / \"\
+          timeseries_predictor\"\n\n        # Create TimeSeriesPredictor\n       \
+          \ predictor = TimeSeriesPredictor(\n            prediction_length=prediction_length,\n\
+          \            target=target,\n            eval_metric=eval_metric,\n    \
+          \        path=str(predictor_path),\n            verbosity=2,\n         \
+          \   known_covariates_names=known_covariates_names,\n        )\n\n      \
+          \  logger.info(\n            \"Timeseries selection: training (preset=%s,\
+          \ time_limit=%ss, prediction_length=%s)...\",\n            DEFAULT_PRESETS,\n\
+          \            DEFAULT_TIME_LIMIT,\n            prediction_length,\n     \
+          \   )\n        status.record(\"model_selection\", \"started\")\n       \
+          \ try:\n            predictor.fit(\n                train_data=train_ts,\n\
+          \                presets=DEFAULT_PRESETS,\n                time_limit=DEFAULT_TIME_LIMIT,\n\
+          \                # exclude deep learning models pretrained on large time\
+          \ series datasets\n                excluded_model_types=[\"Chronos\", \"\
+          Toto\", \"Chronos2\"],\n            )\n        except Exception as e:\n\
+          \            logger.error(f\"Training failed: {str(e)}\")\n            raise\
+          \ ValueError(f\"TimeSeriesPredictor training failed: {str(e)}\") from e\n\
+          \n        try:\n            leaderboard = predictor.leaderboard(test_ts)\n\
+          \        except Exception as e:\n            logger.error(f\"Leaderboard\
+          \ generation failed: {str(e)}\")\n            raise ValueError(f\"Failed\
+          \ to generate leaderboard: {str(e)}\") from e\n\n        if top_n > len(leaderboard):\n\
+          \            raise ValueError(\n                f\"top_n must be less than\
+          \ or equal to number_of_models_trained ({len(leaderboard)}); got {top_n}.\"\
+          \n            )\n\n        top_models = leaderboard.head(top_n)[\"model\"\
+          ].values.tolist()\n        status.record(\n            \"model_selection\"\
+          ,\n            \"completed\",\n            top_n=top_n,\n            selected_models=top_models,\n\
+          \            steps=[\"model_training\", \"holdout_evaluation\"],\n     \
+          \   )\n        logger.info(\n            \"Timeseries selection done: top_%s=%s\
+          \ best_score_test=%s\",\n            top_n,\n            top_models,\n \
+          \           leaderboard.iloc[0][\"score_test\"],\n        )\n\n        #\
+          \ Create model config\n        model_config = {\n            \"prediction_length\"\
+          : prediction_length,\n            \"eval_metric\": eval_metric,\n      \
+          \      \"target\": target,\n            \"id_column\": id_column,\n    \
+          \        \"timestamp_column\": timestamp_column,\n            \"presets\"\
+          : DEFAULT_PRESETS,\n            \"time_limit\": DEFAULT_TIME_LIMIT,\n  \
+          \          \"known_covariates_names\": known_covariates_names or [],\n \
+          \           \"num_models_trained\": len(leaderboard),\n        }\n\n   \
+          \     # Stage 2: Full refit of selected models on full train data (selection\
+          \ + extra).\n        if models_artifact is None or not extra_train_data_path.strip():\n\
+          \            logger.info(\n                \"Skipping combined full-refit\
+          \ stage; missing models_artifact or extra_train_data_path. \"\n        \
+          \        \"Returning selection-only outputs for backward compatibility.\"\
+          \n            )\n            component_status.metadata[\"display_name\"\
+          ] = \"Timeseries Models Training Status\"\n            outputs = NamedTuple(\n\
+          \                \"outputs\",\n                top_models=List[str],\n \
+          \               predictor_path=str,\n                eval_metric=str,\n\
+          \                model_config=dict,\n            )\n            return outputs(\n\
+          \                top_models=top_models,\n                predictor_path=str(predictor_path),\n\
+          \                eval_metric=eval_metric,\n                model_config=model_config,\n\
+          \            )\n        from autogluon.timeseries.metrics import AVAILABLE_METRICS\n\
+          \        from autogluon.timeseries.models.ensemble import AbstractTimeSeriesEnsembleModel\n\
+          \n        selection_ts_df = train_ts\n        extra_train_ts_df = TimeSeriesDataFrame.from_path(\n\
+          \            path=extra_train_data_path,\n            id_column=id_column,\n\
+          \            timestamp_column=timestamp_column,\n        )\n        full_train_ts_df\
+          \ = TimeSeriesDataFrame(pd.concat([selection_ts_df, extra_train_ts_df],\
+          \ axis=0))\n        model_hyperparams = predictor.fit_summary()[\"model_hyperparams\"\
+          ]\n\n        sample_row_list = json.loads(sample_rows or \"[]\")\n     \
+          \   if not isinstance(sample_row_list, list):\n            raise ValueError(\"\
+          sample_rows must be a JSON list.\")\n\n        def retrieve_pipeline_name(name:\
+          \ str) -> str:\n            if not name:\n                return name\n\
+          \            trimmed_name = name.rstrip(\"-\")\n            if \"-\" not\
+          \ in trimmed_name:\n                return trimmed_name\n            tokens\
+          \ = trimmed_name.split(\"-\")\n            return \"-\".join(tokens[:-1])\
+          \ if len(tokens) > 1 else tokens[0]\n\n        pipeline_name_trimmed = retrieve_pipeline_name(pipeline_name)\n\
+          \        model_names_full = []\n        models_metadata = []\n        failed_models\
+          \ = []\n\n        status.record(\"refit_full\", \"started\")\n\n       \
+          \ def replace_placeholder_in_notebook(notebook, replacements):\n       \
+          \     for cell in notebook.get(\"cells\", []):\n                if cell.get(\"\
+          cell_type\") != \"code\":\n                    continue\n              \
+          \  new_source = []\n                src = cell.get(\"source\", [])\n   \
+          \             if isinstance(src, str):\n                    src = [src]\n\
+          \                for line in src:\n                    for placeholder,\
+          \ value in replacements.items():\n                        line = line.replace(placeholder,\
+          \ value)\n                    new_source.append(line)\n                cell[\"\
+          source\"] = new_source\n            return notebook\n\n        for model_name\
+          \ in top_models:\n            try:\n                model_name_full = f\"\
+          {model_name}_FULL\"\n                output_path = Path(models_artifact.path)\
+          \ / model_name_full\n                output_path.mkdir(parents=True, exist_ok=True)\n\
+          \                predictor_output = output_path / \"predictor\"\n\n    \
+          \            model_type = predictor._trainer.get_model_attribute(model_name,\
+          \ \"type\")\n                is_ensemble = issubclass(model_type, AbstractTimeSeriesEnsembleModel)\n\
+          \                hyperparams_option = \"ensemble_hyperparameters\" if is_ensemble\
+          \ else \"hyperparameters\"\n                additional_fit_params = {hyperparams_option:\
+          \ {model_name: model_hyperparams[model_name]}}\n\n                predictor_refit\
+          \ = TimeSeriesPredictor(\n                    prediction_length=prediction_length,\n\
+          \                    target=target,\n                    eval_metric=eval_metric,\n\
+          \                    path=predictor_output,\n                    verbosity=2,\n\
+          \                    known_covariates_names=known_covariates_names,\n  \
+          \              )\n                # fit() automatically saves the predictor\
+          \ to path specified in constructor\n                predictor_refit.fit(\n\
+          \                    train_data=full_train_ts_df,\n                    **additional_fit_params,\n\
+          \                    time_limit=DEFAULT_TIME_LIMIT,\n                  \
+          \  excluded_model_types=[\"Chronos\", \"Chronos2\", \"Toto\"],\n       \
+          \         )\n                metrics = predictor_refit.evaluate(test_ts,\
+          \ metrics=list(AVAILABLE_METRICS.keys()))\n                # Keep raw AutoGluon\
+          \ evaluate() signs for metrics.json (higher-is-better / negated errors)\n\
+          \                # so leaderboard_evaluation sorting stays correct. back_testing.json\
+          \ normalizes separately.\n                metrics_dict = {}\n          \
+          \      for k, v in metrics.items():\n                    if hasattr(v, \"\
+          item\"):\n                        v = float(v)\n                    if isinstance(v,\
+          \ (int, float)) and math.isfinite(v):\n                        metrics_dict[k]\
+          \ = v\n\n                if eval_metric not in metrics_dict:\n         \
+          \           raise ValueError(\n                        f\"Eval metric '{eval_metric}'\
+          \ was NaN/Inf for model '{model_name_full}' \"\n                       \
+          \ \"and was dropped from metrics. Cannot produce a valid leaderboard entry.\"\
+          \n                    )\n\n                metrics_path = output_path /\
+          \ \"metrics\"\n                metrics_path.mkdir(parents=True, exist_ok=True)\n\
+          \                with (metrics_path / \"metrics.json\").open(\"w\", encoding=\"\
+          utf-8\") as f:\n                    json.dump(metrics_dict, f, indent=2)\n\
+          \n                back_testing_available = False\n                try:\n\
+          \                    back_testing_payload = build_back_testing_json(\n \
+          \                       predictor_refit,\n                        model_name=model_name,\n\
+          \                        model_name_full=model_name_full,\n            \
+          \            train_data=full_train_ts_df,\n                        eval_metric=eval_metric,\n\
+          \                        target=target,\n                        id_column=id_column,\n\
+          \                        timestamp_column=timestamp_column,\n          \
+          \              prediction_length=prediction_length,\n                  \
+          \      metrics=list(AVAILABLE_METRICS.keys()),\n                    )\n\
+          \                    with (metrics_path / \"back_testing.json\").open(\"\
+          w\", encoding=\"utf-8\") as f:\n                        json.dump(back_testing_payload,\
+          \ f, indent=2)\n                    back_testing_available = True\n    \
+          \            except Exception as backtest_exc:\n                    logger.warning(\n\
+          \                        \"Could not generate back_testing.json for model\
+          \ %r: %s. Skipping backtest artifact.\",\n                        model_name_full,\n\
+          \                        backtest_exc,\n                    )\n\n      \
+          \          notebook_file = \"timeseries_notebook.ipynb\"\n             \
+          \   with (shared_automl_dir() / \"notebook_templates\" / notebook_file).open(\"\
+          r\", encoding=\"utf-8\") as f:\n                    notebook = json.load(f)\n\
+          \                predict_sample = build_predict_sample_artifact(\n     \
+          \               predictor_refit,\n                    sample_row_list,\n\
+          \                    id_column,\n                    timestamp_column,\n\
+          \                    known_covariates_names,\n                )\n      \
+          \          replacements = {\n                    \"<REPLACE_RUN_ID>\": run_id,\n\
+          \                    \"<REPLACE_PIPELINE_NAME>\": pipeline_name_trimmed,\n\
+          \                    \"<REPLACE_MODEL_NAME>\": model_name_full,\n      \
+          \              \"<REPLACE_PREDICT_SAMPLE>\": str(predict_sample),\n    \
+          \            }\n                notebook = replace_placeholder_in_notebook(notebook,\
+          \ replacements)\n\n                notebook_path = output_path / \"notebooks\"\
+          \n                notebook_path.mkdir(parents=True, exist_ok=True)\n   \
+          \             with (notebook_path / \"automl_predictor_notebook.ipynb\"\
+          ).open(\"w\", encoding=\"utf-8\") as f:\n                    json.dump(notebook,\
+          \ f)\n\n                model_location = {\n                    \"model_directory\"\
+          : model_name_full,\n                    \"predictor\": str(Path(model_name_full)\
+          \ / \"predictor\"),\n                    \"notebook\": str(Path(model_name_full)\
+          \ / \"notebooks\" / \"automl_predictor_notebook.ipynb\"),\n            \
+          \        \"metrics\": str(Path(model_name_full) / \"metrics\"),\n      \
+          \          }\n                # Only include back_testing path if file was\
+          \ successfully written\n                if back_testing_available:\n   \
+          \                 model_location[\"back_testing\"] = str(Path(model_name_full)\
+          \ / \"metrics\" / \"back_testing.json\")\n\n                model_metadata\
+          \ = {\n                    \"name\": model_name_full,\n                \
+          \    \"location\": model_location,\n                    \"metrics\": {\n\
+          \                        \"test_data\": metrics_dict,\n                \
+          \    },\n                }\n                with (output_path / \"model.json\"\
+          ).open(\"w\", encoding=\"utf-8\") as f:\n                    json.dump(model_metadata,\
+          \ f, indent=2)\n\n                # Only append to successful models lists\
+          \ after all operations succeed\n                model_names_full.append(model_name_full)\n\
+          \                models_metadata.append(model_metadata)\n\n            except\
+          \ Exception as e:\n                logger.error(\"Refit failed for model\
+          \ '%s': %s\", model_name, e)\n                failed_models.append(model_name)\n\
+          \n        # Report partial failures\n        if failed_models:\n       \
+          \     logger.warning(\"The following models failed refit: %s\", failed_models)\n\
+          \n        # Ensure at least one model succeeded\n        if not model_names_full:\n\
+          \            raise RuntimeError(\"All models failed refit. No artifacts\
+          \ written.\")\n\n        status.record(\"refit_full\", \"completed\", model_count=len(model_names_full))\n\
+          \        status.record(\"evaluate_models\", \"completed\", eval_metric=eval_metric)\n\
+          \        component_status.metadata[\"display_name\"] = \"Timeseries Models\
+          \ Training Status\"\n\n        models_artifact.metadata[\"model_names\"\
+          ] = json.dumps(model_names_full)\n        models_artifact.metadata[\"context\"\
+          ] = {\n            \"data_config\": {\n                \"sampling_config\"\
+          : sampling_config,\n                \"split_config\": split_config,\n  \
+          \          },\n            \"model_config\": model_config,\n           \
+          \ \"models\": models_metadata,\n        }\n\n        outputs = NamedTuple(\n\
+          \            \"outputs\",\n            top_models=List[str],\n         \
+          \   predictor_path=str,\n            eval_metric=str,\n            model_config=dict,\n\
+          \        )\n        return outputs(\n            top_models=top_models,\n\
+          \            predictor_path=str(predictor_path),\n            eval_metric=eval_metric,\n\
+          \            model_config=model_config,\n        )\n\n"
+        image: quay.io/opendatahub/odh-automl:odh-stable
         resources:
           cpuLimit: 32.0
           cpuRequest: 4.0
@@ -474,119 +511,119 @@ deploymentSpec:
     exec-leaderboard-evaluation:
       container:
         args:
-          - --executor_input
-          - '{{$}}'
-          - --function_to_execute
-          - leaderboard_evaluation
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - leaderboard_evaluation
         command:
-          - sh
-          - -c
-          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
-            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-            $0\" \"$@\"\n"
-          - sh
-          - -ec
-          - 'program_path=$(mktemp -d)
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
 
 
-            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-            '
-          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-            \ *\n\ndef leaderboard_evaluation(\n    models_artifact: dsl.Input[dsl.Model],\n\
-            \    eval_metric: str,\n    html_artifact: dsl.Output[dsl.HTML],\n    component_status:\
-            \ dsl.Output[dsl.Artifact],\n) -> NamedTuple(\"outputs\", best_model=str):\n\
-            \    \"\"\"Evaluate refitted AutoGluon models and generate a leaderboard.\n\
-            \n    This component reads pre-computed metrics from a combined models artifact\n\
-            \    produced by ``autogluon_models_training`` and generates an HTML-formatted\n\
-            \    leaderboard ranking the models by their performance metric.\n\n   \
-            \ The artifact layout expected under ``models_artifact.path``::\n\n    \
-            \    models_artifact.path /\n          <model_name>_FULL /\n           \
-            \ metrics / metrics.json\n            predictor / predictor.pkl\n      \
-            \      notebooks / automl_predictor_notebook.ipynb\n\n    ``models_artifact.metadata[\"\
-            model_names\"]`` must contain the list of\n    refitted model display names\
-            \ (e.g. ``[\"LightGBM_BAG_L1_FULL\", ...]``).\n\n    Args:\n        models_artifact:\
-            \ Combined Model artifact from ``autogluon_models_training``\n         \
-            \   with ``metadata[\"model_names\"]`` and per-model subdirectories.\n \
-            \       eval_metric: Metric name for ranking (e.g. ``\"accuracy\"``, ``\"\
-            root_mean_squared_error\"``);\n            leaderboard sorted descending\
-            \ (AutoGluon uses higher-is-better convention).\n        html_artifact:\
-            \ Output artifact for the HTML-formatted leaderboard.\n        component_status:\
-            \ Output artifact with stage progress (``component_status.json``).\n   \
-            \         KFP creates this automatically when the component is used inside\
-            \ a pipeline.\n\n    Raises:\n        FileNotFoundError: If any model metrics\
-            \ path cannot be found.\n        KeyError: If ``metadata[\"model_names\"\
-            ]`` is missing or metrics JSON lacks\n            the ``eval_metric`` key.\n\
-            \n    Example:\n        from kfp import dsl\n        from components.training.automl.autogluon_leaderboard_evaluation\
-            \ import (\n            leaderboard_evaluation\n        )\n\n        @dsl.pipeline(name=\"\
-            model-evaluation-pipeline\")\n        def evaluation_pipeline(models_artifact):\n\
-            \            # component_status is wired by KFP; callers do not pass it\
-            \ explicitly.\n            leaderboard = leaderboard_evaluation(\n     \
-            \           models_artifact=models_artifact,\n                eval_metric=\"\
-            root_mean_squared_error\",\n            )\n            return leaderboard\n\
-            \    \"\"\"  # noqa: E501\n    import importlib.resources\n    import json\n\
-            \    import logging\n    from pathlib import Path\n\n    import pandas as\
-            \ pd\n    from kfp_components.components.training.automl.shared.component_status\
-            \ import ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.leaderboard_utils\
-            \ import (\n        _build_leaderboard_html,\n        _build_leaderboard_table,\n\
-            \        _round_metrics,\n    )\n\n    # Initialize status tracker\n   \
-            \ status = ComponentStatusTracker(component_status.path, \"leaderboard_evaluation\"\
-            )\n    with status:\n        logger = logging.getLogger(__name__)\n\n  \
-            \      # Stage: build_leaderboard\n        status.record(\"build_leaderboard\"\
-            , \"started\")\n\n        # Input validation\n        if not isinstance(eval_metric,\
-            \ str) or not eval_metric.strip():\n            raise TypeError(\"eval_metric\
-            \ must be a non-empty string.\")\n        model_names_raw = models_artifact.metadata.get(\"\
-            model_names\", \"[]\")\n        # KFP/MLMD serializes lists as JSON strings\
-            \ to avoid the {\"list\": [...]} round-trip bug.\n        model_names =\
-            \ json.loads(model_names_raw) if isinstance(model_names_raw, str) else list(model_names_raw)\n\
-            \        if not model_names:\n            raise KeyError(\"models_artifact.metadata\
-            \ must contain a non-empty 'model_names' list.\")\n\n        results = []\n\
-            \        base_uri = models_artifact.uri.rstrip(\"/\")\n        for display_name\
-            \ in model_names:\n            metrics_path = Path(models_artifact.path)\
-            \ / display_name / \"metrics\" / \"metrics.json\"\n            if not metrics_path.exists():\n\
-            \                logger.warning(\n                    \"Skipping model '%s':\
-            \ no metrics/metrics.json found. \"\n                    \"The refit task\
-            \ may have failed for this model.\",\n                    display_name,\n\
-            \                )\n                continue\n            with metrics_path.open(\"\
-            r\") as f:\n                eval_results = json.load(f)\n            model_uri\
-            \ = f\"{base_uri}/{display_name}\"\n            predictor_uri = f\"{model_uri}/predictor\"\
-            \n            notebook_uri = f\"{model_uri}/notebooks/automl_predictor_notebook.ipynb\"\
-            \n            results.append(\n                {\n                    \"\
-            model\": display_name,\n                    **_round_metrics(eval_results),\n\
-            \                    \"notebook\": notebook_uri,\n                    \"\
-            predictor\": predictor_uri,\n                }\n            )\n\n      \
-            \  if not results:\n            raise ValueError(\n                \"No\
-            \ valid model artifacts found. All models may have failed or produced no\
-            \ metrics/metrics.json output.\"\n            )\n\n        # Notice: AutoGluon\
-            \ follows the \"higher is better\" strategy for all metrics.\n        #\
-            \ This means that some metrics\u2014like log_loss and root_mean_squared_error\u2014\
-            will have their signs FLIPPED and are shown as negative. # noqa: E501\n\
-            \        # This is to ensure that a higher value always means a better model,\
-            \ so users do not need to know about the metric's normal directionality\
-            \ when interpreting the leaderboard. # noqa: E501\n        leaderboard_df\
-            \ = pd.DataFrame(results).sort_values(by=eval_metric, ascending=False)\n\
-            \        n = len(leaderboard_df)\n        leaderboard_df.index = pd.RangeIndex(start=1,\
-            \ stop=n + 1, name=\"rank\")\n\n        html_table = _build_leaderboard_table(leaderboard_df)\n\
-            \n        best_model_name = leaderboard_df.iloc[0][\"model\"]\n        _template_ref\
-            \ = (\n            importlib.resources.files(\"kfp_components.components.training.automl.shared\"\
-            )\n            / \"leaderboard_html_template.html\"\n        )\n       \
-            \ with importlib.resources.as_file(_template_ref) as template_path:\n  \
-            \          html_content = _build_leaderboard_html(\n                template_path=template_path,\n\
-            \                table_html=html_table,\n                eval_metric=eval_metric,\n\
-            \                best_model_name=best_model_name,\n                num_models=len(leaderboard_df),\n\
-            \            )\n        with open(html_artifact.path, \"w\", encoding=\"\
-            utf-8\") as f:\n            f.write(html_content)\n\n        html_artifact.metadata[\"\
-            data\"] = leaderboard_df.to_dict()\n        html_artifact.metadata[\"display_name\"\
-            ] = \"automl_leaderboard\"\n        status.record(\n            \"build_leaderboard\"\
-            ,\n            \"completed\",\n            best_model=best_model_name,\n\
-            \            model_count=len(leaderboard_df),\n        )\n        component_status.metadata[\"\
-            display_name\"] = \"Leaderboard Evaluation Status\"\n    return NamedTuple(\"\
-            outputs\", best_model=str)(best_model=best_model_name)\n\n"
-        image: registry.redhat.io/rhoai/odh-automl-rhel9@sha256:e212039c1e2e6f9a9ead493eba3018bf23425b60554b47169746136d8c7d8c8a
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef leaderboard_evaluation(\n    models_artifact: dsl.Input[dsl.Model],\n\
+          \    eval_metric: str,\n    html_artifact: dsl.Output[dsl.HTML],\n    component_status:\
+          \ dsl.Output[dsl.Artifact],\n) -> NamedTuple(\"outputs\", best_model=str):\n\
+          \    \"\"\"Evaluate refitted AutoGluon models and generate a leaderboard.\n\
+          \n    This component reads pre-computed metrics from a combined models artifact\n\
+          \    produced by ``autogluon_models_training`` and generates an HTML-formatted\n\
+          \    leaderboard ranking the models by their performance metric.\n\n   \
+          \ The artifact layout expected under ``models_artifact.path``::\n\n    \
+          \    models_artifact.path /\n          <model_name>_FULL /\n           \
+          \ metrics / metrics.json\n            predictor / predictor.pkl\n      \
+          \      notebooks / automl_predictor_notebook.ipynb\n\n    ``models_artifact.metadata[\"\
+          model_names\"]`` must contain the list of\n    refitted model display names\
+          \ (e.g. ``[\"LightGBM_BAG_L1_FULL\", ...]``).\n\n    Args:\n        models_artifact:\
+          \ Combined Model artifact from ``autogluon_models_training``\n         \
+          \   with ``metadata[\"model_names\"]`` and per-model subdirectories.\n \
+          \       eval_metric: Metric name for ranking (e.g. ``\"accuracy\"``, ``\"\
+          root_mean_squared_error\"``);\n            leaderboard sorted descending\
+          \ (AutoGluon uses higher-is-better convention).\n        html_artifact:\
+          \ Output artifact for the HTML-formatted leaderboard.\n        component_status:\
+          \ Output artifact with stage progress (``component_status.json``).\n   \
+          \         KFP creates this automatically when the component is used inside\
+          \ a pipeline.\n\n    Raises:\n        FileNotFoundError: If any model metrics\
+          \ path cannot be found.\n        KeyError: If ``metadata[\"model_names\"\
+          ]`` is missing or metrics JSON lacks\n            the ``eval_metric`` key.\n\
+          \n    Example:\n        from kfp import dsl\n        from components.training.automl.autogluon_leaderboard_evaluation\
+          \ import (\n            leaderboard_evaluation\n        )\n\n        @dsl.pipeline(name=\"\
+          model-evaluation-pipeline\")\n        def evaluation_pipeline(models_artifact):\n\
+          \            # component_status is wired by KFP; callers do not pass it\
+          \ explicitly.\n            leaderboard = leaderboard_evaluation(\n     \
+          \           models_artifact=models_artifact,\n                eval_metric=\"\
+          root_mean_squared_error\",\n            )\n            return leaderboard\n\
+          \    \"\"\"  # noqa: E501\n    import importlib.resources\n    import json\n\
+          \    import logging\n    from pathlib import Path\n\n    import pandas as\
+          \ pd\n    from kfp_components.components.training.automl.shared.component_status\
+          \ import ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.leaderboard_utils\
+          \ import (\n        _build_leaderboard_html,\n        _build_leaderboard_table,\n\
+          \        _round_metrics,\n    )\n\n    # Initialize status tracker\n   \
+          \ status = ComponentStatusTracker(component_status.path, \"leaderboard_evaluation\"\
+          )\n    with status:\n        logger = logging.getLogger(__name__)\n\n  \
+          \      # Stage: build_leaderboard\n        status.record(\"build_leaderboard\"\
+          , \"started\")\n\n        # Input validation\n        if not isinstance(eval_metric,\
+          \ str) or not eval_metric.strip():\n            raise TypeError(\"eval_metric\
+          \ must be a non-empty string.\")\n        model_names_raw = models_artifact.metadata.get(\"\
+          model_names\", \"[]\")\n        # KFP/MLMD serializes lists as JSON strings\
+          \ to avoid the {\"list\": [...]} round-trip bug.\n        model_names =\
+          \ json.loads(model_names_raw) if isinstance(model_names_raw, str) else list(model_names_raw)\n\
+          \        if not model_names:\n            raise KeyError(\"models_artifact.metadata\
+          \ must contain a non-empty 'model_names' list.\")\n\n        results = []\n\
+          \        base_uri = models_artifact.uri.rstrip(\"/\")\n        for display_name\
+          \ in model_names:\n            metrics_path = Path(models_artifact.path)\
+          \ / display_name / \"metrics\" / \"metrics.json\"\n            if not metrics_path.exists():\n\
+          \                logger.warning(\n                    \"Skipping model '%s':\
+          \ no metrics/metrics.json found. \"\n                    \"The refit task\
+          \ may have failed for this model.\",\n                    display_name,\n\
+          \                )\n                continue\n            with metrics_path.open(\"\
+          r\") as f:\n                eval_results = json.load(f)\n            model_uri\
+          \ = f\"{base_uri}/{display_name}\"\n            predictor_uri = f\"{model_uri}/predictor\"\
+          \n            notebook_uri = f\"{model_uri}/notebooks/automl_predictor_notebook.ipynb\"\
+          \n            results.append(\n                {\n                    \"\
+          model\": display_name,\n                    **_round_metrics(eval_results),\n\
+          \                    \"notebook\": notebook_uri,\n                    \"\
+          predictor\": predictor_uri,\n                }\n            )\n\n      \
+          \  if not results:\n            raise ValueError(\n                \"No\
+          \ valid model artifacts found. All models may have failed or produced no\
+          \ metrics/metrics.json output.\"\n            )\n\n        # Notice: AutoGluon\
+          \ follows the \"higher is better\" strategy for all metrics.\n        #\
+          \ This means that some metrics\u2014like log_loss and root_mean_squared_error\u2014\
+          will have their signs FLIPPED and are shown as negative. # noqa: E501\n\
+          \        # This is to ensure that a higher value always means a better model,\
+          \ so users do not need to know about the metric's normal directionality\
+          \ when interpreting the leaderboard. # noqa: E501\n        leaderboard_df\
+          \ = pd.DataFrame(results).sort_values(by=eval_metric, ascending=False)\n\
+          \        n = len(leaderboard_df)\n        leaderboard_df.index = pd.RangeIndex(start=1,\
+          \ stop=n + 1, name=\"rank\")\n\n        html_table = _build_leaderboard_table(leaderboard_df)\n\
+          \n        best_model_name = leaderboard_df.iloc[0][\"model\"]\n        _template_ref\
+          \ = (\n            importlib.resources.files(\"kfp_components.components.training.automl.shared\"\
+          )\n            / \"leaderboard_html_template.html\"\n        )\n       \
+          \ with importlib.resources.as_file(_template_ref) as template_path:\n  \
+          \          html_content = _build_leaderboard_html(\n                template_path=template_path,\n\
+          \                table_html=html_table,\n                eval_metric=eval_metric,\n\
+          \                best_model_name=best_model_name,\n                num_models=len(leaderboard_df),\n\
+          \            )\n        with open(html_artifact.path, \"w\", encoding=\"\
+          utf-8\") as f:\n            f.write(html_content)\n\n        html_artifact.metadata[\"\
+          data\"] = leaderboard_df.to_dict()\n        html_artifact.metadata[\"display_name\"\
+          ] = \"automl_leaderboard\"\n        status.record(\n            \"build_leaderboard\"\
+          ,\n            \"completed\",\n            best_model=best_model_name,\n\
+          \            model_count=len(leaderboard_df),\n        )\n        component_status.metadata[\"\
+          display_name\"] = \"Leaderboard Evaluation Status\"\n    return NamedTuple(\"\
+          outputs\", best_model=str)(best_model=best_model_name)\n\n"
+        image: quay.io/opendatahub/odh-automl:odh-stable
         resources:
           cpuLimit: 32.0
           cpuRequest: 1.0
@@ -599,72 +636,72 @@ deploymentSpec:
     exec-publish-component-stage-map:
       container:
         args:
-          - --executor_input
-          - '{{$}}'
-          - --function_to_execute
-          - publish_component_stage_map
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - publish_component_stage_map
         command:
-          - sh
-          - -c
-          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
-            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-            $0\" \"$@\"\n"
-          - sh
-          - -ec
-          - 'program_path=$(mktemp -d)
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
 
 
-            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-            '
-          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-            \ *\n\ndef publish_component_stage_map(\n    pipeline_id: str,\n    run_id:\
-            \ str,\n    component_stage_map: dsl.Output[dsl.Artifact],\n) -> None:\n\
-            \    \"\"\"Publish the component-to-stage-to-step map for dashboard consumption.\n\
-            \n    Reads the static JSON template from the package (``run_status_templates/pipelines/``)\n\
-            \    and publishes it as a KFP artifact. Dashboards use this map to show\
-            \ expected\n    components, stages, and steps before pipeline execution\
-            \ begins.\n\n    Args:\n        pipeline_id: Pipeline identifier matching\
-            \ the template filename\n            (e.g. ``autogluon-tabular-training-pipeline``).\n\
-            \        run_id: KFP run ID for tracking (from ``dsl.PIPELINE_JOB_ID_PLACEHOLDER``).\n\
-            \        component_stage_map: Output artifact containing the component-to-stage-to-step\
-            \ map.\n\n    Raises:\n        FileNotFoundError: If the template for ``pipeline_id``\
-            \ is missing or empty.\n        ValueError: If ``pipeline_id`` or ``run_id``\
-            \ is empty.\n\n    Example:\n        map_task = publish_component_stage_map(\n\
-            \            pipeline_id=\"autogluon-tabular-training-pipeline\",\n    \
-            \        run_id=dsl.PIPELINE_JOB_ID_PLACEHOLDER,\n        )\n    \"\"\"\n\
-            \    import json\n    from datetime import UTC, datetime\n    from pathlib\
-            \ import Path\n\n    from kfp_components.components.training.automl.shared.run_status\
-            \ import (\n        load_pipeline_run_status_manifest,\n    )\n\n    if\
-            \ not isinstance(pipeline_id, str) or not pipeline_id.strip():\n       \
-            \ raise ValueError(\"pipeline_id must be a non-empty string\")\n    if not\
-            \ isinstance(run_id, str) or not run_id.strip():\n        raise ValueError(\"\
-            run_id must be a non-empty string\")\n\n    stage_map = load_pipeline_run_status_manifest(pipeline_id)\n\
-            \    # Legacy templates may include an empty initial_document shell; not\
-            \ part of the stage map.\n    stage_map.pop(\"initial_document\", None)\n\
-            \    if not stage_map.get(\"components\"):\n        raise FileNotFoundError(\n\
-            \            f\"Component stage map not found or empty for pipeline_id='{pipeline_id}'.\
-            \ \"\n            \"Ensure run_status_templates/pipelines/<pipeline_id>.json\
-            \ is packaged in the AutoML image.\"\n        )\n\n    stage_map[\"kfp_run_id\"\
-            ] = run_id\n    stage_map[\"published_at\"] = datetime.now(UTC).isoformat().replace(\"\
-            +00:00\", \"Z\")\n\n    output_path = Path(component_stage_map.path)\n \
-            \   output_path.mkdir(parents=True, exist_ok=True)\n\n    output_file =\
-            \ output_path / \"component_stage_map.json\"\n    with output_file.open(\"\
-            w\", encoding=\"utf-8\") as f:\n        json.dump(stage_map, f, indent=2)\n\
-            \n    component_stage_map.metadata[\"display_name\"] = \"Component Stage\
-            \ Map\"\n    component_stage_map.metadata[\"pipeline_id\"] = pipeline_id\n\
-            \    component_stage_map.metadata[\"component_count\"] = len(stage_map.get(\"\
-            components\", []))\n\n    component_count = len(stage_map.get(\"components\"\
-            , []))\n    stage_count = sum(len(c.get(\"stages\", [])) for c in stage_map.get(\"\
-            components\", []))\n    print(f\"Published component stage map for pipeline_id='{pipeline_id}':\"\
-            )\n    print(f\"  - Components: {component_count}\")\n    print(f\"  - Total\
-            \ stages: {stage_count}\")\n    print(f\"  - Published to: {output_file}\"\
-            )\n\n"
-        image: registry.redhat.io/rhoai/odh-automl-rhel9@sha256:e212039c1e2e6f9a9ead493eba3018bf23425b60554b47169746136d8c7d8c8a
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef publish_component_stage_map(\n    pipeline_id: str,\n    run_id:\
+          \ str,\n    component_stage_map: dsl.Output[dsl.Artifact],\n) -> None:\n\
+          \    \"\"\"Publish the component-to-stage-to-step map for dashboard consumption.\n\
+          \n    Reads the static JSON template from the package (``run_status_templates/pipelines/``)\n\
+          \    and publishes it as a KFP artifact. Dashboards use this map to show\
+          \ expected\n    components, stages, and steps before pipeline execution\
+          \ begins.\n\n    Args:\n        pipeline_id: Pipeline identifier matching\
+          \ the template filename\n            (e.g. ``autogluon-tabular-training-pipeline``).\n\
+          \        run_id: KFP run ID for tracking (from ``dsl.PIPELINE_JOB_ID_PLACEHOLDER``).\n\
+          \        component_stage_map: Output artifact containing the component-to-stage-to-step\
+          \ map.\n\n    Raises:\n        FileNotFoundError: If the template for ``pipeline_id``\
+          \ is missing or empty.\n        ValueError: If ``pipeline_id`` or ``run_id``\
+          \ is empty.\n\n    Example:\n        map_task = publish_component_stage_map(\n\
+          \            pipeline_id=\"autogluon-tabular-training-pipeline\",\n    \
+          \        run_id=dsl.PIPELINE_JOB_ID_PLACEHOLDER,\n        )\n    \"\"\"\n\
+          \    import json\n    from datetime import UTC, datetime\n    from pathlib\
+          \ import Path\n\n    from kfp_components.components.training.automl.shared.run_status\
+          \ import (\n        load_pipeline_run_status_manifest,\n    )\n\n    if\
+          \ not isinstance(pipeline_id, str) or not pipeline_id.strip():\n       \
+          \ raise ValueError(\"pipeline_id must be a non-empty string\")\n    if not\
+          \ isinstance(run_id, str) or not run_id.strip():\n        raise ValueError(\"\
+          run_id must be a non-empty string\")\n\n    stage_map = load_pipeline_run_status_manifest(pipeline_id)\n\
+          \    # Legacy templates may include an empty initial_document shell; not\
+          \ part of the stage map.\n    stage_map.pop(\"initial_document\", None)\n\
+          \    if not stage_map.get(\"components\"):\n        raise FileNotFoundError(\n\
+          \            f\"Component stage map not found or empty for pipeline_id='{pipeline_id}'.\
+          \ \"\n            \"Ensure run_status_templates/pipelines/<pipeline_id>.json\
+          \ is packaged in the AutoML image.\"\n        )\n\n    stage_map[\"kfp_run_id\"\
+          ] = run_id\n    stage_map[\"published_at\"] = datetime.now(UTC).isoformat().replace(\"\
+          +00:00\", \"Z\")\n\n    output_path = Path(component_stage_map.path)\n \
+          \   output_path.mkdir(parents=True, exist_ok=True)\n\n    output_file =\
+          \ output_path / \"component_stage_map.json\"\n    with output_file.open(\"\
+          w\", encoding=\"utf-8\") as f:\n        json.dump(stage_map, f, indent=2)\n\
+          \n    component_stage_map.metadata[\"display_name\"] = \"Component Stage\
+          \ Map\"\n    component_stage_map.metadata[\"pipeline_id\"] = pipeline_id\n\
+          \    component_stage_map.metadata[\"component_count\"] = len(stage_map.get(\"\
+          components\", []))\n\n    component_count = len(stage_map.get(\"components\"\
+          , []))\n    stage_count = sum(len(c.get(\"stages\", [])) for c in stage_map.get(\"\
+          components\", []))\n    print(f\"Published component stage map for pipeline_id='{pipeline_id}':\"\
+          )\n    print(f\"  - Components: {component_count}\")\n    print(f\"  - Total\
+          \ stages: {stage_count}\")\n    print(f\"  - Published to: {output_file}\"\
+          )\n\n"
+        image: quay.io/opendatahub/odh-automl:odh-stable
         resources:
           cpuLimit: 1.0
           cpuRequest: 0.5
@@ -677,306 +714,306 @@ deploymentSpec:
     exec-timeseries-data-loader:
       container:
         args:
-          - --executor_input
-          - '{{$}}'
-          - --function_to_execute
-          - timeseries_data_loader
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - timeseries_data_loader
         command:
-          - sh
-          - -c
-          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
-            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-            $0\" \"$@\"\n"
-          - sh
-          - -ec
-          - 'program_path=$(mktemp -d)
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
 
 
-            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-            '
-          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-            \ *\n\ndef timeseries_data_loader(\n    file_key: str,\n    bucket_name:\
-            \ str,\n    workspace_path: str,\n    target: str,\n    id_column: str,\n\
-            \    timestamp_column: str,\n    sampled_test_dataset: dsl.Output[dsl.Dataset],\n\
-            \    component_status: dsl.Output[dsl.Artifact],\n    selection_train_size:\
-            \ float = 0.3,\n) -> NamedTuple(\n    \"outputs\",\n    sample_config=dict,\n\
-            \    split_config=dict,\n    sample_rows=str,\n    models_selection_train_data_path=str,\n\
-            \    extra_train_data_path=str,\n):\n    \"\"\"Load and split timeseries\
-            \ data from S3 for AutoGluon training.\n\n    This component loads time\
-            \ series data from S3, samples it (up to 100 MB),\n    applies light **cleansing**\
-            \ (replace ``+/-inf`` with NaN so AutoGluon can apply its\n    own missing-value\
-            \ logic; require parseable timestamps and non-null ids; drop\n    exact\
-            \ duplicate ``(id_column, timestamp_column)`` rows, keep last), then performs\
-            \ a two-stage\n    **per-series temporal** split for efficient AutoGluon\
-            \ training:\n    1. Primary split (default 80/20): for each distinct ``id_column``\
-            \ value, the earliest\n       (1 - test_size) fraction of rows by ``timestamp_column``\
-            \ goes to the train portion and\n       the remainder to the test set (so\
-            \ every series with at least two rows contributes\n       holdout data;\
-            \ single-row series stay in train only).\n    2. Secondary split (default\
-            \ 30/70 of each series' train rows): early segment to\n       selection-train,\
-            \ later segment to extra-train.\n\n    The test set is written to S3 artifact,\
-            \ while train CSVs are written\n    to the PVC workspace for sharing across\
-            \ pipeline steps.\n\n    After cleansing, at least **100** valid records\
-            \ must remain; otherwise the component\n    fails with a clear error so\
-            \ downstream AutoGluon training does not run on datasets too\n    small\
-            \ to split reliably.\n\n    Args:\n        file_key: S3 object key of the\
-            \ CSV file containing time series data.\n        bucket_name: S3 bucket\
-            \ name containing the file.\n        workspace_path: PVC workspace directory\
-            \ where train CSVs will be written.\n        target: Name of the target\
-            \ column to forecast.\n        id_column: Name of the column identifying\
-            \ each time series (item_id).\n        timestamp_column: Name of the timestamp/datetime\
-            \ column.\n        sampled_test_dataset: Output dataset artifact for the\
-            \ test split.\n        component_status: Output artifact containing stage-level\
-            \ progress tracking for this component.\n        selection_train_size: Fraction\
-            \ of train portion for model selection (default: 0.3).\n\n    Returns:\n\
-            \        NamedTuple: sample_config, split_config, sample_rows, models_selection_train_data_path,\
-            \ extra_train_data_path.\n    \"\"\"\n    import io\n    import logging\n\
-            \    import os\n    from pathlib import Path\n\n    import boto3\n    import\
-            \ pandas as pd\n\n    logger = logging.getLogger(__name__)\n\n    MAX_SIZE_BYTES\
-            \ = 100 * 1024 * 1024  # 100 MB limit in bytes\n    MIN_VALID_RECORDS_AFTER_CLEANSING\
-            \ = 100\n    PANDAS_CHUNK_SIZE = 10000  # Rows per batch for streaming read\n\
-            \    DEFAULT_TEST_SIZE = 0.2\n\n    # Input validation\n    for param, value\
-            \ in (\n        (\"bucket_name\", bucket_name),\n        (\"file_key\",\
-            \ file_key),\n        (\"workspace_path\", workspace_path),\n        (\"\
-            target\", target),\n        (\"id_column\", id_column),\n        (\"timestamp_column\"\
-            , timestamp_column),\n    ):\n        if not isinstance(value, str) or not\
-            \ value.strip():\n            raise ValueError(f\"{param} must be a non-empty\
-            \ string.\")\n    if selection_train_size <= 0 or selection_train_size >=\
-            \ 1:\n        raise ValueError(\"selection_train_size must be in a range\
-            \ 0 to 1.\")\n\n    if file_key.startswith(\"/\") or file_key.endswith(\"\
-            /\") or \"//\" in file_key:\n        raise ValueError(\"file_key must be\
-            \ a valid S3 object key and must not start/end with '/' or contain '//'.\"\
-            )\n\n    from kfp_components.components.training.automl.shared.component_status\
-            \ import ComponentStatusTracker\n\n    status = ComponentStatusTracker(component_status.path,\
-            \ \"timeseries_data_loader\")\n    with status:\n        status.record(\"\
-            validate_inputs\", \"started\")\n        status.record(\"validate_inputs\"\
-            , \"completed\")\n\n        def get_s3_client(verify=True):\n          \
-            \  \"\"\"Create and return an S3 client using credentials from environment\
-            \ variables.\"\"\"\n            access_key = os.environ.get(\"AWS_ACCESS_KEY_ID\"\
-            )\n            secret_key = os.environ.get(\"AWS_SECRET_ACCESS_KEY\")\n\
-            \            endpoint_url = os.environ.get(\"AWS_S3_ENDPOINT\")\n      \
-            \      region_name = os.environ.get(\"AWS_DEFAULT_REGION\")\n\n        \
-            \    if (access_key and not secret_key) or (secret_key and not access_key):\n\
-            \                raise ValueError(\n                    \"S3 credentials\
-            \ misconfigured: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must either\
-            \ \"\n                    \"both be set and non-empty, or both be unset.\
-            \ \"\n                    \"Check the Kubernetes secret or environment configuration.\"\
-            \n                )\n            if not access_key and not secret_key:\n\
-            \                raise ValueError(\n                    \"S3 credentials\
-            \ missing: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be provided\
-            \ via \"\n                    \"a Kubernetes secret or environment configuration\
-            \ when using s3:// dataset URIs.\"\n                )\n\n            if\
-            \ not endpoint_url:\n                raise ValueError(\n               \
-            \     \"S3 credentials missing: AWS_S3_ENDPOINT must be provided via \"\n\
-            \                    \"a Kubernetes secret or environment configuration.\"\
-            \n                )\n\n            return boto3.client(\n              \
-            \  \"s3\",\n                endpoint_url=endpoint_url,\n               \
-            \ region_name=region_name,\n                aws_access_key_id=access_key,\n\
-            \                aws_secret_access_key=secret_key,\n                verify=verify,\n\
-            \            )\n\n        def load_timeseries_data_truncate(bucket_name,\
-            \ file_key, max_size_bytes, chunk_size):\n            \"\"\"Load time series\
-            \ CSV from S3, truncating to max_size_bytes while preserving order.\"\"\"\
-            \n            from botocore.exceptions import SSLError\n\n            s3_client\
-            \ = get_s3_client()\n            try:\n                response = s3_client.get_object(Bucket=bucket_name,\
-            \ Key=file_key)\n            except SSLError:\n                logger.warning(\n\
-            \                    \"SSL error when downloading s3://%s/%s, retrying with\
-            \ verify=False\",\n                    bucket_name,\n                  \
-            \  file_key,\n                )\n                no_verify_client = get_s3_client(verify=False)\n\
-            \                response = no_verify_client.get_object(Bucket=bucket_name,\
-            \ Key=file_key)\n            text_stream = io.TextIOWrapper(response[\"\
-            Body\"], encoding=\"utf-8\")\n\n            chunk_list = []\n          \
-            \  accumulated_size = 0\n            total_rows_read = 0\n\n           \
-            \ try:\n                for chunk_df in pd.read_csv(text_stream, chunksize=chunk_size):\n\
-            \                    chunk_memory = chunk_df.memory_usage(deep=True).sum()\n\
-            \n                    if accumulated_size + chunk_memory > max_size_bytes:\n\
-            \                        remaining_bytes = max_size_bytes - accumulated_size\n\
-            \                        if remaining_bytes <= 0:\n                    \
-            \        break\n                        bytes_per_row = chunk_memory / len(chunk_df)\
-            \ if len(chunk_df) > 0 else 0\n                        if bytes_per_row\
-            \ > 0:\n                            rows_to_take = int(remaining_bytes /\
-            \ bytes_per_row)\n                            if rows_to_take > 0:\n   \
-            \                             chunk_df = chunk_df.head(rows_to_take)\n \
-            \                               chunk_list.append(chunk_df)\n          \
-            \                      total_rows_read += len(chunk_df)\n              \
-            \          break\n\n                    chunk_list.append(chunk_df)\n  \
-            \                  accumulated_size += chunk_memory\n                  \
-            \  total_rows_read += len(chunk_df)\n\n                    if accumulated_size\
-            \ >= max_size_bytes:\n                        break\n\n            except\
-            \ Exception as e:\n                if not chunk_list:\n                \
-            \    raise ValueError(f\"Error reading CSV from S3: {str(e)}\") from e\n\
-            \n            if not chunk_list:\n                raise ValueError(\"No\
-            \ data was loaded from S3. The file may be empty or inaccessible.\")\n\n\
-            \            logger.debug(\n                \"S3 chunk read: %s rows (~%.2f\
-            \ MB)\",\n                total_rows_read,\n                accumulated_size\
-            \ / (1024**2),\n            )\n            return pd.concat(chunk_list,\
-            \ ignore_index=True)\n\n        def _clean_timeseries_dataframe(data, id_col,\
-            \ ts_col, log):\n            \"\"\"Prepare panel data without dropping rows\
-            \ for missing targets (AutoGluon handles NaNs).\n\n            Per time-series\
-            \ practice, **do not** drop rows for null/NaN targets or non-finite values\n\
-            \            after mapping ``+/-inf`` to NaN: removing observations creates\
-            \ irregular grids and breaks frequency\n            inference unless callers\
-            \ set ``freq`` explicitly. See AutoGluon TimeSeries missing-value\n    \
-            \        handling per model family.\n\n            This step: replace ``+/-inf``\
-            \ with NaN; parse timestamps and **fail** if any are invalid;\n        \
-            \    **fail** if any ``id_col`` or timestamp is null; ``drop_duplicates``\
-            \ on ``(id_col, ts_col)``\n            (keep last) only for true duplicate\
-            \ keys.\n            \"\"\"\n            rows_in = len(data)\n         \
-            \   if rows_in == 0:\n                return data\n\n            out = data.replace([float(\"\
-            inf\"), float(\"-inf\")], float(\"nan\"))\n\n            # Detect and handle\
-            \ numeric fractional year timestamps\n            ts_series = out[ts_col]\n\
-            \            non_null_ts = ts_series[ts_series.notna()]\n\n            #\
-            \ Check if all non-null timestamps are numeric\n            is_numeric =\
-            \ pd.to_numeric(non_null_ts, errors=\"coerce\").notna().all() if len(non_null_ts)\
-            \ > 0 else False\n\n            if is_numeric:\n                # Convert\
-            \ to numeric\n                numeric_ts = pd.to_numeric(ts_series, errors=\"\
-            coerce\")\n                non_null_numeric = numeric_ts[numeric_ts.notna()]\n\
-            \n                # Check if values look like fractional years (reasonable\
-            \ year range: 1800-2200)\n                if len(non_null_numeric) > 0:\n\
-            \                    min_val = non_null_numeric.min()\n                \
-            \    max_val = non_null_numeric.max()\n\n                    if 1800 <=\
-            \ min_val <= 2200 and 1800 <= max_val <= 2200:\n                       \
-            \ # Treat as fractional years - keep as numeric for sorting\n          \
-            \              # AutoGluon will handle conversion when loading the data\n\
-            \                        log.info(\n                            \"Timestamp\
-            \ column %r contains numeric values in year range [%.2f, %.2f]; \"\n   \
-            \                         \"treating as fractional years (kept as numeric\
-            \ for sorting).\",\n                            ts_col,\n              \
-            \              min_val,\n                            max_val,\n        \
-            \                )\n                        out[ts_col] = numeric_ts\n \
-            \                   else:\n                        # Numeric but not in\
-            \ year range - likely Unix timestamps or invalid\n                     \
-            \   raise ValueError(\n                            f\"Column {ts_col!r}\
-            \ contains numeric values outside the fractional year range \"\n       \
-            \                     f\"(1800-2200): min={min_val:.2f}, max={max_val:.2f}.\
-            \ \"\n                            \"If these are Unix timestamps, convert\
-            \ them to ISO date strings upstream. \"\n                            \"\
-            If these are fractional years, ensure values are in a reasonable range.\"\
-            \n                        )\n                else:\n                   \
-            \ # All nulls, let pd.to_datetime handle it\n                    out[ts_col]\
-            \ = pd.to_datetime(out[ts_col], errors=\"coerce\", utc=False)\n        \
-            \    else:\n                # Not all numeric - use standard datetime parsing\n\
-            \                out[ts_col] = pd.to_datetime(out[ts_col], errors=\"coerce\"\
-            , utc=False)\n\n            if out[id_col].isna().any():\n             \
-            \   raise ValueError(\n                    f\"Column {id_col!r} contains\
-            \ null values. Fix the input data; do not drop rows here, \"\n         \
-            \           \"as that can break regular frequency expected by AutoGluon\
-            \ TimeSeries.\"\n                )\n            bad_ts = int(out[ts_col].isna().sum())\n\
-            \            if bad_ts:\n                raise ValueError(\n           \
-            \         f\"Column {ts_col!r} has {bad_ts} value(s) that could not be parsed\
-            \ as datetimes. \"\n                    \"Fix the input data. Dropping those\
-            \ rows would create irregular series and can break \"\n                \
-            \    \"AutoGluon frequency inference (set TimeSeriesPredictor(freq=...)\
-            \ or regularize upstream).\"\n                )\n\n            # Sort by\
-            \ (id, timestamp) BEFORE deduplication so that keep=\"last\" means\n   \
-            \         # \"keep the last row in chronological order\" (after sorting),\
-            \ not \"keep the last row in file order\".\n            # This ensures we\
-            \ retain the chronologically latest observation for each (id, timestamp)\
-            \ pair.\n            out = out.sort_values(by=[id_col, ts_col])\n      \
-            \      before_dedupe = len(out)\n            out = out.drop_duplicates(subset=[id_col,\
-            \ ts_col], keep=\"last\")\n            dropped_dupes = before_dedupe - len(out)\n\
-            \            if dropped_dupes:\n                log.info(\n            \
-            \        \"Timeseries cleansing: dropped %s duplicate rows on (%s, %s),\
-            \ keep=last.\",\n                    dropped_dupes,\n                  \
-            \  id_col,\n                    ts_col,\n                )\n\n         \
-            \   rows_out = len(out)\n            log.info(\"Timeseries cleansing: rows\
-            \ in=%s out=%s (target NaNs retained for AutoGluon).\", rows_in, rows_out)\n\
-            \            if rows_out == 0:\n                raise ValueError(\"After\
-            \ removing duplicate (id, timestamp) pairs, the dataset has no rows left.\"\
-            )\n\n            return out.reset_index(drop=True)\n\n        status.record(\n\
-            \            \"read_and_sample\",\n            \"started\",\n          \
-            \  source=f\"s3://{bucket_name}/{file_key}\",\n        )\n        df = load_timeseries_data_truncate(bucket_name,\
-            \ file_key, MAX_SIZE_BYTES, PANDAS_CHUNK_SIZE)\n\n        required_columns\
-            \ = {id_column, timestamp_column, target}\n        missing_columns = required_columns\
-            \ - set(df.columns)\n        if missing_columns:\n            raise ValueError(\n\
-            \                f\"Missing required columns in dataset: {missing_columns}.\
-            \ Available columns: {list(df.columns)}\"\n            )\n\n        if len(df)\
-            \ == 0:\n            raise ValueError(\n                \"The loaded dataset\
-            \ has no data rows. Provide at least one row per time series \"\n      \
-            \          f\"with columns {sorted(required_columns)}.\"\n            )\n\
-            \n        status.record(\"read_and_sample\", \"completed\", rows=len(df))\n\
-            \        status.record(\"cleanse\", \"started\")\n\n        df = _clean_timeseries_dataframe(df,\
-            \ id_column, timestamp_column, logger)\n\n        n_valid = len(df)\n  \
-            \      if n_valid < MIN_VALID_RECORDS_AFTER_CLEANSING:\n            raise\
-            \ ValueError(\n                f\"After data cleansing, only {n_valid} valid\
-            \ record(s) remain; \"\n                f\"at least {MIN_VALID_RECORDS_AFTER_CLEANSING}\
-            \ are required for AutoML training. \"\n                \"Provide a larger\
-            \ dataset or fix invalid timestamps, null ids, and duplicate keys.\"\n \
-            \           )\n\n        status.record(\"cleanse\", \"completed\", rows=n_valid)\n\
-            \        status.record(\"split\", \"started\")\n\n        # Create workspace\
-            \ datasets directory\n        datasets_dir = Path(workspace_path) / \"datasets\"\
-            \n        datasets_dir.mkdir(parents=True, exist_ok=True)\n\n        # Stable\
-            \ ordering for downstream I/O (redundant if cleanse already sorted; kept\
-            \ for clarity)\n        df = df.sort_values(by=[id_column, timestamp_column]).reset_index(drop=True)\n\
-            \n        test_size = DEFAULT_TEST_SIZE\n\n        def _early_late_split(group:\
-            \ pd.DataFrame, early_fraction: float) -> tuple[pd.DataFrame, pd.DataFrame]:\n\
-            \            \"\"\"Split one series by time: first ``early_fraction`` of\
-            \ rows (by time) vs remainder.\n\n            Ensures at least one row in\
-            \ each side when len >= 2. A single-row series is kept\n            entirely\
-            \ in the early (train/selection) part.\n            \"\"\"\n           \
-            \ g = group.sort_values(by=timestamp_column)\n            n = len(g)\n \
-            \           if n == 0:\n                return g.iloc[:0].copy(), g.iloc[:0].copy()\n\
-            \            if n == 1:\n                return g.copy(), g.iloc[:0].copy()\n\
-            \            split_idx = int(n * early_fraction)\n            split_idx\
-            \ = max(1, min(split_idx, n - 1))\n            return g.iloc[:split_idx].copy(),\
-            \ g.iloc[split_idx:].copy()\n\n        def _concat_sorted(parts: list, sort_by:\
-            \ list) -> pd.DataFrame:\n            if not parts:\n                return\
-            \ pd.DataFrame(columns=df.columns)\n            out = pd.concat(parts, ignore_index=True)\n\
-            \            return out.sort_values(by=sort_by).reset_index(drop=True)\n\
-            \n        train_parts: list = []\n        test_parts: list = []\n      \
-            \  for _, series_df in df.groupby(id_column, sort=False):\n            tr,\
-            \ te = _early_late_split(series_df, 1.0 - test_size)\n            train_parts.append(tr)\n\
-            \            test_parts.append(te)\n\n        train_df = _concat_sorted(train_parts,\
-            \ [id_column, timestamp_column])\n        test_df = _concat_sorted(test_parts,\
-            \ [id_column, timestamp_column])\n\n        selection_parts: list = []\n\
-            \        extra_parts: list = []\n        for _, series_train in train_df.groupby(id_column,\
-            \ sort=False):\n            sel, ext = _early_late_split(series_train, selection_train_size)\n\
-            \            selection_parts.append(sel)\n            extra_parts.append(ext)\n\
-            \n        selection_train_df = _concat_sorted(selection_parts, [id_column,\
-            \ timestamp_column])\n        extra_train_df = _concat_sorted(extra_parts,\
-            \ [id_column, timestamp_column])\n\n        # Validate split outputs:\n\
-            \        if len(train_df) == 0:\n            raise ValueError(\n       \
-            \         \"Primary temporal split produced no train rows. The dataset may\
-            \ be too small for \"\n                \"the configured splits. Add more\
-            \ rows per time series, or reduce test_size \"\n                f\"(default\
-            \ is {DEFAULT_TEST_SIZE}).\"\n            )\n        if len(selection_train_df)\
-            \ == 0:\n            raise ValueError(\n                \"Secondary split\
-            \ produced an empty selection-train dataset; \"\n                \"models_selection_train_dataset.csv\
-            \ would be empty and downstream training would fail. \"\n              \
-            \  \"Increase rows per time series and/or selection_train_size, or reduce\
-            \ test_size so \"\n                \"each series has enough train rows for\
-            \ the selection segment.\"\n            )\n\n        status.record(\n  \
-            \          \"split\",\n            \"completed\",\n            test_size=test_size,\n\
-            \            selection_train_size=selection_train_size,\n        )\n\n \
-            \       # Save test dataset to artifact\n        test_df.to_csv(sampled_test_dataset.path,\
-            \ index=False)\n\n        selection_path = datasets_dir / \"models_selection_train_dataset.csv\"\
-            \n        extra_path = datasets_dir / \"extra_train_dataset.csv\"\n\n  \
-            \      selection_train_df.to_csv(selection_path, index=False)\n        extra_train_df.to_csv(extra_path,\
-            \ index=False)\n\n        logger.info(\n            \"Timeseries loader:\
-            \ %s rows from s3://%s/%s; split selection=%s extra=%s test=%s\",\n    \
-            \        len(df),\n            bucket_name,\n            file_key,\n   \
-            \         len(selection_train_df),\n            len(extra_train_df),\n \
-            \           len(test_df),\n        )\n\n        # Create sample config and\
-            \ split config\n        sample_config = {\"sampling_method\": \"first_n_rows\"\
-            , \"total_rows_loaded\": len(df), \"sampled_rows\": len(df)}\n\n       \
-            \ split_config = {\n            \"test_size\": test_size,\n            \"\
-            selection_train_size\": selection_train_size,\n        }\n\n        status.record(\"\
-            write_outputs\", \"started\")\n        status.record(\"write_outputs\",\
-            \ \"completed\")\n        component_status.metadata[\"display_name\"] =\
-            \ \"Timeseries Data Loader Status\"\n\n        # Sample row for downstream\
-            \ use (JSON string to avoid NaN issues)\n        sample_rows = test_df.tail(min(5,\
-            \ len(test_df))).to_json(orient=\"records\")\n\n        return NamedTuple(\n\
-            \            \"outputs\",\n            sample_config=dict,\n           \
-            \ split_config=dict,\n            sample_rows=str,\n            models_selection_train_data_path=str,\n\
-            \            extra_train_data_path=str,\n        )(\n            sample_config=sample_config,\n\
-            \            split_config=split_config,\n            sample_rows=sample_rows,\n\
-            \            models_selection_train_data_path=str(selection_path),\n   \
-            \         extra_train_data_path=str(extra_path),\n        )\n\n"
-        image: registry.redhat.io/rhoai/odh-automl-rhel9@sha256:e212039c1e2e6f9a9ead493eba3018bf23425b60554b47169746136d8c7d8c8a
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef timeseries_data_loader(\n    file_key: str,\n    bucket_name:\
+          \ str,\n    workspace_path: str,\n    target: str,\n    id_column: str,\n\
+          \    timestamp_column: str,\n    sampled_test_dataset: dsl.Output[dsl.Dataset],\n\
+          \    component_status: dsl.Output[dsl.Artifact],\n    selection_train_size:\
+          \ float = 0.3,\n) -> NamedTuple(\n    \"outputs\",\n    sample_config=dict,\n\
+          \    split_config=dict,\n    sample_rows=str,\n    models_selection_train_data_path=str,\n\
+          \    extra_train_data_path=str,\n):\n    \"\"\"Load and split timeseries\
+          \ data from S3 for AutoGluon training.\n\n    This component loads time\
+          \ series data from S3, samples it (up to 100 MB),\n    applies light **cleansing**\
+          \ (replace ``+/-inf`` with NaN so AutoGluon can apply its\n    own missing-value\
+          \ logic; require parseable timestamps and non-null ids; drop\n    exact\
+          \ duplicate ``(id_column, timestamp_column)`` rows, keep last), then performs\
+          \ a two-stage\n    **per-series temporal** split for efficient AutoGluon\
+          \ training:\n    1. Primary split (default 80/20): for each distinct ``id_column``\
+          \ value, the earliest\n       (1 - test_size) fraction of rows by ``timestamp_column``\
+          \ goes to the train portion and\n       the remainder to the test set (so\
+          \ every series with at least two rows contributes\n       holdout data;\
+          \ single-row series stay in train only).\n    2. Secondary split (default\
+          \ 30/70 of each series' train rows): early segment to\n       selection-train,\
+          \ later segment to extra-train.\n\n    The test set is written to S3 artifact,\
+          \ while train CSVs are written\n    to the PVC workspace for sharing across\
+          \ pipeline steps.\n\n    After cleansing, at least **100** valid records\
+          \ must remain; otherwise the component\n    fails with a clear error so\
+          \ downstream AutoGluon training does not run on datasets too\n    small\
+          \ to split reliably.\n\n    Args:\n        file_key: S3 object key of the\
+          \ CSV file containing time series data.\n        bucket_name: S3 bucket\
+          \ name containing the file.\n        workspace_path: PVC workspace directory\
+          \ where train CSVs will be written.\n        target: Name of the target\
+          \ column to forecast.\n        id_column: Name of the column identifying\
+          \ each time series (item_id).\n        timestamp_column: Name of the timestamp/datetime\
+          \ column.\n        sampled_test_dataset: Output dataset artifact for the\
+          \ test split.\n        component_status: Output artifact containing stage-level\
+          \ progress tracking for this component.\n        selection_train_size: Fraction\
+          \ of train portion for model selection (default: 0.3).\n\n    Returns:\n\
+          \        NamedTuple: sample_config, split_config, sample_rows, models_selection_train_data_path,\
+          \ extra_train_data_path.\n    \"\"\"\n    import io\n    import logging\n\
+          \    import os\n    from pathlib import Path\n\n    import boto3\n    import\
+          \ pandas as pd\n\n    logger = logging.getLogger(__name__)\n\n    MAX_SIZE_BYTES\
+          \ = 100 * 1024 * 1024  # 100 MB limit in bytes\n    MIN_VALID_RECORDS_AFTER_CLEANSING\
+          \ = 100\n    PANDAS_CHUNK_SIZE = 10000  # Rows per batch for streaming read\n\
+          \    DEFAULT_TEST_SIZE = 0.2\n\n    # Input validation\n    for param, value\
+          \ in (\n        (\"bucket_name\", bucket_name),\n        (\"file_key\",\
+          \ file_key),\n        (\"workspace_path\", workspace_path),\n        (\"\
+          target\", target),\n        (\"id_column\", id_column),\n        (\"timestamp_column\"\
+          , timestamp_column),\n    ):\n        if not isinstance(value, str) or not\
+          \ value.strip():\n            raise ValueError(f\"{param} must be a non-empty\
+          \ string.\")\n    if selection_train_size <= 0 or selection_train_size >=\
+          \ 1:\n        raise ValueError(\"selection_train_size must be in a range\
+          \ 0 to 1.\")\n\n    if file_key.startswith(\"/\") or file_key.endswith(\"\
+          /\") or \"//\" in file_key:\n        raise ValueError(\"file_key must be\
+          \ a valid S3 object key and must not start/end with '/' or contain '//'.\"\
+          )\n\n    from kfp_components.components.training.automl.shared.component_status\
+          \ import ComponentStatusTracker\n\n    status = ComponentStatusTracker(component_status.path,\
+          \ \"timeseries_data_loader\")\n    with status:\n        status.record(\"\
+          validate_inputs\", \"started\")\n        status.record(\"validate_inputs\"\
+          , \"completed\")\n\n        def get_s3_client(verify=True):\n          \
+          \  \"\"\"Create and return an S3 client using credentials from environment\
+          \ variables.\"\"\"\n            access_key = os.environ.get(\"AWS_ACCESS_KEY_ID\"\
+          )\n            secret_key = os.environ.get(\"AWS_SECRET_ACCESS_KEY\")\n\
+          \            endpoint_url = os.environ.get(\"AWS_S3_ENDPOINT\")\n      \
+          \      region_name = os.environ.get(\"AWS_DEFAULT_REGION\")\n\n        \
+          \    if (access_key and not secret_key) or (secret_key and not access_key):\n\
+          \                raise ValueError(\n                    \"S3 credentials\
+          \ misconfigured: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must either\
+          \ \"\n                    \"both be set and non-empty, or both be unset.\
+          \ \"\n                    \"Check the Kubernetes secret or environment configuration.\"\
+          \n                )\n            if not access_key and not secret_key:\n\
+          \                raise ValueError(\n                    \"S3 credentials\
+          \ missing: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be provided\
+          \ via \"\n                    \"a Kubernetes secret or environment configuration\
+          \ when using s3:// dataset URIs.\"\n                )\n\n            if\
+          \ not endpoint_url:\n                raise ValueError(\n               \
+          \     \"S3 credentials missing: AWS_S3_ENDPOINT must be provided via \"\n\
+          \                    \"a Kubernetes secret or environment configuration.\"\
+          \n                )\n\n            return boto3.client(\n              \
+          \  \"s3\",\n                endpoint_url=endpoint_url,\n               \
+          \ region_name=region_name,\n                aws_access_key_id=access_key,\n\
+          \                aws_secret_access_key=secret_key,\n                verify=verify,\n\
+          \            )\n\n        def load_timeseries_data_truncate(bucket_name,\
+          \ file_key, max_size_bytes, chunk_size):\n            \"\"\"Load time series\
+          \ CSV from S3, truncating to max_size_bytes while preserving order.\"\"\"\
+          \n            from botocore.exceptions import SSLError\n\n            s3_client\
+          \ = get_s3_client()\n            try:\n                response = s3_client.get_object(Bucket=bucket_name,\
+          \ Key=file_key)\n            except SSLError:\n                logger.warning(\n\
+          \                    \"SSL error when downloading s3://%s/%s, retrying with\
+          \ verify=False\",\n                    bucket_name,\n                  \
+          \  file_key,\n                )\n                no_verify_client = get_s3_client(verify=False)\n\
+          \                response = no_verify_client.get_object(Bucket=bucket_name,\
+          \ Key=file_key)\n            text_stream = io.TextIOWrapper(response[\"\
+          Body\"], encoding=\"utf-8\")\n\n            chunk_list = []\n          \
+          \  accumulated_size = 0\n            total_rows_read = 0\n\n           \
+          \ try:\n                for chunk_df in pd.read_csv(text_stream, chunksize=chunk_size):\n\
+          \                    chunk_memory = chunk_df.memory_usage(deep=True).sum()\n\
+          \n                    if accumulated_size + chunk_memory > max_size_bytes:\n\
+          \                        remaining_bytes = max_size_bytes - accumulated_size\n\
+          \                        if remaining_bytes <= 0:\n                    \
+          \        break\n                        bytes_per_row = chunk_memory / len(chunk_df)\
+          \ if len(chunk_df) > 0 else 0\n                        if bytes_per_row\
+          \ > 0:\n                            rows_to_take = int(remaining_bytes /\
+          \ bytes_per_row)\n                            if rows_to_take > 0:\n   \
+          \                             chunk_df = chunk_df.head(rows_to_take)\n \
+          \                               chunk_list.append(chunk_df)\n          \
+          \                      total_rows_read += len(chunk_df)\n              \
+          \          break\n\n                    chunk_list.append(chunk_df)\n  \
+          \                  accumulated_size += chunk_memory\n                  \
+          \  total_rows_read += len(chunk_df)\n\n                    if accumulated_size\
+          \ >= max_size_bytes:\n                        break\n\n            except\
+          \ Exception as e:\n                if not chunk_list:\n                \
+          \    raise ValueError(f\"Error reading CSV from S3: {str(e)}\") from e\n\
+          \n            if not chunk_list:\n                raise ValueError(\"No\
+          \ data was loaded from S3. The file may be empty or inaccessible.\")\n\n\
+          \            logger.debug(\n                \"S3 chunk read: %s rows (~%.2f\
+          \ MB)\",\n                total_rows_read,\n                accumulated_size\
+          \ / (1024**2),\n            )\n            return pd.concat(chunk_list,\
+          \ ignore_index=True)\n\n        def _clean_timeseries_dataframe(data, id_col,\
+          \ ts_col, log):\n            \"\"\"Prepare panel data without dropping rows\
+          \ for missing targets (AutoGluon handles NaNs).\n\n            Per time-series\
+          \ practice, **do not** drop rows for null/NaN targets or non-finite values\n\
+          \            after mapping ``+/-inf`` to NaN: removing observations creates\
+          \ irregular grids and breaks frequency\n            inference unless callers\
+          \ set ``freq`` explicitly. See AutoGluon TimeSeries missing-value\n    \
+          \        handling per model family.\n\n            This step: replace ``+/-inf``\
+          \ with NaN; parse timestamps and **fail** if any are invalid;\n        \
+          \    **fail** if any ``id_col`` or timestamp is null; ``drop_duplicates``\
+          \ on ``(id_col, ts_col)``\n            (keep last) only for true duplicate\
+          \ keys.\n            \"\"\"\n            rows_in = len(data)\n         \
+          \   if rows_in == 0:\n                return data\n\n            out = data.replace([float(\"\
+          inf\"), float(\"-inf\")], float(\"nan\"))\n\n            # Detect and handle\
+          \ numeric fractional year timestamps\n            ts_series = out[ts_col]\n\
+          \            non_null_ts = ts_series[ts_series.notna()]\n\n            #\
+          \ Check if all non-null timestamps are numeric\n            is_numeric =\
+          \ pd.to_numeric(non_null_ts, errors=\"coerce\").notna().all() if len(non_null_ts)\
+          \ > 0 else False\n\n            if is_numeric:\n                # Convert\
+          \ to numeric\n                numeric_ts = pd.to_numeric(ts_series, errors=\"\
+          coerce\")\n                non_null_numeric = numeric_ts[numeric_ts.notna()]\n\
+          \n                # Check if values look like fractional years (reasonable\
+          \ year range: 1800-2200)\n                if len(non_null_numeric) > 0:\n\
+          \                    min_val = non_null_numeric.min()\n                \
+          \    max_val = non_null_numeric.max()\n\n                    if 1800 <=\
+          \ min_val <= 2200 and 1800 <= max_val <= 2200:\n                       \
+          \ # Treat as fractional years - keep as numeric for sorting\n          \
+          \              # AutoGluon will handle conversion when loading the data\n\
+          \                        log.info(\n                            \"Timestamp\
+          \ column %r contains numeric values in year range [%.2f, %.2f]; \"\n   \
+          \                         \"treating as fractional years (kept as numeric\
+          \ for sorting).\",\n                            ts_col,\n              \
+          \              min_val,\n                            max_val,\n        \
+          \                )\n                        out[ts_col] = numeric_ts\n \
+          \                   else:\n                        # Numeric but not in\
+          \ year range - likely Unix timestamps or invalid\n                     \
+          \   raise ValueError(\n                            f\"Column {ts_col!r}\
+          \ contains numeric values outside the fractional year range \"\n       \
+          \                     f\"(1800-2200): min={min_val:.2f}, max={max_val:.2f}.\
+          \ \"\n                            \"If these are Unix timestamps, convert\
+          \ them to ISO date strings upstream. \"\n                            \"\
+          If these are fractional years, ensure values are in a reasonable range.\"\
+          \n                        )\n                else:\n                   \
+          \ # All nulls, let pd.to_datetime handle it\n                    out[ts_col]\
+          \ = pd.to_datetime(out[ts_col], errors=\"coerce\", utc=False)\n        \
+          \    else:\n                # Not all numeric - use standard datetime parsing\n\
+          \                out[ts_col] = pd.to_datetime(out[ts_col], errors=\"coerce\"\
+          , utc=False)\n\n            if out[id_col].isna().any():\n             \
+          \   raise ValueError(\n                    f\"Column {id_col!r} contains\
+          \ null values. Fix the input data; do not drop rows here, \"\n         \
+          \           \"as that can break regular frequency expected by AutoGluon\
+          \ TimeSeries.\"\n                )\n            bad_ts = int(out[ts_col].isna().sum())\n\
+          \            if bad_ts:\n                raise ValueError(\n           \
+          \         f\"Column {ts_col!r} has {bad_ts} value(s) that could not be parsed\
+          \ as datetimes. \"\n                    \"Fix the input data. Dropping those\
+          \ rows would create irregular series and can break \"\n                \
+          \    \"AutoGluon frequency inference (set TimeSeriesPredictor(freq=...)\
+          \ or regularize upstream).\"\n                )\n\n            # Sort by\
+          \ (id, timestamp) BEFORE deduplication so that keep=\"last\" means\n   \
+          \         # \"keep the last row in chronological order\" (after sorting),\
+          \ not \"keep the last row in file order\".\n            # This ensures we\
+          \ retain the chronologically latest observation for each (id, timestamp)\
+          \ pair.\n            out = out.sort_values(by=[id_col, ts_col])\n      \
+          \      before_dedupe = len(out)\n            out = out.drop_duplicates(subset=[id_col,\
+          \ ts_col], keep=\"last\")\n            dropped_dupes = before_dedupe - len(out)\n\
+          \            if dropped_dupes:\n                log.info(\n            \
+          \        \"Timeseries cleansing: dropped %s duplicate rows on (%s, %s),\
+          \ keep=last.\",\n                    dropped_dupes,\n                  \
+          \  id_col,\n                    ts_col,\n                )\n\n         \
+          \   rows_out = len(out)\n            log.info(\"Timeseries cleansing: rows\
+          \ in=%s out=%s (target NaNs retained for AutoGluon).\", rows_in, rows_out)\n\
+          \            if rows_out == 0:\n                raise ValueError(\"After\
+          \ removing duplicate (id, timestamp) pairs, the dataset has no rows left.\"\
+          )\n\n            return out.reset_index(drop=True)\n\n        status.record(\n\
+          \            \"read_and_sample\",\n            \"started\",\n          \
+          \  source=f\"s3://{bucket_name}/{file_key}\",\n        )\n        df = load_timeseries_data_truncate(bucket_name,\
+          \ file_key, MAX_SIZE_BYTES, PANDAS_CHUNK_SIZE)\n\n        required_columns\
+          \ = {id_column, timestamp_column, target}\n        missing_columns = required_columns\
+          \ - set(df.columns)\n        if missing_columns:\n            raise ValueError(\n\
+          \                f\"Missing required columns in dataset: {missing_columns}.\
+          \ Available columns: {list(df.columns)}\"\n            )\n\n        if len(df)\
+          \ == 0:\n            raise ValueError(\n                \"The loaded dataset\
+          \ has no data rows. Provide at least one row per time series \"\n      \
+          \          f\"with columns {sorted(required_columns)}.\"\n            )\n\
+          \n        status.record(\"read_and_sample\", \"completed\", rows=len(df))\n\
+          \        status.record(\"cleanse\", \"started\")\n\n        df = _clean_timeseries_dataframe(df,\
+          \ id_column, timestamp_column, logger)\n\n        n_valid = len(df)\n  \
+          \      if n_valid < MIN_VALID_RECORDS_AFTER_CLEANSING:\n            raise\
+          \ ValueError(\n                f\"After data cleansing, only {n_valid} valid\
+          \ record(s) remain; \"\n                f\"at least {MIN_VALID_RECORDS_AFTER_CLEANSING}\
+          \ are required for AutoML training. \"\n                \"Provide a larger\
+          \ dataset or fix invalid timestamps, null ids, and duplicate keys.\"\n \
+          \           )\n\n        status.record(\"cleanse\", \"completed\", rows=n_valid)\n\
+          \        status.record(\"split\", \"started\")\n\n        # Create workspace\
+          \ datasets directory\n        datasets_dir = Path(workspace_path) / \"datasets\"\
+          \n        datasets_dir.mkdir(parents=True, exist_ok=True)\n\n        # Stable\
+          \ ordering for downstream I/O (redundant if cleanse already sorted; kept\
+          \ for clarity)\n        df = df.sort_values(by=[id_column, timestamp_column]).reset_index(drop=True)\n\
+          \n        test_size = DEFAULT_TEST_SIZE\n\n        def _early_late_split(group:\
+          \ pd.DataFrame, early_fraction: float) -> tuple[pd.DataFrame, pd.DataFrame]:\n\
+          \            \"\"\"Split one series by time: first ``early_fraction`` of\
+          \ rows (by time) vs remainder.\n\n            Ensures at least one row in\
+          \ each side when len >= 2. A single-row series is kept\n            entirely\
+          \ in the early (train/selection) part.\n            \"\"\"\n           \
+          \ g = group.sort_values(by=timestamp_column)\n            n = len(g)\n \
+          \           if n == 0:\n                return g.iloc[:0].copy(), g.iloc[:0].copy()\n\
+          \            if n == 1:\n                return g.copy(), g.iloc[:0].copy()\n\
+          \            split_idx = int(n * early_fraction)\n            split_idx\
+          \ = max(1, min(split_idx, n - 1))\n            return g.iloc[:split_idx].copy(),\
+          \ g.iloc[split_idx:].copy()\n\n        def _concat_sorted(parts: list, sort_by:\
+          \ list) -> pd.DataFrame:\n            if not parts:\n                return\
+          \ pd.DataFrame(columns=df.columns)\n            out = pd.concat(parts, ignore_index=True)\n\
+          \            return out.sort_values(by=sort_by).reset_index(drop=True)\n\
+          \n        train_parts: list = []\n        test_parts: list = []\n      \
+          \  for _, series_df in df.groupby(id_column, sort=False):\n            tr,\
+          \ te = _early_late_split(series_df, 1.0 - test_size)\n            train_parts.append(tr)\n\
+          \            test_parts.append(te)\n\n        train_df = _concat_sorted(train_parts,\
+          \ [id_column, timestamp_column])\n        test_df = _concat_sorted(test_parts,\
+          \ [id_column, timestamp_column])\n\n        selection_parts: list = []\n\
+          \        extra_parts: list = []\n        for _, series_train in train_df.groupby(id_column,\
+          \ sort=False):\n            sel, ext = _early_late_split(series_train, selection_train_size)\n\
+          \            selection_parts.append(sel)\n            extra_parts.append(ext)\n\
+          \n        selection_train_df = _concat_sorted(selection_parts, [id_column,\
+          \ timestamp_column])\n        extra_train_df = _concat_sorted(extra_parts,\
+          \ [id_column, timestamp_column])\n\n        # Validate split outputs:\n\
+          \        if len(train_df) == 0:\n            raise ValueError(\n       \
+          \         \"Primary temporal split produced no train rows. The dataset may\
+          \ be too small for \"\n                \"the configured splits. Add more\
+          \ rows per time series, or reduce test_size \"\n                f\"(default\
+          \ is {DEFAULT_TEST_SIZE}).\"\n            )\n        if len(selection_train_df)\
+          \ == 0:\n            raise ValueError(\n                \"Secondary split\
+          \ produced an empty selection-train dataset; \"\n                \"models_selection_train_dataset.csv\
+          \ would be empty and downstream training would fail. \"\n              \
+          \  \"Increase rows per time series and/or selection_train_size, or reduce\
+          \ test_size so \"\n                \"each series has enough train rows for\
+          \ the selection segment.\"\n            )\n\n        status.record(\n  \
+          \          \"split\",\n            \"completed\",\n            test_size=test_size,\n\
+          \            selection_train_size=selection_train_size,\n        )\n\n \
+          \       # Save test dataset to artifact\n        test_df.to_csv(sampled_test_dataset.path,\
+          \ index=False)\n\n        selection_path = datasets_dir / \"models_selection_train_dataset.csv\"\
+          \n        extra_path = datasets_dir / \"extra_train_dataset.csv\"\n\n  \
+          \      selection_train_df.to_csv(selection_path, index=False)\n        extra_train_df.to_csv(extra_path,\
+          \ index=False)\n\n        logger.info(\n            \"Timeseries loader:\
+          \ %s rows from s3://%s/%s; split selection=%s extra=%s test=%s\",\n    \
+          \        len(df),\n            bucket_name,\n            file_key,\n   \
+          \         len(selection_train_df),\n            len(extra_train_df),\n \
+          \           len(test_df),\n        )\n\n        # Create sample config and\
+          \ split config\n        sample_config = {\"sampling_method\": \"first_n_rows\"\
+          , \"total_rows_loaded\": len(df), \"sampled_rows\": len(df)}\n\n       \
+          \ split_config = {\n            \"test_size\": test_size,\n            \"\
+          selection_train_size\": selection_train_size,\n        }\n\n        status.record(\"\
+          write_outputs\", \"started\")\n        status.record(\"write_outputs\",\
+          \ \"completed\")\n        component_status.metadata[\"display_name\"] =\
+          \ \"Timeseries Data Loader Status\"\n\n        # Sample row for downstream\
+          \ use (JSON string to avoid NaN issues)\n        sample_rows = test_df.tail(min(5,\
+          \ len(test_df))).to_json(orient=\"records\")\n\n        return NamedTuple(\n\
+          \            \"outputs\",\n            sample_config=dict,\n           \
+          \ split_config=dict,\n            sample_rows=str,\n            models_selection_train_data_path=str,\n\
+          \            extra_train_data_path=str,\n        )(\n            sample_config=sample_config,\n\
+          \            split_config=split_config,\n            sample_rows=sample_rows,\n\
+          \            models_selection_train_data_path=str(selection_path),\n   \
+          \         extra_train_data_path=str(extra_path),\n        )\n\n"
+        image: quay.io/opendatahub/odh-automl:odh-stable
         resources:
           cpuLimit: 32.0
           cpuRequest: 2.0
@@ -987,12 +1024,10 @@ deploymentSpec:
           resourceMemoryLimit: 64Gi
           resourceMemoryRequest: 8Gi
 pipelineInfo:
-  description: End-to-end AutoGluon time series forecasting pipeline. Loads time series
-    data from S3 in TimeSeriesDataFrame format (item_id, timestamp, target), trains
-    multiple AutoGluon TimeSeries models (local statistical and global deep learning),
-    ranks them by the chosen eval metric, and produces a leaderboard and the top N
-    trained predictors for deployment. Supports optional known covariates and configurable
-    prediction_length.
+  description: AutoML time series forecasting pipeline for building accurate, deployment-ready
+    forecasters with minimal tuning. Powered by AutoGluon TimeSeries, it compares
+    statistical and deep learning approaches, refits the best models, and delivers
+    top predictors, back-testing insights, and a ranked leaderboard for model selection.
   name: autogluon-timeseries-training-pipeline
 root:
   dag:
@@ -1002,7 +1037,7 @@ root:
         componentRef:
           name: comp-autogluon-timeseries-models-training
         dependentTasks:
-          - timeseries-data-loader
+        - timeseries-data-loader
         inputs:
           artifacts:
             test_data:
@@ -1010,6 +1045,8 @@ root:
                 outputArtifactKey: sampled_test_dataset
                 producerTask: timeseries-data-loader
           parameters:
+            eval_metric:
+              componentInputParameter: eval_metric
             extra_train_data_path:
               taskOutputParameter:
                 outputParameterKey: extra_train_data_path
@@ -1058,7 +1095,7 @@ root:
         componentRef:
           name: comp-leaderboard-evaluation
         dependentTasks:
-          - autogluon-timeseries-models-training
+        - autogluon-timeseries-models-training
         inputs:
           artifacts:
             models_artifact:
@@ -1091,7 +1128,7 @@ root:
         componentRef:
           name: comp-timeseries-data-loader
         dependentTasks:
-          - publish-component-stage-map
+        - publish-component-stage-map
         inputs:
           parameters:
             bucket_name:
@@ -1111,6 +1148,10 @@ root:
           name: timeseries-data-loader
   inputDefinitions:
     parameters:
+      eval_metric:
+        defaultValue: MASE
+        isOptional: true
+        parameterType: STRING
       id_column:
         parameterType: STRING
       known_covariates_names:
@@ -1143,22 +1184,22 @@ platforms:
       executors:
         exec-timeseries-data-loader:
           secretAsEnv:
-            - keyToEnv:
-                - envVar: AWS_ACCESS_KEY_ID
-                  secretKey: AWS_ACCESS_KEY_ID
-                - envVar: AWS_SECRET_ACCESS_KEY
-                  secretKey: AWS_SECRET_ACCESS_KEY
-                - envVar: AWS_S3_ENDPOINT
-                  secretKey: AWS_S3_ENDPOINT
-                - envVar: AWS_DEFAULT_REGION
-                  secretKey: AWS_DEFAULT_REGION
-              optional: true
-              secretNameParameter:
-                componentInputParameter: train_data_secret_name
+          - keyToEnv:
+            - envVar: AWS_ACCESS_KEY_ID
+              secretKey: AWS_ACCESS_KEY_ID
+            - envVar: AWS_SECRET_ACCESS_KEY
+              secretKey: AWS_SECRET_ACCESS_KEY
+            - envVar: AWS_S3_ENDPOINT
+              secretKey: AWS_S3_ENDPOINT
+            - envVar: AWS_DEFAULT_REGION
+              secretKey: AWS_DEFAULT_REGION
+            optional: true
+            secretNameParameter:
+              componentInputParameter: train_data_secret_name
     pipelineConfig:
       workspace:
         kubernetes:
           pvcSpecPatch:
             accessModes:
-              - ReadWriteOnce
+            - ReadWriteOnce
         size: 12Gi
