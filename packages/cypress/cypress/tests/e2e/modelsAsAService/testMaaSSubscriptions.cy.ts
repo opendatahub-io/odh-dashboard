@@ -76,6 +76,14 @@ let llmInferenceServiceConfigContainerImage: string;
 
 describe('A model can be deployed and accessed with a MaaS subscription and API key', () => {
   retryableBefore(() => {
+    // Clean up any stale MaaS resources from a previous attempt so retries are idempotent
+    const subsNs = 'models-as-a-service';
+    const subsBase = `a-test-maas-subscription-${uuid}`;
+    cleanupSubscription(subsBase, subsNs);
+    cleanupSubscription(`${subsBase}-2`, subsNs);
+    cleanupAuthPolicy(`${subsBase}-policy`, subsNs);
+    cleanupAuthPolicy(`${subsBase}-2-policy`, subsNs);
+
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testMaaSSubscriptions.yaml')
       .then((fixtureData: DataScienceProjectData) => {
