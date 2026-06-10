@@ -18,6 +18,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
+// s3ConnectTimeout is the maximum time allowed for TCP connection and TLS handshake
+// to the S3 endpoint. This must complete well under the OpenShift route timeout
+// (typically 30s) so the BFF can return a meaningful error instead of a raw 504.
 const s3ConnectTimeout = 10 * time.Second
 
 const (
@@ -44,16 +47,26 @@ type ClientConfig struct {
 	GetObjectBufSize   int64
 	PartBodyMaxRetries int
 
-	// RootCAs overrides the system CA pool. Use for operator-mounted cluster CA bundles.
+	// RootCAs overrides the system CA pool for S3 endpoint TLS verification.
+	// In production the RHOAI operator mounts cluster and custom CA bundles into the
+	// pod (e.g. odh-trusted-ca-bundle, service-ca.crt) and passes them via
+	// --bundle-paths. When non-nil this pool is used instead of the system default,
+	// allowing connections to MinIO or other S3-compatible stores that use
+	// self-signed or cluster-issued certificates without skipping verification.
+	// When nil the system CA pool is used (suitable for public S3 endpoints).
 	RootCAs *x509.CertPool
 
 	// InsecureSkipVerify disables TLS certificate verification.
-	// Caller's responsibility to apply only in appropriate contexts.
+	// In production the operator always provides CA bundles via --bundle-paths,
+	// so this path should never be reached. Only enable for local development
+	// against clusters with self-signed certificates.
 	InsecureSkipVerify bool
 
 	// AllowUnresolvableEndpoint skips the error when DNS resolution fails for
 	// the S3 endpoint hostname. IP validation is still enforced if resolution succeeds.
-	// Caller's responsibility to guard this (e.g. only when a specific env var is set).
+	// SECURITY: This weakens SSRF protection and introduces TOCTOU risk — must only
+	// be enabled in development/testing contexts. Callers must block this in production
+	// to prevent weakening SSRF protections.
 	AllowUnresolvableEndpoint bool
 
 	// WrapTransport optionally wraps the HTTP transport chain after TLS is configured.
@@ -271,6 +284,8 @@ func (p *awsClientProvider) CreateTransferClient(opts ConnectionOptions) (Transf
 }
 
 // buildAWSClient creates a real *awss3.Client with validated endpoint, credentials, and TLS.
+// Static credentials and single-attempt retries are used so that unreachable S3
+// endpoints fail fast rather than blocking under the OpenShift route timeout.
 func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Client, error) {
 	validatedEndpoint, err := p.validateAndNormalizeEndpoint(opts.BaseEndpoint)
 	if err != nil {
@@ -294,7 +309,9 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 	}), nil
 }
 
-// buildHTTPClient constructs the http.Client with TLS config and optional transport wrapping.
+// buildHTTPClient clones the default transport to preserve connection pooling and sets
+// connect, TLS handshake, and response-header timeouts so that unreachable S3 endpoints
+// fail fast under the OpenShift route timeout.
 func (p *awsClientProvider) buildHTTPClient() *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.DialContext = (&net.Dialer{Timeout: s3ConnectTimeout}).DialContext
@@ -302,6 +319,9 @@ func (p *awsClientProvider) buildHTTPClient() *http.Client {
 	transport.ResponseHeaderTimeout = 30 * time.Second
 
 	if p.cfg.RootCAs != nil {
+		// Supply the custom CA pool so that self-signed or cluster-issued
+		// certificates (e.g. MinIO) are verified against the operator-mounted
+		// CA bundles rather than the system default.
 		transport.TLSClientConfig = &tls.Config{
 			RootCAs:    p.cfg.RootCAs,
 			MinVersion: tls.VersionTLS12,

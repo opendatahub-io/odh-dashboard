@@ -179,12 +179,17 @@ func (r *ModelRegistryRepository) RegisterModel(
 	if err != nil {
 		return "", nil, err
 	}
+	// Note: The model-registry-operator may create a NetworkPolicy that blocks in-cluster
+	// traffic to the kube-rbac-proxy on port 8443. If this becomes an issue, prefer
+	// reg.ExternalURL (the Route) when available, falling back to reg.ServerURL.
 	baseURL := strings.TrimSpace(reg.ServerURL)
 	if baseURL == "" {
 		return "", nil, fmt.Errorf("model registry %q has no usable internal URL", reg.Name)
 	}
 
-	// Discover DSPA object storage for artifact URI construction.
+	// Best-effort DSPA discovery: pull object storage config from the DSPA spec (bucket,
+	// endpoint, region) without requiring a ready pipeline server. This is needed to
+	// construct the full S3 URI for the model artifact.
 	dspa, err := r.pipelinesService.DiscoverReadyDSPA(ctx, namespace)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to discover DSPA in namespace %s: %w", namespace, err)

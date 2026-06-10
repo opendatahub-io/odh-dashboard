@@ -120,6 +120,11 @@ func InferCSVSchema(r io.Reader) (CSVSchemaResult, error) {
 	}, nil
 }
 
+// inferColumnType scans a column's values to determine its type.
+// Type inference priority (highest to lowest): bool → timestamp → integer → double → string.
+// IMPORTANT: Boolean detection includes "0" and "1" as boolean values (see looksLikeBoolean).
+// This means a column containing only 0/1 values will be classified as bool, not integer,
+// which changes task_type inference from regression to binary.
 func inferColumnType(rows [][]string, colIndex int) string {
 	if len(rows) == 0 {
 		return "string"

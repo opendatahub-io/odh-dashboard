@@ -96,7 +96,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Prevent mock clients from being enabled in production
+	// Prevent mock clients from being enabled in production — MockS3Client in particular
+	// bypasses SSRF protections (the mock skips endpoint validation entirely).
 	if !cfg.DevMode && (cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockModelRegistryClient) {
 		logger.Error("mock clients can only be enabled in development mode (set -dev-mode flag)")
 		os.Exit(1)

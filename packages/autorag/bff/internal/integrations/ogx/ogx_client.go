@@ -63,7 +63,7 @@ func NewDefaultOGXClient(cfg OGXClientConfig) *OGXClient {
 	}
 	return NewOGXClient(&http.Client{
 		Transport: rt,
-		Timeout:   8 * time.Minute,
+		Timeout:   8 * time.Minute, // matches server WriteTimeout; model listing for large deployments can be slow
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -71,6 +71,8 @@ func NewDefaultOGXClient(cfg OGXClientConfig) *OGXClient {
 }
 
 // ListModels retrieves all available models from OGX.
+// Deserializes into OGXNativeModel structs so that upstream schema changes are surfaced
+// explicitly rather than hidden behind the OpenAI SDK.
 // ogx v0.4.0+ serves all endpoints directly under /v1/ (removed the /v1/openai/v1/ prefix).
 func (c *OGXClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]models.OGXNativeModel, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/models", nil)

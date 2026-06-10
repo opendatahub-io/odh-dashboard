@@ -62,8 +62,12 @@ func (r *OGXRepository) GetOGXModels(ctx context.Context, namespace, secretName 
 	return &models.OGXModelsData{Models: allModels}, nil
 }
 
-// translateOGXModel translates a Open GenAI Stack native model into our stable public API format.
-// Returns false if the model should be skipped (missing ID).
+// translateOGXModel translates an Open GenAI Stack native model into our stable public API format.
+// Degrades gracefully when upstream fields are missing:
+//   - ID is required — models without an ID are skipped entirely.
+//   - model_type is the most critical field (the UI uses it to filter between embedding and
+//     generation models). If missing, it defaults to "unknown" so the model still appears.
+//   - provider and resource_path are optional — empty strings are acceptable.
 func (r *OGXRepository) translateOGXModel(native models.OGXNativeModel) (models.OGXModel, bool) {
 	if native.ID == "" {
 		r.logger.Warn("skipping Open GenAI Stack model with empty ID")

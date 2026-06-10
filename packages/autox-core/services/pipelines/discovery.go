@@ -51,6 +51,9 @@ func (s *service) DiscoverReadyDSPA(ctx context.Context, namespace string) (*Dis
 			continue
 		}
 
+		// Ready is the aggregate condition set by the DSPA controller — it is True
+		// only when all sub-conditions (APIServerReady, DatabaseReady,
+		// PersistenceAgentReady, etc.) are also True.
 		isReady := false
 		for _, cond := range conditions {
 			condMap, ok := cond.(map[string]any)
@@ -204,6 +207,12 @@ func extractExternalStorageSpec(ext map[string]any) *DSPAObjectStorageSpec {
 // buildManagedMinIOSpec constructs DSPAObjectStorageSpec for a managed MinIO deployment.
 // The DSPA operator creates credentials in a conventionally-named secret and exposes
 // MinIO at a conventionally-named in-cluster endpoint.
+//
+// Conventions:
+//   - Secret: "ds-pipeline-s3-{dspaName}"
+//   - Endpoint: http://minio-{dspaName}.{namespace}.svc.cluster.local:9000
+//   - Credential keys: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+//   - Default region: "us-east-1", default bucket: "mlpipeline"
 func buildManagedMinIOSpec(dspaName, namespace string, minioMap map[string]any) *DSPAObjectStorageSpec {
 	bucket, _, _ := unstructured.NestedString(minioMap, "bucket")
 	if bucket == "" {

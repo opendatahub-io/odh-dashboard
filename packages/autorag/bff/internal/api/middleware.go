@@ -123,6 +123,11 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
+// preserveRawPath wraps an http.Handler so that percent-encoded path segments
+// (e.g. %2F inside an S3 key) survive exactly one level of decoding in the
+// handler. For S3 file endpoints it replaces Path with EscapedPath(), which
+// re-encodes any percent-literal characters that Go's url.Parse already
+// decoded (e.g. %252F → Path has %2F → EscapedPath re-encodes to %252F).
 // The handler then calls url.PathUnescape once to recover the real key.
 func preserveRawPath(next http.Handler) http.Handler {
 	s3FilesPrefix := ApiPathPrefix + "/s3/files/"

@@ -24,6 +24,12 @@ var ErrS3Configuration = errors.New("S3 configuration error")
 var ErrCSVUploadValidation = errors.New("CSV upload validation error")
 
 const (
+	// s3KeyResolutionTimeout bounds read-only S3 metadata operations (HeadObject for
+	// collision detection). This is needed beyond r.Context() because net/http's
+	// WriteTimeout sets a conn-level deadline, not a context cancellation — a metadata
+	// call that TCP-connects but never sends response headers would hang indefinitely.
+	// File transfers (GetObject, UploadObject) are excluded because legitimate large
+	// payloads can exceed any static timeout.
 	s3KeyResolutionTimeout      = 15 * time.Second
 	defaultMaxCollisionAttempts = 10
 )
@@ -36,7 +42,9 @@ const (
 //   - SecretName path: Bucket overrides the secret's AWS_S3_BUCKET default. Either
 //     may be empty as long as one provides a non-empty value.
 //   - DSPA path (SecretName=""): Bucket is IGNORED. The DSPA-configured bucket is
-//     always used to prevent caller-side bucket substitution attacks.
+//     always used to prevent bucket substitution and oracle-enumeration attacks.
+//     Administrators MUST configure secrets with least-privilege IAM policies scoped
+//     to specific buckets to prevent unauthorized access on the secretName path.
 type S3RequestContext struct {
 	Namespace  string
 	SecretName string // empty = auto-discover DSPA in Namespace

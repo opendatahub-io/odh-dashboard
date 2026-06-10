@@ -38,8 +38,8 @@ func resolveOGXCredentials(ctx context.Context, k8sService kubernetes.Service, n
 	if err != nil {
 		return "", "", fmt.Errorf("invalid secret %q: %w", secretName, err)
 	}
-	// apiKey may be empty string — only the key presence is required (checked via LookupSecretValue returning no error).
-	// If LookupSecretValue returns ("", nil) the key is absent; we must distinguish absent from present-but-empty.
+	// API key is optional — OGX servers can run without auth, so empty API key is valid.
+	// Only reject if the key is entirely absent from the secret, not if present-but-empty.
 	if _, keyPresent := secret.Data["ogx_client_api_key"]; !keyPresent {
 		// Case-insensitive fallback: check if any case variant exists
 		if apiKey == "" {

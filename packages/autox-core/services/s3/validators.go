@@ -9,7 +9,8 @@ import (
 
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
 //
-// HTTPS is required for external endpoints. HTTP is permitted for in-cluster
+// HTTPS is required for external endpoints — plain HTTP is rejected because S3
+// credentials would be transmitted in cleartext. HTTP is permitted for in-cluster
 // endpoints (*.svc.cluster.local) since traffic stays within the cluster network.
 // All hostnames — including in-cluster — are resolved and checked against blocked
 // IP ranges to guard against ExternalName service CNAME bypasses.
@@ -61,6 +62,8 @@ func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (strin
 		ips, err := net.LookupIP(hostname)
 		if err != nil {
 			if p.cfg.AllowUnresolvableEndpoint {
+				// SECURITY: Bypassing DNS resolution weakens SSRF protection and
+				// introduces TOCTOU risk. Only acceptable in development/testing.
 				return parsedURL.String(), nil
 			}
 			return "", fmt.Errorf("endpoint hostname %q cannot be resolved: %w", hostname, err)
@@ -76,7 +79,10 @@ func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (strin
 }
 
 // isInternalHost reports whether hostname is a Kubernetes in-cluster service FQDN.
-// Requires exactly <service>.<namespace>.svc.cluster.local (5 dot-separated labels).
+// These legitimately use HTTP internally and resolve to private IPs, so HTTP scheme
+// and SSRF IP validation is relaxed for them.
+// Requires exactly <service>.<namespace>.svc.cluster.local (5 dot-separated labels),
+// preventing overly-broad matches like "evil.cluster.local".
 func isInternalHost(hostname string) bool {
 	parts := strings.Split(hostname, ".")
 	if len(parts) != 5 {
@@ -88,8 +94,13 @@ func isInternalHost(hostname string) bool {
 	return parts[0] != "" && parts[1] != ""
 }
 
-// validateIPAddress blocks loopback, link-local, multicast, unspecified, and reserved ranges.
-// Private RFC-1918 ranges are permitted (MinIO runs on cluster service IPs).
+// validateIPAddress blocks loopback, link-local, multicast, unspecified, and reserved ranges
+// to prevent SSRF targeting the node or cloud metadata services (e.g. 169.254.169.254).
+//
+// RFC-1918 private ranges (10/8, 172.16/12, 192.168/16), Carrier-Grade NAT
+// (100.64/10, RFC 6598), and IPv6 unique local addresses (fc00::/7) are permitted
+// because MinIO and other S3-compatible stores commonly run on the same cluster
+// using service or pod IPs in these ranges.
 func validateIPAddress(ip net.IP) error {
 	if ip.IsUnspecified() {
 		return fmt.Errorf("endpoint IP %s is unspecified", ip)
