@@ -33,7 +33,7 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) =
   }, [setTimedOut]);
 
   React.useEffect(() => {
-    if (!notification.hidden && timedOut && !mouseOver) {
+    if (!notification.hidden && timedOut && !mouseOver && notification.id != null) {
       dispatch({
         type: DashboardNotificationActionTypes.HIDE,
         payload: { id: notification.id },
@@ -51,14 +51,19 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) =
       data-testid="toast-notification-alert"
       title={notification.title}
       actionClose={
-        <AlertActionCloseButton
-          onClose={() =>
-            dispatch({
-              type: DashboardNotificationActionTypes.ACK,
-              payload: { id: notification.id },
-            })
-          }
-        />
+        notification.id != null ? (
+          <AlertActionCloseButton
+            onClose={() => {
+              const notificationId = notification.id;
+              if (notificationId != null) {
+                dispatch({
+                  type: DashboardNotificationActionTypes.ACK,
+                  payload: { id: notificationId },
+                });
+              }
+            }}
+          />
+        ) : undefined
       }
       actionLinks={
         notification.actions && (
