@@ -958,6 +958,9 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Basic Team');
 
+    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '10+ keys');
+    subscriptionsTab.findSubscriptionRows().eq(1).should('contain.text', '5 keys');
+
     subscriptionsTab.findSearchInput().type('Premium');
     subscriptionsTab.findSubscriptionRows().should('have.length', 1);
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
@@ -1002,6 +1005,34 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     subscriptionsTab.expandModelGroupRow(0);
     subscriptionsTab.findModelsTable().should('contain.text', 'Premium Team');
     subscriptionsTab.findModelsTable().should('contain.text', 'Basic Team');
+  });
+
+  it('should show a key count badge when key_count is 0 or absent', () => {
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: [
+        {
+          // eslint-disable-next-line camelcase
+          subscription_id_header: 'no-keys-sub',
+          // eslint-disable-next-line camelcase
+          subscription_description: 'Subscription with no keys',
+          // eslint-disable-next-line camelcase
+          display_name: 'No Keys Sub',
+          priority: 1,
+          // eslint-disable-next-line camelcase
+          key_count: 0,
+          // eslint-disable-next-line camelcase
+          model_refs: [],
+        },
+      ],
+    });
+
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    subscriptionsTab.findSubscriptionRows().should('have.length', 1);
+    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', 'No Keys Sub');
+    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '0 keys');
   });
 
   it('should show empty state when no subscriptions exist', () => {
