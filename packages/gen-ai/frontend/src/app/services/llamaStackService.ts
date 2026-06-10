@@ -820,16 +820,19 @@ export const getFileUploadStatus = modArchRestGET<FileUploadStatusResponse>(
   '/lsd/files/upload/status',
 );
 
-// Vision image upload -- uses XHR for progress tracking
-export const uploadVisionFile = (
+// Media file upload (vision images, audio) -- uses XHR for progress tracking.
+// The `type` field tells the BFF which MIME allowlist to apply.
+export const uploadMediaFile = (
   url: string,
   file: File,
+  type: 'vision' | 'audio',
   onProgress?: (percent: number) => void,
 ): { promise: Promise<{ data: { id: string } }>; xhr: XMLHttpRequest } => {
   const xhr = new XMLHttpRequest();
   const promise = new Promise<{ data: { id: string } }>((resolve, reject) => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('type', type);
 
     xhr.open('POST', url);
     xhr.timeout = 60_000;

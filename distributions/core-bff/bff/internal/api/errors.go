@@ -52,6 +52,12 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.logger.Warn("Forbidden access attempt", "error", err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
+	httpError := &HTTPError{StatusCode: http.StatusForbidden, Error: ErrorPayload{Code: "FORBIDDEN", Message: err.Error()}}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 
 	httpError := &HTTPError{StatusCode: http.StatusNotFound, Error: ErrorPayload{Code: "NOT_FOUND", Message: "the requested resource could not be found"}}

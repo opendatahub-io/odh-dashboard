@@ -14,6 +14,8 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // namespaceAwareCRClient returns different CR statuses depending on the namespace queried.
@@ -127,10 +129,67 @@ func TestEvalHubServiceURL_NoUserNamespaceInContext(t *testing.T) {
 	assert.Equal(t, "http://evalhub.odh.svc:8080", serviceURL)
 }
 
-func TestEvalHubServiceURL_UserNamespaceLookupError(t *testing.T) {
+func TestEvalHubServiceURL_ForbiddenInUserNS_FallsThroughToDashboard(t *testing.T) {
+	forbiddenErr := k8serrors.NewForbidden(
+		schema.GroupResource{Group: "trustyai.opendatahub.io", Resource: "evalhubs"},
+		"", fmt.Errorf("user cannot list evalhubs"),
+	)
 	client := &namespaceAwareCRClient{
 		errByNS: map[string]error{
-			"user-project": fmt.Errorf("forbidden"),
+			"user-project": fmt.Errorf("failed to list EvalHub CRs: %w", forbiddenErr),
+		},
+		crByNamespace: map[string]*models.EvalHubCRStatus{
+			"redhat-ods-applications": {
+				Name: "evalhub", Namespace: "redhat-ods-applications", Phase: "Ready",
+				URL: "http://evalhub.platform.svc:8080",
+			},
+		},
+	}
+
+	app := newTestApp(client, "redhat-ods-applications")
+	ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "user@test.com", Token: "tok"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "user-project")
+
+	serviceURL, _, crNotFound, err := app.evalHubServiceURL(ctx)
+
+	require.NoError(t, err)
+	assert.False(t, crNotFound)
+	assert.Equal(t, "http://evalhub.platform.svc:8080", serviceURL)
+}
+
+func TestEvalHubServiceURL_ForbiddenInUserNS_NoCRAnywhere(t *testing.T) {
+	forbiddenErr := k8serrors.NewForbidden(
+		schema.GroupResource{Group: "trustyai.opendatahub.io", Resource: "evalhubs"},
+		"", fmt.Errorf("user cannot list evalhubs"),
+	)
+	client := &namespaceAwareCRClient{
+		errByNS: map[string]error{
+			"user-project": fmt.Errorf("failed to list EvalHub CRs: %w", forbiddenErr),
+		},
+		crByNamespace: map[string]*models.EvalHubCRStatus{},
+	}
+
+	app := newTestApp(client, "redhat-ods-applications")
+	ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "user@test.com", Token: "tok"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "user-project")
+
+	serviceURL, _, crNotFound, err := app.evalHubServiceURL(ctx)
+
+	require.NoError(t, err)
+	assert.True(t, crNotFound)
+	assert.Empty(t, serviceURL)
+}
+
+func TestEvalHubServiceURL_OperationalErrorInUserNS_SurfacedImmediately(t *testing.T) {
+	client := &namespaceAwareCRClient{
+		errByNS: map[string]error{
+			"user-project": fmt.Errorf("failed to create dynamic client: connection refused"),
+		},
+		crByNamespace: map[string]*models.EvalHubCRStatus{
+			"redhat-ods-applications": {
+				Name: "evalhub", Namespace: "redhat-ods-applications", Phase: "Ready",
+				URL: "http://evalhub.platform.svc:8080",
+			},
 		},
 	}
 
@@ -142,6 +201,7 @@ func TestEvalHubServiceURL_UserNamespaceLookupError(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "user-project")
+	assert.Contains(t, err.Error(), "connection refused")
 }
 
 func TestEvalHubServiceURL_EnvOverrideBypassesCRDiscovery(t *testing.T) {

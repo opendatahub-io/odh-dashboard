@@ -80,18 +80,14 @@ module.exports = smp.wrap(
         proxy: [
           {
             context: ['/api', '/core-bff/api'],
-            target: {
-              host: PROXY_HOST,
-              protocol: PROXY_PROTOCOL,
-              port: PROXY_PORT,
-            },
+            target: `${PROXY_PROTOCOL}://${PROXY_HOST}:${PROXY_PORT}`,
             changeOrigin: true,
             headers: getProxyHeaders(),
             pathRewrite: { '^/core-bff': '' },
           },
           {
             context: ['/wss/k8s', '/core-bff/wss/k8s'],
-            target: `${PROXY_PROTOCOL === 'https:' ? 'wss' : 'ws'}://${PROXY_HOST}:${PROXY_PORT}`,
+            target: `${PROXY_PROTOCOL === 'https' ? 'wss' : 'ws'}://${PROXY_HOST}:${PROXY_PORT}`,
             ws: true,
             headers: getProxyHeaders(),
             pathRewrite: { '^/core-bff': '' },

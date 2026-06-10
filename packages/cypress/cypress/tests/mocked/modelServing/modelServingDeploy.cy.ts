@@ -1625,7 +1625,18 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizard.visit();
 
-    // Step 1: Model source
+    // Step 1: Preconfigure deployment (shown because no project is pre-selected)
+    modelServingWizard.findPreconfigureStep().should('be.enabled');
+    modelServingWizard.findModelSourceStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findPreconfigureProjectSelector().click();
+    modelServingWizard
+      .findPreconfigureProjectSelectorOption('Test Project')
+      .should('exist')
+      .click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
@@ -1643,19 +1654,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 2: Model deployment
+    // Step 3: Model deployment (project selector hidden, project was selected in preconfigure step)
     modelServingWizard.findModelDeploymentStep().should('be.enabled');
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelDeploymentProjectSelector().should('exist');
-    modelServingWizard
-      .findModelDeploymentProjectSelector()
-      .should('contain.text', 'Select target project');
-    modelServingWizard.findModelDeploymentProjectSelector().click();
-    modelServingWizard
-      .findModelDeploymentProjectSelectorOption('Test Project')
-      .should('exist')
-      .click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
@@ -1669,11 +1671,11 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 3: Advanced Options
+    // Step 4: Advanced Options
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 4: Summary
+    // Step 5: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     cy.wait('@createSecret').then((interception) => {
