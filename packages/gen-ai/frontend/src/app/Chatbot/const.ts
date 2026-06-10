@@ -51,6 +51,21 @@ export const VISION_UPLOAD_CONFIG = {
   ACCEPTED_EXTENSIONS: '.jpg,.jpeg,.png',
 } as const;
 
+// Audio upload constants (ASR transcription)
+export const AUDIO_UPLOAD_ALLOWED_MIME_TYPES: readonly string[] = ['audio/wav', 'audio/mpeg'];
+const AUDIO_EXTENSION_TO_MIME: Record<string, string> = {
+  '.wav': 'audio/wav',
+  '.mp3': 'audio/mpeg',
+};
+export const AUDIO_UPLOAD_CONFIG = {
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+  ALLOWED_MIME_TYPES: AUDIO_UPLOAD_ALLOWED_MIME_TYPES,
+  ACCEPTED_EXTENSIONS: '.wav,.mp3',
+  EXTENSION_TO_MIME: AUDIO_EXTENSION_TO_MIME,
+};
+
+export const AUDIO_TRANSCRIPTION_TIMEOUT_MS = 105_000;
+
 // Job polling constants
 export const JOB_POLLING_CONFIG = {
   INITIAL_DELAY: 1000, // 1 second

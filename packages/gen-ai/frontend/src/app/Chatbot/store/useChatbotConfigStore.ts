@@ -271,6 +271,9 @@ const createStoreActions = (
       activePrompt: deepCopyPrompt(sourceConfig.activePrompt),
       dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
       variableValues: { ...sourceConfig.variableValues },
+      selectedAsrModel: sourceConfig.selectedAsrModel,
+      isAsrModelEnabled: sourceConfig.isAsrModelEnabled,
+      hasVisionImage: sourceConfig.hasVisionImage,
     };
 
     set(
@@ -566,6 +569,46 @@ const createStoreActions = (
       },
       false,
       'updateVariableValues',
+    );
+  },
+
+  // ASR model actions
+  updateSelectedAsrModel: (id: string, value: string) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.selectedAsrModel !== value) {
+          config.selectedAsrModel = value;
+        }
+      },
+      false,
+      'updateSelectedAsrModel',
+    );
+  },
+
+  updateAsrModelEnabled: (id: string, value: boolean) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.isAsrModelEnabled !== value) {
+          config.isAsrModelEnabled = value;
+        }
+      },
+      false,
+      'updateAsrModelEnabled',
+    );
+  },
+
+  updateHasVisionImage: (id: string, value: boolean) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.hasVisionImage !== value) {
+          config.hasVisionImage = value;
+        }
+      },
+      false,
+      'updateHasVisionImage',
     );
   },
 
