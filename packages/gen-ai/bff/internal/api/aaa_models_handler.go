@@ -89,6 +89,9 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 		}
 	}
 
+	// Track partial failures for mixed-source requests
+	var partialFailure bool
+
 	// Fetch MaaS models if requested
 	if requestedSources[models.ModelSourceTypeMaaS] {
 		maasModels, err := app.fetchMaaSModels(ctx, namespace)
@@ -101,6 +104,7 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 			}
 			// For mixed-source requests, log error but don't fail the entire request
 			app.logger.Error("failed to fetch MaaS models", "error", err)
+			partialFailure = true
 		} else {
 			aaModels = append(aaModels, maasModels...)
 		}
@@ -109,7 +113,16 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	aaModelsEnvelope := ModelsAAEnvelope{
 		Data: aaModels,
 	}
-	err := app.WriteJSON(w, http.StatusOK, aaModelsEnvelope, nil)
+
+	// Add header to signal partial response when a source failed
+	var headers http.Header
+	if partialFailure {
+		headers = http.Header{}
+		headers.Set("X-Partial-Response", "true")
+		headers.Set("X-Partial-Reason", "MaaS source unavailable")
+	}
+
+	err := app.WriteJSON(w, http.StatusOK, aaModelsEnvelope, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
