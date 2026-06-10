@@ -801,6 +801,37 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should return 400 for more than 3 tokens in sources")
 	})
 
+	It("should return 400 when sources parameter contains invalid source value", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=invalid_source", nil)
+		assert.NoError(t, err)
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code, "Should return 400 for invalid source value")
+
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+
+		assert.Equal(t, "400", errorMap["code"])
+		assert.Contains(t, errorMap["message"], "invalid_source", "Error message should mention the invalid source value")
+	})
+
 	It("should accept multiple sources query parameters (repeated format)", func() {
 		t := GinkgoT()
 
@@ -840,7 +871,7 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 			Token: "FAKE_BEARER_TOKEN",
 		})
 		// Attach MaaS client to context using the same pattern as middleware
-		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), mockMaaSClient)
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
