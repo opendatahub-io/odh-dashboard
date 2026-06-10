@@ -360,8 +360,11 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findStatusFilterToggle().click();
     apiKeysPage.findStatusFilterOption('Active').click();
+    apiKeysPage.findStatusFilterOption('Inactive').click();
+    apiKeysPage.findStatusFilterToggle().click();
 
-    // Keys are filtered to show active and expired by default so here we're looking for just expired since active was pre-selected
+    // Keys are filtered to show active,inactive and expired by default so here we're looking for just expired since active and inactive was pre-selected
+    cy.wait('@filterByStatus');
     cy.wait('@filterByStatus').then((interception) => {
       expect(interception.request.body.data.filters.status).to.deep.equal(['expired']);
     });
