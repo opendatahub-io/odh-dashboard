@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { MemoryRouter } from 'react-router';
 import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
@@ -17,6 +18,7 @@ const mockUseParams = jest.fn();
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => mockUseParams(),
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' }),
   Link: ({
     to,
     children,
@@ -258,9 +260,11 @@ const createTestQueryClient = () =>
 const renderPage = () => {
   const queryClient = createTestQueryClient();
   return render(
-    <QueryClientProvider client={queryClient}>
-      <AutoragResultsPage />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <AutoragResultsPage />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 };
 
@@ -776,9 +780,11 @@ describe('AutoragResultsPage', () => {
       });
 
       const { rerender } = render(
-        <QueryClientProvider client={createTestQueryClient()}>
-          <AutoragResultsPage />
-        </QueryClientProvider>,
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
       );
 
       // Open the modal
@@ -793,9 +799,11 @@ describe('AutoragResultsPage', () => {
       });
 
       rerender(
-        <QueryClientProvider client={createTestQueryClient()}>
-          <AutoragResultsPage />
-        </QueryClientProvider>,
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
       );
 
       expect(screen.getByTestId('confirm-stop-run-button')).toBeDisabled();
@@ -968,17 +976,21 @@ describe('AutoragResultsPage', () => {
       const testQueryClient = createTestQueryClient();
 
       const { rerender } = render(
-        <QueryClientProvider client={testQueryClient}>
-          <AutoragResultsPage />
-        </QueryClientProvider>,
+        <MemoryRouter>
+          <QueryClientProvider client={testQueryClient}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
       );
 
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
 
       rerender(
-        <QueryClientProvider client={testQueryClient}>
-          <AutoragResultsPage />
-        </QueryClientProvider>,
+        <MemoryRouter>
+          <QueryClientProvider client={testQueryClient}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
       );
 
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);

@@ -46,6 +46,9 @@ func main() {
 	// Llama Stack configuration
 	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "Llama Stack server URL for proxying requests")
 
+	// ASR model configuration
+	flag.StringVar(&cfg.AsrModelURL, "asr-model-url", getEnvAsString("ASR_MODEL_URL", ""), "ASR model endpoint URL override for local development")
+
 	// NeMo Guardrails configuration
 	flag.StringVar(&cfg.NemoGuardrailsURL, "nemo-guardrails-url", getEnvAsString("NEMO_GUARDRAILS_URL", ""), "NeMo Guardrails server URL for content moderation")
 	flag.BoolVar(&cfg.MockNemoClient, "mock-nemo", getEnvAsBool("MOCK_NEMO_CLIENT", false), "Use mock NeMo Guardrails client")

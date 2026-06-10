@@ -21,6 +21,6 @@ export default async (fastify: FastifyInstance): Promise<void> => {
   }
 
   fastify.get('/*', async (_: FastifyRequest, reply: FastifyReply) =>
-    reply.view('index.html', { mfRemotesJson }),
+    reply.header('Cache-Control', 'no-cache').view('index.html', { mfRemotesJson }),
   );
 };
