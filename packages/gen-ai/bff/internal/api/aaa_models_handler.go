@@ -163,6 +163,9 @@ func parseModelSourcesFromTokens(tokens []string) (map[models.ModelSourceTypeEnu
 	}
 
 	// Check max tokens after deduplication
+	// NOTE: With only 3 valid enum values currently, this check is unreachable in practice
+	// (any 4th token is already caught as unknown above). Retained as defensive programming
+	// in case new source types are added in the future without updating this validation.
 	if len(seenTokens) > maxTokens {
 		invalidSources = append(invalidSources, "too many sources (max 3)")
 	}

@@ -428,7 +428,7 @@ func (app *App) Routes() http.Handler {
 
 	// AI Assets Models (Kubernetes + MaaS)
 	// AttachBFFMaaSClient middleware enables MaaS model fetching when sources=maas query param is used
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.AttachBFFMaaSClient(app.ModelsAAHandler)))
+	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.ModelsAAHandler))))
 	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
 	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
 
