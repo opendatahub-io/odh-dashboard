@@ -71,6 +71,8 @@ const parseDiscoveryItems = (items: APIGroupDiscoveryItem[]): ApiResourcesData =
       continue;
     }
 
+    // The Aggregated Discovery API returns versions in preference order;
+    // versions[0] is the preferred version and typically contains the full resource set.
     for (const res of item.versions[0].resources) {
       if (res.resource.includes('/')) {
         continue;

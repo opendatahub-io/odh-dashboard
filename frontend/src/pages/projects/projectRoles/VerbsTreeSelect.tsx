@@ -105,7 +105,11 @@ const VerbsTreeSelect: React.FC<VerbsTreeSelectProps> = ({
 
   return (
     <div data-testid="verbs-tree-select">
-      <Content component="p">Select the actions this rule allows on the chosen resources.</Content>
+      <Content component="p">
+        Select the actions this rule allows on the chosen resources. Selecting &quot;All
+        operations&quot; grants the wildcard (*) verb, which includes all current and future
+        Kubernetes verbs beyond those listed here.
+      </Content>
       <TreeView data={treeData} hasCheckboxes onCheck={handleCheck} aria-label="Permission verbs" />
     </div>
   );
