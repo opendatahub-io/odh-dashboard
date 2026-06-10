@@ -206,10 +206,10 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 	})
 }
 
-func TestBuildKFPRunRequest(t *testing.T) {
+func TestBuildPipelineRunInput(t *testing.T) {
 	t.Run("minimal request with defaults", func(t *testing.T) {
 		req := validRequest()
-		kfp := BuildKFPRunRequest(req, "pid", "vid")
+		kfp := BuildPipelineRunInput(req, "pid", "vid")
 
 		if kfp.DisplayName != "my-rag-run" {
 			t.Errorf("DisplayName = %q", kfp.DisplayName)
@@ -236,7 +236,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("custom optimization_metric", func(t *testing.T) {
 		req := validRequest()
 		req.OptimizationMetric = "answer_correctness"
-		kfp := BuildKFPRunRequest(req, "pid", "vid")
+		kfp := BuildPipelineRunInput(req, "pid", "vid")
 		if kfp.RuntimeConfig.Parameters["optimization_metric"] != "answer_correctness" {
 			t.Errorf("metric = %v", kfp.RuntimeConfig.Parameters["optimization_metric"])
 		}
@@ -250,7 +250,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		req.OptimizationMaxRagPatterns = ptr(10)
 		req.Description = "test description"
 
-		kfp := BuildKFPRunRequest(req, "pid", "vid")
+		kfp := BuildPipelineRunInput(req, "pid", "vid")
 		params := kfp.RuntimeConfig.Parameters
 
 		embModels := params["embedding_models"].([]string)
@@ -274,7 +274,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 
 	t.Run("empty optional fields omitted", func(t *testing.T) {
 		req := validRequest()
-		kfp := BuildKFPRunRequest(req, "pid", "vid")
+		kfp := BuildPipelineRunInput(req, "pid", "vid")
 		params := kfp.RuntimeConfig.Parameters
 
 		if _, ok := params["embedding_models"]; ok {

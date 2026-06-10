@@ -305,10 +305,10 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 	})
 }
 
-func TestBuildKFPRunRequest(t *testing.T) {
+func TestBuildPipelineRunInput(t *testing.T) {
 	t.Run("tabular with defaults", func(t *testing.T) {
 		req := validTabularRequest()
-		kfp := BuildKFPRunRequest(req, "pid", "vid", constants.PipelineTypeTabular)
+		kfp := BuildPipelineRunInput(req, "pid", "vid", constants.PipelineTypeTabular)
 
 		if kfp.DisplayName != "my-run" {
 			t.Errorf("DisplayName = %q", kfp.DisplayName)
@@ -335,7 +335,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("tabular with custom top_n", func(t *testing.T) {
 		req := validTabularRequest()
 		req.TopN = ptr(5)
-		kfp := BuildKFPRunRequest(req, "pid", "vid", constants.PipelineTypeTabular)
+		kfp := BuildPipelineRunInput(req, "pid", "vid", constants.PipelineTypeTabular)
 
 		if kfp.RuntimeConfig.Parameters["top_n"] != 5 {
 			t.Errorf("top_n = %v, want 5", kfp.RuntimeConfig.Parameters["top_n"])
@@ -344,7 +344,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 
 	t.Run("timeseries with defaults", func(t *testing.T) {
 		req := validTimeSeriesRequest()
-		kfp := BuildKFPRunRequest(req, "pid", "vid", constants.PipelineTypeTimeSeries)
+		kfp := BuildPipelineRunInput(req, "pid", "vid", constants.PipelineTypeTimeSeries)
 
 		params := kfp.RuntimeConfig.Parameters
 		if params["target"] != "sales" {
@@ -365,7 +365,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		req := validTimeSeriesRequest()
 		req.PredictionLength = ptr(7)
 		req.KnownCovariatesNames = &[]string{"promo", "holiday"}
-		kfp := BuildKFPRunRequest(req, "pid", "vid", constants.PipelineTypeTimeSeries)
+		kfp := BuildPipelineRunInput(req, "pid", "vid", constants.PipelineTypeTimeSeries)
 
 		params := kfp.RuntimeConfig.Parameters
 		if params["prediction_length"] != 7 {

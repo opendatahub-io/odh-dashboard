@@ -174,19 +174,9 @@ func (r *PipelinesRepository) CreateRun(ctx context.Context, namespace string, r
 		return nil, fmt.Errorf("failed to ensure autorag pipeline: %w", err)
 	}
 
-	kfpReq := BuildKFPRunRequest(req, discovered.PipelineID, discovered.PipelineVersionID)
+	input := BuildPipelineRunInput(req, discovered.PipelineID, discovered.PipelineVersionID)
 
-	coreRun, err := r.core.CreatePipelineRun(ctx, namespace, &pipelines.CreatePipelineRunInput{
-		DisplayName: kfpReq.DisplayName,
-		Description: kfpReq.Description,
-		PipelineVersionReference: &pipelines.PipelineVersionReference{
-			PipelineID:        kfpReq.PipelineVersionReference.PipelineID,
-			PipelineVersionID: kfpReq.PipelineVersionReference.PipelineVersionID,
-		},
-		RuntimeConfig: &pipelines.RuntimeConfig{
-			Parameters: kfpReq.RuntimeConfig.Parameters,
-		},
-	})
+	coreRun, err := r.core.CreatePipelineRun(ctx, namespace, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
 	}
@@ -358,7 +348,7 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	return nil
 }
 
-func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipelineVersionID string) models.CreatePipelineRunKFRequest {
+func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipelineVersionID string) *pipelines.CreatePipelineRunInput {
 	params := map[string]any{
 		"test_data_secret_name":  req.TestDataSecretName,
 		"test_data_bucket_name":  req.TestDataBucketName,
@@ -390,14 +380,14 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 		params["optimization_max_rag_patterns"] = *req.OptimizationMaxRagPatterns
 	}
 
-	return models.CreatePipelineRunKFRequest{
+	return &pipelines.CreatePipelineRunInput{
 		DisplayName: req.DisplayName,
 		Description: req.Description,
-		PipelineVersionReference: models.PipelineVersionReference{
+		PipelineVersionReference: &pipelines.PipelineVersionReference{
 			PipelineID:        pipelineID,
 			PipelineVersionID: pipelineVersionID,
 		},
-		RuntimeConfig: models.RuntimeConfig{
+		RuntimeConfig: &pipelines.RuntimeConfig{
 			Parameters: params,
 		},
 	}

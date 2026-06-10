@@ -203,19 +203,9 @@ func (r *PipelinesRepository) CreateRun(ctx context.Context, namespace string, r
 		return nil, fmt.Errorf("failed to ensure %s pipeline: %w", pipelineType, err)
 	}
 
-	kfpReq := BuildKFPRunRequest(req, discovered.PipelineID, discovered.PipelineVersionID, pipelineType)
+	input := BuildPipelineRunInput(req, discovered.PipelineID, discovered.PipelineVersionID, pipelineType)
 
-	coreRun, err := r.core.CreatePipelineRun(ctx, namespace, &pipelines.CreatePipelineRunInput{
-		DisplayName: kfpReq.DisplayName,
-		Description: kfpReq.Description,
-		PipelineVersionReference: &pipelines.PipelineVersionReference{
-			PipelineID:        kfpReq.PipelineVersionReference.PipelineID,
-			PipelineVersionID: kfpReq.PipelineVersionReference.PipelineVersionID,
-		},
-		RuntimeConfig: &pipelines.RuntimeConfig{
-			Parameters: kfpReq.RuntimeConfig.Parameters,
-		},
-	})
+	coreRun, err := r.core.CreatePipelineRun(ctx, namespace, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
 	}
@@ -451,7 +441,7 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	return nil
 }
 
-func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineVersionID, pipelineType string) models.CreatePipelineRunKFRequest {
+func BuildPipelineRunInput(req models.CreateAutoMLRunRequest, pipelineID, pipelineVersionID, pipelineType string) *pipelines.CreatePipelineRunInput {
 	params := map[string]interface{}{
 		"train_data_secret_name": req.TrainDataSecretName,
 		"train_data_bucket_name": req.TrainDataBucketName,
@@ -492,14 +482,14 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 	}
 	params["top_n"] = topN
 
-	return models.CreatePipelineRunKFRequest{
+	return &pipelines.CreatePipelineRunInput{
 		DisplayName: req.DisplayName,
 		Description: req.Description,
-		PipelineVersionReference: models.PipelineVersionReference{
+		PipelineVersionReference: &pipelines.PipelineVersionReference{
 			PipelineID:        pipelineID,
 			PipelineVersionID: pipelineVersionID,
 		},
-		RuntimeConfig: models.RuntimeConfig{
+		RuntimeConfig: &pipelines.RuntimeConfig{
 			Parameters: params,
 		},
 	}

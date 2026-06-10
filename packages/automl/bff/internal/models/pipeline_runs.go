@@ -143,14 +143,6 @@ type CreateAutoMLRunRequest struct {
 	KnownCovariatesNames *[]string `json:"known_covariates_names,omitempty"`
 }
 
-// CreatePipelineRunKFRequest is the payload sent to the KFP v2beta1 POST /runs endpoint.
-type CreatePipelineRunKFRequest struct {
-	DisplayName              string                   `json:"display_name"`
-	Description              string                   `json:"description,omitempty"`
-	PipelineVersionReference PipelineVersionReference `json:"pipeline_version_reference"`
-	RuntimeConfig            RuntimeConfig            `json:"runtime_config"`
-}
-
 // KFPipeline represents a pipeline definition from the KFP v2beta1 API.
 // Used by pipeline discovery to identify managed AutoML pipelines in a namespace.
 type KFPipeline struct {
