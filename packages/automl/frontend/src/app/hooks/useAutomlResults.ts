@@ -53,7 +53,7 @@ type UseAutomlResultsReturn = {
  * Custom hook to fetch and process AutoML model results from S3.
  * Models are outputted into the following directory structure
  *      Tabular:     autogluon-tabular-training-pipeline/xxx/autogluon-models-training/yyy/models_artifact/WeightedEnsemble_L5_FULL
- *      Time series: autogluon-timeseries-training-pipeline/xxx/autogluon-timeseries-models-full-refit/yyy/model_artifact/TemporalFusionTransformer_FULL
+ *      Time series: autogluon-timeseries-training-pipeline/xxx/autogluon-timeseries-models-training/yyy/models_artifact/RecursiveTabular_FULL
  * where xxx is the kubeflow pipeline run_id and yyy is a nondeterministic ID.
  * The directory variables used to generate these paths in this file are as follows:
  *      ${rootDir}/xxx/${modelGenerationDir}/yyy/${modelArtifactsDirectory}/${modelName}
@@ -101,7 +101,7 @@ export function useAutomlResults(
     : 'autogluon-timeseries-training-pipeline';
   const modelGenerationDir = isTabular
     ? 'autogluon-models-training'
-    : 'autogluon-timeseries-models-full-refit';
+    : 'autogluon-timeseries-models-training';
   const candidateModelsPrefix = shouldFetchS3Files
     ? `${rootDir}/${runId}/${modelGenerationDir}`
     : undefined;
@@ -121,7 +121,7 @@ export function useAutomlResults(
       : candidateModelsPrefix;
 
   // Step 2: Fetch model artifact directories from each common prefix
-  const modelArtifactsDirectory = isTabular ? 'models_artifact' : 'model_artifact';
+  const modelArtifactsDirectory = 'models_artifact';
   const modelArtifactQueries = useQueries({
     queries: (s3Files?.common_prefixes ?? [])
       .filter((prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0)

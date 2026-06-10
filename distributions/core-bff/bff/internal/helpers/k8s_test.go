@@ -43,6 +43,17 @@ users: []
 	assert.Contains(t, err.Error(), "kubeconfig found but invalid")
 }
 
+func TestGetCurrentContext_ReturnsNonEmpty(t *testing.T) {
+	ctx := GetCurrentContext()
+	assert.NotEmpty(t, ctx)
+}
+
+func TestGetCurrentContext_FallsBackToInCluster(t *testing.T) {
+	t.Setenv("KUBECONFIG", "/nonexistent/kubeconfig")
+	ctx := GetCurrentContext()
+	assert.Equal(t, "inClusterContext", ctx)
+}
+
 func TestGetKubeconfig_InClusterFallback(t *testing.T) {
 	t.Setenv("KUBECONFIG", "/nonexistent/kubeconfig")
 

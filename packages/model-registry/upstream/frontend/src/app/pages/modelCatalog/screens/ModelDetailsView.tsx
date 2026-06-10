@@ -30,6 +30,7 @@ import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { CatalogArtifactList, CatalogModel } from '~/app/modelCatalogTypes';
 import {
   getLabels,
+  getValueLabels,
   getValidatedOnPlatforms,
   getValidatedDeploymentResources,
   getCustomPropString,
@@ -49,7 +50,10 @@ import {
   getModelSizeFromCustomProperties,
   getMinimumVramFromCustomProperties,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import { CatalogModelCustomPropertyKey } from '~/concepts/modelCatalog/const';
+import {
+  CatalogModelCustomPropertyKey,
+  CATALOG_VALUE_LABEL_KEYS,
+} from '~/concepts/modelCatalog/const';
 import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
 import CodeBlockComponent from '~/app/shared/markdown/components/CodeBlockComponent';
 
@@ -67,6 +71,9 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
   artifactsLoadError,
 }) => {
   const allLabels = model.customProperties ? getLabels(model.customProperties) : [];
+  const valueLabels = model.customProperties
+    ? getValueLabels(model.customProperties, CATALOG_VALUE_LABEL_KEYS)
+    : [];
   const isValidated = isModelValidated(model);
   const { toolCalling: isToolCallingEnabled } = useModelRegistryDashboardConfig();
   const isToolCallingValidated = isToolCallingEnabled && hasValidatedToolCalling(model);
@@ -237,7 +244,10 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                         <ModelCatalogLabels
                           tasks={model.tasks ?? []}
                           validatedTasks={isToolCallingEnabled ? model.validatedTasks : undefined}
-                          labels={allLabels.filter((label) => label !== 'validated')}
+                          labels={[
+                            ...allLabels.filter((label) => label !== 'validated'),
+                            ...valueLabels,
+                          ]}
                           numLabels={isValidated ? 2 : 3}
                         />
                       </DescriptionListDescription>

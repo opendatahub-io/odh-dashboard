@@ -21,6 +21,18 @@ const mockMlflowExperiments = (experiments: { id: string; name: string }[] = [])
   });
 };
 
+const mockInferenceServices = (items: { name: string; url?: string; ready: boolean }[] = []) => {
+  cy.interceptApi('GET /api/:apiVersion/inferenceservices', { path: API_VERSION }, { items });
+};
+
+const mockVerifyConnectionSuccess = () => {
+  cy.interceptApi(
+    'POST /api/:apiVersion/evaluations/verify-connection',
+    { path: API_VERSION },
+    { success: true, message: 'Connection established successfully.', response_time_ms: 120 },
+  ).as('verifyConnection');
+};
+
 const testProvider = mockProvider({
   id: 'test-provider',
   name: 'test-provider',
@@ -70,6 +82,27 @@ const initBaseIntercepts = () => {
     { path: API_VERSION },
     mockCollectionsListResponse([]),
   );
+
+  mockInferenceServices([]);
+  mockVerifyConnectionSuccess();
+};
+
+const selectSourceMode = (mode: 'Model' | 'Agent' | 'Pre-recorded responses') => {
+  startEvaluationRunPage.findSourceModeToggle().click();
+  cy.findByRole('option', { name: mode }).click();
+};
+
+const selectExternalEndpoint = () => {
+  startEvaluationRunPage.findModelPickerToggle().click();
+  cy.findByTestId('model-option-external').click();
+};
+
+const fillExternalModelFields = (modelName: string, endpointUrl: string) => {
+  selectExternalEndpoint();
+  startEvaluationRunPage.findModelNameInput().type(modelName);
+  startEvaluationRunPage.findEndpointUrlInput().type(endpointUrl);
+  startEvaluationRunPage.findValidateConnectionButton().click();
+  cy.wait('@verifyConnection');
 };
 
 const navigateToBenchmarkStart = () => {
@@ -110,10 +143,8 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
 
     startEvaluationRunPage.findBenchmarkNameDisplay().should('contain.text', 'Alpha Bench');
     startEvaluationRunPage.findEvaluationNameInput().should('not.have.value', '');
-    startEvaluationRunPage.findInputModeInference().should('be.checked');
-    startEvaluationRunPage.findModelNameInput().should('exist');
-    startEvaluationRunPage.findEndpointUrlInput().should('exist');
-    startEvaluationRunPage.findApiKeyInput().should('exist');
+    startEvaluationRunPage.findSourceModeToggle().should('contain.text', 'Model');
+    startEvaluationRunPage.findModelPickerToggle().should('exist');
     startEvaluationRunPage.findSubmitButton().should('exist');
     startEvaluationRunPage.findCancelButton().should('exist');
   });
@@ -132,18 +163,31 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
     startEvaluationRunPage.findSubmitButton().should('be.disabled');
   });
 
-  it('should toggle between inference and pre-recorded input modes', () => {
+  it('should switch between source modes via dropdown', () => {
     navigateToBenchmarkStart();
 
-    startEvaluationRunPage.findInputModeInference().should('be.checked');
-    startEvaluationRunPage.findModelNameInput().should('exist');
-    startEvaluationRunPage.findEndpointUrlInput().should('exist');
+    startEvaluationRunPage.findSourceModeToggle().should('contain.text', 'Model');
+    startEvaluationRunPage.findModelPickerToggle().should('exist');
 
-    startEvaluationRunPage.findInputModePrerecorded().click();
+    selectSourceMode('Agent');
+    startEvaluationRunPage.findAgentNameInput().should('exist');
+    startEvaluationRunPage.findEndpointUrlInput().should('exist');
+    startEvaluationRunPage.findModelPickerToggle().should('not.exist');
+
+    selectSourceMode('Pre-recorded responses');
     startEvaluationRunPage.findSourceNameInput().should('exist');
     startEvaluationRunPage.findDatasetUrlInput().should('exist');
-    startEvaluationRunPage.findAccessTokenInput().should('exist');
-    startEvaluationRunPage.findModelNameInput().should('not.exist');
+    startEvaluationRunPage.findAgentNameInput().should('not.exist');
+  });
+
+  it('should show external model fields when selecting Other (External endpoint)', () => {
+    navigateToBenchmarkStart();
+
+    selectExternalEndpoint();
+    startEvaluationRunPage.findModelNameInput().should('exist');
+    startEvaluationRunPage.findEndpointUrlInput().should('exist');
+    startEvaluationRunPage.findApiKeyInput().should('exist');
+    startEvaluationRunPage.findValidateConnectionButton().should('exist');
   });
 
   it('should submit evaluation job and show success toast', () => {
@@ -159,8 +203,7 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
 
     navigateToBenchmarkStart();
 
-    startEvaluationRunPage.findModelNameInput().type('my-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
     startEvaluationRunPage.findSubmitButton().click();
 
@@ -224,8 +267,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
 
     navigateToBenchmarkStart();
 
-    startEvaluationRunPage.findModelNameInput().type('my-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait('@createJobWithThreshold').then((interception) => {
@@ -260,8 +302,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
       .find('input[type="number"]')
       .type('{selectall}50');
 
-    startEvaluationRunPage.findModelNameInput().type('my-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait('@createJobThresholdOverride').then((interception) => {
@@ -288,8 +329,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
     cy.findByRole('option', { name: 'f1' }).click();
 
-    startEvaluationRunPage.findModelNameInput().type('my-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait('@createJobWithMetric').then((interception) => {
@@ -342,8 +382,7 @@ describe('Start Evaluation Run - Collection Threshold', () => {
       .find('input[type="number"]')
       .type('{selectall}85');
 
-    startEvaluationRunPage.findModelNameInput().type('safety-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://safety.example.com/v1');
+    fillExternalModelFields('safety-model', 'https://safety.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait('@createCollectionJobThresholdOverride').then((interception) => {
@@ -365,8 +404,7 @@ describe('Start Evaluation Run - Collection Threshold', () => {
 
     navigateToCollectionStart();
 
-    startEvaluationRunPage.findModelNameInput().type('safety-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://safety.example.com/v1');
+    fillExternalModelFields('safety-model', 'https://safety.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait('@createCollectionJobThreshold').then((interception) => {
@@ -390,8 +428,7 @@ describe('Start Evaluation Run - Submission Error', () => {
       { statusCode: 500, body: { message: 'Internal server error' } },
     ).as('createJobFail');
 
-    startEvaluationRunPage.findModelNameInput().type('my-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait('@createJobFail');
@@ -430,8 +467,7 @@ describe('Start Evaluation Run - Collection Mode', () => {
 
     navigateToCollectionStart();
 
-    startEvaluationRunPage.findModelNameInput().type('safety-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://safety.example.com/v1');
+    fillExternalModelFields('safety-model', 'https://safety.example.com/v1');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
     startEvaluationRunPage.findSubmitButton().click();
 
@@ -503,9 +539,11 @@ describe('Start Evaluation Run - Pre-recorded Mode', () => {
 
     navigateToBenchmarkStart();
 
-    startEvaluationRunPage.findInputModePrerecorded().click();
+    selectSourceMode('Pre-recorded responses');
     startEvaluationRunPage.findSourceNameInput().type('gpt-4-responses');
     startEvaluationRunPage.findDatasetUrlInput().type('s3://bucket/dataset.jsonl');
+    startEvaluationRunPage.findValidateConnectionButton().click();
+    cy.wait('@verifyConnection');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
     startEvaluationRunPage.findSubmitButton().click();
 
@@ -528,6 +566,86 @@ describe('Start Evaluation Run - Cancel', () => {
 
     cy.url().should('include', `/evaluation/${NAMESPACE}`);
     cy.url().should('not.include', '/create');
+  });
+});
+
+describe('Start Evaluation Run - Cluster Model Selection', () => {
+  beforeEach(() => {
+    initBaseIntercepts();
+    mockMlflowExperiments([]);
+  });
+
+  it('should allow selecting a cluster InferenceService and enable submit without validation', () => {
+    mockInferenceServices([
+      { name: 'llama-3.2-1b-instruct', url: 'http://llama.svc.cluster.local:8080/v1', ready: true },
+      { name: 'mistral-7b-instruct', url: 'http://mistral.svc.cluster.local:8080/v1', ready: true },
+    ]);
+
+    const createdJob = mockEvaluationJob({
+      id: 'new-eval-cluster',
+      name: 'cluster-eval',
+      state: 'running',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createClusterJob',
+    );
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findModelPickerToggle().click();
+    cy.findByTestId('model-option-llama-3.2-1b-instruct').click();
+
+    startEvaluationRunPage.findSubmitButton().should('be.enabled');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createClusterJob').then((interception) => {
+      expect(interception.request.body.model).to.have.property('name', 'llama-3.2-1b-instruct');
+    });
+  });
+});
+
+describe('Start Evaluation Run - Connection Validation', () => {
+  beforeEach(() => {
+    initBaseIntercepts();
+    mockMlflowExperiments([]);
+  });
+
+  it('should show validate connection button for agent mode', () => {
+    navigateToBenchmarkStart();
+
+    selectSourceMode('Agent');
+    startEvaluationRunPage.findValidateConnectionButton().should('exist');
+  });
+
+  it('should show validate connection button for external model', () => {
+    navigateToBenchmarkStart();
+
+    selectExternalEndpoint();
+    startEvaluationRunPage.findValidateConnectionButton().should('exist');
+  });
+
+  it('should not show validate connection button for cluster model', () => {
+    mockInferenceServices([
+      { name: 'llama-3.2-1b-instruct', url: 'http://llama.svc.cluster.local:8080/v1', ready: true },
+    ]);
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findModelPickerToggle().click();
+    cy.findByTestId('model-option-llama-3.2-1b-instruct').click();
+
+    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
+  });
+
+  it('should keep submit disabled when external fields are filled but not validated', () => {
+    navigateToBenchmarkStart();
+
+    selectExternalEndpoint();
+    startEvaluationRunPage.findModelNameInput().type('my-model');
+    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+
+    startEvaluationRunPage.findSubmitButton().should('be.disabled');
   });
 });
 /* eslint-enable camelcase */
