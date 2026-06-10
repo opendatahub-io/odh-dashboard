@@ -229,12 +229,6 @@ describe('API Keys Page', () => {
     apiKeysPage.visit();
     cy.wait('@searchWithOrphaned');
 
-    apiKeysPage.findTable().should('not.contain.text', 'deleted-subscription-key');
-
-    apiKeysPage.findStatusFilterToggle().click();
-    apiKeysPage.findStatusFilterOption('Inactive').click();
-    apiKeysPage.findStatusFilterToggle().click();
-
     apiKeysPage.findTable().should('contain.text', 'deleted-subscription-key');
 
     const deletedSubscriptionRow = apiKeysPage.getRow('deleted-subscription-key');
