@@ -32,8 +32,17 @@ export type NamespaceKind = {
 // EvalHub health response type matching the BFF response shape
 // ---------------------------------------------------------------------------
 
+/**
+ * The three states the /evalhub/health endpoint can report.
+ *
+ * - "healthy"             — CR found in dashboard namespace, service responded.
+ * - "service-unreachable" — CR found (URL known) but service did not respond.
+ * - "cr-not-found"        — No EvalHub CR in the dashboard namespace; operator not configured.
+ */
+export type EvalHubHealthStatus = 'healthy' | 'service-unreachable' | 'cr-not-found';
+
 export type EvalHubHealthResponse = {
-  status: string;
+  status: EvalHubHealthStatus;
   available: boolean;
 };
 
@@ -150,12 +159,12 @@ type JobModel = {
   auth?: ModelAuth;
 };
 
-type JobPrimaryScore = {
+export type JobPrimaryScore = {
   metric: string;
   lower_is_better: boolean;
 };
 
-type JobPassCriteria = {
+export type JobPassCriteria = {
   threshold: number;
 };
 
@@ -172,6 +181,7 @@ type TestDataRef = {
 type JobBenchmark = {
   id: string;
   provider_id?: string;
+  benchmark_index?: number;
   weight?: number;
   primary_score?: JobPrimaryScore;
   pass_criteria?: JobPassCriteria;
@@ -274,6 +284,7 @@ export type CollectionPassCriteria = {
 
 export type CollectionBenchmark = {
   id: string;
+  url?: string;
   provider_id?: string;
   weight?: number;
   primary_score?: CollectionPrimaryScore;
@@ -332,6 +343,7 @@ export type ProviderBenchmarkPassCriteria = {
 
 export type ProviderBenchmark = {
   id: string;
+  url?: string;
   name: string;
   description?: string;
   category?: string;
@@ -410,3 +422,52 @@ export type CreateEvaluationJobRequest = {
 };
 
 export type CreateEvaluationJobResponse = EvaluationJob;
+
+// ---------------------------------------------------------------------------
+// Source mode types for evaluation run configuration
+// ---------------------------------------------------------------------------
+
+export type SourceMode = 'model' | 'agent' | 'prerecorded';
+
+export type ModelSelection = 'cluster' | 'external';
+
+// ---------------------------------------------------------------------------
+// InferenceService types (from BFF)
+// ---------------------------------------------------------------------------
+
+export type InferenceServiceItem = {
+  name: string;
+  url?: string;
+  ready: boolean;
+};
+
+export type InferenceServicesResponse = {
+  items: InferenceServiceItem[];
+  warning?: string;
+};
+
+// ---------------------------------------------------------------------------
+// Connection verification types
+// ---------------------------------------------------------------------------
+
+export type VerifyConnectionRequest = {
+  source_type: SourceMode;
+  base_url: string;
+  secret_name?: string;
+  secret_value?: string;
+  model_id?: string;
+};
+
+export type VerifyConnectionResponse = {
+  success: boolean;
+  message: string;
+  response_time_ms?: number;
+};
+
+export type ConnectionValidationStatus = 'idle' | 'validating' | 'success' | 'error';
+
+export type ConnectionValidationState = {
+  status: ConnectionValidationStatus;
+  message?: string;
+  errorCode?: string;
+};

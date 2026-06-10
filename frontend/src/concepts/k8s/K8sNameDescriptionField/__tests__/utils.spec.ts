@@ -1,5 +1,6 @@
 import {
   handleUpdateLogic,
+  INFERENCE_SERVICE_NAME_REGEX,
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
   resourceTypeLimits,
@@ -277,6 +278,82 @@ describe('handleUpdateLogic', () => {
   });
 });
 
+describe('handleUpdateLogic with custom regexp (model deployment)', () => {
+  it('should detect invalid characters when k8s name starts with a digit', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      regexp: INFERENCE_SERVICE_NAME_REGEX,
+    });
+
+    const result = handleUpdateLogic(defaults)('k8sName', '1test');
+    expect(result.k8sName.state.invalidCharacters).toBe(true);
+    expect(result.k8sName.state.touched).toBe(true);
+  });
+
+  it('should accept k8s name starting with a lowercase letter', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      regexp: INFERENCE_SERVICE_NAME_REGEX,
+    });
+
+    const result = handleUpdateLogic(defaults)('k8sName', 'my-model');
+    expect(result.k8sName.state.invalidCharacters).toBe(false);
+    expect(result.k8sName.state.touched).toBe(true);
+  });
+
+  it('should reject k8s name starting with a hyphen', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      regexp: INFERENCE_SERVICE_NAME_REGEX,
+    });
+
+    const result = handleUpdateLogic(defaults)('k8sName', '-model');
+    expect(result.k8sName.state.invalidCharacters).toBe(true);
+  });
+
+  it('should reject k8s name ending with a hyphen', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      regexp: INFERENCE_SERVICE_NAME_REGEX,
+    });
+
+    const result = handleUpdateLogic(defaults)('k8sName', 'model-');
+    expect(result.k8sName.state.invalidCharacters).toBe(true);
+  });
+
+  it('should accept single lowercase letter', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      regexp: INFERENCE_SERVICE_NAME_REGEX,
+    });
+
+    const result = handleUpdateLogic(defaults)('k8sName', 'a');
+    expect(result.k8sName.state.invalidCharacters).toBe(false);
+  });
+
+  it('should reject uppercase letters', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      regexp: INFERENCE_SERVICE_NAME_REGEX,
+    });
+
+    const result = handleUpdateLogic(defaults)('k8sName', 'MyModel');
+    expect(result.k8sName.state.invalidCharacters).toBe(true);
+  });
+
+  it('should store custom regexp and invalidCharsMessage in state', () => {
+    const customMessage = 'Must start with a lowercase letter.';
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      regexp: INFERENCE_SERVICE_NAME_REGEX,
+      invalidCharsMessage: customMessage,
+    });
+
+    expect(defaults.k8sName.state.regexp).toEqual(INFERENCE_SERVICE_NAME_REGEX);
+    expect(defaults.k8sName.state.invalidCharsMessage).toBe(customMessage);
+  });
+});
+
 describe('isK8sNameDescriptionDataValid', () => {
   it('should be false when invalidCharacters', () => {
     expect(
@@ -333,6 +410,38 @@ describe('isK8sNameDescriptionDataValid', () => {
             },
           },
         } satisfies K8sNameDescriptionFieldData,
+      ),
+    ).toBe(true);
+  });
+
+  it('should be false when k8s name starts with a digit and custom regexp requires a letter', () => {
+    expect(
+      isK8sNameDescriptionDataValid(
+        mockK8sNameDescriptionFieldData({
+          name: '1test',
+          k8sName: {
+            value: '1test',
+            state: {
+              regexp: /^[a-z]([-a-z0-9]*[a-z0-9])?$/,
+            },
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('should be true when k8s name starts with a letter and custom regexp requires a letter', () => {
+    expect(
+      isK8sNameDescriptionDataValid(
+        mockK8sNameDescriptionFieldData({
+          name: 'my-model',
+          k8sName: {
+            value: 'my-model',
+            state: {
+              regexp: /^[a-z]([-a-z0-9]*[a-z0-9])?$/,
+            },
+          },
+        }),
       ),
     ).toBe(true);
   });

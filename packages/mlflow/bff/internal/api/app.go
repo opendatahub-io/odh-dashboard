@@ -5,12 +5,12 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
+	"sync"
 
 	k8s "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes/k8mocks"
@@ -27,24 +27,65 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/mlflow"
-	APIPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	UserPath        = APIPathPrefix + "/user"
-	NamespacePath   = APIPathPrefix + "/namespaces"
-	ExperimentsPath = APIPathPrefix + "/experiments"
+	Version            = "1.0.0"
+	PathPrefix         = "/mlflow"
+	APIPathPrefix      = "/api/v1"
+	HealthCheckPath    = "/healthcheck"
+	StatusPath         = APIPathPrefix + "/status"
+	UserPath           = APIPathPrefix + "/user"
+	NamespacePath      = APIPathPrefix + "/namespaces"
+	ExperimentsPath    = APIPathPrefix + "/experiments"
+	PromptsPath        = APIPathPrefix + "/prompts"
+	PromptPath         = APIPathPrefix + "/prompts/:name"
+	PromptVersionsPath = APIPathPrefix + "/prompts/:name/versions"
+	PromptVersionPath  = APIPathPrefix + "/prompts/:name/versions/:version"
 )
+
+var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
+var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
+
+func isHashedAsset(filePath string) bool {
+	match := hashPattern.FindString(path.Base(filePath))
+	return match != "" && strings.ContainsAny(match, "abcdef")
+}
+
+func isStaticAsset(filePath string) bool {
+	return staticAssetPattern.MatchString(filePath)
+}
+
+func cacheControlForStaticFile(filePath string) string {
+	if isHashedAsset(filePath) {
+		return "public, max-age=31536000, immutable"
+	}
+	if isStaticAsset(filePath) {
+		return "public, max-age=86400"
+	}
+	return "no-cache"
+}
 
 type App struct {
 	config                  config.EnvConfig
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
+	mlflowMu                sync.RWMutex
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
+	mlflowConfigured        bool
+	mlflowTrackingURL       string
+	mlflowWatcherDone       chan struct{}
+	mlflowWatcherWg         sync.WaitGroup
+	shutdownOnce            sync.Once
+	shutdownErr             error
 	repositories            *repositories.Repositories
 	testEnv                 *envtest.Environment     // used only with mocked k8s client
 	rootCAs                 *x509.CertPool           // custom CA pool for outbound TLS connections
 	mlflowState             *mlflowmocks.MLflowState // set when MockHTTPClient starts a child MLflow via uv
+
+	// Global namespace config (cached, polled from OdhDashboardConfig CR)
+	dashboardConfigReader *k8s.DashboardConfigReader
+	globalNamespacesMu    sync.RWMutex
+	globalNamespaces      []string
+	globalNsWatcherDone   chan struct{}
+	globalNsWatcherWg     sync.WaitGroup
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -62,21 +103,43 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	mlflowFactory, mlflowState, err := initMLflowFactory(cfg, logger, rootCAs)
+	mlflowFactory, mlflowState, trackingURL, mlflowConfigured, err := initMLflowFactory(cfg, logger, rootCAs)
 	if err != nil {
 		return nil, err
 	}
 
-	return &App{
+	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
 		mlflowClientFactory:     mlflowFactory,
+		mlflowConfigured:        mlflowConfigured,
+		mlflowTrackingURL:       trackingURL,
 		repositories:            repositories.NewRepositories(),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		mlflowState:             mlflowState,
-	}, nil
+	}
+
+	if app.shouldWatchMLflow() {
+		app.startMLflowWatcher()
+	}
+
+	if cfg.MockK8Client {
+		app.globalNamespaces = k8mocks.MockGlobalNamespaces()
+	} else if app.shouldWatchGlobalNamespaces() {
+		reader, err := k8s.NewDashboardConfigReader(logger)
+		if err != nil {
+			logger.Warn("Dashboard config reader unavailable, global namespace prompts disabled",
+				slog.Any("error", err))
+		} else {
+			app.dashboardConfigReader = reader
+			app.refreshGlobalNamespaces()
+			app.startGlobalNamespaceWatcher()
+		}
+	}
+
+	return app, nil
 }
 
 func initRootCAs(bundlePaths []string, logger *slog.Logger) *x509.CertPool {
@@ -137,93 +200,31 @@ func initK8sFactory(cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesCl
 	return factory, nil, nil
 }
 
-func initMLflowFactory(cfg config.EnvConfig, logger *slog.Logger, rootCAs *x509.CertPool) (mlflowpkg.MLflowClientFactory, *mlflowmocks.MLflowState, error) {
-	if cfg.MockHTTPClient {
-		return initMockMLflowFactory(cfg, logger)
-	}
-
-	trackingURL := resolveMLflowURL(cfg, logger)
-	if trackingURL == "" {
-		return mlflowpkg.NewUnavailableClientFactory(), nil, nil
-	}
-	return newRealClientFactory(trackingURL, rootCAs, cfg.InsecureSkipVerify, logger), nil, nil
-}
-
-func initMockMLflowFactory(cfg config.EnvConfig, logger *slog.Logger) (mlflowpkg.MLflowClientFactory, *mlflowmocks.MLflowState, error) {
-	if cfg.MLflowURL != "" {
-		if err := validateLoopbackURL(cfg.MLflowURL, cfg.DevMode); err != nil {
-			return nil, nil, err
-		}
-		logger.Info("Using external MLflow (no auth)", slog.String("url", cfg.MLflowURL))
-		return mlflowmocks.NewMockClientFactory(cfg.MLflowURL), nil, nil
-	}
-
-	if cfg.StaticMLflowMock {
-		logger.Info("Using static in-memory MLflow mock data")
-		return mlflowmocks.NewStaticMockClientFactory(), nil, nil
-	}
-
-	state, err := mlflowmocks.SetupMLflow(logger)
-	if err != nil {
-		logger.Info("MLflow mock server not available, using static mock data", slog.Any("error", err))
-		return mlflowmocks.NewStaticMockClientFactory(), nil, nil
-	}
-	return mlflowmocks.NewMockClientFactory(state.TrackingURI), state, nil
-}
-
-func validateLoopbackURL(rawURL string, devMode bool) error {
-	parsed, err := url.Parse(rawURL)
-	if err != nil {
-		return fmt.Errorf("invalid MLflow URL: %w", err)
-	}
-	host := parsed.Hostname()
-	ip := net.ParseIP(host)
-	if !devMode || (host != "localhost" && (ip == nil || !ip.IsLoopback())) {
-		return fmt.Errorf("external no-auth MLflow is only allowed in dev mode for loopback hosts")
-	}
-	return nil
-}
-
-func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
-	if cfg.MLflowURL != "" {
-		return cfg.MLflowURL
-	}
-	if cfg.AuthMethod == config.AuthMethodDisabled {
-		return ""
-	}
-	discoveredURL, err := mlflowpkg.DiscoverMLflowURL()
-	if err != nil {
-		logger.Debug("MLflow CR auto-discovery failed, MLflow endpoints will return 503", slog.Any("error", err))
-		return ""
-	}
-	if discoveredURL != "" {
-		logger.Info("Discovered MLflow URL from CR", slog.String("url", discoveredURL))
-	}
-	return discoveredURL
-}
-
-func newRealClientFactory(trackingURL string, rootCAs *x509.CertPool, insecureSkipVerify bool, logger *slog.Logger) mlflowpkg.MLflowClientFactory {
-	return mlflowpkg.NewRealClientFactory(mlflowpkg.RealClientFactoryConfig{
-		TrackingURL:        trackingURL,
-		RootCAs:            rootCAs,
-		InsecureSkipVerify: insecureSkipVerify,
-		Logger:             logger,
-	})
-}
-
 func (app *App) Shutdown() error {
-	app.logger.Info("shutting down app...")
+	app.shutdownOnce.Do(func() {
+		app.logger.Info("shutting down app...")
 
-	if app.mlflowState != nil {
-		app.logger.Info("stopping MLflow server...")
-		mlflowmocks.CleanupMLflowState(app.mlflowState, app.logger)
-	}
+		if app.globalNsWatcherDone != nil {
+			close(app.globalNsWatcherDone)
+			app.globalNsWatcherWg.Wait()
+		}
 
-	if app.testEnv == nil {
-		return nil
-	}
-	app.logger.Info("shutting env test...")
-	return app.testEnv.Stop()
+		if app.mlflowWatcherDone != nil {
+			close(app.mlflowWatcherDone)
+			app.mlflowWatcherWg.Wait()
+		}
+
+		if app.mlflowState != nil {
+			app.logger.Info("stopping MLflow server...")
+			mlflowmocks.CleanupMLflowState(app.mlflowState, app.logger)
+		}
+
+		if app.testEnv != nil {
+			app.logger.Info("shutting env test...")
+			app.shutdownErr = app.testEnv.Stop()
+		}
+	})
+	return app.shutdownErr
 }
 
 func (app *App) Routes() http.Handler {
@@ -238,7 +239,14 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
 	// MLflow API routes
+	apiRouter.GET(StatusPath, app.RequireValidIdentity(app.StatusHandler))
 	apiRouter.GET(ExperimentsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListExperimentsHandler))))
+	apiRouter.GET(PromptsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
+	apiRouter.POST(PromptsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowRegisterPromptHandler))))
+	apiRouter.GET(PromptPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowLoadPromptHandler))))
+	apiRouter.DELETE(PromptPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowDeletePromptHandler))))
+	apiRouter.GET(PromptVersionsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListPromptVersionsHandler))))
+	apiRouter.DELETE(PromptVersionPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowDeletePromptVersionHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()
@@ -253,15 +261,18 @@ func (app *App) Routes() http.Handler {
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 		// Check if the requested file exists
-		if _, err := staticDir.Open(r.URL.Path); err == nil {
+		if f, err := staticDir.Open(r.URL.Path); err == nil {
+			f.Close()
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 			// Serve the file if it exists
+			w.Header().Set("Cache-Control", cacheControlForStaticFile(r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return
 		}
 
 		// Fallback to index.html for SPA routes
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
 	})
 

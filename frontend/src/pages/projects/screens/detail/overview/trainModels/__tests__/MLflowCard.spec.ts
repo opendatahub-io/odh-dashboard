@@ -2,6 +2,7 @@ import {
   setWorkspaceQueryParam,
   buildMLflowExperimentsWorkspaceHref,
 } from '#~/pages/projects/screens/detail/overview/trainModels/MLflowCard';
+import { mlflowLaunchRoute } from '#~/routes/pipelines/mlflow';
 
 describe('setWorkspaceQueryParam', () => {
   it('should add workspace param to a path without query string', () => {
@@ -40,6 +41,30 @@ describe('setWorkspaceQueryParam', () => {
   it('should handle workspace name with ampersand', () => {
     const result = setWorkspaceQueryParam('/experiments', 'a&b');
     expect(result).toBe('/experiments?workspace=a%26b');
+  });
+});
+
+describe('mlflowLaunchRoute', () => {
+  it('should return base path when no namespace is provided', () => {
+    expect(mlflowLaunchRoute()).toBe('/mlflow');
+  });
+
+  it('should return base path when namespace is undefined', () => {
+    expect(mlflowLaunchRoute(undefined)).toBe('/mlflow');
+  });
+
+  it('should append workspace in hash fragment when namespace is provided', () => {
+    expect(mlflowLaunchRoute('my-project')).toBe('/mlflow/#/?workspace=my-project');
+  });
+
+  it('should URL-encode special characters in namespace', () => {
+    expect(mlflowLaunchRoute('project with spaces')).toBe(
+      '/mlflow/#/?workspace=project%20with%20spaces',
+    );
+  });
+
+  it('should URL-encode ampersands in namespace', () => {
+    expect(mlflowLaunchRoute('a&b')).toBe('/mlflow/#/?workspace=a%26b');
   });
 });
 

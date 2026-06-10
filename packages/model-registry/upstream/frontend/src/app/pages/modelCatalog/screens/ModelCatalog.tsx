@@ -1,23 +1,30 @@
 import * as React from 'react';
-import { PageSection, Sidebar, SidebarContent, SidebarPanel } from '@patternfly/react-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
+import { SearchIcon } from '@patternfly/react-icons';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { useSearchParams } from 'react-router-dom';
 import { isModelCatalogBannerExtension } from '~/odh/extension-points';
-import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import ModelCatalogFilters from '~/app/pages/modelCatalog/components/ModelCatalogFilters';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { CategoryName } from '~/app/modelCatalogTypes';
 import { useHasVisibleFiltersApplied } from '~/app/hooks/modelCatalog/useHasVisibleFiltersApplied';
+import { CatalogPageLayout, EmptyCatalogState } from '~/app/shared/components/catalog';
 import ModelCatalogSourceLabelSelectorNavigator from './ModelCatalogSourceLabelSelectorNavigator';
 import ModelCatalogAllModelsView from './ModelCatalogAllModelsView';
 import ModelCatalogGalleryView from './ModelCatalogGalleryView';
-import { useSearchParams } from 'react-router-dom';
 
 const ModelCatalog: React.FC = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
-  const { selectedSourceLabel, updateSelectedSourceLabel, clearAllFilters } =
-    React.useContext(ModelCatalogContext);
+  const {
+    selectedSourceLabel,
+    setSelectedSourceLabel,
+    clearAllFilters,
+    catalogSources,
+    catalogLabels,
+    catalogSourcesLoaded,
+  } = React.useContext(ModelCatalogContext);
   const filtersApplied = useHasVisibleFiltersApplied();
+
   const isAllModelsView =
     selectedSourceLabel === CategoryName.allModels && !searchTerm && !filtersApplied;
 
@@ -28,10 +35,10 @@ const ModelCatalog: React.FC = () => {
     const validatedParam = searchParams.get('validated');
     if (validatedParam === 'true') {
       setSearchParams({});
-      updateSelectedSourceLabel('Red Hat AI validated');
+      setSelectedSourceLabel('Red Hat AI validated');
     }
-  }, [searchParams, setSearchParams, updateSelectedSourceLabel]);
-  
+  }, [searchParams, setSearchParams, setSelectedSourceLabel]);
+
   const handleSearch = React.useCallback((term: string) => {
     setSearchTerm(term);
   }, []);
@@ -47,46 +54,55 @@ const ModelCatalog: React.FC = () => {
   }, [clearAllFilters]);
 
   return (
-    <>
-      <ScrollViewOnMount shouldScroll scrollToTop />
-      <ApplicationsPage
-        title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
-        description="Discover models that are available for your organization to register, deploy, and customize."
-        empty={false}
-        loaded
-        provideChildrenPadding
-      >
-        {bannerExtensions.map((extension) => (
-          <LazyCodeRefComponent
-            key={extension.properties.id}
-            component={extension.properties.component}
+    <ApplicationsPage
+      noTitle // rendered inside a TabRoutePage which provides the title
+      title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
+      description="Discover models that are available for your organization to register, deploy, and customize."
+      empty={false}
+      loaded
+      provideChildrenPadding
+    >
+      {bannerExtensions.map((extension) => (
+        <LazyCodeRefComponent
+          key={extension.properties.id}
+          component={extension.properties.component}
+        />
+      ))}
+      <CatalogPageLayout
+        catalogSources={catalogSources}
+        catalogLabels={catalogLabels}
+        catalogSourcesLoaded={catalogSourcesLoaded}
+        selectedSourceLabel={selectedSourceLabel}
+        onSelectSourceLabel={setSelectedSourceLabel}
+        isAllItemsView={isAllModelsView}
+        renderEmptyCategoriesState={() => (
+          <EmptyCatalogState
+            testid="empty-model-catalog-no-categories"
+            title="No models available"
+            headerIcon={SearchIcon}
+            description="There are no model categories available. Configure model sources in settings to get started."
           />
-        ))}
-        <Sidebar hasBorder hasGutter>
-          <SidebarPanel>
-            <ModelCatalogFilters />
-          </SidebarPanel>
-          <SidebarContent>
-            <ModelCatalogSourceLabelSelectorNavigator
-              searchTerm={searchTerm}
-              onSearch={handleSearch}
-              onClearSearch={handleClearSearch}
-              onResetAllFilters={handleFilterReset}
-            />
-            <PageSection isFilled padding={{ default: 'noPadding' }}>
-              {isAllModelsView ? (
-                <ModelCatalogAllModelsView searchTerm={searchTerm} />
-              ) : (
-                <ModelCatalogGalleryView
-                  searchTerm={searchTerm}
-                  handleFilterReset={handleFilterReset}
-                />
-              )}
-            </PageSection>
-          </SidebarContent>
-        </Sidebar>
-      </ApplicationsPage>
-    </>
+        )}
+        renderFilterSidebar={() => <ModelCatalogFilters />}
+        renderToolbar={() => (
+          <ModelCatalogSourceLabelSelectorNavigator
+            searchTerm={searchTerm}
+            onSearch={handleSearch}
+            onClearSearch={handleClearSearch}
+            onResetAllFilters={handleFilterReset}
+          />
+        )}
+        renderAllItemsView={() => <ModelCatalogAllModelsView searchTerm={searchTerm} />}
+        renderGalleryView={(isSingleCategory, singleCategoryLabel) => (
+          <ModelCatalogGalleryView
+            searchTerm={searchTerm}
+            handleFilterReset={handleFilterReset}
+            isSingleCategory={isSingleCategory}
+            singleCategoryLabel={singleCategoryLabel}
+          />
+        )}
+      />
+    </ApplicationsPage>
   );
 };
 

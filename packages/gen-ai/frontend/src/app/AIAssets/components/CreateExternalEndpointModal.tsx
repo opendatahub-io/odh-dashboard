@@ -20,7 +20,7 @@ import {
   SelectOption,
   Button,
 } from '@patternfly/react-core';
-import { FieldGroupHelpLabelIcon } from 'mod-arch-shared';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AIModel,
   ExternalModelRequest,
@@ -149,12 +149,12 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   }, [modelId, existingModels]);
 
   const displayNameConflict = React.useMemo(() => {
-    const effectiveName = displayName.trim() || modelId.trim();
-    if (!effectiveName) {
+    const trimmedDisplayName = displayName.trim();
+    if (!trimmedDisplayName) {
       return null;
     }
-    return existingModels.find((m) => m.display_name === effectiveName);
-  }, [displayName, modelId, existingModels]);
+    return existingModels.find((m) => m.display_name === trimmedDisplayName);
+  }, [displayName, existingModels]);
 
   // URL validation
   const urlValidation = React.useMemo(() => {
@@ -191,6 +191,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   // Validation
   const isFormValid =
     modelId.trim() !== '' &&
+    displayName.trim() !== '' &&
     endpointUrl.trim() !== '' &&
     !modelIdConflict &&
     !displayNameConflict &&
@@ -232,11 +233,16 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     setIsVerifying(true);
     setVerificationResult(null);
 
+    const trackingModelType = modelType === MODEL_TYPE_EMBEDDING ? 'embedding' : 'inference';
     try {
       await onVerify(request);
       setVerificationResult({
         success: true,
         message: 'Model verified successfully',
+      });
+      fireMiscTrackingEvent('Available Endpoints Create Endpoint Verified', {
+        success: true,
+        modelType: trackingModelType,
       });
     } catch (err: unknown) {
       // Parse error response - mod-arch-core structures errors as { error: { code, message } }
@@ -246,6 +252,10 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
         success: false,
         message: getUserFriendlyMessage(errorData?.code, errorData?.message),
         code: errorData?.code,
+      });
+      fireMiscTrackingEvent('Available Endpoints Create Endpoint Verified', {
+        success: false,
+        modelType: trackingModelType,
       });
     } finally {
       setIsVerifying(false);
@@ -260,10 +270,14 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     setIsSubmitting(true);
     setError(undefined);
 
+    const trackingModelType = modelType === MODEL_TYPE_EMBEDDING ? 'embedding' : 'inference';
+    const wasVerified = verificationResult !== null;
+    const hasUseCase = useCases.trim() !== '';
+
     try {
       const request: ExternalModelRequest = {
         model_id: modelId.trim(),
-        model_display_name: displayName.trim() || modelId.trim(),
+        model_display_name: displayName.trim(),
         base_url: endpointUrl.trim(),
         secret_value: token.trim(),
         model_type: modelType,
@@ -275,10 +289,24 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       };
 
       await onSubmit(request);
+      fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+        outcome: 'submit',
+        success: true,
+        modelType: trackingModelType,
+        wasVerified,
+        hasUseCase,
+      });
       onSuccess();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to create external endpoint'));
+      fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+        outcome: 'submit',
+        success: false,
+        modelType: trackingModelType,
+        wasVerified,
+        hasUseCase,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -291,6 +319,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     modelType,
     useCases,
     embeddingDimension,
+    verificationResult,
     onSubmit,
     onSuccess,
     onClose,
@@ -304,7 +333,12 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     <Modal
       variant={ModalVariant.medium}
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => {
+        fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+          outcome: 'cancel',
+        });
+        onClose();
+      }}
       data-testid="create-external-model-modal"
     >
       <ModalHeader title="Create endpoint" />
@@ -321,13 +355,11 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
           </Alert>
         )}
         <Alert
-          variant="warning"
+          variant="info"
           isInline
-          title="Keys and tokens you add are shared at the project level."
+          title="Keys and tokens are visible to users who have access to the project."
           style={{ marginBottom: '1rem' }}
-        >
-          Anyone with access to this project can use them.
-        </Alert>
+        />
         <Alert
           variant="info"
           isInline
@@ -351,6 +383,9 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               onSelect={(_event, value) => {
                 if (value === MODEL_TYPE_LLM || value === MODEL_TYPE_EMBEDDING) {
                   setModelType(value);
+                  fireMiscTrackingEvent('Available Endpoints Create Endpoint Embedding Toggled', {
+                    isEmbedding: value === MODEL_TYPE_EMBEDDING,
+                  });
                 }
                 setIsModelTypeOpen(false);
               }}
@@ -386,23 +421,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
             </FormHelperText>
           </FormGroup>
 
-          <FormGroup
-            label="Model ID"
-            isRequired
-            fieldId="model-id"
-            labelHelp={
-              <FieldGroupHelpLabelIcon
-                content={
-                  <p>
-                    Enter the exact model identifier from your provider (e.g., gpt-4o,
-                    claude-sonnet-4-20250514, meta-llama/Llama-31-8B-Instruct). This must match the
-                    provider&apos;s model ID exactly. You can usually find this in your
-                    provider&apos;s API documentation or model catalog.
-                  </p>
-                }
-              />
-            }
-          >
+          <FormGroup label="Model ID" isRequired fieldId="model-id">
             <TextInput
               isRequired
               type="text"
@@ -417,38 +436,33 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               isDisabled={isVerifying || isSubmitting}
               placeholder={
                 modelType === MODEL_TYPE_EMBEDDING
-                  ? 'e.g. text-embedding-3-small, BAAI/bge-large-en-v1.5'
-                  : 'e.g. gpt-4o, meta-llama/Llama-3.1-8B-Instruct'
+                  ? 'Example: text-embedding-3-small, BAAI/bge-large-en-v1.5'
+                  : 'Example: gpt-4o, meta-llama/Llama-3.1-8B-Instruct'
               }
               data-testid="create-external-model-id-input"
             />
             <FormHelperText>
               <HelperText>
-                <HelperTextItem variant={touched.modelId && modelIdConflict ? 'error' : 'default'}>
-                  {touched.modelId && modelIdConflict
-                    ? `Model ID "${modelId.trim()}" is already in use.`
-                    : 'The verbatim model ID from your provider. Must match exactly.'}
-                </HelperTextItem>
+                {touched.modelId && modelIdConflict ? (
+                  <HelperTextItem variant="error">
+                    {`Model ID "${modelId.trim()}" is already in use.`}
+                  </HelperTextItem>
+                ) : (
+                  <>
+                    <HelperTextItem>
+                      The ID given by the model provider. This can usually be found in the
+                      provider&apos;s API documentation or model catalog.
+                    </HelperTextItem>
+                    <HelperTextItem>Case-sensitive</HelperTextItem>
+                  </>
+                )}
               </HelperText>
             </FormHelperText>
           </FormGroup>
 
-          <FormGroup
-            label="Display name"
-            fieldId="display-name"
-            labelHelp={
-              <FieldGroupHelpLabelIcon
-                content={
-                  <p>
-                    An optional friendly name shown in tables and selectors instead of the verbatim
-                    model ID. For example, you might name it Our GPT-4o or Team Llama. If left
-                    blank, the model ID will be used.
-                  </p>
-                }
-              />
-            }
-          >
+          <FormGroup label="Display name" isRequired fieldId="display-name">
             <TextInput
+              isRequired
               type="text"
               id="display-name"
               name="display-name"
@@ -456,30 +470,28 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               onChange={(_event, value) => setDisplayName(value)}
               onBlur={() => setTouched({ ...touched, displayName: true })}
               validated={
-                (touched.displayName || !displayName.trim()) && displayNameConflict
+                touched.displayName && (!displayName.trim() || displayNameConflict)
                   ? 'error'
                   : 'default'
               }
               isDisabled={isVerifying || isSubmitting}
-              placeholder={
-                modelType === MODEL_TYPE_EMBEDDING
-                  ? 'e.g. OpenAI Small Embeddings, BGE Large EN'
-                  : 'e.g. Our GPT-4o, Team Llama'
-              }
+              placeholder="Example: Customer Support GPT-4o, Code Review Claude"
               data-testid="create-external-model-display-name-input"
             />
             <FormHelperText>
               <HelperText>
                 <HelperTextItem
                   variant={
-                    (touched.displayName || !displayName.trim()) && displayNameConflict
+                    touched.displayName && (!displayName.trim() || displayNameConflict)
                       ? 'error'
                       : 'default'
                   }
                 >
-                  {(touched.displayName || !displayName.trim()) && displayNameConflict
-                    ? `Display name "${displayName.trim() || modelId.trim()}" is already in use.`
-                    : 'Optional. A friendly display name for this model.'}
+                  {touched.displayName && !displayName.trim()
+                    ? 'Display name is required.'
+                    : touched.displayName && displayNameConflict
+                      ? `Display name "${displayName.trim()}" is already in use.`
+                      : 'A unique name to identify this endpoint. This helps distinguish multiple endpoints that use the same underlying model.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
@@ -502,7 +514,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                     : 'default'
                 }
                 isDisabled={isVerifying || isSubmitting}
-                placeholder="e.g. 768, 1536, 3072"
+                placeholder="Example: 768, 1536, 3072"
                 data-testid="create-external-model-embedding-dimension-input"
               />
               <FormHelperText>
@@ -513,22 +525,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
             </FormGroup>
           )}
 
-          <FormGroup
-            label="URL"
-            isRequired
-            fieldId="endpoint-url"
-            labelHelp={
-              <FieldGroupHelpLabelIcon
-                content={
-                  <p>
-                    The base URL of the API endpoint. For OpenAI, this is typically
-                    https://api.openai.com/v1. For other providers, check their API documentation
-                    for the correct base URL.
-                  </p>
-                }
-              />
-            }
-          >
+          <FormGroup label="Endpoint URL" isRequired fieldId="endpoint-url">
             <TextInput
               isRequired
               type="url"
@@ -541,7 +538,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                 touched.endpointUrl && (!endpointUrl.trim() || hasUrlError) ? 'error' : 'default'
               }
               isDisabled={isVerifying || isSubmitting}
-              placeholder="e.g. https://api.openai.com/v1"
+              placeholder="Example: https://api.openai.com/v1"
               data-testid="create-external-model-url-input"
             />
             <FormHelperText>
@@ -549,13 +546,13 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                 <HelperTextItem variant={touched.endpointUrl && hasUrlError ? 'error' : 'default'}>
                   {touched.endpointUrl && urlValidation.error
                     ? urlValidation.error
-                    : 'The endpoint URL for this model.'}
+                    : 'Type the base URL of the provider’s API. This can usually be found in the provider’s API documentation.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
           </FormGroup>
 
-          <FormGroup label="Token" fieldId="token">
+          <FormGroup label="API key or token" fieldId="token">
             <TextInput
               type="password"
               id="token"
@@ -564,14 +561,8 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               onChange={(_event, value) => setToken(value)}
               onBlur={() => setTouched({ ...touched, token: true })}
               isDisabled={isVerifying || isSubmitting}
-              placeholder="Your API key or token"
               data-testid="create-external-model-token-input"
             />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>Your API key or the token for this endpoint.</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
           </FormGroup>
 
           {/* Verification */}
@@ -620,15 +611,15 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               isDisabled={isVerifying || isSubmitting}
               placeholder={
                 modelType === MODEL_TYPE_EMBEDDING
-                  ? 'e.g. Document search, Semantic similarity'
-                  : 'e.g. General chat, Code generation, Image analysis'
+                  ? 'Example: Document search, Semantic similarity'
+                  : 'Example: General chat, Code generation, Image analysis'
               }
               data-testid="create-external-model-use-cases-input"
             />
             <FormHelperText>
               <HelperText>
                 <HelperTextItem>
-                  Optional. Helps others identify what this model is best suited for.
+                  Optionally describe what this model is best suited for.
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
@@ -650,7 +641,12 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
         <Button
           key="cancel"
           variant="link"
-          onClick={onClose}
+          onClick={() => {
+            fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+              outcome: 'cancel',
+            });
+            onClose();
+          }}
           isDisabled={isSubmitting}
           data-testid="create-external-model-cancel-button"
         >

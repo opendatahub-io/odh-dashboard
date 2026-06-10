@@ -28,16 +28,32 @@ dev-install-dependencies: ## Install dependencies for frontend
 	cd frontend && npm install
 
 .PHONY: dev-bff-mock
-dev-bff-mock: ## Run BFF with all mocks enabled (K8s, LlamaStack, MaaS, MCP, MLflow)
-	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true AUTH_TOKEN=FAKE_BEARER_TOKEN
+dev-bff-mock: ## Run BFF with all mocks enabled (K8s, LlamaStack, MaaS, MCP, MLflow, BFF clients)
+	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev"
 
 .PHONY: dev-bff
-dev-bff:
-	cd bff && MAAS_URL=${MAAS_URL} MLFLOW_URL=${MLFLOW_URL} DISTRIBUTION_NAME=${DISTRIBUTION_NAME} LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist
+dev-bff: ## Run BFF (requires env vars: MAAS_URL, LLAMA_STACK_URL, or use dev-bff-mock for mock mode)
+ifndef MAAS_URL
+	$(error MAAS_URL is not set. Use 'make dev-bff-mock' for mock mode or set MAAS_URL environment variable)
+endif
+ifndef LLAMA_STACK_URL
+	$(error LLAMA_STACK_URL is not set. Use 'make dev-bff-mock' for mock mode or set LLAMA_STACK_URL environment variable)
+endif
+	cd bff && make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) MLFLOW_URL=$(MLFLOW_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer "
+
+.PHONY: dev-bff-inter-bff
+dev-bff-inter-bff: ## Run BFF with MaaS BFF dev URL for inter-BFF testing (mock K8s, real HTTP to MaaS BFF on port 4000)
+	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true AUTH_METHOD=user_token LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev" BFF_MAAS_DEV_URL=http://localhost:4000/api/v1
 
 .PHONY: dev-bff-debug
 dev-bff-debug: ## Run BFF with Delve debugger (VSCode can attach - requires Delve installation, see readme)
-	cd bff && MAAS_URL=${MAAS_URL} MLFLOW_URL=${MLFLOW_URL} DISTRIBUTION_NAME=${DISTRIBUTION_NAME} LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make debug LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist
+ifndef MAAS_URL
+	$(error MAAS_URL is not set. Use 'make dev-bff-mock-debug' for mock mode or set MAAS_URL environment variable)
+endif
+ifndef LLAMA_STACK_URL
+	$(error LLAMA_STACK_URL is not set. Use 'make dev-bff-mock-debug' for mock mode or set LLAMA_STACK_URL environment variable)
+endif
+	cd bff && make debug LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) MLFLOW_URL=$(MLFLOW_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer "
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
@@ -49,7 +65,7 @@ dev-mlflow-up: ## Start local MLflow tracking server for development
 
 .PHONY: dev-bff-mock-debug
 dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
-	cd bff && make debug LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true AUTH_TOKEN=FAKE_BEARER_TOKEN
+	cd bff && make debug LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev"
 
 .PHONY: dev-start-mock
 dev-start-mock: ## Run frontend and bff (all mocks) in development mode
@@ -80,6 +96,11 @@ dev-portforward: ## Start port-forwarding in separate terminals
 	@sleep 1
 	@echo "Starting port-forward for lsd-genai-playground-service..."
 	@oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/lsd-genai-playground-service 8321:8321 &
+	@if [ -n "$${ASR_SERVICE_NAME}" ]; then \
+		sleep 1; \
+		echo "Starting port-forward for ASR model ($${ASR_SERVICE_NAME}) on port $${ASR_LOCAL_PORT:-8790}..."; \
+		oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/$${ASR_SERVICE_NAME} $${ASR_LOCAL_PORT:-8790}:8080 & \
+	fi
 	@echo "Port-forwarding started in background!"
 
 .PHONY: dev-start

@@ -32,42 +32,42 @@ type MCPContainerImage struct {
 }
 
 type MCPConfigSpec struct {
-	Port      int32                  `json:"port"`
-	Path      string                 `json:"path,omitempty"`
-	Arguments []string               `json:"arguments,omitempty"`
-	Env       []MCPEnvVar            `json:"env,omitempty"`
-	EnvFrom   []corev1.EnvFromSource `json:"envFrom,omitempty"`
-	Storage   []MCPStorageMount      `json:"storage,omitempty"`
+	Port      int32                  `json:"port" yaml:"port"`
+	Path      string                 `json:"path,omitempty" yaml:"path,omitempty"`
+	Arguments []string               `json:"arguments,omitempty" yaml:"arguments,omitempty"`
+	Env       []MCPEnvVar            `json:"env,omitempty" yaml:"env,omitempty"`
+	EnvFrom   []corev1.EnvFromSource `json:"envFrom,omitempty" yaml:"envfrom,omitempty"`
+	Storage   []MCPStorageMount      `json:"storage,omitempty" yaml:"storage,omitempty"`
 }
 
 // MCPEnvVar is a simplified version of corev1.EnvVar that omits valueFrom when not set.
 type MCPEnvVar struct {
-	Name      string               `json:"name"`
-	Value     string               `json:"value,omitempty"`
-	ValueFrom *corev1.EnvVarSource `json:"valueFrom,omitempty"`
+	Name      string               `json:"name" yaml:"name"`
+	Value     string               `json:"value,omitempty" yaml:"value,omitempty"`
+	ValueFrom *corev1.EnvVarSource `json:"valueFrom,omitempty" yaml:"valuefrom,omitempty"`
 }
 
 type MCPStorageMount struct {
-	Path        string           `json:"path"`
-	Permissions string           `json:"permissions,omitempty"`
-	Source      MCPStorageSource `json:"source"`
+	Path        string           `json:"path" yaml:"path"`
+	Permissions string           `json:"permissions,omitempty" yaml:"permissions,omitempty"`
+	Source      MCPStorageSource `json:"source" yaml:"source"`
 }
 
 type MCPStorageSource struct {
-	Type      string                        `json:"type"`
-	ConfigMap *corev1.ConfigMapVolumeSource `json:"configMap,omitempty"`
-	Secret    *corev1.SecretVolumeSource    `json:"secret,omitempty"`
+	Type      string                        `json:"type" yaml:"type"`
+	ConfigMap *corev1.ConfigMapVolumeSource `json:"configMap,omitempty" yaml:"configmap,omitempty"`
+	Secret    *corev1.SecretVolumeSource    `json:"secret,omitempty" yaml:"secret,omitempty"`
 }
 
 type MCPRuntimeSpec struct {
-	Replicas *int32           `json:"replicas,omitempty"`
-	Security *MCPSecuritySpec `json:"security,omitempty"`
+	Replicas *int32           `json:"replicas,omitempty" yaml:"replicas,omitempty"`
+	Security *MCPSecuritySpec `json:"security,omitempty" yaml:"security,omitempty"`
 }
 
 type MCPSecuritySpec struct {
-	ServiceAccountName string                     `json:"serviceAccountName,omitempty"`
-	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
-	SecurityContext    *corev1.SecurityContext    `json:"securityContext,omitempty"`
+	ServiceAccountName string                     `json:"serviceAccountName,omitempty" yaml:"serviceaccountname,omitempty"`
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty" yaml:"podsecuritycontext,omitempty"`
+	SecurityContext    *corev1.SecurityContext    `json:"securityContext,omitempty" yaml:"securitycontext,omitempty"`
 }
 
 // MCPServerConversionResult holds the converted MCPServer and metadata useful for the frontend.

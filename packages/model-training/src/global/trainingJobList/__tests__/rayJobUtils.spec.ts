@@ -42,7 +42,7 @@ const makeWorkload = (
   active = true,
 ): WorkloadKind =>
   ({
-    apiVersion: 'kueue.x-k8s.io/v1beta1',
+    apiVersion: 'kueue.x-k8s.io/v1beta2',
     kind: 'Workload',
     metadata: { name: 'test-workload', namespace: 'test-ns' },
     spec: { active, podSets: [], priority: 0, queueName: 'default' },

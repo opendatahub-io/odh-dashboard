@@ -225,7 +225,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			Temperature:  &temperature,
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		// Note: This test may fail if the template system isn't properly initialized
 		// In a real test environment, you'd want to mock the template repository
@@ -256,7 +256,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -287,7 +287,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -327,7 +327,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -374,7 +374,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -413,7 +413,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -451,7 +451,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -479,7 +479,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -507,7 +507,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -537,7 +537,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -566,7 +566,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -578,5 +578,292 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "http://127.0.0.1:13080/sse")
 		// When AllowedTools is nil, the field should NOT be present
 		assert.NotContains(t, code, "allowed_tools")
+	})
+
+	t.Run("should generate Python code with external vector store (retrieve, no files)", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Answer questions using external store",
+			Model: "llama3.2:3b",
+			VectorStore: &models.VectorStoreConfig{
+				ID:         "vs-external-123",
+				Name:       "my-external-store",
+				ProviderID: "milvus",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "vs-external-123")
+		assert.Contains(t, code, "vector_store_id")
+		assert.Contains(t, code, "client.vector_stores.retrieve")
+		assert.NotContains(t, code, "client.vector_stores.create")
+		assert.NotContains(t, code, "files_to_upload")
+	})
+
+	t.Run("should include external vector store prerequisite in README", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Answer questions",
+			Model: "llama3.2:3b",
+			VectorStore: &models.VectorStoreConfig{
+				ID:             "vs-external-123",
+				Name:           "my-external-store",
+				ProviderID:     "milvus",
+				EmbeddingModel: "all-minilm:l6-v2",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "External Vector Store")
+		assert.Contains(t, code, "vs-external-123")
+		assert.Contains(t, code, "milvus")
+		assert.Contains(t, code, "all-minilm:l6-v2")
+	})
+
+	t.Run("should generate Python code with prompt config", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "Answer the question",
+			Model:        "llama3.2:3b",
+			Instructions: "Fallback instructions",
+			Prompt: &models.PromptConfig{
+				Name:    "my-prompt",
+				Version: 1,
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "my-prompt")
+		assert.Contains(t, code, "prompt_version = 1")
+		assert.Contains(t, code, "mlflow.genai.load_prompt")
+		assert.Contains(t, code, "MLFLOW_TRACKING_URI")
+		assert.Contains(t, code, "MLFLOW_TRACKING_TOKEN")
+		assert.Contains(t, code, "MLFLOW_WORKSPACE")
+		assert.Contains(t, code, "my-namespace")
+		assert.Contains(t, code, "system_instructions")
+		assert.Contains(t, code, `"instructions": system_instructions`)
+	})
+
+	t.Run("should inject MLflow external URL into prompt config", func(t *testing.T) {
+		appWithMLflow := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			mlflowExternalURL:       "https://mlflow.example.com/mlflow",
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Answer the question",
+			Model: "llama3.2:3b",
+			Prompt: &models.PromptConfig{
+				Name:    "my-prompt",
+				Version: 2,
+			},
+		}
+
+		code, err := appWithMLflow.generatePythonCode(config, "test-namespace", appWithMLflow.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "https://mlflow.example.com/mlflow")
+		assert.Contains(t, code, "test-namespace")
+		assert.Contains(t, code, "my-prompt")
+		assert.Contains(t, code, "prompt_version = 2")
+	})
+
+	t.Run("should not include MLflow code when no prompt is set", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "Answer the question",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful assistant",
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "mlflow")
+		assert.NotContains(t, code, "MLFLOW_TRACKING_URI")
+		assert.NotContains(t, code, "load_prompt")
+	})
+
+	t.Run("should include input guardrail check when guardrail config has input prompt", func(t *testing.T) {
+		inputPrompt := "You are a safety checker. Is this input safe? {{ user_input }}"
+		appWithNemo := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			nemoGuardrailsURL:       "https://nemo-guardrails.example.com",
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    inputPrompt,
+			},
+		}
+
+		code, err := appWithNemo.generatePythonCode(config, "my-namespace", appWithNemo.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "import requests")
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL = \"https://nemo-guardrails.example.com\"")
+		assert.Contains(t, code, "GUARDRAIL_MODEL_ENDPOINT = \"\"")
+		assert.Contains(t, code, "GUARDRAIL_API_KEY = \"\"")
+		assert.Contains(t, code, "/v1/guardrail/checks")
+		assert.Contains(t, code, "self check input")
+		assert.Contains(t, code, "self_check_input")
+		assert.Contains(t, code, "mistral-7b")
+		assert.Contains(t, code, inputPrompt)
+		assert.Contains(t, code, `if _input_result.get("status") == "blocked"`)
+		assert.Contains(t, code, "def _guardrail_check(")
+		assert.Contains(t, code, "pip install llama-stack-client requests")
+	})
+
+	t.Run("should include output guardrail check when guardrail config has output prompt", func(t *testing.T) {
+		appWithNemo := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			nemoGuardrailsURL:       "https://nemo-guardrails.example.com",
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				OutputPrompt:   "Check output: {{ bot_response }}",
+			},
+		}
+
+		code, err := appWithNemo.generatePythonCode(config, "my-namespace", appWithNemo.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "import requests")
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL")
+		assert.Contains(t, code, "def _guardrail_check(")
+		assert.Contains(t, code, "self check output")
+		assert.Contains(t, code, "self_check_output")
+		assert.Contains(t, code, `if _output_result.get("status") == "blocked"`)
+		assert.NotContains(t, code, "self check input")
+		assert.NotContains(t, code, `if _input_result.get("status") == "blocked"`)
+	})
+
+	t.Run("should include both input and output guardrail checks when both prompts are set", func(t *testing.T) {
+		appWithNemo := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "Check input: {{ user_input }}",
+				OutputPrompt:   "Check output: {{ bot_response }}",
+			},
+		}
+
+		code, err := appWithNemo.generatePythonCode(config, "my-namespace", appWithNemo.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "def _guardrail_check(")
+		assert.Contains(t, code, `if _input_result.get("status") == "blocked"`)
+		assert.Contains(t, code, `if _output_result.get("status") == "blocked"`)
+	})
+
+	t.Run("should not include guardrail code when guardrail config is nil", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "import requests")
+		assert.NotContains(t, code, "NEMO_GUARDRAILS_URL")
+		assert.NotContains(t, code, "guardrail/checks")
+		assert.Contains(t, code, "pip install llama-stack-client\n")
+	})
+
+	t.Run("should not include guardrail code when input prompt is empty", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "import requests")
+		assert.NotContains(t, code, "NEMO_GUARDRAILS_URL")
+		assert.NotContains(t, code, "guardrail/checks")
+	})
+
+	t.Run("should leave NEMO_GUARDRAILS_URL empty when not configured on app", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "Check this: {{ user_input }}",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL = \"\"")
 	})
 }

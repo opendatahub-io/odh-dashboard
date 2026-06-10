@@ -88,6 +88,15 @@ describe('Verify a model can be deployed from model catalog', () => {
 
       modelCatalog.clickDeployModelButtonWithRetry();
 
+      cy.step('Model deployment select project in preconfigure step');
+      modelServingWizard.findModelDeploymentProjectSelector().should('exist');
+      modelServingWizard.findModelDeploymentProjectSelector().click();
+      modelServingWizard
+        .findModelDeploymentProjectSelectorOption(projectName)
+        .should('exist')
+        .click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
       cy.step('Verify model location gets prefilled');
       modelServingWizard.findModelSourceStep().click();
       modelServingWizard
@@ -100,12 +109,6 @@ describe('Verify a model can be deployed from model catalog', () => {
 
       cy.step('Model deployment step');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.findModelDeploymentProjectSelector().should('exist');
-      modelServingWizard.findModelDeploymentProjectSelector().click();
-      modelServingWizard
-        .findModelDeploymentProjectSelectorOption(projectName)
-        .should('exist')
-        .click();
 
       modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findFirstServingRuntimeTemplateOption().should('exist').click();
@@ -120,7 +123,7 @@ describe('Verify a model can be deployed from model catalog', () => {
       modelServingWizard.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify redirection to the global page');
-      cy.location('pathname').should('eq', `/ai-hub/deployments/${projectName}`);
+      cy.location('pathname').should('eq', `/ai-hub/models/deployments/${projectName}`);
       modelServingGlobal.getDeploymentRow(modelName);
     },
   );

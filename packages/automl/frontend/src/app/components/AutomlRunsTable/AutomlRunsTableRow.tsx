@@ -1,10 +1,20 @@
 import * as React from 'react';
-import { Label, Timestamp, TimestampTooltipVariant, type LabelProps } from '@patternfly/react-core';
-import { Td, Tr } from '@patternfly/react-table';
+import { Label, type LabelProps } from '@patternfly/react-core';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { relativeTime } from 'mod-arch-shared';
+import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
-import { automlResultsPathname } from '~/app/utilities/routes';
+import DeleteRunModal from '~/app/components/run-results/DeleteRunModal';
+import StopRunModal from '~/app/components/run-results/StopRunModal';
+import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
+import { TASK_TYPE_LABELS } from '~/app/utilities/const';
+import { automlReconfigurePathname, automlResultsPathname } from '~/app/utilities/routes';
+import {
+  getTaskType,
+  isRunTerminatable,
+  isRunRetryable,
+  isRunDeletable,
+} from '~/app/utilities/utils';
 import { automlRunsColumns } from './columns';
 
 /** Run state values (API / display). Use lowercase for case-insensitive matching. */
@@ -16,11 +26,13 @@ export const RUN_STATE = {
   INCOMPLETE: 'incomplete',
   COMPLETE: 'complete',
   PAUSED: 'paused',
+  SKIPPED: 'skipped',
 } as const;
 
 type AutomlRunsTableRowProps = {
   run: PipelineRun;
   namespace: string;
+  onActionComplete?: () => void | Promise<void>;
 };
 
 export const getStatusLabelProps = (
@@ -34,58 +46,159 @@ export const getStatusLabelProps = (
     return { status: 'danger' };
   }
   if (s === RUN_STATE.RUNNING || s.includes(RUN_STATE.RUNNING)) {
-    return { status: 'info' };
+    return { color: 'blue' };
   }
-  if (
-    s === RUN_STATE.INCOMPLETE ||
-    s === RUN_STATE.PENDING ||
-    s === RUN_STATE.PAUSED ||
-    s.includes(RUN_STATE.PENDING)
-  ) {
+  if (s === RUN_STATE.PENDING || s.includes(RUN_STATE.PENDING)) {
+    return { color: 'purple' };
+  }
+  if (s === RUN_STATE.SKIPPED || s.includes(RUN_STATE.SKIPPED)) {
+    return { status: 'success' };
+  }
+  if (s === RUN_STATE.INCOMPLETE) {
     return { status: 'warning' };
   }
   return { color: 'grey' };
 };
 
-const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({ run, namespace }) => {
-  const createdDate = run.created_at ? new Date(run.created_at) : null;
-  const isValidDate = createdDate && !Number.isNaN(createdDate.getTime());
+const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
+  run,
+  namespace,
+  onActionComplete,
+}) => {
+  const taskType = getTaskType(run);
+  const predictionTypeLabel = taskType ? (TASK_TYPE_LABELS[taskType] ?? taskType) : '—';
+  const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [stopInitiated, setStopInitiated] = React.useState(false);
+  const { handleRetry, handleConfirmStop, handleDelete, isRetrying, isTerminating, isDeleting } =
+    useAutomlRunActions(namespace, run.run_id, onActionComplete);
+
+  const baseRunTerminatable = isRunTerminatable(run.state);
+  const runTerminatable = baseRunTerminatable && !stopInitiated;
+  const runRetryable = isRunRetryable(run.state);
+  const runDeletable = isRunDeletable(run.state);
+
+  // Track previous terminatable state to detect transitions
+  const prevBaseRunTerminatable = React.useRef(baseRunTerminatable);
+  React.useEffect(() => {
+    // Reset stopInitiated only when transitioning from non-terminatable to terminatable (e.g., after retry)
+    if (baseRunTerminatable && !prevBaseRunTerminatable.current) {
+      setStopInitiated(false);
+    }
+    prevBaseRunTerminatable.current = baseRunTerminatable;
+  }, [baseRunTerminatable]);
+
+  const handleStop = React.useCallback(async () => {
+    try {
+      await handleConfirmStop();
+      setStopInitiated(true);
+      setIsStopModalOpen(false);
+    } catch {
+      // Keep modal open on failure; error notification is shown by the hook.
+    }
+  }, [handleConfirmStop]);
+
+  const handleConfirmDelete = React.useCallback(async () => {
+    try {
+      await handleDelete();
+      setIsDeleteModalOpen(false);
+    } catch {
+      // Modal stays open; error toast is shown by handleDelete.
+    }
+  }, [handleDelete]);
+
+  const actions = React.useMemo(() => {
+    const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
+
+    if (runTerminatable) {
+      items.push({
+        title: <span data-testid="stop-run-action">Stop</span>,
+        onClick: () => setIsStopModalOpen(true),
+        isDisabled: isTerminating || isStopModalOpen,
+      });
+    }
+
+    if (runRetryable) {
+      items.push({
+        title: <span data-testid="retry-run-action">Retry</span>,
+        onClick: () => void handleRetry().catch(() => undefined),
+        isDisabled: isRetrying,
+      });
+    }
+
+    items.push({
+      title: <span data-testid="reconfigure-run-action">Reconfigure</span>,
+      component: Link,
+      to: `${automlReconfigurePathname}/${namespace}/${run.run_id}`,
+    });
+
+    if (runDeletable) {
+      if (runTerminatable || runRetryable) {
+        items.push({ isSeparator: true });
+      }
+      items.push({
+        title: <span data-testid="delete-run-action">Delete</span>,
+        onClick: () => setIsDeleteModalOpen(true),
+        isDisabled: isDeleting,
+      });
+    }
+
+    return items;
+  }, [
+    runTerminatable,
+    runRetryable,
+    runDeletable,
+    handleRetry,
+    isRetrying,
+    isTerminating,
+    isStopModalOpen,
+    isDeleting,
+    namespace,
+    run.run_id,
+  ]);
 
   return (
-    <Tr>
-      <Td dataLabel={automlRunsColumns[0].label}>
-        <Link
-          to={`${automlResultsPathname}/${namespace}/${run.run_id}`}
-          data-testid={`run-name-${run.run_id}`}
-        >
-          {run.display_name}
-        </Link>
-      </Td>
-      <Td dataLabel={automlRunsColumns[1].label}>{run.description ?? '—'}</Td>
-      <Td dataLabel={automlRunsColumns[2].label}>
-        {isValidDate ? (
-          <Timestamp
-            date={createdDate}
-            tooltip={{
-              variant: TimestampTooltipVariant.default,
-            }}
+    <>
+      <Tr>
+        <Td dataLabel={automlRunsColumns[0].label}>
+          <Link
+            to={`${automlResultsPathname}/${namespace}/${run.run_id}`}
+            data-testid={`run-name-${run.run_id}`}
           >
-            {relativeTime(Date.now(), createdDate.getTime())}
-          </Timestamp>
-        ) : (
-          '—'
-        )}
-      </Td>
-      <Td dataLabel={automlRunsColumns[3].label}>
-        {run.state ? (
-          <Label isCompact {...getStatusLabelProps(run.state)}>
-            {run.state}
-          </Label>
-        ) : (
-          '—'
-        )}
-      </Td>
-    </Tr>
+            {run.display_name}
+          </Link>
+        </Td>
+        <Td dataLabel={automlRunsColumns[1].label}>{run.description ?? '—'}</Td>
+        <Td dataLabel={automlRunsColumns[2].label}>{predictionTypeLabel}</Td>
+        <Td dataLabel={automlRunsColumns[3].label}>
+          <RunStartTimestamp run={run} />
+        </Td>
+        <Td dataLabel={automlRunsColumns[4].label}>
+          {run.state ? (
+            <Label variant="outline" isCompact {...getStatusLabelProps(run.state)}>
+              {run.state}
+            </Label>
+          ) : (
+            '—'
+          )}
+        </Td>
+        <Td isActionCell>{actions.length > 0 ? <ActionsColumn items={actions} /> : null}</Td>
+      </Tr>
+      <StopRunModal
+        isOpen={isStopModalOpen}
+        onClose={() => setIsStopModalOpen(false)}
+        onConfirm={handleStop}
+        isTerminating={isTerminating}
+        runName={run.display_name}
+      />
+      <DeleteRunModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+        runName={run.display_name}
+      />
+    </>
   );
 };
 

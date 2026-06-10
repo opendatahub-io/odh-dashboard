@@ -3,6 +3,8 @@ import { Contextual } from './components/Contextual';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
 import { SearchSelector } from './components/subComponents/SearchSelector';
 
+export const MAX_MODEL_REGISTRY_NAME_LENGTH = 40;
+
 export enum FormFieldSelector {
   NAME = '#mr-name',
   DESCRIPTION = '#mr-description',
@@ -65,7 +67,7 @@ class ModelRegistrySettings {
 
   private findHeading() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('AI registry settings');
+    cy.findByTestId('app-page-title').contains('Model registry settings');
   }
 
   findPageTitle() {
@@ -74,7 +76,7 @@ class ModelRegistrySettings {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'AI registry settings',
+      name: 'Model registry settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });

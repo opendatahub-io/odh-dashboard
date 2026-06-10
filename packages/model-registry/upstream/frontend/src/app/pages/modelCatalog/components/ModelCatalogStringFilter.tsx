@@ -6,7 +6,7 @@ import {
   ModelCatalogStringFilterValueType,
 } from '~/app/modelCatalogTypes';
 import { ModelCatalogStringFilterKey } from '~/concepts/modelCatalog/const';
-import { useCatalogStringFilterState } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { useCatalogStringFilterState } from '~/app/pages/modelCatalog/hooks/useCatalogFilterState';
 
 function isFilterMappingKey<K extends string>(obj: Partial<Record<K, string>>, s: string): s is K {
   return Object.hasOwn(obj, s);
@@ -15,19 +15,19 @@ function isFilterMappingKey<K extends string>(obj: Partial<Record<K, string>>, s
 type ModelCatalogStringFilterProps<K extends ModelCatalogStringFilterKey> = {
   title: string;
   filterKey: K;
-  filterToNameMapping: Partial<Record<ModelCatalogStringFilterValueType[K], string>>;
+  filterToNameMapping?: Partial<Record<ModelCatalogStringFilterValueType[K], string>>;
   filters: ModelCatalogStringFilterOptions[K];
 };
 
 const ModelCatalogStringFilter = <K extends ModelCatalogStringFilterKey>({
   title,
   filterKey,
-  filterToNameMapping,
+  filterToNameMapping = {},
   filters,
 }: ModelCatalogStringFilterProps<K>): JSX.Element => {
-  const { filterData } = React.useContext(ModelCatalogContext);
+  const { filters: contextFilters } = React.useContext(ModelCatalogContext);
   const { setSelected } = useCatalogStringFilterState(filterKey);
-  const selectedValues = filterData[filterKey];
+  const selectedValues = contextFilters[filterKey];
 
   const getLabel = React.useCallback(
     (value: string): string =>

@@ -266,3 +266,101 @@ export const getErrorType = (status: number, error?: string): string => {
 
   return 'UNKNOWN';
 };
+
+/**
+ * Status codes that indicate transient errors (should not fail tests):
+ * - 429: Rate limiting (temporary)
+ * - 502: Bad Gateway (temporary server issue)
+ * - 503: Service Unavailable (temporary maintenance)
+ * - 504: Gateway Timeout (temporary timeout)
+ */
+const TRANSIENT_ERROR_CODES = new Set([429, 502, 503, 504]);
+
+/**
+ * Status codes that indicate permanent errors (should fail tests):
+ * - 403: Forbidden (permanent access denied)
+ * - 404: Not Found (URL is broken)
+ * - 410: Gone (permanently removed)
+ */
+const PERMANENT_ERROR_CODES = new Set([403, 404, 410]);
+
+/**
+ * Status codes that indicate successful responses
+ */
+const VALID_STATUS_CODES = new Set([200, 201, 202, 204]);
+
+/**
+ * Categorize a URL validation result as success, transient error, or permanent error
+ * Used to determine whether a test should fail or just warn
+ */
+export const categorizeUrlValidationResult = (
+  result: UrlValidationResult,
+): 'success' | 'transient' | 'permanent' => {
+  // Check for valid status codes first
+  if (VALID_STATUS_CODES.has(result.status)) {
+    return 'success';
+  }
+
+  // Transient errors (rate limiting, temporary outages)
+  if (TRANSIENT_ERROR_CODES.has(result.status)) {
+    return 'transient';
+  }
+
+  // Permanent errors (404, 403, etc.)
+  if (PERMANENT_ERROR_CODES.has(result.status)) {
+    return 'permanent';
+  }
+
+  // Network errors (timeout, connection refused) - treat as transient
+  if (result.status === 0 && result.error) {
+    const errorType = getErrorType(result.status, result.error);
+    // Timeouts and network errors are transient
+    if (['TIMEOUT', 'NETWORK_ERROR', 'ABORTED'].includes(errorType)) {
+      return 'transient';
+    }
+    // Invalid redirects are permanent
+    if (['REDIRECT_INVALID', 'REDIRECT_MAX'].includes(errorType)) {
+      return 'permanent';
+    }
+  }
+
+  // Default to permanent for unknown errors
+  return 'permanent';
+};
+
+/**
+ * Validate URL format without making HTTP requests
+ * Checks for HTTPS protocol, localhost/internal IPs, and valid hostname
+ */
+export const validateUrlFormat = (url: string): { valid: boolean; error?: string } => {
+  try {
+    const urlObj = new URL(url);
+
+    // Check for HTTPS protocol
+    if (urlObj.protocol !== 'https:') {
+      return { valid: false, error: `Non-HTTPS protocol: ${urlObj.protocol}` };
+    }
+
+    // Check for localhost/internal IPs in production manifests
+    if (
+      urlObj.hostname === 'localhost' ||
+      urlObj.hostname.startsWith('127.') ||
+      urlObj.hostname.startsWith('192.168.') ||
+      urlObj.hostname.startsWith('10.')
+    ) {
+      return { valid: false, error: `Localhost/internal IP in manifest: ${urlObj.hostname}` };
+    }
+
+    // Check for valid hostname
+    if (!urlObj.hostname || urlObj.hostname.length === 0) {
+      return { valid: false, error: 'Empty hostname' };
+    }
+
+    return { valid: true };
+  } catch (e) {
+    return { valid: false, error: e instanceof Error ? e.message : 'Invalid URL format' };
+  }
+};
+
+// Export constants for use in tests
+export { TRANSIENT_ERROR_CODES, PERMANENT_ERROR_CODES, VALID_STATUS_CODES };

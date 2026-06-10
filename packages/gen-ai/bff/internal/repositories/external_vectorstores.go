@@ -10,6 +10,7 @@ import (
 	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"gopkg.in/yaml.v2"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // ExternalVectorStoresRepository handles external vector store operations
@@ -35,6 +36,8 @@ type ExternalVectorStoresResult struct {
 // parses the providers and registered_resources sections, and resolves provider metadata per store.
 // Embedding model status (not_available / available / registered) is computed client-side by the
 // frontend using the already-loaded merged models data.
+// Returns an empty result (not an error) when the ConfigMap does not exist — a fresh namespace
+// with no external vector stores configured is a valid empty state.
 func (r *ExternalVectorStoresRepository) ListExternalVectorStores(
 	ctx context.Context,
 	k8sClient kubernetes.KubernetesClientInterface,
@@ -43,6 +46,9 @@ func (r *ExternalVectorStoresRepository) ListExternalVectorStores(
 ) (*ExternalVectorStoresResult, error) {
 	configMap, err := k8sClient.GetConfigMap(ctx, identity, namespace, constants.VectorStoresConfigMapName)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return &ExternalVectorStoresResult{VectorStores: []models.ExternalVectorStoreSummary{}}, nil
+		}
 		return nil, fmt.Errorf("failed to get vector stores ConfigMap: %w", err)
 	}
 

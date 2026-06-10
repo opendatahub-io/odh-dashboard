@@ -1,8 +1,8 @@
 import { APIOptions } from 'mod-arch-core';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths, import/order
 import {
   ModelCatalogTask,
   ModelCatalogProvider,
-  ModelCatalogLicense,
   AllLanguageCode,
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -12,6 +12,11 @@ import {
   ModelCatalogFilterKey,
   ModelCatalogTensorType,
 } from '../concepts/modelCatalog/const';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import type {
+  CatalogFilterStringOption,
+  CatalogFilterNumberOption,
+} from './shared/components/catalog/types/catalogFilterTypes';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryCustomPropertyString,
@@ -25,6 +30,13 @@ import {
   McpToolList,
 } from './mcpServerCatalogTypes';
 
+export type HardwareConfiguration = {
+  gpu_type: string;
+  gpu_count: number;
+  cold_start_time_to_load_seconds: number;
+  runtime_command: string;
+};
+
 export type CatalogSource = {
   id: string;
   name: string;
@@ -36,6 +48,17 @@ export type CatalogSource = {
 
 export type CatalogSourceList = PaginationParams & { items?: CatalogSource[] };
 
+export type ToolCallingConfig = {
+  toolCallParser?: string;
+  chatTemplate?: string;
+  enableAutoToolChoice?: boolean;
+  requiredArgs?: string[];
+};
+
+export type ServingConfig = {
+  toolCalling?: ToolCallingConfig;
+};
+
 export type CatalogModel = {
   source_id?: string;
   name: string;
@@ -45,6 +68,7 @@ export type CatalogModel = {
   language?: string[];
   logo?: string;
   tasks?: string[];
+  validatedTasks?: string[];
   libraryName?: string;
   license?: string;
   licenseLink?: string;
@@ -52,6 +76,7 @@ export type CatalogModel = {
   createTimeSinceEpoch?: string;
   lastUpdateTimeSinceEpoch?: string;
   customProperties?: ModelRegistryCustomProperties;
+  servingConfig?: ServingConfig;
 };
 
 export type PaginationParams = {
@@ -169,18 +194,7 @@ export type CatalogPerformanceArtifactList = PaginationParams & {
   items: CatalogPerformanceMetricsArtifact[];
 };
 
-export type CatalogFilterNumberOption = {
-  type: 'number';
-  range?: {
-    max?: number;
-    min?: number;
-  };
-};
-
-export type CatalogFilterStringOption<T extends string> = {
-  type: 'string';
-  values?: T[];
-};
+export type { CatalogFilterStringOption, CatalogFilterNumberOption };
 
 export type GetCatalogModelsBySource = (
   opts: APIOptions,
@@ -283,9 +297,10 @@ export type { ModelCatalogFilterKey };
 export type ModelCatalogStringFilterValueType = {
   [ModelCatalogStringFilterKey.TASK]: ModelCatalogTask;
   [ModelCatalogStringFilterKey.PROVIDER]: ModelCatalogProvider;
-  [ModelCatalogStringFilterKey.LICENSE]: ModelCatalogLicense;
+  [ModelCatalogStringFilterKey.LICENSE]: string;
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode;
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType;
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: string;
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string;
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string;
   [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue;
@@ -349,9 +364,10 @@ export type ComputedPerformanceProperties = {
 export type ModelCatalogFilterStates = {
   [ModelCatalogStringFilterKey.TASK]: ModelCatalogTask[];
   [ModelCatalogStringFilterKey.PROVIDER]: ModelCatalogProvider[];
-  [ModelCatalogStringFilterKey.LICENSE]: ModelCatalogLicense[];
+  [ModelCatalogStringFilterKey.LICENSE]: string[];
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode[];
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType[];
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: string[];
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string[];
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string[];
   [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue[];

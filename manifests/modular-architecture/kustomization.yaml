@@ -4,6 +4,10 @@ resources:
   - ../core-bases/base
   - federation-configmap.yaml
   - networkpolicy.yaml
+  - modules-service-account.yaml
+  - modules-cluster-role.yaml
+  - modules-cluster-role-binding.yaml
+  - modules-sa-token-secret.yaml
 configMapGenerator:
   - name: modular-architecture-params
     env: params.env
@@ -52,6 +56,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.automl-ui-image
+  - name: automl-pipeline-runtime-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.automl-pipeline-runtime-image
   - name: autorag-ui-image
     objref:
       kind: ConfigMap
@@ -59,6 +70,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.autorag-ui-image
+  - name: autorag-pipeline-runtime-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.autorag-pipeline-runtime-image
 configurations:
   - params.yaml
 patchesJson6902:

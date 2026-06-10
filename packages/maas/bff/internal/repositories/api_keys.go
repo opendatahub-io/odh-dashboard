@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/url"
 
@@ -61,4 +62,29 @@ func (r *APIKeysRepository) BulkRevokeAPIKeys(ctx context.Context, request model
 	r.logger.Debug("Bulk revoking API keys")
 
 	return r.maasClient.BulkRevokeAPIKeys(ctx, request)
+}
+
+// ListSubscriptionsForApiKeys returns the list of subscriptions available to the authenticated user for API key creation.
+func (r *APIKeysRepository) ListSubscriptionsForApiKeys(ctx context.Context) ([]models.SubscriptionListItem, error) {
+	r.logger.Debug("Listing subscriptions for API key creation")
+
+	items, err := r.maasClient.ListSubscriptionsForApiKeys(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list subscriptions via maas-api: %w", err)
+	}
+
+	return items, nil
+}
+
+// GetSubscriptionForApiKeys returns a single subscription by subscription_id_header for the authenticated user.
+// Returns nil, nil when the subscription does not exist or the user has no access.
+func (r *APIKeysRepository) GetSingleUserSubscription(ctx context.Context, id string) (*models.SubscriptionListItem, error) {
+	r.logger.Debug("Getting subscription for API key creation", slog.String("id", id))
+
+	item, err := r.maasClient.GetSingleUserSubscription(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("get subscription via maas-api: %w", err)
+	}
+
+	return item, nil
 }

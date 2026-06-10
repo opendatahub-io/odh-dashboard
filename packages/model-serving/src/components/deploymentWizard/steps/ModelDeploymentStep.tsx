@@ -6,7 +6,6 @@ import ProjectSection from '../fields/ProjectSection';
 import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwareProfileSection';
 import { ModelFormatField } from '../fields/ModelFormatField';
 import { NumReplicasField } from '../fields/NumReplicasField';
-import ModelServerTemplateSelectField from '../fields/ModelServerTemplateSelectField';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { ExternalDataMap } from '../ExternalDataLoader';
 
@@ -14,14 +13,20 @@ type ModelDeploymentStepProps = {
   projectName?: string;
   wizardState: UseModelDeploymentWizardState;
   externalData?: ExternalDataMap;
+  hideProjectSection?: boolean;
 };
 
 export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   projectName,
   wizardState,
   externalData,
+  hideProjectSection,
 }) => {
-  const vLLMDeploymentOnMaaS = wizardState.fields.some((field) => field.id === 'modelServer');
+  const modelDeploymentExtensionFields = React.useMemo(
+    () =>
+      wizardState.fields.filter((f) => f.step === 'modelDeployment' && !f.stateKey && !f.parentId),
+    [wizardState.fields],
+  );
 
   if (!wizardState.loaded.modelDeploymentLoaded) {
     return <Spinner data-testid="spinner" />;
@@ -30,11 +35,14 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   return (
     <Form>
       <FormSection title="Model deployment">
-        <ProjectSection
-          initialProjectName={wizardState.state.project.initialProjectName}
-          projectName={wizardState.state.project.projectName}
-          setProjectName={wizardState.state.project.setProjectName}
-        />
+        {/* TODO remove ProjectSection and the hideProjectSection prop when PreconfigureDeploymentStep becomes unconditional */}
+        {!hideProjectSection && (
+          <ProjectSection
+            initialProjectName={wizardState.state.project.initialProjectName}
+            projectName={wizardState.state.project.projectName}
+            setProjectName={wizardState.state.project.setProjectName}
+          />
+        )}
         <K8sNameDescriptionField
           data={wizardState.state.k8sNameDesc.data}
           onDataChange={wizardState.state.k8sNameDesc.onDataChange}
@@ -53,20 +61,22 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
             isEditing={wizardState.initialData?.isEditing}
           />
         )}
-        {vLLMDeploymentOnMaaS ? (
+        <GenericFieldRenderer
+          stateKey="modelServer"
+          wizardState={wizardState}
+          externalData={externalData}
+          isEditing={wizardState.initialData?.isEditing}
+        />
+        <NumReplicasField replicaState={wizardState.state.numReplicas} />
+        {modelDeploymentExtensionFields.map((field) => (
           <GenericFieldRenderer
-            fieldId="modelServer"
+            key={field.id}
+            fieldId={field.id}
             wizardState={wizardState}
             externalData={externalData}
             isEditing={wizardState.initialData?.isEditing}
           />
-        ) : (
-          <ModelServerTemplateSelectField
-            modelServerState={wizardState.state.modelServer}
-            isEditing={wizardState.initialData?.isEditing && !!wizardState.initialData.modelServer}
-          />
-        )}
-        <NumReplicasField replicaState={wizardState.state.numReplicas} />
+        ))}
       </FormSection>
     </Form>
   );

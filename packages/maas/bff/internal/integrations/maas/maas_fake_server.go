@@ -25,6 +25,10 @@ func CreateMaasFakeServer() *httptest.Server {
 				sendFakeResponse("maas-models-list.json", http.StatusOK, w)
 				return
 			}
+			if r.URL.Path == "/v1/subscriptions" {
+				sendFakeResponse("subscriptions-list.json", http.StatusOK, w)
+				return
+			}
 			if strings.HasPrefix(r.URL.Path, "/v1/api-keys/") {
 				sendFakeResponse("get-api-key-response.json", http.StatusOK, w)
 				return
@@ -96,6 +100,9 @@ func handleFakeSearchAPIKeys(w http.ResponseWriter, r *http.Request) {
 	for _, key := range fullList.Data {
 		if req.Filters != nil {
 			if req.Filters.Username != "" && !strings.Contains(strings.ToLower(key.Username), strings.ToLower(req.Filters.Username)) {
+				continue
+			}
+			if req.Filters.Subscription != "" && !strings.Contains(strings.ToLower(key.SubscriptionName), strings.ToLower(req.Filters.Subscription)) {
 				continue
 			}
 			if len(req.Filters.Status) > 0 {

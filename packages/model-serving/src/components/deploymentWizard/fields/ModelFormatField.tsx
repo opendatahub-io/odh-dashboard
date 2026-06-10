@@ -67,7 +67,7 @@ export const useModelFormatField = (
         return true;
       }
       const templateModelTypes = getModelTypesFromTemplate(template);
-      if (templateModelTypes.includes(modelType.type)) {
+      if (templateModelTypes.some((type) => type === modelType.type)) {
         return true;
       }
       return false;

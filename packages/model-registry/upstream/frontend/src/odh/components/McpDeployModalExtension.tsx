@@ -1,6 +1,7 @@
 import React from 'react';
 import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { isMcpServerDeployModalExtension } from '~/odh/extension-points';
+import McpDeployModal from '~/odh/components/McpDeployModal';
 
 type McpDeployModalExtensionProps = {
   render: (
@@ -45,24 +46,20 @@ const McpDeployModalExtension: React.FC<McpDeployModalExtensionProps> = ({ rende
 
   return (
     <>
-      {extensions.map((extension) =>
-        extension.properties.useIsDeployAvailable ? (
-          <HookNotify
-            key={extension.uid}
-            useHook={extension.properties.useIsDeployAvailable}
-            onNotify={(value) => {
-              if (value) {
-                setDeployAvailable(value);
-              }
-            }}
-          />
-        ) : null,
-      )}
+      {extensions.map((extension) => (
+        <HookNotify
+          key={extension.uid}
+          useHook={extension.properties.useIsDeployAvailable}
+          onNotify={(value) => {
+            if (value) {
+              setDeployAvailable(value);
+            }
+          }}
+        />
+      ))}
       {render(buttonState, onOpenModal, isModalAvailable)}
-      {openModal && (
-        // Modal will be rendered here in a follow-up PR
-        // For now, close immediately (no-op placeholder)
-        <></>
+      {isModalAvailable && (
+        <McpDeployModal isOpen={openModal} onClose={() => setOpenModal(false)} />
       )}
     </>
   );

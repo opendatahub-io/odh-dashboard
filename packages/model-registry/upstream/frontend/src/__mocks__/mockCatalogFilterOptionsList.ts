@@ -1,16 +1,16 @@
 /* eslint-disable camelcase */
-import { CatalogFilterOptionsList, NamedQuery, FilterOperator } from '../app/modelCatalogTypes';
+import { CatalogFilterOptionsList, NamedQuery, FilterOperator } from '~/app/modelCatalogTypes';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
-  ModelCatalogLicense,
   ModelCatalogProvider,
   ModelCatalogTask,
+  ValidatedConfiguration,
   AllLanguageCode,
   UseCaseOptionValue,
   DEFAULT_PERFORMANCE_FILTERS_QUERY_NAME,
   ModelCatalogTensorType,
-} from '../concepts/modelCatalog/const';
+} from '~/concepts/modelCatalog/const';
 
 export const mockNamedQueries: Record<string, NamedQuery> = {
   // Default performance filters applied when performance toggle is turned on
@@ -27,6 +27,10 @@ export const mockNamedQueries: Record<string, NamedQuery> = {
     [ModelCatalogNumberFilterKey.MAX_RPS]: {
       operator: FilterOperator.LESS_THAN_OR_EQUAL,
       value: 'max', // 'max' means use the max value from the range in filters (300 in mock)
+    },
+    [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: {
+      operator: FilterOperator.LESS_THAN_OR_EQUAL,
+      value: 'max',
     },
   },
   high_performance_gpu: {
@@ -70,7 +74,7 @@ export const mockCatalogFilterOptionsList = (
     },
     [ModelCatalogStringFilterKey.LICENSE]: {
       type: 'string',
-      values: [ModelCatalogLicense.APACHE_2_0, ModelCatalogLicense.MIT],
+      values: ['Apache 2.0', 'MIT'],
     },
     [ModelCatalogStringFilterKey.TASK]: {
       type: 'string',
@@ -112,6 +116,10 @@ export const mockCatalogFilterOptionsList = (
         ModelCatalogTensorType.MXFP4,
       ],
     },
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: {
+      type: 'string',
+      values: [ValidatedConfiguration.TOOL_CALLING],
+    },
     [ModelCatalogStringFilterKey.HARDWARE_TYPE]: {
       type: 'string',
       values: ['GPU', 'CPU', 'TPU', 'FPGA'],
@@ -130,6 +138,13 @@ export const mockCatalogFilterOptionsList = (
       range: {
         min: 1,
         max: 300,
+      },
+    },
+    [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: {
+      type: 'number',
+      range: {
+        min: 45000,
+        max: 200000,
       },
     },
     // All latency metric combinations for dropdown options (using full filter key format)

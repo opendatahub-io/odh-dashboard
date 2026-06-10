@@ -146,6 +146,47 @@ describe('useHardwareProfilesByUseCase', () => {
     expect(renderResult).hookToHaveUpdateCount(1);
   });
 
+  it('should treat profiles with only legacy visibility values as visible everywhere', () => {
+    const legacyProfile = mockHardwareProfile({
+      annotations: {
+        'opendatahub.io/dashboard-feature-visibility': JSON.stringify(['pipelines']),
+      },
+    });
+
+    mockContexts([legacyProfile]);
+
+    const renderResult = testHook(useHardwareProfilesByFeatureVisibility)([
+      HardwareProfileFeatureVisibility.WORKBENCH,
+    ]);
+    const { globalProfiles } = renderResult.result.current;
+    const [data] = globalProfiles;
+
+    expect(data).toEqual([legacyProfile]);
+    expect(renderResult).hookToHaveUpdateCount(1);
+  });
+
+  it('should filter by recognized values and ignore unrecognized ones', () => {
+    const mixedProfile = mockHardwareProfile({
+      annotations: {
+        'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
+          'pipelines',
+          HardwareProfileFeatureVisibility.MODEL_SERVING,
+        ]),
+      },
+    });
+
+    mockContexts([mixedProfile]);
+
+    const renderResult = testHook(useHardwareProfilesByFeatureVisibility)([
+      HardwareProfileFeatureVisibility.WORKBENCH,
+    ]);
+    const { globalProfiles } = renderResult.result.current;
+    const [data] = globalProfiles;
+
+    expect(data).toEqual([]);
+    expect(renderResult).hookToHaveUpdateCount(1);
+  });
+
   it('should handle loading and error states', () => {
     const error = new Error('Test error');
     mockContexts([], false, error);

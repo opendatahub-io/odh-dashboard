@@ -130,10 +130,10 @@ describe('AutomlExperiments', () => {
     renderAutoml(<AutomlExperiments />);
 
     expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
-    expect(screen.getByText('No experiments yet')).toBeInTheDocument();
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create AutoML optimization run',
-    );
+    expect(
+      screen.getByRole('heading', { name: 'Create an AutoML optimization run' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('create-run-button')).toHaveTextContent('Create run');
     expect(screen.queryByTestId('automl-runs-table')).not.toBeInTheDocument();
   });
 
@@ -189,7 +189,41 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByText('No Pipeline Server in this namespace')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).toBeInTheDocument();
+  });
+
+  it('should show error alert when BFF reports no managed AutoML pipelines (auto-creation handles this at submit time)', () => {
+    mockGetGenericErrorCode.mockReturnValue(500);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error(
+        'no AutoML pipelines found in namespace - ensure managed AutoML pipelines are deployed',
+      ),
+    });
+
+    renderAutoml(<AutomlExperiments />);
+
+    // No longer shows NoPipelineServer — the BFF auto-creates pipelines on submit
+    expect(
+      screen.queryByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Failed to load experiments')).toBeInTheDocument();
+  });
+
+  it('should show NoPipelineServer for no Pipeline Server (DSPipelineApplication) message', () => {
+    mockGetGenericErrorCode.mockReturnValue(404);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error('no Pipeline Server (DSPipelineApplication) found in namespace'),
+    });
+
+    renderAutoml(<AutomlExperiments />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).toBeInTheDocument();
   });
 
   it('should show UnauthorizedError for 403 error', () => {
@@ -213,6 +247,6 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByText('Pipeline Server is not ready')).toBeInTheDocument();
+    expect(screen.getByText('There is a problem with the pipeline server')).toBeInTheDocument();
   });
 });

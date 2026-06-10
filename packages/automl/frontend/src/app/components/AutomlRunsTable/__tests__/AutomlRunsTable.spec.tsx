@@ -6,10 +6,6 @@ import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable/index';
 
-jest.mock('mod-arch-shared', () => ({
-  relativeTime: () => '1 day ago',
-}));
-
 jest.mock('@odh-dashboard/internal/components/table', () => {
   const MockTableBase = ({
     data,
@@ -38,6 +34,15 @@ jest.mock('@odh-dashboard/internal/components/table', () => {
 jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView', () => ({
   __esModule: true,
   default: () => <div data-testid="empty-view">Empty</div>,
+}));
+
+jest.mock('~/app/hooks/useAutomlRunActions', () => ({
+  useAutomlRunActions: () => ({
+    handleRetry: jest.fn(),
+    handleConfirmStop: jest.fn(),
+    isRetrying: false,
+    isTerminating: false,
+  }),
 }));
 
 const mockRuns: PipelineRun[] = [
@@ -127,7 +132,7 @@ describe('AutomlRunsTable', () => {
     expect(screen.getByTestId('empty-view')).toHaveTextContent('Empty');
   });
 
-  it('should render Started column with relative time', () => {
+  it('should render Started column with timestamps', () => {
     render(
       <MemoryRouter>
         <AutomlRunsTable
@@ -142,8 +147,12 @@ describe('AutomlRunsTable', () => {
       </MemoryRouter>,
     );
 
-    // The mock relativeTime function returns '1 day ago'
-    const relativeTimeElements = screen.getAllByText('1 day ago');
-    expect(relativeTimeElements.length).toBeGreaterThan(0);
+    // Verify timestamps are rendered with correct datetime attributes
+    const timestamps = screen.getAllByRole('time');
+    expect(timestamps).toHaveLength(2);
+
+    // Verify the datetime attributes match the mock data
+    expect(timestamps[0]).toHaveAttribute('datetime', '2025-01-17T00:00:00.000Z');
+    expect(timestamps[1]).toHaveAttribute('datetime', '2025-01-16T00:00:00.000Z');
   });
 });

@@ -16,29 +16,42 @@ import { getBenchmarkDisplayName, getJobBenchmarks } from '~/app/utilities/evalu
 
 type BenchmarkResultDetailsProps = {
   benchmarkId: string;
+  benchmarkIndex: number;
   job: EvaluationJob;
 };
 
-const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchmarkId, job }) => {
-  const result = job.results.benchmarks?.find((b) => b.id === benchmarkId);
-  const benchmarkConfig = getJobBenchmarks(job).find((b) => b.id === benchmarkId);
+const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
+  benchmarkId,
+  benchmarkIndex,
+  job,
+}) => {
+  const result = job.results.benchmarks?.find(
+    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+  );
+  const benchmarkConfig = getJobBenchmarks(job).find(
+    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+  );
 
   if (!result) {
     return null;
   }
 
-  const benchmarkStatus = job.status.benchmarks?.find((b) => b.id === benchmarkId);
+  const benchmarkStatus = job.status.benchmarks?.find(
+    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+  );
   const passStatus =
     result.test?.pass ??
     (benchmarkStatus?.status == null ? null : benchmarkStatus.status === 'completed');
   const metricKeys = result.metrics ? Object.keys(result.metrics).toSorted() : [];
   const primaryMetricName =
     benchmarkConfig?.primary_score?.metric ?? (metricKeys.length > 0 ? metricKeys[0] : '-');
-  const threshold = benchmarkConfig?.pass_criteria?.threshold ?? job.pass_criteria?.threshold;
-  const providerLabel = result.provider_id ?? benchmarkConfig?.provider_id;
+  const threshold =
+    benchmarkConfig?.pass_criteria?.threshold ??
+    job.pass_criteria?.threshold ??
+    result.test?.threshold;
 
   return (
-    <div data-testid={`benchmark-details-${benchmarkId}`}>
+    <div data-testid={`benchmark-details-${benchmarkId}-${benchmarkIndex}`}>
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
         gap={{ default: 'gapSm' }}
@@ -59,29 +72,27 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchma
                   <TimesCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
                 )
               }
-              data-testid={`details-pass-label-${benchmarkId}`}
+              data-testid={`details-pass-label-${benchmarkId}-${benchmarkIndex}`}
             >
               {passStatus ? 'Pass' : 'Fail'}
             </Label>
           </FlexItem>
         )}
       </Flex>
-      {providerLabel && (
-        <Content
-          component="small"
-          className="pf-v6-u-mb-sm"
-          style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
-          data-testid="benchmark-provider-label"
-        >
-          {providerLabel}
-        </Content>
-      )}
+      <Content
+        component="p"
+        className="pf-v6-u-mb-md"
+        style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+        data-testid="benchmark-provider-label"
+      >
+        {benchmarkId}
+      </Content>
 
       <DescriptionList
         isHorizontal
         isCompact
-        horizontalTermWidthModifier={{ default: '12ch', lg: '20ch' }}
-        className="pf-v6-u-mt-md pf-v6-u-mb-lg"
+        horizontalTermWidthModifier={{ default: 'max-content' }}
+        style={{ rowGap: 'var(--pf-t--global--spacer--sm)' }}
         data-testid="benchmark-details-info"
       >
         <DescriptionListGroup>

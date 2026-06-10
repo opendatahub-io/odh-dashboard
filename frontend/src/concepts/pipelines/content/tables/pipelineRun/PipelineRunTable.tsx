@@ -5,9 +5,10 @@ import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
 
-import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import { getTableColumnSort, TableBase, useCheckboxTable } from '#~/components/table';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
@@ -15,11 +16,16 @@ import DeletePipelineRunsModal from '#~/concepts/pipelines/content/DeletePipelin
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '#~/concepts/pipelines/types';
-import { usePipelineFilterSearchParams } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import {
+  FilterOptions,
+  getDataValue,
+  usePipelineFilterSearchParams,
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '#~/components/SimpleMenuActions';
 import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '#~/pages/pipelines/global/runs/RestoreRunModal';
 import { compareRunsRoute, createRunRoute } from '#~/routes/pipelines/runs';
+import { mlflowCompareRunsRoute } from '#~/routes/pipelines/mlflow';
 import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
@@ -28,9 +34,11 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
+import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumns } from './useMetricColumns';
+import { filterByMlflowExperiment, getMlflowExperimentId, getMlflowRunId } from './utils';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
@@ -62,16 +70,27 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 }) => {
   const { experiment } = React.useContext(ExperimentContext);
   const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const { namespace, refreshAllAPI } = usePipelinesAPI();
+  const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
+    workspace: isMlflowAvailable ? namespace : '',
+  });
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const {
     metricsColumnNames,
-    runs,
+    runs: runsWithMetrics,
     contextsError,
     runArtifactsError,
     runArtifactsLoaded,
     metricsNames,
   } = useMetricColumns(runWithoutMetrics, experiment?.experiment_id);
+
+  const mlflowFilter = getDataValue(filterToolbarProps.filterData[FilterOptions.MLFLOW_EXPERIMENT]);
+  const runs = React.useMemo(
+    () => filterByMlflowExperiment(runsWithMetrics, mlflowFilter),
+    [runsWithMetrics, mlflowFilter],
+  );
+  const effectiveTotalSize = mlflowFilter ? runs.length : totalSize;
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -83,16 +102,17 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isCustomColModalOpen, setIsCustomColModalOpen] = React.useState(false);
-  const selectedRuns = selectedIds.reduce((acc: PipelineRunKF[], selectedId) => {
-    const selectedRun = runs.find((run) => run.run_id === selectedId);
-
-    if (selectedRun) {
-      acc.push(selectedRun);
-    }
-
-    return acc;
-  }, []);
-
+  const selectedRuns = React.useMemo(
+    () =>
+      selectedIds.reduce((acc: PipelineRunKF[], selectedId) => {
+        const selectedRun = runs.find((run) => run.run_id === selectedId);
+        if (selectedRun) {
+          acc.push(selectedRun);
+        }
+        return acc;
+      }, []),
+    [selectedIds, runs],
+  );
   const restoreButtonTooltipRef = React.useRef(null);
   const archivedExperiments = selectedRuns.reduce<ExperimentKF[]>((acc, selectedRun) => {
     const currentExperiment = allExperiments.find(
@@ -100,7 +120,6 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     );
 
     if (currentExperiment && currentExperiment.storage_state === StorageStateKF.ARCHIVED) {
-      // Create a Set to track unique experiment_id
       if (
         !acc.some(
           (selectedExperiment) =>
@@ -117,8 +136,31 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { isExperimentArchived: isContextExperimentArchived } =
     useContextExperimentArchivedOrDeleted();
   const createRunHref = createRunRoute(namespace, experiment?.experiment_id);
-  const compareRunsHref = compareRunsRoute(namespace, selectedIds, experiment?.experiment_id);
-  const isCompareDisabled = selectedIds.length === 0 || selectedIds.length > 10;
+  const hasSelectedRuns = selectedIds.length > 0;
+
+  const { compareRunsHref, isCompareDisabled } = React.useMemo(() => {
+    const validRunIds = selectedRuns.map(getMlflowRunId).filter((id): id is string => !!id);
+    const validExpIds = selectedRuns.map(getMlflowExperimentId).filter((id): id is string => !!id);
+    const allHaveMlflow =
+      hasSelectedRuns &&
+      validRunIds.length === selectedIds.length &&
+      validExpIds.length === selectedIds.length;
+    const href =
+      isMlflowAvailable && allHaveMlflow
+        ? mlflowCompareRunsRoute(namespace, validRunIds, [...new Set(validExpIds)])
+        : compareRunsRoute(namespace, selectedIds, experiment?.experiment_id);
+    return {
+      compareRunsHref: href,
+      isCompareDisabled: !hasSelectedRuns || selectedIds.length > 10,
+    };
+  }, [
+    selectedRuns,
+    selectedIds,
+    hasSelectedRuns,
+    isMlflowAvailable,
+    namespace,
+    experiment?.experiment_id,
+  ]);
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {
       return (
@@ -201,8 +243,10 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   );
 
   const columns = experiment
-    ? getPipelineRunColumns(metricsColumnNames).filter((column) => column.field !== 'experiment')
-    : getPipelineRunColumns(metricsColumnNames);
+    ? getPipelineRunColumns(metricsColumnNames, isMlflowAvailable).filter(
+        (column) => column.field !== 'run_group',
+      )
+    : getPipelineRunColumns(metricsColumnNames, isMlflowAvailable);
 
   return (
     <>
@@ -218,7 +262,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           }
         }}
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
-        itemCount={totalSize}
+        itemCount={effectiveTotalSize}
         data={runs}
         columns={columns}
         enablePagination="compact"
@@ -271,6 +315,11 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               setIsDeleteModalOpen(true);
             }}
             run={run}
+            mlflow={{
+              isAvailable: isMlflowAvailable,
+              experiments: mlflowExperiments,
+              loaded: mlflowExperimentsLoaded,
+            }}
             customCells={metricsColumnNames.map((metricName: string) => (
               <Td key={metricName} dataLabel={metricName}>
                 {!runArtifactsLoaded && !runArtifactsError && !contextsError ? (

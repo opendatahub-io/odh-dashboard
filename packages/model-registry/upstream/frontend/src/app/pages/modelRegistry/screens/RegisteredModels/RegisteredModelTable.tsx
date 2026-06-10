@@ -1,10 +1,8 @@
 import * as React from 'react';
 import { Table, DashboardEmptyTableView } from 'mod-arch-shared';
 import { ModelVersion, RegisteredModel } from '~/app/types';
-import { getLatestVersionForRegisteredModel } from '~/app/pages/modelRegistry/screens/utils';
-import { rmColumns } from './RegisteredModelsTableColumns';
-import RegisteredModelTableRow from './RegisteredModelTableRow';
 import { OdhRegisteredModelTableWrapper } from '~/odh/components/OdhRegisteredModelTable';
+import { rmColumns } from './RegisteredModelsTableColumns';
 
 type RegisteredModelTableProps = {
   clearFilters: () => void;
@@ -42,12 +40,7 @@ const RegisteredModelTable: React.FC<RegisteredModelTableProps> = ({
   }, [registeredModels]);
 
   return (
-    <OdhRegisteredModelTableWrapper
-      clearFilters={clearFilters}
-      registeredModels={registeredModels}
-      modelVersions={modelVersions}
-      refresh={refresh}
-    >
+    <OdhRegisteredModelTableWrapper modelVersions={modelVersions} refresh={refresh}>
       {({ rowRenderer }) => (
         <Table
           data-testid="registered-model-table"

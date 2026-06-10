@@ -3,6 +3,7 @@ import { createDataConnection } from './dataConnection';
 import { AWS_BUCKETS } from '../s3Buckets';
 import type { DataConnectionReplacements } from '../../types';
 import { createCleanProject } from '../projectChecker';
+import { failOnDeploymentStatus } from '../failEarly';
 
 /**
  * Provision (using oc) a Project in order to make it usable with model seving
@@ -120,13 +121,13 @@ export const checkInferenceServiceState = (
 
       // Log raw command output for debugging
       cy.log(`Raw command output (attempt ${attempts}):
-        Exit code: ${result.code}
+        Exit code: ${result.exitCode}
         Stdout length: ${result.stdout.length}
         Stderr: ${result.stderr || 'none'}`);
 
       // Check if the command failed
-      if (result.code !== 0) {
-        const errorMsg = `Command failed with exit code ${result.code}: ${result.stderr}`;
+      if (result.exitCode !== 0) {
+        const errorMsg = `Command failed with exit code ${result.exitCode}: ${result.stderr}`;
         cy.log(`❌ ${errorMsg}`);
         throw new Error(errorMsg);
       }
@@ -275,7 +276,10 @@ export const checkInferenceServiceState = (
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(5000).then(() => checkState());
+        return cy.wait(5000).then(() => {
+          failOnDeploymentStatus(serviceName);
+          return checkState();
+        });
       }
     });
 
@@ -297,13 +301,13 @@ export const checkLLMInferenceServiceState = (
 
       // Log raw command output for debugging
       cy.log(`Raw command output (attempt ${attempts}):
-        Exit code: ${result.code}
+        Exit code: ${result.exitCode}
         Stdout length: ${result.stdout.length}
         Stderr: ${result.stderr || 'none'}`);
 
       // Check if the command failed
-      if (result.code !== 0) {
-        const errorMsg = `Command failed with exit code ${result.code}: ${result.stderr}`;
+      if (result.exitCode !== 0) {
+        const errorMsg = `Command failed with exit code ${result.exitCode}: ${result.stderr}`;
         cy.log(`❌ ${errorMsg}`);
         throw new Error(errorMsg);
       }
@@ -424,7 +428,10 @@ export const checkLLMInferenceServiceState = (
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(5000).then(() => checkState());
+        return cy.wait(5000).then(() => {
+          failOnDeploymentStatus(serviceName);
+          return checkState();
+        });
       }
     });
 
@@ -560,7 +567,7 @@ export const validateInferenceServiceTolerations = (
 
   return cy.exec(getInferenceServiceCmd, { failOnNonZeroExit: false }).then((result) => {
     // Handle command failure
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const errorMsg = result.stderr.includes('NotFound')
         ? `InferenceService "${inferenceServiceName}" not found in namespace "${namespace}".`
         : `Command failed: ${result.stderr}`;

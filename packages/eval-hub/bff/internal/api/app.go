@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
@@ -39,7 +40,31 @@ const (
 	ProvidersPath            = ApiPathPrefix + "/evaluations/providers"
 	EvalHubCRStatusPath      = ApiPathPrefix + "/evalhub/status"
 	EvalHubServiceHealthPath = ApiPathPrefix + "/evalhub/health"
+	InferenceServicesPath    = ApiPathPrefix + "/inferenceservices"
+	VerifyConnectionPath     = ApiPathPrefix + "/evaluations/verify-connection"
 )
+
+var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
+var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
+
+func isHashedAsset(filePath string) bool {
+	match := hashPattern.FindString(path.Base(filePath))
+	return match != "" && strings.ContainsAny(match, "abcdef")
+}
+
+func isStaticAsset(filePath string) bool {
+	return staticAssetPattern.MatchString(filePath)
+}
+
+func cacheControlForStaticFile(filePath string) string {
+	if isHashedAsset(filePath) {
+		return "public, max-age=31536000, immutable"
+	}
+	if isStaticAsset(filePath) {
+		return "public, max-age=86400"
+	}
+	return "no-cache"
+}
 
 type App struct {
 	config                  config.EnvConfig
@@ -51,9 +76,6 @@ type App struct {
 	rootCAs                 *x509.CertPool
 	openAPI                 *OpenAPIHandler
 	dashboardNamespace      string
-	// evalHubURL is resolved once at startup (from EVAL_HUB_URL or CR auto-discovery)
-	// and reused for every request, avoiding per-request K8s API calls.
-	evalHubURL string
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -138,8 +160,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		ehFactory = evalhub.NewRealClientFactory()
 	}
 
-	evalHubURL := resolveEvalHubURL(cfg, dashboardNamespace, logger)
-
 	var openAPIHandler *OpenAPIHandler
 	openAPIHandler, err = NewOpenAPIHandler(logger)
 	if err != nil {
@@ -156,42 +176,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		rootCAs:                 rootCAs,
 		openAPI:                 openAPIHandler,
 		dashboardNamespace:      dashboardNamespace,
-		evalHubURL:              evalHubURL,
 	}
 	return app, nil
-}
-
-// resolveEvalHubURL returns the EvalHub service URL to use for all requests.
-// Priority order mirrors the MLflow BFF pattern:
-//  1. EVAL_HUB_URL env var / flag — explicit developer override, no K8s call.
-//  2. CR auto-discovery — lists evalhubs.trustyai.opendatahub.io in the dashboard
-//     namespace using the pod's service account (InClusterConfig) and reads status.url.
-//
-// Discovery runs once at startup so the result is shared across requests.
-// If discovery fails (e.g. no CR found, running outside the cluster), the URL is
-// left empty and every request that needs it will return 503.
-func resolveEvalHubURL(cfg config.EnvConfig, dashboardNamespace string, logger *slog.Logger) string {
-	if cfg.EvalHubURL != "" {
-		logger.Info("Using EVAL_HUB_URL override", slog.String("url", cfg.EvalHubURL))
-		return cfg.EvalHubURL
-	}
-
-	if cfg.MockEvalHubClient {
-		return ""
-	}
-
-	discoveredURL, err := evalhub.DiscoverEvalHubURL(dashboardNamespace)
-	if err != nil {
-		logger.Debug("EvalHub CR auto-discovery failed, endpoints will return 503",
-			slog.String("namespace", dashboardNamespace),
-			slog.Any("error", err))
-		return ""
-	}
-
-	logger.Info("Discovered EvalHub URL from CR",
-		slog.String("namespace", dashboardNamespace),
-		slog.String("url", discoveredURL))
-	return discoveredURL
 }
 
 func (app *App) Shutdown() error {
@@ -227,12 +213,19 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
 
-	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
-	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.RequireAccessToService(app.EvalHubCRStatusHandler)))
+	// InferenceService listing (user-token dynamic client, no EvalHub REST client needed)
+	apiRouter.GET(InferenceServicesPath, app.AttachNamespace(app.RequireAccessToService(app.InferenceServicesHandler)))
 
-	// EvalHub service health endpoint (proxies to the real EvalHub service's /health endpoint)
-	// No AttachNamespace needed: AttachEvalHubClient resolves the URL via EVAL_HUB_URL or CR auto-discovery in the dashboard namespace.
-	apiRouter.GET(EvalHubServiceHealthPath, app.RequireAccessToService(app.AttachEvalHubClient(app.EvalHubServiceHealthHandler)))
+	// Connection verification (probes external endpoints, no EvalHub REST client needed)
+	apiRouter.POST(VerifyConnectionPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyConnectionHandler)))
+
+	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
+	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.EvalHubCRStatusHandler))
+
+	// EvalHub service health endpoint: performs per-request CR discovery in the dashboard
+	// namespace (no ?namespace= needed) and pings the EvalHub service if a URL is found.
+	// Returns a three-state response: "healthy", "service-unreachable", or "cr-not-found".
+	apiRouter.GET(EvalHubServiceHealthPath, app.EvalHubServiceHealthHandler)
 
 	// App Router
 	appMux := http.NewServeMux()
@@ -247,15 +240,18 @@ func (app *App) Routes() http.Handler {
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 		// Check if the requested file exists
-		if _, err := staticDir.Open(r.URL.Path); err == nil {
+		if f, err := staticDir.Open(r.URL.Path); err == nil {
+			f.Close()
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 			// Serve the file if it exists
+			w.Header().Set("Cache-Control", cacheControlForStaticFile(r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return
 		}
 
 		// Fallback to index.html for SPA routes
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
 	})
 

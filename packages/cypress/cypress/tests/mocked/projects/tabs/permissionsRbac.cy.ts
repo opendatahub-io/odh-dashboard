@@ -30,10 +30,16 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
+    // Let the page settle after async data loads before interacting
+    cy.wait('@listRoleBindings');
+    projectRbacPermissions.findUsersTable().should('exist');
+
+    // Use native click because the Button's inline `component` prop recreates
+    // the <a> DOM node on every parent re-render, making cy.click() flaky.
     projectRbacPermissions
       .findAssignRolesButton()
       .should('not.have.attr', 'aria-disabled', 'true')
-      .click();
+      .then(($btn) => $btn[0].click());
     cy.url().should('include', `/projects/${NAMESPACE}/permissions/assign`);
     projectRbacPermissions.findAssignRolesPage().should('exist');
   });

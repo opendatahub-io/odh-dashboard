@@ -21,9 +21,16 @@ import (
 // mockDefaultModelRegistryUID matches getMockModelRegistries() in the repository.
 const mockDefaultModelRegistryUID = "a1b2c3d4-e5f6-7890-abcd-111111111111"
 
+var testDSPAStorage = &models.DSPAObjectStorage{
+	Bucket:      "my-automl-bucket",
+	EndpointURL: "https://s3.us-east-1.amazonaws.com",
+	Region:      "us-east-1",
+	SecretName:  "aws-connection-automl",
+}
+
 func validRegisterModelRequest() models.RegisterModelRequest {
 	return models.RegisterModelRequest{
-		S3Path:             "s3://my-bucket/models/model.bin",
+		S3Path:             "autogluon-tabular-training-pipeline/9ebab38b-4745-4b14-af99-53b7cf8515e2/autogluon-models-full-refit/3edc4d74-42cd-4be4-a09c-3096a4a2c5f8/model_artifact/LightGBMLarge_BAG_L1_FULL/predictor",
 		ModelName:          "automl-model",
 		ModelDescription:   "AutoML trained model",
 		VersionName:        "v1",
@@ -53,16 +60,19 @@ func withRegisterModelHandlerContext(req *http.Request) *http.Request {
 	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{
 		UserID: "test-user",
 	})
+	ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, testDSPAStorage)
 	return req.WithContext(ctx)
 }
 
 func TestRegisterModelHandler_Success(t *testing.T) {
 	app := newModelRegistryTestApp()
 
-	t.Run("registers model and returns 201 with artifact", func(t *testing.T) {
+	t.Run("registers model and returns 201 with constructed URI", func(t *testing.T) {
 		req := validRegisterModelRequest()
+		var capturedClient *modelregistry.MockHTTPClient
 		app.modelRegistryHTTPClientFactory = func(_ *slog.Logger, _ string, _ http.Header, _ bool, _ *x509.CertPool) (modelregistry.HTTPClientInterface, error) {
-			return modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.S3Path), nil
+			capturedClient = modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.ArtifactName, "")
+			return capturedClient, nil
 		}
 
 		rr := httptest.NewRecorder()
@@ -75,14 +85,22 @@ func TestRegisterModelHandler_Success(t *testing.T) {
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.NotNil(t, response.Data)
-		assert.NotEmpty(t, response.Data.GetId())
-		assert.Equal(t, req.S3Path, response.Data.GetUri())
+		assert.NotEmpty(t, response.Data.RegisteredModelID)
+		assert.NotNil(t, response.Data.ModelArtifact)
+		assert.NotEmpty(t, response.Data.ModelArtifact.GetId())
+
+		// Verify the artifact POST body contains the constructed URI with DSPA storage info
+		assert.Equal(t, 3, capturedClient.PostCallCount)
+		artifactBody := capturedClient.LastPostBodies[2] // 3rd POST = artifact
+		assert.Contains(t, artifactBody, "s3://my-automl-bucket/")
+		assert.Contains(t, artifactBody, "endpoint=")
+		assert.Contains(t, artifactBody, "LightGBMLarge_BAG_L1_FULL/predictor")
 	})
 
 	t.Run("returns envelope with data field", func(t *testing.T) {
 		req := validRegisterModelRequest()
 		app.modelRegistryHTTPClientFactory = func(_ *slog.Logger, _ string, _ http.Header, _ bool, _ *x509.CertPool) (modelregistry.HTTPClientInterface, error) {
-			return modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.S3Path), nil
+			return modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.ArtifactName, ""), nil
 		}
 
 		rr := httptest.NewRecorder()
@@ -100,7 +118,7 @@ func TestRegisterModelHandler_Success(t *testing.T) {
 func TestRegisterModelHandler_Validation(t *testing.T) {
 	app := newModelRegistryTestApp()
 	app.modelRegistryHTTPClientFactory = func(_ *slog.Logger, _ string, _ http.Header, _ bool, _ *x509.CertPool) (modelregistry.HTTPClientInterface, error) {
-		return modelregistry.NewSuccessMockClient("m", "v1", "s3://b/p"), nil
+		return modelregistry.NewSuccessMockClient("m", "v1", "", ""), nil
 	}
 
 	t.Run("rejects empty registryId path param", func(t *testing.T) {
@@ -114,9 +132,9 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "registryId")
 	})
 
-	t.Run("rejects invalid s3 path", func(t *testing.T) {
+	t.Run("rejects empty s3 path", func(t *testing.T) {
 		req := validRegisterModelRequest()
-		req.S3Path = "https://invalid.com/path"
+		req.S3Path = ""
 
 		rr := httptest.NewRecorder()
 		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
@@ -165,7 +183,7 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 
 	t.Run("rejects unknown JSON fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		raw := `{"s3_path":"s3://b/p","model_name":"m","version_name":"v1","unknown":"x"}`
+		raw := `{"s3_path":"path/to/model","model_name":"m","version_name":"v1","unknown":"x"}`
 		req, _ := http.NewRequest(http.MethodPost,
 			"/api/v1/model-registries/"+mockDefaultModelRegistryUID+"/models?namespace=test-namespace",
 			bytes.NewReader([]byte(raw)))
@@ -228,5 +246,26 @@ func TestRegisterModelHandler_ErrorCases(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "409", errResp.Error.Code)
 		assert.Contains(t, errResp.Error.Message, "already exists")
+	})
+
+	t.Run("returns 503 when DSPA storage is not available", func(t *testing.T) {
+		app := newModelRegistryTestApp()
+		req := validRegisterModelRequest()
+
+		rr := httptest.NewRecorder()
+		// Build context WITHOUT DSPAObjectStorageKey — handler should try
+		// injectDSPAObjectStorageIfAvailable, which needs a K8s client factory.
+		// Since newModelRegistryTestApp has no factory set, injection returns nil → 503.
+		httpReq := newRegisterModelRequest(t, req)
+		ctx := context.WithValue(httpReq.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{
+			UserID: "test-user",
+		})
+		httpReq = httpReq.WithContext(ctx)
+
+		app.RegisterModelHandler(rr, httpReq, registryParams(mockDefaultModelRegistryUID))
+
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+		assert.Contains(t, rr.Body.String(), "DSPA object storage")
 	})
 }

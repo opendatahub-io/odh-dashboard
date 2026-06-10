@@ -76,7 +76,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
           <BreadcrumbItem
             render={() => (
               <Link to="/settings/model-resources-operations/model-registry">
-                AI registry settings
+                Model registry settings
               </Link>
             )}
           />

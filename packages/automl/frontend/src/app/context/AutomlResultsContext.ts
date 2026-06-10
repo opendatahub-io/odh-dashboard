@@ -2,33 +2,35 @@ import * as React from 'react';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
+import { getTaskType } from '~/app/utilities/utils';
 
 const configureSchema = createConfigureSchema();
 
-// Based on the artifact schema from Model artitfact metadata.
-// See https://github.com/LukaszCmielowski/pipelines-components/blob/rhoai_automl/pipelines/training/automl/autogluon_tabular_training_pipeline/README.md#model-artifact-metadata
+/* eslint-disable camelcase */
 export type AutomlModel = {
-  display_name: string;
-  model_config: {
-    eval_metric: string;
-    // time_limit: number;
-  };
+  name: string;
   location: {
     model_directory: string;
     predictor: string;
     notebook: string;
+    metrics?: string;
   };
   metrics: {
-    test_data?: Record<string, unknown>;
+    test_data: Record<string, number>;
   };
 };
+/* eslint-enable camelcase */
 
 export type AutomlResultsContextProps = {
   pipelineRun?: PipelineRun;
   pipelineRunLoading?: boolean;
   models: Record<string, AutomlModel>;
   modelsLoading?: boolean;
+  modelsError?: boolean;
+  modelsLoadError?: Error;
+  onRetryModels?: () => void;
   parameters?: Partial<ConfigureSchema>;
+  modelsBasePath?: string;
 };
 
 export const AutomlResultsContext = React.createContext<AutomlResultsContextProps | undefined>(
@@ -48,11 +50,19 @@ export function getAutomlContext({
   models = {},
   pipelineRunLoading,
   modelsLoading,
+  modelsBasePath,
+  modelsError,
+  modelsLoadError,
+  onRetryModels,
 }: {
   pipelineRun?: PipelineRun;
   models?: Record<string, AutomlModel>;
   pipelineRunLoading?: boolean;
   modelsLoading?: boolean;
+  modelsBasePath?: string;
+  modelsError?: boolean;
+  modelsLoadError?: Error;
+  onRetryModels?: () => void;
 }): AutomlResultsContextProps {
   const inputParams = pipelineRun?.runtime_config?.parameters;
 
@@ -63,21 +73,14 @@ export function getAutomlContext({
   let parameters: Partial<ConfigureSchema> = {};
   if (parseResult.success) {
     parameters = parseResult.data;
-    // FYI default task_type to timeseries since it is the only task which will not have
-    // this as an actual parameter passed to the pipeline
-    // Check the original input, not the parsed result (which may have Zod defaults)
-    const hasTaskType =
-      inputParams && Object.prototype.hasOwnProperty.call(inputParams, 'task_type');
-    if (!hasTaskType) {
-      // eslint-disable-next-line camelcase
-      parameters.task_type = 'timeseries';
-    }
+    // eslint-disable-next-line camelcase
+    parameters.task_type = getTaskType(pipelineRun) ?? 'timeseries';
   } else {
     // Fallback to default task_type even on parse failure
     // eslint-disable-next-line no-console, camelcase
     console.warn('Failed to parse pipeline runtime parameters:', parseResult.error);
     // eslint-disable-next-line camelcase
-    parameters = { task_type: 'timeseries' };
+    parameters = { task_type: getTaskType(pipelineRun) ?? 'timeseries' };
   }
 
   return {
@@ -85,6 +88,10 @@ export function getAutomlContext({
     pipelineRunLoading,
     models,
     modelsLoading,
+    modelsError,
+    modelsLoadError,
+    onRetryModels,
     parameters,
+    modelsBasePath,
   };
 }

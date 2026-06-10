@@ -228,13 +228,14 @@ export type StandaloneNotebookTestData = {
 };
 
 export type CommandLineResult = {
-  code: number;
+  exitCode: number;
   stdout: string;
   stderr: string;
 };
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
+  TEST_USER: UserAuthConfig;
   TEST_USER_3: UserAuthConfig;
   TEST_USER_5: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
@@ -291,10 +292,19 @@ export type DataScienceProjectData = {
   connectionNameSuffix: string;
   adminRoleName: string;
   contributorRoleName: string;
+  contributorK8sRoleName: string;
   connectionDescription: string;
   userSubjectKind: string;
   groupSubjectKind: string;
   yamlEditorModelName: string;
+  legacyServingRuntime?: string;
+  legacyModelLocationURI?: string;
+  legacyHardwareProfileName?: string;
+  subscriptionDisplayName: string;
+  subscriptionName: string;
+  llmInferenceServiceConfigDisplayName: string;
+  llmInferenceServiceConfigName: string;
+  llmInferenceServiceConfigContainerImage: string;
 };
 
 export type NotebookImageData = {
@@ -363,7 +373,6 @@ export type HardwareProfilesData = {
   projectDescription: string;
   workbenchName: string;
   hardwareProfileDeploymentSize: string;
-  workbenchRunningStatus: string;
   notebookImageName: string;
   editWorkbenchAction: string;
   settingsHardwareProfilesUrl: string;
@@ -504,6 +513,46 @@ export type ModelRegistryTestData = {
 
   // Object storage paths
   objectStoragePathV2: string;
+
+  // OCI Register and Store
+  ociModelName: string;
+  ociModelDescription: string;
+  ociVersionName: string;
+  ociVersionDescription: string;
+  ociModelFormat: string;
+  ociModelFormatVersion: string;
+  ociJobName: string;
+  ociSourceEndpoint: string;
+  ociSourceBucket: string;
+  ociSourceRegion: string;
+  ociSourcePath: string;
+  ociTransferJobStartedNotification: string;
+  ociTransferJobFailedNotification: string;
+  ociDestinationRegistry: string;
+  ociDestinationUri: string;
+  ociDestinationUsername: string;
+  ociDestinationPassword: string;
+
+  // OCI Register and Store — URI origin variant
+  ociUriModelName: string;
+  ociUriJobName: string;
+  ociUriOriginUri: string;
+
+  // Custom properties retention test configuration
+  modelNamePrefix: string;
+  modelDescription: string;
+  versionName: string;
+  versionDescription: string;
+  sourceModelFormat: string;
+  sourceModelFormatVersion: string;
+  modelCustomProperties: Array<{ key: string; value: string }>;
+  versionCustomProperties: Array<{ key: string; value: string }>;
+  newVersionPropertyKey: string;
+  newVersionPropertyValue: string;
+
+  // Hardware profile configuration
+  hardwareProfileName: string;
+  hardwareProfileYamlPath: string;
 };
 
 export type ManageRegistryPermissionsTestData = {
@@ -529,7 +578,7 @@ export const AccessModeLabelMap: Record<AccessMode, string> = {
 };
 
 export enum NotebookStatusLabel {
-  Running = 'Running',
+  Ready = 'Ready',
   Starting = 'Starting',
   Stopping = 'Stopping',
   Stopped = 'Stopped',
@@ -561,6 +610,7 @@ export type FeatureStoreTestData = {
 };
 
 export type GenAiTestData = {
+  projectNamePrefix: string;
   projectDescription: string;
   connectionName: string;
   connectionDescription: string;
@@ -583,17 +633,74 @@ export type GenAiTestData = {
   servingRuntimesPath: string;
 };
 
+/** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
+export type EvalHubTestData = {
+  projectNamePrefix: string;
+  evalHubCrName: string;
+  evalHubInstanceResourceYamlPath: string;
+  mlflowInstanceResourceYamlPath: string;
+  /** Title text on the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkCardTitle: string;
+  /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
+  inferenceModelName: string;
+  /** Default experiment name pre-filled in the create-evaluation form. */
+  defaultExperimentName: string;
+  /** JSON object string merged into benchmark parameters (valid JSON object). */
+  additionalBenchmarkParams: string;
+  /** OCI URI for the model (e.g. `oci://quay.io/.../llama-3.2-1b-instruct`). */
+  modelOciUri: string;
+  /** Name of the InferenceService CR created in the tenant namespace. */
+  inferenceServiceName: string;
+  /** Fixture path for the vLLM ServingRuntime YAML applied to the tenant namespace. */
+  servingRuntimeYamlPath: string;
+  /** Fixture path for the HardwareProfile CR. */
+  hardwareProfileResourceYamlPath: string;
+  /** `metadata.name` of the HardwareProfile (used for cleanup). */
+  hardwareProfileName: string;
+};
+
 export type ModelCatalogSourceTestData = {
   sourceName: string;
   redhatAiSourceId: string;
   sourceName2: string;
   redhatAiSourceId2: string;
+  sourceName3: string;
+  redhatAiSourceId3: string;
+  toolCallingLabel: string;
+  toolCallingArg: string;
 };
 
 export type TrainJobTestData = {
   projectName: string;
   trainJobName: string;
   trainingRuntimeName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+};
+
+/** E2E fixture for RayJob pause / scale / delete (RHOAIENG-56125). */
+export type RayJobE2eTestData = {
+  projectName: string;
+  rayJobName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+  workerGroupName: string;
+  rayImage: string;
+  rayVersion: string;
+};
+
+export type RayJobTestData = {
+  projectName: string;
+  rayJobName: string;
+  rayImage: string;
   flavorName: string;
   clusterQueueName: string;
   localQueueName: string;
@@ -613,26 +720,51 @@ export type PipelineTestData = {
   pipelineUrl: string;
 };
 
-export type TiersTestData = {
-  projectName: string;
+export type PromptManagementPromptData = {
   name: string;
-  description: string;
-  level: number;
-  groups: string[];
-  tokenRateLimit: {
-    count: string;
-    time: string;
-    unit: string;
-  };
-  requestRateLimit: {
-    count: string;
-    time: string;
-    unit: string;
-  };
-  editGroup: string;
-  editTokenRateLimitUnit: string;
-  editRequestRateLimitUnit: string;
-  tierDeploymentOption: string;
-  groupsCount: number;
-  limits: string;
+  versionLabel: string;
+  template: string;
+  commitMessage: string;
+};
+
+export type PromptManagementTestData = {
+  projectName: string;
+  prompts: PromptManagementPromptData[];
+};
+
+export type MlflowExperimentRunData = {
+  name: string;
+  parameters: Record<string, string>;
+  metrics: Record<string, string>;
+};
+
+export type MlflowExperimentData = {
+  name: string;
+  renamedName: string;
+};
+
+export type AutomlTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  secretName: string;
+  runName: string;
+  runDescription: string;
+  trainingDataFile: string;
+  taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // Number of top models to train (min 1, default 3)
+  topN?: number;
+  // Tabular task types (binary, multiclass, regression)
+  labelColumn?: string;
+  // Timeseries task type
+  targetColumn?: string;
+  idColumn?: string;
+  timestampColumn?: string;
+};
+
+export type MlflowExperimentsTestData = {
+  projectName: string;
+  experiments: MlflowExperimentData[];
+  runs: MlflowExperimentRunData[];
+  nonExistentExperiment: string;
 };

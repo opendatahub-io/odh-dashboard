@@ -65,8 +65,8 @@ export const waitForDspaReady = (
   return cy
     .exec(command, { failOnNonZeroExit: false, timeout: 610000 })
     .then((result: CommandLineResult) => {
-      if (result.code !== 0) {
-        cy.log(`DSPA wait failed (exit ${result.code}): ${maskSensitiveInfo(result.stderr)}`);
+      if (result.exitCode !== 0) {
+        cy.log(`DSPA wait failed (exit ${result.exitCode}): ${maskSensitiveInfo(result.stderr)}`);
       } else {
         cy.log('DSPA is ready');
       }
@@ -82,12 +82,12 @@ export const logDspaStatus = (projectName: string): void => {
   cy.exec(`oc get dspa ${DSPA_RESOURCE_NAME} -n ${projectName} -o json`, {
     failOnNonZeroExit: false,
   }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const stderr = result.stderr.trim();
       cy.log(
-        `[DSPA] Pipeline server not ready: oc get failed (exit ${result.code}). ${maskSensitiveInfo(
-          stderr,
-        )}`,
+        `[DSPA] Pipeline server not ready: oc get failed (exit ${
+          result.exitCode
+        }). ${maskSensitiveInfo(stderr)}`,
       );
       return;
     }

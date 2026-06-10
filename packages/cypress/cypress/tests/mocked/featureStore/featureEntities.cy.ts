@@ -86,7 +86,7 @@ const initCommonIntercepts = () => {
         mockFeatureStoreProject({ spec: { name: fsProjectName2 } }),
       ],
       pagination: {
-        total_count: 1,
+        total_count: 2,
         total_pages: 1,
         has_next: false,
         has_previous: false,
@@ -332,6 +332,15 @@ describe('Feature Entities', () => {
     featureStoreGlobal.findProjectSelector().should('exist');
     featureStoreGlobal.findProjectSelector().click();
     featureStoreGlobal.findProjectSelectorDropdown().should('contain.text', fsProjectName);
+  });
+
+  it('should display connected workbenches link as disabled', () => {
+    featureStoreGlobal.visitEntities(fsProjectName);
+    featureStoreGlobal
+      .findConnectedWorkbenchesLink()
+      .should('be.visible')
+      .and('have.text', 'View connected workbenches')
+      .and('have.attr', 'aria-disabled', 'true');
   });
 
   it('should display entities table with data', () => {

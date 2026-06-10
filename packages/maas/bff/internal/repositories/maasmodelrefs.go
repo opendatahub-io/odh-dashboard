@@ -8,6 +8,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
@@ -28,9 +29,10 @@ func NewMaaSModelRefsRepository(logger *slog.Logger, k8sFactory kubernetes.Kuber
 	}
 }
 
-// CreateMaaSModelRef creates a MaaSModelRef resource.
-func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error) {
-	r.logger.Debug("Creating MaaSModelRef", slog.String("name", request.Name), slog.String("namespace", request.Namespace))
+// CreateMaaSModelRef creates a MaaSModelRef resource. When dryRun is true the request is
+// validated by the API server but not persisted.
+func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error) {
+	r.logger.Debug("Creating MaaSModelRef", slog.String("name", request.Name), slog.String("namespace", request.Namespace), slog.Bool("dryRun", dryRun))
 
 	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
@@ -39,8 +41,13 @@ func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, reques
 
 	kubeClient := client.GetDynamicClient()
 
-	obj := buildModelRefUnstructured(request.Name, request.Namespace, request.ModelRef, request.EndpointOverride)
-	created, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(request.Namespace).Create(ctx, obj, metav1.CreateOptions{})
+	createOpts := metav1.CreateOptions{}
+	if dryRun {
+		createOpts.DryRun = []string{metav1.DryRunAll}
+	}
+
+	obj := buildModelRefUnstructured(request.Name, request.Namespace, request.ModelRef, request.EndpointOverride, request.Uid, request.DisplayName, request.Description)
+	created, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(request.Namespace).Create(ctx, obj, createOpts)
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
 			return nil, fmt.Errorf("MaaSModelRef '%s' already exists", request.Name)
@@ -51,9 +58,10 @@ func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, reques
 	return convertUnstructuredToModelRefSummary(created)
 }
 
-// UpdateMaaSModelRef updates a MaaSModelRef resource.
-func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error) {
-	r.logger.Debug("Updating MaaSModelRef", slog.String("namespace", namespace), slog.String("name", name))
+// UpdateMaaSModelRef updates a MaaSModelRef resource. When dryRun is true the request is
+// validated by the API server but not persisted.
+func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error) {
+	r.logger.Debug("Updating MaaSModelRef", slog.String("namespace", namespace), slog.String("name", name), slog.Bool("dryRun", dryRun))
 
 	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
@@ -81,9 +89,35 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 	if request.EndpointOverride != "" {
 		existingSpec["endpointOverride"] = request.EndpointOverride
 	}
+
+	annotations := existing.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+
+	if request.DisplayName != nil {
+		if *request.DisplayName == "" {
+			delete(annotations, displayNameAnnotation)
+		} else {
+			annotations[displayNameAnnotation] = *request.DisplayName
+		}
+	}
+	if request.Description != nil {
+		if *request.Description == "" {
+			delete(annotations, descriptionAnnotation)
+		} else {
+			annotations[descriptionAnnotation] = *request.Description
+		}
+	}
+	existing.SetAnnotations(annotations)
 	existing.Object["spec"] = existingSpec
 
-	updated, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Update(ctx, existing, metav1.UpdateOptions{})
+	updateOpts := metav1.UpdateOptions{}
+	if dryRun {
+		updateOpts.DryRun = []string{metav1.DryRunAll}
+	}
+
+	updated, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Update(ctx, existing, updateOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update MaaSModelRef: %w", err)
 	}
@@ -91,9 +125,10 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 	return convertUnstructuredToModelRefSummary(updated)
 }
 
-// DeleteMaaSModelRef deletes a MaaSModelRef resource by namespace and name.
-func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(ctx context.Context, namespace, name string) error {
-	r.logger.Debug("Deleting MaaSModelRef", slog.String("namespace", namespace), slog.String("name", name))
+// DeleteMaaSModelRef deletes a MaaSModelRef resource by namespace and name. When dryRun is true
+// the request is validated by the API server but not persisted.
+func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(ctx context.Context, namespace, name string, dryRun bool) error {
+	r.logger.Debug("Deleting MaaSModelRef", slog.String("namespace", namespace), slog.String("name", name), slog.Bool("dryRun", dryRun))
 
 	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
@@ -101,7 +136,11 @@ func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(ctx context.Context, namesp
 	}
 
 	kubeClient := client.GetDynamicClient()
-	err = kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	deleteOpts := metav1.DeleteOptions{}
+	if dryRun {
+		deleteOpts.DryRun = []string{metav1.DryRunAll}
+	}
+	err = kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Delete(ctx, name, deleteOpts)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			return fmt.Errorf("MaaSModelRef '%s' not found", name)
@@ -112,12 +151,31 @@ func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(ctx context.Context, namesp
 	return nil
 }
 
-func buildModelRefUnstructured(name, namespace string, modelRef models.ModelReference, endpointOverride string) *unstructured.Unstructured {
+func buildModelRefUnstructured(name, namespace string, modelRef models.ModelReference, endpointOverride string, uid string, displayName string, description string) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("maas.opendatahub.io/v1alpha1")
 	obj.SetKind("MaaSModelRef")
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
+	if uid != "" {
+		obj.SetOwnerReferences([]metav1.OwnerReference{
+			{
+				UID:                types.UID(uid),
+				Name:               name,
+				APIVersion:         "serving.kserve.io/v1alpha1",
+				Kind:               "LLMInferenceService",
+				BlockOwnerDeletion: &[]bool{false}[0],
+			},
+		})
+	}
+	annotations := map[string]string{}
+	if displayName != "" {
+		annotations[displayNameAnnotation] = displayName
+	}
+	if description != "" {
+		annotations[descriptionAnnotation] = description
+	}
+	obj.SetAnnotations(annotations)
 
 	spec := map[string]interface{}{
 		"modelRef": map[string]interface{}{

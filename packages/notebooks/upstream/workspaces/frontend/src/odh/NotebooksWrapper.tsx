@@ -8,7 +8,6 @@ import {
 } from 'mod-arch-core';
 import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import AppRoutes from '~/app/AppRoutes';
-import { NamespaceContextProvider } from '~/app/context/NamespaceContextProvider';
 import { NotebookContextProvider } from '~/app/context/NotebookContext';
 import { BFF_API_VERSION, MANDATORY_NAMESPACE, URL_PREFIX } from '~/shared/utilities/const';
 import { AppContextProvider } from '~/app/context/AppContext';
@@ -28,10 +27,8 @@ const NotebooksWrapper: React.FC = () => (
         <NotificationContextProvider>
           <AppContextProvider>
             <NotebookContextProvider>
-              <NamespaceContextProvider>
-                <AppRoutes />
-                <ToastNotifications />
-              </NamespaceContextProvider>
+              <AppRoutes />
+              <ToastNotifications />
             </NotebookContextProvider>
           </AppContextProvider>
         </NotificationContextProvider>

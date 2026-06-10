@@ -130,8 +130,8 @@ class TrainingJobTable {
     return this;
   }
 
-  findEmptyState() {
-    return cy.findByTestId('empty-state-body');
+  findEmptyState(timeout?: number) {
+    return cy.findByTestId('empty-state-body', timeout !== undefined ? { timeout } : {});
   }
 
   findToolbar() {
@@ -534,6 +534,10 @@ class TrainingJobStatusModal extends Modal {
 
   findEventLogs() {
     return cy.findByTestId('event-logs');
+  }
+
+  findEventLogEntries() {
+    return this.findEventLogs().find('li');
   }
 
   findLogEntry(text: string) {
@@ -945,6 +949,10 @@ class RayJobResourcesTab {
 
   findNodesValue() {
     return cy.findByTestId('nodes-value');
+  }
+
+  findNodesEditButton() {
+    return cy.findByTestId('nodes-edit-button');
   }
 
   findProcessesPerNodeValue() {

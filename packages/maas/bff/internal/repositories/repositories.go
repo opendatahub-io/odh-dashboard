@@ -21,11 +21,20 @@ type SubscriptionsRepositoryInterface interface {
 	GetModelRefSummaries(ctx context.Context, refs []models.ModelSubscriptionRef) ([]models.MaaSModelRefSummary, error)
 }
 
+// PoliciesRepositoryInterface defines the contract for policy operations.
+type PoliciesRepositoryInterface interface {
+	ListPolicies(ctx context.Context) ([]models.MaaSAuthPolicy, error)
+	GetPolicy(ctx context.Context, name string) (*models.MaaSAuthPolicy, error)
+	CreatePolicy(ctx context.Context, request models.CreatePolicyRequest) (*models.MaaSAuthPolicy, error)
+	UpdatePolicy(ctx context.Context, name string, request models.UpdatePolicyRequest) (*models.MaaSAuthPolicy, error)
+	DeletePolicy(ctx context.Context, name string) error
+}
+
 // MaaSModelRefsRepositoryInterface defines the contract for MaaSModelRef operations.
 type MaaSModelRefsRepositoryInterface interface {
-	CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error)
-	UpdateMaaSModelRef(ctx context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error)
-	DeleteMaaSModelRef(ctx context.Context, namespace, name string) error
+	CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error)
+	UpdateMaaSModelRef(ctx context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error)
+	DeleteMaaSModelRef(ctx context.Context, namespace, name string, dryRun bool) error
 }
 
 // Repositories struct is a single convenient container to hold and represent all our repositories.
@@ -33,10 +42,10 @@ type Repositories struct {
 	HealthCheck   *HealthCheckRepository
 	User          *UserRepository
 	Namespace     *NamespaceRepository
-	Tiers         *TiersRepository
 	APIKeys       *APIKeysRepository
 	Models        *ModelsRepository
 	Subscriptions SubscriptionsRepositoryInterface
+	Policies      PoliciesRepositoryInterface
 	MaaSModelRefs MaaSModelRefsRepositoryInterface
 }
 
@@ -45,6 +54,7 @@ func NewRepositories(
 	k8sFactory kubernetes.KubernetesClientFactory,
 	config config.EnvConfig,
 	subscriptions SubscriptionsRepositoryInterface,
+	policies PoliciesRepositoryInterface,
 	maasModelRefs MaaSModelRefsRepositoryInterface,
 ) (*Repositories, error) {
 	apiKeysRepo, err := NewAPIKeysRepository(logger, config.MaasApiUrl)
@@ -58,19 +68,13 @@ func NewRepositories(
 	}
 
 	return &Repositories{
-		HealthCheck: NewHealthCheckRepository(),
-		User:        NewUserRepository(),
-		Namespace:   NewNamespaceRepository(),
-		Tiers: NewTiersRepository(
-			logger,
-			k8sFactory,
-			config.TiersConfigMapNamespace,
-			config.TiersConfigMapName,
-			config.GatewayNamespace,
-			config.GatewayName),
+		HealthCheck:   NewHealthCheckRepository(),
+		User:          NewUserRepository(),
+		Namespace:     NewNamespaceRepository(),
 		APIKeys:       apiKeysRepo,
 		Models:        modelsRepo,
 		Subscriptions: subscriptions,
+		Policies:      policies,
 		MaaSModelRefs: maasModelRefs,
 	}, nil
 }

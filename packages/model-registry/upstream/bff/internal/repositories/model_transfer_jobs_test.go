@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/mocks"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/mocks"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"
@@ -27,10 +28,16 @@ type fakeKubernetesClient struct {
 	eventsByNamespace map[string]*corev1.EventList
 }
 
+// testContext returns a context with a RequestIdentity set, as required by GetAllModelTransferJobs.
+func testContext() context.Context {
+	identity := &k8s.RequestIdentity{UserID: "test-user", Groups: []string{"system:authenticated"}}
+	return context.WithValue(context.Background(), constants.RequestIdentityKey, identity)
+}
+
 func mustGetSingleJob(t *testing.T, repo *ModelRegistryRepository, client k8s.KubernetesClientInterface, namespace, modelRegistryID string) models.ModelTransferJob {
 	t.Helper()
 
-	list, err := repo.GetAllModelTransferJobs(context.Background(), client, namespace, modelRegistryID)
+	list, err := repo.GetAllModelTransferJobs(testContext(), client, namespace, modelRegistryID, "")
 	if err != nil {
 		t.Fatalf("GetAllModelTransferJobs returned error: %v", err)
 	}
@@ -81,7 +88,7 @@ func buildSingleJobFixture(jobName string, jobStatus batchv1.JobStatus, containe
 	}
 }
 
-func (f *fakeKubernetesClient) GetAllModelTransferJobs(ctx context.Context, namespace string, modelRegistryID string) (*batchv1.JobList, error) {
+func (f *fakeKubernetesClient) GetAllModelTransferJobs(ctx context.Context, namespace string, modelRegistryID string, jobNamespace string) (*batchv1.JobList, error) {
 	if f.jobs == nil {
 		return &batchv1.JobList{}, nil
 	}
@@ -130,6 +137,10 @@ func (f *fakeKubernetesClient) CanAccessServiceInNamespace(ctx context.Context, 
 }
 
 func (f *fakeKubernetesClient) CanNamespaceAccessRegistry(ctx context.Context, identity *k8s.RequestIdentity, jobNamespace, registryName, registryNamespace string) (bool, error) {
+	return false, nil
+}
+
+func (f *fakeKubernetesClient) CanVerbMcpServersInNamespace(ctx context.Context, identity *k8s.RequestIdentity, namespace, verb string) (bool, error) {
 	return false, nil
 }
 
@@ -224,6 +235,10 @@ func (f *fakeKubernetesClient) PatchSecretOwnerReference(ctx context.Context, na
 
 func (f *fakeKubernetesClient) PatchConfigMapOwnerReference(ctx context.Context, namespace string, name string, ownerRef metav1.OwnerReference) error {
 	return nil
+}
+
+func (f *fakeKubernetesClient) CanListJobsClusterWide(ctx context.Context, identity *k8s.RequestIdentity) (bool, error) {
+	return true, nil
 }
 
 func TestGetAllModelTransferJobs_PodWaitingFailuresOverrideStatusToFailed(t *testing.T) {
@@ -617,6 +632,69 @@ func TestGetAllModelTransferJobs_NormalRunningJobNotOverridden(t *testing.T) {
 	}
 	if jobModel.ErrorMessage != "" {
 		t.Fatalf("expected no error message for normal running job, got %q", jobModel.ErrorMessage)
+	}
+}
+
+func TestRegistryOriginOnly(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "ClusterIP with explicit port",
+			input:    "http://10.43.0.100:8080/api/model_registry/v1alpha3",
+			expected: "http://10.43.0.100:8080",
+		},
+		{
+			name:     "Route-based HTTPS (no explicit port)",
+			input:    "https://my-registry-rest.apps.example.com/api/model_registry/v1alpha3",
+			expected: "https://my-registry-rest.apps.example.com:443",
+		},
+		{
+			name:     "Route-based HTTPS with explicit port",
+			input:    "https://my-registry-rest.apps.example.com:443/api/model_registry/v1alpha3",
+			expected: "https://my-registry-rest.apps.example.com:443",
+		},
+		{
+			name:     "Gateway-based URL preserves path prefix",
+			input:    "https://gateway.apps.example.com/model-registry/my-registry/api/model_registry/v1alpha3",
+			expected: "https://gateway.apps.example.com:443/model-registry/my-registry",
+		},
+		{
+			name:     "Gateway-based URL with explicit port preserves path prefix",
+			input:    "https://gateway.apps.example.com:443/model-registry/my-registry/api/model_registry/v1alpha3",
+			expected: "https://gateway.apps.example.com:443/model-registry/my-registry",
+		},
+		{
+			name:     "HTTP defaults to port 80",
+			input:    "http://gateway.apps.example.com/model-registry/my-registry/api/model_registry/v1alpha3",
+			expected: "http://gateway.apps.example.com:80/model-registry/my-registry",
+		},
+		{
+			name:     "URL with no path",
+			input:    "https://my-registry-rest.apps.example.com",
+			expected: "https://my-registry-rest.apps.example.com:443",
+		},
+		{
+			name:     "unparseable input returned as-is",
+			input:    "://bad-url",
+			expected: "://bad-url",
+		},
+		{
+			name:     "bare hostname returned as-is",
+			input:    "just-a-hostname",
+			expected: "just-a-hostname",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := registryOriginOnly(tc.input)
+			if got != tc.expected {
+				t.Errorf("registryOriginOnly(%q) = %q, want %q", tc.input, got, tc.expected)
+			}
+		})
 	}
 }
 

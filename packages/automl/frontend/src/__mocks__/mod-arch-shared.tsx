@@ -115,6 +115,4 @@ export const TypeaheadSelect: React.FC<TypeaheadSelectProps> = ({
 // Note: We can't actually re-export from the real module in a mock
 // so we'll just export a basic set of components
 export const ApplicationsPage = (): null => null;
-export const ProjectObjectType = {};
-export const TitleWithIcon = (): null => null;
 export const NotFound = (): null => null;

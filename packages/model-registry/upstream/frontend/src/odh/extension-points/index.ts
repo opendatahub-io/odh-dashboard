@@ -9,3 +9,5 @@ export * from './admin';
 export * from './catalog-settings-url';
 export * from './feature-flag-overrides';
 export * from './mcp-deploy';
+export * from './namespace-selector';
+export * from './projects-bridge';

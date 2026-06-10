@@ -8,14 +8,19 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
+	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo/nemomocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
@@ -33,6 +38,28 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/services"
 )
 
+var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
+var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
+
+func isHashedAsset(filePath string) bool {
+	match := hashPattern.FindString(path.Base(filePath))
+	return match != "" && strings.ContainsAny(match, "abcdef")
+}
+
+func isStaticAsset(filePath string) bool {
+	return staticAssetPattern.MatchString(filePath)
+}
+
+func cacheControlForStaticFile(filePath string) string {
+	if isHashedAsset(filePath) {
+		return "public, max-age=31536000, immutable"
+	}
+	if isStaticAsset(filePath) {
+		return "public, max-age=86400"
+	}
+	return "no-cache"
+}
+
 type App struct {
 	config                  config.EnvConfig
 	logger                  *slog.Logger
@@ -40,9 +67,13 @@ type App struct {
 	openAPI                 *OpenAPIHandler
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
+	nemoClientFactory       nemopkg.NemoClientFactory
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
+	mlflowExternalURL       string
+	nemoGuardrailsURL       string
+	bffClientFactory        bffclient.BFFClientFactory
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
@@ -109,6 +140,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	} else {
 		logger.Info("Using real LlamaStack client factory", "url", cfg.LlamaStackURL)
 		llamaStackClientFactory = llamastack.NewRealClientFactory()
+	}
+
+	// Initialize NeMo Guardrails client factory
+	var nemoClientFactory nemopkg.NemoClientFactory
+	if cfg.MockNemoClient {
+		logger.Info("Using mock NeMo Guardrails client factory")
+		nemoClientFactory = nemomocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real NeMo Guardrails client factory", "url", cfg.NemoGuardrailsURL)
+		nemoClientFactory = nemopkg.NewRealClientFactory()
 	}
 
 	// Initialize MaaS client factory - clients will be created per request
@@ -183,6 +224,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Initialize MLflow client factory
 	var mlflowFactory mlflowpkg.MLflowClientFactory
+	var mlflowExternalURL string
 	if cfg.MockMLflowClient {
 		mlflowState, err := mlflowmocks.SetupMLflow(logger)
 		if err != nil {
@@ -206,6 +248,53 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			logger.Warn("MLflow URL not configured and auto-discovery failed, MLflow endpoints will return 503")
 			mlflowFactory = mlflowpkg.NewUnavailableClientFactory()
 		}
+
+		if externalURL, err := mlflowpkg.DiscoverMLflowExternalURL(); err != nil {
+			logger.Warn("Failed to discover MLflow external URL for code export", "error", err)
+		} else {
+			mlflowExternalURL = externalURL
+			logger.Info("Discovered MLflow external URL for code export", "url", mlflowExternalURL)
+		}
+	}
+
+	// Initialize BFF client factory for inter-BFF communication
+	var bffFactory bffclient.BFFClientFactory
+	bffConfig := bffclient.NewDefaultBFFClientConfig()
+	bffConfig.MockBFFClients = cfg.MockBFFClients
+	bffConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
+	bffConfig.PodNamespace = dashboardNamespace
+
+	// Apply MaaS BFF configuration overrides
+	if maasConfig := bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS); maasConfig != nil {
+		if cfg.BFFMaaSServiceName != "" {
+			maasConfig.ServiceName = cfg.BFFMaaSServiceName
+		}
+		if cfg.BFFMaaSServicePort > 0 {
+			maasConfig.Port = cfg.BFFMaaSServicePort
+		}
+		maasConfig.TLSEnabled = cfg.BFFMaaSTLSEnabled
+		maasConfig.DevOverrideURL = cfg.BFFMaaSDevURL
+
+		// Apply auth configuration for inter-BFF communication
+		if cfg.BFFMaaSAuthMethod != "" {
+			maasConfig.AuthMethod = cfg.BFFMaaSAuthMethod
+		}
+		if cfg.BFFMaaSAuthTokenHeader != "" {
+			maasConfig.AuthTokenHeader = cfg.BFFMaaSAuthTokenHeader
+		}
+		// AuthTokenPrefix can be empty (which is the ODH default)
+		maasConfig.AuthTokenPrefix = cfg.BFFMaaSAuthTokenPrefix
+	}
+
+	if cfg.MockBFFClients {
+		logger.Info("Using mock BFF client factory")
+		bffFactory = bffmocks.NewMockClientFactory(logger)
+	} else {
+		logger.Info("Using real BFF client factory",
+			"maasServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).ServiceName,
+			"maasServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).Port,
+			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL)
+		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
 	// Initialize shared memory store for caching (10 minute cleanup interval)
@@ -234,9 +323,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		openAPI:                 openAPIHandler,
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: llamaStackClientFactory,
+		nemoClientFactory:       nemoClientFactory,
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowFactory,
+		mlflowExternalURL:       mlflowExternalURL,
+		nemoGuardrailsURL:       cfg.NemoGuardrailsURL,
+		bffClientFactory:        bffFactory,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
@@ -299,78 +392,91 @@ func (app *App) Routes() http.Handler {
 	// LlamaStack API routes
 
 	// Models (LlamaStack)
-	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
+	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackModelsHandler))))
 
-	// Responses (LlamaStack)
-	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler)))))
+	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
+	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
+
+	// Responses passthrough — forwards pre-built OGX API request bodies as-is.
+	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).
+	apiRouter.POST(constants.ResponsesPassthroughPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.LlamaStackPassthroughResponseHandler))))
 
 	// Vector Stores (LlamaStack)
-	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListVectorStoresHandler))))
-	apiRouter.POST(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackCreateVectorStoreHandler))))
-	apiRouter.DELETE(constants.VectorStoresDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreHandler))))
+	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoresHandler))))
+	apiRouter.POST(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackCreateVectorStoreHandler))))
+	apiRouter.DELETE(constants.VectorStoresDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteVectorStoreHandler))))
 
 	// Files (LlamaStack)
-	apiRouter.GET(constants.FilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler))))
-	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
-	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackFileUploadStatusHandler)))
-	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler))))
+	apiRouter.GET(constants.FilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListFilesHandler))))
+	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackUploadFileHandler))))
+	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
+	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteFileHandler))))
+	apiRouter.POST(constants.MediaFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackMediaFileUploadHandler))))
+
+	// Audio Transcription (ASR)
+	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler))))
 
 	// Vector Store Files (LlamaStack)
-	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListVectorStoreFilesHandler))))
-	apiRouter.POST(constants.VectorStoreFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler)))) // Alias to FilesUploadPath
-	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler))))
+	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoreFilesHandler))))
+	apiRouter.POST(constants.VectorStoreFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackUploadFileHandler)))) // Alias to FilesUploadPath
+	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteVectorStoreFileHandler))))
 
 	// Code Exporter (Template-only)
-	apiRouter.POST(constants.CodeExporterPath, app.AttachNamespace(app.RequireAccessToService(app.CodeExporterHandler)))
+	apiRouter.POST(constants.CodeExporterPath, app.AttachNamespace(app.CodeExporterHandler))
 
 	// Kubernetes routes
 
 	// AI Assets Models (Kubernetes)
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.ModelsAAHandler)))
-	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
-	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
+	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.ModelsAAHandler))
+	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
+	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
 
 	// External model verification (requires namespace for authorization)
-	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyExternalModelHandler)))
+	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.VerifyExternalModelHandler))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
-	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
+	apiRouter.GET(constants.NamespacesPath, app.GetNamespaceHandler)
 
 	// Identity
-	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))
+	apiRouter.GET(constants.UserPath, app.GetCurrentUserHandler)
 
 	// BFF Configuration endpoint
-	apiRouter.GET(constants.ConfigPath, app.RequireAccessToService(app.BFFConfigHandler))
+	apiRouter.GET(constants.ConfigPath, app.BFFConfigHandler)
 
-	// Llama Stack Distribution status endpoint
-	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionStatusHandler)))
+	// OGX server status endpoint (URL remains /lsd/status)
+	apiRouter.GET(constants.OGXServerStatusPath, app.AttachNamespace(app.LlamaStackDistributionStatusHandler))
 
-	// Llama Stack Distribution install endpoint
-	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionInstallHandler))))
+	// OGX server install endpoint (URL remains /lsd/install)
+	apiRouter.POST(constants.OGXServerInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
 
-	// Llama Stack Distribution delete endpoint
-	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
+	// OGX server delete endpoint (URL remains /lsd/delete)
+	apiRouter.DELETE(constants.OGXServerDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
 
-	// LSD Safety Config endpoint - returns configured guardrail models and shields
-	apiRouter.GET(constants.LSDSafetyPath, app.AttachNamespace(app.RequireAccessToService(app.LSDSafetyConfigHandler)))
+	// NemoGuardrails endpoints
+	apiRouter.POST(constants.NemoGuardrailsInitPath, app.AttachNamespace(app.NemoGuardrailsInitHandler))
+	apiRouter.GET(constants.NemoGuardrailsStatusPath, app.AttachNamespace(app.NemoGuardrailsStatusHandler))
 
 	// MCP Client endpoints
-	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.RequireAccessToService(app.MCPToolsHandler)))
-	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.RequireAccessToService(app.MCPStatusHandler)))
-	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.RequireAccessToService(app.MCPListHandler)))
+	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.MCPToolsHandler))
+	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.MCPStatusHandler))
+	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.MCPListHandler))
 
 	// External Vector Stores
-	apiRouter.GET(constants.VectorStoresAAPath, app.AttachNamespace(app.RequireAccessToService(app.VectorStoresAAHandler)))
-	apiRouter.GET(constants.ExternalVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.ExternalVectorStoresListHandler)))
+	apiRouter.GET(constants.VectorStoresAAPath, app.AttachNamespace(app.VectorStoresAAHandler))
+	apiRouter.GET(constants.ExternalVectorStoresPath, app.AttachNamespace(app.ExternalVectorStoresListHandler))
 
 	// MaaS API routes
 
 	// Models (MaaS)
 	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler))))
 
-	// Tokens (MaaS)
+	// Tokens (MaaS) - direct calls to MaaS controller
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
 	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
+
+	// Inter-BFF Communication routes - calls to MaaS BFF service
+	apiRouter.POST(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSIssueTokenHandler))))
+	apiRouter.DELETE(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSRevokeAllTokensHandler))))
 
 	// MLflow API routes
 	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
@@ -383,16 +489,19 @@ func (app *App) Routes() http.Handler {
 	// Guardrails API route
 	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))
 
+	// Agent Profiles API routes
+	apiRouter.POST(constants.AgentProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.CreateAgentProfileHandler)))
+
 	// App Router
 	appMux := http.NewServeMux()
 
 	// handler for api calls
-	appMux.Handle(constants.PathPrefix+constants.ApiPathPrefix+"/", http.StripPrefix(constants.PathPrefix, apiRouter))
+	appMux.Handle(constants.PathPrefix+constants.ApiPathPrefix+"/", app.MaxBodySize(http.StripPrefix(constants.PathPrefix, apiRouter)))
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
-	appMux.Handle(constants.ApiPathPrefix+"/", apiRouter)
+	appMux.Handle(constants.ApiPathPrefix+"/", app.MaxBodySize(apiRouter))
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 
@@ -402,15 +511,17 @@ func (app *App) Routes() http.Handler {
 
 			// Check if the requested file exists
 			cleanPath := path.Clean(r.URL.Path)
-			if _, err := staticDir.Open(cleanPath); err == nil {
+			if f, err := staticDir.Open(cleanPath); err == nil {
+				f.Close()
 				ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
-				// Serve the file if it exists
+				w.Header().Set("Cache-Control", cacheControlForStaticFile(cleanPath))
 				fileServer.ServeHTTP(w, r)
 				return
 			}
 
 			// Fallback to index.html for SPA routes
 			ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+			w.Header().Set("Cache-Control", "no-cache")
 			http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
 			return
 		}

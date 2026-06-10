@@ -154,11 +154,12 @@ type CreatePipelineRunKFRequest struct {
 // KFPipeline represents a pipeline definition from the KFP v2beta1 API.
 // Used by pipeline discovery to identify managed AutoML pipelines in a namespace.
 type KFPipeline struct {
-	PipelineID  string `json:"pipeline_id"`  // Unique pipeline identifier
-	DisplayName string `json:"display_name"` // Human-readable pipeline name (used for discovery matching)
-	Description string `json:"description,omitempty"`
-	CreatedAt   string `json:"created_at,omitempty"` // ISO 8601 timestamp
-	Namespace   string `json:"namespace,omitempty"`
+	PipelineID  string            `json:"pipeline_id"`  // Unique pipeline identifier
+	DisplayName string            `json:"display_name"` // Human-readable pipeline name (used for discovery matching)
+	Description string            `json:"description,omitempty"`
+	CreatedAt   string            `json:"created_at,omitempty"` // ISO 8601 timestamp
+	Namespace   string            `json:"namespace,omitempty"`
+	Tags        map[string]string `json:"tags,omitempty"` // Pipeline tags (e.g. {"managed": "true"})
 }
 
 // KFPipelineVersion represents a version of a pipeline from the KFP v2beta1 API.

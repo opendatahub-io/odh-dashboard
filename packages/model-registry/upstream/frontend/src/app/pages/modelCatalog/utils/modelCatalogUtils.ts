@@ -1,6 +1,4 @@
-import React from 'react';
 import { capitalize } from '@patternfly/react-core';
-import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import {
   CatalogArtifacts,
   CatalogArtifactType,
@@ -13,13 +11,14 @@ import {
   CatalogModelDetailsParams,
   CatalogSource,
   CatalogSourceList,
+  HardwareConfiguration,
   ModelCatalogFilterStates,
-  ModelCatalogStringFilterValueType,
   MetricsType,
   ModelCatalogFilterKey,
   SourceLabel,
+  ToolCallingConfig,
 } from '~/app/modelCatalogTypes';
-import { getLabels } from '~/app/pages/modelRegistry/screens/utils';
+import { getLabels, getCustomPropString } from '~/app/pages/modelRegistry/screens/utils';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -33,9 +32,16 @@ import {
   SortField,
   CatalogModelCustomPropertyKey,
   ModelType,
+  ModelCatalogTask,
+  MATCH_ALL_FILTER_KEYS,
 } from '~/concepts/modelCatalog/const';
 import { isSourceStatusWithModels } from '~/concepts/modelCatalogSettings/const';
-import { ModelRegistryMetadataType } from '~/app/types';
+import { ModelRegistryCustomProperties, ModelRegistryMetadataType } from '~/app/types';
+import {
+  buildCustomPropertiesWithModelType,
+  getModelTypeStoredValueFromCustomProperties,
+} from '~/app/pages/modelRegistry/screens/RegisterModel/registerModelTypeUtils';
+import { eqFilter, inFilter, andFilter } from '~/app/shared/components/catalog';
 
 /**
  * Prefix used by the backend for artifact-specific filter options.
@@ -180,53 +186,32 @@ export const isModelValidated = (model: CatalogModel): boolean => {
 };
 
 // Utility function to check if a model is from Red Hat
-export const isRedHatModel = (model: CatalogModel): boolean =>
-  model.provider === 'Red Hat';
+export const isRedHatModel = (model: CatalogModel): boolean => model.provider === 'Red Hat';
 
 export const shouldShowValidatedInsights = (
   model: CatalogModel,
   artifacts: CatalogArtifacts[],
 ): boolean => isModelValidated(model) && hasPerformanceArtifacts(artifacts);
 
-export const useCatalogStringFilterState = <K extends ModelCatalogStringFilterKey>(
-  filterKey: K,
-): {
-  isSelected: (value: ModelCatalogStringFilterValueType[K]) => boolean;
-  setSelected: (value: string, selected: boolean) => void;
-} => {
-  type Value = ModelCatalogStringFilterValueType[K];
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const selections: string[] = filterData[filterKey];
-  const isValidStringState = (state: string[]): state is ModelCatalogFilterStates[K] =>
-    Object.values(ModelCatalogStringFilterKey).includes(filterKey);
-  const isSelected = React.useCallback((value: Value) => selections.includes(value), [selections]);
-  const setSelected = (value: string, selected: boolean) => {
-    const nextState = selected
-      ? [...selections, value]
-      : selections.filter((item) => item !== value);
-    if (isValidStringState(nextState)) {
-      setFilterData(filterKey, nextState);
-    }
-  };
+export const hasValidatedToolCalling = (model: CatalogModel): boolean =>
+  model.validatedTasks?.includes(ModelCatalogTask.TOOL_CALLING) === true &&
+  !!model.servingConfig?.toolCalling?.toolCallParser;
 
-  return { isSelected, setSelected };
-};
-
-export const useCatalogNumberFilterState = (
-  filterKey: ModelCatalogNumberFilterKey,
-): {
-  value: number | undefined;
-  setValue: (value: number | undefined) => void;
-} => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const value = filterData[filterKey];
-  const setValue = React.useCallback(
-    (newValue: number | undefined) => {
-      setFilterData(filterKey, newValue);
-    },
-    [filterKey, setFilterData],
-  );
-  return { value, setValue };
+export const getToolCallingArgs = (config?: ToolCallingConfig): string => {
+  const parts: string[] = [];
+  if (config?.enableAutoToolChoice) {
+    parts.push('--enable-auto-tool-choice');
+  }
+  if (config?.toolCallParser) {
+    parts.push(`--tool-call-parser ${config.toolCallParser}`);
+  }
+  if (config?.chatTemplate) {
+    parts.push(`--chat-template ${config.chatTemplate}`);
+  }
+  if (config?.requiredArgs) {
+    parts.push(...config.requiredArgs);
+  }
+  return parts.join(' \\\n');
 };
 
 const isArrayOfSelections = (
@@ -241,6 +226,7 @@ const isArrayOfSelections = (
 const KNOWN_NUMERIC_FILTER_IDS: string[] = [
   ...ALL_LATENCY_FILTER_KEYS,
   ModelCatalogNumberFilterKey.MAX_RPS,
+  ModelCatalogNumberFilterKey.COLD_START_LATENCY,
 ];
 
 /**
@@ -325,26 +311,26 @@ export const getSortParams = (
     return recentPublishSort;
   }
 
+  if (effectiveSortBy === ModelCatalogSortOption.LOWEST_COLD_START) {
+    return {
+      orderBy: ModelCatalogNumberFilterKey.COLD_START_LATENCY,
+      sortOrder: SortOrder.ASC,
+    };
+  }
+
   // effectiveSortBy must be LOWEST_LATENCY at this point
   if (!activeLatencyField) {
-    // Fallback to recent publish if no latency field is available
     return recentPublishSort;
   }
 
-  // activeLatencyField is already in the correct format: artifacts.{metric}_{percentile}.double_value
-  // (e.g., artifacts.ttft_p90.double_value, artifacts.e2e_mean.double_value, artifacts.itl_p95.double_value)
-  // This matches the filter key format used in filterQuery, so we can use it directly
   return {
     orderBy: activeLatencyField,
-    sortOrder: SortOrder.ASC, // Lowest first (ascending)
+    sortOrder: SortOrder.ASC,
   };
 };
 
-const wrapInQuotes = (v: string): string => `'${v.replace(/'/g, "''")}'`;
-
-const eqFilter = (k: string, v: string) => `${k}=${wrapInQuotes(v)}`;
-const inFilter = (k: string, values: string[]) =>
-  `${k} IN (${values.map((v) => wrapInQuotes(v)).join(',')})`;
+const isMatchAllFilter = (filterId: string): boolean =>
+  MATCH_ALL_FILTER_KEYS.some((key) => key === filterId);
 
 /**
  * Check if a filter key has the artifacts.* prefix.
@@ -438,7 +424,7 @@ const serializeFilterEntry = (
       case 1:
         return eqFilter(queryKey, data[0]);
       default:
-        return inFilter(queryKey, data);
+        return isMatchAllFilter(filterId) ? andFilter(queryKey, data) : inFilter(queryKey, data);
     }
   }
 
@@ -754,6 +740,21 @@ export const orderLabelsByPriority = (
   return orderedLabels;
 };
 
+export const getActiveSourceLabels = (
+  catalogSources: CatalogSourceList | null,
+  catalogLabels: CatalogLabelList | null,
+): string[] => {
+  const enabledSources = filterEnabledCatalogSources(catalogSources);
+  const uniqueLabels = getUniqueSourceLabels(enabledSources);
+  const orderedLabels = orderLabelsByPriority(uniqueLabels, catalogLabels);
+
+  if (hasSourcesWithoutLabels(enabledSources)) {
+    return [...orderedLabels, SourceLabel.other];
+  }
+
+  return orderedLabels;
+};
+
 /**
  * Formats model type value for display in the UI.
  * Converts raw API values (generative, predictive, unknown) to user-friendly display labels.
@@ -777,4 +778,51 @@ export const formatModelTypeDisplay = (modelTypeRaw: string | null): string => {
   }
   // Fallback: capitalize whatever value we got
   return capitalize(modelTypeRaw.trim());
+};
+
+/**
+ * Returns model registry customProperties entries to prefill `model_type` when registering
+ * from the catalog. Recognized values (generative, predictive, unknown) are copied;
+ * unrecognized or missing values yield {}.
+ */
+export const getCatalogModelTypePropertyForRegistration = (
+  customProperties?: ModelRegistryCustomProperties,
+): ModelRegistryCustomProperties => {
+  const stored = getModelTypeStoredValueFromCustomProperties(customProperties) ?? ModelType.UNKNOWN;
+  return buildCustomPropertiesWithModelType(undefined, stored);
+};
+
+export const getModelSizeFromCustomProperties = (
+  customProperties?: ModelRegistryCustomProperties,
+): string =>
+  customProperties
+    ? getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MODEL_SIZE)
+    : '';
+
+export const getMinimumVramFromCustomProperties = (
+  customProperties?: ModelRegistryCustomProperties,
+): string =>
+  customProperties
+    ? getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM)
+    : '';
+
+export const getHardwareConfigurationsFromCustomProperties = (
+  customProperties?: ModelRegistryCustomProperties,
+): HardwareConfiguration[] => {
+  if (!customProperties) {
+    return [];
+  }
+  const hwConfigStr = getCustomPropString(
+    customProperties,
+    CatalogModelCustomPropertyKey.HARDWARE_CONFIGURATIONS,
+  );
+  if (!hwConfigStr) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(hwConfigStr);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 };

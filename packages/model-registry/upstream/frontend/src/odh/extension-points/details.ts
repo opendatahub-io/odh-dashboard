@@ -25,5 +25,4 @@ export type ModelRegistryDetailsTabExtension = Extension<
 
 export const isModelRegistryDetailsTabExtension = (
   extension: Extension,
-): extension is ModelRegistryDetailsTabExtension =>
-  extension.type === 'model-registry.details/tab';
+): extension is ModelRegistryDetailsTabExtension => extension.type === 'model-registry.details/tab';

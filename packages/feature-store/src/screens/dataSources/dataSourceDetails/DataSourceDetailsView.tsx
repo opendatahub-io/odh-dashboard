@@ -103,7 +103,7 @@ const DataSourceDetailsView: React.FC<DataSourceDetailsViewProps> = ({ dataSourc
                 dataSource.meta.lastUpdatedTimestamp ? (
                   <FeatureStoreTimestamp date={new Date(dataSource.meta.lastUpdatedTimestamp)} />
                 ) : (
-                  'No last modified'
+                  '--'
                 )
               }
               testId="data-source-last-modified"
@@ -123,7 +123,7 @@ const DataSourceDetailsView: React.FC<DataSourceDetailsViewProps> = ({ dataSourc
             />
             <DetailsItem
               label="Owner"
-              value={getContentValue(dataSource.owner, 'No owner')}
+              value={getContentValue(dataSource.owner, '--')}
               testId="data-source-owner"
               className={getDisabledClassName(dataSource.owner)}
             />

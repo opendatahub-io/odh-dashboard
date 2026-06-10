@@ -23,7 +23,7 @@ var _ = Describe("Static File serving Test", func() {
 			envConfig := config.EnvConfig{
 				StaticAssetsDir: "../../static",
 			}
-			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, nil, nil)
+			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			app := &App{
 				kubernetesClientFactory: k8Factory,

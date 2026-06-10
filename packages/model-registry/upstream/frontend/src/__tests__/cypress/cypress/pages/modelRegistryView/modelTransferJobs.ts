@@ -1,14 +1,27 @@
+import { modelTransferJobsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class ModelTransferJobsTableRow extends TableRow {
   findJobName() {
     return this.find().findByTestId('job-name');
   }
+
+  findStatus() {
+    return this.find().findByTestId('job-status');
+  }
+
+  findErrorMessage() {
+    return this.find().findByTestId('job-error-message');
+  }
+
+  findRetryButton() {
+    return this.find().findByTestId('job-retry-button');
+  }
 }
 
 class ModelTransferJobsPage {
   visit(modelRegistryName = 'modelregistry-sample') {
-    cy.visit(`/model-registry/${modelRegistryName}/model-transfer-jobs`);
+    cy.visit(modelTransferJobsUrl(modelRegistryName));
     this.wait();
   }
 
@@ -56,6 +69,14 @@ class ModelTransferJobsPage {
 
   findEmptyState() {
     return cy.findByTestId('empty-model-transfer-jobs');
+  }
+
+  findRetryModal() {
+    return cy.findByTestId('retry-job-modal');
+  }
+
+  findRetryModalSubmitButton() {
+    return this.findRetryModal().findByTestId('retry-job-submit-button');
   }
 }
 

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	lsHealthTimeout = 90 * time.Second
+	lsHealthTimeout = 180 * time.Second
 	lsHealthPoll    = 2 * time.Second
 	lsShutdownWait  = 5 * time.Second
 )
@@ -91,7 +91,7 @@ func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
 	requirementsPath := filepath.Join(projectRoot, "testdata", "llamastack", "requirements.txt")
 
 	// Determine inference mode and API key
-	inferenceMode := os.Getenv("LLAMA_STACK_TEST_INFERENCE_MODE")
+	inferenceMode := os.Getenv("OGX_TEST_INFERENCE_MODE")
 	if inferenceMode == "" {
 		inferenceMode = "replay"
 	}
@@ -105,21 +105,26 @@ func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
 
 	cmd := exec.CommandContext(ctx, uvBin,
 		"run",
-		"--refresh-package", "llama-stack",
-		"--refresh-package", "llama-stack-api",
-		"--with", "llama-stack=="+version,
-		"--with", "llama-stack-api=="+version,
+		"--default-index", "https://pypi.org/simple/",
+		"--index", "https://test.pypi.org/simple/",
+		"--index-strategy", "unsafe-first-match",
+		"--no-build-package", "psycopg2-binary",
+		"--no-build-package", "asyncpg",
+		"--refresh-package", "ogx",
+		"--refresh-package", "ogx-api",
+		"--with", "ogx=="+version,
+		"--with", "ogx-api=="+version,
 		"--with-requirements", requirementsPath,
-		"llama", "stack", "run", configPath,
+		"ogx", "run", configPath,
 		"--port", fmt.Sprintf("%d", port),
 	)
 
 	cmd.Env = append(os.Environ(),
 		"SQLITE_STORE_DIR="+dataDir,
 		"GEMINI_API_KEY="+geminiKey,
-		"LLAMA_STACK_TEST_INFERENCE_MODE="+inferenceMode,
-		"LLAMA_STACK_TEST_RECORDING_DIR="+recordingDir,
-		"LLAMA_STACK_TEST_STACK_CONFIG_TYPE=server",
+		"OGX_TEST_INFERENCE_MODE="+inferenceMode,
+		"OGX_TEST_RECORDING_DIR="+recordingDir,
+		"OGX_TEST_STACK_CONFIG_TYPE=server",
 	)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

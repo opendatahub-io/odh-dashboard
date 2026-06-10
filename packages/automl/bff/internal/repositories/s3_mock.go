@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
@@ -30,25 +29,35 @@ func (r *MockS3Repository) GetS3Credentials(
 		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w", secretName, namespace, err)
 	}
 
-	secretData := secret.Data
-	getValue := func(targetKeys ...string) string {
-		for secretKey, secretValue := range secretData {
-			secretKeyLower := strings.ToLower(secretKey)
-			for _, targetKey := range targetKeys {
-				if secretKeyLower == strings.ToLower(targetKey) {
-					return string(secretValue)
-				}
-			}
-		}
-		return ""
+	getValue := newSecretLookup(secret.Data)
+
+	accessKeyID, err := getValue("AWS_ACCESS_KEY_ID")
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
+	}
+	secretAccessKey, err := getValue("AWS_SECRET_ACCESS_KEY")
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
+	}
+	region, err := getValue("AWS_DEFAULT_REGION")
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
+	}
+	endpointURL, err := getValue("AWS_S3_ENDPOINT") // not validated — mock only
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
+	}
+	bucket, err := getValue("AWS_S3_BUCKET")
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
 	}
 
 	creds := &S3Credentials{
-		AccessKeyID:     getValue("AWS_ACCESS_KEY_ID"),
-		SecretAccessKey: getValue("AWS_SECRET_ACCESS_KEY"),
-		Region:          getValue("AWS_DEFAULT_REGION"),
-		EndpointURL:     getValue("AWS_S3_ENDPOINT"), // not validated — mock only
-		Bucket:          getValue("AWS_S3_BUCKET"),
+		AccessKeyID:     accessKeyID,
+		SecretAccessKey: secretAccessKey,
+		Region:          region,
+		EndpointURL:     endpointURL,
+		Bucket:          bucket,
 	}
 
 	if creds.AccessKeyID == "" {
@@ -89,21 +98,19 @@ func (r *MockS3Repository) GetS3CredentialsFromDSPA(
 		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w", dspaStorage.SecretName, namespace, err)
 	}
 
-	getValue := func(targetKey string) string {
-		targetLower := strings.ToLower(targetKey)
-		for secretKey, secretValue := range secret.Data {
-			if strings.ToLower(secretKey) == targetLower {
-				return string(secretValue)
-			}
-		}
-		return ""
-	}
+	getValue := newSecretLookup(secret.Data)
 
-	accessKeyID := getValue(dspaStorage.AccessKeyField)
+	accessKeyID, err := getValue(dspaStorage.AccessKeyField)
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", dspaStorage.SecretName, err)
+	}
 	if accessKeyID == "" {
 		return nil, fmt.Errorf("secret '%s' missing required field: %s", dspaStorage.SecretName, dspaStorage.AccessKeyField)
 	}
-	secretAccessKey := getValue(dspaStorage.SecretKeyField)
+	secretAccessKey, err := getValue(dspaStorage.SecretKeyField)
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", dspaStorage.SecretName, err)
+	}
 	if secretAccessKey == "" {
 		return nil, fmt.Errorf("secret '%s' missing required field: %s", dspaStorage.SecretName, dspaStorage.SecretKeyField)
 	}

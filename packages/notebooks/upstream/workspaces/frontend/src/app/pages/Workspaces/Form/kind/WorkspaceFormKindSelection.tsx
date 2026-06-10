@@ -9,16 +9,18 @@ import { WorkspaceFormMode } from '~/app/types';
 
 interface WorkspaceFormKindSelectionProps {
   mode: WorkspaceFormMode;
+  namespace?: string;
   selectedKind: WorkspacekindsWorkspaceKind | undefined;
   onSelect: (kind: WorkspacekindsWorkspaceKind | undefined) => void;
 }
 
 const WorkspaceFormKindSelection: React.FunctionComponent<WorkspaceFormKindSelectionProps> = ({
   mode,
+  namespace,
   selectedKind,
   onSelect,
 }) => {
-  const [workspaceKinds, loaded, error] = useWorkspaceKinds();
+  const [workspaceKinds, loaded, error] = useWorkspaceKinds(namespace);
 
   if (error) {
     return <LoadError title="Failed to load workspace kinds" error={error} />;
@@ -29,7 +31,7 @@ const WorkspaceFormKindSelection: React.FunctionComponent<WorkspaceFormKindSelec
   }
 
   return (
-    <Content style={{ height: '100%' }}>
+    <Content className="workspace-form__full-height">
       <WorkspaceFormKindList
         allWorkspaceKinds={workspaceKinds}
         selectedKind={selectedKind}

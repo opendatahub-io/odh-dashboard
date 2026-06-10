@@ -75,10 +75,12 @@ export default function PromptTable({
   const isDrawerOpen = selectedRow !== null || isLoadingDetails;
 
   useEffect(() => {
-    if (selectedPromptVersions.length > 0 && selectedVersion === null) {
+    if (selectedPromptVersions.length > 0) {
       setSelectedVersion(selectedPromptVersions[0].version);
+    } else {
+      setSelectedVersion(null);
     }
-  }, [selectedPromptVersions, selectedVersion]);
+  }, [selectedPromptVersions]);
 
   useEffect(() => {
     if (error || listError) {
@@ -109,8 +111,9 @@ export default function PromptTable({
         >
           <Flex rowGap={{ default: 'rowGapXs' }}>
             <Button
+              data-testid="prompt-load-button"
               variant="primary"
-              disabled={selectedVersion === null || isLoadingDetails}
+              isDisabled={selectedVersion === null || isLoadingDetails}
               onClick={() => {
                 const prompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
                 if (prompt) {
@@ -126,7 +129,7 @@ export default function PromptTable({
                 'Load in Playground'
               )}
             </Button>
-            <Button variant="link" onClick={onClose}>
+            <Button data-testid="prompt-cancel-button" variant="link" onClick={onClose}>
               Cancel
             </Button>
           </Flex>
@@ -174,6 +177,7 @@ export default function PromptTable({
       <ToolbarContent>
         <ToolbarItem style={{ minWidth: '300px' }}>
           <SearchInput
+            data-testid="prompt-search-input"
             aria-label="Search prompts"
             placeholder="Find by name prefix"
             value={filterName}
@@ -196,13 +200,18 @@ export default function PromptTable({
 
   if (isLoadingList || isFetchingNextPage) {
     tableContent = (
-      <Flex justifyContent={{ default: 'justifyContentCenter' }} style={{ minHeight: '400px' }}>
+      <Flex
+        data-testid="prompt-table-loading"
+        justifyContent={{ default: 'justifyContentCenter' }}
+        style={{ minHeight: '400px' }}
+      >
         <Spinner aria-label="Loading prompts" />
       </Flex>
     );
   } else if (listError) {
     tableContent = (
       <EmptyState
+        data-testid="prompt-table-error-state"
         titleText="Unable to load prompts"
         icon={ExclamationCircleIcon}
         headingLevel="h4"
@@ -214,6 +223,7 @@ export default function PromptTable({
   } else if (thisPage.length === 0) {
     tableContent = (
       <EmptyState
+        data-testid="prompt-table-empty-state"
         titleText="No prompts found"
         icon={SearchIcon}
         headingLevel="h4"
@@ -237,7 +247,7 @@ export default function PromptTable({
       >
         <PageSection isFilled aria-label="Paginated table data" style={{ minHeight: '400px' }}>
           <InnerScrollContainer>
-            <Table variant="compact" aria-label="Paginated Table">
+            <Table variant="compact" aria-label="Paginated Table" data-testid="prompt-table">
               <Thead>
                 <Tr>
                   {columns.map((column, columnIndex) => (
@@ -249,6 +259,7 @@ export default function PromptTable({
                 {thisPage.map((row, rowIndex) => (
                   <Tr
                     key={rowIndex}
+                    data-testid={`prompt-table-row-${row.name}`}
                     isClickable
                     isRowSelected={selectedRow?.name === row.name}
                     onClick={() => handleRowClick(row)}

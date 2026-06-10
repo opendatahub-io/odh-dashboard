@@ -76,6 +76,9 @@ export enum ProjectObjectType {
   resources = 'resources',
   featureStore = 'feature-store',
   promptManagement = 'prompt-management',
+  mcpCatalog = 'mcp-catalog',
+  taskAssistant = 'task-assistant',
+  apiKeys = 'api-keys',
 }
 
 export const typedIconColor = (objectType: ProjectObjectType): string => {
@@ -128,6 +131,7 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.resources:
       return 'var(--ai-general--IconColor)';
     case ProjectObjectType.distributedWorkload:
+    case ProjectObjectType.mcpCatalog:
       return 'var(--ai-serving--IconColor)';
     case ProjectObjectType.clusterSettings:
     case ProjectObjectType.hardwareProfile:
@@ -136,6 +140,10 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-model-server--IconColor)';
     case ProjectObjectType.servingRuntime:
       return 'var(--ai-set-up--IconColor)';
+    case ProjectObjectType.taskAssistant:
+      return 'var(--ai-general--IconColor)';
+    case ProjectObjectType.apiKeys:
+      return 'var(--ai-organize--IconColor)';
     default:
       return '';
   }
@@ -194,12 +202,17 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.resources:
       return 'var(--ai-general--BackgroundColor)';
     case ProjectObjectType.distributedWorkload:
+    case ProjectObjectType.mcpCatalog:
       return 'var(--ai-serving--BackgroundColor)';
     case ProjectObjectType.clusterSettings:
     case ProjectObjectType.hardwareProfile:
       return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.servingRuntime:
       return 'var(--ai-set-up--BackgroundColor)';
+    case ProjectObjectType.taskAssistant:
+      return 'var(--ai-general--BackgroundColor)';
+    case ProjectObjectType.apiKeys:
+      return 'var(--ai-organize--BackgroundColor)';
     default:
       return '';
   }
@@ -244,6 +257,8 @@ export const typedColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-user--Color)';
     case ProjectObjectType.group:
       return 'var(--ai-group--Color)';
+    case ProjectObjectType.mcpCatalog:
+      return 'var(--ai-serving--Color)';
     default:
       return '';
   }
@@ -370,5 +385,22 @@ export const sectionTypeBorderColor = (sectionType: SectionType): string => {
       return 'var(--ai-general--BorderColor)';
     default:
       return '';
+  }
+};
+
+export const sectionTypeLabelColor = (
+  sectionType: SectionType,
+): 'orange' | 'teal' | 'purple' | 'grey' => {
+  switch (sectionType) {
+    case SectionType.setup:
+    case SectionType.organize:
+      return 'orange';
+    case SectionType.training:
+      return 'teal';
+    case SectionType.serving:
+      return 'purple';
+    case SectionType.general:
+    default:
+      return 'grey';
   }
 };

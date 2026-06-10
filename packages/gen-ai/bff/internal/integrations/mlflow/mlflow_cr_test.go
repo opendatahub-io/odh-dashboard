@@ -161,6 +161,127 @@ func TestParseAddressURL(t *testing.T) {
 	}
 }
 
+func TestParseExternalURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		obj     map[string]any
+		want    string
+		wantErr string
+	}{
+		{
+			name: "valid status.url",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"url": "https://rh-ai.apps.rosa.example.com/mlflow",
+				},
+			},
+			want: "https://rh-ai.apps.rosa.example.com/mlflow",
+		},
+		{
+			name: "missing status field",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+			},
+			wantErr: "has no status field",
+		},
+		{
+			name: "missing url field",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status":   map[string]any{},
+			},
+			wantErr: "has no status.url field",
+		},
+		{
+			name: "empty url string",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"url": "",
+				},
+			},
+			wantErr: "has empty status.url",
+		},
+		{
+			name: "whitespace-only url",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"url": "   ",
+				},
+			},
+			wantErr: "has empty status.url",
+		},
+		{
+			name: "url is not a string",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"url": 42,
+				},
+			},
+			wantErr: "has no status.url field",
+		},
+		{
+			name: "malformed url",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"url": "not-a-url",
+				},
+			},
+			wantErr: "has invalid status.url",
+		},
+		{
+			name: "url with unsupported scheme",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"url": "ftp://mlflow.example.com",
+				},
+			},
+			wantErr: "has invalid status.url",
+		},
+		{
+			name: "http url is valid",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"url": "http://mlflow.example.com/mlflow",
+				},
+			},
+			want: "http://mlflow.example.com/mlflow",
+		},
+		{
+			name: "url with embedded credentials",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"url": "https://user:pass@mlflow.example.com/mlflow",
+				},
+			},
+			wantErr: "must not include credentials",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			item := &unstructured.Unstructured{Object: tc.obj}
+			got, err := parseExternalURL(item)
+
+			if tc.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErr)
+				assert.Empty(t, got)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.want, got)
+			}
+		})
+	}
+}
+
 func TestMLflowGVR(t *testing.T) {
 	assert.Equal(t, "mlflow.opendatahub.io", MLflowGVR.Group)
 	assert.Equal(t, "v1", MLflowGVR.Version)

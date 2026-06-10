@@ -6,10 +6,16 @@ import {
   buildMockPipelineVersions,
   buildMockPipelines,
   buildMockRunKF,
+  mockDashboardConfig,
 } from '@odh-dashboard/internal/__mocks__';
 import type { PipelineRunKF } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
+import { DSPAMlflowIntegrationMode } from '@odh-dashboard/internal/k8sTypes';
 import { manageRunsPage, manageRunsTable } from '../../../../pages/pipelines/manageRuns';
 import { configIntercept, dspaIntercepts, projectsIntercept } from '../intercepts';
+import {
+  interceptDSPAMlflowIntegration,
+  interceptMlflowStatus,
+} from '../../../../utils/mlflowUtils';
 
 const projectName = 'test-project-name';
 const pipelineVersionId = 'test-version-id';
@@ -33,7 +39,7 @@ const mockRuns = Array(11)
 describe('Manage runs', () => {
   beforeEach(() => {
     initIntercepts();
-    manageRunsPage.visit(experimentId, projectName, initialRunIds);
+    manageRunsPage.visit(projectName, initialRunIds);
   });
 
   it('renders the project navigator link', () => {
@@ -64,25 +70,14 @@ describe('Manage runs', () => {
     manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Compare runs' }).click();
     cy.location('pathname').should(
       'equal',
-      `/develop-train/experiments/${projectName}/${experimentId}/compare-runs`,
+      `/develop-train/pipelines/runs/${projectName}/compare-runs`,
     );
     cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2');
   });
 
-  it('navigates to experiment runs page when the experiment name breadcrumb is clicked', () => {
-    manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Default' }).click();
-    cy.location('pathname').should(
-      'equal',
-      `/develop-train/experiments/${projectName}/${experimentId}/runs`,
-    );
-  });
-
-  it('navigates to experiment list page when the project name breadcrumb is clicked', () => {
-    manageRunsPage
-      .findBreadcrumb()
-      .findByRole('link', { name: 'Experiments in Test project' })
-      .click();
-    cy.location('pathname').should('equal', `/develop-train/experiments/${projectName}`);
+  it('navigates to runs page when the project breadcrumb is clicked', () => {
+    manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Runs in Test project' }).click();
+    cy.location('pathname').should('equal', `/develop-train/pipelines/runs/${projectName}`);
   });
 
   it('navigates to "Compare runs" page with updated run IDs when "Update" toolbar action is clicked', () => {
@@ -98,14 +93,79 @@ describe('Manage runs', () => {
     manageRunsTable.findUpdateButton().click();
     cy.location('pathname').should(
       'equal',
-      `/develop-train/experiments/${projectName}/${experimentId}/compare-runs`,
+      `/develop-train/pipelines/runs/${projectName}/compare-runs`,
     );
     cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2,test-run-3');
   });
+
+  describe('MLflow column visibility', () => {
+    it('hides the MLflow experiment column when MLflow is disabled', () => {
+      manageRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
+    });
+
+    it('shows the MLflow experiment column when MLflow is enabled', () => {
+      initIntercepts({
+        mlflow: { enabled: true, pipelinesIntegration: true, bffConfigured: true },
+      });
+      interceptDSPAMlflowIntegration(projectName);
+      manageRunsPage.visit(projectName, initialRunIds);
+
+      manageRunsTable.findColumnHeaders().should('contain', 'MLflow experiment');
+    });
+
+    it('hides the MLflow experiment column when mlflowPipelines is disabled', () => {
+      initIntercepts({
+        mlflow: { enabled: true, pipelinesIntegration: false },
+      });
+      manageRunsPage.visit(projectName, initialRunIds);
+
+      manageRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
+    });
+
+    it('hides the MLflow experiment column when BFF status is not configured', () => {
+      initIntercepts({
+        mlflow: { enabled: true, pipelinesIntegration: true, bffConfigured: false },
+      });
+      manageRunsPage.visit(projectName, initialRunIds);
+
+      manageRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
+    });
+
+    it('hides the MLflow experiment column when DSPA has MLflow integration disabled', () => {
+      initIntercepts({
+        mlflow: { enabled: true, pipelinesIntegration: true, bffConfigured: true },
+      });
+      interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
+      manageRunsPage.visit(projectName, initialRunIds);
+
+      manageRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
+    });
+  });
 });
 
-const initIntercepts = () => {
-  configIntercept();
+type MlflowInterceptOptions = {
+  enabled: boolean;
+  pipelinesIntegration?: boolean;
+  bffConfigured?: boolean;
+};
+
+const initIntercepts = (options: { mlflow?: MlflowInterceptOptions } = {}) => {
+  const { mlflow } = options;
+
+  if (mlflow?.enabled) {
+    const pipelinesIntegrationEnabled = mlflow.pipelinesIntegration !== false;
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        mlflowPipelines: pipelinesIntegrationEnabled,
+      }),
+    );
+    if (pipelinesIntegrationEnabled) {
+      interceptMlflowStatus(mlflow.bffConfigured ?? true);
+    }
+  } else {
+    configIntercept();
+  }
   dspaIntercepts(projectName);
   projectsIntercept([{ k8sName: projectName, displayName: 'Test project' }]);
   cy.interceptOdh(
@@ -130,9 +190,12 @@ const initIntercepts = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
-    { path: { namespace: projectName, serviceName: 'dspa', experimentId } },
-    buildMockExperimentKF({ experiment_id: experimentId }),
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
+    { path: { namespace: projectName, serviceName: 'dspa' } },
+    {
+      experiments: [buildMockExperimentKF({ experiment_id: experimentId })],
+      total_size: 1,
+    },
   );
 
   initialRunIds.forEach((selectedRunId) => {

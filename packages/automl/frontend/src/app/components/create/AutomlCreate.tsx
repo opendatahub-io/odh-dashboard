@@ -13,8 +13,10 @@ import { ConfigureSchema } from '~/app/schemas/configure.schema';
 function AutomlCreate(): React.JSX.Element {
   const form = useFormContext<ConfigureSchema>();
 
+  // Use a div instead of PF's <Form> to avoid nested <form> elements,
+  // since AutomlConfigurePage already renders <Stack component="form">.
   return (
-    <>
+    <div className="pf-v6-c-form pf-m-limit-width">
       <Controller
         control={form.control}
         name="display_name"
@@ -23,6 +25,7 @@ function AutomlCreate(): React.JSX.Element {
             <TextInput
               {...field}
               id={field.name}
+              data-testid="automl-name-input"
               type="text"
               isRequired
               validated={fieldState.invalid ? 'error' : undefined}
@@ -42,11 +45,11 @@ function AutomlCreate(): React.JSX.Element {
         name="description"
         render={({ field }) => (
           <FormGroup fieldId={field.name} label="Description">
-            <TextArea {...field} id={field.name} />
+            <TextArea {...field} id={field.name} data-testid="automl-description-input" />
           </FormGroup>
         )}
       />
-    </>
+    </div>
   );
 }
 

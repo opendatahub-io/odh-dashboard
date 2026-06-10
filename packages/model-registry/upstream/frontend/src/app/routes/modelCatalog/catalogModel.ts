@@ -2,7 +2,7 @@ import { ModelDetailsTab } from '~/concepts/modelCatalog/const';
 import { getCatalogModelDetailsRoute } from '~/app/routes/modelCatalog/catalogModelDetails';
 
 export const modelCatalogUrl = (sourceId?: string): string =>
-  `/ai-hub/catalog${sourceId ? `/${sourceId}` : ''}`;
+  `/ai-hub/models/catalog${sourceId ? `/${sourceId}` : ''}`;
 
 export const catalogModelDetailsFromModel = (catalogModelName = '', sourceId = ''): string =>
   getCatalogModelDetailsRoute({ sourceId, modelName: catalogModelName });

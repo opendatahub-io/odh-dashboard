@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 )
@@ -45,6 +46,40 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) guardrailViolationResponse(w http.ResponseWriter, r *http.Request, code string, msg string) {
+	frontendErr := &integrations.FrontendErrorResponse{
+		StatusCode: http.StatusBadRequest,
+		Error: &integrations.ErrorDetail{
+			Component: "guardrails",
+			Code:      code,
+			Message:   msg,
+			Retriable: false,
+		},
+	}
+	if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {
+		app.LogError(r, writeErr)
+		w.WriteHeader(frontendErr.StatusCode)
+	}
+}
+
+func (app *App) guardrailServiceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.LogError(r, err)
+
+	frontendErr := &integrations.FrontendErrorResponse{
+		StatusCode: http.StatusServiceUnavailable,
+		Error: &integrations.ErrorDetail{
+			Component: "guardrails",
+			Code:      constants.GuardrailServiceUnavailableCode,
+			Message:   err.Error(),
+			Retriable: false,
+		},
+	}
+	if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {
+		app.LogError(r, writeErr)
+		w.WriteHeader(frontendErr.StatusCode)
+	}
+}
+
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusUnauthorized,
@@ -56,9 +91,6 @@ func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err
 	app.errorResponse(w, r, httpError)
 }
 
-// TODO: remove nolint comment below when we use this method
-//
-//nolint:unused
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusForbidden,
@@ -91,6 +123,32 @@ func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, error *int
 		app.LogError(r, err)
 		w.WriteHeader(error.StatusCode)
 	}
+}
+
+func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.LogError(r, err)
+
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    constants.GuardrailServiceUnavailableCode,
+			Message: err.Error(),
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) payloadTooLargeResponse(w http.ResponseWriter, r *http.Request, limit int64) {
+	limitMB := float64(limit) / (1 << 20)
+	app.LogError(r, fmt.Errorf("request body exceeds the %.0fMB limit", limitMB))
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusRequestEntityTooLarge,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusRequestEntityTooLarge),
+			Message: fmt.Sprintf("request body exceeds the %.0fMB limit", limitMB),
+		},
+	}
+	app.errorResponse(w, r, httpError)
 }
 
 func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err error) {

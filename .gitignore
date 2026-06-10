@@ -39,6 +39,7 @@ contract-test-results
 # Claude
 CLAUDE.md
 .claude/settings.local.json
+.claude/mlflow/
 
 # Playwright MCP
 .playwright-mcp/
@@ -88,6 +89,15 @@ public-cypress/
 # Package manager caches
 .npm/
 vendor/
+
+# Agent worktrees
+.claude/worktrees/
+
+# Shared specs for cross-worktree context
+.claude/local-specs/
+
+# Triage artifacts
+.artifacts/
 
 # AgentReady reports
 .agentready/

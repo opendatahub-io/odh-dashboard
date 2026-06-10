@@ -30,8 +30,8 @@ jest.mock('~/app/topology/PipelineTopology', () => ({
   ),
 }));
 
-jest.mock('~/app/topology/useAutoRAGTaskTopology', () => ({
-  useAutoRAGTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
+jest.mock('~/app/topology/useAutoragTaskTopology', () => ({
+  useAutoragTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
 }));
 
 jest.mock('~/app/components/run-results/AutoragLeaderboard', () => ({
@@ -151,7 +151,7 @@ describe('AutoragResults', () => {
     expect(topology).toHaveClass('autorag-topology-container');
   });
 
-  it('should pass nodes from useAutoRAGTaskTopology to PipelineTopology', () => {
+  it('should pass nodes from useAutoragTaskTopology to PipelineTopology', () => {
     renderWithContext();
     const topology = screen.getByTestId('pipeline-topology');
     expect(topology).toHaveAttribute('data-node-count', '2');
@@ -330,6 +330,46 @@ describe('AutoragResults', () => {
       });
 
       expect(screen.getByText('An unknown error occurred', { exact: false })).toBeInTheDocument();
+    });
+  });
+
+  describe('run state label', () => {
+    it('should show Canceled label when run state is CANCELED', () => {
+      const canceledRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'CANCELED',
+      };
+      renderWithContext({ pipelineRun: canceledRun });
+
+      expect(screen.getByTestId('run-status-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-status-label')).toHaveTextContent('CANCELED');
+    });
+
+    it('should show Failed label when run state is FAILED', () => {
+      const failedRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'FAILED',
+      };
+      renderWithContext({ pipelineRun: failedRun });
+
+      expect(screen.getByTestId('run-status-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-status-label')).toHaveTextContent('FAILED');
+    });
+
+    it('should not show state label when run state is SUCCEEDED', () => {
+      renderWithContext();
+
+      expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
+    });
+
+    it('should not show state label when run state is RUNNING', () => {
+      const runningRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'RUNNING',
+      };
+      renderWithContext({ pipelineRun: runningRun });
+
+      expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
     });
   });
 });

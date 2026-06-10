@@ -8,7 +8,7 @@
  * - formatValidationMessage(): Returns formatted message with url's successful or failed validation result
  */
 
-import { getErrorType } from './urlValidator';
+import { getErrorType, VALID_STATUS_CODES } from './urlValidator';
 
 export interface UrlLocation {
   url: string;
@@ -27,7 +27,8 @@ export interface UrlValidationResultWithLocation extends UrlValidationResult {
   location?: UrlLocation;
 }
 
-export const VALID_STATUS_CODES = new Set([200, 201, 202, 204]);
+// Re-export VALID_STATUS_CODES from urlValidator for convenience
+export { VALID_STATUS_CODES };
 
 const formatUrlLocation = (urlLocation: UrlLocation): string => {
   const { url, line } = urlLocation;

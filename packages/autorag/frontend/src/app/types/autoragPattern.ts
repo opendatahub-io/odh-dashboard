@@ -1,3 +1,5 @@
+import type React from 'react';
+
 export type AutoragPatternScoreMetric = {
   mean: number;
   ci_low: number | null;
@@ -5,6 +7,10 @@ export type AutoragPatternScoreMetric = {
 };
 
 export type AutoragPatternScores = Partial<Record<string, AutoragPatternScoreMetric>>;
+
+import type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
+
+export type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
 export type AutoragPatternSettings = {
   vector_store: {
@@ -40,6 +46,7 @@ export type AutoragPatternSettings = {
     user_message_text: string;
     system_message_text: string;
   };
+  responses_template?: ResponsesTemplate;
 };
 
 export type AutoragPattern = {
@@ -70,4 +77,37 @@ export type AutoRAGEvaluationResult = {
   answer: string;
   answer_contexts: AutoRAGEvaluationAnswerContext[];
   scores: AutoRAGEvaluationScores;
+};
+
+export type ScoreType = 'mean' | 'ci_high' | 'ci_low';
+
+/**
+ * Bundled pattern data passed to tab components in the pattern details modal.
+ */
+export type PatternDataBundle = {
+  pattern: AutoragPattern;
+  rank: number;
+  evaluationResults?: AutoRAGEvaluationResult[];
+  isEvaluationLoading: boolean;
+};
+
+/**
+ * Props passed to every tab component in the pattern details modal.
+ */
+export type TabContentProps = {
+  primaryPattern: PatternDataBundle;
+  comparisonPattern: PatternDataBundle | null;
+  optimizedMetric?: string;
+  scoreType: ScoreType;
+  onScoreTypeChange?: (type: ScoreType) => void;
+  onChangeComparisonPattern?: () => void;
+};
+
+/**
+ * Definition for a single tab in the pattern details modal sidebar.
+ */
+export type TabDefinition = {
+  key: string;
+  label: string;
+  component: React.ComponentType<TabContentProps>;
 };

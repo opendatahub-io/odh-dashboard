@@ -5,19 +5,24 @@ import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/
 import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
 import { resolveFieldValue, type WizardField, type WizardFormData } from './types';
-import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
+import {
+  modelSourceStepBaseSchema,
+  modelSourceStepRefinement,
+  type ModelSourceStepData,
+} from './steps/ModelSourceStep';
 import { externalRouteFieldSchema } from './fields/ExternalRouteField';
 import { tokenAuthenticationFieldSchema } from './fields/TokenAuthenticationField';
 import { numReplicasFieldSchema } from './fields/NumReplicasField';
 import { runtimeArgsFieldSchema } from './fields/RuntimeArgsField';
 import { environmentVariablesFieldSchema } from './fields/EnvironmentVariablesField';
-import { modelServerSelectFieldSchema } from './fields/ModelServerTemplateSelectField';
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { isValidProjectName } from './fields/ProjectSection';
+import { getStateKey } from './dynamicFormUtils';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   hardwareProfile: ReturnType<typeof useValidation>;
+  isPreconfigureStepValid: boolean;
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
   isAdvancedSettingsStepValid: boolean;
@@ -27,20 +32,33 @@ export type ModelDeploymentWizardValidation = {
 export const useModelDeploymentWizardValidation = (
   state: WizardFormData['state'],
   fields: WizardField<unknown>[] = [],
+  shouldShowPreconfigureStep = false,
 ): ModelDeploymentWizardValidation => {
   // Step 1: Model Source
-  const modelSourceStepValidationData: Partial<ModelSourceStepData> = React.useMemo(
-    () => ({
-      modelType: state.modelType.data,
-      modelLocationData: state.modelLocationData.data,
-      createConnectionData: state.createConnectionData.data,
-    }),
-    [state.modelType, state.modelLocationData.data, state.createConnectionData.data],
-  );
+  const step1Fields = fields.filter((field) => field.step === 'modelSource');
+
+  const modelSourceStepValidationData: Partial<ModelSourceStepData> = {
+    modelType: state.modelType.data,
+    modelLocationData: state.modelLocationData.data,
+    createConnectionData: state.createConnectionData.data,
+    ...step1Fields.reduce<Record<string, unknown>>((acc, field) => {
+      acc[field.id] = resolveFieldValue(field, state);
+      return acc;
+    }, {}),
+  };
 
   const modelSourceStepValidation = useZodFormValidation(
     modelSourceStepValidationData,
-    modelSourceStepSchema,
+    modelSourceStepBaseSchema
+      .extend(
+        step1Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
+          if (field.reducerFunctions.validationSchema) {
+            acc[field.id] = field.reducerFunctions.validationSchema;
+          }
+          return acc;
+        }, {}),
+      )
+      .superRefine(modelSourceStepRefinement),
   );
 
   // Step 2: Model Deployment
@@ -52,21 +70,21 @@ export const useModelDeploymentWizardValidation = (
   );
   const modelDeploymentStepValidation = useZodFormValidation(
     {
-      modelServer: state.modelServer.data,
-      modelFormatState: state.modelFormatState.modelFormat,
-      numReplicas: state.numReplicas.data,
+      numReplicas: state.numReplicas.data ?? 0,
+      ...(state.modelFormatState.isVisible && {
+        modelFormatState: state.modelFormatState.modelFormat,
+      }),
       ...step2Fields.reduce<Record<string, unknown>>((acc, field) => {
-        acc[field.id] = state[field.id];
+        acc[getStateKey(field)] = resolveFieldValue(field, state);
         return acc;
       }, {}),
     },
     z.object({
-      modelServer: modelServerSelectFieldSchema,
-      modelFormatState: modelFormatFieldSchema,
       numReplicas: numReplicasFieldSchema,
+      ...(state.modelFormatState.isVisible && { modelFormatState: modelFormatFieldSchema }),
       ...step2Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
         if (field.reducerFunctions.validationSchema) {
-          acc[field.id] = field.reducerFunctions.validationSchema;
+          acc[getStateKey(field)] = field.reducerFunctions.validationSchema;
         }
         return acc;
       }, {}),
@@ -82,7 +100,7 @@ export const useModelDeploymentWizardValidation = (
       runtimeArgs: state.runtimeArgs.data,
       environmentVariables: state.environmentVariables.data,
       ...step3Fields.reduce<Record<string, unknown>>((acc, field) => {
-        acc[field.id] = resolveFieldValue(field, state);
+        acc[getStateKey(field)] = resolveFieldValue(field, state);
         return acc;
       }, {}),
     },
@@ -93,7 +111,7 @@ export const useModelDeploymentWizardValidation = (
       environmentVariables: environmentVariablesFieldSchema,
       ...step3Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
         if (field.reducerFunctions.validationSchema) {
-          acc[field.id] = field.reducerFunctions.validationSchema;
+          acc[getStateKey(field)] = field.reducerFunctions.validationSchema;
         }
         return acc;
       }, {}),
@@ -101,6 +119,9 @@ export const useModelDeploymentWizardValidation = (
   );
 
   // Step validation
+  const isPreconfigureStepValid =
+    !shouldShowPreconfigureStep ||
+    isValidProjectName(state.project.initialProjectName ?? state.project.projectName ?? undefined);
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
   const isModelDeploymentStepValid =
@@ -114,13 +135,17 @@ export const useModelDeploymentWizardValidation = (
     advancedOptionsValidation.getFieldValidation(undefined, true).length === 0;
 
   const isAllValid =
-    isModelSourceStepValid && isModelDeploymentStepValid && isAdvancedSettingsStepValid;
+    isPreconfigureStepValid &&
+    isModelSourceStepValid &&
+    isModelDeploymentStepValid &&
+    isAdvancedSettingsStepValid;
 
   return React.useMemo(
     () => ({
       modelSource: modelSourceStepValidation,
       hardwareProfile: hardwareProfileValidation,
       modelDeploymentStepValidation,
+      isPreconfigureStepValid,
       isModelSourceStepValid,
       isModelDeploymentStepValid,
       isAdvancedSettingsStepValid,
@@ -130,6 +155,7 @@ export const useModelDeploymentWizardValidation = (
       modelSourceStepValidation,
       hardwareProfileValidation,
       modelDeploymentStepValidation,
+      isPreconfigureStepValid,
       isModelSourceStepValid,
       isModelDeploymentStepValid,
       isAdvancedSettingsStepValid,

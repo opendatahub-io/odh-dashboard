@@ -35,6 +35,15 @@ jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView', 
   default: () => <div data-testid="empty-view">Empty</div>,
 }));
 
+jest.mock('~/app/hooks/useAutoragRunActions', () => ({
+  useAutoragRunActions: () => ({
+    handleRetry: jest.fn(),
+    handleConfirmStop: jest.fn(),
+    isRetrying: false,
+    isTerminating: false,
+  }),
+}));
+
 const mockRuns: PipelineRun[] = [
   {
     run_id: 'r1',
@@ -122,7 +131,7 @@ describe('AutoragRunsTable', () => {
     expect(screen.getByTestId('empty-view')).toHaveTextContent('Empty');
   });
 
-  it('should render Started column with relative time', () => {
+  it('should render Started column with timestamps', () => {
     render(
       <MemoryRouter>
         <AutoragRunsTable
@@ -137,8 +146,12 @@ describe('AutoragRunsTable', () => {
       </MemoryRouter>,
     );
 
-    // The mock relativeTime function returns '1 day ago'
-    const relativeTimeElements = screen.getAllByText('1 day ago');
-    expect(relativeTimeElements.length).toBeGreaterThan(0);
+    // Verify timestamps are rendered with correct datetime attributes
+    const timestamps = screen.getAllByRole('time');
+    expect(timestamps).toHaveLength(2);
+
+    // Verify the datetime attributes match the mock data
+    expect(timestamps[0]).toHaveAttribute('datetime', '2025-01-17T00:00:00.000Z');
+    expect(timestamps[1]).toHaveAttribute('datetime', '2025-01-16T00:00:00.000Z');
   });
 });

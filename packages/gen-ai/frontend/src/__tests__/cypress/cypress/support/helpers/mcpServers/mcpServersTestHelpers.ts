@@ -129,6 +129,9 @@ export const setupBaseMCPServerMocks = (
   }
 
   cy.interceptGenAi('GET /api/v1/maas/models', { query: { namespace } }, mockEmptyList());
+
+  // Mock user endpoint to prevent k8s client errors in test environment
+  cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
 };
 
 export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
@@ -137,13 +140,15 @@ export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
   });
 };
 
+type MCPServerStatus = 'healthy' | 'error' | 'unknown';
+
 type InitInterceptsOptions = {
   config: MCPTestConfig;
   namespace: string;
   serverName: string;
   serverUrl?: string;
-  serverStatus?: string;
-  servers?: Array<{ name: string; status: string }>;
+  serverStatus?: MCPServerStatus;
+  servers?: Array<{ name: string; status: MCPServerStatus }>;
   withStatusInterceptor?: { token: string; serverUrl: string };
   withToolsInterceptor?: { token: string; serverUrl: string };
   withStatusError?: { errorType: '400' | '401'; serverUrl: string };
@@ -154,7 +159,7 @@ export const initIntercepts = ({
   namespace,
   serverName,
   serverUrl,
-  serverStatus = 'Token required',
+  serverStatus = 'unknown',
   servers,
   withStatusInterceptor,
   withToolsInterceptor,
@@ -216,15 +221,12 @@ export const initAutoConnectIntercepts = ({
   const mcpServers = [
     mockMCPServer({
       name: serverName,
-      status: 'Active',
+      status: 'healthy',
       url: serverUrl,
     }),
   ];
 
   cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers(mcpServers));
-
-  // Mock user endpoint to prevent k8s client errors in test environment
-  cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
 
   // Mock auto-connect status and tools
   mockMCPStatusAutoConnect(serverUrl);
@@ -272,15 +274,12 @@ export const initHighToolsCountIntercepts = ({
   const mcpServers = [
     mockMCPServer({
       name: serverName,
-      status: 'Active',
+      status: 'healthy',
       url: serverUrl,
     }),
   ];
 
   cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers(mcpServers));
-
-  // Mock user endpoint to prevent k8s client errors in test environment
-  cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
 
   // Mock auto-connect status and tools with high count
   mockMCPStatusAutoConnect(serverUrl);

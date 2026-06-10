@@ -1374,3 +1374,108 @@ curl -i -X DELETE -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost
 - **MCP Mock Data:** `internal/integrations/mcp/mcpmocks/`
 - **MaaS Mock Data:** `internal/integrations/maas/maasmocks/`
 - **MLflow Mock Data:** `internal/integrations/mlflow/mlflowmocks/` (connects to local MLflow on port 5001)
+- **BFF Client Mock Data:** `internal/integrations/bffclient/bffmocks/`
+
+## Local ASR (Audio Transcription) Development
+
+The audio transcription feature requires an ASR model (e.g., Whisper) that the BFF calls directly. In-cluster, this model is accessed via its KServe InferenceService internal endpoint (`*.svc.cluster.local`), which is unreachable from a developer's laptop.
+
+The `ASR_MODEL_URL` environment variable overrides the model endpoint for local development. Model validation (exists in K8s, correct modality label, running status) still runs — only the HTTP target URL is swapped.
+
+### Proxy Service Requirement
+
+KServe InferenceServices create **headless** services (`clusterIP: None`). The `oc port-forward svc/<name>` command does not reliably translate service port to targetPort for headless services on OpenShift. To work around this, create a regular ClusterIP Service in the same namespace that selects the same pods as the ASR model, exposing port 8080 (the vLLM container port).
+
+The proxy service selector must match the KServe pods. The selector pattern is `app: isvc.<model-name>-predictor`. For example, for a model named `whisper-large-v3-turbo`, the selector would be `app: isvc.whisper-large-v3-turbo-predictor`.
+
+Once the proxy service exists, set `ASR_SERVICE_NAME` to its name in your `.env.local`.
+
+### Setup
+
+```bash
+# In .env.local:
+ASR_MODEL_URL=http://localhost:8790
+ASR_SERVICE_NAME=<your-proxy-service-name>
+ASR_LOCAL_PORT=8790
+
+# Then run (port-forward is automatic when ASR_SERVICE_NAME is set):
+make dev-start
+```
+
+Or manually:
+
+```bash
+oc port-forward -n <namespace> svc/<your-proxy-service-name> 8790:8080 &
+ASR_MODEL_URL=http://localhost:8790 make dev-bff
+```
+
+### Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `ASR_MODEL_URL` | Override ASR model endpoint (bypasses KServe internal URL) | empty (uses K8s-discovered endpoint) |
+| `ASR_SERVICE_NAME` | Proxy service name for `make dev-portforward` | empty (skips ASR port-forward) |
+| `ASR_LOCAL_PORT` | Local port for ASR port-forward | `8790` |
+
+## Inter-BFF Communication (Gen-AI → MaaS)
+
+> **General Documentation**: For architecture overview, implementation patterns, and how to add inter-BFF to other modules, see [Inter-BFF Communication Guide](../../../docs/inter-bff-communication.md).
+
+The Gen-AI BFF calls the MaaS BFF for token management in Playground sessions.
+
+### Quick Start
+
+**Run with MaaS BFF locally:**
+
+```bash
+# Terminal 1: Start MaaS BFF
+cd packages/maas/bff && go run cmd/main.go --port=4000
+
+# Terminal 2: Start Gen-AI BFF with dev override
+cd packages/gen-ai/bff
+BFF_MAAS_DEV_URL=http://localhost:4000/api/v1 go run cmd/main.go --port=8080
+```
+
+**Run with mock BFF clients:**
+
+```bash
+cd packages/gen-ai/bff
+MOCK_BFF_CLIENTS=true go run cmd/main.go --port=8080
+```
+
+### Gen-AI Specific Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MOCK_BFF_CLIENTS` | Enable mock BFF clients | `false` |
+| `BFF_MAAS_DEV_URL` | Dev override URL | - |
+| `BFF_MAAS_SERVICE_NAME` | K8s service name | `odh-dashboard` |
+| `BFF_MAAS_SERVICE_PORT` | MaaS BFF port | `8243` |
+| `BFF_MAAS_TLS_ENABLED` | Enable HTTPS | `false` (local) / `true` (prod) |
+| `BFF_MAAS_AUTH_METHOD` | Auth method | `user_token` |
+| `BFF_MAAS_AUTH_TOKEN_HEADER` | Token header | `x-forwarded-access-token` |
+| `BFF_MAAS_AUTH_TOKEN_PREFIX` | Token prefix | `` (empty) |
+
+### Inter-BFF Endpoints
+
+**Issue Token via MaaS BFF:**
+
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8080/gen-ai/api/v1/bff/maas/tokens"
+```
+
+**Revoke All Tokens:**
+
+```bash
+curl -X DELETE -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8080/gen-ai/api/v1/bff/maas/tokens"
+```
+
+### Implementation Files
+
+| File | Purpose |
+|------|---------|
+| `internal/integrations/bffclient/` | Reusable BFF client package |
+| `internal/api/bff_maas_tokens_handler.go` | Token endpoints via MaaS BFF |
+| `internal/api/middleware.go` | `AttachBFFMaaSClient` middleware |

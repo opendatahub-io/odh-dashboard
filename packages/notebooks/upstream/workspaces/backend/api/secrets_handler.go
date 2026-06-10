@@ -22,9 +22,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
@@ -37,10 +35,10 @@ type SecretEnvelope Envelope[*models.SecretUpdate]
 type SecretListEnvelope Envelope[[]models.SecretListItem]
 type SecretCreateEnvelope Envelope[*models.SecretCreate]
 
-// GetSecretsByNamespaceHandler returns a list of all secrets in a namespace.
+// GetSecretsByNamespaceHandler returns a list of secrets in a specific namespace.
 //
-//	@Summary		Returns a list of all secrets in a namespace
-//	@Description	Provides a list of all secrets that the user has access to in the specified namespace
+//	@Summary		List secrets by namespace
+//	@Description	Returns a list of secrets in a specific namespace.
 //	@Tags			secrets
 //	@ID				listSecrets
 //	@Produce		application/json
@@ -51,7 +49,7 @@ type SecretCreateEnvelope Envelope[*models.SecretCreate]
 //	@Failure		422			{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error"
 //	@Router			/secrets/{namespace} [get]
-func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
 	namespace := ps.ByName(NamespacePathParam)
 
 	var valErrs field.ErrorList
@@ -64,14 +62,7 @@ func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Reques
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbList,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbList, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -90,8 +81,8 @@ func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Reques
 
 // GetSecretHandler returns a specific secret by name and namespace.
 //
-//	@Summary		Returns a specific secret
-//	@Description	Provides details of a specific secret by name and namespace
+//	@Summary		Get secret
+//	@Description	Returns the current state of a specific secret identified by namespace and name. This endpoint is intended for retrieving the secret state before updating it.
 //	@Tags			secrets
 //	@ID				getSecret
 //	@Produce		application/json
@@ -119,15 +110,7 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbGet,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      secretName,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbGet, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -149,10 +132,10 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	a.dataResponse(w, r, responseEnvelope)
 }
 
-// CreateSecretHandler creates a new secret.
+// CreateSecretHandler creates a new secret in the specified namespace.
 //
-//	@Summary		Creates a new secret
-//	@Description	Creates a new secret in the specified namespace
+//	@Summary		Create secret
+//	@Description	Creates a new secret in the specified namespace.
 //	@Tags			secrets
 //	@ID				createSecret
 //	@Accept			json
@@ -221,15 +204,7 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbCreate,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      secretCreate.Name,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbCreate, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretCreate.Name}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -258,8 +233,8 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 // UpdateSecretHandler updates an existing secret.
 //
-//	@Summary		Updates an existing secret
-//	@Description	Updates an existing secret in the specified namespace
+//	@Summary		Update secret
+//	@Description	Updates an existing secret.
 //	@Tags			secrets
 //	@ID				updateSecret
 //	@Accept			json
@@ -292,15 +267,7 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbUpdate,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      secretName,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbUpdate, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -360,10 +327,10 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	a.dataResponse(w, r, responseEnvelope)
 }
 
-// DeleteSecretHandler deletes a secret.
+// DeleteSecretHandler deletes a specific secret by namespace and name.
 //
-//	@Summary		Deletes a secret
-//	@Description	Deletes a secret from the specified namespace
+//	@Summary		Delete secret
+//	@Description	Deletes a specific secret identified by namespace and name.
 //	@Tags			secrets
 //	@ID				deleteSecret
 //	@Accept			json
@@ -375,7 +342,7 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Failure		404			{object}	ErrorEnvelope	"Secret not found"
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [delete]
-func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
 	namespace := ps.ByName(NamespacePathParam)
 	secretName := ps.ByName(ResourceNamePathParam)
 
@@ -390,15 +357,7 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbDelete,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      secretName,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbDelete, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return

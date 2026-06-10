@@ -6,7 +6,7 @@ import { SecretListItem } from '~/app/types';
 import {
   mockSecretListItem,
   mockStorageSecret,
-  mockLLSSecret,
+  mockOGXSecret,
 } from '~/__mocks__/mockSecretListItem';
 import SecretSelector from '~/app/components/common/SecretSelector';
 
@@ -51,7 +51,7 @@ describe('SecretSelector', () => {
     const mockSecrets: SecretListItem[] = [
       mockStorageSecret({ uuid: '1', name: 'aws-secret-1' }),
       mockStorageSecret({ uuid: '2', name: 'aws-secret-2' }),
-      mockLLSSecret({ uuid: '3', name: 'lls-secret-1' }),
+      mockOGXSecret({ uuid: '3', name: 'ogx-secret-1' }),
     ];
 
     it('should render dropdown with secrets when loaded', () => {
@@ -159,7 +159,7 @@ describe('SecretSelector', () => {
       // Should show all three secrets
       expect(screen.getByText('aws-secret-1')).toBeInTheDocument();
       expect(screen.getByText('aws-secret-2')).toBeInTheDocument();
-      expect(screen.getByText('lls-secret-1')).toBeInTheDocument();
+      expect(screen.getByText('ogx-secret-1')).toBeInTheDocument();
     });
 
     it('should not display type labels by default', () => {
@@ -178,7 +178,7 @@ describe('SecretSelector', () => {
 
       // Type labels should NOT be visible when showType is not provided
       expect(screen.queryByText('Type: s3')).not.toBeInTheDocument();
-      expect(screen.queryByText('Type: lls')).not.toBeInTheDocument();
+      expect(screen.queryByText('Type: ogx')).not.toBeInTheDocument();
     });
 
     it('should not display type labels when showType is false', () => {
@@ -198,7 +198,7 @@ describe('SecretSelector', () => {
 
       // Type labels should NOT be visible
       expect(screen.queryByText('Type: s3')).not.toBeInTheDocument();
-      expect(screen.queryByText('Type: lls')).not.toBeInTheDocument();
+      expect(screen.queryByText('Type: ogx')).not.toBeInTheDocument();
     });
 
     it('should display secret type as description', () => {
@@ -218,7 +218,7 @@ describe('SecretSelector', () => {
 
       // Type descriptions should be visible
       expect(screen.getAllByText('Type: s3')).toHaveLength(2);
-      expect(screen.getByText('Type: lls')).toBeInTheDocument();
+      expect(screen.getByText('Type: ogx')).toBeInTheDocument();
     });
 
     it('should not display descriptions by default', () => {
@@ -228,10 +228,10 @@ describe('SecretSelector', () => {
           name: 'aws-secret-1',
           description: 'AWS S3 storage credentials',
         }),
-        mockLLSSecret({
+        mockOGXSecret({
           uuid: '2',
-          name: 'lls-secret-1',
-          description: 'LLS API credentials',
+          name: 'ogx-secret-1',
+          description: 'OGX API credentials',
         }),
       ];
       mockUseFetchState.mockReturnValue([secretsWithDesc, true, undefined, mockRefresh]);
@@ -249,7 +249,7 @@ describe('SecretSelector', () => {
 
       // Descriptions should NOT be visible when showDescription is not provided
       expect(screen.queryByText('AWS S3 storage credentials')).not.toBeInTheDocument();
-      expect(screen.queryByText('LLS API credentials')).not.toBeInTheDocument();
+      expect(screen.queryByText('OGX API credentials')).not.toBeInTheDocument();
     });
 
     it('should not display descriptions when showDescription is false', () => {
@@ -259,10 +259,10 @@ describe('SecretSelector', () => {
           name: 'aws-secret-1',
           description: 'AWS S3 storage credentials',
         }),
-        mockLLSSecret({
+        mockOGXSecret({
           uuid: '2',
-          name: 'lls-secret-1',
-          description: 'LLS API credentials',
+          name: 'ogx-secret-1',
+          description: 'OGX API credentials',
         }),
       ];
       mockUseFetchState.mockReturnValue([secretsWithDesc, true, undefined, mockRefresh]);
@@ -281,7 +281,7 @@ describe('SecretSelector', () => {
 
       // Descriptions should NOT be visible
       expect(screen.queryByText('AWS S3 storage credentials')).not.toBeInTheDocument();
-      expect(screen.queryByText('LLS API credentials')).not.toBeInTheDocument();
+      expect(screen.queryByText('OGX API credentials')).not.toBeInTheDocument();
     });
 
     it('should call onChange with uuid and name when secret is selected', () => {
@@ -304,10 +304,10 @@ describe('SecretSelector', () => {
         name: 'aws-secret-2',
         type: 's3',
         data: {
-          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
-          aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
-          aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
-          aws_s3_endpoint: '[REDACTED]', // eslint-disable-line camelcase
+          AWS_ACCESS_KEY_ID: '[REDACTED]',
+          AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+          AWS_DEFAULT_REGION: '[REDACTED]',
+          AWS_S3_ENDPOINT: '[REDACTED]',
         },
         invalid: false,
       });
@@ -554,7 +554,7 @@ describe('SecretSelector', () => {
       rerender(
         <SecretSelector
           namespace={defaultNamespace}
-          type="lls"
+          type="ogx"
           value={undefined}
           onChange={mockOnChange}
           dataTestId="test-selector"
@@ -650,9 +650,9 @@ describe('SecretSelector', () => {
           uuid: '1',
           name: 'incomplete-secret',
           data: {
-            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
-            aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
-            aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
+            AWS_ACCESS_KEY_ID: '[REDACTED]',
+            AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+            AWS_DEFAULT_REGION: '[REDACTED]',
           },
         }),
       ];
@@ -663,7 +663,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
           dataTestId="test-selector"
         />,
       );
@@ -673,7 +673,7 @@ describe('SecretSelector', () => {
 
       // Should show error message for missing key
       expect(
-        screen.getByText('Required key "aws_s3_bucket" is not set in this secret'),
+        screen.getByText('Required key "AWS_S3_BUCKET" is not set in this secret'),
       ).toBeInTheDocument();
 
       // onChange should be called with selection marked as invalid
@@ -682,9 +682,9 @@ describe('SecretSelector', () => {
         name: 'incomplete-secret',
         type: 's3',
         data: {
-          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
-          aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
-          aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
+          AWS_ACCESS_KEY_ID: '[REDACTED]',
+          AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+          AWS_DEFAULT_REGION: '[REDACTED]',
         },
         invalid: true,
       });
@@ -696,8 +696,8 @@ describe('SecretSelector', () => {
           uuid: '1',
           name: 'incomplete-secret',
           data: {
-            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
-            aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+            AWS_ACCESS_KEY_ID: '[REDACTED]',
+            AWS_SECRET_ACCESS_KEY: '[REDACTED]',
           },
         }),
       ];
@@ -708,7 +708,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          additionalRequiredKeys={{ s3: ['aws_s3_bucket', 'aws_default_region'] }}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'] }}
           dataTestId="test-selector"
         />,
       );
@@ -719,7 +719,7 @@ describe('SecretSelector', () => {
       // Should show error message for all missing keys
       expect(
         screen.getByText(
-          'Required keys "aws_s3_bucket", "aws_default_region" are not set in this secret',
+          'Required keys "AWS_S3_BUCKET", "AWS_DEFAULT_REGION" are not set in this secret',
         ),
       ).toBeInTheDocument();
 
@@ -729,8 +729,8 @@ describe('SecretSelector', () => {
         name: 'incomplete-secret',
         type: 's3',
         data: {
-          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
-          aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+          AWS_ACCESS_KEY_ID: '[REDACTED]',
+          AWS_SECRET_ACCESS_KEY: '[REDACTED]',
         },
         invalid: true,
       });
@@ -742,8 +742,8 @@ describe('SecretSelector', () => {
           uuid: '1',
           name: 'incomplete-secret',
           data: {
-            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
-            aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
+            AWS_ACCESS_KEY_ID: '[REDACTED]',
+            AWS_SECRET_ACCESS_KEY: '[REDACTED]',
           },
         }),
       ];
@@ -754,7 +754,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
           dataTestId="test-selector"
         />,
       );
@@ -775,7 +775,7 @@ describe('SecretSelector', () => {
 
       // Error message should be visible
       expect(
-        screen.getByText('Required key "aws_s3_bucket" is not set in this secret'),
+        screen.getByText('Required key "AWS_S3_BUCKET" is not set in this secret'),
       ).toBeInTheDocument();
 
       // Reset the mock to verify no additional onChange calls
@@ -787,7 +787,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value="1"
           onChange={mockOnChange}
-          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
           dataTestId="test-selector"
         />,
       );
@@ -798,7 +798,7 @@ describe('SecretSelector', () => {
 
       // Error message should still be visible
       expect(
-        screen.getByText('Required key "aws_s3_bucket" is not set in this secret'),
+        screen.getByText('Required key "AWS_S3_BUCKET" is not set in this secret'),
       ).toBeInTheDocument();
 
       // The selected value should still be displayed
@@ -811,11 +811,11 @@ describe('SecretSelector', () => {
           uuid: '1',
           name: 'complete-secret',
           data: {
-            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
-            aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
-            aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
-            aws_s3_endpoint: '[REDACTED]', // eslint-disable-line camelcase
-            aws_s3_bucket: 'my-bucket', // eslint-disable-line camelcase
+            AWS_ACCESS_KEY_ID: '[REDACTED]',
+            AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+            AWS_DEFAULT_REGION: '[REDACTED]',
+            AWS_S3_ENDPOINT: '[REDACTED]',
+            AWS_S3_BUCKET: 'my-bucket',
           },
         }),
       ];
@@ -826,7 +826,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
           dataTestId="test-selector"
         />,
       );
@@ -836,7 +836,7 @@ describe('SecretSelector', () => {
 
       // Should NOT show error message
       expect(
-        screen.queryByText('Required key "aws_s3_bucket" is not set in this secret'),
+        screen.queryByText('Required key "AWS_S3_BUCKET" is not set in this secret'),
       ).not.toBeInTheDocument();
 
       // onChange should be called with selection marked as valid
@@ -845,17 +845,17 @@ describe('SecretSelector', () => {
         name: 'complete-secret',
         type: 's3',
         data: {
-          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
-          aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
-          aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
-          aws_s3_endpoint: '[REDACTED]', // eslint-disable-line camelcase
-          aws_s3_bucket: 'my-bucket', // eslint-disable-line camelcase
+          AWS_ACCESS_KEY_ID: '[REDACTED]',
+          AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+          AWS_DEFAULT_REGION: '[REDACTED]',
+          AWS_S3_ENDPOINT: '[REDACTED]',
+          AWS_S3_BUCKET: 'my-bucket',
         },
         invalid: false,
       });
     });
 
-    it('should validate keys case-insensitively', () => {
+    it('should validate keys case-sensitively with uppercase keys', () => {
       const mockSecrets: SecretListItem[] = [
         mockStorageSecret({
           uuid: '1',
@@ -876,7 +876,7 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
           dataTestId="test-selector"
         />,
       );
@@ -884,9 +884,9 @@ describe('SecretSelector', () => {
       fireEvent.click(screen.getByTestId('test-selector'));
       fireEvent.click(screen.getByText('uppercase-secret'));
 
-      // Should NOT show error - case-insensitive match
+      // Should NOT show error - exact case match
       expect(
-        screen.queryByText('Required key "aws_s3_bucket" is not set in this secret'),
+        screen.queryByText('Required key "AWS_S3_BUCKET" is not set in this secret'),
       ).not.toBeInTheDocument();
 
       // onChange should be called with selection marked as valid
@@ -905,13 +905,65 @@ describe('SecretSelector', () => {
       });
     });
 
+    it('should reject keys with incorrect case', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'lowercase-secret',
+          data: {
+            AWS_ACCESS_KEY_ID: '[REDACTED]',
+            AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+            AWS_DEFAULT_REGION: '[REDACTED]',
+            AWS_S3_ENDPOINT: '[REDACTED]',
+            // eslint-disable-next-line camelcase
+            aws_s3_bucket: 'my-bucket',
+          },
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('lowercase-secret'));
+
+      // Should show error - lowercase key does not match uppercase requirement
+      expect(
+        screen.getByText('Required key "AWS_S3_BUCKET" is not set in this secret'),
+      ).toBeInTheDocument();
+
+      // onChange should be called with selection marked as invalid
+      expect(mockOnChange).toHaveBeenCalledWith({
+        uuid: '1',
+        name: 'lowercase-secret',
+        type: 's3',
+        data: {
+          AWS_ACCESS_KEY_ID: '[REDACTED]',
+          AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+          AWS_DEFAULT_REGION: '[REDACTED]',
+          AWS_S3_ENDPOINT: '[REDACTED]',
+          // eslint-disable-next-line camelcase
+          aws_s3_bucket: 'my-bucket',
+        },
+        invalid: true,
+      });
+    });
+
     it('should not validate when no additionalRequiredKeys prop provided', () => {
       const mockSecrets: SecretListItem[] = [
         mockStorageSecret({
           uuid: '1',
           name: 'any-secret',
           data: {
-            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+            AWS_ACCESS_KEY_ID: '[REDACTED]',
           },
         }),
       ];
@@ -938,7 +990,7 @@ describe('SecretSelector', () => {
         name: 'any-secret',
         type: 's3',
         data: {
-          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+          AWS_ACCESS_KEY_ID: '[REDACTED]',
         },
         invalid: false,
       });
@@ -946,12 +998,12 @@ describe('SecretSelector', () => {
 
     it('should not validate when secret type is not in additionalRequiredKeys', () => {
       const mockSecrets: SecretListItem[] = [
-        mockLLSSecret({
+        mockOGXSecret({
           uuid: '1',
-          name: 'lls-secret',
+          name: 'ogx-secret',
           data: {
-            llama_stack_client_api_key: '[REDACTED]', // eslint-disable-line camelcase
-            llama_stack_client_base_url: '[REDACTED]', // eslint-disable-line camelcase
+            OGX_CLIENT_API_KEY: '[REDACTED]',
+            OGX_CLIENT_BASE_URL: '[REDACTED]',
           },
         }),
       ];
@@ -962,25 +1014,25 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
           dataTestId="test-selector"
         />,
       );
 
       fireEvent.click(screen.getByTestId('test-selector'));
-      fireEvent.click(screen.getByText('lls-secret'));
+      fireEvent.click(screen.getByText('ogx-secret'));
 
-      // Should NOT show validation error - lls type not in additionalRequiredKeys
+      // Should NOT show validation error - ogx type not in additionalRequiredKeys
       expect(screen.queryByText(/Required key/)).not.toBeInTheDocument();
 
       // onChange should be called with selection marked as valid
       expect(mockOnChange).toHaveBeenCalledWith({
         uuid: '1',
-        name: 'lls-secret',
-        type: 'lls',
+        name: 'ogx-secret',
+        type: 'ogx',
         data: {
-          llama_stack_client_api_key: '[REDACTED]', // eslint-disable-line camelcase
-          llama_stack_client_base_url: '[REDACTED]', // eslint-disable-line camelcase
+          OGX_CLIENT_API_KEY: '[REDACTED]',
+          OGX_CLIENT_BASE_URL: '[REDACTED]',
         },
         invalid: false,
       });
@@ -992,15 +1044,15 @@ describe('SecretSelector', () => {
           uuid: '1',
           name: 'valid-secret',
           data: {
-            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
-            aws_s3_bucket: 'my-bucket', // eslint-disable-line camelcase
+            AWS_ACCESS_KEY_ID: '[REDACTED]',
+            AWS_S3_BUCKET: 'my-bucket',
           },
         }),
         mockStorageSecret({
           uuid: '2',
           name: 'incomplete-secret',
           data: {
-            aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
+            AWS_ACCESS_KEY_ID: '[REDACTED]',
           },
         }),
       ];
@@ -1011,14 +1063,14 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value="1"
           onChange={mockOnChange}
-          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
           dataTestId="test-selector"
         />,
       );
 
       // Initially showing valid secret, no error
       expect(
-        screen.queryByText('Required key "aws_s3_bucket" is not set in this secret'),
+        screen.queryByText('Required key "AWS_S3_BUCKET" is not set in this secret'),
       ).not.toBeInTheDocument();
 
       // Select secret with missing keys
@@ -1027,7 +1079,7 @@ describe('SecretSelector', () => {
 
       // Error should be visible
       expect(
-        screen.getByText('Required key "aws_s3_bucket" is not set in this secret'),
+        screen.getByText('Required key "AWS_S3_BUCKET" is not set in this secret'),
       ).toBeInTheDocument();
 
       // Clear selection by setting value to undefined
@@ -1036,14 +1088,14 @@ describe('SecretSelector', () => {
           namespace={defaultNamespace}
           value={undefined}
           onChange={mockOnChange}
-          additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
           dataTestId="test-selector"
         />,
       );
 
       // Error should be cleared
       expect(
-        screen.queryByText('Required key "aws_s3_bucket" is not set in this secret'),
+        screen.queryByText('Required key "AWS_S3_BUCKET" is not set in this secret'),
       ).not.toBeInTheDocument();
     });
   });
@@ -1105,10 +1157,10 @@ describe('SecretSelector', () => {
           uuid: '2',
           name: 'aws-dev-credentials',
         }),
-        mockLLSSecret({
+        mockOGXSecret({
           uuid: '3',
-          name: 'lls-prod-secret',
-          displayName: 'Production LLS',
+          name: 'ogx-prod-secret',
+          displayName: 'Production OGX',
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -1127,9 +1179,9 @@ describe('SecretSelector', () => {
       // Should show displayName where available, name otherwise
       expect(screen.getByText('Production AWS')).toBeInTheDocument();
       expect(screen.getByText('aws-dev-credentials')).toBeInTheDocument();
-      expect(screen.getByText('Production LLS')).toBeInTheDocument();
+      expect(screen.getByText('Production OGX')).toBeInTheDocument();
       expect(screen.queryByText('aws-prod-credentials')).not.toBeInTheDocument();
-      expect(screen.queryByText('lls-prod-secret')).not.toBeInTheDocument();
+      expect(screen.queryByText('ogx-prod-secret')).not.toBeInTheDocument();
     });
 
     it('should call onChange with correct name when selecting secret with displayName', () => {
@@ -1160,10 +1212,10 @@ describe('SecretSelector', () => {
         name: 'aws-prod-credentials',
         type: 's3',
         data: {
-          aws_access_key_id: '[REDACTED]', // eslint-disable-line camelcase
-          aws_secret_access_key: '[REDACTED]', // eslint-disable-line camelcase
-          aws_default_region: '[REDACTED]', // eslint-disable-line camelcase
-          aws_s3_endpoint: '[REDACTED]', // eslint-disable-line camelcase
+          AWS_ACCESS_KEY_ID: '[REDACTED]',
+          AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+          AWS_DEFAULT_REGION: '[REDACTED]',
+          AWS_S3_ENDPOINT: '[REDACTED]',
         },
         displayName: 'Production AWS Credentials',
         invalid: false,
@@ -1294,10 +1346,10 @@ describe('SecretSelector', () => {
           uuid: '2',
           name: 'aws-without-desc',
         }),
-        mockLLSSecret({
+        mockOGXSecret({
           uuid: '3',
-          name: 'lls-with-desc',
-          description: 'LLS endpoint for testing',
+          name: 'ogx-with-desc',
+          description: 'OGX endpoint for testing',
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -1320,8 +1372,8 @@ describe('SecretSelector', () => {
       // Second and first secrets both show Type: s3 (getAllByText for multiple matches)
       expect(screen.getAllByText('Type: s3')).toHaveLength(2);
       // Third secret has type and description
-      expect(screen.getByText('Type: lls')).toBeInTheDocument();
-      expect(screen.getByText('LLS endpoint for testing')).toBeInTheDocument();
+      expect(screen.getByText('Type: ogx')).toBeInTheDocument();
+      expect(screen.getByText('OGX endpoint for testing')).toBeInTheDocument();
     });
   });
 });

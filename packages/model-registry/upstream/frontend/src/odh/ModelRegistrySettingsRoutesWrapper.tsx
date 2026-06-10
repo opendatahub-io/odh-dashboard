@@ -18,20 +18,18 @@ const modularArchConfig: ModularArchConfig = {
   mandatoryNamespace: 'odh-model-registries',
 };
 
-const ModelRegistryWrapper: React.FC = () => {
-  return (
-    <ModularArchContextProvider config={modularArchConfig}>
-      <ThemeProvider theme={Theme.Patternfly}>
-        <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            <ModelRegistrySelectorContextProvider>
-              <ModelRegistrySettingsRoutes />
-            </ModelRegistrySelectorContextProvider>
-          </NotificationContextProvider>
-        </BrowserStorageContextProvider>
-      </ThemeProvider>
-    </ModularArchContextProvider>
-  );
-};
+const ModelRegistryWrapper: React.FC = () => (
+  <ModularArchContextProvider config={modularArchConfig}>
+    <ThemeProvider theme={Theme.Patternfly}>
+      <BrowserStorageContextProvider>
+        <NotificationContextProvider>
+          <ModelRegistrySelectorContextProvider>
+            <ModelRegistrySettingsRoutes />
+          </ModelRegistrySelectorContextProvider>
+        </NotificationContextProvider>
+      </BrowserStorageContextProvider>
+    </ThemeProvider>
+  </ModularArchContextProvider>
+);
 
 export default ModelRegistryWrapper;

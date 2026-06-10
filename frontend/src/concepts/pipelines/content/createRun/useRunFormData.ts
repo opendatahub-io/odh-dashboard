@@ -2,6 +2,7 @@ import * as React from 'react';
 import useGenericObjectState, { GenericObjectState } from '#~/utilities/useGenericObjectState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
+  MlflowExperimentMode,
   PipelineVersionToUse,
   RunDateTime,
   RunFormData,
@@ -15,7 +16,6 @@ import {
   PipelineRecurringRunKF,
   PipelineRunKF,
   RuntimeConfigParameters,
-  StorageStateKF,
 } from '#~/concepts/pipelines/kfTypes';
 
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
@@ -27,7 +27,11 @@ import {
 } from '#~/concepts/pipelines/content/createRun/const';
 import { convertDateToTimeString, convertSecondsToPeriodicTime } from '#~/utilities/time';
 import { isPipelineRecurringRun } from '#~/concepts/pipelines/content/utils';
-import { getInputDefinitionParams } from '#~/concepts/pipelines/content/createRun/utils';
+import {
+  getDefaultMlflowFormData,
+  getInputDefinitionParams,
+} from '#~/concepts/pipelines/content/createRun/utils';
+import { getMlflowExperimentNameFromRun } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import usePipelineVersionById from '#~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '#~/concepts/pipelines/apiHooks/usePipelineById';
 import useExperimentById from '#~/concepts/pipelines/apiHooks/useExperimentById';
@@ -96,25 +100,17 @@ const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
-const useUpdateExperimentFormData = (
+const useUpdateRunGroupFormData = (
   formState: GenericObjectState<RunFormData>,
-  experiment: ExperimentKF | null | undefined,
+  runGroup: ExperimentKF | null | undefined,
 ) => {
   const [formData, setFormValue] = formState;
 
   React.useEffect(() => {
-    if (formData.experiment) {
-      if (formData.experiment.storage_state === StorageStateKF.ARCHIVED) {
-        setFormValue('experiment', null);
-      }
-    } else if (experiment) {
-      if (experiment.storage_state === StorageStateKF.ARCHIVED) {
-        setFormValue('experiment', null);
-      } else {
-        setFormValue('experiment', experiment);
-      }
+    if (!formData.experiment && runGroup) {
+      setFormValue('experiment', runGroup);
     }
-  }, [formData.experiment, setFormValue, experiment, formData.runType.type]);
+  }, [formData.experiment, setFormValue, runGroup]);
 };
 
 const useUpdateDuplicateData = (
@@ -123,26 +119,38 @@ const useUpdateDuplicateData = (
 ) => {
   const duplicateRunPipelineId = initialData?.pipeline_version_reference?.pipeline_id || '';
   const duplicateRunVersionId = initialData?.pipeline_version_reference?.pipeline_version_id || '';
-  const duplicateRunExperimentId = initialData?.experiment_id || '';
+  const duplicateRunGroupId = initialData?.experiment_id || '';
   const [duplicateRunPipelineVersion] = usePipelineVersionById(
     duplicateRunPipelineId,
     duplicateRunVersionId,
   );
   const [duplicateRunPipeline] = usePipelineById(duplicateRunPipelineId);
-  const [duplicateExperiment] = useExperimentById(duplicateRunExperimentId);
+  const [duplicateRunGroup] = useExperimentById(duplicateRunGroupId);
 
   React.useEffect(() => {
     if (!initialData) {
       return;
     }
-    setFunction('experiment', duplicateExperiment);
+    setFunction('experiment', duplicateRunGroup);
     setFunction('pipeline', duplicateRunPipeline);
     setFunction('version', duplicateRunPipelineVersion);
     setFunction('versionToUse', PipelineVersionToUse.PROVIDED);
+
+    const mlflowExperimentName = getMlflowExperimentNameFromRun(initialData);
+    setFunction(
+      'mlflow',
+      mlflowExperimentName
+        ? {
+            isExperimentTrackingEnabled: true,
+            mode: MlflowExperimentMode.EXISTING,
+            existingExperimentName: mlflowExperimentName,
+          }
+        : getDefaultMlflowFormData(),
+    );
   }, [
     setFunction,
     initialData,
-    duplicateExperiment,
+    duplicateRunGroup,
     duplicateRunPipeline,
     duplicateRunPipelineVersion,
   ]);
@@ -153,7 +161,7 @@ const useRunFormData = (
   initialFormData?: Partial<RunFormData>,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();
-  const { pipeline, version, experiment, nameDesc, versionToUse } = initialFormData || {};
+  const { pipeline, version, experiment, nameDesc, versionToUse, mlflow } = initialFormData || {};
 
   const formState = useGenericObjectState<RunFormData>(() => ({
     project,
@@ -162,8 +170,9 @@ const useRunFormData = (
     version: version ?? null,
     versionToUse: versionToUse ?? PipelineVersionToUse.LATEST,
     experiment: experiment ?? null,
+    mlflow: mlflow ?? getDefaultMlflowFormData(),
     runType: { type: RunTypeOption.ONE_TRIGGER },
-    params: {}, // Start with empty params
+    params: {},
     ...initialFormData,
   }));
   const [formData, setFormValue] = formState;
@@ -174,9 +183,6 @@ const useRunFormData = (
       const inputDefinitionParams = getInputDefinitionParams(formData.version) || {};
       const newParams = Object.entries(inputDefinitionParams).reduce(
         (acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
-          // Use run params if available, otherwise use defaults
-          // else; when doing a duplicate run, only parameters that have values will be included
-          // (this way all the empty defaults are also included in a duplicate run)
           acc[paramKey] =
             run?.runtime_config?.parameters[paramKey] ?? paramValue.defaultValue ?? '';
           return acc;
@@ -187,7 +193,7 @@ const useRunFormData = (
     }
   }, [formData.version, run, setFormValue]);
 
-  useUpdateExperimentFormData(formState, experiment);
+  useUpdateRunGroupFormData(formState, experiment);
   useUpdateRunType(setFormValue, run);
   useUpdateDuplicateData(setFormValue, run);
 

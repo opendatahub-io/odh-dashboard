@@ -18,7 +18,7 @@ class PipelineImportModal extends Modal {
   }
 
   findSubmitButton() {
-    return cy.findByTestId('modal-submit-button');
+    return this.findFooter().findByTestId('modal-submit-button');
   }
 
   findVersionNameInput() {
@@ -89,7 +89,7 @@ class PipelineImportModal extends Modal {
   }
 
   submit(): void {
-    this.findSubmitButton().click();
+    this.findSubmitButton().should('be.enabled').click();
   }
 
   mockCreatePipelineVersion(params: CreatePipelineVersionKFData, namespace: string) {

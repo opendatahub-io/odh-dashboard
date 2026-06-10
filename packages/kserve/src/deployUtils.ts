@@ -40,10 +40,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import {
-  isValidModelType,
-  type ModelTypeFieldData,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
+import { type ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
 import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
@@ -55,6 +52,20 @@ import {
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
 import type { CreatingInferenceServiceObject } from './deployModel';
 import type { KServeDeployment } from './deployments';
+
+export const KSERVE_AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
+export const KSERVE_VISIBILITY_LABEL = 'networking.kserve.io/visibility';
+export const KSERVE_DEPLOYMENT_MODE_ANNOTATION = 'serving.kserve.io/deploymentMode';
+
+export enum KServeVisibility {
+  Exposed = 'exposed',
+  ClusterLocal = 'cluster-local',
+}
+
+export enum KServeDeploymentMode {
+  RawDeployment = 'RawDeployment',
+  Standard = 'Standard',
+}
 
 const is404 = (error: unknown): boolean => {
   return getGenericErrorCode(error) === 404;
@@ -198,16 +209,16 @@ export const applyAuth = (
   const result = structuredClone(inferenceService);
   result.metadata.annotations = {
     ...result.metadata.annotations,
-    'security.opendatahub.io/enable-auth': tokenAuth ? 'true' : 'false',
+    [KSERVE_AUTH_ANNOTATION]: tokenAuth ? 'true' : 'false',
   };
 
   result.metadata.labels = {
     ...result.metadata.labels,
-    ...(externalRoute && { 'networking.kserve.io/visibility': 'exposed' }),
+    ...(externalRoute && { [KSERVE_VISIBILITY_LABEL]: KServeVisibility.Exposed }),
   };
 
   if (!externalRoute) {
-    delete result.metadata.labels['networking.kserve.io/visibility'];
+    delete result.metadata.labels[KSERVE_VISIBILITY_LABEL];
   }
 
   return result;
@@ -372,19 +383,31 @@ export const extractModelType = (deployment: {
   model: InferenceServiceKind;
 }): ModelTypeFieldData | null => {
   const modelType = deployment.model.metadata.annotations?.['opendatahub.io/model-type'];
-  if (modelType && isValidModelType(modelType)) {
-    return {
-      type: modelType,
-      legacyVLLM: modelType === ServingRuntimeModelType.GENERATIVE,
-    };
+  if (!modelType) {
+    return null;
   }
-  return null;
+
+  return {
+    type: modelType,
+    legacyVLLM: modelType === ServingRuntimeModelType.GENERATIVE,
+  };
+};
+
+const isKnownServingRuntimeModelType = (type?: string): type is ServingRuntimeModelType => {
+  return type === ServingRuntimeModelType.PREDICTIVE || type === ServingRuntimeModelType.GENERATIVE;
 };
 
 export const applyModelType = (
   inferenceService: InferenceServiceKind,
-  modelType: ServingRuntimeModelType,
+  modelType: string,
 ): InferenceServiceKind => {
+  if (!isKnownServingRuntimeModelType(modelType)) {
+    console.error(
+      `Invalid model type for kserve deployment: ${modelType}. Skipping applyModelType.`,
+    );
+    return inferenceService;
+  }
+
   const result = structuredClone(inferenceService);
   result.metadata.annotations = {
     ...result.metadata.annotations,

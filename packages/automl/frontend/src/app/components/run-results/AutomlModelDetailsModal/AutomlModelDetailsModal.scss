@@ -1,7 +1,7 @@
 .automl-model-details-modal {
   --pf-v6-c-modal-box--MaxWidth: 1200px;
   --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1200px;
-  min-height: 60vh;
+  height: 80vh;
 }
 
 /* Prevent sidebar from stretching to fill full modal height */
@@ -12,7 +12,7 @@
 /* Sidebar section headers */
 .automl-model-details-sidebar-section {
   font-size: var(--pf-t--global--font--size--sm);
-  font-weight: 600;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
   color: var(--pf-t--global--text--color--regular);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -21,7 +21,7 @@
 
 /* Add spacing between sidebar nav sections */
 .automl-model-details-sidebar nav > div + div {
-  margin-top: 16px;
+  margin-top: var(--pf-t--global--spacer--md);
 }
 
 .automl-model-details-nav-list {
@@ -35,7 +35,7 @@
   width: 100%;
   padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
   border: none;
-  border-left: 3px solid transparent;
+  border-left: var(--pf-t--global--border--width--box--default) solid transparent;
   background: none;
   text-align: left;
   font-size: var(--pf-t--global--font--size--md);
@@ -56,7 +56,7 @@
 .automl-model-details-tab-title {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--pf-t--global--spacer--xs);
   padding-left: var(--pf-t--global--spacer--xl);
 
   .pf-v6-c-title {
@@ -82,16 +82,122 @@
   }
 }
 
+/* Confusion matrix — theme-aware cell colors.
+   Palette tokens (--pf-t--color--green--10 etc.) are NOT dark-mode-aware,
+   so we define custom properties and override them for dark theme. */
+@mixin cm-cell-colors($prefix) {
+  background-color: var(--automl-cm--cell--#{$prefix}--base);
+
+  &.m-intensity-low {
+    background-color: var(--automl-cm--cell--#{$prefix}--low);
+  }
+
+  &.m-intensity-medium {
+    background-color: var(--automl-cm--cell--#{$prefix}--medium);
+  }
+
+  &.m-intensity-high {
+    background-color: var(--automl-cm--cell--#{$prefix}--high);
+  }
+}
+
+.automl-confusion-matrix {
+  --automl-cm--cell--bg: var(--pf-t--global--background--color--secondary--default);
+  --automl-cm--cell--diagonal--base: var(--pf-t--color--green--10);
+  --automl-cm--cell--diagonal--low: var(--pf-t--color--green--20);
+  --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--30);
+  --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
+  --automl-cm--cell--off-diagonal--base: var(--pf-t--color--blue--10);
+  --automl-cm--cell--off-diagonal--low: var(--pf-t--color--blue--10);
+  --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--20);
+  --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--30);
+  --automl-cm--border--color: var(--pf-t--global--background--color--primary--default);
+
+  /* Grid lines between all cells */
+  --pf-v6-c-table__tr--BorderBlockEndColor: var(--automl-cm--border--color);
+
+  :root:where(.pf-v6-theme-dark) & {
+    --automl-cm--cell--bg: var(--pf-v6-c-table--BackgroundColor);
+    --automl-cm--cell--diagonal--base: var(--pf-v6-c-table--BackgroundColor);
+    --automl-cm--cell--diagonal--low: var(--pf-t--color--green--50);
+    --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--50);
+    --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
+    --automl-cm--cell--off-diagonal--base: var(--pf-v6-c-table--BackgroundColor);
+    --automl-cm--cell--off-diagonal--low: var(--pf-t--color--blue--50);
+    --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--50);
+    --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--40);
+    --automl-cm--border--color: var(--pf-t--global--border--color--default);
+  }
+
+  th,
+  td {
+    border: var(--pf-t--global--border--width--divider--default) solid
+      var(--automl-cm--border--color);
+    min-width: 9rem;
+  }
+
+  th,
+  tbody tr:last-child td,
+  tbody tr td:last-child {
+    background-color: var(--automl-cm--cell--bg);
+  }
+
+
+  tbody th {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+  }
+
+  /* Loading state: all cells get the same gray background; skeletons are
+     darkened so they remain visible against the uniform surface. */
+  &.m-loading tbody tr td,
+  &.m-loading tbody tr:last-child td {
+    background-color: var(--automl-cm--cell--bg);
+  }
+
+  &.m-loading .pf-v6-c-skeleton {
+    --pf-v6-c-skeleton--BackgroundColor: var(--pf-t--global--border--color--default);
+  }
+
+  /* Center skeleton loading bars within table cells */
+  .pf-v6-c-skeleton {
+    margin-inline: auto;
+  }
+
+  /* Data cell colors */
+  &__cell--diagonal {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+
+    @include cm-cell-colors('diagonal');
+  }
+
+  &__cell--off-diagonal {
+    @include cm-cell-colors('off-diagonal');
+  }
+
+  /* View selector */
+  &-view {
+    margin-bottom: var(--pf-t--global--spacer--md);
+  }
+}
+
 /* Confusion matrix gradient bar */
 .automl-confusion-gradient {
+  --automl-cm--gradient--start: var(--pf-t--color--blue--20);
+  --automl-cm--gradient--end: var(--pf-t--color--green--30);
+
   display: flex;
   justify-content: space-between;
   margin-top: var(--pf-t--global--spacer--md);
   padding: var(--pf-t--global--spacer--sm) 0;
-  background: linear-gradient(to right, rgba(144, 164, 174, 0.5) 0%, #fff 45%, #fff 55%, rgba(56, 142, 60, 0.5) 100%);
-  border-radius: 4px;
+  background: linear-gradient(to right, var(--automl-cm--gradient--start) 0%, var(--pf-t--global--background--color--primary--default) 45%, var(--pf-t--global--background--color--primary--default) 55%, var(--automl-cm--gradient--end) 100%);
+  border-radius: var(--pf-t--global--border--radius--small);
   font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--subtle);
+
+  :root:where(.pf-v6-theme-dark) & {
+    --automl-cm--gradient--start: var(--pf-t--color--blue--50);
+    --automl-cm--gradient--end: var(--pf-t--color--green--40);
+  }
 
   span {
     padding: 0 var(--pf-t--global--spacer--sm);
@@ -104,7 +210,7 @@
   align-items: flex-end;
   gap: var(--pf-t--global--spacer--xl);
   padding-bottom: var(--pf-t--global--spacer--md);
-  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
   margin-bottom: var(--pf-t--global--spacer--lg);
 }
 
@@ -123,13 +229,13 @@
 .automl-model-details-header-actions {
   margin-left: auto;
   display: flex;
-  gap: 8px;
+  gap: var(--pf-t--global--spacer--sm);
 }
 
 .automl-model-details-header-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--pf-t--global--spacer--xs);
 }
 
 .automl-model-details-header-label {
@@ -144,12 +250,12 @@
 
 /* Feature importance bar */
 .automl-feature-importance-bar {
-  height: 12px;
-  border-radius: 2px;
+  height: var(--pf-t--global--spacer--sm);
+  border-radius: var(--pf-t--global--border--radius--tiny);
   background-color: var(--pf-t--global--color--brand--default);
 
   &.m-has-value {
-    min-width: 4px;
+    min-width: var(--pf-t--global--spacer--xs);
   }
 
   &.m-negative {
@@ -159,18 +265,18 @@
 
 /* Model information description list */
 /* Print-only container: hidden on screen, visible when printing */
-.automl-model-details-print-only {
+.odh-autox-print-only {
   display: none;
 }
 
 @media print {
   /* Hide everything except the portalled print container */
-  body > *:not(.automl-model-details-print-only) {
+  body > *:not(.odh-autox-print-only) {
     display: none !important;
   }
 
   /* Show the print container */
-  .automl-model-details-print-only {
+  .odh-autox-print-only {
     display: block !important;
   }
 
@@ -204,7 +310,7 @@
     font-size: var(--pf-t--global--font--size--xl);
     margin-bottom: var(--pf-t--global--spacer--md);
     padding-bottom: var(--pf-t--global--spacer--sm);
-    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+    border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
   }
 }
 
@@ -214,7 +320,7 @@
   .pf-v6-c-description-list__group {
     gap: var(--pf-t--global--spacer--xs);
     padding-bottom: var(--pf-t--global--spacer--sm);
-    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+    border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
   }
 
   .pf-v6-c-description-list__term,

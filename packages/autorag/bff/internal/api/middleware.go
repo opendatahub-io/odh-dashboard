@@ -19,7 +19,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
@@ -92,12 +92,12 @@ func validateIP(ip net.IP) error {
 	return nil
 }
 
-// isValidLlamaStackURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
+// isValidOGXURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
 // Only http and https schemes are allowed. For IP literals, the IP is checked directly.
 // For DNS hostnames, all resolved A/AAAA records are validated against the same blocklist.
-// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because LlamaStack
+// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because OGX
 // services typically run as cluster-internal services with private IPs.
-func isValidLlamaStackURL(rawURL string) error {
+func isValidOGXURL(rawURL string) error {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return fmt.Errorf("invalid URL format: %w", err)
@@ -289,16 +289,16 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
-// AttachLlamaStackClientFromSecret creates a LlamaStack client using credentials from a Kubernetes secret
-// and attaches it to context. The secret must contain llama_stack_client_base_url and llama_stack_client_api_key.
+// AttachOGXClientFromSecret creates a Open GenAI Stack client using credentials from a Kubernetes secret
+// and attaches it to context. The secret must contain ogx_client_base_url and ogx_client_api_key.
 // This middleware must be used after AttachNamespace middleware.
 //
-// Precedence for determining the LlamaStack connection:
-//  1. Mock mode (MockLSClient): uses a mock client, ignores all other config.
-//  2. Auth disabled: LLAMA_STACK_URL must be configured (no K8s identity available for secret lookup).
-//  3. LLAMA_STACK_URL env var set: developer override, skips secret lookup.
+// Precedence for determining the Open GenAI Stack connection:
+//  1. Mock mode (MockOGXClient): uses a mock client, ignores all other config.
+//  2. Auth disabled: OGX_URL must be configured (no K8s identity available for secret lookup).
+//  3. OGX_URL env var set: developer override, skips secret lookup.
 //  4. Secret-based: reads URL and API key from the named Kubernetes secret.
-func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
 
@@ -322,34 +322,12 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 
 		logger := helper.GetContextLoggerFromReq(r)
 
-		var llamaStackClient ls.LlamaStackClientInterface
+		var ogxClient ogx.OGXClientInterface
 
-		if app.config.MockLSClient {
+		if app.config.MockOGXClient {
 			// Mock mode: skip secret lookup entirely
-			logger.Debug("MOCK MODE: creating mock LlamaStack client (secret-based)", "namespace", namespace, "secretName", secretName)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
-		} else if app.config.AuthMethod == config.AuthMethodDisabled {
-			// When auth is disabled, no RequestIdentity is injected into the context.
-			// LLAMA_STACK_URL must be explicitly configured as the service endpoint.
-			if app.config.LlamaStackURL == "" {
-				app.serverErrorResponse(w, r, fmt.Errorf("LLAMA_STACK_URL must be configured when authentication is disabled"))
-				return
-			}
-			logger.Debug("AUTH DISABLED: using LLAMA_STACK_URL with empty token",
-				"namespace", namespace,
-				"serviceURL", app.config.LlamaStackURL)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
-		} else if app.config.LlamaStackURL != "" {
-			// Developer override: use LLAMA_STACK_URL, skip secret lookup.
-			// Use identity token if available; empty token is acceptable for local dev.
-			var authToken string
-			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
-				authToken = identity.Token
-			}
-			logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
-				"namespace", namespace,
-				"serviceURL", app.config.LlamaStackURL)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, authToken, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			logger.Debug("MOCK MODE: creating mock Open GenAI Stack client (secret-based)", "namespace", namespace, "secretName", secretName)
+			ogxClient = app.ogxClientFactory.CreateClient("", "", false, app.rootCAs)
 		} else {
 			// Production: read credentials from Kubernetes secret
 			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -381,41 +359,53 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				return
 			}
 
-			// Extract LlamaStack credentials from secret data using case-insensitive key lookups.
-			baseURL, foundBaseURL, err := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_base_url")
+			// Extract Open GenAI Stack credentials from secret data using case-insensitive key lookups.
+			baseURL, foundBaseURL, err := getSecretDataCaseInsensitive(foundSecret.Data, "ogx_client_base_url")
 			if err != nil {
 				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
 				return
 			}
-			apiKey, foundAPIKey, err := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_api_key")
+			apiKey, foundAPIKey, err := getSecretDataCaseInsensitive(foundSecret.Data, "ogx_client_api_key")
 			if err != nil {
 				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
 				return
 			}
 
 			if !foundBaseURL || baseURL == "" {
-				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_base_url", secretName))
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: ogx_client_base_url", secretName))
 				return
 			}
+			// API key is optional; only reject if the field is missing, not if empty.
 			if !foundAPIKey {
-				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing for required key: llama_stack_client_api_key", secretName))
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing for required key: ogx_client_api_key", secretName))
 				return
 			}
-			if err := isValidLlamaStackURL(baseURL); err != nil {
-				app.badRequestResponse(w, r, fmt.Errorf("invalid llama_stack_client_base_url in secret %q: %w", secretName, err))
+			if err := isValidOGXURL(baseURL); err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid ogx_client_base_url in secret %q: %w", secretName, err))
 				return
 			}
 
-			logger.Debug("Creating LlamaStack client from secret",
+			// Dev-only: rewrite Open GenAI Stack URL to localhost via dynamic port-forward.
+			// portForwardManager is nil in production (requires DevMode=true).
+			if app.portForwardManager != nil {
+				if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, baseURL); pfErr != nil {
+					logger.Warn("dynamic port-forward failed for Open GenAI Stack endpoint, using original URL",
+						"error", pfErr, "url", baseURL)
+				} else {
+					baseURL = rewritten
+				}
+			}
+
+			logger.Debug("Creating Open GenAI Stack client from secret",
 				"namespace", namespace,
 				"secretName", secretName,
 				"serviceURL", baseURL)
 
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			ogxClient = app.ogxClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context
-		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.OGXClientKey, ogxClient)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)
@@ -447,48 +437,6 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(mockBaseURL, "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, mockBaseURL)
-		} else if app.config.PipelineServerURL != "" {
-			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
-			baseURL := app.config.PipelineServerURL
-			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
-			logger.Debug("Using override Pipeline Server URL from config - skipping DSPA discovery",
-				"namespace", namespace)
-
-			// Extract auth token from request identity to forward to Pipeline Server
-			authToken := ""
-			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil && identity.Token != "" {
-				authToken = identity.Token
-				logger.Debug("Using auth token from request identity", "tokenLength", len(authToken))
-			} else {
-				// Fallback: try reading Authorization header directly (for local testing)
-				authHeader := r.Header.Get("Authorization")
-				if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-					authToken = strings.TrimPrefix(authHeader, "Bearer ")
-					logger.Debug("Using auth token from Authorization header (fallback for local testing)", "tokenLength", len(authToken))
-				} else {
-					logger.Debug("No auth token available from identity or Authorization header")
-				}
-			}
-
-			insecureSkipVerify := app.config.InsecureSkipVerify
-
-			logger.Debug("Creating Pipeline Server client with override URL",
-				"namespace", namespace,
-				"hasToken", authToken != "")
-
-			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(
-				baseURL,
-				authToken,
-				insecureSkipVerify,
-				app.rootCAs,
-			)
-			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
-
-			// Best-effort DSPA discovery so the S3 handlers can resolve credentials
-			// from the DSPA spec even when a Pipeline Server override URL is set
-			// (e.g. port-forwarding during local development). Failure is non-fatal:
-			// the S3 handler falls back to requiring an explicit secretName.
-			ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
 		} else {
 			// Get Kubernetes client
 			client, err := app.kubernetesClientFactory.GetClient(ctx)
@@ -557,63 +505,54 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"pipelineServerId", dspa.Metadata.Name)
 			}
 
+			// Dev-only: rewrite in-cluster URL to localhost via dynamic port-forward.
+			// portForwardManager is nil in production (requires DevMode=true).
+			if app.portForwardManager != nil {
+				if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, baseURL); pfErr != nil {
+					logger.Warn("dynamic port-forward failed for pipeline server, using original URL",
+						"error", pfErr, "url", baseURL)
+				} else {
+					baseURL = rewritten
+				}
+			}
+
 			// Extract the full object storage configuration from the DSPA spec and store in
 			// context. This allows downstream handlers to connect to S3 (or compatible stores
 			// like managed MinIO) without an additional Kubernetes API call.
-			if dspa.Spec != nil &&
-				dspa.Spec.ObjectStorage != nil &&
-				dspa.Spec.ObjectStorage.ExternalStorage != nil &&
-				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
-				dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
-				ext := dspa.Spec.ObjectStorage.ExternalStorage
-				cred := ext.S3CredentialsSecret
-
-				// Construct the endpoint URL from scheme, host, and optional port.
-				// Only "http" and "https" schemes are accepted; any other value is
-				// logged as a warning and the endpoint URL is left empty so that
-				// GetS3CredentialsFromDSPA surfaces a clear error to the caller.
-				endpointURL := ""
-				scheme := strings.ToLower(ext.Scheme)
-				if ext.Host != "" && (scheme == "http" || scheme == "https") {
-					if ext.Port != "" {
-						endpointURL = fmt.Sprintf("%s://%s:%s", scheme, ext.Host, ext.Port)
+			dspaObjectStorage, storageType := resolveDSPAObjectStorage(dspa, namespace, logger)
+			if dspaObjectStorage != nil {
+				// Dev-only: rewrite S3 endpoint to localhost via dynamic port-forward.
+				// portForwardManager is nil in production (requires DevMode=true).
+				if app.portForwardManager != nil && dspaObjectStorage.EndpointURL != "" {
+					if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, dspaObjectStorage.EndpointURL); pfErr != nil {
+						logger.Warn("dynamic port-forward failed for S3 endpoint, using original URL",
+							"error", pfErr, "url", dspaObjectStorage.EndpointURL)
 					} else {
-						endpointURL = fmt.Sprintf("%s://%s", scheme, ext.Host)
+						dspaObjectStorage.EndpointURL = rewritten
 					}
-				} else if ext.Scheme != "" && ext.Host != "" {
-					logger.Warn("DSPA external storage has unrecognised scheme; endpoint URL will be omitted",
-						"scheme", ext.Scheme,
+				}
+
+				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+
+				// Log appropriate message based on storage type
+				switch storageType {
+				case dspaStorageExternal:
+					logger.Debug("Found DSPA external storage config",
+						"secretName", dspaObjectStorage.SecretName,
 						"namespace", namespace,
+						"hasEndpoint", dspaObjectStorage.EndpointURL != "",
+						"hasBucket", dspaObjectStorage.Bucket != "",
+					)
+				case dspaStorageMinIO:
+					logger.Debug("Found managed MinIO storage config",
+						"secretName", dspaObjectStorage.SecretName,
+						"namespace", namespace,
+						"bucket", dspaObjectStorage.Bucket,
+						"endpoint", dspaObjectStorage.EndpointURL,
 					)
 				}
-
-				// Apply default field names when the DSPA spec omits them.
-				accessKeyField := cred.AccessKey
-				if accessKeyField == "" {
-					accessKeyField = "AWS_ACCESS_KEY_ID"
-				}
-				secretKeyField := cred.SecretKey
-				if secretKeyField == "" {
-					secretKeyField = "AWS_SECRET_ACCESS_KEY"
-				}
-
-				dspaObjectStorage := &models.DSPAObjectStorage{
-					SecretName:     cred.SecretName,
-					AccessKeyField: accessKeyField,
-					SecretKeyField: secretKeyField,
-					EndpointURL:    endpointURL,
-					Bucket:         ext.Bucket,
-					Region:         ext.Region,
-				}
-				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
-				logger.Debug("Found DSPA object storage config",
-					"secretName", cred.SecretName,
-					"namespace", namespace,
-					"hasEndpoint", endpointURL != "",
-					"hasBucket", ext.Bucket != "",
-				)
 			} else {
-				logger.Warn("DSPA found but has no external storage config (managed MinIO or unconfigured externalStorage); S3 endpoints require explicit secretName",
+				logger.Warn("DSPA found but has no storage config; S3 endpoints require explicit secretName",
 					"dspa", dspa.Metadata.Name,
 					"namespace", namespace,
 				)
@@ -684,66 +623,78 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 		return ctx
 	}
 
-	// Use the first DSPA that has external storage configured.
-	var dspa *models.DSPipelineApplication
+	// Prefer external storage globally, then fall back to managed MinIO.
+	var externalDSPA *models.DSPipelineApplication
+	var minioDSPA *models.DSPipelineApplication
 	for i := range dspaItems {
 		d := &dspaItems[i]
-		if d.Spec != nil &&
-			d.Spec.ObjectStorage != nil &&
+		if d.Spec == nil || d.Spec.ObjectStorage == nil {
+			continue
+		}
+		if externalDSPA == nil &&
 			d.Spec.ObjectStorage.ExternalStorage != nil &&
 			d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
 			d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
-			dspa = d
+			externalDSPA = d
+		}
+		if minioDSPA == nil &&
+			d.Spec.ObjectStorage.Minio != nil &&
+			d.Spec.ObjectStorage.Minio.Deploy {
+			minioDSPA = d
+		}
+		// Break early if we've found both types
+		if externalDSPA != nil && minioDSPA != nil {
 			break
 		}
 	}
+	dspa := externalDSPA
 	if dspa == nil {
-		logger.Warn("DSPA found but has no external storage config (managed MinIO or unconfigured externalStorage); S3 requires explicit secretName",
+		dspa = minioDSPA
+	}
+	if dspa == nil {
+		logger.Warn("DSPA found but has no storage config; S3 requires explicit secretName",
 			"namespace", namespace)
 		return ctx
 	}
 
-	ext := dspa.Spec.ObjectStorage.ExternalStorage
-	cred := ext.S3CredentialsSecret
-
-	endpointURL := ""
-	scheme := strings.ToLower(ext.Scheme)
-	if ext.Host != "" && (scheme == "http" || scheme == "https") {
-		if ext.Port != "" {
-			endpointURL = fmt.Sprintf("%s://%s:%s", scheme, ext.Host, ext.Port)
-		} else {
-			endpointURL = fmt.Sprintf("%s://%s", scheme, ext.Host)
+	// Resolve and inject DSPA object storage config
+	dspaObjectStorage, storageType := resolveDSPAObjectStorage(dspa, namespace, logger)
+	if dspaObjectStorage != nil {
+		// Rewrite S3 endpoint URL if dynamic port-forwarding is enabled
+		if app.portForwardManager != nil && dspaObjectStorage.EndpointURL != "" {
+			if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, dspaObjectStorage.EndpointURL); pfErr != nil {
+				logger.Warn("dynamic port-forward failed for S3 endpoint, using original URL",
+					"error", pfErr, "url", dspaObjectStorage.EndpointURL)
+			} else {
+				dspaObjectStorage.EndpointURL = rewritten
+			}
 		}
-	} else if ext.Scheme != "" && ext.Host != "" {
-		logger.Warn("DSPA external storage has unrecognised scheme; endpoint URL will be omitted",
-			"scheme", ext.Scheme,
-			"namespace", namespace,
-		)
+
+		ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+
+		// Log appropriate message based on storage type
+		switch storageType {
+		case dspaStorageExternal:
+			logger.Debug("Injected DSPA external storage config (override-URL mode)",
+				"secretName", dspaObjectStorage.SecretName,
+				"namespace", namespace,
+				"hasEndpoint", dspaObjectStorage.EndpointURL != "",
+				"hasBucket", dspaObjectStorage.Bucket != "",
+			)
+		case dspaStorageMinIO:
+			logger.Debug("Injected managed MinIO storage config (override-URL mode)",
+				"secretName", dspaObjectStorage.SecretName,
+				"namespace", namespace,
+				"bucket", dspaObjectStorage.Bucket,
+				"endpoint", dspaObjectStorage.EndpointURL,
+			)
+		}
+		return ctx
 	}
 
-	accessKeyField := cred.AccessKey
-	if accessKeyField == "" {
-		accessKeyField = "AWS_ACCESS_KEY_ID"
-	}
-	secretKeyField := cred.SecretKey
-	if secretKeyField == "" {
-		secretKeyField = "AWS_SECRET_ACCESS_KEY"
-	}
-
-	dspaObjectStorage := &models.DSPAObjectStorage{
-		SecretName:     cred.SecretName,
-		AccessKeyField: accessKeyField,
-		SecretKeyField: secretKeyField,
-		EndpointURL:    endpointURL,
-		Bucket:         ext.Bucket,
-		Region:         ext.Region,
-	}
-	ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
-	logger.Debug("Injected DSPA object storage config (override-URL mode)",
-		"secretName", cred.SecretName,
+	logger.Warn("DSPA found but has no storage config; S3 requires explicit secretName",
+		"dspa", dspa.Metadata.Name,
 		"namespace", namespace,
-		"hasEndpoint", endpointURL != "",
-		"hasBucket", ext.Bucket != "",
 	)
 	return ctx
 }
@@ -753,15 +704,130 @@ const (
 	dsPipelineResource = "datasciencepipelinesapplications"
 )
 
-// isAPIServerReady checks if the Pipeline Server API is ready
-// This matches the dashboard's check: conditions.find(c => c.type === 'APIServerReady' && c.status === 'True')
-func isAPIServerReady(dspa *models.DSPipelineApplication) bool {
+// dspaStorageType indicates the type of object storage configured in a DSPA.
+type dspaStorageType string
+
+const (
+	dspaStorageExternal dspaStorageType = "external"
+	dspaStorageMinIO    dspaStorageType = "minio"
+	dspaStorageNone     dspaStorageType = "none"
+)
+
+// buildMinIOObjectStorage constructs DSPAObjectStorage for managed MinIO deployments.
+// It follows the DSPA operator conventions:
+//   - Secret name: "ds-pipeline-s3-{dspaName}"
+//   - Endpoint: http://minio-{dspaName}.{namespace}.svc.cluster.local:9000
+//   - Lowercase credential key names: "accesskey", "secretkey"
+//   - Default region: "us-east-1"
+func buildMinIOObjectStorage(dspaName, namespace, bucket string) *models.DSPAObjectStorage {
+	return &models.DSPAObjectStorage{
+		SecretName:     fmt.Sprintf("ds-pipeline-s3-%s", dspaName),
+		AccessKeyField: "accesskey",
+		SecretKeyField: "secretkey",
+		EndpointURL:    fmt.Sprintf("http://minio-%s.%s.svc.cluster.local:9000", dspaName, namespace),
+		Bucket:         bucket,
+		Region:         "us-east-1",
+	}
+}
+
+// resolveDSPAObjectStorage extracts S3-compatible object storage configuration from a DSPA spec.
+// It handles both external storage (e.g., AWS S3) and managed MinIO, with external storage
+// preferred when both are configured.
+//
+// Returns the DSPAObjectStorage config and its type. Returns (nil, dspaStorageNone) if the DSPA
+// has no valid object storage configuration.
+//
+// For external storage:
+//   - Validates scheme (must be "http" or "https")
+//   - Constructs endpoint URL from scheme://host[:port]
+//   - Defaults accessKeyField to "AWS_ACCESS_KEY_ID" if empty
+//   - Defaults secretKeyField to "AWS_SECRET_ACCESS_KEY" if empty
+//   - Uses bucket and region from DSPA spec
+//
+// For managed MinIO:
+//   - Secret name follows convention: "ds-pipeline-s3-{dspa-name}"
+//   - Endpoint URL: http://minio-{dspa-name}.{namespace}.svc.cluster.local:9000
+//   - Uses lowercase key names: "accesskey", "secretkey"
+//   - Defaults region to "us-east-1"
+func resolveDSPAObjectStorage(
+	dspa *models.DSPipelineApplication,
+	namespace string,
+	logger *slog.Logger,
+) (*models.DSPAObjectStorage, dspaStorageType) {
+	if dspa == nil || dspa.Spec == nil || dspa.Spec.ObjectStorage == nil {
+		return nil, dspaStorageNone
+	}
+
+	// Handle external storage (preferred)
+	if dspa.Spec.ObjectStorage.ExternalStorage != nil &&
+		dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
+		dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
+
+		ext := dspa.Spec.ObjectStorage.ExternalStorage
+		cred := ext.S3CredentialsSecret
+
+		// Construct the endpoint URL from scheme, host, and optional port.
+		// Only "http" and "https" schemes are accepted; any other value is
+		// logged as a warning and the endpoint URL is left empty so that
+		// GetS3CredentialsFromDSPA surfaces a clear error to the caller.
+		endpointURL := ""
+		scheme := strings.ToLower(ext.Scheme)
+		if ext.Host != "" && (scheme == "http" || scheme == "https") {
+			if ext.Port != "" {
+				endpointURL = fmt.Sprintf("%s://%s:%s", scheme, ext.Host, ext.Port)
+			} else {
+				endpointURL = fmt.Sprintf("%s://%s", scheme, ext.Host)
+			}
+		} else if ext.Scheme != "" && ext.Host != "" {
+			logger.Warn("DSPA external storage has unrecognised scheme; endpoint URL will be omitted",
+				"scheme", ext.Scheme,
+				"namespace", namespace,
+			)
+		}
+
+		accessKeyField := cred.AccessKey
+		if accessKeyField == "" {
+			accessKeyField = "AWS_ACCESS_KEY_ID"
+		}
+		secretKeyField := cred.SecretKey
+		if secretKeyField == "" {
+			secretKeyField = "AWS_SECRET_ACCESS_KEY"
+		}
+
+		return &models.DSPAObjectStorage{
+			SecretName:     cred.SecretName,
+			AccessKeyField: accessKeyField,
+			SecretKeyField: secretKeyField,
+			EndpointURL:    endpointURL,
+			Bucket:         ext.Bucket,
+			Region:         ext.Region,
+		}, dspaStorageExternal
+	}
+
+	// Handle managed MinIO (fallback)
+	if dspa.Spec.ObjectStorage.Minio != nil && dspa.Spec.ObjectStorage.Minio.Deploy {
+		return buildMinIOObjectStorage(
+			dspa.Metadata.Name,
+			namespace,
+			dspa.Spec.ObjectStorage.Minio.Bucket,
+		), dspaStorageMinIO
+	}
+
+	// No valid storage configuration
+	return nil, dspaStorageNone
+}
+
+// isDSPAReady checks if the Pipeline Server is fully ready by looking for
+// the Ready condition. Ready is the aggregate condition set by the DSPA
+// controller — it is True only when all sub-conditions (APIServerReady,
+// DatabaseReady, PersistenceAgentReady, etc.) are also True.
+func isDSPAReady(dspa *models.DSPipelineApplication) bool {
 	if dspa == nil || dspa.Status == nil || dspa.Status.Conditions == nil {
 		return false
 	}
 
 	for _, condition := range dspa.Status.Conditions {
-		if condition.Type == "APIServerReady" && condition.Status == "True" {
+		if condition.Type == "Ready" && condition.Status == "True" {
 			return true
 		}
 	}
@@ -1022,6 +1088,160 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 				},
 			},
 		},
+		// Ready DSPA with managed MinIO in minio-test namespace
+		{
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
+			Kind:       "DSPipelineApplication",
+			Metadata: models.DSPipelineApplicationMetadata{
+				Name:      "pipelines",
+				Namespace: "minio-test",
+			},
+			Spec: &models.DSPipelineApplicationSpec{
+				APIServer: &models.APIServer{
+					Deploy: true,
+				},
+				ObjectStorage: &models.ObjectStorage{
+					Minio: &models.MinioStorage{
+						Deploy:  true,
+						Bucket:  "mlpipeline",
+						Image:   "quay.io/opendatahub/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance",
+						PvcSize: "10Gi",
+					},
+				},
+			},
+			Status: &models.DSPipelineApplicationStatus{
+				Ready: true,
+				Conditions: []models.DSPipelineApplicationCondition{
+					{
+						Type:    "Ready",
+						Status:  "True",
+						Reason:  "MinimumReplicasAvailable",
+						Message: "All components are ready",
+					},
+					{
+						Type:    "APIServerReady",
+						Status:  "True",
+						Reason:  "Deployed",
+						Message: "API Server is ready",
+					},
+				},
+				Components: &models.DSPipelineApplicationComponents{
+					APIServer: &models.DSPipelineApplicationAPIServerStatus{
+						URL:         "https://ds-pipeline-pipelines.minio-test.svc.cluster.local:8443",
+						ExternalURL: "https://ds-pipeline-ui-pipelines-minio-test.apps.cluster.local",
+					},
+				},
+			},
+		},
+		// Ready DSPA with external storage in external-storage-test namespace
+		{
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
+			Kind:       "DSPipelineApplication",
+			Metadata: models.DSPipelineApplicationMetadata{
+				Name:      "dspa-external",
+				Namespace: "external-storage-test",
+			},
+			Spec: &models.DSPipelineApplicationSpec{
+				APIServer: &models.APIServer{
+					Deploy: true,
+				},
+				ObjectStorage: &models.ObjectStorage{
+					ExternalStorage: &models.ExternalStorage{
+						Host:   "s3.amazonaws.com",
+						Port:   "",
+						Scheme: "https",
+						Region: "us-west-2",
+						Bucket: "my-external-bucket",
+						S3CredentialsSecret: &models.S3CredentialsSecret{
+							SecretName: "aws-s3-credentials",
+							AccessKey:  "", // Empty means use default AWS_ACCESS_KEY_ID
+							SecretKey:  "", // Empty means use default AWS_SECRET_ACCESS_KEY
+						},
+					},
+				},
+			},
+			Status: &models.DSPipelineApplicationStatus{
+				Ready: true,
+				Conditions: []models.DSPipelineApplicationCondition{
+					{
+						Type:    "Ready",
+						Status:  "True",
+						Reason:  "MinimumReplicasAvailable",
+						Message: "All components are ready",
+					},
+					{
+						Type:    "APIServerReady",
+						Status:  "True",
+						Reason:  "Deployed",
+						Message: "API Server is ready",
+					},
+				},
+				Components: &models.DSPipelineApplicationComponents{
+					APIServer: &models.DSPipelineApplicationAPIServerStatus{
+						URL:         "https://ds-pipeline-dspa-external.external-storage-test.svc.cluster.local:8443",
+						ExternalURL: "https://ds-pipeline-ui-dspa-external-external-storage-test.apps.cluster.local",
+					},
+				},
+			},
+		},
+		// Ready DSPA with BOTH external storage AND managed MinIO in both-storage-test namespace
+		// This tests that external storage is preferred when both are configured
+		{
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
+			Kind:       "DSPipelineApplication",
+			Metadata: models.DSPipelineApplicationMetadata{
+				Name:      "dspa-both",
+				Namespace: "both-storage-test",
+			},
+			Spec: &models.DSPipelineApplicationSpec{
+				APIServer: &models.APIServer{
+					Deploy: true,
+				},
+				ObjectStorage: &models.ObjectStorage{
+					ExternalStorage: &models.ExternalStorage{
+						Host:   "s3.amazonaws.com",
+						Port:   "",
+						Scheme: "https",
+						Region: "us-west-2",
+						Bucket: "my-external-bucket",
+						S3CredentialsSecret: &models.S3CredentialsSecret{
+							SecretName: "aws-s3-credentials",
+							AccessKey:  "", // Empty means use default AWS_ACCESS_KEY_ID
+							SecretKey:  "", // Empty means use default AWS_SECRET_ACCESS_KEY
+						},
+					},
+					Minio: &models.MinioStorage{
+						Deploy:  true,
+						Bucket:  "mlpipeline-minio",
+						Image:   "quay.io/opendatahub/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance",
+						PvcSize: "10Gi",
+					},
+				},
+			},
+			Status: &models.DSPipelineApplicationStatus{
+				Ready: true,
+				Conditions: []models.DSPipelineApplicationCondition{
+					{
+						Type:    "Ready",
+						Status:  "True",
+						Reason:  "MinimumReplicasAvailable",
+						Message: "All components are ready",
+					},
+					{
+						Type:    "APIServerReady",
+						Status:  "True",
+						Reason:  "Deployed",
+						Message: "API Server is ready",
+					},
+				},
+				Components: &models.DSPipelineApplicationComponents{
+					APIServer: &models.DSPipelineApplicationAPIServerStatus{
+						URL:         "https://ds-pipeline-dspa-both.both-storage-test.svc.cluster.local:8443",
+						ExternalURL: "https://ds-pipeline-ui-dspa-both-both-storage-test.apps.cluster.local",
+					},
+				},
+			},
+		},
 	}
 
 	// Filter DSPAs to only return those in the requested namespace
@@ -1093,8 +1313,9 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 	return result
 }
 
-// discoverReadyDSPA discovers the first ready DSPipelineApplication in a namespace
-// Returns the first DSPA with APIServerReady == True, or nil if none are ready
+// discoverReadyDSPA discovers the first ready DSPipelineApplication in a namespace.
+// Returns the first DSPA for which isDSPAReady reports the aggregate Ready condition is True,
+// or nil if none are ready.
 func (app *App) discoverReadyDSPA(
 	ctx context.Context,
 	client k8s.KubernetesClientInterface,
@@ -1109,7 +1330,7 @@ func (app *App) discoverReadyDSPA(
 
 	// Find the first ready DSPA
 	for _, dspa := range dspas {
-		if isAPIServerReady(&dspa) {
+		if isDSPAReady(&dspa) {
 			logger.Info("Found ready Pipeline Server",
 				"namespace", namespace,
 				"name", dspa.Metadata.Name)
@@ -1204,4 +1425,21 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 
 		next(w, r, ps)
 	}
+}
+
+// preserveRawPath wraps an http.Handler so that percent-encoded path segments
+// (e.g. %2F inside an S3 key) survive exactly one level of decoding in the
+// handler. For S3 file endpoints it replaces Path with EscapedPath(), which
+// re-encodes any percent-literal characters that Go's url.Parse already
+// decoded (e.g. %252F → Path has %2F → EscapedPath re-encodes to %252F).
+// The handler then calls url.PathUnescape once to recover the real key.
+func preserveRawPath(next http.Handler) http.Handler {
+	s3FilesPrefix := ApiPathPrefix + "/s3/files/"
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if escaped := r.URL.EscapedPath(); strings.HasPrefix(escaped, s3FilesPrefix) {
+			r.URL.Path = escaped
+		}
+		next.ServeHTTP(w, r)
+	})
 }

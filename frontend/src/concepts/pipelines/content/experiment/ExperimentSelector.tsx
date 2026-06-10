@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { EmptyStateVariant, Button, Divider } from '@patternfly/react-core';
+import { EmptyStateVariant, Button } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
@@ -16,6 +16,7 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 type ExperimentSelectorProps = {
   selection?: string;
   onSelect: (experiment: ExperimentKF) => void;
+  dataTestId?: string;
 };
 
 const InnerExperimentSelector: React.FC<
@@ -32,6 +33,7 @@ const InnerExperimentSelector: React.FC<
   data: experiments,
   selection,
   onSelect,
+  dataTestId = 'experiment-selector',
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const { refreshAllAPI } = usePipelinesAPI();
@@ -39,7 +41,7 @@ const InnerExperimentSelector: React.FC<
   return (
     <>
       <SearchSelector
-        dataTestId="experiment-selector"
+        dataTestId={dataTestId}
         onSearchChange={(newValue) => searchProps.onChange(newValue)}
         onSearchClear={() => onSearchClear()}
         searchValue={searchProps.value ?? ''}
@@ -47,67 +49,14 @@ const InnerExperimentSelector: React.FC<
         isFullWidth
         toggleContent={
           initialLoaded
-            ? selection || (totalSize === 0 ? 'No experiments available' : 'Select an experiment')
-            : 'Loading experiments'
+            ? selection || (totalSize === 0 ? 'No run groups available' : 'Select a run group')
+            : 'Loading run groups'
         }
-        searchHelpText={`Type a name to search your ${totalSize} experiments.`}
+        searchHelpText={`Type a name to search your ${totalSize} run groups.`}
         isDisabled={totalSize === 0}
-      >
-        {({ menuClose }) => (
-          <>
-            <div className="pf-v6-c-menu__content">
-              <TableBase
-                itemCount={fetchedSize}
-                loading={!loaded}
-                emptyTableView={
-                  <DashboardEmptyTableView
-                    hasIcon={false}
-                    onClearFilters={onSearchClear}
-                    variant={EmptyStateVariant.xs}
-                  />
-                }
-                data-testid="experiment-selector-table-list"
-                borders={false}
-                variant={TableVariant.compact}
-                columns={experimentSelectorColumns}
-                data={experiments}
-                rowRenderer={(row) => (
-                  <PipelineSelectorTableRow
-                    key={row.experiment_id}
-                    obj={row}
-                    onClick={() => {
-                      onSelect(row);
-                      menuClose();
-                    }}
-                  />
-                )}
-                getColumnSort={getTableColumnSort({
-                  columns: experimentSelectorColumns,
-                  ...sortProps,
-                })}
-                footerRow={() =>
-                  loaded ? (
-                    <PipelineViewMoreFooterRow
-                      visibleLength={experiments.length}
-                      totalSize={fetchedSize}
-                      errorTitle="Error loading more experiments"
-                      onClick={onLoadMore}
-                      colSpan={2}
-                    />
-                  ) : null
-                }
-              />
-            </div>
-            {loaded && (
-              <div
-                className="pf-v6-c-menu__footer pf-v6-u-box-shadow-sm-top"
-                style={{
-                  position: 'sticky',
-                  bottom: 0,
-                  backgroundColor: 'var(--pf-v6-c-menu--BackgroundColor)',
-                }}
-              >
-                <Divider />
+        footer={
+          initialLoaded && loaded
+            ? ({ menuClose }) => (
                 <Button
                   variant="link"
                   icon={<PlusCircleIcon />}
@@ -115,17 +64,60 @@ const InnerExperimentSelector: React.FC<
                     menuClose();
                     setIsModalOpen(true);
                   }}
-                  style={{ paddingLeft: '20px' }}
                 >
-                  Create new experiment
+                  Create new run group
                 </Button>
-              </div>
+              )
+            : undefined
+        }
+      >
+        {({ menuClose }) => (
+          <TableBase
+            itemCount={fetchedSize}
+            loading={!loaded}
+            emptyTableView={
+              <DashboardEmptyTableView
+                hasIcon={false}
+                onClearFilters={onSearchClear}
+                variant={EmptyStateVariant.xs}
+              />
+            }
+            data-testid={`${dataTestId}-table-list`}
+            borders={false}
+            variant={TableVariant.compact}
+            columns={experimentSelectorColumns}
+            data={experiments}
+            rowRenderer={(row) => (
+              <PipelineSelectorTableRow
+                key={row.experiment_id}
+                obj={row}
+                onClick={() => {
+                  onSelect(row);
+                  menuClose();
+                }}
+              />
             )}
-          </>
+            getColumnSort={getTableColumnSort({
+              columns: experimentSelectorColumns,
+              ...sortProps,
+            })}
+            footerRow={() =>
+              loaded ? (
+                <PipelineViewMoreFooterRow
+                  visibleLength={experiments.length}
+                  totalSize={fetchedSize}
+                  errorTitle="Error loading more run groups"
+                  onClick={onLoadMore}
+                  colSpan={2}
+                />
+              ) : null
+            }
+          />
         )}
       </SearchSelector>
       {isModalOpen && (
         <CreateExperimentModal
+          existingNames={experiments.map((e) => e.display_name)}
           onClose={(experiment) => {
             setIsModalOpen(false);
             if (experiment) {

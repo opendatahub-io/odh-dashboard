@@ -51,7 +51,7 @@ const TestWrapper: React.FC<{
 
 describe('SubscriptionDropdown', () => {
   const defaultProps = {
-    selectedModel: 'provider/test-model',
+    selectedModel: 'maas-provider/test-model',
     selectedSubscription: '',
     onSubscriptionChange: jest.fn(),
   };
@@ -89,6 +89,31 @@ describe('SubscriptionDropdown', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('does not resolve subscriptions or auto-select when selectedModel has a non-MaaS provider prefix', () => {
+    // Regression: before the isMaasLlamaModelId guard, a namespace/non-MaaS model whose
+    // base model_id matched a MaaS entry would incorrectly pull up MaaS subscriptions.
+    const onSubscriptionChange = jest.fn();
+    const model = createMaaSModel({
+      id: 'test-model',
+      subscriptions: [{ name: 'only-sub', displayName: 'Only Subscription' }],
+    });
+
+    const { container } = render(
+      <TestWrapper maasModels={[model]}>
+        <SubscriptionDropdown
+          selectedModel="provider/test-model"
+          selectedSubscription=""
+          onSubscriptionChange={onSubscriptionChange}
+        />
+      </TestWrapper>,
+    );
+
+    // Component must render nothing — the non-MaaS prefix should block resolution.
+    expect(container.firstChild).toBeNull();
+    // Auto-select must not fire even though the model has a subscription.
+    expect(onSubscriptionChange).not.toHaveBeenCalled();
+  });
+
   it('auto-selects when model has exactly one subscription', () => {
     const onSubscriptionChange = jest.fn();
     const model = createMaaSModel({
@@ -109,8 +134,12 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier', description: 'Higher rate limits' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        {
+          name: 'premium-sub',
+          displayName: 'Premium Subscription',
+          description: 'Higher rate limits',
+        },
       ],
     });
 
@@ -129,8 +158,8 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
       ],
     });
 
@@ -151,8 +180,8 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
       ],
     });
 
@@ -162,7 +191,9 @@ describe('SubscriptionDropdown', () => {
       </TestWrapper>,
     );
 
-    expect(screen.getByTestId('subscription-selector-toggle')).toHaveTextContent('Premium Tier');
+    expect(screen.getByTestId('subscription-selector-toggle')).toHaveTextContent(
+      'Premium Subscription',
+    );
   });
 
   it('falls back to name when displayName is absent', () => {
@@ -185,8 +216,8 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
       ],
     });
     const otherModel = createMaaSModel({
@@ -197,7 +228,7 @@ describe('SubscriptionDropdown', () => {
     const { rerender } = render(
       <TestWrapper maasModels={[model, otherModel]}>
         <SubscriptionDropdown
-          selectedModel="provider/test-model"
+          selectedModel="maas-provider/test-model"
           selectedSubscription="premium-sub"
           onSubscriptionChange={onSubscriptionChange}
         />
@@ -209,7 +240,7 @@ describe('SubscriptionDropdown', () => {
     rerender(
       <TestWrapper maasModels={[model, otherModel]}>
         <SubscriptionDropdown
-          selectedModel="provider/other-model"
+          selectedModel="maas-provider/other-model"
           selectedSubscription="premium-sub"
           onSubscriptionChange={onSubscriptionChange}
         />

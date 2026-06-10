@@ -1,41 +1,129 @@
 import * as React from 'react';
-import { Stack, Spinner, Alert } from '@patternfly/react-core';
+import { Content, ContentVariants } from '@patternfly/react-core';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
-import { ModelCatalogStringFilterKey } from '~/concepts/modelCatalog/const';
+import {
+  ModelCatalogStringFilterKey,
+  MODEL_CATALOG_FILTER_CATEGORY_NAMES,
+  MODEL_CATALOG_TASK_NAME_MAPPING,
+  MODEL_CATALOG_PROVIDER_NAME_MAPPING,
+  MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING,
+  MODEL_CATALOG_ASIAN_LANGUAGES_DETAILS,
+  MODEL_CATALOG_EUROPEAN_LANGUAGES_DETAILS,
+  MODEL_CATALOG_MIDDLE_EASTERN_AND_OTHER_LANGUAGES_DETAILS,
+  ModelCatalogTensorType,
+} from '~/concepts/modelCatalog/const';
+import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
+import {
+  CatalogFilterPanel,
+  useCatalogFilterConfigs,
+  type FilterPanelItem,
+} from '~/app/shared/components/catalog';
 import ModelPerformanceViewToggleCard from './ModelPerformanceViewToggleCard';
-import TaskFilter from './globalFilters/TaskFilter';
-import ProviderFilter from './globalFilters/ProviderFilter';
-import LicenseFilter from './globalFilters/LicenseFilter';
-import LanguageFilter from './globalFilters/LanguageFilter';
-import TensorTypeFilter from './globalFilters/TensorTypeFilter';
+
+const BASIC_STRING_FILTER_KEYS: ModelCatalogStringFilterKey[] = [
+  ModelCatalogStringFilterKey.TASK,
+  ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION,
+  ModelCatalogStringFilterKey.PROVIDER,
+  ModelCatalogStringFilterKey.LICENSE,
+  ModelCatalogStringFilterKey.LANGUAGE,
+  ModelCatalogStringFilterKey.TENSOR_TYPE,
+];
+
+const LANGUAGE_NAME_MAPPING: Record<string, string> = {
+  ...MODEL_CATALOG_EUROPEAN_LANGUAGES_DETAILS,
+  ...MODEL_CATALOG_ASIAN_LANGUAGES_DETAILS,
+  ...MODEL_CATALOG_MIDDLE_EASTERN_AND_OTHER_LANGUAGES_DETAILS,
+};
+
+const LABEL_MAPPINGS: Record<string, Record<string, string>> = {
+  [ModelCatalogStringFilterKey.TASK]: MODEL_CATALOG_TASK_NAME_MAPPING,
+  [ModelCatalogStringFilterKey.PROVIDER]: MODEL_CATALOG_PROVIDER_NAME_MAPPING,
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]:
+    MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING,
+  [ModelCatalogStringFilterKey.LANGUAGE]: LANGUAGE_NAME_MAPPING,
+  [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType,
+};
 
 const ModelCatalogFilters: React.FC = () => {
-  const { filterOptions, filterOptionsLoaded, filterOptionsLoadError } =
+  const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filters, setFilters } =
     React.useContext(ModelCatalogContext);
-  const filters = filterOptions?.filters;
-  if (!filterOptionsLoaded) {
-    return <Spinner />;
-  }
-  if (filterOptionsLoadError) {
-    return (
-      <Alert variant="danger" title="Failed to load filter options" isInline>
-        {filterOptionsLoadError.message}
-      </Alert>
-    );
-  }
+  const { toolCalling: toolCallingFeatureAvailable } = useModelRegistryDashboardConfig();
 
-  const getFilterProps = (filterKey: ModelCatalogStringFilterKey) =>
-    filters && filterKey in filters ? filters : undefined;
+  React.useEffect(() => {
+    if (
+      !toolCallingFeatureAvailable &&
+      filters[ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION].length > 0
+    ) {
+      setFilters((prev) => ({
+        ...prev,
+        [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [],
+      }));
+    }
+    // Only react to flag changes — including filters would cause an infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toolCallingFeatureAvailable]);
+
+  const onFilterChange = React.useCallback(
+    (key: string, values: string[]) => {
+      const match = BASIC_STRING_FILTER_KEYS.find((k) => k === key);
+      if (match) {
+        setFilters((prev) => ({ ...prev, [match]: values }));
+      }
+    },
+    [setFilters],
+  );
+
+  const selectedStringFilters = React.useMemo(() => {
+    const result: Record<string, string[] | undefined> = {};
+    for (const key of BASIC_STRING_FILTER_KEYS) {
+      result[key] = filters[key];
+    }
+    return result;
+  }, [filters]);
+
+  const baseFilterItems = useCatalogFilterConfigs({
+    filterKeys: BASIC_STRING_FILTER_KEYS,
+    filterNames: MODEL_CATALOG_FILTER_CATEGORY_NAMES,
+    filterOptions: filterOptions?.filters,
+    selectedFilters: selectedStringFilters,
+    onFilterChange,
+    labelMappings: LABEL_MAPPINGS,
+  });
+
+  const filterPanelItems = React.useMemo((): FilterPanelItem[] => {
+    const validatedConfigKey = ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION;
+    return baseFilterItems.map((item) => {
+      const itemWithTestIds: FilterPanelItem = {
+        ...item,
+        testIdBase: `${item.title}-filter`,
+        getCheckboxTestId: (value: string) => `${item.title}-${value}-checkbox`,
+      };
+      if (item.key === validatedConfigKey) {
+        const hasMultiple = item.filterValues.length > 1;
+        const hasSelection = item.selectedValues.length > 0;
+        return {
+          ...itemWithTestIds,
+          visible: toolCallingFeatureAvailable,
+          footer:
+            hasMultiple && hasSelection ? (
+              <Content component={ContentVariants.small} className="pf-v6-u-mt-sm">
+                Showing models with all selected configurations
+              </Content>
+            ) : undefined,
+        };
+      }
+      return itemWithTestIds;
+    });
+  }, [baseFilterItems, toolCallingFeatureAvailable]);
 
   return (
-    <Stack hasGutter>
-      <ModelPerformanceViewToggleCard />
-      <TaskFilter filters={getFilterProps(ModelCatalogStringFilterKey.TASK)} />
-      <ProviderFilter filters={getFilterProps(ModelCatalogStringFilterKey.PROVIDER)} />
-      <LicenseFilter filters={getFilterProps(ModelCatalogStringFilterKey.LICENSE)} />
-      <LanguageFilter filters={getFilterProps(ModelCatalogStringFilterKey.LANGUAGE)} />
-      <TensorTypeFilter filters={getFilterProps(ModelCatalogStringFilterKey.TENSOR_TYPE)} />
-    </Stack>
+    <CatalogFilterPanel
+      loaded={filterOptionsLoaded}
+      loadError={filterOptionsLoadError}
+      filters={filterPanelItems}
+      extraContent={<ModelPerformanceViewToggleCard />}
+      testIdPrefix="model-catalog-filter"
+    />
   );
 };
 

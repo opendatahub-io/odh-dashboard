@@ -9,9 +9,9 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
-	"github.com/kubeflow/model-registry/pkg/openapi"
-	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/pkg/openapi"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 )
 
 func GetRegisteredModelMocks() []openapi.RegisteredModel {
@@ -184,8 +184,8 @@ func GetModelArtifactListMock() openapi.ModelArtifactList {
 	}
 }
 
-func newCustomProperties() *map[string]openapi.MetadataValue {
-	result := map[string]openapi.MetadataValue{
+func newCustomProperties() map[string]openapi.MetadataValue {
+	return map[string]openapi.MetadataValue{
 		"tensorflow": {
 			MetadataStringValue: &openapi.MetadataStringValue{
 				StringValue:  "",
@@ -223,8 +223,6 @@ func newCustomProperties() *map[string]openapi.MetadataValue {
 			},
 		},
 	}
-
-	return &result
 }
 
 func catalogCustomProperties() *map[string]openapi.MetadataValue {
@@ -265,7 +263,7 @@ func catalogCustomPropertiesWithVariant(variantGroupId string, tensorType string
 		},
 		"validated_on": {
 			MetadataStringValue: &openapi.MetadataStringValue{
-				StringValue:  "[\"RHOAI 2.20\",\"RHAIIS 3.0\",\"RHELAI 1.5\"]",
+				StringValue:  "[\"RHOAI 2.20\",\"RHAIIS 3.0\",\"RHELAI 1.5\",\"vllm 0.20.0 - CUDA\"]",
 				MetadataType: "MetadataStringValue",
 			},
 		},
@@ -296,6 +294,12 @@ func catalogCustomPropertiesWithVariant(variantGroupId string, tensorType string
 		"model_type": {
 			MetadataStringValue: &openapi.MetadataStringValue{
 				StringValue:  "generative",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"hardware_tag": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "GPU",
 				MetadataType: "MetadataStringValue",
 			},
 		},
@@ -354,20 +358,57 @@ func GenerateMockArtifact() openapi.Artifact {
 	return mockData
 }
 
+func withColdStartData(props *map[string]openapi.MetadataValue, modelSize string, minVram string, hwConfigs string) *map[string]openapi.MetadataValue {
+	if props == nil {
+		return props
+	}
+	(*props)["model_size"] = openapi.MetadataValue{
+		MetadataStringValue: &openapi.MetadataStringValue{
+			StringValue:  modelSize,
+			MetadataType: "MetadataStringValue",
+		},
+	}
+	(*props)["min_vram_gb"] = openapi.MetadataValue{
+		MetadataStringValue: &openapi.MetadataStringValue{
+			StringValue:  minVram,
+			MetadataType: "MetadataStringValue",
+		},
+	}
+	(*props)["cold_start_matrix"] = openapi.MetadataValue{
+		MetadataStringValue: &openapi.MetadataStringValue{
+			StringValue:  hwConfigs,
+			MetadataType: "MetadataStringValue",
+		},
+	}
+	return props
+}
+
 const graniteVariantGroupId = "b6c850a4-aa4c-4a0f-91b1-0a69f4352843"
 
 func GetCatalogModelMocks() []models.CatalogModel {
 	sampleModel1 := models.CatalogModel{
-		Name:             "repo1/granite-8b-code-instruct",
-		Description:      stringToPointer("Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills."),
-		Provider:         stringToPointer("provider1"),
-		Tasks:            []string{"text-generation", "image-to-text"},
-		License:          stringToPointer("apache-2.0"),
-		LicenseLink:      stringToPointer("https://www.apache.org/licenses/LICENSE-2.0.txt"),
-		Maturity:         stringToPointer("Technology preview"),
-		Language:         []string{"ar", "cs", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh"},
-		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "FP16"),
-		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+		Name:           "repo1/granite-8b-code-instruct",
+		Description:    stringToPointer("Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills."),
+		Provider:       stringToPointer("provider1"),
+		Tasks:          []string{"text-generation", "image-to-text", "tool-calling"},
+		ValidatedTasks: []string{"tool-calling"},
+		License:        stringToPointer("Apache 2.0"),
+		LicenseLink:    stringToPointer("https://www.apache.org/licenses/LICENSE-2.0.txt"),
+		Maturity:       stringToPointer("Technology preview"),
+		Language:       []string{"ar", "cs", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh"},
+		CustomProperties: withColdStartData(
+			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "FP16"),
+			"8B", "24GB",
+			`[{"gpu_type":"A100","gpu_count":1,"cold_start_time_to_load_seconds":85.2,"runtime_command":"vllm serve repo1/granite-8b-code-instruct --tensor-parallel-size 1 --dtype float16"},{"gpu_type":"H100","gpu_count":1,"cold_start_time_to_load_seconds":52.1,"runtime_command":"vllm serve repo1/granite-8b-code-instruct --tensor-parallel-size 1 --dtype float16"}]`,
+		),
+		ServingConfig: &models.ServingConfig{
+			ToolCalling: &models.ToolCallingConfig{
+				ToolCallParser:       stringToPointer("granite"),
+				ChatTemplate:         stringToPointer("opt/app-root/template/tool_chat_template_granite.jinja"),
+				EnableAutoToolChoice: boolToPointer(true),
+			},
+		},
+		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 		Readme: stringToPointer(`---
 pipeline_tag: text-generation
 inference: false
@@ -712,42 +753,54 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 	}
 
 	sampleModel2 := models.CatalogModel{
-		Name:             "repo1/granite-8b-code-instruct-quantized.w4a16",
-		Description:      stringToPointer("Granite 8B Code Instruct - INT4 quantized variant for efficient inference"),
-		Provider:         stringToPointer("Provider one"),
-		Tasks:            []string{"text-generation", "image-text-to-text"},
-		License:          stringToPointer("apache-2.0"),
-		Maturity:         stringToPointer("Generally Available"),
-		Language:         []string{"en"},
-		SourceId:         stringToPointer("sample-source"),
-		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT4"),
-		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+		Name:        "repo1/granite-8b-code-instruct-quantized.w4a16",
+		Description: stringToPointer("Granite 8B Code Instruct - INT4 quantized variant for efficient inference"),
+		Provider:    stringToPointer("Provider one"),
+		Tasks:       []string{"text-generation", "image-text-to-text"},
+		License:     stringToPointer("Apache 2.0"),
+		Maturity:    stringToPointer("Generally Available"),
+		Language:    []string{"en"},
+		SourceId:    stringToPointer("sample-source"),
+		CustomProperties: withColdStartData(
+			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT4"),
+			"8B", "12GB",
+			`[{"gpu_type":"A100","gpu_count":1,"cold_start_time_to_load_seconds":62.4,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w4a16 --tensor-parallel-size 1 --dtype auto --quantization gptq"},{"gpu_type":"L4","gpu_count":1,"cold_start_time_to_load_seconds":110.8,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w4a16 --tensor-parallel-size 1 --dtype auto --quantization gptq"}]`,
+		),
+		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
 
 	sampleModel3 := models.CatalogModel{
-		Name:             "repo1/granite-8b-code-instruct-quantized.w8a8",
-		Description:      stringToPointer("Granite 8B Code Instruct - INT8 quantized variant for balanced performance"),
-		Provider:         stringToPointer("IBM"),
-		Tasks:            []string{"audio-to-text", "text-to-text", "video-to-text"},
-		License:          stringToPointer("mit"),
-		Maturity:         stringToPointer("Generally Available"),
-		Language:         []string{"en"},
-		SourceId:         stringToPointer("sample-source"),
-		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT8"),
-		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+		Name:        "repo1/granite-8b-code-instruct-quantized.w8a8",
+		Description: stringToPointer("Granite 8B Code Instruct - INT8 quantized variant for balanced performance"),
+		Provider:    stringToPointer("IBM"),
+		Tasks:       []string{"audio-to-text", "text-to-text", "video-to-text"},
+		License:     stringToPointer("MIT"),
+		Maturity:    stringToPointer("Generally Available"),
+		Language:    []string{"en"},
+		SourceId:    stringToPointer("sample-source"),
+		CustomProperties: withColdStartData(
+			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT8"),
+			"8B", "16GB",
+			`[{"gpu_type":"A100","gpu_count":1,"cold_start_time_to_load_seconds":73.6,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w8a8 --tensor-parallel-size 1 --dtype auto --quantization squeezellm"},{"gpu_type":"H100","gpu_count":1,"cold_start_time_to_load_seconds":48.3,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w8a8 --tensor-parallel-size 1 --dtype auto"},{"gpu_type":"L4","gpu_count":2,"cold_start_time_to_load_seconds":145.7,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w8a8 --tensor-parallel-size 2 --dtype auto"}]`,
+		),
+		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
 
 	sampleModel4 := models.CatalogModel{
-		Name:             "repo1/granite-8b-code-instruct-bf16",
-		Description:      stringToPointer("Granite 8B Code Instruct - BF16 variant for high precision"),
-		Provider:         stringToPointer("IBM"),
-		Tasks:            []string{"text-generation", "code-generation"},
-		License:          stringToPointer("apache-2.0"),
-		Maturity:         stringToPointer("Generally Available"),
-		Language:         []string{"en"},
-		SourceId:         stringToPointer("sample-source"),
-		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "BF16"),
-		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+		Name:        "repo1/granite-8b-code-instruct-bf16",
+		Description: stringToPointer("Granite 8B Code Instruct - BF16 variant for high precision"),
+		Provider:    stringToPointer("IBM"),
+		Tasks:       []string{"text-generation", "code-generation"},
+		License:     stringToPointer("Apache 2.0"),
+		Maturity:    stringToPointer("Generally Available"),
+		Language:    []string{"en"},
+		SourceId:    stringToPointer("sample-source"),
+		CustomProperties: withColdStartData(
+			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "BF16"),
+			"8B", "24GB",
+			`[{"gpu_type":"A100","gpu_count":1,"cold_start_time_to_load_seconds":90.1,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-bf16 --tensor-parallel-size 1 --dtype bfloat16"},{"gpu_type":"H100","gpu_count":1,"cold_start_time_to_load_seconds":55.4,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-bf16 --tensor-parallel-size 1 --dtype bfloat16"},{"gpu_type":"H200","gpu_count":1,"cold_start_time_to_load_seconds":47.2,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-bf16 --tensor-parallel-size 1 --dtype bfloat16"}]`,
+		),
+		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
 
 	huggingFaceModel1 := models.CatalogModel{
@@ -755,11 +808,40 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("BERT base model (uncased) - Pretrained model on English language"),
 		Provider:    stringToPointer("Google"),
 		Tasks:       []string{"audio-to-text", "text-to-text"},
-		License:     stringToPointer("apache-2.0"),
+		License:     stringToPointer("Apache 2.0"),
 		Maturity:    stringToPointer("Generally Available"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("huggingface"),
 		LibraryName: stringToPointer("transformers"),
+		Readme: stringToPointer(`# BERT Base Uncased
+
+BERT is a transformers model pretrained on a large corpus of English data.
+
+## Installation
+
+` + "```bash" + `
+pip install transformers torch
+` + "```" + `
+
+## Quick Start
+
+` + "```python" + `
+from transformers import BertTokenizer, BertModel
+
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertModel.from_pretrained('bert-base-uncased')
+
+text = "Replace this with your text"
+encoded = tokenizer(text, return_tensors='pt')
+output = model(**encoded)
+` + "```" + `
+
+## Using with Pipeline
+
+` + "```bash" + `
+python -c "from transformers import pipeline; nlp = pipeline('fill-mask', model='bert-base-uncased'); print(nlp('The capital of France is [MASK].'))"
+` + "```" + `
+`),
 	}
 
 	huggingFaceModel2 := models.CatalogModel{
@@ -767,7 +849,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("GPT-2 is a transformers model pretrained on a very large corpus of English data"),
 		Provider:    stringToPointer("provider3"),
 		Tasks:       []string{"video-to-text"},
-		License:     stringToPointer("mit"),
+		License:     stringToPointer("MIT"),
 		Maturity:    stringToPointer("Generally Available"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("huggingface"),
@@ -779,7 +861,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("DistilBERT base model (uncased) - A smaller, faster version of BERT"),
 		Provider:    stringToPointer("Hugging Face"),
 		Tasks:       []string{"fill-mask", "text-classification"},
-		License:     stringToPointer("apache-2.0"),
+		License:     stringToPointer("Apache 2.0"),
 		Maturity:    stringToPointer("Generally Available"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("huggingface"),
@@ -791,7 +873,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("sample description"),
 		Provider:    stringToPointer("Admin model 1"),
 		Tasks:       []string{"code-generation", "instruction-following"},
-		License:     stringToPointer("apache-2.0"),
+		License:     stringToPointer("Apache 2.0"),
 		Maturity:    stringToPointer("Generally Available"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("adminModel2"),
@@ -802,7 +884,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("sample description"),
 		Provider:    stringToPointer("Admin model 2"),
 		Tasks:       []string{"text-generation", "conversational"},
-		License:     stringToPointer("apache-2.0"),
+		License:     stringToPointer("Apache 2.0"),
 		Maturity:    stringToPointer("Generally Available"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("adminModel1"),
@@ -813,7 +895,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("Model without performance data"),
 		Provider:    stringToPointer("Test Provider"),
 		Tasks:       []string{"text-generation"},
-		License:     stringToPointer("apache-2.0"),
+		License:     stringToPointer("Apache 2.0"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("no-perf-source"),
 	}
@@ -826,7 +908,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 			Description:              stringToPointer("Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills."),
 			Provider:                 stringToPointer("provider1"),
 			Tasks:                    []string{"text-generation"},
-			License:                  stringToPointer("apache-2.0"),
+			License:                  stringToPointer("Apache 2.0"),
 			LicenseLink:              stringToPointer("https://www.apache.org/licenses/LICENSE-2.0.txt"),
 			Maturity:                 stringToPointer("Technology preview"),
 			Language:                 []string{"ar", "cs", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh"},
@@ -1018,7 +1100,7 @@ func GetCatalogLabelListMock() models.CatalogLabelList {
 func GetCatalogModelArtifactMock() []models.CatalogArtifact {
 	architecturesJSON, _ := json.Marshal([]string{"amd64", "arm64", "s390x", "ppc64le"})
 	customProps := newCustomProperties()
-	(*customProps)["architecture"] = openapi.MetadataValue{
+	customProps["architecture"] = openapi.MetadataValue{
 		MetadataStringValue: &openapi.MetadataStringValue{
 			StringValue:  string(architecturesJSON),
 			MetadataType: "MetadataStringValue",
@@ -1031,7 +1113,7 @@ func GetCatalogModelArtifactMock() []models.CatalogArtifact {
 			Uri:                      stringToPointer("oci://registry.sample.io/repo1/modelcar-granite-7b-starter:1.4.0"),
 			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
 			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
-			CustomProperties:         customProps,
+			CustomProperties:         &customProps,
 		},
 	}
 }
@@ -1682,7 +1764,7 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 		Values: []interface{}{
 			"Apache 2.0", "Gemma License", "Llama 3.1 Community License",
 			"Llama 3.3 Community License", "Llama 4 Community License", "MIT",
-			"NVIDIA Open Model License", "modified-mit",
+			"NVIDIA Open Model License", "Modified MIT",
 		},
 	}
 
@@ -1692,6 +1774,13 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 			"audio-to-text", "automatic-speech-recognition", "automatic-speech-translation",
 			"code-generation", "image-text-to-text", "image-to-text", "text-embedding",
 			"text-generation", "text-to-text", "tool-calling", "video-to-text",
+		},
+	}
+
+	filterOptions["validated_tasks"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"tool-calling",
 		},
 	}
 
@@ -1971,6 +2060,15 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 		},
 	}
 
+	// Cold-start load time in milliseconds
+	filterOptions["artifacts.cold_start_load_time_seconds.double_value"] = models.FilterOption{
+		Type: FilterOptionTypeNumber,
+		Range: &models.FilterRange{
+			Min: float32Ptr(45000),
+			Max: float32Ptr(200000),
+		},
+	}
+
 	filterOptions["artifacts.hardware_count.int_value"] = models.FilterOption{
 		Type: FilterOptionTypeNumber,
 		Range: &models.FilterRange{
@@ -2190,6 +2288,10 @@ func GetNamedQueriesMocks() map[string]map[string]models.FieldFilter {
 			Operator: "<=",
 			Value:    float64(892.6553726196289),
 		},
+		"artifacts.cold_start_load_time_seconds.double_value": {
+			Operator: "<=",
+			Value:    "max",
+		},
 		"artifacts.use_case.string_value": {
 			Operator: "=",
 			Value:    "chatbot",
@@ -2370,6 +2472,7 @@ func GetMcpServerMocks() []models.McpServer {
 		Version:     stringToPointer("0.9.2"),
 		License:     stringToPointer("Apache 2.0"),
 		LicenseLink: stringToPointer("https://www.apache.org/licenses/LICENSE-2.0"),
+		Logo:        stringToPointer("https://raw.githubusercontent.com/cncf/artwork/main/projects/prometheus/icon/color/prometheus-icon-color.svg"),
 		Tags:        []string{"metrics", "monitoring", "alerting"},
 		ToolCount:   15,
 		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP},
@@ -2445,6 +2548,7 @@ func GetMcpServerMocks() []models.McpServer {
 		Version:     stringToPointer("1.2.0"),
 		License:     stringToPointer("Apache 2.0"),
 		LicenseLink: stringToPointer("https://www.apache.org/licenses/LICENSE-2.0"),
+		Logo:        stringToPointer("https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.svg"),
 		Tags:        []string{"kubernetes", "containers", "orchestration"},
 		ToolCount:   23,
 		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP, models.McpTransportTypeSSE},
@@ -2531,6 +2635,7 @@ func GetMcpServerMocks() []models.McpServer {
 		Version:     stringToPointer("1.1.0"),
 		License:     stringToPointer("AGPL-3.0"),
 		LicenseLink: stringToPointer("https://www.gnu.org/licenses/agpl-3.0.html"),
+		Logo:        stringToPointer("https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg"),
 		Tags:        []string{"dashboards", "visualization", "monitoring"},
 		ToolCount:   12,
 		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP},
@@ -2542,6 +2647,9 @@ func GetMcpServerMocks() []models.McpServer {
 			VerifiedSource: &trueVal,
 			SecureEndpoint: &trueVal,
 			ReadOnlyTools:  &trueVal,
+		},
+		Endpoints: &models.McpEndpoints{
+			HTTP: stringToPointer("https://api.mcpservers.org/grafana-mcp/v1"),
 		},
 	}
 
@@ -2597,6 +2705,7 @@ func GetMcpServerMocks() []models.McpServer {
 		Version:     stringToPointer("0.8.1"),
 		License:     stringToPointer("BSD-3-Clause"),
 		LicenseLink: stringToPointer("https://opensource.org/licenses/BSD-3-Clause"),
+		Logo:        stringToPointer("https://raw.githubusercontent.com/redis/redis-io/master/public/images/redis-white.png"),
 		Tags:        []string{"cache", "database", "messaging"},
 		ToolCount:   14,
 		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP, models.McpTransportTypeSSE},
@@ -3215,11 +3324,9 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 			UID:               "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			CreationTimestamp: "2026-03-10T14:30:00Z",
 			Image:             "quay.io/mcp-servers/kubernetes:1.0.0",
-			Port:              8080,
-			Phase:             models.McpDeploymentPhaseRunning,
 			Conditions: []models.McpDeploymentCondition{
-				{Type: "Available", Status: "True", LastTransitionTime: "2026-03-10T14:32:00Z", Reason: "DeploymentAvailable"},
-				{Type: "Progressing", Status: "True", LastTransitionTime: "2026-03-10T14:31:00Z", Reason: "NewReplicaSetAvailable"},
+				{Type: "Accepted", Status: "True", LastTransitionTime: "2026-03-10T14:31:00Z", Reason: "Valid"},
+				{Type: "Ready", Status: "True", LastTransitionTime: "2026-03-10T14:32:00Z", Reason: "Available"},
 			},
 		},
 		{
@@ -3229,11 +3336,9 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 			UID:               "b2c3d4e5-f6a7-8901-bcde-f12345678901",
 			CreationTimestamp: "2026-03-14T11:00:00Z",
 			Image:             "quay.io/mcp-servers/slack:0.5.0",
-			Port:              9090,
-			Phase:             models.McpDeploymentPhasePending,
 			Conditions: []models.McpDeploymentCondition{
-				{Type: "Available", Status: "False", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "MinimumReplicasUnavailable"},
-				{Type: "Progressing", Status: "True", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "ReplicaSetUpdated"},
+				{Type: "Accepted", Status: "True", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "Valid"},
+				{Type: "Ready", Status: "False", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "Initializing", Message: "Waiting for pods to become ready."},
 			},
 		},
 		{
@@ -3243,11 +3348,9 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 			UID:               "c3d4e5f6-a7b8-9012-cdef-123456789012",
 			CreationTimestamp: "2026-03-08T16:45:00Z",
 			Image:             "quay.io/mcp-servers/jira:1.2.0",
-			Port:              8080,
-			Phase:             models.McpDeploymentPhaseFailed,
 			Conditions: []models.McpDeploymentCondition{
-				{Type: "Available", Status: "False", LastTransitionTime: "2026-03-08T16:50:00Z", Reason: "MinimumReplicasUnavailable"},
-				{Type: "Progressing", Status: "False", LastTransitionTime: "2026-03-08T16:55:00Z", Reason: "ProgressDeadlineExceeded"},
+				{Type: "Accepted", Status: "True", LastTransitionTime: "2026-03-08T16:46:00Z", Reason: "Valid"},
+				{Type: "Ready", Status: "False", LastTransitionTime: "2026-03-08T16:55:00Z", Reason: "DeploymentUnavailable", Message: "Pod crashed."},
 			},
 		},
 	}

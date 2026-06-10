@@ -100,6 +100,7 @@ function renderAutorag(ui: React.ReactElement) {
 describe('AutoragExperiments', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetGenericErrorCode.mockReturnValue(undefined);
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'my-namespace' });
     mockUsePipelineDefinitions.mockReturnValue(defaultDefsState);
@@ -131,10 +132,10 @@ describe('AutoragExperiments', () => {
     renderAutorag(<AutoragExperiments />);
 
     expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
-    expect(screen.getByText('No experiments yet')).toBeInTheDocument();
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create RAG optimization run',
-    );
+    expect(
+      screen.getByRole('heading', { name: 'Create an AutoRAG optimization run' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('create-run-button')).toHaveTextContent('Create run');
     expect(screen.queryByTestId('autorag-runs-table')).not.toBeInTheDocument();
   });
 
@@ -203,7 +204,41 @@ describe('AutoragExperiments', () => {
 
     renderAutorag(<AutoragExperiments />);
 
-    expect(screen.getByText('No Pipeline Server in this namespace')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).toBeInTheDocument();
+  });
+
+  it('should show error alert when BFF reports no AutoRAG pipeline (auto-creation handles this at submit time)', () => {
+    mockGetGenericErrorCode.mockReturnValue(500);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error(
+        'no AutoRAG pipeline found in namespace ai-pipelines - ensure a managed AutoRAG pipeline is deployed',
+      ),
+    });
+
+    renderAutorag(<AutoragExperiments />);
+
+    // No longer shows NoPipelineServer — the BFF auto-creates pipelines on submit
+    expect(
+      screen.queryByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Failed to load experiments')).toBeInTheDocument();
+  });
+
+  it('should show NoPipelineServer for no Pipeline Server (DSPipelineApplication) message', () => {
+    mockGetGenericErrorCode.mockReturnValue(404);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error('no Pipeline Server (DSPipelineApplication) found in namespace'),
+    });
+
+    renderAutorag(<AutoragExperiments />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).toBeInTheDocument();
   });
 
   it('should show UnauthorizedError for 403 error', () => {
@@ -227,6 +262,6 @@ describe('AutoragExperiments', () => {
 
     renderAutorag(<AutoragExperiments />);
 
-    expect(screen.getByText('Pipeline Server is not ready')).toBeInTheDocument();
+    expect(screen.getByText('There is a problem with the pipeline server')).toBeInTheDocument();
   });
 });

@@ -57,5 +57,3 @@ export const useModelCatalogSources = (): FetchState<State> => {
 
   return useFetchState<State>(callback, []);
 };
-
-export default useModelCatalogSources;

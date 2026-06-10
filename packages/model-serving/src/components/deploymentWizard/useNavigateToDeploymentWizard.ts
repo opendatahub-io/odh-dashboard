@@ -36,7 +36,7 @@ import { type Deployment } from '../../../extension-points';
  * };
  *
  * // For creating a new deployment with a custom return route
- * const navigateToWizard = useNavigateToDeploymentWizard(undefined, undefined,'/ai-hub/deployments/');
+ * const navigateToWizard = useNavigateToDeploymentWizard(undefined, undefined,'/ai-hub/models/deployments/');
  *
  * const handleCreate = () => {
  *   navigateToWizard('my-project');

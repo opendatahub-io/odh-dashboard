@@ -1,12 +1,16 @@
 import * as React from 'react';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { PipelineRecurringRunKF } from '#~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '#~/components/table';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelineRunVersionInfo from '#~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '#~/concepts/pipelines/content/PipelineVersionLink';
-import { duplicateRecurringRunRoute, recurringRunDetailsRoute } from '#~/routes/pipelines/runs';
+import {
+  duplicateRecurringRunRoute,
+  globalPipelineRecurringRunsRoute,
+  recurringRunDetailsRoute,
+} from '#~/routes/pipelines/runs';
 import {
   RecurringRunCreated,
   RecurringRunScheduled,
@@ -14,8 +18,14 @@ import {
   RecurringRunTrigger,
 } from '#~/concepts/pipelines/content/tables/renderUtils';
 import PipelineRunTableRowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
+import PipelineRunTableRowMlflowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowMlflowExperiment';
 import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { MlflowExperimentData } from '#~/concepts/mlflow/types';
+import {
+  FilterOptions,
+  LEGACY_EXPERIMENT_FILTER_PARAM,
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;
@@ -23,6 +33,7 @@ type PipelineRecurringRunTableRowProps = {
   onToggleCheck: () => void;
   onDelete: () => void;
   recurringRun: PipelineRecurringRunKF;
+  mlflow: MlflowExperimentData;
 };
 
 const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> = ({
@@ -31,6 +42,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
   onToggleCheck,
   onDelete,
   recurringRun,
+  mlflow,
 }) => {
   const navigate = useNavigate();
   const { experiment: contextExperiment } = React.useContext(ExperimentContext);
@@ -45,6 +57,16 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
     loaded: isExperimentLoaded,
     error: experimentError,
   } = usePipelineRunExperimentInfo(recurringRun);
+  const [searchParams] = useSearchParams();
+  const handleRunGroupClick = React.useCallback(() => {
+    if (!experiment) {
+      return;
+    }
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
+    nextParams.set(FilterOptions.RUN_GROUP, experiment.experiment_id);
+    navigate(`${globalPipelineRecurringRunsRoute(namespace)}?${nextParams.toString()}`);
+  }, [experiment, namespace, navigate, searchParams]);
 
   return (
     <Tr>
@@ -73,12 +95,18 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
       <Td modifier="truncate" dataLabel="Pipeline">
         <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
       </Td>
+      {mlflow.isAvailable && (
+        <Td dataLabel="MLflow experiment">
+          <PipelineRunTableRowMlflowExperiment run={recurringRun} mlflow={mlflow} />
+        </Td>
+      )}
       {!contextExperiment && (
-        <Td modifier="truncate" dataLabel="Experiment">
+        <Td modifier="truncate" dataLabel="Run group">
           <PipelineRunTableRowExperiment
             experiment={experiment}
             error={experimentError}
             loaded={isExperimentLoaded}
+            onClick={experiment ? handleRunGroupClick : undefined}
           />
         </Td>
       )}

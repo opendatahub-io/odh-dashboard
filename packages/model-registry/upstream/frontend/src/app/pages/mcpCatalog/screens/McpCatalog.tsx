@@ -1,18 +1,27 @@
 import * as React from 'react';
-import { PageSection, Sidebar, SidebarContent, SidebarPanel, Stack } from '@patternfly/react-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
-import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
+import { SearchIcon } from '@patternfly/react-icons';
 import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
 import { hasMcpFiltersApplied } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
 import McpCatalogFilters from '~/app/pages/mcpCatalog/components/McpCatalogFilters';
 import { MCP_CATALOG_TITLE, MCP_CATALOG_DESCRIPTION } from '~/app/pages/mcpCatalog/const';
+import { CatalogPageLayout, EmptyCatalogState } from '~/app/shared/components/catalog';
 import McpCatalogSourceLabelSelector from './McpCatalogSourceLabelSelector';
 import McpCatalogAllServersView from './McpCatalogAllServersView';
 import McpCatalogGalleryView from './McpCatalogGalleryView';
 
 const McpCatalog: React.FC = () => {
-  const { searchQuery, setSearchQuery, clearAllFilters, selectedSourceLabel, filters } =
-    React.useContext(McpCatalogContext);
+  const {
+    searchQuery,
+    setSearchQuery,
+    clearAllFilters,
+    selectedSourceLabel,
+    setSelectedSourceLabel,
+    filters,
+    catalogSources,
+    catalogLabels,
+    catalogSourcesLoaded,
+  } = React.useContext(McpCatalogContext);
 
   const filtersApplied = hasMcpFiltersApplied(filters, searchQuery);
   const isAllServersView = selectedSourceLabel === undefined && !filtersApplied;
@@ -33,41 +42,48 @@ const McpCatalog: React.FC = () => {
   }, [clearAllFilters]);
 
   return (
-    <>
-      <ScrollViewOnMount shouldScroll scrollToTop />
-      <ApplicationsPage
-        title={
-          <TitleWithIcon title={MCP_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
-        }
-        description={MCP_CATALOG_DESCRIPTION}
-        empty={false}
-        loaded
-        provideChildrenPadding
-      >
-        <Sidebar hasBorder hasGutter>
-          <SidebarPanel>
-            <McpCatalogFilters />
-          </SidebarPanel>
-          <SidebarContent>
-            <Stack hasGutter>
-              <McpCatalogSourceLabelSelector
-                searchTerm={searchQuery}
-                onSearch={handleSearch}
-                onClearSearch={handleClearSearch}
-                onResetAllFilters={handleResetAllFilters}
-              />
-              <PageSection isFilled padding={{ default: 'noPadding' }}>
-                {isAllServersView ? (
-                  <McpCatalogAllServersView searchTerm={searchQuery} />
-                ) : (
-                  <McpCatalogGalleryView handleFilterReset={handleResetAllFilters} />
-                )}
-              </PageSection>
-            </Stack>
-          </SidebarContent>
-        </Sidebar>
-      </ApplicationsPage>
-    </>
+    <ApplicationsPage
+      noTitle // rendered inside a TabRoutePage which provides the title
+      title={<TitleWithIcon title={MCP_CATALOG_TITLE} objectType={ProjectObjectType.mcpCatalog} />}
+      description={MCP_CATALOG_DESCRIPTION}
+      empty={false}
+      loaded
+      provideChildrenPadding
+    >
+      <CatalogPageLayout
+        catalogSources={catalogSources}
+        catalogLabels={catalogLabels}
+        catalogSourcesLoaded={catalogSourcesLoaded}
+        selectedSourceLabel={selectedSourceLabel}
+        onSelectSourceLabel={setSelectedSourceLabel}
+        isAllItemsView={isAllServersView}
+        renderEmptyCategoriesState={() => (
+          <EmptyCatalogState
+            testid="empty-mcp-catalog-no-categories"
+            title="No MCP servers available"
+            headerIcon={SearchIcon}
+            description="There are no MCP server categories available. Configure sources in settings to get started."
+          />
+        )}
+        renderFilterSidebar={() => <McpCatalogFilters />}
+        renderToolbar={() => (
+          <McpCatalogSourceLabelSelector
+            searchTerm={searchQuery}
+            onSearch={handleSearch}
+            onClearSearch={handleClearSearch}
+            onResetAllFilters={handleResetAllFilters}
+          />
+        )}
+        renderAllItemsView={() => <McpCatalogAllServersView searchTerm={searchQuery} />}
+        renderGalleryView={(isSingleCategory, singleCategoryLabel) => (
+          <McpCatalogGalleryView
+            handleFilterReset={handleResetAllFilters}
+            isSingleCategory={isSingleCategory}
+            singleCategoryLabel={singleCategoryLabel}
+          />
+        )}
+      />
+    </ApplicationsPage>
   );
 };
 

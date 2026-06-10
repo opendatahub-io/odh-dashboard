@@ -1,18 +1,38 @@
 import React from 'react';
-import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Flex,
+  FlexItem,
+  Label,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core';
 import { useParams } from 'react-router';
 import PipelineTopology from '~/app/topology/PipelineTopology';
-import { useAutoRAGTaskTopology } from '~/app/topology/useAutoRAGTaskTopology';
+import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
+import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
-import { downloadBlob, getOptimizedMetricForRAG, sanitizeFilename } from '~/app/utilities/utils';
+import {
+  computePatternRankMap,
+  downloadBlob,
+  getOptimizedMetricForRAG,
+  sanitizeFilename,
+} from '~/app/utilities/utils';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import './AutoragResults.scss';
 
-const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal'));
+const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
 
-function AutoragResults(): React.JSX.Element {
+type AutoragResultsProps = {
+  onTryPattern?: (patternName: string) => void;
+  onViewCode?: (patternName: string) => void;
+};
+
+function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
   const { pipelineRun, patterns, ragPatternsBasePath } = useAutoragResultsContext();
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
@@ -21,19 +41,12 @@ function AutoragResults(): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
-  const nodes = useAutoRAGTaskTopology(pipelineRun?.pipeline_spec, runDetails);
+  const nodes = useAutoragTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);
 
-  const rankMap = React.useMemo(() => {
-    const sorted = patternsArray.toSorted((a, b) => b.final_score - a.final_score);
-    const map: Record<string, number> = {};
-    sorted.forEach((p, i) => {
-      map[p.name] = i + 1;
-    });
-    return map;
-  }, [patternsArray]);
+  const rankMap = React.useMemo(() => computePatternRankMap(patternsArray), [patternsArray]);
 
   const selectedIndex = React.useMemo(
     () =>
@@ -98,6 +111,9 @@ function AutoragResults(): React.JSX.Element {
     [namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
+  const isCanceled = pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED;
+  const isFailed = pipelineRun?.state.toUpperCase() === RuntimeStateKF.FAILED;
+
   return (
     <>
       <Stack hasGutter>
@@ -114,7 +130,27 @@ function AutoragResults(): React.JSX.Element {
             </Alert>
           </StackItem>
         )}
-        <StackItem>
+        <StackItem className="autorag-topology-wrapper">
+          <Flex
+            className="autorag-topology-overlay"
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Title headingLevel="h3">Experiment pipeline</Title>
+            </FlexItem>
+            {(isCanceled || isFailed) && (
+              <FlexItem>
+                <Label
+                  variant="outline"
+                  status={isCanceled ? 'warning' : 'danger'}
+                  data-testid="run-status-label"
+                >
+                  {pipelineRun.state}
+                </Label>
+              </FlexItem>
+            )}
+          </Flex>
           <PipelineTopology
             nodes={nodes}
             selectedIds={selectedIds}
@@ -126,6 +162,8 @@ function AutoragResults(): React.JSX.Element {
           <AutoragLeaderboard
             onViewDetails={handleViewDetails}
             onSaveNotebook={handleSaveNotebook}
+            onTryPattern={onTryPattern}
+            onViewCode={onViewCode}
           />
         </StackItem>
       </Stack>
@@ -142,6 +180,8 @@ function AutoragResults(): React.JSX.Element {
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}
             onSaveNotebook={handleSaveNotebook}
+            onTryPattern={onTryPattern}
+            onViewCode={onViewCode}
           />
         </React.Suspense>
       )}

@@ -114,8 +114,12 @@ class NotebookServer {
     return cy.findByRole('button', { name: 'Open in new tab' });
   }
 
-  findSuccessAlert() {
-    return cy.findByText('Running', { timeout: 120000 });
+  findNotebookStatusText(timeout = 120000) {
+    return cy.findByTestId('notebook-status-text', { timeout });
+  }
+
+  expectStatusLabelToBe(statusValue: string, timeout?: number) {
+    this.findNotebookStatusText(timeout).should('have.text', statusValue);
   }
 
   findNotebookImage(notebook: string) {

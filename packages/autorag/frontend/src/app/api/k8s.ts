@@ -7,8 +7,8 @@ import {
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
-  LlamaStackModelsResponse,
-  LlamaStackVectorStoreProvidersResponse,
+  OgxModelsResponse,
+  OgxVectorStoreProvidersResponse,
   NamespaceKind,
   SecretListItem,
 } from '~/app/types';
@@ -39,7 +39,7 @@ export const getNamespaces =
 
 export const getSecrets =
   (hostPath: string) =>
-  (namespace: string, type?: 'storage' | 'lls') =>
+  (namespace: string, type?: 'storage' | 'ogx') =>
   (opts: APIOptions): Promise<SecretListItem[]> => {
     const queryParams: Record<string, string> = { namespace };
     if (type) {
@@ -55,37 +55,37 @@ export const getSecrets =
     });
   };
 
-export const getLlamaStackModels =
+export const getOgxModels =
   (hostPath: string) =>
   (namespace: string, secretName: string) =>
-  (opts: APIOptions): Promise<LlamaStackModelsResponse> =>
+  (opts: APIOptions): Promise<OgxModelsResponse> =>
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/lsd/models`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/ogx/models`,
         { namespace, secretName },
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<LlamaStackModelsResponse>(response)) {
+      if (isModArchResponse<OgxModelsResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');
     });
 
-export const getLlamaStackVectorStores =
+export const getOgxVectorStores =
   (hostPath: string) =>
   (namespace: string, secretName: string) =>
-  (opts: APIOptions): Promise<LlamaStackVectorStoreProvidersResponse> =>
+  (opts: APIOptions): Promise<OgxVectorStoreProvidersResponse> =>
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/lsd/vector-stores`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/ogx/vector-stores`,
         { namespace, secretName },
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<LlamaStackVectorStoreProvidersResponse>(response)) {
+      if (isModArchResponse<OgxVectorStoreProvidersResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

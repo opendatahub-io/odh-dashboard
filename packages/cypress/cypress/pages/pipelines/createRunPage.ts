@@ -33,7 +33,9 @@ export class CreateRunPage {
 
   private type;
 
-  experimentSelect = new SearchSelector('experiment-selector');
+  runGroupSelect = new SearchSelector('run-group-selector');
+
+  mlflowExperimentSelect = new SearchSelector('mlflow-experiment-selector');
 
   pipelineSelect = new SearchSelector('pipeline-selector');
 
@@ -53,6 +55,10 @@ export class CreateRunPage {
 
   private findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('run-description');
+  }
+
+  findRunGroupToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.runGroupSelect.findToggleButton();
   }
 
   findProjectNavigatorLink(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -168,6 +174,22 @@ export class CreateRunPage {
     return this.find().findByTestId('run-page-submit-button');
   }
 
+  findMlflowExperimentTrackingToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mlflow-experiment-tracking-toggle');
+  }
+
+  findMlflowExistingRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mlflow-existing-radio');
+  }
+
+  findMlflowNewRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mlflow-new-radio');
+  }
+
+  findMlflowNewExperimentNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mlflow-new-experiment-name');
+  }
+
   findUseLatestVersionRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('use-latest-version-radio');
   }
@@ -192,6 +214,14 @@ export class CreateRunPage {
     return this.find().findByTestId('no-pipeline-versions-available-alert');
   }
 
+  findMlflowIntegrationSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('run-section-mlflow-integration');
+  }
+
+  findMlflowIntegrationJumpLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('run-section-mlflow-integration-jump-link');
+  }
+
   getParamsSection(): ParamsSection {
     return new ParamsSection(() => cy.findByTestId('run-section-params'));
   }
@@ -204,8 +234,12 @@ export class CreateRunPage {
     this.findDescriptionInput().clear().type(value);
   }
 
-  selectExperimentByName(name: string): void {
-    cy.findByTestId('experiment-selector-table-list').find('td').contains(name).click();
+  fillRunGroup(value: string): void {
+    this.runGroupSelect.openAndSelectItem(value);
+  }
+
+  selectMlflowExperimentByName(name: string): void {
+    cy.findByTestId('mlflow-experiment-selector-table-list').find('td').contains(name).click();
   }
 
   selectPipelineByName(name: string): void {
@@ -265,6 +299,22 @@ export class CreateRunPage {
         req.reply({ experiments: results, total_size: results.length });
       },
     );
+  }
+
+  mockGetMlflowExperiments(
+    workspace: string,
+    experiments: Array<{ id: string; name: string; lastUpdateTime?: string }>,
+  ): Cypress.Chainable<null> {
+    return cy
+      .intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+        expect(req.query.workspace).to.equal(workspace);
+        req.reply({
+          data: {
+            experiments,
+          },
+        });
+      })
+      .as('getMlflowExperiments');
   }
 
   mockGetPipelines(namespace: string, pipelines: PipelineKF[]): Cypress.Chainable<null> {

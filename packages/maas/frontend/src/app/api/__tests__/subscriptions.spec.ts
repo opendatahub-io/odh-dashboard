@@ -1,14 +1,26 @@
+/* eslint-disable camelcase */
 import * as modArchCore from 'mod-arch-core';
-import { SubscriptionInfoResponse } from '~/app/types/subscriptions';
-import { getSubscriptionInfo, listSubscriptions } from '~/app/api/subscriptions';
+import {
+  CreateSubscriptionResponse,
+  SubscriptionInfoResponse,
+  UserSubscription,
+} from '~/app/types/subscriptions';
+import {
+  getSubscriptionInfo,
+  listSubscriptions,
+  listUserSubscriptions,
+  updateSubscription,
+} from '~/app/api/subscriptions';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
   handleRestFailures: jest.fn((p: Promise<unknown>) => p),
   restGET: jest.fn(),
+  restUPDATE: jest.fn(),
 }));
 
 const mockRestGET = jest.mocked(modArchCore.restGET);
+const mockRestUPDATE = jest.mocked(modArchCore.restUPDATE);
 const mockHandleRestFailures = jest.mocked(modArchCore.handleRestFailures);
 
 const validSubscriptionInfoResponse: SubscriptionInfoResponse = {
@@ -51,7 +63,7 @@ describe('getSubscriptionInfo', () => {
   });
 
   it('should resolve with subscription info for a valid response', async () => {
-    mockRestGET.mockResolvedValue(validSubscriptionInfoResponse);
+    mockRestGET.mockResolvedValue({ data: validSubscriptionInfoResponse });
 
     const result = await getSubscriptionInfo('test-sub')({} as never);
     expect(result).toStrictEqual(validSubscriptionInfoResponse);
@@ -92,14 +104,14 @@ describe('getSubscriptionInfo', () => {
 
   it('should accept an empty authPolicies array', async () => {
     const emptyPolicies = { ...validSubscriptionInfoResponse, authPolicies: [] };
-    mockRestGET.mockResolvedValue(emptyPolicies);
+    mockRestGET.mockResolvedValue({ data: emptyPolicies });
 
     const result = await getSubscriptionInfo('test-sub')({} as never);
     expect(result.authPolicies).toHaveLength(0);
   });
 
-  it('should accept subscription.modelRefs without tokenRateLimits (real API case)', async () => {
-    const noTokenLimits: SubscriptionInfoResponse = {
+  it('should reject subscription.modelRefs without tokenRateLimits', async () => {
+    const noTokenLimits = {
       ...validSubscriptionInfoResponse,
       subscription: {
         ...validSubscriptionInfoResponse.subscription,
@@ -108,8 +120,9 @@ describe('getSubscriptionInfo', () => {
     };
     mockRestGET.mockResolvedValue(noTokenLimits);
 
-    const result = await getSubscriptionInfo('test-sub')({} as never);
-    expect(result.subscription.modelRefs[0].tokenRateLimits).toBeUndefined();
+    await expect(getSubscriptionInfo('test-sub')({} as never)).rejects.toThrow(
+      'Invalid response format',
+    );
   });
 
   it('should accept displayName and description on subscription when present', async () => {
@@ -121,7 +134,7 @@ describe('getSubscriptionInfo', () => {
         description: 'High-priority subscription for the premium team.',
       },
     };
-    mockRestGET.mockResolvedValue(withAnnotations);
+    mockRestGET.mockResolvedValue({ data: withAnnotations });
 
     const result = await getSubscriptionInfo('test-sub')({} as never);
     expect(result.subscription.displayName).toBe('Premium Team Subscription');
@@ -141,7 +154,7 @@ describe('getSubscriptionInfo', () => {
         },
       ],
     };
-    mockRestGET.mockResolvedValue(noOptionals);
+    mockRestGET.mockResolvedValue({ data: noOptionals });
 
     const result = await getSubscriptionInfo('test-sub')({} as never);
     expect(result.modelRefs[0].phase).toBeUndefined();
@@ -168,5 +181,212 @@ describe('listSubscriptions', () => {
     mockRestGET.mockResolvedValue([validSubscriptionInfoResponse.subscription]);
 
     await expect(listSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
+  });
+
+  it('should filter out invalid items and return only valid ones', async () => {
+    const validSub = validSubscriptionInfoResponse.subscription;
+    const invalid = { name: 'bad-sub', namespace: 'ns' }; // missing owner, modelRefs
+    mockRestGET.mockResolvedValue({ data: [validSub, invalid] });
+
+    const result = await listSubscriptions()({} as never);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('test-sub');
+  });
+});
+
+describe('listUserSubscriptions', () => {
+  const validItem: UserSubscription = {
+    subscription_id_header: 'premium-team-sub',
+    subscription_description: 'Premium Team Subscription',
+    priority: 10,
+    model_refs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 100000, window: '24h' }],
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockHandleRestFailures.mockImplementation((p: Promise<unknown>) => p);
+  });
+
+  it('should resolve with subscription list for a valid response', async () => {
+    mockRestGET.mockResolvedValue({ data: [validItem] });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(1);
+    expect(result[0].subscription_id_header).toBe('premium-team-sub');
+  });
+
+  it('should resolve with an empty array when the list is empty', async () => {
+    mockRestGET.mockResolvedValue({ data: [] });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should accept items without optional fields (namespace, token_rate_limits, cost_center)', async () => {
+    const minimal: UserSubscription = {
+      subscription_id_header: 'basic-sub',
+      subscription_description: 'Basic',
+      priority: 1,
+      model_refs: [{ name: 'flan-t5-small' }],
+    };
+    mockRestGET.mockResolvedValue({ data: [minimal] });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result[0].model_refs[0].namespace).toBeUndefined();
+    expect(result[0].model_refs[0].token_rate_limits).toBeUndefined();
+  });
+
+  it('should throw for an unwrapped (non-data) response', async () => {
+    mockRestGET.mockResolvedValue([validItem]);
+
+    await expect(listUserSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
+  });
+
+  it('should filter out items where subscription_id_header is missing', async () => {
+    const invalid = [{ subscription_description: 'desc', priority: 1, model_refs: [] }];
+    mockRestGET.mockResolvedValue({ data: invalid });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should filter out items where priority is not a number', async () => {
+    const invalid = [{ ...validItem, priority: '10' }];
+    mockRestGET.mockResolvedValue({ data: invalid });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should return valid items while filtering out those that fail the guard', async () => {
+    const invalid = { subscription_description: 'desc', priority: 1, model_refs: [] }; // missing subscription_id_header
+    mockRestGET.mockResolvedValue({ data: [validItem, invalid] });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(1);
+    expect(result[0].subscription_id_header).toBe('premium-team-sub');
+  });
+
+  it('should filter out items where model_refs contains an invalid token_rate_limit entry', async () => {
+    const invalid = [
+      {
+        ...validItem,
+        model_refs: [
+          { name: 'model', token_rate_limits: [{ limit: 'not-a-number', window: '24h' }] },
+        ],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: invalid });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe('updateSubscription', () => {
+  const validUpdateResponse: CreateSubscriptionResponse = {
+    subscription: {
+      name: 'test-sub',
+      namespace: 'maas-system',
+      owner: { groups: [{ name: 'updated-group' }] },
+      modelRefs: [
+        {
+          name: 'test-model',
+          namespace: 'maas-models',
+          tokenRateLimits: [{ limit: 200000, window: '24h' }],
+        },
+      ],
+      priority: 5,
+    },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockHandleRestFailures.mockImplementation((p: Promise<unknown>) => p);
+  });
+
+  it('should resolve with updated subscription for a valid response', async () => {
+    mockRestUPDATE.mockResolvedValue({ data: validUpdateResponse });
+
+    const result = await updateSubscription()({} as never, 'test-sub', {
+      owner: { groups: [{ name: 'updated-group' }] },
+      modelRefs: [
+        {
+          name: 'test-model',
+          namespace: 'maas-models',
+          tokenRateLimits: [{ limit: 200000, window: '24h' }],
+        },
+      ],
+      priority: 5,
+    });
+    expect(result.subscription.name).toBe('test-sub');
+    expect(result.subscription.owner.groups[0].name).toBe('updated-group');
+    expect(mockRestUPDATE).toHaveBeenCalledWith(
+      '',
+      expect.stringContaining('/update-subscription/test-sub'),
+      expect.any(Object),
+      {},
+      {},
+    );
+  });
+
+  it('should encode the subscription name in the URL', async () => {
+    mockRestUPDATE.mockResolvedValue({ data: validUpdateResponse });
+
+    await updateSubscription()({} as never, 'sub with spaces', {
+      owner: { groups: [] },
+      modelRefs: [],
+      priority: 0,
+    });
+
+    expect(mockRestUPDATE).toHaveBeenCalledWith(
+      '',
+      expect.stringContaining('/update-subscription/sub%20with%20spaces'),
+      expect.any(Object),
+      {},
+      {},
+    );
+  });
+
+  it('should throw for an invalid response format', async () => {
+    mockRestUPDATE.mockResolvedValue({ data: { invalid: true } });
+
+    await expect(
+      updateSubscription()({} as never, 'test-sub', {
+        owner: { groups: [] },
+        modelRefs: [],
+        priority: 0,
+      }),
+    ).rejects.toThrow('Invalid response format');
+  });
+
+  it('should normalize null tokenRateLimits to empty arrays', async () => {
+    const responseWithNull: CreateSubscriptionResponse = {
+      subscription: {
+        ...validUpdateResponse.subscription,
+        modelRefs: [
+          {
+            name: 'model',
+            namespace: 'ns',
+            tokenRateLimits: null as unknown as [],
+          },
+        ],
+      },
+    };
+    mockRestUPDATE.mockResolvedValue({ data: responseWithNull });
+
+    const result = await updateSubscription()({} as never, 'test-sub', {
+      owner: { groups: [] },
+      modelRefs: [],
+      priority: 0,
+    });
+
+    expect(result.subscription.modelRefs[0].tokenRateLimits).toEqual([]);
   });
 });

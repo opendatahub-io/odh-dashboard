@@ -16,3 +16,9 @@ export type MlflowExperimentsResponse = {
 };
 
 export type MlflowSelectorStatus = { loaded: boolean; error?: Error };
+
+export type MlflowExperimentData = {
+  isAvailable: boolean;
+  experiments: MlflowExperiment[];
+  loaded: boolean;
+};

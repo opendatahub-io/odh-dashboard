@@ -1,9 +1,24 @@
+// Common — consumed by both RHOAI dashboard and RHAII distributions
 export * from './areas';
 export * from './navigation';
 export * from './routes';
 export * from './status-provider';
 export * from './project-details';
 export * from './overview-card';
+export * from './tab-route';
+export * from './tasks';
+
+// RHAII app-shell — consumed by distributions/base only (convergence with RHOAI is a future goal)
+export * from './masthead';
+
+// Shared base property types — reusable building blocks for package-level extension points
+export * from './detail-tabs';
+export * from './actions';
+export * from './detail-cards';
+export * from './table-columns';
+
+// Utilities
+export * from './utils';
 
 /**
  * ## Extension Point Definitions

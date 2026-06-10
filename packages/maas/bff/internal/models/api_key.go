@@ -5,9 +5,11 @@ import "time"
 // APIKeyCreateRequest represents a request to create a new API key.
 // Based on the MaaS API OpenAPI spec: POST /v1/api-keys
 type APIKeyCreateRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	ExpiresIn   string `json:"expiresIn,omitempty"`
+	Name         string `json:"name"`
+	Description  string `json:"description,omitempty"`
+	ExpiresIn    string `json:"expiresIn,omitempty"`
+	Subscription string `json:"subscription"`
+	Ephemeral    bool   `json:"ephemeral,omitempty"`
 }
 
 // APIKeyCreateResponse is the one-time response when an API key is created.
@@ -23,15 +25,16 @@ type APIKeyCreateResponse struct {
 
 // APIKey represents metadata for an API key (returned by GET, DELETE, and search).
 type APIKey struct {
-	ID             string     `json:"id"`
-	Name           string     `json:"name"`
-	Description    string     `json:"description,omitempty"`
-	Username       string     `json:"username,omitempty"`
-	Groups         []string   `json:"groups,omitempty"`
-	CreationDate   time.Time  `json:"creationDate"`
-	ExpirationDate *time.Time `json:"expirationDate,omitempty"`
-	Status         string     `json:"status"`
-	LastUsedAt     *time.Time `json:"lastUsedAt,omitempty"`
+	ID               string     `json:"id"`
+	Name             string     `json:"name"`
+	Description      string     `json:"description,omitempty"`
+	Username         string     `json:"username,omitempty"`
+	Groups           []string   `json:"groups,omitempty"`
+	CreationDate     time.Time  `json:"creationDate"`
+	ExpirationDate   *time.Time `json:"expirationDate,omitempty"`
+	Status           string     `json:"status"`
+	LastUsedAt       *time.Time `json:"lastUsedAt,omitempty"`
+	SubscriptionName string     `json:"subscription,omitempty"`
 }
 
 // APIKeySearchRequest represents a search/filter request for API keys.
@@ -43,8 +46,9 @@ type APIKeySearchRequest struct {
 }
 
 type APIKeySearchFilters struct {
-	Username string   `json:"username,omitempty"`
-	Status   []string `json:"status,omitempty"`
+	Username     string   `json:"username,omitempty"`
+	Subscription string   `json:"subscription,omitempty"`
+	Status       []string `json:"status,omitempty"`
 }
 
 type APIKeySearchSort struct {
@@ -57,11 +61,19 @@ type APIKeySearchPagination struct {
 	Offset int `json:"offset,omitempty"`
 }
 
+// SubscriptionDetail contains the model names within a subscription,
+// used to enrich the API key search response.
+type SubscriptionDetail struct {
+	DisplayName string   `json:"displayName,omitempty"`
+	Models      []string `json:"models"`
+}
+
 // APIKeyListResponse is the paginated list response from search.
 type APIKeyListResponse struct {
-	Object  string   `json:"object"`
-	Data    []APIKey `json:"data"`
-	HasMore bool     `json:"has_more"`
+	Object              string                        `json:"object"`
+	Data                []APIKey                      `json:"data"`
+	HasMore             bool                          `json:"has_more"`
+	SubscriptionDetails map[string]SubscriptionDetail `json:"subscriptionDetails,omitempty"`
 }
 
 // APIKeyBulkRevokeRequest represents a request to bulk-revoke a user's keys.

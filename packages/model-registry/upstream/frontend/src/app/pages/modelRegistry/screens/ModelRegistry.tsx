@@ -3,8 +3,8 @@ import { Divider, Stack, StackItem } from '@patternfly/react-core';
 import { ProjectObjectType, ApplicationsPage, TitleWithIcon } from 'mod-arch-shared';
 import useRegisteredModels from '~/app/hooks/useRegisteredModels';
 import useModelVersions from '~/app/hooks/useModelVersions';
-import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
 import ExtendedRegisteredModelListView from '~/odh/components/ExtendedRegisteredModelListView';
+import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
 import { modelRegistryUrl } from './routeUtils';
 
 type ModelRegistryProps = Omit<
@@ -33,9 +33,8 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
   return (
     <ApplicationsPage
       {...pageProps}
-      title={
-        <TitleWithIcon title="Registry" objectType={ProjectObjectType.registeredModels} />
-      }
+      noTitle // rendered inside a TabRoutePage which provides the title
+      title={<TitleWithIcon title="Registry" objectType={ProjectObjectType.registeredModels} />}
       description={
         <Stack hasGutter>
           <StackItem>

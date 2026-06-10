@@ -1,13 +1,14 @@
 import { createElement } from 'react';
+import type { Context } from 'react';
 import type { Notification } from 'mod-arch-core';
 import { AlertVariant } from '@patternfly/react-core';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import { useNotificationListener } from '../useNotificationListener';
+import { useNotificationListener } from '~/odh/hooks/useNotificationListener';
 
 const NOTIFICATION_BRIDGE_EVENT = 'odh-notification-bridge';
 
 jest.mock('mod-arch-core', () => {
-  const { createContext } = require('react');
+  const { createContext } = jest.requireActual<typeof import('react')>('react');
   const ctx = createContext(null);
   return {
     __esModule: true,
@@ -16,9 +17,12 @@ jest.mock('mod-arch-core', () => {
   };
 });
 
-function getNotificationContext() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require('mod-arch-core').__mockContext;
+function getNotificationContext(): Context<unknown> {
+  return (
+    jest.requireMock('mod-arch-core') as typeof import('mod-arch-core') & {
+      __mockContext: Context<unknown>;
+    }
+  ).__mockContext;
 }
 
 function createNotification(id: number, title: string): Notification {

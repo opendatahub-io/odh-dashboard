@@ -8,27 +8,26 @@ import {
   useSettings,
 } from 'mod-arch-core';
 import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
+import { Bullseye } from '@patternfly/react-core';
+import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import ModelCatalogSettingsRoutes from '~/app/pages/modelCatalogSettings/ModelCatalogSettingsRoutes';
 import { AppContext } from '~/app/context/AppContext';
-import { Bullseye } from '@patternfly/react-core';
-import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
 
 const ModelCatalogSettingsRoutesWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
+  const appContextValue = React.useMemo(
+    () => (configSettings && userSettings ? { config: configSettings, user: userSettings } : null),
+    [configSettings, userSettings],
+  );
   if (loadError) {
     return <div>Error: {loadError.message}</div>;
   }
   if (!loaded) {
     return <Bullseye>Loading...</Bullseye>;
   }
-  return configSettings && userSettings ? (
-    <AppContext.Provider
-      value={{
-        config: configSettings,
-        user: userSettings,
-      }}
-    >
+  return appContextValue ? (
+    <AppContext.Provider value={appContextValue}>
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
           <NotificationContextProvider>

@@ -1,11 +1,13 @@
 /* eslint-disable camelcase*/
 import {
+  AngleDoubleRightIcon,
   BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   InProgressIcon,
+  OutlinedQuestionCircleIcon,
+  PauseCircleIcon,
   PendingIcon,
-  QuestionCircleIcon,
 } from '@patternfly/react-icons';
 import React from 'react';
 import {
@@ -58,13 +60,12 @@ const createRun = (state: RuntimeStateKF | string): PipelineRunKF =>
 
 describe('computeRunStatus', () => {
   it('should check for run status when run status is undefined', () => {
-    const UNKNOWN_ICON = <QuestionCircleIcon />;
-    const UNKNOWN_STATUS = 'warning';
+    const UNKNOWN_ICON = <OutlinedQuestionCircleIcon />;
     const UNKNOWN_LABEL = '-';
     const runStatus = computeRunStatus(createRun('-'));
     expect(runStatus.label).toBe(UNKNOWN_LABEL);
     expect(runStatus.icon).toStrictEqual(UNKNOWN_ICON);
-    expect(runStatus.status).toBe(UNKNOWN_STATUS);
+    expect(runStatus.color).toBe('grey');
   });
 
   it('should check for Started run status', () => {
@@ -84,6 +85,7 @@ describe('computeRunStatus', () => {
     expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.SUCCEEDED]);
     expect(runStatus.icon).toStrictEqual(<CheckCircleIcon />);
     expect(runStatus.status).toBe('success');
+    expect(runStatus.labelStatus).toBe('success');
   });
 
   it('should check for Failed run status', () => {
@@ -91,20 +93,53 @@ describe('computeRunStatus', () => {
     expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.FAILED]);
     expect(runStatus.icon).toStrictEqual(<ExclamationCircleIcon />);
     expect(runStatus.status).toBe('danger');
+    expect(runStatus.labelStatus).toBe('danger');
     expect(runStatus.details).toBe(run.error?.message);
+  });
+
+  it('should check for Skipped run status', () => {
+    const runStatus = computeRunStatus(createRun(RuntimeStateKF.SKIPPED));
+    expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.SKIPPED]);
+    expect(runStatus.icon).toStrictEqual(<AngleDoubleRightIcon />);
+    expect(runStatus.status).toBe('success');
+    expect(runStatus.labelStatus).toBe('success');
+  });
+
+  it('should check for Canceling run status', () => {
+    const runStatus = computeRunStatus(createRun(RuntimeStateKF.CANCELING));
+    expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.CANCELING]);
+    expect(runStatus.icon).toStrictEqual(<InProgressIcon />);
+    expect(runStatus.color).toBe('grey');
   });
 
   it('should check for Canceled run status', () => {
     const runStatus = computeRunStatus(createRun(RuntimeStateKF.CANCELED));
     expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.CANCELED]);
     expect(runStatus.icon).toStrictEqual(<BanIcon />);
+    expect(runStatus.color).toBe('grey');
+  });
+
+  it('should check for Paused run status', () => {
+    const runStatus = computeRunStatus(createRun(RuntimeStateKF.PAUSED));
+    expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.PAUSED]);
+    expect(runStatus.icon).toStrictEqual(<PauseCircleIcon />);
+    expect(runStatus.color).toBe('grey');
+  });
+
+  it('should check for Pending run status color', () => {
+    const runStatus = computeRunStatus(createRun(RuntimeStateKF.PENDING));
+    expect(runStatus.color).toBe('purple');
+  });
+
+  it('should check for Running run status color', () => {
+    const runStatus = computeRunStatus(createRun(RuntimeStateKF.RUNNING));
+    expect(runStatus.color).toBe('blue');
   });
 
   it('should check for default run status', () => {
-    const UNKNOWN_ICON = <QuestionCircleIcon />;
-    const UNKNOWN_STATUS = 'warning';
+    const UNKNOWN_ICON = <OutlinedQuestionCircleIcon />;
     const runStatus = computeRunStatus(createRun('warning'));
-    expect(runStatus.status).toBe(UNKNOWN_STATUS);
+    expect(runStatus.color).toBe('grey');
     expect(runStatus.icon).toStrictEqual(UNKNOWN_ICON);
   });
 });

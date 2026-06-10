@@ -9,6 +9,7 @@ import type {
   S3ListObjectsResponse,
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -34,9 +35,12 @@ export function useExperimentQuery(
   });
 }
 
+export type TaskType = 'binary' | 'multiclass' | 'regression';
+
 export type ColumnSchema = {
   name: string;
-  type: 'integer' | 'double' | 'int64' | 'float64' | 'timestamp' | 'bool' | 'string';
+  type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
+  task_type: TaskType;
   values?: (string | number)[];
 };
 
@@ -46,7 +50,9 @@ export type ColumnSchema = {
 const ColumnSchemaArraySchema = z.array(
   z.object({
     name: z.string(),
-    type: z.enum(['integer', 'double', 'int64', 'float64', 'timestamp', 'bool', 'string']),
+    type: z.enum(['integer', 'double', 'timestamp', 'bool', 'string']),
+    // eslint-disable-next-line camelcase -- matches API response field name
+    task_type: z.enum(['binary', 'multiclass', 'regression']),
     values: z.array(z.union([z.string(), z.number()])).optional(),
   }),
 );
@@ -66,15 +72,21 @@ export async function fetchS3File(
   key: string,
   options?: FetchS3FileOptions,
 ): Promise<Blob> {
+  if (!key || !key.trim()) {
+    throw new Error('File key must be a non-empty string');
+  }
+
   const { secretName, bucket, signal } = options ?? {};
   const params = new URLSearchParams({
     namespace,
-    key,
     ...(secretName && { secretName }),
     ...(bucket && { bucket }),
   });
 
-  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`, { signal });
+  const response = await fetch(
+    `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+    { signal },
+  );
 
   if (!response.ok) {
     let errorMessage = response.statusText;
@@ -127,13 +139,14 @@ export function useS3GetFileSchemaQuery(
       const params = new URLSearchParams({
         namespace,
         secretName,
-        key,
         ...(bucket && { bucket }),
       });
+      params.set('view', 'schema');
 
-      const response = await fetch(`${URL_PREFIX}/api/v1/s3/file/schema?${params.toString()}`, {
-        signal,
-      });
+      const response = await fetch(
+        `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+        { signal },
+      );
 
       if (!response.ok) {
         let errorMessage = response.statusText;
@@ -152,7 +165,7 @@ export function useS3GetFileSchemaQuery(
       const columns = result?.data?.columns;
 
       if (!Array.isArray(columns)) {
-        return [];
+        throw new Error('Unexpected API response: column data is missing or invalid');
       }
 
       try {
@@ -178,7 +191,7 @@ export function useS3ListFilesQuery(
   path?: string,
 ): UseQueryResult<S3ListObjectsResponse, Error> {
   return useQuery({
-    queryKey: ['s3Files', namespace, path],
+    queryKey: ['automl', 's3Files', namespace, path],
     queryFn: async ({ signal }) => {
       if (!namespace || !path) {
         throw new Error('namespace and path are required');
@@ -197,8 +210,9 @@ export function useS3ListFilesQuery(
   });
 }
 
-const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
 const POLL_INTERVAL_MS = 10000;
+const RETRY_DELAY_MS = 5000;
+const MAX_RETRY_ATTEMPTS = 5;
 
 export function usePipelineRunQuery(
   runId?: string,
@@ -209,9 +223,26 @@ export function usePipelineRunQuery(
     queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
+    retry: (failureCount, error) => {
+      const status = parseErrorStatus(error);
+      if (status && status >= 400 && status < 500) {
+        return false;
+      }
+      return failureCount < MAX_RETRY_ATTEMPTS;
+    },
+    // Exponential backoff (5s, 10s, 20s, 40s, 80s) with random jitter to avoid thundering herd
+    retryDelay: (attempt) => {
+      const exp = RETRY_DELAY_MS * Math.pow(2, attempt);
+      const jitter = Math.floor(Math.random() * RETRY_DELAY_MS);
+      return exp + jitter;
+    },
     refetchInterval: (query) => {
+      // Let the retry backoff handle re-fetching during errors
+      if (query.state.status === 'error') {
+        return false;
+      }
       const state = query.state.data?.state;
-      if (!state || TERMINAL_STATES.has(state)) {
+      if (!state || isRunInTerminalState(state)) {
         return false;
       }
       return POLL_INTERVAL_MS;
@@ -249,7 +280,7 @@ const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.nu
  * @param options.schema - Optional Zod schema for runtime validation
  * @returns Parsed JSON cast to type T (validated if schema provided)
  */
-async function fetchS3Json<T>(
+export async function fetchS3Json<T>(
   namespace: string,
   key: string,
   options?: {
@@ -283,6 +314,77 @@ async function fetchS3Json<T>(
     );
   }
 }
+
+/**
+ * Zod schemas to validate AutomlModel shape from model.json files.
+ *
+ * Three schemas cover the evolution of the model.json format:
+ *   - 3.4 Tabular:     location.notebook (singular, file path), no location.metrics
+ *   - 3.4 Timeseries:  location.notebooks (plural, directory), location.metrics, base_model
+ *   - 3.5 Unified:     location.notebook (file path), location.metrics, no base_model
+ *
+ * model_directory is optional in the raw file since it gets rewritten after parsing.
+ */
+/* eslint-disable camelcase */
+
+const AutomlModelBaseSchema = z.strictObject({
+  name: z.string(),
+  location: z.strictObject({
+    model_directory: z.string().optional(),
+    predictor: z.string(),
+  }),
+  metrics: z.strictObject({
+    test_data: z.record(z.string(), z.number()),
+  }),
+});
+
+// Legacy tabular schema (pre-3.5): notebook singular, no metrics in location
+const AutomlTabularModelSchemaV34 = AutomlModelBaseSchema.extend({
+  location: AutomlModelBaseSchema.shape.location.extend({
+    notebook: z.string(),
+  }),
+}).strict();
+
+// Legacy timeseries schema (pre-3.5): notebooks plural (directory), base_model, metrics in location
+const AutomlTimeseriesModelSchemaV34 = AutomlModelBaseSchema.extend({
+  base_model: z.string(),
+  location: AutomlModelBaseSchema.shape.location.extend({
+    notebooks: z.string(),
+    metrics: z.string(),
+  }),
+}).strict();
+
+// Unified schema (3.5+): notebook singular (file path), metrics in location, no base_model
+const AutomlModelSchemaV35 = AutomlModelBaseSchema.extend({
+  location: AutomlModelBaseSchema.shape.location.extend({
+    notebook: z.string(),
+    metrics: z.string(),
+  }),
+}).strict();
+
+// Try 3.5 first, then fall back to legacy schemas for backwards compatibility.
+// strict() on each schema is what disambiguates V35 from V34 tabular (both have `notebook`).
+export const AutomlModelSchema = z.union([
+  AutomlModelSchemaV35,
+  AutomlTimeseriesModelSchemaV34,
+  AutomlTabularModelSchemaV34,
+]);
+
+export type AutomlRawTabularModelV34 = z.infer<typeof AutomlTabularModelSchemaV34>;
+export type AutomlRawTimeseriesModelV34 = z.infer<typeof AutomlTimeseriesModelSchemaV34>;
+export type AutomlRawModelV35 = z.infer<typeof AutomlModelSchemaV35>;
+export type AutomlRawModel =
+  | AutomlRawModelV35
+  | AutomlRawTabularModelV34
+  | AutomlRawTimeseriesModelV34;
+
+export const isRawTimeseriesModelV34 = (
+  model: AutomlRawModel,
+): model is AutomlRawTimeseriesModelV34 => 'notebooks' in model.location;
+
+export const isRawModelV35 = (model: AutomlRawModel): model is AutomlRawModelV35 =>
+  'notebook' in model.location && 'metrics' in model.location && !('base_model' in model);
+/* eslint-enable camelcase */
 
 export function useModelEvaluationArtifactsQuery(
   namespace?: string,
@@ -324,7 +426,7 @@ export function useModelEvaluationArtifactsQuery(
     combine: (results) => ({
       featureImportance: results[0].data,
       confusionMatrix: results[1].data,
-      isLoading: results.some((r) => r.isPending),
+      isLoading: results.some((r) => r.isLoading),
     }),
   });
 }

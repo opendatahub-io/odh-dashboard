@@ -1,5 +1,6 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import type { ModelDeployPrefillInfo } from '~/odh/hooks/useRegisteredModelDeployPrefillInfo';
+import type { ModelRegistryDeploymentListItem } from '~/odh/k8sTypes';
 
 export type ModelRegistryDeployModalExtension = Extension<
   'model-registry.model-version/deploy-modal',
@@ -32,7 +33,7 @@ export type ModelRegistryVersionDeploymentsContextExtension = Extension<
           deployments,
           loaded,
         }: {
-          deployments?: any[];
+          deployments?: ModelRegistryDeploymentListItem[];
           loaded: boolean;
         }) => React.ReactNode;
         labelSelectors?: { [key: string]: string };

@@ -17,7 +17,7 @@ import {
   Skeleton,
   Label,
 } from '@patternfly/react-core';
-import { ChartBarIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
 import {
   decodeParams,
@@ -45,7 +45,6 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const navigate = useNavigate();
-
   const state = useCatalogModel(
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
@@ -60,7 +59,11 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     encodeURIComponent(`${decodedParams.modelName}`),
   );
 
-  const registerButtonPopover = (headerContent: string, bodyContent: string, variant: 'primary' | 'secondary' = 'primary') => (
+  const registerButtonPopover = (
+    headerContent: string,
+    bodyContent: string,
+    variant: 'primary' | 'secondary' = 'primary',
+  ) => (
     <Popover
       headerContent={headerContent}
       triggerAction="hover"
@@ -97,7 +100,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
       registerButtonPopover(
         'Request access to a model registry',
         'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
-        variant
+        variant,
       )
     ) : artifacts.items.length === 0 || !hasModelArtifacts(artifacts.items) ? (
       registerButtonPopover('', 'Model location is unavailable', variant)
@@ -151,7 +154,12 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
                     <FlexItem>{getModelName(model.name)}</FlexItem>
                     {isModelValidated(model) && (
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
-                        <Label color="purple" isClickable icon={<ChartBarIcon />}>
+                        <Label
+                          variant="outline"
+                          isClickable
+                          status="success"
+                          icon={<CheckCircleIcon />}
+                        >
                           Validated
                         </Label>
                       </Popover>

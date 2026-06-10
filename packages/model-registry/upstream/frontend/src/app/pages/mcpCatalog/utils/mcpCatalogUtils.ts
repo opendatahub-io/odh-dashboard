@@ -1,6 +1,30 @@
 import type { McpCatalogFiltersState } from '~/app/pages/mcpCatalog/types/mcpCatalogFilterOptions';
 import { BACKEND_TO_FRONTEND_FILTER_KEY, MCP_FILTER_KEYS } from '~/app/pages/mcpCatalog/const';
-import type { McpSecurityIndicator } from '~/app/mcpServerCatalogTypes';
+import type {
+  McpDeploymentMode,
+  McpEndpoints,
+  McpSecurityIndicator,
+} from '~/app/mcpServerCatalogTypes';
+import { stringFiltersToFilterQuery } from '~/app/shared/components/catalog';
+
+export const isMcpRemoteDeploymentMode = (mode?: McpDeploymentMode): boolean => mode === 'remote';
+
+export const getMcpServerPrimaryEndpoint = (
+  endpoints?: McpEndpoints | null,
+): string | undefined => {
+  if (!endpoints) {
+    return undefined;
+  }
+  const http = endpoints.http?.trim();
+  if (http) {
+    return http;
+  }
+  const sse = endpoints.sse?.trim();
+  if (sse) {
+    return sse;
+  }
+  return undefined;
+};
 
 const SECURITY_INDICATOR_LABELS: Record<keyof McpSecurityIndicator, string> = {
   verifiedSource: 'Verified source',
@@ -47,21 +71,6 @@ const FRONTEND_TO_BACKEND_FILTER_KEY: Record<string, string> = Object.fromEntrie
   Object.entries(BACKEND_TO_FRONTEND_FILTER_KEY).map(([backend, frontend]) => [frontend, backend]),
 );
 
-const wrapInQuotes = (v: string): string => `'${v.replace(/'/g, "''")}'`;
-
 export function mcpFiltersToFilterQuery(filters: McpCatalogFiltersState): string {
-  const clauses: string[] = [];
-  for (const key of MCP_FILTER_KEYS) {
-    const values = filters[key];
-    if (!values || values.length === 0) {
-      continue;
-    }
-    const backendKey = FRONTEND_TO_BACKEND_FILTER_KEY[key] ?? key;
-    if (values.length === 1) {
-      clauses.push(`${backendKey}=${wrapInQuotes(values[0])}`);
-    } else {
-      clauses.push(`${backendKey} IN (${values.map(wrapInQuotes).join(',')})`);
-    }
-  }
-  return clauses.join(' AND ');
+  return stringFiltersToFilterQuery(filters, FRONTEND_TO_BACKEND_FILTER_KEY);
 }

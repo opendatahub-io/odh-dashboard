@@ -89,7 +89,7 @@ const initCommonIntercepts = () => {
         mockFeatureStoreProject({ spec: { name: fsProjectName2 } }),
       ],
       pagination: {
-        total_count: 1,
+        total_count: 2,
         total_pages: 1,
         has_next: false,
         has_previous: false,

@@ -30,8 +30,8 @@ const PauseRayJobModal: React.FC<PauseRayJobModalProps> = ({
   const modalContent = (
     <Stack hasGutter>
       <StackItem>
-        Pausing <strong>{displayName}</strong> will stop the job and release its resources. Progress
-        will be saved, and you can resume it later.
+        Pausing <strong>{displayName}</strong> will stop the job and release its resources. Job
+        progress will be lost if checkpointing is not enabled.
       </StackItem>
       <StackItem>
         <Checkbox

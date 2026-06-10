@@ -69,6 +69,9 @@ const initIntercepts = ({
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        // Gen AI plugin registers PLUGIN_GEN_AI with this required component; without it the
+        // save-as-ai-asset UI stays hidden while genAiStudio is still true in dashboard config.
+        [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
       },
     }),
   );
@@ -79,6 +82,7 @@ const initIntercepts = ({
       disableKServe: false,
       deploymentWizardYAMLViewer: true,
       vLLMDeploymentOnMaaS,
+      genAiStudio: true,
     }),
   );
   // used by addSupportServingPlatformProject
@@ -319,14 +323,17 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-    cy.url().should('include', 'ai-hub/deployments/deploy');
+    cy.url().should('include', 'ai-hub/models/deployments/deploy');
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findCancelButton().click();
-    cy.url().should('include', 'ai-hub/deployments/deploy');
+    cy.url().should('include', 'ai-hub/models/deployments/deploy');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findDiscardButton().click();
-    cy.url().should('eq', `${Cypress.config().baseUrl ?? ''}/ai-hub/deployments/test-project`);
+    cy.url().should(
+      'eq',
+      `${Cypress.config().baseUrl ?? ''}/ai-hub/models/deployments/test-project`,
+    );
 
     modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
@@ -1510,6 +1517,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
+          secretName: 'test-uri-secret',
           hasExternalRoute: true,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
@@ -1536,14 +1544,11 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
     // Step 1: Model source
-    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-    modelServingWizard.findSaveConnectionCheckbox().click();
-    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
     hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
-    hardwareProfileSection.findCustomizeButton().should('exist').click();
+    hardwareProfileSection.expandCustomizeSection();
     modelServingWizardEdit.findCPURequestedInput().should('have.value', '6');
     modelServingWizardEdit.findCPULimitInput().should('have.value', '6');
     modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '10');
@@ -1620,7 +1625,18 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizard.visit();
 
-    // Step 1: Model source
+    // Step 1: Preconfigure deployment (shown because no project is pre-selected)
+    modelServingWizard.findPreconfigureStep().should('be.enabled');
+    modelServingWizard.findModelSourceStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findPreconfigureProjectSelector().click();
+    modelServingWizard
+      .findPreconfigureProjectSelectorOption('Test Project')
+      .should('exist')
+      .click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
@@ -1638,19 +1654,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 2: Model deployment
+    // Step 3: Model deployment (project selector hidden, project was selected in preconfigure step)
     modelServingWizard.findModelDeploymentStep().should('be.enabled');
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelDeploymentProjectSelector().should('exist');
-    modelServingWizard
-      .findModelDeploymentProjectSelector()
-      .should('contain.text', 'Select target project');
-    modelServingWizard.findModelDeploymentProjectSelector().click();
-    modelServingWizard
-      .findModelDeploymentProjectSelectorOption('Test Project')
-      .should('exist')
-      .click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
@@ -1664,19 +1671,22 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 3: Advanced Options
+    // Step 4: Advanced Options
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 4: Summary
+    // Step 5: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     cy.wait('@createSecret').then((interception) => {
       expect(interception.request.body.metadata.name).to.satisfy(isGeneratedSecretName);
       expect(interception.request.body.metadata.namespace).to.equal('test-project');
       expect(interception.request.body.metadata.labels['opendatahub.io/dashboard']).to.equal(
-        'false',
+        'true',
       );
+      expect(
+        interception.request.body.metadata.annotations['opendatahub.io/connection-hidden'],
+      ).to.equal('true');
       expect(
         interception.request.body.metadata.annotations['opendatahub.io/connection-type-protocol'],
       ).to.equal('uri');
@@ -2081,7 +2091,7 @@ describe('Model Serving Deploy Wizard', () => {
     it('deploy create', () => {
       cy.visitWithLogin(`/modelServing/deploy`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
-      cy.url().should('include', '/ai-hub/deployments/deploy');
+      cy.url().should('include', '/ai-hub/models/deployments/deploy');
     });
   });
 

@@ -68,7 +68,8 @@ func (m *MockHTTPClient) PATCH(_ context.Context, _ string, _ io.Reader) ([]byte
 }
 
 // NewSuccessMockClient returns a MockHTTPClient that succeeds for the full RegisterModel flow.
-func NewSuccessMockClient(modelName, versionName, s3Path string) *MockHTTPClient {
+// If artifactName is empty, the artifact will use versionName (matching production behavior).
+func NewSuccessMockClient(modelName, versionName, artifactName, s3Path string) *MockHTTPClient {
 	regModelID := "rm-123"
 	versionID := "mv-456"
 	artifactID := "ma-789"
@@ -79,7 +80,13 @@ func NewSuccessMockClient(modelName, versionName, s3Path string) *MockHTTPClient
 	modelVersion := openapi.ModelVersion{Id: &versionID, Name: versionName}
 	modelVersionJSON, _ := json.Marshal(modelVersion)
 
-	modelArtifact := openapi.ModelArtifact{Id: &artifactID, Name: &versionName, Uri: &s3Path}
+	// Use artifactName if provided, otherwise default to versionName
+	finalArtifactName := artifactName
+	if finalArtifactName == "" {
+		finalArtifactName = versionName
+	}
+
+	modelArtifact := openapi.ModelArtifact{Id: &artifactID, Name: &finalArtifactName, Uri: &s3Path}
 	modelArtifactJSON, _ := json.Marshal(modelArtifact)
 
 	return &MockHTTPClient{

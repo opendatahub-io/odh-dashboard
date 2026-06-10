@@ -1,6 +1,6 @@
 import React from 'react';
 import { Label, LabelGroup, Tooltip } from '@patternfly/react-core';
-import { SyncAltIcon, CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import { InProgressIcon, CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { OdhDocument, OdhDocumentType } from '#~/types';
 import { getQuickStartCompletionStatus, CompletionStatusEnum } from '#~/utilities/quickStartUtils';
@@ -45,17 +45,17 @@ const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
         </Label>
       ) : null}
       {completionStatus === CompletionStatusEnum.InProgress ? (
-        <Label variant="outline" color="purple" icon={<SyncAltIcon />}>
+        <Label variant="outline" status="info" icon={<InProgressIcon />}>
           In Progress
         </Label>
       ) : null}
       {completionStatus === CompletionStatusEnum.Success ? (
-        <Label variant="outline" color="green" icon={<CheckCircleIcon />}>
+        <Label variant="outline" status="success" icon={<CheckCircleIcon />}>
           Complete
         </Label>
       ) : null}
       {completionStatus === CompletionStatusEnum.Failed ? (
-        <Label variant="outline" color="red" icon={<ExclamationCircleIcon />}>
+        <Label variant="outline" status="danger" icon={<ExclamationCircleIcon />}>
           Failed
         </Label>
       ) : null}

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"time"
@@ -34,9 +35,14 @@ type PipelineServerClientInterface interface {
 	ListRuns(ctx context.Context, params *ListRunsParams) (*models.KFPipelineRunResponse, error)
 	GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error)
 	CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error)
+	TerminateRun(ctx context.Context, runID string) error
+	RetryRun(ctx context.Context, runID string) error
+	DeleteRun(ctx context.Context, runID string) error
 	ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error)
 	ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error)
 	GetPipelineVersion(ctx context.Context, pipelineID, versionID string) (*models.KFPipelineVersion, error)
+	CreatePipeline(ctx context.Context, name string) (*models.KFPipeline, error)
+	UploadPipelineVersion(ctx context.Context, pipelineID string, versionName string, fileContent []byte) (*models.KFPipelineVersion, error)
 }
 
 // maxPipelineErrorBodySize limits the size of error response bodies to prevent memory exhaustion.
@@ -44,8 +50,12 @@ type PipelineServerClientInterface interface {
 const maxPipelineErrorBodySize = 64 * 1024 // 64 KB
 
 // maxSuccessBodySize limits the size of success response bodies to prevent memory exhaustion.
-// Pipeline server responses are capped at 10 MB, mirroring the bound applied to error bodies.
+// Pipeline server success responses are capped at 10 MB.
 const maxSuccessBodySize = 10 << 20 // 10 MB
+
+// maxPaginationPages limits the number of pages fetched during paginated listing
+// to prevent unbounded loops from causing memory exhaustion.
+const maxPaginationPages = 100
 
 // ListRunsParams contains parameters for listing pipeline runs
 type ListRunsParams struct {
@@ -250,7 +260,11 @@ func (c *RealPipelineServerClient) ListPipelines(ctx context.Context, filter str
 	var totalSize int32
 	pageToken := ""
 
-	for {
+	for pagesFetched := 0; ; pagesFetched++ {
+		if pagesFetched >= maxPaginationPages {
+			return nil, fmt.Errorf("pagination limit reached: fetched %d pages", maxPaginationPages)
+		}
+
 		queryParams := url.Values{}
 		if filter != "" {
 			queryParams.Set("filter", filter)
@@ -298,7 +312,7 @@ func (c *RealPipelineServerClient) ListPipelines(ctx context.Context, filter str
 		}
 
 		allPipelines = append(allPipelines, page.Pipelines...)
-		totalSize = page.TotalSize // KFP reports the total across all pages on every page
+		totalSize = page.TotalSize
 
 		if page.NextPageToken == "" {
 			break
@@ -330,46 +344,72 @@ func (c *RealPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 		return nil, fmt.Errorf("pipelineID is required")
 	}
 
-	queryParams := url.Values{}
-	queryParams.Set("sort_by", "created_at desc")
-	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions?%s", c.baseURL, url.PathEscape(pipelineID), queryParams.Encode())
+	var allVersions []models.KFPipelineVersion
+	var totalSize int32
+	pageToken := ""
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	if c.authToken != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
-		body, _ := io.ReadAll(limitedReader)
-		_, _ = io.Copy(io.Discard, resp.Body)
-
-		errorMsg := string(body)
-		if len(body) == maxPipelineErrorBodySize {
-			errorMsg += " (truncated)"
+	for pagesFetched := 0; ; pagesFetched++ {
+		if pagesFetched >= maxPaginationPages {
+			return nil, fmt.Errorf("pagination limit reached: fetched %d pages", maxPaginationPages)
 		}
-		return nil, &HTTPError{
-			StatusCode: resp.StatusCode,
-			Message:    errorMsg,
+
+		queryParams := url.Values{}
+		queryParams.Set("sort_by", "created_at desc")
+		if pageToken != "" {
+			queryParams.Set("page_token", pageToken)
 		}
+		apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions?%s", c.baseURL, url.PathEscape(pipelineID), queryParams.Encode())
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+
+		if c.authToken != "" {
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+		}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute request: %w", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+			body, _ := io.ReadAll(limitedReader)
+			_, _ = io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+
+			errorMsg := string(body)
+			if len(body) == maxPipelineErrorBodySize {
+				errorMsg += " (truncated)"
+			}
+			return nil, &HTTPError{
+				StatusCode: resp.StatusCode,
+				Message:    errorMsg,
+			}
+		}
+
+		var page models.KFPipelineVersionsResponse
+		err = json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&page)
+		resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+
+		allVersions = append(allVersions, page.PipelineVersions...)
+		totalSize = page.TotalSize
+
+		if page.NextPageToken == "" {
+			break
+		}
+		pageToken = page.NextPageToken
 	}
 
-	var response models.KFPipelineVersionsResponse
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return &response, nil
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: allVersions,
+		TotalSize:        totalSize,
+	}, nil
 }
 
 // CreateRun creates a new pipeline run via the KFP v2beta1 API.
@@ -418,4 +458,254 @@ func (c *RealPipelineServerClient) CreateRun(ctx context.Context, request models
 	}
 
 	return &runResponse, nil
+}
+
+// TerminateRun terminates an active pipeline run via the KFP v2beta1 API.
+// It calls POST /apis/v2beta1/runs/{runID}:terminate which signals the pipeline
+// server to cancel all running tasks and mark the run as terminated.
+func (c *RealPipelineServerClient) TerminateRun(ctx context.Context, runID string) error {
+	if runID == "" {
+		return fmt.Errorf("runID is required")
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s:terminate", c.baseURL, url.PathEscape(runID))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader([]byte("{}")))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := fmt.Sprintf("failed to terminate run %s: %s", runID, string(respBody))
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
+	}
+
+	// Drain body to allow connection reuse
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	return nil
+}
+
+// RetryRun re-initiates a failed or terminated pipeline run via the KFP v2beta1 API.
+// It calls POST /apis/v2beta1/runs/{runID}:retry which signals the pipeline
+// server to retry the run from the point of failure.
+func (c *RealPipelineServerClient) RetryRun(ctx context.Context, runID string) error {
+	if runID == "" {
+		return fmt.Errorf("runID is required")
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s:retry", c.baseURL, url.PathEscape(runID))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader([]byte("{}")))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := fmt.Sprintf("failed to retry run %s: %s", runID, string(respBody))
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
+	}
+
+	// Drain body to allow connection reuse
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	return nil
+}
+
+// DeleteRun permanently deletes a pipeline run via the KFP v2beta1 API.
+// It calls DELETE /apis/v2beta1/runs/{runID} which removes the run record entirely.
+func (c *RealPipelineServerClient) DeleteRun(ctx context.Context, runID string) error {
+	if runID == "" {
+		return fmt.Errorf("runID is required")
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s", c.baseURL, url.PathEscape(runID))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, apiURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := fmt.Sprintf("failed to delete run %s: %s", runID, string(respBody))
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
+	}
+
+	// Drain body to allow connection reuse
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	return nil
+}
+
+// CreatePipeline creates a pipeline shell (no version) via JSON POST to /apis/v2beta1/pipelines.
+func (c *RealPipelineServerClient) CreatePipeline(ctx context.Context, name string) (*models.KFPipeline, error) {
+	if name == "" {
+		return nil, fmt.Errorf("pipeline name cannot be empty")
+	}
+
+	body, err := json.Marshal(map[string]string{"display_name": name})
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+		errorMsg := string(respBody)
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, &HTTPError{StatusCode: resp.StatusCode, Message: errorMsg}
+	}
+
+	var pipeline models.KFPipeline
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&pipeline); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &pipeline, nil
+}
+
+// UploadPipelineVersion uploads a pipeline YAML as a named version of an existing pipeline
+// via multipart POST to /apis/v2beta1/pipelines/upload_version.
+func (c *RealPipelineServerClient) UploadPipelineVersion(ctx context.Context, pipelineID string, versionName string, fileContent []byte) (*models.KFPipelineVersion, error) {
+	if pipelineID == "" {
+		return nil, fmt.Errorf("pipeline ID cannot be empty")
+	}
+	if versionName == "" {
+		return nil, fmt.Errorf("version name cannot be empty")
+	}
+	if len(fileContent) == 0 {
+		return nil, fmt.Errorf("pipeline file content cannot be empty")
+	}
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	part, err := writer.CreateFormFile("uploadfile", "uploadedFile.yaml")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create form file: %w", err)
+	}
+	if _, err := part.Write(fileContent); err != nil {
+		return nil, fmt.Errorf("failed to write file content: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	queryParams := url.Values{}
+	queryParams.Set("name", versionName)
+	queryParams.Set("display_name", versionName)
+	queryParams.Set("pipelineid", pipelineID)
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/upload_version?%s", c.baseURL, queryParams.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+		errorMsg := string(respBody)
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, &HTTPError{StatusCode: resp.StatusCode, Message: errorMsg}
+	}
+
+	var version models.KFPipelineVersion
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&version); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &version, nil
 }

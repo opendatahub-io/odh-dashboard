@@ -31,7 +31,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelServing/useStopModalPreference';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
-import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockNimResource';
+import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import {
   ModelStateToggleLabel,
@@ -626,7 +626,7 @@ describe('Serving Runtime List', () => {
       projectDetails.visitSection('test-project', 'model-server');
 
       const kserveRow = modelServingSection.getKServeRow('test-model');
-      kserveRow.findStatusLabel(ModelStateLabel.STARTED);
+      kserveRow.findStatusLabel(ModelStateLabel.READY);
 
       const stoppedInferenceService = mockInferenceServiceK8sResource({
         name: 'test-model',
@@ -708,7 +708,7 @@ describe('Serving Runtime List', () => {
       kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
       cy.reload();
       cy.wait(['@startModelPatch', '@getStartedModel']);
-      kserveRow.findStatusLabel(ModelStateLabel.STARTED);
+      kserveRow.findStatusLabel(ModelStateLabel.READY);
       kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP);
     });
 

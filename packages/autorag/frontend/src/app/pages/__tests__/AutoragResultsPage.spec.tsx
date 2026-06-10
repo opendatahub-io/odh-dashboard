@@ -1,7 +1,10 @@
 /* eslint-disable camelcase */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { MemoryRouter } from 'react-router';
 import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
@@ -15,8 +18,15 @@ const mockUseParams = jest.fn();
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => mockUseParams(),
-  Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
-    <a href={to}>{children}</a>
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' }),
+  Link: ({
+    to,
+    children,
+    ...rest
+  }: { to: string; children: React.ReactNode } & Record<string, unknown>) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
   ),
 }));
 
@@ -39,6 +49,21 @@ jest.mock('~/app/hooks/queries', () => ({
 
 jest.mock('~/app/hooks/useAutoragResults', () => ({
   useAutoragResults: (...args: unknown[]) => mockUseAutoragResults(...args),
+}));
+
+jest.mock('~/app/hooks/mutations', () => ({
+  useTerminatePipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
+  useRetryPipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
+  useDeletePipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
 }));
 
 // Mock AutoragResults to capture context
@@ -65,29 +90,63 @@ jest.mock('~/app/components/empty-states/InvalidProject', () => ({
   default: () => <div data-testid="invalid-project">Invalid Project</div>,
 }));
 
+jest.mock('~/app/components/run-results/StopRunModal', () => ({
+  __esModule: true,
+  default: ({
+    isOpen,
+    isTerminating,
+    onConfirm,
+    onClose,
+  }: {
+    isOpen: boolean;
+    isTerminating: boolean;
+    onConfirm: () => void;
+    onClose: () => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="stop-run-modal">
+        <button data-testid="confirm-stop-run-button" onClick={onConfirm} disabled={isTerminating}>
+          Stop
+        </button>
+        <button data-testid="cancel-stop-run-button" onClick={onClose} disabled={isTerminating}>
+          Cancel
+        </button>
+      </div>
+    ) : null,
+}));
+
+const mockNotification = { success: jest.fn(), error: jest.fn(), warning: jest.fn() };
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => mockNotification,
+}));
+
 jest.mock('mod-arch-shared', () => ({
   ApplicationsPage: ({
     children,
     empty,
     loaded,
+    loadError,
     emptyStatePage,
     breadcrumb,
+    headerAction,
   }: {
     children: React.ReactNode;
     empty: boolean;
     loaded: boolean;
+    loadError?: Error;
     emptyStatePage: React.ReactNode;
     breadcrumb?: React.ReactNode;
+    headerAction?: React.ReactNode;
     [key: string]: unknown;
   }) => (
     <div data-testid="applications-page">
       {breadcrumb}
+      {headerAction}
+      {loadError ? <div data-testid="load-error">{loadError.message}</div> : null}
       {empty ? emptyStatePage : null}
       {loaded && !empty ? children : null}
     </div>
   ),
-  TitleWithIcon: ({ title }: { title: string }) => <span>{title}</span>,
-  ProjectObjectType: { pipelineExperiment: 'pipelineExperiment' },
 }));
 
 // ============================================================================
@@ -173,7 +232,31 @@ const createMockPipelineRun = (
 // Tests
 // ============================================================================
 
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderPage = () => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <AutoragResultsPage />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+};
+
 describe('AutoragResultsPage', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     capturedContext = null;
@@ -188,10 +271,26 @@ describe('AutoragResultsPage', () => {
       namespacesLoadError: undefined,
     });
 
+    // Reset mutation mocks to default state
+    const { useTerminatePipelineRunMutation, useRetryPipelineRunMutation } =
+      jest.requireMock('~/app/hooks/mutations');
+    useTerminatePipelineRunMutation.mockReturnValue({
+      mutateAsync: jest.fn(),
+      isPending: false,
+    });
+    useRetryPipelineRunMutation.mockReturnValue({
+      mutateAsync: jest.fn(),
+      isPending: false,
+    });
+
     mockUseAutoragResults.mockReturnValue({
       patterns: {},
+      failedPatterns: [],
       isLoading: false,
       isError: false,
+      ragPatternsBasePath: undefined,
+      error: undefined,
+      refetch: jest.fn(),
     });
   });
 
@@ -205,7 +304,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(mockUsePipelineRunQuery).toHaveBeenCalledWith('run-123', 'test-ns');
     });
@@ -221,7 +320,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(mockUseAutoragResults).toHaveBeenCalledWith('run-123', 'test-ns', mockPipelineRun);
     });
@@ -237,9 +336,9 @@ describe('AutoragResultsPage', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test.csv',
-        llama_stack_secret_name: 'llama-secret',
+        ogx_secret_name: 'ogx-secret',
         generation_models: ['llama-3'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 10,
       });
@@ -254,11 +353,13 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: mockPatterns,
+        failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('autorag-results')).toBeInTheDocument();
       expect(capturedContext).toMatchObject({
@@ -266,6 +367,7 @@ describe('AutoragResultsPage', () => {
         patterns: mockPatterns,
         pipelineRunLoading: false,
         patternsLoading: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
         parameters: {
           display_name: 'My RAG Run',
           input_data_secret_name: 'my-secret',
@@ -274,9 +376,9 @@ describe('AutoragResultsPage', () => {
           test_data_secret_name: 'test-secret',
           test_data_bucket_name: 'test-bucket',
           test_data_key: 'test.csv',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
           generation_models: ['llama-3'],
-          embeddings_models: ['text-embedding-3'],
+          embedding_models: ['text-embedding-3'],
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 10,
         },
@@ -292,7 +394,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       // Page should still be loading
       expect(screen.queryByTestId('autorag-results')).not.toBeInTheDocument();
@@ -309,7 +411,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('autorag-results')).toBeInTheDocument();
       expect(capturedContext).toMatchObject({
@@ -330,11 +432,13 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: {},
+        failedPatterns: [],
         isLoading: true,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(capturedContext).toMatchObject({
         patternsLoading: true,
@@ -354,11 +458,13 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: mockPatterns,
+        failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(capturedContext).toMatchObject({
         patterns: mockPatterns,
@@ -378,11 +484,13 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: {},
+        failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(capturedContext).toMatchObject({
         patterns: {},
@@ -403,7 +511,7 @@ describe('AutoragResultsPage', () => {
         error,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('invalid-run')).toBeInTheDocument();
       expect(screen.queryByTestId('autorag-results')).not.toBeInTheDocument();
@@ -425,7 +533,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('invalid-project')).toBeInTheDocument();
       expect(screen.queryByTestId('autorag-results')).not.toBeInTheDocument();
@@ -442,7 +550,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.queryByTestId('autorag-results')).not.toBeInTheDocument();
     });
@@ -458,7 +566,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('autorag-results')).toBeInTheDocument();
     });
@@ -478,12 +586,500 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       // Breadcrumb should show namespace
       expect(screen.getByText(/test-ns/)).toBeInTheDocument();
       // Breadcrumb should show run display name
       expect(screen.getByText('My Test Run')).toBeInTheDocument();
+    });
+  });
+
+  describe('stop and retry actions', () => {
+    const setupWithRunState = (state: PipelineRun['state']) => {
+      const mockPipelineRun = createMockPipelineRun({ state });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+    };
+
+    it('should show Stop button when run is RUNNING', () => {
+      setupWithRunState('RUNNING');
+      renderPage();
+
+      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('retry-run-button')).not.toBeInTheDocument();
+    });
+
+    it('should show Stop button when run is PENDING', () => {
+      setupWithRunState('PENDING');
+      renderPage();
+
+      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+    });
+
+    it('should not show Stop button when run is CANCELING', () => {
+      setupWithRunState('CANCELING');
+      renderPage();
+
+      expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
+    });
+
+    it('should show Stop button when run is PAUSED', () => {
+      setupWithRunState('PAUSED');
+      renderPage();
+
+      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+    });
+
+    it('should show Retry button when run is FAILED', () => {
+      setupWithRunState('FAILED');
+      renderPage();
+
+      expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
+    });
+
+    it('should show Retry button when run is CANCELED', () => {
+      setupWithRunState('CANCELED');
+      renderPage();
+
+      expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
+    });
+
+    it('should not show Stop or Retry buttons when run is SUCCEEDED', () => {
+      setupWithRunState('SUCCEEDED');
+      renderPage();
+
+      expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('retry-run-button')).not.toBeInTheDocument();
+    });
+
+    it('should open StopRunModal when Stop button is clicked', async () => {
+      setupWithRunState('RUNNING');
+      renderPage();
+
+      expect(screen.queryByTestId('stop-run-modal')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
+    });
+
+    it('should call terminate mutation when stop is confirmed', async () => {
+      setupWithRunState('RUNNING');
+      const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
+      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useTerminatePipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      renderPage();
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
+
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('should show success notification after successful stop', async () => {
+      setupWithRunState('RUNNING');
+      const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
+      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useTerminatePipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      renderPage();
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
+
+      await waitFor(() => {
+        expect(mockNotification.success).toHaveBeenCalledWith(
+          'Stop submitted successfully',
+          'The process is asynchronous and may take some time to take effect',
+        );
+      });
+    });
+
+    it('should show error notification when stop fails', async () => {
+      setupWithRunState('RUNNING');
+      const mockMutateAsync = jest.fn().mockRejectedValue(new Error('Network error'));
+      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useTerminatePipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      renderPage();
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
+
+      await waitFor(() => {
+        expect(mockNotification.error).toHaveBeenCalledWith('Failed to stop run', 'Network error');
+      });
+    });
+
+    it('should close StopRunModal after stop completes', async () => {
+      setupWithRunState('RUNNING');
+      const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
+      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useTerminatePipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      renderPage();
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('stop-run-modal')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should disable modal buttons while termination is pending', async () => {
+      setupWithRunState('RUNNING');
+      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      // Start with isPending: false so the Stop button is clickable
+      useTerminatePipelineRunMutation.mockReturnValue({
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
+        isPending: false,
+      });
+
+      const { rerender } = render(
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+
+      // Open the modal
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
+
+      // Now set isPending: true to simulate in-progress termination
+      useTerminatePipelineRunMutation.mockReturnValue({
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
+        isPending: true,
+      });
+
+      rerender(
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+
+      expect(screen.getByTestId('confirm-stop-run-button')).toBeDisabled();
+      expect(screen.getByTestId('cancel-stop-run-button')).toBeDisabled();
+    });
+
+    it('should show success notification and invalidate queries when retry succeeds', async () => {
+      setupWithRunState('FAILED');
+      const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
+      const { useRetryPipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useRetryPipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      const invalidateQueriesSpy = jest.spyOn(QueryClient.prototype, 'invalidateQueries');
+
+      renderPage();
+
+      await userEvent.click(screen.getByTestId('retry-run-button'));
+
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+        expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+          queryKey: ['autorag', 'pipelineRun', 'run-123', 'test-ns'],
+        });
+        expect(mockNotification.success).toHaveBeenCalledWith(
+          'Retry submitted successfully',
+          'The process is asynchronous and may take some time to take effect',
+        );
+      });
+
+      // Verify call order: mutateAsync -> invalidateQueries -> success notification
+      const mutateOrder = mockMutateAsync.mock.invocationCallOrder[0];
+      const invalidateOrder = invalidateQueriesSpy.mock.invocationCallOrder[0];
+      const notifyOrder = mockNotification.success.mock.invocationCallOrder[0];
+      expect(mutateOrder).toBeLessThan(invalidateOrder);
+      expect(invalidateOrder).toBeLessThan(notifyOrder);
+    });
+
+    it('should show error notification when retry fails', async () => {
+      setupWithRunState('FAILED');
+      const mockMutateAsync = jest.fn().mockRejectedValue(new Error('Retry failed'));
+      const { useRetryPipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useRetryPipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      renderPage();
+
+      await userEvent.click(screen.getByTestId('retry-run-button'));
+
+      await waitFor(() => {
+        expect(mockNotification.error).toHaveBeenCalledWith('Failed to retry run', 'Retry failed');
+      });
+    });
+  });
+
+  describe('error handling', () => {
+    it('should not show loadError when pipeline run query fails but has previous data', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: true,
+        error: new Error('Network timeout'),
+      });
+
+      renderPage();
+
+      expect(screen.queryByTestId('load-error')).not.toBeInTheDocument();
+      expect(screen.getByTestId('autorag-results')).toBeInTheDocument();
+    });
+
+    it('should show loadError when pipeline run query fails on initial load', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isFetching: false,
+        isError: true,
+        error: new Error('Server unavailable'),
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('load-error')).toBeInTheDocument();
+      expect(screen.getByTestId('load-error')).toHaveTextContent('Server unavailable');
+    });
+
+    it('should trigger warning notification when polling error occurs with previous data', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: true,
+        error: new Error('Network timeout'),
+      });
+
+      renderPage();
+
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        'Pipeline run status update failed',
+        'The status update has failed consistently for multiple attempts. The displayed results may not reflect the current state of the pipeline run.',
+      );
+    });
+
+    it('should trigger warning notification when some patterns fail to load', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutoragResults.mockReturnValue({
+        patterns: mockPatterns,
+        failedPatterns: ['BrokenPattern1', 'BrokenPattern2'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      renderPage();
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        '2 of 4 patterns could not be loaded',
+        'The following patterns failed to load: BrokenPattern1, BrokenPattern2',
+      );
+    });
+
+    it('should only trigger failed patterns notification once across re-renders', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutoragResults.mockReturnValueOnce({
+        patterns: mockPatterns,
+        failedPatterns: ['BrokenPattern1'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      mockUseAutoragResults.mockReturnValueOnce({
+        patterns: { ...mockPatterns },
+        failedPatterns: ['BrokenPattern1'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      const testQueryClient = createTestQueryClient();
+
+      const { rerender } = render(
+        <MemoryRouter>
+          <QueryClientProvider client={testQueryClient}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+
+      rerender(
+        <MemoryRouter>
+          <QueryClientProvider client={testQueryClient}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+    });
+
+    it('should pass patternsError, patternsLoadError, and onRetryPatterns through context', () => {
+      const mockPipelineRun = createMockPipelineRun();
+      const mockRefetch = jest.fn();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutoragResults.mockReturnValue({
+        patterns: {},
+        failedPatterns: [],
+        isLoading: false,
+        isError: true,
+        error: new Error('Failed to list RAG patterns directory'),
+        refetch: mockRefetch,
+      });
+
+      renderPage();
+
+      expect(capturedContext).toMatchObject({
+        patternsError: true,
+        patternsLoadError: expect.objectContaining({
+          message: 'Failed to list RAG patterns directory',
+        }),
+        onRetryPatterns: mockRefetch,
+      });
+    });
+  });
+
+  describe('reconfigure action', () => {
+    it('should always show Reconfigure button when pipeline run is loaded', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'SUCCEEDED' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
+    });
+
+    it('should link to the reconfigure route with namespace and runId', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'SUCCEEDED' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      const reconfigureButton = screen.getByTestId('reconfigure-run-button');
+      const link = reconfigureButton.closest('a');
+      expect(link).toHaveAttribute('href', '/gen-ai-studio/autorag/reconfigure/test-ns/run-123');
+    });
+
+    it('should show Reconfigure button alongside Stop button for active runs', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'RUNNING' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+      expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
+    });
+
+    it('should show Reconfigure button alongside Retry button for failed runs', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'FAILED' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
+      expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
     });
   });
 });

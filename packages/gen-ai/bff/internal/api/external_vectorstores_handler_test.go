@@ -237,4 +237,34 @@ var _ = Describe("ExternalVectorStoresListHandler", func() {
 		assert.Equal(t, "llama-stack", response.Data.ConfigMapInfo.Namespace)
 		assert.NotEmpty(t, response.Data.ConfigMapInfo.LastUpdated, "ConfigMap info should have last updated timestamp")
 	})
+
+	It("should return 200 with empty list when the vector stores ConfigMap does not exist", func() {
+		t := GinkgoT()
+		rr := httptest.NewRecorder()
+
+		// opendatahub namespace exists but has no gen-ai-aa-vector-stores ConfigMap
+		req, err := http.NewRequest("GET", "/api/v1/vectorstores/external?namespace=opendatahub", nil)
+		require.NoError(t, err)
+
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "opendatahub")
+		req = req.WithContext(ctx)
+
+		app.ExternalVectorStoresListHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		require.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response ExternalVectorStoresListEnvelope
+		err = json.Unmarshal(body, &response)
+		require.NoError(t, err)
+
+		assert.Empty(t, response.Data.VectorStores, "Should return empty list when ConfigMap is absent")
+		assert.Equal(t, 0, response.Data.TotalCount, "Should return zero total count when ConfigMap is absent")
+	})
 })

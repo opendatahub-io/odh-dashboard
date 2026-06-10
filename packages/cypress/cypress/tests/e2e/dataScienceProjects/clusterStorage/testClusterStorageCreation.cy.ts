@@ -109,8 +109,6 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
 
       // Delete the Cluster Storage and confirm that the deletion was successful
       cy.step('Delete the Cluster Storage and verify deletion');
-      // Note reload is required to ensure that the new edited name is propagated
-      cy.reload();
       clusterStorage.getClusterStorageRow(pvStorageNameEdited).findKebab().click();
       clusterStorageActions.findDeleteStorageAction().click();
       deleteModal.shouldBeOpen();

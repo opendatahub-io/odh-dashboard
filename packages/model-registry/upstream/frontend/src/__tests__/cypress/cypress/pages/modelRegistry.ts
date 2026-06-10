@@ -1,3 +1,4 @@
+import { modelRegistryUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { TableRow } from './components/table';
 import { Modal } from './components/Modal';
@@ -63,7 +64,7 @@ class ModelRegistry {
   }
 
   visit() {
-    cy.visit(`/model-registry`);
+    cy.visit(modelRegistryUrl());
     this.wait();
   }
 
@@ -73,8 +74,6 @@ class ModelRegistry {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Registry');
     cy.testA11y();
   }
 
@@ -189,11 +188,19 @@ class ModelRegistry {
   }
 
   findTableSearch() {
-    return cy.findByTestId('filter-toolbar-text-field');
+    return cy.get('[data-testid$="-toolbar"]').find('[data-testid$="-input"]').filter(':visible');
   }
 
   findFilterDropdownItem(name: string) {
-    return cy.findByTestId(`filter-toolbar-dropdown`).findDropdownItem(name);
+    return cy
+      .get('[data-testid$="-toolbar"]')
+      .find('[data-testid$="-dropdown"]')
+      .then(($el) => {
+        if ($el.attr('aria-expanded') === 'false') {
+          cy.wrap($el).click();
+        }
+        return cy.get('body').findByRole('option', { name });
+      });
   }
 
   findModelVersionsTableToolbar() {
@@ -213,15 +220,16 @@ class ModelRegistry {
   }
 
   findModelVersionsTableFilterOption(name: string) {
-    return cy.findByTestId('filter-toolbar-dropdown').findDropdownItem(name);
+    return cy.findByTestId('model-versions-table-dropdown').then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+      return cy.findByRole('option', { name });
+    });
   }
 
   findRegisterModelButton() {
     return cy.findByRole('button', { name: 'Register model' });
-  }
-
-  findRegisteredModelsTableToolbar() {
-    return cy.findByTestId('registered-models-table-toolbar');
   }
 }
 

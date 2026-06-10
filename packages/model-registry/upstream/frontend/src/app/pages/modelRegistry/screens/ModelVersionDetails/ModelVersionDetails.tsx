@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,7 +11,6 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { KnownLabels } from '~/odh/k8sTypes';
@@ -155,7 +154,9 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = (props) => {
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
 
   const labelSelectors = React.useMemo(() => {
-    if (!mvId || !rmId) return undefined;
+    if (!mvId || !rmId) {
+      return undefined;
+    }
     return {
       [KnownLabels.MODEL_VERSION_ID]: mvId,
       [KnownLabels.REGISTERED_MODEL_ID]: rmId,

@@ -7,14 +7,10 @@ import {
   MenuToggle,
   Tooltip,
 } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
-import {
-  formatMetricName,
-  formatMetricValue,
-  toNumericMetric,
-  isErrorMetric,
-} from '~/app/utilities/utils';
+import { formatMetricName, formatMetricValue } from '~/app/utilities/utils';
 import './AutomlModelDetailsModal.scss';
 
 type AutomlModelDetailsModalHeaderProps = {
@@ -22,15 +18,25 @@ type AutomlModelDetailsModalHeaderProps = {
   currentModelName: string;
   rank: number;
   rankMap: Record<string, number>;
+  evalMetric: string;
   onSelectModel?: (modelName: string) => void;
   onDownload: () => void;
   onSaveNotebook?: () => void;
+  onRegisterModel?: () => void;
   isDownloadDisabled?: boolean;
 };
 
-function getOptimizedMetric(model: AutomlModel): { name: string; value: number } | undefined {
-  const evalMetric = model.model_config.eval_metric;
-  const metrics = model.metrics.test_data ?? {};
+function getOptimizedMetric(
+  model: AutomlModel,
+  evalMetric: string,
+): { name: string; value: number } | undefined {
+  // Runtime guard: model.json from the BFF may omit metrics or test_data
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const metrics = model.metrics?.test_data;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!metrics || typeof metrics !== 'object') {
+    return undefined;
+  }
 
   // Case-insensitive metric lookup
   const metricKey = Object.keys(metrics).find(
@@ -41,10 +47,10 @@ function getOptimizedMetric(model: AutomlModel): { name: string; value: number }
     return undefined;
   }
 
-  const numericMetricValue = toNumericMetric(metrics[metricKey]);
+  const numericMetricValue = metrics[metricKey];
   return {
     name: evalMetric,
-    value: isErrorMetric(evalMetric) ? Math.abs(numericMetricValue) : numericMetricValue,
+    value: numericMetricValue,
   };
 }
 
@@ -53,19 +59,21 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
   currentModelName,
   rank,
   rankMap,
+  evalMetric,
   onSelectModel,
   onDownload,
   onSaveNotebook,
+  onRegisterModel,
   isDownloadDisabled,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const model = models.find((m) => m.display_name === currentModelName);
+  const [isActionsDropdownOpen, setIsActionsDropdownOpen] = React.useState(false);
+  const model = models.find((m) => m.name === currentModelName);
   const sortedModels = React.useMemo(
-    () =>
-      models.toSorted((a, b) => (rankMap[a.display_name] ?? 0) - (rankMap[b.display_name] ?? 0)),
+    () => models.toSorted((a, b) => (rankMap[a.name] ?? 0) - (rankMap[b.name] ?? 0)),
     [models, rankMap],
   );
-  const optimizedMetric = model ? getOptimizedMetric(model) : undefined;
+  const optimizedMetric = model ? getOptimizedMetric(model, evalMetric) : undefined;
 
   return (
     <div className="automl-model-details-header">
@@ -92,8 +100,8 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
           >
             <DropdownList>
               {sortedModels.map((m) => (
-                <DropdownItem key={m.display_name} value={m.display_name}>
-                  {m.display_name}
+                <DropdownItem key={m.name} value={m.name}>
+                  {m.name}
                 </DropdownItem>
               ))}
             </DropdownList>
@@ -110,7 +118,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
         {model && (
           <div className="automl-model-details-header-item">
             <span className="automl-model-details-header-label">
-              {formatMetricName(model.model_config.eval_metric)} (Optimized)
+              {formatMetricName(evalMetric)} (Optimized)
             </span>
             <span className="automl-model-details-header-value">
               {optimizedMetric ? (
@@ -137,14 +145,49 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
         >
           Download
         </Button>
-        {onSaveNotebook && (
-          <Button
-            variant="primary"
-            onClick={onSaveNotebook}
-            data-testid="model-details-save-notebook"
+        {(onSaveNotebook || onRegisterModel) && (
+          <Dropdown
+            isOpen={isActionsDropdownOpen}
+            onSelect={(_e, value) => {
+              setIsActionsDropdownOpen(false);
+              if (value === 'save-notebook') {
+                onSaveNotebook?.();
+              } else if (value === 'register-model') {
+                onRegisterModel?.();
+              }
+            }}
+            onOpenChange={setIsActionsDropdownOpen}
+            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+              <MenuToggle
+                ref={toggleRef}
+                variant="primary"
+                onClick={() => setIsActionsDropdownOpen(!isActionsDropdownOpen)}
+                isExpanded={isActionsDropdownOpen}
+                data-testid="model-details-actions-toggle"
+              >
+                Save as
+              </MenuToggle>
+            )}
           >
-            Save as notebook
-          </Button>
+            <DropdownList>
+              <DropdownItem
+                key="save-notebook"
+                value="save-notebook"
+                isDisabled={!onSaveNotebook}
+                data-testid="model-details-save-notebook"
+              >
+                Save as notebook
+              </DropdownItem>
+              <DropdownItem
+                key="register-model"
+                value="register-model"
+                isDisabled={!onRegisterModel}
+                data-testid="model-details-register-model"
+              >
+                Register model
+              </DropdownItem>
+            </DropdownList>
+          </Dropdown>
         )}
       </div>
     </div>

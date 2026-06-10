@@ -11,13 +11,22 @@ const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
 
+let mockLocationState: { from?: string } | null = null;
+
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useNavigate: () => mockNavigate,
   useParams: () => mockUseParams(),
+  useLocation: () => ({ state: mockLocationState, pathname: '', search: '', hash: '', key: '' }),
   Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
     <a href={to}>{children}</a>
   ),
+}));
+
+// Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
+jest.mock('@patternfly/react-core', () => ({
+  ...jest.requireActual('@patternfly/react-core'),
+  Truncate: ({ content }: { content: string }) => <span>{content}</span>,
 }));
 
 jest.mock('mod-arch-core', () => ({
@@ -35,14 +44,17 @@ jest.mock('~/app/hooks/mutations', () => ({
   useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
+  useS3FileUploadMutation: jest.fn(() => ({
+    mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'data.csv' }),
+  })),
 }));
 
 jest.mock('~/app/hooks/queries', () => ({
   useS3GetFileSchemaQuery: jest.fn(() => ({
     data: [
-      { name: 'column1', type: 'string' },
-      { name: 'column2', type: 'int64' },
-      { name: 'column3', type: 'float64' },
+      { name: 'column1', type: 'string', task_type: 'binary', values: ['yes', 'no'] },
+      { name: 'column2', type: 'int64', task_type: 'regression' },
+      { name: 'column3', type: 'float64', task_type: 'regression' },
     ],
     isLoading: false,
     isFetching: false,
@@ -87,9 +99,12 @@ jest.mock('mod-arch-shared', () => ({
       {loaded && !empty ? children : null}
     </div>
   ),
-  TitleWithIcon: ({ title }: { title: string }) => <span>{title}</span>,
-  ProjectObjectType: { pipelineExperiment: 'pipelineExperiment' },
   DashboardPopupIconButton: ({ icon }: { icon: React.ReactNode }) => <button>{icon}</button>,
+}));
+
+jest.mock('~/app/components/common/AutomlHeader/AutomlHeader', () => ({
+  __esModule: true,
+  default: () => <span>AutoML</span>,
 }));
 
 // Mock S3FileExplorer used by AutomlConfigure
@@ -160,7 +175,7 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
           uuid: 'aws-secret-1',
           name: 'Test AWS Secret',
           displayName: 'Test AWS Secret',
-          data: { aws_s3_bucket: 'test-bucket' },
+          data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
           type: 's3',
           invalid: false,
         });
@@ -199,6 +214,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 describe('AutomlConfigurePage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLocationState = null;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
@@ -222,9 +238,9 @@ describe('AutomlConfigurePage', () => {
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
-    it('should display "Create AutoML experiment" subtitle in create step', async () => {
+    it('should display "Create AutoML optimization run" subtitle in create step', async () => {
       renderWithProviders(<AutomlConfigurePage />);
-      expect(await screen.findByText('Create AutoML experiment')).toBeInTheDocument();
+      expect(await screen.findByText('Create AutoML optimization run')).toBeInTheDocument();
     });
 
     it('should display description text in create step', async () => {
@@ -288,18 +304,12 @@ describe('AutomlConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel link', async () => {
+    it('should navigate back when Cancel is clicked', async () => {
+      const user = userEvent.setup();
       renderWithProviders(<AutomlConfigurePage />);
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
-    });
-
-    it('should have correct href for Cancel link', async () => {
-      renderWithProviders(<AutomlConfigurePage />);
-
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
   });
 
@@ -327,7 +337,8 @@ describe('AutomlConfigurePage', () => {
     });
 
     it('should display experiment name in subtitle in configure step', async () => {
-      expect(await screen.findByText('"My Experiment" configurations')).toBeInTheDocument();
+      const subtitle = await screen.findByTestId('configure-step-subtitle');
+      expect(subtitle).toHaveTextContent('"My Experiment" configurations');
     });
 
     it('should NOT display description text in configure step', async () => {
@@ -338,11 +349,12 @@ describe('AutomlConfigurePage', () => {
 
     it('should display breadcrumb in configure step', async () => {
       expect(await screen.findByText('AutoML: test-namespace')).toBeInTheDocument();
-      expect(await screen.findByText('My Experiment')).toBeInTheDocument();
+      const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
+      expect(breadcrumbName).toHaveTextContent('My Experiment');
     });
 
-    it('should render "Run experiment" button', async () => {
-      expect(await screen.findByRole('button', { name: 'Run experiment' })).toBeInTheDocument();
+    it('should render "Create run" button', async () => {
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });
 
     it('should render "Back" button', async () => {
@@ -413,10 +425,47 @@ describe('AutomlConfigurePage', () => {
       expect(nameInputAfterBack).toHaveValue('Preserved Name');
       expect(descriptionInputAfterBack).toHaveValue('Preserved Description');
     });
+
+    it('should hide file selection after back and returning to configure without reselecting S3', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'My Experiment');
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+
+      expect(
+        await screen.findByRole('heading', { name: 'Select file from bucket' }),
+      ).toBeInTheDocument();
+
+      const backButton = await screen.findByRole('button', { name: 'Back' });
+      await user.click(backButton);
+
+      const nextButtonAgain = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButtonAgain).toBeEnabled();
+      });
+      await user.click(nextButtonAgain);
+
+      expect(
+        screen.queryByRole('heading', { name: 'Select file from bucket' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Select file from bucket' }),
+      ).not.toBeInTheDocument();
+    });
   });
 
-  describe('Configure step - Run experiment', () => {
-    it('should call mutateAsync when Run experiment button is clicked with valid form', async () => {
+  describe('Configure step - Create run', () => {
+    it('should call mutateAsync when Create run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -437,24 +486,29 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      // Select files to populate train_data_file_key
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      // Browse bucket to populate train_data_file_key
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       // FileExplorer should open
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
-      // Select the first column option
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
+      // Select a prediction type
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
+
       // Wait for form to be valid and Run button to be enabled
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -462,7 +516,7 @@ describe('AutomlConfigurePage', () => {
         { timeout: 3000 },
       );
 
-      // Click Run experiment button
+      // Click Create run button
       await user.click(runButton);
 
       await waitFor(() => {
@@ -491,21 +545,27 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Select a prediction type
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
+
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -542,21 +602,27 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Select a prediction type
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
+
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -594,21 +660,27 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Select a prediction type
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
+
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -672,6 +744,343 @@ describe('AutomlConfigurePage', () => {
     });
   });
 
+  describe('Reconfigure mode (with initialValues and sourceRunId)', () => {
+    it('should display reconfigure title when sourceRunId and sourceRunName are provided', async () => {
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const heading = await screen.findByRole('heading', { level: 2 });
+      expect(heading).toHaveTextContent('Reconfigure "Original Run"');
+      expect(screen.queryByText('Create AutoML optimization run')).not.toBeInTheDocument();
+    });
+
+    it('should display reconfigure description when sourceRunId is provided', async () => {
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      expect(
+        await screen.findByText(/Settings from the previous run have been automatically populated/),
+      ).toBeInTheDocument();
+    });
+
+    it('should navigate back when Cancel is clicked with sourceRunId', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+
+    it('should display breadcrumb with source run link when navigating from results page', async () => {
+      mockLocationState = { from: 'results' };
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const sourceRunBreadcrumb = await screen.findByTestId('configure-breadcrumb-source-run');
+      expect(sourceRunBreadcrumb).toBeInTheDocument();
+      expect(sourceRunBreadcrumb).toHaveTextContent('Original Run');
+
+      const sourceRunLink = sourceRunBreadcrumb.querySelector('a');
+      expect(sourceRunLink).toHaveAttribute(
+        'href',
+        '/develop-train/automl/results/test-namespace/prev-run-456',
+      );
+
+      const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
+      expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
+    });
+
+    it('should NOT display source run breadcrumb when navigating from experiments page', async () => {
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      expect(screen.queryByTestId('configure-breadcrumb-source-run')).not.toBeInTheDocument();
+      const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
+      expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
+    });
+
+    it('should navigate back when Cancel is clicked without sourceRunId', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+
+    it('should render "Create new run" button text when sourceRunId is provided', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Reconfigured Run' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      // Name should already be pre-filled from initialValues
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      expect(await screen.findByRole('button', { name: 'Create new run' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Create run' })).not.toBeInTheDocument();
+    });
+
+    it('should render "Create run" button text when sourceRunId is absent', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'New Run');
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Create new run' })).not.toBeInTheDocument();
+    });
+
+    it('should pre-fill display_name from initialValues', async () => {
+      renderWithProviders(
+        <AutomlConfigurePage initialValues={{ display_name: 'My Previous Run - 1' }} />,
+      );
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      expect(nameInput).toHaveValue('My Previous Run - 1');
+    });
+
+    it('should pre-fill description from initialValues', async () => {
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{
+            display_name: 'Reconfigured',
+            description: 'A reconfigured experiment',
+          }}
+        />,
+      );
+
+      const descInput = await screen.findByLabelText(/Description/i);
+      expect(descInput).toHaveValue('A reconfigured experiment');
+    });
+
+    it('should show the pre-filled name in breadcrumb after navigating to configure step', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Pre-filled Name' }}
+          sourceRunId="run-xyz"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
+      expect(breadcrumbName).toHaveTextContent('Reconfigure');
+    });
+
+    describe('configure step with pre-filled values', () => {
+      const tabularInitialValues = {
+        display_name: 'Reconfigured Run',
+        description: 'A reconfigured experiment',
+        train_data_secret_name: 'Test AWS Secret',
+        train_data_bucket_name: 'test-bucket',
+        train_data_file_key: 'my-data/train.csv',
+        task_type: 'binary' as const,
+        target_column: 'column1',
+        top_n: 7,
+      };
+      const tabularInitialSecret = {
+        uuid: 'aws-secret-1',
+        name: 'Test AWS Secret',
+        displayName: 'Test AWS Secret',
+        data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+        type: 's3',
+        invalid: false,
+      };
+
+      const navigateToConfigure = async () => {
+        const user = userEvent.setup();
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => {
+          expect(nextButton).toBeEnabled();
+        });
+        await user.click(nextButton);
+
+        // Verify we're on the configure step
+        expect(await screen.findByText('Documents')).toBeInTheDocument();
+
+        return user;
+      };
+
+      it('should show the pre-filled secret value in the configure step', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+      });
+
+      it('should show the pre-filled training data file in the configure step', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        const table = screen.getByRole('grid', { name: 'Selected training data file' });
+        expect(table).toBeInTheDocument();
+        expect(screen.getByText('train.csv')).toBeInTheDocument();
+      });
+
+      it('should pre-select the prediction type card in the configure step', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+        expect(screen.getByTestId('task-type-card-multiclass')).not.toHaveClass('pf-m-selected');
+        expect(screen.getByTestId('task-type-card-regression')).not.toHaveClass('pf-m-selected');
+        expect(screen.getByTestId('task-type-card-timeseries')).not.toHaveClass('pf-m-selected');
+      });
+
+      it('should show the pre-filled top_n value in the configure step', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        const input = screen.getByTestId('top-n-input').querySelector('input');
+        expect(input).toHaveValue(7);
+      });
+
+      it('should show target column fields for a tabular task type in the configure step', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByText('Target column')).toBeInTheDocument();
+        expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
+      });
+
+      it('should show timeseries fields when task_type is timeseries in the configure step', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={{
+              ...tabularInitialValues,
+              task_type: 'timeseries',
+              target_column: 'column2',
+              id_column: 'store_id',
+              timestamp_column: 'date',
+              prediction_length: 30,
+            }}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-selected');
+        expect(screen.getByText('Target column')).toBeInTheDocument();
+        expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
+      });
+
+      it('should retain configure-step fields after back and returning to configure', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const user = await navigateToConfigure();
+
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('train.csv')).toBeInTheDocument();
+        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+
+        await user.click(await screen.findByRole('button', { name: 'Back' }));
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => {
+          expect(nextButton).toBeEnabled();
+        });
+        await user.click(nextButton);
+
+        expect(await screen.findByText('Documents')).toBeInTheDocument();
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('train.csv')).toBeInTheDocument();
+        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+      });
+    });
+  });
+
   describe('Form persistence', () => {
     it('should maintain form state across step transitions', async () => {
       const user = userEvent.setup();
@@ -706,7 +1115,8 @@ describe('AutomlConfigurePage', () => {
       await user.click(nextButton);
 
       // Verify we're in configure step with correct subtitle
-      expect(await screen.findByText('"Persistent Experiment" configurations')).toBeInTheDocument();
+      const subtitle = await screen.findByTestId('configure-step-subtitle');
+      expect(subtitle).toHaveTextContent('"Persistent Experiment" configurations');
     });
   });
 });

@@ -32,20 +32,20 @@ type SecretSelectorProps = Omit<
   'selectOptions' | 'selected' | 'onSelect' | 'onChange'
 > & {
   namespace: string;
-  type?: 'storage' | 'lls';
+  type?: 'storage' | 'ogx';
   value?: string; // The UUID of the selected secret
   onChange: (selection: SecretSelection | undefined) => void;
   /**
    * Additional keys that must be present in the secret for this specific use case.
    * These are beyond the keys required for secret type classification (handled by the BFF).
    *
-   * For example, S3 secrets are classified by keys like 'aws_access_key_id', 'aws_secret_access_key',
-   * etc., but a specific use case might additionally require 'aws_s3_bucket' to be present.
+   * For example, S3 secrets are classified by keys like 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY',
+   * etc., but a specific use case might additionally require 'AWS_S3_BUCKET' to be present.
    *
    * @example
-   * additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+   * additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
    */
-  additionalRequiredKeys?: { [type: string]: string[] };
+  additionalRequiredKeys?: Readonly<Partial<Record<string, readonly string[]>>>;
   /**
    * Called with the refresh function so the parent can trigger a secrets list refresh
    * (e.g. after creating a new connection). Refresh returns the updated list.
@@ -103,7 +103,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
 
       const requiredKeysForType = additionalRequiredKeys[secret.type];
       // TypeScript thinks this check is unnecessary because additionalRequiredKeys is typed as { [type: string]: string[] }
-      // and secret.type is 's3' | 'lls' at this point (after the !secret.type check above).
+      // and secret.type is 's3' | 'ogx' at this point (after the !secret.type check above).
       // However, additionalRequiredKeys is optional and may not contain entries for all possible secret types,
       // so this runtime check is needed.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -111,7 +111,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         return [];
       }
 
-      return getMissingRequiredKeys(requiredKeysForType, Object.keys(secret.data));
+      return getMissingRequiredKeys(requiredKeysForType, Object.keys(secret.data ?? {}));
     },
     [additionalRequiredKeys],
   );
@@ -203,7 +203,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   if (isLoading) {
-    return <Skeleton width={toggleWidth} />;
+    return <Skeleton />;
   }
 
   return (

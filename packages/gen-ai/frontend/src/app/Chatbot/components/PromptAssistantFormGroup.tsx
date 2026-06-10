@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { get } from 'lodash';
 import {
   Button,
   Flex,
@@ -12,15 +11,25 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
+import {
+  useChatbotConfigStore,
+  selectActivePrompt,
+  selectDirtyPrompt,
+  selectVariableValues,
+  DEFAULT_CONFIG_ID,
+} from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
+import PromptVariableInputPanel from '~/app/Chatbot/components/PromptVariableInputPanel';
 
 type PromptAssistantFormGroupProps = {
+  configId?: string;
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
 };
@@ -39,23 +48,24 @@ const RESET_CONFIRMATION_CONFIG = {
 };
 
 export default function PromptAssistantFormGroup({
+  configId = DEFAULT_CONFIG_ID,
   systemInstruction,
   onSystemInstructionChange,
 }: PromptAssistantFormGroupProps): React.ReactNode {
-  const {
-    activePrompt,
-    dirtyPrompt,
-    setDirtyPrompt,
-    resetDirtyPrompt,
-    clearPromptState,
-    openModal,
-  } = usePlaygroundStore();
+  const { openModal } = usePlaygroundStore();
+  const activePrompt = useChatbotConfigStore(selectActivePrompt(configId));
+  const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
+  const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
+  const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
+  const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
+  const variableValues = useChatbotConfigStore(selectVariableValues(configId));
+  const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
   const [editMode, setEditMode] = React.useState(true);
   const activeTemplate =
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
     '';
-  const isEdited = usePromptEdited();
+  const isEdited = usePromptEdited(configId);
 
   useSafeBrowserUnloadBlocker(isEdited);
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
@@ -67,19 +77,19 @@ export default function PromptAssistantFormGroup({
   function handleTextChange(value: string) {
     onSystemInstructionChange(value);
     if (dirtyPrompt) {
-      setDirtyPrompt({ ...dirtyPrompt, template: value });
+      updateDirtyPrompt(configId, { ...dirtyPrompt, template: value });
     }
   }
 
   function handleRevert() {
-    resetDirtyPrompt();
+    resetDirtyPrompt(configId);
     onSystemInstructionChange(activeTemplate || DEFAULT_SYSTEM_INSTRUCTIONS);
     setEditMode(false);
   }
 
   function handleNewPrompt() {
     const promptStub = { ...buildPromptStub(), template: DEFAULT_SYSTEM_INSTRUCTIONS };
-    clearPromptState(promptStub);
+    clearPromptState(configId, promptStub);
     onSystemInstructionChange(promptStub.template);
     setEditMode(true);
   }
@@ -92,19 +102,15 @@ export default function PromptAssistantFormGroup({
     const mode = activePrompt ? 'edit' : 'create';
     // eslint-disable-next-line camelcase -- MLflow API uses snake_case
     newPrompt.commit_message = '';
-    openModal(mode, newPrompt);
+    updateDirtyPrompt(configId, newPrompt);
+    openModal(mode, configId, newPrompt);
   }
 
   function buildPromptStub(): MLflowPromptVersion {
     const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const month = now.toLocaleString('en', { month: 'short' });
-    const date = [month, pad(now.getDate()), now.getFullYear()].join('.');
-    const time = [pad(now.getHours()), pad(now.getMinutes())].join('.');
-    const name = `${date}_${time}`;
     /* eslint-disable camelcase */
     return {
-      name,
+      name: '',
       version: 0,
       template: '',
       commit_message: '',
@@ -135,9 +141,12 @@ export default function PromptAssistantFormGroup({
           }}
         >
           <Flex>
-            <Title headingLevel="h6">{get(dirtyPrompt, 'name', 'New Prompt')}</Title>
+            <Title headingLevel="h6" data-testid="prompt-name-title">
+              {dirtyPrompt?.name || 'New Prompt'}
+            </Title>
             {!!activePrompt?.version && (
               <Label
+                data-testid="prompt-version-label"
                 isCompact
                 variant={isEdited ? 'filled' : 'outline'}
                 color={isEdited ? 'grey' : 'purple'}
@@ -146,14 +155,30 @@ export default function PromptAssistantFormGroup({
               </Label>
             )}
             {isEdited && (
-              <div className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}>Unsaved</div>
+              <div
+                data-testid="prompt-unsaved-indicator"
+                className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}
+              >
+                Unsaved
+              </div>
             )}
           </Flex>
           <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
             <span>Instructions</span>
             <Popover
               headerContent="System instructions"
-              bodyContent="The instructions field is used as a system instruction when chatting with the model in the playground. It guides the model's behavior and response style."
+              bodyContent={
+                <>
+                  <p>
+                    The instructions field is used as a system instruction when chatting with the
+                    model in the playground. It guides the model&apos;s behavior and response style.
+                  </p>
+                  <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                    Wrap variables with double curly braces, e.g. {'{{ name }}'}. Variable slots
+                    appear below the instructions when placeholders are detected.
+                  </p>
+                </>
+              }
             >
               <OutlinedQuestionCircleIcon className="pf-v6-u-color-200" />
             </Popover>
@@ -173,15 +198,36 @@ export default function PromptAssistantFormGroup({
           {!editMode && (
             <Flex>
               <Button
+                data-testid="prompt-edit-button"
                 variant="primary"
-                isDisabled={editMode}
-                onClick={() => setEditMode(!editMode)}
+                onClick={() => {
+                  setEditMode(true);
+                  fireMiscTrackingEvent('Playground Prompt Edit Selected', {
+                    source: 'button',
+                  });
+                }}
               >
                 Edit
               </Button>
               <Button
+                data-testid="prompt-reset-button"
                 variant="link"
-                onClick={() => confirm(handleNewPrompt, RESET_CONFIRMATION_CONFIG)}
+                isDisabled={!isEdited && !activePrompt}
+                onClick={() =>
+                  confirm(handleNewPrompt, {
+                    ...RESET_CONFIRMATION_CONFIG,
+                    onConfirmTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Cleared', {
+                        outcome: 'submit',
+                        hadLoadedPrompt: !!activePrompt,
+                      }),
+                    onCancelTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Cleared', {
+                        outcome: 'cancel',
+                        hadLoadedPrompt: !!activePrompt,
+                      }),
+                  })
+                }
               >
                 Reset
               </Button>
@@ -189,23 +235,67 @@ export default function PromptAssistantFormGroup({
           )}
           {editMode && (
             <Flex>
-              <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
+              <Button
+                data-testid="prompt-save-to-registry-button"
+                variant="primary"
+                isDisabled={!isEdited}
+                onClick={handleSaveClicked}
+              >
                 Save
               </Button>
-              <Button
-                variant="link"
-                isDisabled={!isEdited}
-                onClick={() =>
-                  confirm(
-                    handleRevert,
-                    activePrompt ? CONFIRMATION_CONFIG : RESET_CONFIRMATION_CONFIG,
-                  )
-                }
-              >
-                Revert
-              </Button>
+              {activePrompt ? (
+                <Button
+                  data-testid="prompt-revert-button"
+                  variant="link"
+                  isDisabled={!isEdited}
+                  onClick={() =>
+                    confirm(handleRevert, {
+                      ...CONFIRMATION_CONFIG,
+                      onConfirmTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Reverted', {
+                          outcome: 'submit',
+                        }),
+                      onCancelTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Reverted', {
+                          outcome: 'cancel',
+                        }),
+                    })
+                  }
+                >
+                  Revert
+                </Button>
+              ) : (
+                <Button
+                  data-testid="prompt-reset-button"
+                  variant="link"
+                  isDisabled={!isEdited}
+                  onClick={() =>
+                    confirm(handleNewPrompt, {
+                      ...RESET_CONFIRMATION_CONFIG,
+                      forceConfirm: true,
+                      onConfirmTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Cleared', {
+                          outcome: 'submit',
+                          hadLoadedPrompt: false,
+                        }),
+                      onCancelTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Cleared', {
+                          outcome: 'cancel',
+                          hadLoadedPrompt: false,
+                        }),
+                    })
+                  }
+                >
+                  Reset
+                </Button>
+              )}
             </Flex>
           )}
+          <PromptVariableInputPanel
+            systemInstruction={systemInstruction}
+            variableValues={variableValues}
+            onVariableValuesChange={(values) => updateVariableValues(configId, values)}
+          />
         </Stack>
       </Panel>
     </>

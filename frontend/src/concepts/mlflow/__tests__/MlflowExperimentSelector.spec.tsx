@@ -2,10 +2,10 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
-import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
+import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
 
-jest.mock('#~/concepts/mlflow/useMlflowExperiments');
+jest.mock('#~/concepts/mlflow/hooks/useMlflowExperiments');
 jest.mock('#~/components/table/useTableColumnSort');
 jest.mock('#~/concepts/mlflow/MlflowExperimentTable', () => {
   const MockMlflowExperimentTable = (props: { data: unknown[] }) => (
@@ -13,33 +13,6 @@ jest.mock('#~/concepts/mlflow/MlflowExperimentTable', () => {
   );
   MockMlflowExperimentTable.displayName = 'MockMlflowExperimentTable';
   return MockMlflowExperimentTable;
-});
-jest.mock('#~/components/searchSelector/SearchSelector', () => {
-  const MockSearchSelector = ({
-    toggleContent,
-    searchHelpText,
-    isLoading,
-    isDisabled,
-    children,
-  }: {
-    toggleContent: string;
-    searchHelpText: string;
-    isLoading: boolean;
-    isDisabled: boolean;
-    children: (args: { menuClose: () => void }) => React.ReactNode;
-  }) => (
-    <div
-      data-testid="mlflow-search-selector"
-      data-loading={String(isLoading)}
-      data-disabled={String(isDisabled)}
-    >
-      <div data-testid="selector-toggle-content">{toggleContent}</div>
-      <div data-testid="selector-help-text">{searchHelpText}</div>
-      {children({ menuClose: () => undefined })}
-    </div>
-  );
-  MockSearchSelector.displayName = 'MockSearchSelector';
-  return MockSearchSelector;
 });
 
 const useMlflowExperimentsMock = jest.mocked(useMlflowExperiments);
@@ -92,9 +65,9 @@ describe('MlflowExperimentSelector', () => {
 
     renderSelector();
 
-    expect(screen.getByTestId('selector-toggle-content')).toHaveTextContent('Loading experiments');
-    expect(screen.getByTestId('mlflow-search-selector')).toHaveAttribute('data-loading', 'true');
-    expect(screen.getByTestId('mlflow-search-selector')).toHaveAttribute('data-disabled', 'true');
+    const toggle = screen.getByTestId('mlflow-experiment-selector-toggle');
+    expect(toggle).toHaveTextContent('Loading experiments');
+    expect(toggle).toBeDisabled();
   });
 
   it('should show error toggle content when experiments fail to load', () => {
@@ -107,11 +80,9 @@ describe('MlflowExperimentSelector', () => {
 
     renderSelector();
 
-    expect(screen.getByTestId('selector-toggle-content')).toHaveTextContent(
-      'Error loading experiments',
-    );
-    expect(screen.getByTestId('mlflow-search-selector')).toHaveAttribute('data-loading', 'false');
-    expect(screen.getByTestId('mlflow-search-selector')).toHaveAttribute('data-disabled', 'true');
+    const toggle = screen.getByTestId('mlflow-experiment-selector-toggle');
+    expect(toggle).toHaveTextContent('Error loading experiments');
+    expect(toggle).toBeDisabled();
   });
 
   it('should show empty-state toggle content when no experiments are available', () => {
@@ -124,33 +95,25 @@ describe('MlflowExperimentSelector', () => {
 
     renderSelector();
 
-    expect(screen.getByTestId('selector-toggle-content')).toHaveTextContent(
-      'No experiments available',
-    );
-    expect(screen.getByTestId('selector-help-text')).toHaveTextContent(
-      'Type a name to search your 0 experiments.',
-    );
+    const toggle = screen.getByTestId('mlflow-experiment-selector-toggle');
+    expect(toggle).toHaveTextContent('No experiments available');
+    expect(toggle).toBeDisabled();
   });
 
   it('should show selected experiment when provided', () => {
     renderSelector({ selection: 'Experiment B' });
 
-    expect(screen.getByTestId('selector-toggle-content')).toHaveTextContent('Experiment B');
+    const toggle = screen.getByTestId('mlflow-experiment-selector-toggle');
+    expect(toggle).toHaveTextContent('Experiment B');
+    expect(toggle).not.toBeDisabled();
   });
 
-  it('should use singular search help text when there is one experiment', () => {
-    useMlflowExperimentsMock.mockReturnValue({
-      data: [{ id: 'exp-1', name: 'Experiment A' }],
-      loaded: true,
-      error: undefined,
-      refresh: jest.fn(),
-    });
-
+  it('should show default toggle text when loaded with experiments but no selection', () => {
     renderSelector();
 
-    expect(screen.getByTestId('selector-help-text')).toHaveTextContent(
-      'Type a name to search your 1 experiment.',
-    );
+    const toggle = screen.getByTestId('mlflow-experiment-selector-toggle');
+    expect(toggle).toHaveTextContent('Select an experiment');
+    expect(toggle).not.toBeDisabled();
   });
 
   it('should emit status changes to parent through onStatusChange', () => {

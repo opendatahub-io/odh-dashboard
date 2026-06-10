@@ -151,7 +151,7 @@ export const getFeatureStoreObjectDescription = (
     case FeatureStoreObject.FEATURE_VIEWS:
       return 'Select a feature store to view and manage its feature views. A feature view defines how to retrieve a logical group of features from a specific data source. It binds a data source to one or more entities and contains the logic for transforming the raw data into feature values.';
     case FeatureStoreObject.FEATURE_SERVICES:
-      return 'Feature services are groups of related features from one or more feature views that are designed to be retrieved together for model training, online inference, or GenAI applications like RAG.';
+      return 'Select a feature store to view its feature services. Feature services are groups of related features from one or more feature views that are designed to be retrieved together for model training, online inference, or GenAI applications like RAG.';
     case FeatureStoreObject.DATA_SETS:
       return 'View and manage datasets generated from feature services. These datasets contain point-in-time-correct feature values to avoid leakage and support reliable training, validation, and offline analysis. You can add labels and apply additional preprocessing as needed.';
     case FeatureStoreObject.OVERVIEW:

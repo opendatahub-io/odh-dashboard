@@ -12,7 +12,7 @@ class FeatureEntitiesTable extends Contextual<HTMLElement> {
 
   findRow(entityName: string) {
     return new FeatureEntityTableRow(() =>
-      this.findTable().find('[data-label="Entities"]').contains(entityName).parents('tr'),
+      this.findTable().find('[data-label="Name"]').contains(entityName).parents('tr'),
     );
   }
 
@@ -58,7 +58,7 @@ class FeatureEntityToolbar extends Contextual<HTMLElement> {
 
 class FeatureEntityTableRow extends TableRow {
   findEntityName() {
-    return this.find().find('[data-label="Entities"]');
+    return this.find().find('[data-label="Name"]');
   }
 
   findEntityLink() {

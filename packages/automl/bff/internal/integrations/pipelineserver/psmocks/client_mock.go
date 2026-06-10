@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
@@ -70,9 +71,9 @@ type MockPipelineServerClient struct {
 	// Namespace determines which mock data set to return (default: 5 runs, bella: empty, bento: 30 runs)
 	Namespace string
 	// PipelineNamePrefix is the prefix used to construct the AutoML pipeline's DisplayName in
-	// ListPipelines (e.g. "automl" → "automl-pipeline").  Defaults to "automl" when empty,
-	// matching the default discovery prefix in discoverOnePipeline.  Tests that exercise
-	// non-default discovery prefixes can set this field to match the prefix they pass.
+	// ListPipelines.  Defaults to "automl" when empty, matching the default discovery prefix
+	// in discoverOnePipeline.  Tests that exercise non-default discovery prefixes can set
+	// this field to match the prefix they pass.
 	// Ignored when PipelineNames is set.
 	PipelineNamePrefix string
 	// PipelineNames, when non-empty, overrides PipelineNamePrefix: ListPipelines returns one
@@ -83,16 +84,46 @@ type MockPipelineServerClient struct {
 	LastListRunsParams *pipelineserver.ListRunsParams
 	// LastGetRunID records the last runID passed to GetRun for test assertions
 	LastGetRunID string
+	// LastTerminateRunID records the last runID passed to TerminateRun for test assertions
+	LastTerminateRunID string
+	// LastRetryRunID records the last runID passed to RetryRun for test assertions
+	LastRetryRunID string
+	// LastDeleteRunID records the last runID passed to DeleteRun for test assertions
+	LastDeleteRunID string
+	// ListPipelineVersionsErr, when non-nil, is returned by ListPipelineVersions
+	// instead of the normal mock response.
+	ListPipelineVersionsErr error
 }
 
 // pipelineDisplayName returns the DisplayName used for the AutoML pipeline fixture,
 // falling back to the default prefix when PipelineNamePrefix is not set.
 func (m *MockPipelineServerClient) pipelineDisplayName() string {
-	prefix := m.PipelineNamePrefix
-	if prefix == "" {
-		prefix = defaultPipelineNamePrefix
+	if m.PipelineNamePrefix != "" {
+		return m.PipelineNamePrefix
 	}
-	return prefix + "-pipeline"
+	return defaultPipelineNamePrefix
+}
+
+// CreatePipeline returns a mock pipeline shell (no version).
+func (m *MockPipelineServerClient) CreatePipeline(_ context.Context, name string) (*models.KFPipeline, error) {
+	m.PipelineNames = append(m.PipelineNames, name)
+	ids := DeriveMockIDsFromName(m.Namespace, name)
+	return &models.KFPipeline{
+		PipelineID:  ids.PipelineID,
+		DisplayName: name,
+		Namespace:   m.Namespace,
+		CreatedAt:   "2026-04-08T12:00:00Z",
+	}, nil
+}
+
+// UploadPipelineVersion returns a mock pipeline version with the given version name.
+func (m *MockPipelineServerClient) UploadPipelineVersion(_ context.Context, pipelineID string, versionName string, _ []byte) (*models.KFPipelineVersion, error) {
+	return &models.KFPipelineVersion{
+		PipelineID:        pipelineID,
+		PipelineVersionID: hashUUID("version:" + pipelineID + ":" + versionName),
+		DisplayName:       versionName,
+		CreatedAt:         "2026-04-08T12:00:00Z",
+	}, nil
 }
 
 // NewMockPipelineServerClient creates a new mock pipeline server client.
@@ -138,12 +169,16 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 	// Apply filtering if filter parameter is provided
 	filteredRuns := allRuns
 	if params != nil && params.Filter != "" {
-		pipelineVersionID := extractPipelineVersionIDFromFilter(params.Filter)
-		if pipelineVersionID != "" {
+		versionIDs := extractPipelineVersionIDsFromFilter(params.Filter)
+		if len(versionIDs) > 0 {
+			allowed := make(map[string]bool, len(versionIDs))
+			for _, id := range versionIDs {
+				allowed[id] = true
+			}
 			var matched []models.KFPipelineRun
 			for _, run := range allRuns {
 				if run.PipelineVersionReference != nil &&
-					run.PipelineVersionReference.PipelineVersionID == pipelineVersionID {
+					allowed[run.PipelineVersionReference.PipelineVersionID] {
 					matched = append(matched, run)
 				}
 			}
@@ -461,26 +496,35 @@ func cloneRunWithVariant(template *models.KFPipelineRun, index int) models.KFPip
 	return run
 }
 
-// extractPipelineVersionIDFromFilter parses the filter JSON and extracts pipeline_version_id if present
-func extractPipelineVersionIDFromFilter(filter string) string {
+// extractPipelineVersionIDsFromFilter parses the filter JSON and extracts pipeline_version_id values.
+// Supports both EQUALS (single string_value) and IN (string_values.values array) operations.
+func extractPipelineVersionIDsFromFilter(filter string) []string {
 	var filterObj struct {
 		Predicates []struct {
-			Key         string `json:"key"`
-			StringValue string `json:"string_value"`
+			Key          string `json:"key"`
+			StringValue  string `json:"string_value"`
+			StringValues struct {
+				Values []string `json:"values"`
+			} `json:"string_values"`
 		} `json:"predicates"`
 	}
 
 	if err := json.Unmarshal([]byte(filter), &filterObj); err != nil {
-		return ""
+		return nil
 	}
 
 	for _, predicate := range filterObj.Predicates {
 		if predicate.Key == "pipeline_version_id" {
-			return predicate.StringValue
+			if len(predicate.StringValues.Values) > 0 {
+				return predicate.StringValues.Values
+			}
+			if predicate.StringValue != "" {
+				return []string{predicate.StringValue}
+			}
 		}
 	}
 
-	return ""
+	return nil
 }
 
 // GetRun returns a mock pipeline run by ID
@@ -507,7 +551,15 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		}
 	}
 
-	// Return mock data based on the run ID, using namespace-derived IDs
+	// Look up the run from the base mock data so that state-dependent
+	// logic (terminate / retry) sees the correct State value.
+	for _, run := range getBaseMockRuns(m.Namespace) {
+		if run.RunID == runID {
+			return &run, nil
+		}
+	}
+
+	// Fallback for unknown run IDs: return a generic SUCCEEDED run
 	ids := DeriveMockIDs(m.Namespace)
 	mockRun := &models.KFPipelineRun{
 		RunID:        runID,
@@ -580,6 +632,78 @@ func (m *MockPipelineServerClient) GetPipelineVersion(_ context.Context, _, _ st
 	}, nil
 }
 
+// TerminateRun simulates terminating a pipeline run.
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
+func (m *MockPipelineServerClient) TerminateRun(_ context.Context, runID string) error {
+	m.LastTerminateRunID = runID
+
+	if runID == "non-existent-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("Failed to terminate run: Run %s not found", runID),
+		}
+	}
+
+	if runID == "server-error-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
+
+	return nil
+}
+
+// RetryRun simulates retrying a failed or terminated pipeline run.
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
+func (m *MockPipelineServerClient) RetryRun(_ context.Context, runID string) error {
+	m.LastRetryRunID = runID
+
+	if runID == "non-existent-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("Failed to retry run: Run %s not found", runID),
+		}
+	}
+
+	if runID == "server-error-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
+
+	return nil
+}
+
+// DeleteRun simulates deleting a pipeline run.
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
+func (m *MockPipelineServerClient) DeleteRun(_ context.Context, runID string) error {
+	m.LastDeleteRunID = runID
+
+	if runID == "non-existent-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("Failed to delete run: Run %s not found", runID),
+		}
+	}
+
+	if runID == "server-error-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
+
+	return nil
+}
+
 // ListPipelines returns mock pipeline data with namespace-derived IDs.
 // The filter parameter is accepted but ignored by the mock (all pipelines are always returned).
 // When PipelineNames is set, returns one pipeline per name with IDs derived from name+namespace.
@@ -608,21 +732,21 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 	ids := DeriveMockIDs(m.Namespace)
 
 	// In namespace mode (mock:// URL), return both AutoML pipeline types so the discovery
-	// middleware can match "automl-timeseries" and "automl-tabular" prefixes.
+	// middleware can match "autogluon-timeseries-training-pipeline" and "autogluon-tabular-training-pipeline" prefixes.
 	if m.Namespace != "" {
 		tabIDs := DeriveTabularMockIDs(m.Namespace)
 		return &models.KFPipelinesResponse{
 			Pipelines: []models.KFPipeline{
 				{
 					PipelineID:  ids.PipelineID,
-					DisplayName: "automl-timeseries-pipeline",
+					DisplayName: "autogluon-timeseries-training-pipeline",
 					Description: "Managed AutoML time-series pipeline",
 					CreatedAt:   "2026-02-20T10:00:00Z",
 					Namespace:   m.Namespace,
 				},
 				{
 					PipelineID:  tabIDs.PipelineID,
-					DisplayName: "automl-tabular-pipeline",
+					DisplayName: "autogluon-tabular-training-pipeline",
 					Description: "Managed AutoML tabular pipeline",
 					CreatedAt:   "2026-02-20T10:00:00Z",
 					Namespace:   m.Namespace,
@@ -661,6 +785,9 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 // matching the sort order requested by the real pipeline server client.
 // When PipelineNames is set, returns versions for any matching pipeline ID derived from names.
 func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if m.ListPipelineVersionsErr != nil {
+		return nil, m.ListPipelineVersionsErr
+	}
 	if len(m.PipelineNames) > 0 {
 		for _, name := range m.PipelineNames {
 			ids := DeriveMockIDsFromName(m.Namespace, name)
@@ -670,12 +797,19 @@ func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 						{
 							PipelineID:        ids.PipelineID,
 							PipelineVersionID: ids.LatestVersionID,
-							DisplayName:       "v1.0.0",
+							DisplayName:       fmt.Sprintf("%s-%s", name, constants.DefaultPipelineVersionSuffix),
 							Description:       "Pipeline version",
 							CreatedAt:         "2026-02-23T10:00:00Z",
 						},
+						{
+							PipelineID:        ids.PipelineID,
+							PipelineVersionID: ids.OldVersionID,
+							DisplayName:       fmt.Sprintf("%s-3.4.0", name),
+							Description:       "Initial pipeline version",
+							CreatedAt:         "2026-02-20T10:00:00Z",
+						},
 					},
-					TotalSize:     1,
+					TotalSize:     2,
 					NextPageToken: "",
 				}, nil
 			}
@@ -698,14 +832,14 @@ func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 					{
 						PipelineID:        tabIDs.PipelineID,
 						PipelineVersionID: tabIDs.LatestVersionID,
-						DisplayName:       "v1.0.0",
+						DisplayName:       fmt.Sprintf("autogluon-tabular-training-pipeline-%s", constants.DefaultPipelineVersionSuffix),
 						Description:       "Managed AutoML tabular pipeline version",
 						CreatedAt:         "2026-02-23T10:00:00Z",
 					},
 					{
 						PipelineID:        tabIDs.PipelineID,
 						PipelineVersionID: tabIDs.OldVersionID,
-						DisplayName:       "v0.x.x",
+						DisplayName:       "autogluon-tabular-training-pipeline-3.4.0",
 						Description:       "Initial AutoML tabular pipeline version",
 						CreatedAt:         "2026-02-20T10:00:00Z",
 					},
@@ -718,19 +852,25 @@ func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 
 	// Only return versions for this namespace's AutoML timeseries pipeline
 	if pipelineID == ids.PipelineID {
+		// In namespace mode the pipeline is "autogluon-timeseries-training-pipeline";
+		// in non-namespace mode it's the default prefix ("automl").
+		pipelineName := "autogluon-timeseries-training-pipeline"
+		if m.Namespace == "" {
+			pipelineName = m.pipelineDisplayName()
+		}
 		return &models.KFPipelineVersionsResponse{
 			PipelineVersions: []models.KFPipelineVersion{
 				{
 					PipelineID:        ids.PipelineID,
 					PipelineVersionID: ids.LatestVersionID,
-					DisplayName:       "v2.0.0",
+					DisplayName:       fmt.Sprintf("%s-%s", pipelineName, constants.DefaultPipelineVersionSuffix),
 					Description:       "Updated AutoML pipeline with improved metrics",
 					CreatedAt:         "2026-02-23T10:00:00Z",
 				},
 				{
 					PipelineID:        ids.PipelineID,
 					PipelineVersionID: ids.OldVersionID,
-					DisplayName:       "v1.0.0",
+					DisplayName:       fmt.Sprintf("%s-3.4.0", pipelineName),
 					Description:       "Initial AutoML pipeline version",
 					CreatedAt:         "2026-02-20T10:00:00Z",
 				},

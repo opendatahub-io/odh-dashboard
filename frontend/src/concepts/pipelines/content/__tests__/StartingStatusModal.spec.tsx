@@ -106,6 +106,7 @@ describe('StartingStatusModal', () => {
     ) as MetadataStoreServicePromiseClient,
     refreshState: jest.fn(),
     managedPipelines: undefined,
+    mlflowIntegrationMode: undefined,
     apiAvailable: true,
     api: {} as PipelineAPIs,
     startingStatusModalOpenRef: { current: 'test-namespace' },

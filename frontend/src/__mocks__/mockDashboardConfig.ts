@@ -43,19 +43,26 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  maasAuthPolicies?: boolean;
   externalVectorStores?: boolean;
   aiAssetCustomEndpoints?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
-  mlflow?: boolean;
+  mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  llmGatewayField?: boolean;
   promptManagement?: boolean;
+  nimWizard?: boolean;
+  mySubscriptions?: boolean;
+  agentOps?: boolean;
+  roleManagement?: boolean;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -65,7 +72,7 @@ export type MockDashboardConfigType = {
 };
 
 export const mockDashboardConfig = ({
-  mlflow = false,
+  mlflowPipelines = false,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -77,6 +84,7 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
+  maasAuthPolicies = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -95,6 +103,7 @@ export const mockDashboardConfig = ({
   disableDistributedWorkloads = false,
   disableModelCatalog = false,
   mcpCatalog = false,
+  toolCalling = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
   disableServingRuntimeParams = false,
@@ -110,7 +119,12 @@ export const mockDashboardConfig = ({
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
   vLLMDeploymentOnMaaS = false,
+  llmGatewayField = false,
   promptManagement = false,
+  nimWizard = false,
+  mySubscriptions = false,
+  agentOps = false,
+  roleManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
@@ -240,7 +254,7 @@ export const mockDashboardConfig = ({
   },
   spec: {
     dashboardConfig: {
-      mlflow,
+      mlflowPipelines,
       projectRBAC,
       enablement: true,
       disableInfo,
@@ -266,12 +280,14 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
+      maasAuthPolicies,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
       disableDistributedWorkloads,
       disableModelCatalog,
       mcpCatalog,
+      toolCalling,
       disableModelRegistry,
       disableModelRegistrySecureDB,
       disableServingRuntimeParams,
@@ -288,7 +304,12 @@ export const mockDashboardConfig = ({
       deploymentWizardYAMLViewer,
       externalVectorStores,
       vLLMDeploymentOnMaaS,
+      llmGatewayField,
       promptManagement,
+      nimWizard,
+      mySubscriptions,
+      agentOps,
+      roleManagement,
     },
     notebookController: {
       enabled: !disableNotebookController,

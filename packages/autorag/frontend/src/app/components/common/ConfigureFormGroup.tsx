@@ -1,4 +1,5 @@
 import { Content, Flex, FlexItem, Popover } from '@patternfly/react-core';
+import type { PopoverProps } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import * as React from 'react';
@@ -6,7 +7,7 @@ import * as React from 'react';
 type ConfigureFormGroupProps = {
   children: React.ReactNode;
   label: string;
-  labelHelp?: { header: string; body: string };
+  labelHelp?: { header: string; body: React.ReactNode; position?: PopoverProps['position'] };
   description?: React.ReactNode;
   isRequired?: boolean;
 };
@@ -22,11 +23,15 @@ type ConfigureFormGroupProps = {
  * @param props - Component props
  * @param props.children - Form field content (inputs, selectors, etc.)
  * @param props.label - Label text displayed above the form field
- * @param props.labelHelp - Optional help popover with header and body content
+ * @param props.labelHelp - Optional help popover configuration
+ * @param props.labelHelp.header - Popover header text
+ * @param props.labelHelp.body - Popover body content (string or ReactNode for rich content)
+ * @param props.labelHelp.position - Optional popover position (e.g., 'top', 'bottom', 'left', 'right')
  * @param props.description - Optional descriptive text displayed below the label
  * @param props.isRequired - If true, displays a required indicator (*) next to the label
  *
  * @example
+ * // String body
  * <ConfigureFormGroup
  *   label="S3 connection"
  *   description="Select your S3 connection"
@@ -34,6 +39,19 @@ type ConfigureFormGroupProps = {
  *   labelHelp={{ header: "S3 Connection", body: "Choose an existing S3 connection or create a new one" }}
  * >
  *   <SecretSelector />
+ * </ConfigureFormGroup>
+ *
+ * @example
+ * // ReactNode body with custom position
+ * <ConfigureFormGroup
+ *   label="Optimization metric"
+ *   labelHelp={{
+ *     header: "Optimization metric",
+ *     position: "bottom",
+ *     body: (<Stack>{...}</Stack>),
+ *   }}
+ * >
+ *   <Select />
  * </ConfigureFormGroup>
  *
  * @example
@@ -63,6 +81,7 @@ const ConfigureFormGroup: React.FC<ConfigureFormGroupProps> = (props: ConfigureF
             aria-label={`${props.label} help`}
             headerContent={props.labelHelp.header}
             bodyContent={props.labelHelp.body}
+            position={props.labelHelp.position}
           >
             <DashboardPopupIconButton
               aria-label={`More info for ${props.label.toLocaleLowerCase()}`}

@@ -10,18 +10,18 @@ import (
 	"path"
 	"strings"
 
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	k8mocks "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes/k8mocks"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	k8mocks "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes/k8mocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	helper "github.com/kubeflow/model-registry/ui/bff/internal/helpers"
+	helper "github.com/kubeflow/hub/ui/bff/internal/helpers"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/config"
-	"github.com/kubeflow/model-registry/ui/bff/internal/repositories"
+	"github.com/kubeflow/hub/ui/bff/internal/config"
+	"github.com/kubeflow/hub/ui/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/kubeflow/model-registry/ui/bff/internal/mocks"
+	"github.com/kubeflow/hub/ui/bff/internal/mocks"
 )
 
 const (
@@ -288,7 +288,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.PATCH(ModelArtifactPath, app.AttachNamespace(app.RequireAccessToMRService(app.AttachModelRegistryRESTClient(app.UpdateModelArtifactHandler))))
 
 	// Model Transfer Jobs
-	apiRouter.GET(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetAllModelTransferJobsHandler)))
+	apiRouter.GET(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.handlerWithOverride(HandlerIDModelTransferJobList, func() httprouter.Handle { return app.GetAllModelTransferJobsHandler }))))
 	apiRouter.GET(ModelTransferJobPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetModelTransferJobHandler)))
 	apiRouter.GET(ModelTransferJobEventsPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetModelTransferJobEventsHandler)))
 	apiRouter.POST(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.CreateModelTransferJobHandler)))

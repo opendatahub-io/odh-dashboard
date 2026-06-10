@@ -2,6 +2,12 @@
 description: Cross-cutting testing standards for choosing and applying the right test type in ODH Dashboard
 globs: "**/__tests__/**,**/cypress/**,**/contract-tests/**,**/*.spec.*,**/*.test.*"
 alwaysApply: false
+paths:
+  - "**/__tests__/**"
+  - "**/cypress/**"
+  - "**/contract-tests/**"
+  - "**/*.spec.*"
+  - "**/*.test.*"
 ---
 
 # ODH Dashboard Testing Standards

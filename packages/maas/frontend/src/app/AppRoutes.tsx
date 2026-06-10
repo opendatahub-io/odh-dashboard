@@ -5,13 +5,32 @@ import AllSubscriptionsPage from '~/app/pages/subscriptions/AllSubscriptionsPage
 import ViewSubscriptionPage from '~/app/pages/subscriptions/ViewSubscriptionPage';
 import EditSubscriptionPage from '~/app/pages/subscriptions/EditSubscriptionPage';
 import CreateSubscriptionPage from '~/app/pages/subscriptions/CreateSubscriptionPage';
-import AllApiKeysPage from '~/app/pages/api-keys/AllApiKeysPage';
+import AllApiKeysPage from '~/app/pages/keys-and-subs/apiKeys/AllApiKeysPage';
+import ApiKeysAndSubscriptionsPage from '~/app/pages/keys-and-subs/ApiKeysAndSubscriptionsPage';
 import { URL_PREFIX } from '~/app/utilities/const';
+import AllAuthPoliciesPage from '~/app/pages/auth-policies/AllAuthPoliciesPage';
+import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage';
+import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
+import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
+import ViewMySubscriptionPage from './pages/keys-and-subs/mySubscriptions/ViewMySubscriptionPage';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
+  const isKeysAndSubs = pathname.startsWith(`${URL_PREFIX}/keys-and-subs`);
   const isSubscriptions = pathname.startsWith(`${URL_PREFIX}/subscriptions`);
+  const isAuthPolicies = pathname.startsWith(`${URL_PREFIX}/auth-policies`);
 
+  if (isAuthPolicies) {
+    return (
+      <Routes>
+        <Route path="/" element={<AllAuthPoliciesPage />} />
+        <Route path="/create" element={<CreateAuthPolicyPage />} />
+        <Route path="/view/:authPolicyName" element={<ViewAuthPoliciesPage />} />
+        <Route path="/edit/:authPolicyName" element={<EditAuthPolicyPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    );
+  }
   if (isSubscriptions) {
     return (
       <Routes>
@@ -20,6 +39,16 @@ const AppRoutes: React.FC = () => {
         <Route path="/view/:subscriptionName" element={<ViewSubscriptionPage />} />
         <Route path="/edit/:subscriptionName" element={<EditSubscriptionPage />} />
         <Route path="*" element={<NotFound />} />
+      </Routes>
+    );
+  }
+  if (isKeysAndSubs) {
+    return (
+      <Routes>
+        <Route path="/" element={<ApiKeysAndSubscriptionsPage />} />
+        <Route path="/:tab" element={<ApiKeysAndSubscriptionsPage />} />
+        <Route path="/subscriptions/:subscriptionName" element={<ViewMySubscriptionPage />} />
+        <Route path="*" element={<Navigate to={`${URL_PREFIX}/keys-and-subs`} replace />} />
       </Routes>
     );
   }

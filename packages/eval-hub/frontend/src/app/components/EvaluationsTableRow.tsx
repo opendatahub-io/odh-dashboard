@@ -3,14 +3,17 @@ import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import {
   Alert,
   Button,
+  Checkbox,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
   Tooltip,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
-import { EvaluationJob } from '~/app/types';
+import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { EvaluationJob, EvaluationJobState } from '~/app/types';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   formatDate,
   getAllBenchmarkNames,
@@ -18,6 +21,7 @@ import {
   getEvaluationName,
   getResultPass,
   getResultScore,
+  isEvaluationJobComparable,
 } from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
@@ -29,9 +33,11 @@ type EvaluationsTableRowProps = {
   namespace: string;
   collectionNameMap: CollectionNameMap;
   onActionComplete: () => void;
+  isSelected: boolean;
+  onSelectionChange: (checked: boolean) => void;
 };
 
-const IN_PROGRESS_STATES = new Set(['running', 'pending']);
+const IN_PROGRESS_STATES = new Set(['running', 'pending', 'stopping']);
 
 type ConfirmAction = 'stop' | 'delete' | null;
 
@@ -41,8 +47,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   namespace,
   collectionNameMap,
   onActionComplete,
+  isSelected,
+  onSelectionChange,
 }) => {
-  const navigate = useNavigate();
   const [confirmAction, setConfirmAction] = React.useState<ConfirmAction>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isStopping, setIsStopping] = React.useState(false);
@@ -51,6 +58,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const benchmarkName = getBenchmarkName(job, collectionNameMap);
   const allBenchmarkNames = getAllBenchmarkNames(job);
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
+  const isComparable = isEvaluationJobComparable(job);
   const displayState = isStopping ? 'stopping' : job.status.state;
 
   React.useEffect(() => {
@@ -58,6 +66,61 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       setIsStopping(false);
     }
   }, [isInProgress]);
+
+  // Snapshot latest job data in a ref so the completion-tracking effect can
+  // read current values without being re-triggered by them.
+  const completionTrackingDataRef = React.useRef({
+    evaluationName,
+    benchmarkTypes: JSON.stringify(allBenchmarkNames),
+    createdAt: job.resource.created_at,
+    updatedAt: job.resource.updated_at,
+    errorMessage: job.status.message?.message,
+  });
+  completionTrackingDataRef.current = {
+    evaluationName,
+    benchmarkTypes: JSON.stringify(allBenchmarkNames),
+    createdAt: job.resource.created_at,
+    updatedAt: job.resource.updated_at,
+    errorMessage: job.status.message?.message,
+  };
+
+  const prevStateRef = React.useRef<EvaluationJobState>(job.status.state);
+
+  React.useEffect(() => {
+    const prevState = prevStateRef.current;
+    const currentState = job.status.state;
+    prevStateRef.current = currentState;
+
+    if (IN_PROGRESS_STATES.has(prevState) && !IN_PROGRESS_STATES.has(currentState)) {
+      const {
+        evaluationName: evalName,
+        benchmarkTypes,
+        createdAt,
+        updatedAt,
+        errorMessage,
+      } = completionTrackingDataRef.current;
+
+      const durationMs =
+        createdAt && updatedAt
+          ? new Date(updatedAt).getTime() - new Date(createdAt).getTime()
+          : undefined;
+
+      const runOutcome: 'completed' | 'failed' | 'cancelled' =
+        currentState === 'completed'
+          ? 'completed'
+          : currentState === 'cancelled' || currentState === 'stopped'
+            ? 'cancelled'
+            : 'failed';
+
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_COMPLETED, {
+        evaluationName: evalName,
+        runOutcome,
+        durationMs,
+        benchmarkTypes,
+        error: errorMessage,
+      });
+    }
+  }, [job.status.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfirm = async () => {
     if (!namespace) {
@@ -76,6 +139,12 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         setIsStopping(true);
       }
       await apiCall({});
+      if (!isStop) {
+        fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_DELETED, {
+          evaluationName,
+          previousState: job.status.state,
+        });
+      }
       setConfirmAction(null);
       onActionComplete();
     } catch (e) {
@@ -111,13 +180,23 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   return (
     <>
       <Tr data-testid={`evaluation-row-${rowIndex}`}>
+        <Td dataLabel="Select evaluation" data-testid={`evaluation-select-${rowIndex}`}>
+          <Checkbox
+            id={`evaluation-select-checkbox-${job.resource.id}`}
+            aria-label={`Select ${evaluationName}`}
+            isChecked={isSelected}
+            isDisabled={!isComparable}
+            onChange={(_event, checked) => onSelectionChange(checked)}
+            data-testid={`evaluation-select-checkbox-${rowIndex}`}
+          />
+        </Td>
         <Td dataLabel="Evaluation name" data-testid="evaluation-name">
           {job.status.state === 'completed' ? (
             <Button
               variant="link"
               isInline
               data-testid={`evaluation-link-${rowIndex}`}
-              onClick={() => navigate(`results/${job.resource.id}`)}
+              component={(props) => <Link {...props} to={`results/${job.resource.id}`} />}
             >
               {evaluationName}
             </Button>
@@ -126,7 +205,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status" data-testid="evaluation-status">
-          <EvaluationStatusLabel state={displayState} />
+          <EvaluationStatusLabel state={displayState} message={job.status.message?.message} />
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip
@@ -169,11 +248,11 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           setActionError(null);
         }}
         variant="small"
-        aria-label={confirmAction === 'stop' ? 'Stop evaluation run' : 'Delete evaluation run'}
+        aria-label={confirmAction === 'stop' ? 'Stop evaluation?' : 'Delete evaluation run?'}
         data-testid={`evaluation-${confirmAction}-modal`}
       >
         <ModalHeader
-          title={confirmAction === 'stop' ? 'Stop evaluation run' : 'Delete evaluation run'}
+          title={confirmAction === 'stop' ? 'Stop evaluation?' : 'Delete evaluation run?'}
           titleIconVariant="warning"
         />
         <ModalBody>
@@ -187,19 +266,18 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             />
           )}
           {confirmAction === 'stop'
-            ? 'By stopping this evaluation run you will cancel this evaluation process.'
-            : 'By deleting this evaluation run you will be removing it from the list of evaluation reports.'}
+            ? `The ${evaluationName} evaluation will be stopped, and its progress will be lost.`
+            : `The ${evaluationName} evaluation run and its results will be deleted.`}
         </ModalBody>
         <ModalFooter>
           <Button
-            variant="primary"
-            isDanger
+            variant="danger"
             onClick={handleConfirm}
             isLoading={isSubmitting}
             isDisabled={isSubmitting}
             data-testid={`evaluation-${confirmAction}-confirm`}
           >
-            Confirm
+            {confirmAction === 'stop' ? 'Stop evaluation' : 'Delete'}
           </Button>
           <Button
             variant="link"

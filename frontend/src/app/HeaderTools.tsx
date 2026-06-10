@@ -60,11 +60,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
 
   const handleLogout = () => {
     setUserMenuOpen(false);
-    logout().then(() => {
-      /* eslint-disable-next-line no-console */
-      console.log('logged out');
-      window.location.reload();
-    });
+    logout();
   };
 
   const userMenuItems = [

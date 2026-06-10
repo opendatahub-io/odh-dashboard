@@ -138,10 +138,6 @@ const getImageTag = (image: ImageInfo, imageTagName: string): ImageTag => {
 };
 
 const getMlflowAnnotation = (fastify: KubeFastifyInstance): Record<string, string> => {
-  const isMlflowFlagEnabled = getDashboardConfig().spec.dashboardConfig.mlflow;
-  if (!isMlflowFlagEnabled) {
-    return {};
-  }
   const dscStatus = getClusterStatus(fastify);
   if (dscStatus?.components?.mlflowoperator?.managementState === 'Managed') {
     return { 'opendatahub.io/mlflow-instance': 'mlflow' };

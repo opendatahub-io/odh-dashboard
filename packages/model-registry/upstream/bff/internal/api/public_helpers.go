@@ -7,9 +7,9 @@ import (
 	"log/slog"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/kubeflow/model-registry/ui/bff/internal/config"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/repositories"
+	"github.com/kubeflow/hub/ui/bff/internal/config"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/repositories"
 )
 
 // BadRequest exposes the internal bad request helper for extensions.
@@ -34,6 +34,14 @@ func (app *App) NotFound(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	app.notFoundResponse(w, r)
+}
+
+// Forbidden exposes the internal forbidden helper for extensions.
+func (app *App) Forbidden(w http.ResponseWriter, r *http.Request, message string) {
+	if app == nil {
+		return
+	}
+	app.forbiddenResponse(w, r, message)
 }
 
 // Conflict exposes the internal conflict helper for extensions.

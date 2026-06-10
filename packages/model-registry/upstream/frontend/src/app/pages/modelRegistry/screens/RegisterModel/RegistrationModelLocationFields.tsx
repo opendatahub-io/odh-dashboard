@@ -12,8 +12,8 @@ import {
 } from '@patternfly/react-core';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-import { isAutofillConnectionButtonExtension } from '~/odh/extension-points';
 import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
+import { isAutofillConnectionButtonExtension } from '~/odh/extension-points';
 import PasswordInput from '~/app/shared/components/PasswordInput';
 import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
@@ -122,7 +122,7 @@ const RegistrationModelLocationFields = <D extends RegistrationCommonFormData>({
 
   const autofillConnectionButtonExtensions = useExtensions(isAutofillConnectionButtonExtension);
   const autofillConnectionButtons = autofillConnectionButtonExtensions.map((extension) => (
-    <SplitItem>
+    <SplitItem key={extension.uid}>
       <LazyCodeRefComponent
         component={extension.properties.component}
         props={{

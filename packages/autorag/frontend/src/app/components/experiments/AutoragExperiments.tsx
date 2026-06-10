@@ -9,7 +9,12 @@ import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
+import {
+  shouldShowConfigurePipelineServerEmptyState,
+  shouldShowPipelineServerNotReady,
+} from '~/app/utilities/pipelineServerEmptyState';
 import { autoragConfigurePathname } from '~/app/utilities/routes';
+import { parseErrorStatus } from '~/app/utilities/utils';
 
 export type AutoragExperimentsListStatus = {
   /** True once pipeline definitions and runs have finished loading without a blocking list error. */
@@ -21,14 +26,16 @@ export type AutoragExperimentsListStatus = {
 type AutoragExperimentsProps = {
   /**
    * Fired when list loading / emptiness changes so the host page can tune chrome (e.g. hide the
-   * header "Create RAG optimization run" action while the centered empty state is shown).
+   * header "Create AutoRAG optimization run" action while the centered empty state is shown).
    */
   onExperimentsListStatus?: (status: AutoragExperimentsListStatus) => void;
 };
 
 /**
- * Main experiments list page for AutoRAG. Renders pipeline runs in a paginated table,
- * handles loading/error states (403, 404, 503), and shows empty state when no experiments exist.
+ * **Empty State A (`NoPipelineServer`)** — No managed pipeline server and/or managed AutoRAG
+ * pipeline unavailable (see `shouldShowConfigurePipelineServerEmptyState`). Precedence over B.
+ *
+ * **Empty State B (`EmptyExperimentsState`)** — Server and pipeline load succeeded; zero runs.
  */
 function AutoragExperiments({
   onExperimentsListStatus,
@@ -47,6 +54,7 @@ function AutoragExperiments({
     setPageSize,
     loaded: runsLoaded,
     error: runsError,
+    refresh: refreshRuns,
   } = usePipelineRuns(effectiveNamespace);
 
   const loaded = defsLoaded && runsLoaded;
@@ -104,16 +112,19 @@ function AutoragExperiments({
     };
   }, [effectiveNamespace, hasLoadError, loaded, hasExperiments]);
 
-  const errorCode = loadError ? getGenericErrorCode(loadError) : undefined;
+  const errorCode = loadError
+    ? (getGenericErrorCode(loadError) ??
+      (loadError instanceof Error ? parseErrorStatus(loadError) : undefined))
+    : undefined;
 
   if (loadError) {
     if (errorCode === 403) {
       return <UnauthorizedError accessDomain="AutoRAG experiments" />;
     }
-    if (errorCode === 404) {
+    if (shouldShowConfigurePipelineServerEmptyState(loadError)) {
       return <NoPipelineServer namespace={effectiveNamespace || undefined} />;
     }
-    if (errorCode === 503) {
+    if (shouldShowPipelineServerNotReady(loadError)) {
       return <PipelineServerNotReady namespace={effectiveNamespace || undefined} />;
     }
     return (
@@ -149,6 +160,7 @@ function AutoragExperiments({
       pageSize={pageSize}
       onPageChange={setPage}
       onPerPageChange={setPageSize}
+      onRunActionComplete={refreshRuns}
     />
   );
 }

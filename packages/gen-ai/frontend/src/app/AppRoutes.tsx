@@ -16,8 +16,6 @@ import {
   globAiAssetsAll,
 } from '~/app/utilities/routes';
 
-import '@patternfly/chatbot/dist/css/main.css';
-
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout
   element: React.ReactElement;
@@ -78,6 +76,7 @@ const AppRoutes = (): React.ReactElement => (
       }
     >
       <Route path=":namespace" element={<AIAssetsPage />} />
+      <Route path=":namespace/:tab" element={<AIAssetsPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

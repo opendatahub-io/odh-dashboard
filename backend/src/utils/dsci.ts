@@ -10,7 +10,7 @@ export const getClusterInitialization = async (
   fastify: KubeFastifyInstance,
 ): Promise<DataScienceClusterInitializationKindStatus> => {
   const result: DataScienceClusterInitializationKind | null = await fastify.kube.customObjectsApi
-    .listClusterCustomObject('dscinitialization.opendatahub.io', 'v1', 'dscinitializations')
+    .listClusterCustomObject('dscinitialization.opendatahub.io', 'v2', 'dscinitializations')
     .then((res) => (res.body as DataScienceClusterInitializationList).items[0])
     .catch((e) => {
       fastify.log.error(`Failure to fetch dsci: ${e.response.body}`);
@@ -21,10 +21,5 @@ export const getClusterInitialization = async (
     throw createCustomError('DSCI Unavailable', 'Unable to get status', 404);
   }
 
-  const monitoringNamespace = result.spec.monitoring?.namespace;
-
-  return {
-    ...result.status,
-    ...(monitoringNamespace != null && { monitoring: { namespace: monitoringNamespace } }),
-  };
+  return result.status;
 };

@@ -9,11 +9,17 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
+
+// maxVersionIDs caps the number of version IDs used in KFP filter predicates.
+// ListPipelineVersions returns versions sorted by created_at desc, so keeping
+// only the first N entries retains the most recent versions.
+const maxVersionIDs = 100
 
 // ErrPipelineRunNotFound is returned when a requested pipeline run does not exist
 var ErrPipelineRunNotFound = errors.New("pipeline run not found")
@@ -49,7 +55,7 @@ func NewPipelineRunsRepository() *PipelineRunsRepository {
 func (r *PipelineRunsRepository) GetPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
-	pipelineVersionID string,
+	pipelineID string,
 	pageSize int32,
 	pageToken string,
 	pipelineType string,
@@ -59,8 +65,27 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 		return nil, fmt.Errorf("pipeline server client is nil")
 	}
 
+	// Collect all version IDs for this pipeline so runs from every version are returned.
+	versionIDs, err := collectVersionIDs(client, ctx, pipelineID)
+	if err != nil {
+		return nil, fmt.Errorf("error collecting pipeline version IDs: %w", err)
+	}
+
+	// A pipeline with no versions cannot have runs; return empty rather than
+	// issuing an unscoped ListRuns that would return runs from all pipelines.
+	if len(versionIDs) == 0 {
+		return &models.PipelineRunsData{
+			Runs:          []models.PipelineRun{},
+			TotalSize:     0,
+			NextPageToken: "",
+		}, nil
+	}
+
 	// Build filter (always includes storage_state: AVAILABLE to exclude archived runs)
-	filter := buildFilter(pipelineVersionID)
+	filter, err := buildFilter(versionIDs)
+	if err != nil {
+		return nil, fmt.Errorf("error building filter: %w", err)
+	}
 
 	params := &ps.ListRunsParams{
 		PageSize:  pageSize,
@@ -96,10 +121,44 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	}, nil
 }
 
-// buildFilter creates a Kubeflow Pipelines API filter string for pipeline version ID
-// The filter follows the format: {"predicates": [{"key": "...", "operation": "EQUALS", "string_value": "..."}]}
-// Always filters for storage_state: AVAILABLE to exclude archived runs
-func buildFilter(pipelineVersionID string) string {
+// collectVersionIDs returns all pipeline version IDs for the given pipeline.
+// It first checks the pipeline cache for pre-fetched version IDs before calling the API.
+func collectVersionIDs(client ps.PipelineServerClientInterface, ctx context.Context, pipelineID string) ([]string, error) {
+	if pipelineID == "" {
+		return nil, nil
+	}
+
+	if ids := getCachedVersionIDs(pipelineID); ids != nil {
+		return ids, nil
+	}
+
+	versionsResp, err := client.ListPipelineVersions(ctx, pipelineID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pipeline versions: %w", err)
+	}
+	if versionsResp == nil || len(versionsResp.PipelineVersions) == 0 {
+		return nil, nil
+	}
+	versions := versionsResp.PipelineVersions
+	if len(versions) > maxVersionIDs {
+		versions = versions[:maxVersionIDs]
+	}
+	ids := make([]string, 0, len(versions))
+	for _, v := range versions {
+		if strings.TrimSpace(v.PipelineVersionID) != "" {
+			ids = append(ids, v.PipelineVersionID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return ids, nil
+}
+
+// buildFilter creates a Kubeflow Pipelines API filter string.
+// Always filters for storage_state: AVAILABLE to exclude archived runs.
+// When versionIDs are provided, adds a predicate to scope runs to those versions.
+func buildFilter(versionIDs []string) (string, error) {
 	// Always include storage_state filter to exclude archived runs
 	predicates := []map[string]interface{}{
 		{
@@ -109,12 +168,14 @@ func buildFilter(pipelineVersionID string) string {
 		},
 	}
 
-	// Add pipeline version ID filter if provided
-	if pipelineVersionID != "" {
+	// Scope to the given pipeline versions
+	if len(versionIDs) > 0 {
 		predicates = append(predicates, map[string]interface{}{
-			"key":          "pipeline_version_id",
-			"operation":    "EQUALS",
-			"string_value": pipelineVersionID,
+			"key":       "pipeline_version_id",
+			"operation": "IN",
+			"string_values": map[string]interface{}{
+				"values": versionIDs,
+			},
 		})
 	}
 
@@ -124,17 +185,10 @@ func buildFilter(pipelineVersionID string) string {
 
 	filterJSON, err := json.Marshal(filter)
 	if err != nil {
-		// Log the marshal error with context
-		slog.Error("Failed to marshal filter in buildFilter",
-			"error", err,
-			"pipelineVersionID", pipelineVersionID)
-
-		// Return a minimal safe JSON filter that excludes archived runs
-		// This ensures archived runs are never returned even if marshaling fails
-		return `{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}`
+		return "", fmt.Errorf("failed to marshal filter: %w", err)
 	}
 
-	return string(filterJSON)
+	return string(filterJSON), nil
 }
 
 // toPipelineRun transforms a Kubeflow pipeline run to our stable API format.
@@ -245,6 +299,86 @@ func DeterminePipelineType(taskType string) (string, error) {
 	}
 }
 
+// TerminatePipelineRun terminates an active pipeline run by ID.
+// It sends a terminate request to the pipeline server.
+func (r *PipelineRunsRepository) TerminatePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.TerminateRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to terminate pipeline run: %w", err)
+	}
+
+	return nil
+}
+
+// RetryPipelineRun retries a failed or terminated pipeline run by ID.
+// It sends a retry request to the pipeline server to re-initiate the run.
+func (r *PipelineRunsRepository) RetryPipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.RetryRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to retry pipeline run: %w", err)
+	}
+
+	return nil
+}
+
+// DeletePipelineRun permanently deletes a pipeline run by ID.
+func (r *PipelineRunsRepository) DeletePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.DeleteRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to delete pipeline run: %w", err)
+	}
+
+	return nil
+}
+
 // ValidateCreateAutoMLRunRequest checks that all required fields are present,
 // rejects fields not in the pipeline type's schema, and validates enum/range values.
 //
@@ -307,12 +441,28 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	}
 
 	// Validate optional field ranges
-	if req.TopN != nil && *req.TopN <= 0 {
-		return NewValidationError("invalid top_n: must be a positive integer")
+	if req.TopN != nil {
+		if *req.TopN < constants.MinTopN {
+			return NewValidationError(fmt.Sprintf("invalid top_n: must be at least %d", constants.MinTopN))
+		}
+
+		// Enforce max top_n based on pipeline type
+		maxTopN := constants.MaxTopNTabular
+		if pipelineType == constants.PipelineTypeTimeSeries {
+			maxTopN = constants.MaxTopNTimeSeries
+		}
+
+		if *req.TopN > maxTopN {
+			return NewValidationError(fmt.Sprintf("invalid top_n: maximum value for %s pipeline is %d", pipelineType, maxTopN))
+		}
 	}
 
 	if req.PredictionLength != nil && *req.PredictionLength <= 0 {
 		return NewValidationError("invalid prediction_length: must be a positive integer")
+	}
+
+	if utf8.RuneCountInString(req.DisplayName) > 250 {
+		return NewValidationError("display_name must be at most 250 characters")
 	}
 
 	return nil
@@ -429,18 +579,31 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 func (r *PipelineRunsRepository) GetAllPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
-	pipelineVersionID string,
+	pipelineID string,
 	pipelineType string,
 ) ([]models.PipelineRun, error) {
 	if client == nil {
 		return nil, fmt.Errorf("pipeline server client is nil")
 	}
 
+	versionIDs, err := collectVersionIDs(client, ctx, pipelineID)
+	if err != nil {
+		return nil, fmt.Errorf("error collecting pipeline version IDs: %w", err)
+	}
+
+	if len(versionIDs) == 0 {
+		return nil, nil
+	}
+
+	filter, err := buildFilter(versionIDs)
+	if err != nil {
+		return nil, fmt.Errorf("error building filter: %w", err)
+	}
+
 	var allRuns []models.PipelineRun
 	pageToken := ""
 
 	for {
-		filter := buildFilter(pipelineVersionID)
 		params := &ps.ListRunsParams{
 			PageSize:  100, // max page size to minimize round trips
 			PageToken: pageToken,

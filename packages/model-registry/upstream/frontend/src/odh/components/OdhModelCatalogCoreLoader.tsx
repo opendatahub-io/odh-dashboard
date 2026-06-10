@@ -11,7 +11,7 @@ const ADMIN_EMPTY_STATE_TITLE = 'Configure model sources';
 /**
  * ODH-specific override of ModelCatalogCoreLoader that includes admin user detection
  * for showing the appropriate action link in empty states:
- * - Admin users see "Go to AI catalog sources" link
+ * - Admin users see "Go to Model catalog settings" link
  * - Non-admin users see "Who's my administrator" link
  */
 const OdhModelCatalogCoreLoader: React.FC = () => {
@@ -27,15 +27,13 @@ const OdhModelCatalogCoreLoader: React.FC = () => {
   };
 
   const catalogSettingsTitle =
-    catalogSettingsUrlExtensions.length > 0
-      ? catalogSettingsUrlExtensions[0].properties.title
-      : '';
+    catalogSettingsUrlExtensions.length > 0 ? catalogSettingsUrlExtensions[0].properties.title : '';
 
   const adminEmptyStateDescription = (
     <>
       There are no models to display. To add models to the catalog, add model sources to the{' '}
-      <b>{catalogSettingsTitle}</b> page. If you've already added sources, ensure that filters are
-      not restricting all models from appearing in the catalog.
+      <b>{catalogSettingsTitle}</b> page. If you&apos;ve already added sources, ensure that filters
+      are not restricting all models from appearing in the catalog.
     </>
   );
 

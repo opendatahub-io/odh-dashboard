@@ -22,6 +22,8 @@ import {
 } from './types';
 import { ModelServingSize } from './pages/modelServing/screens/types';
 
+export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
   PROJECT_SHARING = 'opendatahub.io/project-sharing',
@@ -499,6 +501,7 @@ export enum DeploymentMode {
 export type InferenceServiceAnnotations = DisplayNameAnnotations &
   Partial<{
     'security.opendatahub.io/enable-auth': string;
+    'security.opendatahub.io/auth-proxy-type': 'kube-rbac-proxy' | 'oauth-proxy' | string;
     'serving.kserve.io/deploymentMode': DeploymentMode;
     'serving.knative.openshift.io/enablePassthrough': 'true';
     'sidecar.istio.io/inject': 'true';
@@ -529,6 +532,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
       annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
+      timeout?: number;
       deploymentStrategy?: {
         type: 'RollingUpdate' | 'Recreate';
       };
@@ -726,6 +730,15 @@ export enum DSPipelineAPIServerStore {
   DATABASE = 'database',
 }
 
+export enum DSPAMlflowIntegrationMode {
+  DISABLED = 'DISABLED',
+  AUTODETECT = 'AUTODETECT',
+}
+
+export type DSPipelineMlflowKind = {
+  integrationMode?: DSPAMlflowIntegrationMode;
+};
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -793,6 +806,7 @@ export type DSPipelineKind = K8sResourceCommon & {
     viewerCRD?: Partial<{
       image: string;
     }>;
+    mlflow?: DSPipelineMlflowKind;
   };
   status?: {
     conditions?: K8sCondition[];
@@ -808,13 +822,18 @@ type ClusterQueueFlavorUsage = {
   }[];
 };
 
-// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-ClusterQueue
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-ClusterQueue
 export type ClusterQueueKind = K8sResourceCommon & {
-  apiVersion: 'kueue.x-k8s.io/v1beta1';
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
   kind: 'ClusterQueue';
   spec: {
-    admissionChecks?: string[];
-    cohort?: string;
+    admissionChecksStrategy?: {
+      admissionChecks: {
+        name: string;
+        onFlavors?: string[];
+      }[];
+    };
+    cohortName?: string;
     flavorFungibility?: {
       whenCanBorrow: 'Borrow' | 'TryNextFlavor';
       whenCanPreempt: 'Preempt' | 'TryNextFlavor';
@@ -876,16 +895,16 @@ type LocalQueueFlavorUsage = {
   }[];
 };
 
-// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-LocalQueue
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-LocalQueue
 export type LocalQueueKind = K8sResourceCommon & {
-  apiVersion: 'kueue.x-k8s.io/v1beta1';
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
   kind: 'LocalQueue';
   spec: {
     clusterQueue: string;
   };
   status?: {
     flavorsReservation?: LocalQueueFlavorUsage[];
-    flavorUsage?: LocalQueueFlavorUsage[];
+    flavorsUsage?: LocalQueueFlavorUsage[];
     pendingWorkloads?: number;
     reservingWorkloads?: number;
     admittedWorkloads?: number;
@@ -1070,18 +1089,19 @@ export enum WorkloadOwnerType {
   Job = 'Job',
 }
 
-// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-Workload
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-Workload
 export type WorkloadKind = K8sResourceCommon & {
-  apiVersion: 'kueue.x-k8s.io/v1beta1';
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
   kind: 'Workload';
   spec: {
     active?: boolean;
     podSets: WorkloadPodSet[];
     priority?: number;
-    priorityClassName?: string;
-    priorityClassSource?:
-      | 'kueue.x-k8s.io/workloadpriorityclass'
-      | 'scheduling.k8s.io/priorityclass';
+    priorityClassRef?: {
+      group: string;
+      kind: string;
+      name: string;
+    };
     queueName?: string;
   };
   status?: {
@@ -1150,7 +1170,7 @@ export type AccessReviewResourceAttributes = {
   /** Plural resource name, omit for all */
   resource?: string;
   /** TODO: Not a full list, could be expanded, "" means none */
-  subresource?: '' | 'spec' | 'status';
+  subresource?: '' | 'api' | 'spec' | 'status';
   /** Must provide the verb you are trying to do; '*' means all verbs */
   verb: '*' | K8sVerb;
   /** A resource name, omit when not interested in a specific resource */
@@ -1298,19 +1318,27 @@ export type DashboardCommonConfig = {
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
+  guardrails?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  maasAuthPolicies?: boolean;
   aiAssetCustomEndpoints?: boolean;
-  mlflow?: boolean;
+  mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  toolCalling?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  llmGatewayField?: boolean;
   promptManagement?: boolean;
+  nimWizard?: boolean;
+  mySubscriptions?: boolean;
+  agentOps?: boolean;
+  roleManagement?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
@@ -1539,10 +1567,6 @@ export type DataScienceClusterInitializationKindStatus = {
   };
   components?: Record<string, never>;
   phase?: string;
-  // Added by the backend to identify the monitoring namespace
-  monitoring?: {
-    namespace?: string;
-  };
 };
 
 export type ModelRegistryKind = K8sResourceCommon & {

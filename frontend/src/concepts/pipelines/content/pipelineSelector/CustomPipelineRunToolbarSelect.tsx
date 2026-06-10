@@ -144,7 +144,7 @@ const InnerCustomPipelineRunToolbarSelect = <T extends PipelineVersionKF | Exper
           style={{ minWidth: '300px', maxWidth: '500px' }}
           onClick={() => setOpen(!isOpen)}
           isExpanded={isOpen}
-          isDisabled={!filteredResources.length}
+          isDisabled={!resources.length}
           isFullWidth
           data-testid={toggleTestId}
         >
@@ -153,16 +153,22 @@ const InnerCustomPipelineRunToolbarSelect = <T extends PipelineVersionKF | Exper
       }
       menu={menu}
       menuRef={menuRef}
-      onOpenChange={(open) => setOpen(open)}
+      onOpenChange={(open) => {
+        setOpen(open);
+        if (!open) {
+          doSetSearchDebounced.cancel();
+          setSearch('');
+        }
+      }}
     />
   );
 };
 
 export const ExperimentFilterSelector: React.FC<FilterSelectorProps<ExperimentKF>> = (props) => (
   <InnerCustomPipelineRunToolbarSelect
-    resourceName="experiments"
-    toggleTestId="experiment-toggle-button"
-    tableTestId="experiment-selector-table-list"
+    resourceName="run groups"
+    toggleTestId="run-group-toggle-button"
+    tableTestId="run-group-selector-table-list"
     columns={experimentSelectorColumns}
     {...props}
   />

@@ -248,33 +248,19 @@ export const listPipelineArchivedRuns: ListPipelinesRunAPI = (hostPath) => (opts
 };
 
 export const listPipelineRecurringRuns: ListPipelineRecurringRunsAPI =
-  (hostPath) => (opts, params) => {
-    let predicates = params?.filter?.predicates ?? [];
-    if (params?.pipelineVersionId) {
-      predicates = [
-        ...predicates,
-        {
-          key: 'pipeline_version_id',
-          operation: PipelinesFilterOp.EQUALS,
-          // eslint-disable-next-line camelcase
-          string_value: params.pipelineVersionId,
-        },
-      ];
-    }
-
-    return handlePipelineFailures(
+  (hostPath) => (opts, params) =>
+    handlePipelineFailures(
       proxyGET(
         hostPath,
         '/apis/v2beta1/recurringruns',
         {
-          ...pipelineParamsToQuery({ ...params, filter: { predicates } }),
+          ...pipelineParamsToQuery(params),
           // eslint-disable-next-line camelcase
           experiment_id: params?.experimentId,
         },
         opts,
       ),
     );
-  };
 
 export const listPipelineVersions: ListPipelineVersionsAPI =
   (hostPath) => (opts, pipelineId, params) =>

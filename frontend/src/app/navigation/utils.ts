@@ -1,12 +1,19 @@
-import { isNavSectionExtension, NavExtension } from '@odh-dashboard/plugin-core/extension-points';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import {
+  isNavSectionExtension,
+  NavItemProperties,
+} from '@odh-dashboard/plugin-core/extension-points';
 
 const DEFAULT_GROUP = '5_default';
 
+/** Any extension that has NavItemProperties (group, section, id, title, etc.) */
+type NavLikeExtension = Extension<string, NavItemProperties>;
+
 /** Lexicographic comparison function for navigation items sorting. */
-export const compareNavItemGroups = <T extends NavExtension>(a: T, b: T): number =>
+export const compareNavItemGroups = <T extends NavLikeExtension>(a: T, b: T): number =>
   (a.properties.group || DEFAULT_GROUP).localeCompare(b.properties.group || DEFAULT_GROUP);
 
-export const getTopLevelExtensions = <E extends NavExtension>(extensions: E[]): E[] => {
+export const getTopLevelExtensions = <E extends NavLikeExtension>(extensions: E[]): E[] => {
   // Get all section IDs that exist
   const existingSectionIds = new Set(
     extensions.filter((e) => isNavSectionExtension(e)).map((e) => e.properties.id),

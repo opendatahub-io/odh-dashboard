@@ -11,6 +11,10 @@ import { useChatbotConfigStore, ChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/
 
 jest.mock('~/app/hooks/useFetchVectorStores');
 jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
 jest.mock('~/app/Chatbot/store', () => ({
   ...jest.requireActual('~/app/Chatbot/store'),
   useChatbotConfigStore: jest.fn(),
@@ -34,6 +38,9 @@ const createMockStore = (configOverrides = {}) => {
     guardrailsEnabled: false,
     mcpToolSelections: {},
     isRagEnabled: false,
+    knowledgeMode: 'inline' as const,
+    selectedVectorStoreId: null as string | null,
+    variableValues: {} as Record<string, string>,
     ...configOverrides,
   };
 
@@ -167,7 +174,6 @@ describe('ViewCodeModal', () => {
           model: 'test-model',
           instructions: 'You are a helpful assistant.',
           stream: false,
-          files: [{ file: 'document.pdf', purpose: 'assistants' }],
         }),
       );
     });
@@ -200,6 +206,7 @@ describe('ViewCodeModal', () => {
 
   it('shows error when vector stores are not loaded', async () => {
     mockUseFetchVectorStores.mockReturnValue([[], false, undefined, jest.fn()]);
+    setupMockStore({ isRagEnabled: true, knowledgeMode: 'inline', selectedVectorStoreId: 'vs-1' });
 
     render(
       <TestWrapper>
@@ -421,7 +428,7 @@ describe('ViewCodeModal', () => {
 
   it('includes file_search tool when RAG is enabled and files are present', async () => {
     // Setup store with RAG enabled
-    setupMockStore({ isRagEnabled: true });
+    setupMockStore({ isRagEnabled: true, knowledgeMode: 'inline', selectedVectorStoreId: 'vs-1' });
 
     render(
       <TestWrapper>
@@ -450,21 +457,126 @@ describe('ViewCodeModal', () => {
     );
 
     await waitFor(() => {
-      expect(mockExportCode).toHaveBeenCalledWith(
-        expect.objectContaining({
-          files: [{ file: 'document.pdf', purpose: 'assistants' }],
-        }),
-      );
+      expect(mockExportCode).toHaveBeenCalled();
     });
 
-    // Verify that tools was not included in the request
+    // Files and tools are not sent when RAG is disabled
     const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.files).toBeUndefined();
     expect(callArg.tools).toBeUndefined();
   });
 
+  it('substitutes template variables in instructions before exporting', async () => {
+    setupMockStore({
+      systemInstruction: 'You are a {{role}} assistant for {{topic}}.',
+      variableValues: { role: 'coding', topic: 'TypeScript' },
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          instructions: 'You are a coding assistant for TypeScript.',
+        }),
+      );
+    });
+  });
+
+  it('replaces unfilled template variables with empty string in exported code', async () => {
+    setupMockStore({
+      systemInstruction: 'You are a {{role}} for {{company}}.',
+      variableValues: { role: 'assistant' },
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          instructions: 'You are a assistant for .',
+        }),
+      );
+    });
+  });
+
+  it('sends prompt_variable_values when an active prompt has variable values', async () => {
+    setupMockStore({
+      systemInstruction: 'Review {{language}} code for {{name}}.',
+      variableValues: { language: 'TypeScript', name: 'Alice' },
+      activePrompt: { name: 'Code_reviewer', version: 2 },
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: { name: 'Code_reviewer', version: 2 },
+          prompt_variable_values: { language: 'TypeScript', name: 'Alice' },
+        }),
+      );
+    });
+  });
+
+  it('does not send prompt_variable_values when variable values are empty', async () => {
+    setupMockStore({
+      systemInstruction: 'You are a helpful assistant.',
+      variableValues: {},
+      activePrompt: { name: 'Basic_prompt', version: 1 },
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalled();
+    });
+
+    const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.prompt).toEqual({ name: 'Basic_prompt', version: 1 });
+    expect(callArg.prompt_variable_values).toBeUndefined();
+  });
+
+  it('does not send prompt_variable_values without an active prompt', async () => {
+    setupMockStore({
+      systemInstruction: 'You are a {{role}} assistant.',
+      variableValues: { role: 'coding' },
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalled();
+    });
+
+    const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.prompt).toBeUndefined();
+    expect(callArg.prompt_variable_values).toBeUndefined();
+  });
+
   it('does not include tools when RAG is enabled but no files are present', async () => {
-    // Setup store with RAG enabled
-    setupMockStore({ isRagEnabled: true });
+    // Setup store with RAG enabled, inline mode
+    setupMockStore({ isRagEnabled: true, knowledgeMode: 'inline', selectedVectorStoreId: 'vs-1' });
 
     render(
       <TestWrapper>
@@ -473,15 +585,12 @@ describe('ViewCodeModal', () => {
     );
 
     await waitFor(() => {
-      expect(mockExportCode).toHaveBeenCalledWith(
-        expect.objectContaining({
-          files: [],
-        }),
-      );
+      expect(mockExportCode).toHaveBeenCalled();
     });
 
-    // Verify that tools was not included in the request
+    // file_search tool is still sent (vector_store_ids needed), but no files to upload
     const callArg = mockExportCode.mock.calls[0][0];
-    expect(callArg.tools).toBeUndefined();
+    expect(callArg.files).toBeUndefined();
+    expect(callArg.tools).toEqual([{ type: 'file_search', vector_store_ids: ['vs-1'] }]);
   });
 });

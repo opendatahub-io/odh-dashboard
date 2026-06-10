@@ -12,6 +12,7 @@ import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mo
 import {
   DatabaseType,
   FormFieldSelector,
+  MAX_MODEL_REGISTRY_NAME_LENGTH,
   modelRegistrySettings,
 } from '../../../pages/modelRegistrySettings';
 import { pageNotfound } from '../../../pages/pageNotFound';
@@ -309,10 +310,33 @@ it('Model registry settings should not be available for non product admins', () 
 
 it('Model registry settings should be available for product admins with capabilities', () => {
   setupMocksForMRSettingAccess({});
-  // check page is accessible
   modelRegistrySettings.visit(true);
-  // check nav item exists
   modelRegistrySettings.findNavItem().should('exist');
+});
+
+it('Model registry settings should not be available when model registry is disabled', () => {
+  asProductAdminUser();
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableModelRegistry: true,
+    }),
+  );
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: {
+          managementState: 'Managed',
+          registriesNamespace: MODEL_REGISTRIES_NAMESPACE,
+        },
+      },
+    }),
+  );
+  cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
+  modelRegistrySettings.visit(false);
+  pageNotfound.findPage().should('exist');
+  modelRegistrySettings.findNavItem().should('not.exist');
 });
 
 it('Shows empty state when there are no registries', () => {
@@ -334,6 +358,60 @@ describe('CreateModal', () => {
     modelRegistrySettings.clearFormFields();
     modelRegistrySettings.findSubmitButton().should('be.disabled');
     modelRegistrySettings.shouldHaveAllErrors();
+  });
+
+  it('should enforce maxLength on the name input field', () => {
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings.findCreateButton().click();
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.NAME)
+      .should('have.attr', 'maxLength', String(MAX_MODEL_REGISTRY_NAME_LENGTH));
+  });
+
+  it('should disable submit when resource name exceeds the character limit', () => {
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings.findCreateButton().click();
+    modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
+
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.NAME)
+      .type('a'.repeat(MAX_MODEL_REGISTRY_NAME_LENGTH));
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+
+    modelRegistrySettings.k8sNameDescription.findResourceEditLink().click();
+    modelRegistrySettings.k8sNameDescription
+      .findResourceNameInput()
+      .clear()
+      .type('a'.repeat(MAX_MODEL_REGISTRY_NAME_LENGTH + 1));
+    modelRegistrySettings.findSubmitButton().should('be.disabled');
+  });
+
+  it('should show character count warning when name approaches the limit', () => {
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings.findCreateButton().click();
+
+    const nearLimitName = 'a'.repeat(MAX_MODEL_REGISTRY_NAME_LENGTH - 9);
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type(nearLimitName);
+    cy.contains(`Cannot exceed ${MAX_MODEL_REGISTRY_NAME_LENGTH} characters`).should('be.visible');
+    cy.contains('remaining').should('be.visible');
+  });
+
+  it('should allow creation with name at exactly the character limit using default database', () => {
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings.findCreateButton().click();
+    modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
+
+    const exactName = 'a'.repeat(MAX_MODEL_REGISTRY_NAME_LENGTH);
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type(exactName);
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body.modelRegistry.metadata.name).to.equal(exactName);
+      expect(interception.request.body.modelRegistry.metadata.name).to.have.length.at.most(
+        MAX_MODEL_REGISTRY_NAME_LENGTH,
+      );
+    });
   });
 
   it('should enable submit button if fields are valid', () => {
@@ -1035,7 +1113,24 @@ describe('EditModelRegistry', () => {
     modelRegistrySettings.findSubmitButton().click();
 
     cy.wait('@updateModelRegistry').then((interception) => {
-      expect(interception.request.body).to.containSubset({});
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            annotations: {
+              'openshift.io/display-name': 'test-2',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'model-registry-db',
+              port: 5432,
+              database: 'model-registry',
+              username: 'mlmduser',
+            },
+          },
+        },
+        databasePassword: 'test-password',
+      });
     });
   });
 
@@ -1430,6 +1525,6 @@ describe('DeleteModelRegistryModal', () => {
 it('redirect from v2 to v3 route', () => {
   setupMocksForMRSettingAccess({});
   cy.visitWithLogin('/modelRegistrySettings');
-  cy.findByTestId('app-page-title').contains('AI registry settings');
+  cy.findByTestId('app-page-title').contains('Model registry settings');
   cy.url().should('include', '/settings/model-resources-operations/model-registry');
 });

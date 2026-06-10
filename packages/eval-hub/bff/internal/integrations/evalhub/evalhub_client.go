@@ -249,6 +249,7 @@ type ProviderResource struct {
 // Fields match the official eval-hub API spec exactly.
 type ProviderBenchmark struct {
 	ID           string                         `json:"id"`
+	URL          string                         `json:"url,omitempty"`
 	Name         string                         `json:"name"`
 	Description  string                         `json:"description,omitempty"`
 	Category     string                         `json:"category,omitempty"`
@@ -296,6 +297,7 @@ type CollectionResource struct {
 // CollectionBenchmark represents a BenchmarkConfig entry within a collection.
 type CollectionBenchmark struct {
 	ID           string                  `json:"id"`
+	URL          string                  `json:"url,omitempty"`
 	ProviderID   string                  `json:"provider_id,omitempty"`
 	Weight       float64                 `json:"weight,omitempty"`
 	PrimaryScore *CollectionPrimaryScore `json:"primary_score,omitempty"`

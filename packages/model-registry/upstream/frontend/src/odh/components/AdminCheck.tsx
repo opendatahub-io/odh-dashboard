@@ -12,12 +12,9 @@ type AdminCheckProps = {
  * if the current user can create model registries (admin permission).
  */
 const AdminCheck: React.FC<AdminCheckProps> = ({ children }) => {
-  const [isAdmin, isAdminLoaded] = useAccessAllowed(
-    verbModelAccess('create', ModelRegistryModel),
-  );
+  const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', ModelRegistryModel));
 
   return children(isAdmin, isAdminLoaded);
 };
 
 export default AdminCheck;
-

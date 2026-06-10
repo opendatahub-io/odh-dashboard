@@ -2,7 +2,7 @@ import React from 'react';
 import { getModelRegistryCR } from '#~/api';
 import { ModelRegistryKind } from '#~/k8sTypes';
 import useModelRegistryEnabled from '#~/concepts/modelRegistry/useModelRegistryEnabled';
-import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
@@ -11,10 +11,10 @@ import useFetchState, {
 
 type State = ModelRegistryKind | null;
 
-export const isModelRegistryCRStatusAvailable = (cr: ModelRegistryKind): boolean =>
+const isModelRegistryCRStatusAvailable = (cr: ModelRegistryKind): boolean =>
   !!cr.status?.conditions?.find((c) => c.type === 'Available' && c.status === 'True');
 
-export const isModelRegistryAvailable = ([state, loaded]: FetchState<State>): boolean =>
+const isModelRegistryAvailable = ([state, loaded]: FetchState<State>): boolean =>
   loaded && !!state && isModelRegistryCRStatusAvailable(state);
 
 export const useModelRegistryNamespaceCR = (
@@ -58,21 +58,4 @@ export const useModelRegistryNamespaceCR = (
   }, [hasStatus, resourceLoaded]);
 
   return state;
-};
-
-export const hasServerTimedOut = (
-  [state, loaded]: FetchState<State>,
-  isCRReady: boolean,
-): boolean => {
-  if (!state || !loaded || isCRReady) {
-    return false;
-  }
-
-  const createTime = state.metadata.creationTimestamp;
-  if (!createTime) {
-    return false;
-  }
-
-  // If we are here, and 5 mins have past, we are having issues
-  return Date.now() - new Date(createTime).getTime() > SERVER_TIMEOUT;
 };

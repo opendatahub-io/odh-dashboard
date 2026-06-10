@@ -10,3 +10,4 @@ existingImage: '- name: main'
 replaceImage: "- name: main\n        image: quay.io/pierdipi/vllm-cpu:latest"
 connectionNameSuffix: '-connection'
 yamlEditorModelName: 'facebook-opt-125m-single'
+legacyServingRuntime: 'vLLM CPU .x86. ServingRuntime for KServe'

@@ -148,7 +148,7 @@ class FeatureDataSetDetails extends Contextual<HTMLElement> {
   }
 
   findFeaturesTable() {
-    return cy.findByTestId('features-table');
+    return cy.findByTestId('data-set-features-table');
   }
 
   findFeaturesTab() {

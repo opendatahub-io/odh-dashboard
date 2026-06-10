@@ -17,8 +17,8 @@ jest.mock('~/app/topology/PipelineTopology', () => ({
   ),
 }));
 
-jest.mock('~/app/topology/useAutoMLTaskTopology', () => ({
-  useAutoMLTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
+jest.mock('~/app/topology/useAutomlTaskTopology', () => ({
+  useAutomlTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
 }));
 
 jest.mock('~/app/utilities/utils', () => ({
@@ -38,15 +38,12 @@ const mockPipelineRun: PipelineRun = {
   created_at: '2025-06-01T00:00:00Z',
 };
 
-const createMockModel = (displayName: string): AutomlModel => ({
-  display_name: displayName,
-  model_config: {
-    eval_metric: 'accuracy',
-  },
+const createMockModel = (modelName: string): AutomlModel => ({
+  name: modelName,
   location: {
-    model_directory: `/models/${displayName}`,
-    predictor: `/models/${displayName}/predictor.pkl`,
-    notebook: `/models/${displayName}/notebook.ipynb`,
+    model_directory: `/models/${modelName}`,
+    predictor: `/models/${modelName}/predictor`,
+    notebook: `/models/${modelName}/notebook.ipynb`,
   },
   metrics: {
     test_data: { accuracy: 0.95 },
@@ -98,7 +95,7 @@ describe('AutomlResults', () => {
     expect(topology).toHaveClass('automl-topology-container');
   });
 
-  it('should pass nodes from useAutoMLTaskTopology to PipelineTopology', () => {
+  it('should pass nodes from useAutomlTaskTopology to PipelineTopology', () => {
     renderWithContext(mockPipelineRun);
     const topology = screen.getByTestId('pipeline-topology');
     expect(topology).toHaveAttribute('data-node-count', '2');
@@ -112,7 +109,7 @@ describe('AutomlResults', () => {
   describe('notebook download error handling', () => {
     it('should display error alert when fetchS3File fails', async () => {
       const testModel = createMockModel('Test Model');
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       fetchS3FileMock.mockRejectedValueOnce(new Error('S3 connection failed'));
 
@@ -139,7 +136,7 @@ describe('AutomlResults', () => {
 
     it('should display error when namespace is missing', async () => {
       const testModel = createMockModel('Test Model');
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       // Render without namespace in the route
       render(
@@ -184,11 +181,11 @@ describe('AutomlResults', () => {
         ...createMockModel('Test Model'),
         location: {
           model_directory: '/models/Test Model',
-          predictor: '/models/Test Model/predictor.pkl',
+          predictor: '/models/Test Model/predictor',
           notebook: '', // Missing notebook location
         },
       };
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       renderWithContext(mockPipelineRun, models);
 
@@ -212,7 +209,7 @@ describe('AutomlResults', () => {
 
     it('should allow user to dismiss error alert', async () => {
       const testModel = createMockModel('Test Model');
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       fetchS3FileMock.mockRejectedValueOnce(new Error('Network error'));
 
@@ -244,7 +241,7 @@ describe('AutomlResults', () => {
 
     it('should clear previous error when new download is attempted', async () => {
       const testModel = createMockModel('Test Model');
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       // First download fails
       fetchS3FileMock.mockRejectedValueOnce(new Error('First error'));
@@ -284,7 +281,7 @@ describe('AutomlResults', () => {
 
     it('should successfully download notebook when all data is valid', async () => {
       const testModel = createMockModel('Test Model');
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       const mockBlob = new Blob(['notebook content'], { type: 'application/x-ipynb+json' });
       fetchS3FileMock.mockResolvedValueOnce(mockBlob);
@@ -313,6 +310,46 @@ describe('AutomlResults', () => {
 
       // No error should be shown
       expect(screen.queryByText('Notebook download failed')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('run state label', () => {
+    it('should show state label when run state is CANCELED', () => {
+      const canceledRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'CANCELED',
+      };
+      renderWithContext(canceledRun);
+
+      expect(screen.getByTestId('run-status-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-status-label')).toHaveTextContent('CANCELED');
+    });
+
+    it('should show state label when run state is FAILED', () => {
+      const failedRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'FAILED',
+      };
+      renderWithContext(failedRun);
+
+      expect(screen.getByTestId('run-status-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-status-label')).toHaveTextContent('FAILED');
+    });
+
+    it('should not show state label when run state is SUCCEEDED', () => {
+      renderWithContext(mockPipelineRun);
+
+      expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
+    });
+
+    it('should not show state label when run state is RUNNING', () => {
+      const runningRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'RUNNING',
+      };
+      renderWithContext(runningRun);
+
+      expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
     });
   });
 });

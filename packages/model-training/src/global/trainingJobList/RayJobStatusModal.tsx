@@ -15,6 +15,7 @@ type RayJobStatusModalProps = {
   onPauseClick?: () => void;
   onResumeClick?: () => void;
   isToggling?: boolean;
+  isPauseDisabled?: boolean;
 };
 
 const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
@@ -25,6 +26,7 @@ const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
   onPauseClick,
   onResumeClick,
   isToggling = false,
+  isPauseDisabled = false,
 }) => {
   const status = jobStatus ?? getRayJobStatusSync(job);
   const { isPaused, isComplete, isDeleting, canPauseResume } = getStatusFlags(status);
@@ -75,7 +77,7 @@ const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
       onClick: (isPaused ? onResumeClick : onPauseClick) ?? onClose,
       variant: 'primary',
       dataTestId: isPaused ? 'resume-job-button' : 'pause-job-button',
-      isDisabled: isToggling,
+      isDisabled: isToggling || isPauseDisabled,
       isLoading: isToggling,
     });
   }

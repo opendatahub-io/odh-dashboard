@@ -214,7 +214,6 @@ describe('AutomlConnectionModal', () => {
 
     const connectionName = screen.getByRole('textbox', { name: 'Connection name' });
     const uri = screen.getByRole('textbox', { name: 'uri 2' });
-    const numeric = screen.getByRole('spinbutton', { name: 'Input' });
     const addButton = screen.getByRole('button', { name: 'Add connection' });
 
     await user.type(connectionName, 'name entry');
@@ -228,14 +227,6 @@ describe('AutomlConnectionModal', () => {
     await user.clear(uri);
     await user.type(uri, 'http://localhost');
     await user.click(connectionName); // Trigger blur by clicking elsewhere
-    expect(addButton).toBeEnabled();
-
-    await user.clear(numeric);
-    await user.type(numeric, '-10');
-    expect(addButton).toBeDisabled();
-
-    await user.clear(numeric);
-    await user.type(numeric, '2');
     expect(addButton).toBeEnabled();
 
     await user.click(addButton);

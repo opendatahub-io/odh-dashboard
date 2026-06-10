@@ -79,7 +79,7 @@ const initIntercepts = ({
       k8sName: 'test-workload-finished',
       ownerKind: WorkloadOwnerType.Job,
       ownerName: 'test-workload-finished-job',
-      mockStatus: WorkloadStatusType.Succeeded,
+      mockStatus: WorkloadStatusType.Complete,
       podSets: [mockPodset, mockPodset],
     }),
     mockWorkloadK8sResource({
@@ -93,14 +93,14 @@ const initIntercepts = ({
       k8sName: 'test-workload-spinning-down-both',
       ownerKind: WorkloadOwnerType.RayCluster,
       ownerName: 'test-workload-spinning-down-both-rc',
-      mockStatus: WorkloadStatusType.Succeeded,
+      mockStatus: WorkloadStatusType.Complete,
       podSets: [mockPodset, mockPodset],
     }),
     mockWorkloadK8sResource({
       k8sName: 'test-workload-spinning-down-cpu-only',
       ownerKind: WorkloadOwnerType.RayCluster,
       ownerName: 'test-workload-spinning-down-cpu-only-rc',
-      mockStatus: WorkloadStatusType.Succeeded,
+      mockStatus: WorkloadStatusType.Complete,
       podSets: [mockPodset, mockPodset],
     }),
   ],
@@ -238,10 +238,11 @@ describe('Distributed Workload Metrics root page', () => {
   it('Changing the project and navigating between tabs or to the root of the page retains the new project', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
-    cy.url().should('include', '/workload-status/test-project');
+    cy.url().should('match', /\/workload-status\/test-project(?!\w|-)/);
 
     globalDistributedWorkloads.projectDropdown.openAndSelectItem('Test Project 2', true);
     cy.url().should('include', '/workload-status/test-project-2');
+    globalDistributedWorkloads.findProjectSelect().should('contain.text', 'Test Project 2');
 
     cy.findByLabelText('Project metrics tab').click();
     cy.url().should('include', '/project-metrics/test-project-2');
@@ -401,7 +402,7 @@ describe('Workload Status tab', () => {
 
     const statusOverview = globalDistributedWorkloads.findStatusOverviewCard();
     statusOverview.should('exist');
-    statusOverview.findByText('Succeeded: 3').should('exist');
+    statusOverview.findByText('Complete: 3').should('exist');
   });
 
   it('Should render the status overview chart with pending fallback statuses', () => {

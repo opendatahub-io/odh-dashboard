@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
-import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
-import { Form } from '@patternfly/react-core/dist/esm/components/Form';
+import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
+import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import {
   Modal,
   ModalVariant,
@@ -14,23 +15,22 @@ import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/
 import { Select } from '@patternfly/react-core/dist/esm/components/Select';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
-import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import { SecretsSecretListItem } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
-import SecretKeyValuePairInput from './SecretKeyValuePairInput';
-
-interface SecretKeyValuePair {
-  key: string;
-  value: string;
-}
+import useSecretContents, { SecretKeyValuePair } from '~/app/hooks/useSecretContents';
+import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 
 interface SecretsCreateModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onSecretCreated?: (secretName: string) => void;
   existingSecretNames?: string[];
+  /** When provided, the modal operates in edit mode */
+  secretToEdit?: SecretsSecretListItem;
+  onSecretUpdated?: (secretName: string) => void;
 }
 
 const EMPTY_KEY_VALUE_PAIR: SecretKeyValuePair = { key: '', value: '' };
@@ -47,32 +47,68 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   setIsOpen,
   onSecretCreated,
   existingSecretNames = [],
+  secretToEdit,
+  onSecretUpdated,
 }) => {
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceContext();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
+
+  const isEditMode = !!secretToEdit;
 
   const [secretName, setSecretName] = useState('');
   const [keyValuePairs, setKeyValuePairs] = useState<SecretKeyValuePair[]>([EMPTY_KEY_VALUE_PAIR]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [immutable, setImmutable] = useState(false);
+
+  const [secretContents, isSecretContentsLoaded, secretContentsError] = useSecretContents({
+    isOpen,
+    secretName: secretToEdit?.name,
+  });
+
+  // Set form fields when editing a secret
+  useEffect(() => {
+    if (isOpen && secretToEdit) {
+      setSecretName(secretToEdit.name);
+      setImmutable(secretToEdit.immutable);
+    }
+  }, [isOpen, secretToEdit]);
+
+  // Sync fetched secret contents to form state
+  useEffect(() => {
+    if (isSecretContentsLoaded && secretContents.length > 0) {
+      setKeyValuePairs(secretContents);
+    }
+  }, [isSecretContentsLoaded, secretContents]);
+
+  // Set error from secret contents fetch
+  useEffect(() => {
+    if (secretContentsError) {
+      setError('Failed to load secret contents');
+    }
+  }, [secretContentsError]);
 
   const validateSecretName = useCallback(
     (name: string): string | null => {
       if (!name) {
         return 'Secret name is required';
       }
-      if (name.length > 253) {
-        return 'Secret name must be at most 253 characters';
+      if (name.length < 2) {
+        return 'Secret name must be at least 2 characters';
+      }
+      if (name.length > 63) {
+        return 'Secret name must be at most 63 characters';
       }
       if (!SECRET_NAME_REGEX.test(name)) {
         return 'Secret name must consist of lower case alphanumeric characters, hyphens, or dots, and must start and end with an alphanumeric character';
       }
-      if (existingSecretNames.includes(name)) {
+      // Skip duplicate check in edit mode (the secret's own name is expected to exist)
+      if (!isEditMode && existingSecretNames.includes(name)) {
         return 'A secret with this name is already attached to this workspace';
       }
       return null;
     },
-    [existingSecretNames],
+    [existingSecretNames, isEditMode],
   );
 
   const validateKey = useCallback((key: string): string | null => {
@@ -110,24 +146,19 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
     return null;
   }, [secretName, keyValuePairs, validateSecretName, validateKey]);
 
-  const updateArrayValue = useCallback(
-    (index: number, updates: Partial<SecretKeyValuePair>) => {
-      const updated = [...keyValuePairs];
-      updated[index] = { ...updated[index], ...updates };
-      setKeyValuePairs(updated);
-    },
-    [keyValuePairs],
-  );
+  const resetForm = useCallback(() => {
+    setSecretName('');
+    setKeyValuePairs([EMPTY_KEY_VALUE_PAIR]);
+    setImmutable(false);
+    setError(null);
+  }, []);
 
-  const removeArrayItem = useCallback(
-    (index: number) => {
-      setKeyValuePairs(keyValuePairs.filter((_, i) => i !== index));
-    },
-    [keyValuePairs],
-  );
-
-  const handleAddKeyValuePair = useCallback(() => {
-    setKeyValuePairs([...keyValuePairs, EMPTY_KEY_VALUE_PAIR]);
+  const buildContentsPayload = useCallback(() => {
+    const contents: Record<string, { base64?: string }> = {};
+    keyValuePairs.forEach((pair) => {
+      contents[pair.key] = { base64: btoa(pair.value) };
+    });
+    return contents;
   }, [keyValuePairs]);
 
   const handleSubmit = useCallback(async () => {
@@ -141,71 +172,81 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
     setError(null);
 
     try {
-      // Convert key-value pairs to the API format with base64 encoding
-      const contents: Record<string, { base64?: string }> = {};
-      keyValuePairs.forEach((pair) => {
-        // Base64 encode the value
-        const base64Value = btoa(pair.value);
-        contents[pair.key] = { base64: base64Value };
-      });
+      const contents = buildContentsPayload();
+      const currentSecretName = secretName;
 
-      const payload = {
-        data: {
-          name: secretName,
+      if (isEditMode) {
+        await api.secrets.updateSecret(selectedNamespace, secretName, {
           type: 'Opaque',
-          immutable: false,
+          immutable,
           contents,
-        },
-      };
-
-      await api.secrets.createSecret(selectedNamespace, payload);
-
-      // Reset form
-      const createdSecretName = secretName;
-      setSecretName('');
-      setKeyValuePairs([EMPTY_KEY_VALUE_PAIR]);
-      setIsOpen(false);
-
-      // Notify parent with the created secret name
-      if (onSecretCreated) {
-        onSecretCreated(createdSecretName);
+        });
+        resetForm();
+        setIsOpen(false);
+        onSecretUpdated?.(currentSecretName);
+      } else {
+        await api.secrets.createSecret(selectedNamespace, {
+          data: {
+            name: secretName,
+            type: 'Opaque',
+            immutable,
+            contents,
+          },
+        });
+        resetForm();
+        setIsOpen(false);
+        onSecretCreated?.(currentSecretName);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create secret. Please try again.');
+      const action = isEditMode ? 'update' : 'create';
+      setError(
+        err instanceof Error ? err.message : `Failed to ${action} secret. Please try again.`,
+      );
     } finally {
       setIsSubmitting(false);
     }
   }, [
     validateForm,
-    keyValuePairs,
+    buildContentsPayload,
+    secretName,
+    isEditMode,
     api.secrets,
     selectedNamespace,
-    secretName,
+    immutable,
+    resetForm,
     setIsOpen,
+    onSecretUpdated,
     onSecretCreated,
   ]);
 
   const handleClose = useCallback(() => {
-    setSecretName('');
-    setKeyValuePairs([EMPTY_KEY_VALUE_PAIR]);
-    setError(null);
+    resetForm();
     setIsOpen(false);
-  }, [setIsOpen]);
+  }, [resetForm, setIsOpen]);
 
   const { isMUITheme } = useThemeContext();
 
+  const modalTitle = isEditMode ? 'Edit Secret' : 'Attach New Secret';
+  const submitButtonText = isEditMode ? 'Save' : 'Attach';
+
   return (
     <Modal
-      variant={ModalVariant.medium}
+      variant={ModalVariant.large}
       isOpen={isOpen}
       onClose={handleClose}
       aria-labelledby="create-secret-modal-title"
+      data-testid="secrets-modal"
     >
-      <ModalHeader title="Create Secret" labelId="create-secret-modal-title" />
+      <ModalHeader title={modalTitle} labelId="create-secret-modal-title" />
       <ModalBody>
         {error && (
-          <Alert variant={AlertVariant.danger} isInline title="Error">
+          <Alert variant={AlertVariant.danger} isInline title="Error" data-testid="error-alert">
             {error}
+          </Alert>
+        )}
+        {isEditMode && !isSecretContentsLoaded && !secretContentsError && (
+          <Alert variant={AlertVariant.info} isInline title="Loading">
+            Loading secret data...
           </Alert>
         )}
         <Form>
@@ -214,10 +255,12 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
             isRequired
             fieldId="secret-name"
             helperTextNode={
-              <HelperText>
-                Must start and end with a letter or number. Valid characters include lowercase
-                letters, numbers, and hyphens (-).
-              </HelperText>
+              !isEditMode && (
+                <HelperText>
+                  Must start and end with a letter or number. Valid characters include lowercase
+                  letters, numbers, and hyphens (-).
+                </HelperText>
+              )
             }
           >
             <TextInput
@@ -227,8 +270,43 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
               value={secretName}
               onChange={(_event, value) => setSecretName(value)}
               aria-label="Secret name"
+              isDisabled={isEditMode}
             />
           </ThemeAwareFormGroupWrapper>
+
+          {/* Show permissions info when editing */}
+          {isEditMode && (
+            <LabelGroup categoryName="Permissions">
+              <Label color={secretToEdit.canMount ? 'blue' : 'grey'} data-testid="can-mount-label">
+                {secretToEdit.canMount ? 'Can mount' : 'Cannot mount'}
+              </Label>
+              <Label
+                color={secretToEdit.canUpdate ? 'blue' : 'grey'}
+                data-testid="can-update-label"
+              >
+                {secretToEdit.canUpdate ? 'Can update' : 'Cannot update'}
+              </Label>
+            </LabelGroup>
+          )}
+
+          {/* Immutable toggle */}
+          <FormGroup fieldId="secret-immutable">
+            <Switch
+              id="secret-immutable"
+              data-testid="secret-immutable-switch"
+              label={
+                <div>
+                  <div>Immutable</div>
+                  <HelperText>
+                    When enabled, the secret cannot be modified after creation.
+                  </HelperText>
+                </div>
+              }
+              isChecked={immutable}
+              onChange={(_event, checked) => setImmutable(checked)}
+              isDisabled={isEditMode && secretToEdit.immutable}
+            />
+          </FormGroup>
           <ThemeAwareFormGroupWrapper label="Secret type" isRequired fieldId="secret-type">
             <Select
               selected="Opaque"
@@ -255,46 +333,42 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
               )}
             />
           </ThemeAwareFormGroupWrapper>
-          {keyValuePairs.map(({ key, value }, i) => (
-            <React.Fragment key={i}>
-              <SecretKeyValuePairInput
-                index={i}
-                keyValue={key}
-                valueValue={value}
-                onKeyChange={(updatedKey) => updateArrayValue(i, { key: updatedKey })}
-                onValueChange={(updatedValue) => updateArrayValue(i, { value: updatedValue })}
-                onRemove={() => removeArrayItem(i)}
-                canRemove={keyValuePairs.length > 1}
-              />
-              {i !== keyValuePairs.length - 1 && (
-                <Divider className={isMUITheme ? 'pf-v6-u-mt-md' : ''} />
-              )}
-            </React.Fragment>
-          ))}
-          <Button
-            variant="link"
-            data-testid="another-key-value-pair-button"
-            isInline
-            icon={<PlusCircleIcon />}
-            className={isMUITheme ? 'pf-v6-u-mt-md' : ''}
-            iconPosition="left"
-            onClick={handleAddKeyValuePair}
-          >
-            Add another key / value pair
-          </Button>
+          <EditableRowsTable
+            rows={keyValuePairs}
+            setRows={setKeyValuePairs}
+            title="Secret data"
+            description="Key/value pairs stored in the secret."
+            buttonLabel="key-value pair"
+            valueInputType="password"
+            addButtonTestId="another-key-value-pair-button"
+            isExpanded
+            minRows={1}
+          />
         </Form>
       </ModalBody>
       <ModalFooter>
         <Button
-          key="create"
+          key="submit"
           variant="primary"
           onClick={handleSubmit}
           isLoading={isSubmitting}
-          isDisabled={isSubmitting}
+          isDisabled={
+            isSubmitting ||
+            (isEditMode && !isSecretContentsLoaded) ||
+            (isEditMode && secretToEdit.immutable) ||
+            (isEditMode && !secretToEdit.canUpdate)
+          }
+          data-testid="secret-modal-submit-button"
         >
-          Create
+          {submitButtonText}
         </Button>
-        <Button key="cancel" variant="link" onClick={handleClose} isDisabled={isSubmitting}>
+        <Button
+          key="cancel"
+          variant="link"
+          onClick={handleClose}
+          isDisabled={isSubmitting}
+          data-testid="secret-modal-cancel-button"
+        >
           Cancel
         </Button>
       </ModalFooter>

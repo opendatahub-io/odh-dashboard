@@ -20,8 +20,9 @@ import * as _ from 'lodash-es';
 import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
-import { isTokenAuthField } from '../types';
-import { useWizardFieldFromExtension } from '../dynamicFormUtils';
+import { isTokenAuthFieldOverride } from '../types';
+import { useWizardFieldOverrides } from '../dynamicFormUtils';
+import { showAuthWarning } from '../hooks/useAuthWarning';
 
 // Schema
 const tokenSchema = z.object({
@@ -56,13 +57,13 @@ export const useTokenAuthenticationField = (
   modelServer?: ModelServerSelectField,
   canCreateRoleBindings?: boolean,
 ): TokenAuthenticationFieldHook => {
-  const tokenAuthExtension = useWizardFieldFromExtension(isTokenAuthField, {
+  const tokenAuthOverrides = useWizardFieldOverrides(isTokenAuthFieldOverride, {
     modelType: { data: modelType?.data },
     modelServer: { data: modelServer?.data },
   });
   const shouldAutoCheck = React.useMemo(() => {
-    return tokenAuthExtension?.initialValue ?? false;
-  }, [tokenAuthExtension]);
+    return tokenAuthOverrides.some((override) => override.initialValue);
+  }, [tokenAuthOverrides]);
 
   const initialData = React.useMemo(() => {
     if (shouldAutoCheck && !existingData && canCreateRoleBindings === true) {
@@ -191,12 +192,18 @@ type TokenAuthenticationFieldProps = {
   tokens?: TokenAuthenticationFieldData;
   onChange?: TokenAuthenticationFieldHook['setData'];
   allowCreate?: boolean;
+  shouldAutoCheck: boolean;
+  isExternalRouteVisible: boolean;
+  externalRouteData?: boolean;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
   tokens = [],
   onChange,
   allowCreate = false,
+  shouldAutoCheck,
+  isExternalRouteVisible,
+  externalRouteData,
 }) => {
   const isDisabled = !allowCreate;
   const createNewToken = React.useCallback(() => {
@@ -281,6 +288,23 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           </div>
         </StackItem>
       )}
+      {showAuthWarning({
+        shouldAutoCheckTokens: shouldAutoCheck,
+        isExternalRouteVisible,
+        externalRouteData,
+        tokenAuthData: tokens,
+      }) &&
+        !isDisabled && (
+          <StackItem>
+            <Alert
+              id="no-auth-alert"
+              data-testid="no-auth-alert"
+              variant="warning"
+              isInline
+              title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
+            />
+          </StackItem>
+        )}
     </Stack>
   );
 };

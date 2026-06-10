@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
@@ -13,25 +12,26 @@ import (
 
 // storageTypeRequiredKeys defines the required keys for each supported storage type.
 // A secret must have ALL required keys for a storage type to be considered a match.
-// Key matching is case-insensitive.
+// Key matching is case-sensitive; keys must be uppercase.
 var storageTypeRequiredKeys = map[string][]string{
 	"s3": {
-		"aws_access_key_id",
-		"aws_default_region",
-		"aws_secret_access_key",
-		"aws_s3_endpoint",
+		"AWS_ACCESS_KEY_ID",
+		// Region is currently not enforced by common connections ui so we need to handle it as an additionalRequiredKeys in frontend
+		// "AWS_DEFAULT_REGION",
+		"AWS_SECRET_ACCESS_KEY",
+		"AWS_S3_ENDPOINT",
 	},
 	// Future storage types can be added here:
-	// "azure": {"azure_storage_account", "azure_storage_key"},
-	// "gcp": {"gcp_service_account_key"},
+	// "azure": {"AZURE_STORAGE_ACCOUNT", "AZURE_STORAGE_KEY"},
+	// "gcp": {"GCP_SERVICE_ACCOUNT_KEY"},
 }
 
-// llsTypeRequiredKeys defines the required keys for LLS (Llama Stack) secrets.
-// A secret must have ALL required keys to be considered an LLS secret.
-// Key matching is case-insensitive.
-var llsTypeRequiredKeys = []string{
-	"llama_stack_client_api_key",
-	"llama_stack_client_base_url",
+// ogxTypeRequiredKeys defines the required keys for OGX (Open GenAI Stack) secrets.
+// A secret must have ALL required keys to be considered an OGX secret.
+// Key matching is case-sensitive; keys must be uppercase.
+var ogxTypeRequiredKeys = []string{
+	"OGX_CLIENT_API_KEY",
+	"OGX_CLIENT_BASE_URL",
 }
 
 type SecretRepository struct{}
@@ -44,7 +44,7 @@ func NewSecretRepository() *SecretRepository {
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
-//   - "lls": filter for secrets matching LLS (Llama Stack) requirements
+//   - "ogx": filter for secrets matching OGX (Open GenAI Stack) requirements
 func (r *SecretRepository) GetFilteredSecrets(
 	client k8s.KubernetesClientInterface,
 	ctx context.Context,
@@ -67,9 +67,9 @@ func (r *SecretRepository) GetFilteredSecrets(
 	case "storage":
 		// Filter secrets that match any configured storage type
 		filteredSecrets = filterStorageSecrets(secrets)
-	case "lls":
-		// Filter secrets that match LLS requirements
-		filteredSecrets = filterLLSSecrets(secrets)
+	case "ogx":
+		// Filter secrets that match OGX requirements
+		filteredSecrets = filterOGXSecrets(secrets)
 	default:
 		// This should be caught by handler validation, but handle it here as well
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
@@ -88,13 +88,13 @@ func (r *SecretRepository) GetFilteredSecrets(
 		} else {
 			// Fallback to key-based type detection
 			switch secretType {
-			case "lls":
-				responseType = "lls"
+			case "ogx":
+				responseType = "ogx"
 			case "storage":
 				// For storage type, determine which storage type it matches
 				responseType = getStorageType(secret)
 			default:
-				// For all secrets (no type filter), check if it matches a storage or LLS type
+				// For all secrets (no type filter), check if it matches a storage or OGX type
 				responseType = getSecretType(secret)
 			}
 		}
@@ -133,39 +133,39 @@ func filterStorageSecrets(secrets []corev1.Secret) []corev1.Secret {
 	return filtered
 }
 
-// filterLLSSecrets filters secrets that match LLS (Llama Stack) requirements.
-// A secret matches if it contains ALL required LLS keys (case-insensitive).
-func filterLLSSecrets(secrets []corev1.Secret) []corev1.Secret {
+// filterOGXSecrets filters secrets that match OGX (Open GenAI Stack) requirements.
+// A secret matches if it contains ALL required OGX keys (case-sensitive, uppercase).
+func filterOGXSecrets(secrets []corev1.Secret) []corev1.Secret {
 	var filtered []corev1.Secret
 	for _, secret := range secrets {
-		if isLLSSecret(secret) {
+		if isOGXSecret(secret) {
 			filtered = append(filtered, secret)
 		}
 	}
 	return filtered
 }
 
-// matchesAnyStorageType checks if a secret contains all required keys for any storage type (case-insensitive).
+// matchesAnyStorageType checks if a secret contains all required keys for any storage type (case-sensitive).
 func matchesAnyStorageType(secret corev1.Secret) bool {
 	for _, requiredKeys := range storageTypeRequiredKeys {
-		if hasAllKeysCaseInsensitive(secret, requiredKeys) {
+		if hasAllKeys(secret, requiredKeys) {
 			return true
 		}
 	}
 	return false
 }
 
-// isLLSSecret checks if a secret contains all required LLS keys (case-insensitive).
-func isLLSSecret(secret corev1.Secret) bool {
-	return hasAllKeysCaseInsensitive(secret, llsTypeRequiredKeys)
+// isOGXSecret checks if a secret contains all required OGX keys (case-sensitive, uppercase).
+func isOGXSecret(secret corev1.Secret) bool {
+	return hasAllKeys(secret, ogxTypeRequiredKeys)
 }
 
 // getStorageType returns the storage type name for a secret, or empty string if it doesn't match any.
 // Returns the first matching storage type if the secret matches multiple types.
-// Key matching is case-insensitive.
+// Key matching is case-sensitive; keys must be uppercase.
 func getStorageType(secret corev1.Secret) string {
 	for storageType, requiredKeys := range storageTypeRequiredKeys {
-		if hasAllKeysCaseInsensitive(secret, requiredKeys) {
+		if hasAllKeys(secret, requiredKeys) {
 			return storageType
 		}
 	}
@@ -173,30 +173,30 @@ func getStorageType(secret corev1.Secret) string {
 }
 
 // getSecretType determines the type of a secret by checking all known secret type patterns.
-// Returns the first matching type, prioritizing LLS over storage types.
+// Returns the first matching type, prioritizing OGX over storage types.
 func getSecretType(secret corev1.Secret) string {
-	// Check LLS first
-	if isLLSSecret(secret) {
-		return "lls"
+	// Check OGX first
+	if isOGXSecret(secret) {
+		return "ogx"
 	}
 	// Then check storage types
 	return getStorageType(secret)
 }
 
-// hasAllKeysCaseInsensitive checks if a secret contains all specified keys in its data (case-insensitive).
-func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
-	// Create a map of lowercase keys from the secret
+// hasAllKeys checks if a secret contains all specified keys in its data (case-sensitive).
+func hasAllKeys(secret corev1.Secret, keys []string) bool {
+	// Create a map of keys from the secret
 	secretKeys := make(map[string]bool)
 	for key := range secret.Data {
-		secretKeys[strings.ToLower(key)] = true
+		secretKeys[key] = true
 	}
 	for key := range secret.StringData {
-		secretKeys[strings.ToLower(key)] = true
+		secretKeys[key] = true
 	}
 
-	// Check if all required keys exist (case-insensitive)
+	// Check if all required keys exist (case-sensitive)
 	for _, requiredKey := range keys {
-		if !secretKeys[strings.ToLower(requiredKey)] {
+		if !secretKeys[requiredKey] {
 			return false
 		}
 	}
@@ -207,7 +207,7 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 // and builds a map where:
 // - Keys in the allowed list have their actual values
 // - All other keys have the value "[REDACTED]"
-// Key matching for allowed keys is case-insensitive.
+// Allowed-key matching is case-sensitive (via constants.IsAllowedSecretKey).
 func buildAvailableKeysMap(secret corev1.Secret) map[string]string {
 	result := make(map[string]string)
 
