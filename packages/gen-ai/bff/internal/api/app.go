@@ -411,7 +411,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackUploadFileHandler))))
 	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteFileHandler))))
-	apiRouter.POST(constants.VisionFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackVisionFileUploadHandler))))
+	apiRouter.POST(constants.MediaFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackMediaFileUploadHandler))))
+
+	// Audio Transcription (ASR)
+	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler))))
 
 	// Vector Store Files (LlamaStack)
 	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoreFilesHandler))))

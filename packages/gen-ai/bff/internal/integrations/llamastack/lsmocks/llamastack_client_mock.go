@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -625,6 +626,16 @@ func (m *MockLlamaStackClient) GetFile(ctx context.Context, fileID string) (*ope
 		Filename:  "unknown_file.txt",
 		Purpose:   "assistants",
 	}, nil
+}
+
+// GetFileContent returns mock audio content for testing
+func (m *MockLlamaStackClient) GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error) {
+	if fileID == "" {
+		return nil, "", fmt.Errorf("fileID is required")
+	}
+	// WAV header magic bytes for mock audio content
+	wavHeader := []byte("RIFF\x00\x00\x00\x00WAVEfmt ")
+	return io.NopCloser(strings.NewReader(string(wavHeader))), "audio/wav", nil
 }
 
 // DeleteFile returns success for mock deletion

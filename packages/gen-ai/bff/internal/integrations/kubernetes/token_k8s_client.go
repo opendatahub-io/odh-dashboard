@@ -894,6 +894,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			Status:          kc.extractStatusFromLLMInferenceService(&llmSvc),
 			DisplayName:     kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
+			Modality:        llmSvc.Labels[constants.ModalityLabelKey],
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -941,6 +942,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			Status:          kc.extractStatusFromInferenceService(&isvc),
 			DisplayName:     kc.extractDisplayNameFromInferenceService(&isvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
+			Modality:        isvc.Labels[constants.ModalityLabelKey],
 		}
 		aaModels = append(aaModels, aaModel)
 	}
