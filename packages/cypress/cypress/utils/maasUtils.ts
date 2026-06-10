@@ -232,6 +232,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
         display_name: 'Granite 3 8B Instruct',
         source: 'Internal',
         namespace: 'maas-models',
+        description:
+          'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 100000, window: '24h' }],
       },
@@ -241,6 +243,7 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
         display_name: 'Flan T5 Small',
         source: 'External',
         namespace: 'maas-models',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 200000, window: '24h' }],
       },
@@ -262,6 +265,7 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
         display_name: 'Flan T5 Small',
         source: 'External',
         namespace: 'maas-models',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 10000, window: '24h' }],
       },

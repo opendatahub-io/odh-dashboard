@@ -1,4 +1,4 @@
-// +groupName=dashboard.opendatahub.io
+// +groupName=components.platform.opendatahub.io
 
 package v1alpha1
 
@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	GroupVersion = schema.GroupVersion{Group: "dashboard.opendatahub.io", Version: "v1alpha1"}
+	GroupVersion = schema.GroupVersion{Group: "components.platform.opendatahub.io", Version: "v1alpha1"}
 
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
 

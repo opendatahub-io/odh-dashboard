@@ -67,7 +67,7 @@ var DefaultPipelineVersion = getEnvOrDefault("PIPELINE_VERSION_SUFFIX", constant
 type PipelineDefinition struct {
 	Name        string // Exact pipeline display name for discovery and creation
 	PipelineDir string // Directory name containing pipeline.yaml (matches upstream repo structure)
-	Version     string // Release version suffix for the version name (e.g. "3.5.0-ea.1")
+	Version     string // Release version suffix for the version name (e.g. "3.5.0-ea.2")
 }
 
 // pipelineCacheEntry wraps a map of discovered pipelines with expiration and LRU tracking.

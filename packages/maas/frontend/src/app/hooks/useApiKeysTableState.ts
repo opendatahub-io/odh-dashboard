@@ -32,6 +32,7 @@ export type UseApiKeysTableStateReturn = {
   onUsernameChange: (value: string) => void;
   onStatusToggle: (status: APIKeyStatus) => void;
   onStatusClear: (status: APIKeyStatus) => void;
+  onSubscriptionChange: (subscription: string) => void;
   onSort: (field: ApiKeySortField, direction: SortDirection) => void;
   onSetPage: (newPage: number) => void;
   onPerPageSelect: (newPerPage: number, newPage: number) => void;
@@ -52,6 +53,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
       filters: {
         ...(filterData.username && { username: filterData.username }),
         ...(filterData.statuses.length > 0 && { status: filterData.statuses }),
+        ...(filterData.subscription && { subscription: filterData.subscription }),
       },
       sort: { by: sortField, order: sortDirection },
       pagination: { limit: perPage, offset: (page - 1) * perPage },
@@ -94,6 +96,18 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     setIsFetching(true);
   }, []);
 
+  const onSubscriptionChange = React.useCallback(
+    (subscription: string) => {
+      if (filterData.subscription === subscription) {
+        return;
+      }
+      setFilterData((prev) => ({ ...prev, subscription }));
+      setPage(1);
+      setIsFetching(true);
+    },
+    [filterData.subscription],
+  );
+
   const onSort = React.useCallback((field: ApiKeySortField, direction: SortDirection) => {
     setSortField(field);
     setSortDirection(direction);
@@ -135,6 +149,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     onUsernameChange,
     onStatusToggle,
     onStatusClear,
+    onSubscriptionChange,
     onSort,
     onSetPage,
     onPerPageSelect,

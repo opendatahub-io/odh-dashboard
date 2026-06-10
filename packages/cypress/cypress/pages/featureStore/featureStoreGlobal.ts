@@ -305,6 +305,10 @@ class FeatureStoreGlobal {
     return cy.findByTestId('global-search-tooltip');
   }
 
+  findConnectedWorkbenchesLink() {
+    return cy.findByTestId('connected-workbenches-link');
+  }
+
   findPaginationToggle() {
     return cy.get('#table-pagination-top-toggle');
   }

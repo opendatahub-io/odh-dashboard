@@ -43,6 +43,23 @@ export const getLabels = <T extends ModelRegistryCustomProperties>(customPropert
     return prop.metadataType === ModelRegistryMetadataType.STRING && prop.string_value === '';
   });
 
+// Extracts display labels from custom properties whose values (not keys) should be shown.
+// For each key in the list, if the property exists and has a non-empty string value,
+// that value is returned as a label.
+export const getValueLabels = (
+  customProperties: ModelRegistryCustomProperties,
+  keys: string[],
+): string[] =>
+  keys
+    .filter((key) => key in customProperties)
+    .flatMap((key) => {
+      const prop = customProperties[key];
+      if (prop.metadataType === ModelRegistryMetadataType.STRING && prop.string_value) {
+        return [prop.string_value];
+      }
+      return [];
+    });
+
 // Returns the customProperties object with an updated set of labels (non-empty string_value) without affecting other properties.
 export const mergeUpdatedLabels = (
   customProperties: ModelRegistryCustomProperties,
@@ -248,6 +265,11 @@ export const filterRegisteredModels = (
 
     return !ownerFilter || rm.owner?.toLowerCase().includes(ownerFilter);
   });
+};
+
+export const getTextValue = (v: string | string[]): string | undefined => {
+  const s = typeof v === 'string' ? v : v.filter(Boolean).join(' ');
+  return s || undefined;
 };
 
 export const getServerAddress = (resource: ModelRegistry): string => resource.serverAddress || '';

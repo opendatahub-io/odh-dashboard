@@ -35,6 +35,19 @@ func getKubeconfig(inClusterFn func() (*clientRest.Config, error)) (*clientRest.
 	return inCluster, nil
 }
 
+// GetCurrentContext returns the active kubeconfig context name.
+// Returns "inClusterContext" when running inside a cluster (no kubeconfig file).
+func GetCurrentContext() string {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	rawConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		loadingRules, &clientcmd.ConfigOverrides{},
+	).RawConfig()
+	if err != nil || rawConfig.CurrentContext == "" {
+		return "inClusterContext"
+	}
+	return rawConfig.CurrentContext
+}
+
 // BuildScheme creates a runtime scheme with Kubernetes types registered.
 func BuildScheme() (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()

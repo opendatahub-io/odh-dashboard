@@ -6,6 +6,7 @@ import type {
   DeployedModelServingDetails,
   ModelServingExcludeDeploymentExtension,
   ModelServingPlatformWatchDeploymentsExtension,
+  ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
 import type {
   AssembleModelResourceExtension,
@@ -146,6 +147,7 @@ const extensions: (
   | ModelServingPlatformWatchDeploymentsExtension<NIMDeployment>
   | DeployedModelServingDetails<NIMDeployment>
   | ModelServingExcludeDeploymentExtension
+  | ModelServingStartStopAction<NIMDeployment>
   | ModelServingDeploy<NIMDeployment>
   | AssembleModelResourceExtension<NIMDeployment>
   | DeploymentWizardFieldOverrideExtension
@@ -250,6 +252,17 @@ const extensions: (
   nimPVCApplyExtension,
   nimPVCExtractorExtension,
   nimPVCDeployFunctionsExtension,
+  {
+    type: 'model-serving.deployments-table/start-stop-action',
+    properties: {
+      platform: NIM_ID,
+      patchDeploymentStoppedStatus: () =>
+        import('./src/api/deployments/status').then((m) => m.patchDeploymentStoppedStatus),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
 ];
 
 export default extensions;

@@ -191,6 +191,7 @@ paths:
       security:
         - Bearer: []
       parameters:
+        - $ref: '#/components/parameters/namespace'
         - name: limit
           in: query
           schema:
@@ -206,11 +207,6 @@ paths:
             default: 0
             minimum: 0
           description: Offset for pagination
-        - name: search
-          in: query
-          schema:
-            type: string
-          description: Filter benchmarks by name (case-insensitive substring match)
       responses:
         '200':
           $ref: '#/components/responses/ProvidersResponse'
@@ -330,6 +326,116 @@ paths:
       description: >-
         Cancels a running evaluation job (soft cancel) or permanently
         deletes it (hard delete) depending on the hard_delete parameter.
+
+  # =============================================================================
+  # INFERENCE SERVICES
+  # =============================================================================
+
+  /eval-hub/api/v1/inferenceservices:
+    summary: List InferenceService resources
+    description: >-
+      Lists InferenceService resources (serving.kserve.io/v1beta1) in the
+      user's namespace. Uses the caller's bearer token for RBAC enforcement.
+      Degrades gracefully if the CRD is not installed or the user lacks access.
+    get:
+      tags:
+        - InferenceServices
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          description: List of InferenceService resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InferenceServicesResponse'
+              example:
+                items:
+                  - name: 'llama-32-1b-instruct'
+                    url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+                    ready: true
+                  - name: 'mistral-7b'
+                    url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
+                    ready: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listInferenceServices
+      summary: List InferenceServices
+      description: >-
+        Returns deployed InferenceService models in the namespace. Returns
+        an empty list with a warning field if the CRD is not installed or
+        the user lacks access.
+
+  # =============================================================================
+  # CONNECTION VERIFICATION
+  # =============================================================================
+
+  /eval-hub/api/v1/evaluations/verify-connection:
+    summary: Verify endpoint connectivity
+    description: >-
+      Validates that an endpoint URL is reachable and responds correctly
+      before committing to a full evaluation run. Supports model, agent,
+      and pre-recorded data source types.
+    post:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyConnectionRequest'
+            example:
+              source_type: 'model'
+              base_url: 'https://api.example.com/v1'
+              model_id: 'llama-3.2-1b-instruct'
+      responses:
+        '200':
+          description: Connection verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VerifyConnectionResponse'
+              example:
+                data:
+                  success: true
+                  message: 'Connection successful'
+                  response_time_ms: 120
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '408':
+          description: Connection timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Endpoint unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      operationId: verifyConnection
+      summary: Verify Endpoint Connection
+      description: >-
+        Probes the given endpoint to verify connectivity. For model/agent
+        sources, sends a test request to /chat/completions. For pre-recorded
+        sources, performs a HEAD request to the dataset URL.
 
 components:
   # =============================================================================
@@ -731,6 +837,116 @@ components:
       properties:
         oci:
           $ref: '#/components/schemas/OciExport'
+
+    # -------------------------------------------------------------------------
+    # InferenceService schemas
+    # -------------------------------------------------------------------------
+
+    InferenceServiceItem:
+      type: object
+      required:
+        - name
+        - ready
+      properties:
+        name:
+          type: string
+          description: Name of the InferenceService resource
+          example: 'llama-32-1b-instruct'
+        url:
+          type: string
+          description: Serving URL if the service is ready
+          example: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+        ready:
+          type: boolean
+          description: Whether the InferenceService is in a Ready state
+          example: true
+
+    InferenceServicesResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InferenceServiceItem'
+        warning:
+          type: string
+          description: >-
+            Warning message when the listing degrades gracefully (e.g. CRD
+            not installed, user lacks access). Present only when the BFF
+            could not list resources but did not hard-fail.
+      example:
+        items:
+          - name: 'llama-32-1b-instruct'
+            url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+            ready: true
+          - name: 'mistral-7b'
+            url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
+            ready: true
+
+    # -------------------------------------------------------------------------
+    # Connection verification schemas
+    # -------------------------------------------------------------------------
+
+    VerifyConnectionRequest:
+      type: object
+      required:
+        - source_type
+        - base_url
+      properties:
+        source_type:
+          type: string
+          enum:
+            - model
+            - agent
+            - prerecorded
+          description: Type of evaluation source being verified
+          example: 'model'
+        base_url:
+          type: string
+          format: uri
+          description: Endpoint URL to verify
+          example: 'https://api.example.com/v1'
+        secret_name:
+          type: string
+          description: >-
+            Name of a Kubernetes Secret (in the request namespace) whose "api-key"
+            data field contains the authentication credential. Mutually exclusive
+            with secret_value; secret_name takes precedence when both are provided.
+          example: 'my-api-key-secret'
+        secret_value:
+          type: string
+          description: >-
+            Literal API key or bearer token for authentication (used for pre-recorded
+            sources or when the key is not stored in a Kubernetes Secret).
+        model_id:
+          type: string
+          description: Model identifier to include in the test request (model/agent sources)
+          example: 'llama-3.2-1b-instruct'
+
+    VerifyConnectionResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Whether the connection probe succeeded
+          example: true
+        message:
+          type: string
+          description: Human-readable result summary
+          example: 'Connection successful'
+        response_time_ms:
+          type: integer
+          description: Round-trip time in milliseconds (present on success)
+          example: 142
+
+    # -------------------------------------------------------------------------
+    # Evaluation job schemas
+    # -------------------------------------------------------------------------
 
     CreateEvaluationJobRequest:
       type: object

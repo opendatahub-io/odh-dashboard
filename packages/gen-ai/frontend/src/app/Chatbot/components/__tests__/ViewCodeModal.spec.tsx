@@ -40,6 +40,7 @@ const createMockStore = (configOverrides = {}) => {
     isRagEnabled: false,
     knowledgeMode: 'inline' as const,
     selectedVectorStoreId: null as string | null,
+    variableValues: {} as Record<string, string>,
     ...configOverrides,
   };
 
@@ -463,6 +464,114 @@ describe('ViewCodeModal', () => {
     const callArg = mockExportCode.mock.calls[0][0];
     expect(callArg.files).toBeUndefined();
     expect(callArg.tools).toBeUndefined();
+  });
+
+  it('substitutes template variables in instructions before exporting', async () => {
+    setupMockStore({
+      systemInstruction: 'You are a {{role}} assistant for {{topic}}.',
+      variableValues: { role: 'coding', topic: 'TypeScript' },
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          instructions: 'You are a coding assistant for TypeScript.',
+        }),
+      );
+    });
+  });
+
+  it('replaces unfilled template variables with empty string in exported code', async () => {
+    setupMockStore({
+      systemInstruction: 'You are a {{role}} for {{company}}.',
+      variableValues: { role: 'assistant' },
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          instructions: 'You are a assistant for .',
+        }),
+      );
+    });
+  });
+
+  it('sends prompt_variable_values when an active prompt has variable values', async () => {
+    setupMockStore({
+      systemInstruction: 'Review {{language}} code for {{name}}.',
+      variableValues: { language: 'TypeScript', name: 'Alice' },
+      activePrompt: { name: 'Code_reviewer', version: 2 },
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: { name: 'Code_reviewer', version: 2 },
+          prompt_variable_values: { language: 'TypeScript', name: 'Alice' },
+        }),
+      );
+    });
+  });
+
+  it('does not send prompt_variable_values when variable values are empty', async () => {
+    setupMockStore({
+      systemInstruction: 'You are a helpful assistant.',
+      variableValues: {},
+      activePrompt: { name: 'Basic_prompt', version: 1 },
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalled();
+    });
+
+    const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.prompt).toEqual({ name: 'Basic_prompt', version: 1 });
+    expect(callArg.prompt_variable_values).toBeUndefined();
+  });
+
+  it('does not send prompt_variable_values without an active prompt', async () => {
+    setupMockStore({
+      systemInstruction: 'You are a {{role}} assistant.',
+      variableValues: { role: 'coding' },
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalled();
+    });
+
+    const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.prompt).toBeUndefined();
+    expect(callArg.prompt_variable_values).toBeUndefined();
   });
 
   it('does not include tools when RAG is enabled but no files are present', async () => {
