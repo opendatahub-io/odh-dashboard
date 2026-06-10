@@ -163,7 +163,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         '@Dashboard',
         '@ModelServing',
         '@NonConcurrent',
-        '@maasSubscriptions',
+        '@MaasSubscriptions',
       ],
     },
     () => {
