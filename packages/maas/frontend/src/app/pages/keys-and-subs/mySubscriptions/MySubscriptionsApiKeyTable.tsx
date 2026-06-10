@@ -40,18 +40,18 @@ const subscriptionApiKeyColumns: ApiKeyColumn[] = [
     serverSortField: 'created_at',
   },
   {
-    field: 'expirationDate',
-    label: 'Expires',
-    width: 15,
-    sortable: true,
-    serverSortField: 'expires_at',
-  },
-  {
     field: 'lastUsedAt',
     label: 'Last used',
     width: 15,
     sortable: true,
     serverSortField: 'last_used_at',
+  },
+  {
+    field: 'expirationDate',
+    label: 'Expires',
+    width: 15,
+    sortable: true,
+    serverSortField: 'expires_at',
   },
 ];
 
