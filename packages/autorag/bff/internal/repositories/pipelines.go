@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -94,6 +95,15 @@ func (r *PipelinesRepository) pipelineDefinition() (pipelines.PipelineDefinition
 // --- Pipeline Runs: List ---
 
 func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace string, pageSize int32, pageToken string) (*models.PipelineRunsData, error) {
+	page := int64(1)
+	if t := strings.TrimSpace(pageToken); t != "" {
+		parsed, err := strconv.ParseInt(t, 10, 64)
+		if err != nil || parsed < 1 {
+			return nil, NewValidationError("invalid nextPageToken")
+		}
+		page = parsed
+	}
+
 	discovered, err := r.DiscoverNamedPipelines(ctx, namespace)
 	if err != nil {
 		return nil, err
@@ -104,15 +114,11 @@ func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace str
 		return &models.PipelineRunsData{Runs: []models.PipelineRun{}}, nil
 	}
 
-	// AutoRAG has a single pipeline type — delegate directly to autox-core's
-	// per-pipeline list which handles version collection and filtering internally.
 	runs, err := r.core.GetAllPipelineRuns(ctx, namespace, dp.PipelineID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pipeline runs: %w", err)
 	}
 
-	// Apply page/pageSize pagination
-	page := int64(1)
 	paged := pipelines.SortAndPaginateRuns(runs, page, pageSize)
 
 	taggedRuns := make([]models.PipelineRun, 0, len(paged.Runs))
@@ -120,9 +126,15 @@ func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace str
 		taggedRuns = append(taggedRuns, toAutoRAGRun(&run))
 	}
 
+	var nextToken string
+	if page*int64(pageSize) < int64(paged.TotalSize) {
+		nextToken = strconv.FormatInt(page+1, 10)
+	}
+
 	return &models.PipelineRunsData{
-		Runs:      taggedRuns,
-		TotalSize: paged.TotalSize,
+		Runs:          taggedRuns,
+		TotalSize:     paged.TotalSize,
+		NextPageToken: nextToken,
 	}, nil
 }
 

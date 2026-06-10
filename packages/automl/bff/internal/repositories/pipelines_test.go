@@ -567,7 +567,7 @@ func TestGetCombinedRuns(t *testing.T) {
 			TimeSeriesPipelineName: "ts", TabularPipelineName: "tab",
 		})
 
-		data, err := repo.GetCombinedRuns(context.Background(), "ns", 1, 10)
+		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -592,7 +592,7 @@ func TestGetCombinedRuns(t *testing.T) {
 		}
 		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{})
 
-		data, err := repo.GetCombinedRuns(context.Background(), "ns", 1, 10)
+		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, "")
 		if err != nil {
 			t.Fatal(err)
 		}

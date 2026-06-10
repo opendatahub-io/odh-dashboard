@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -108,7 +109,16 @@ func (r *PipelinesRepository) pipelineDefinition(pipelineType string) (pipelines
 
 // --- Pipeline Runs: List ---
 
-func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace string, page int64, pageSize int32) (*models.PipelineRunsData, error) {
+func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace string, pageSize int32, pageToken string) (*models.PipelineRunsData, error) {
+	page := int64(1)
+	if t := strings.TrimSpace(pageToken); t != "" {
+		parsed, err := strconv.ParseInt(t, 10, 64)
+		if err != nil || parsed < 1 {
+			return nil, NewValidationError("invalid nextPageToken")
+		}
+		page = parsed
+	}
+
 	discovered, err := r.DiscoverNamedPipelines(ctx, namespace)
 	if err != nil {
 		return nil, err
@@ -135,9 +145,15 @@ func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace str
 		taggedRuns = append(taggedRuns, toAutoMLRun(&run, pipelineType))
 	}
 
+	var nextToken string
+	if page*int64(pageSize) < int64(paged.TotalSize) {
+		nextToken = strconv.FormatInt(page+1, 10)
+	}
+
 	return &models.PipelineRunsData{
-		Runs:      taggedRuns,
-		TotalSize: paged.TotalSize,
+		Runs:          taggedRuns,
+		TotalSize:     paged.TotalSize,
+		NextPageToken: nextToken,
 	}, nil
 }
 
