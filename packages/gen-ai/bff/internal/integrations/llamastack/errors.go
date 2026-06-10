@@ -46,6 +46,7 @@ const (
 	ComponentOGX   = "ogx"
 	ComponentRAG   = "rag"
 	ComponentModel = "model"
+	ComponentASR   = "asr"
 )
 
 func NewLlamaStackError(code, message string, statusCode int) *LlamaStackError {

@@ -20,7 +20,7 @@ import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
-import { uploadVisionFile } from '~/app/services/llamaStackService';
+import { uploadMediaFile } from '~/app/services/llamaStackService';
 import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
 import { getId } from '~/app/utilities/utils';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
@@ -436,8 +436,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         fileName: normalizedName,
       });
 
-      const url = `${URL_PREFIX}/api/v1/lsd/files/vision?namespace=${encodeURIComponent(namespace?.name || '')}`;
-      const { promise, xhr } = uploadVisionFile(url, file, (percent) => {
+      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(namespace?.name || '')}`;
+      const { promise, xhr } = uploadMediaFile(url, file, 'vision', (percent) => {
         setImageUploadState((prev) => ({ ...prev, progress: percent }));
       });
       visionXhrRef.current = xhr;

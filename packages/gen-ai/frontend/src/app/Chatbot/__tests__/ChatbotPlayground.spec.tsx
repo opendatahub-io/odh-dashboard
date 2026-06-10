@@ -119,7 +119,7 @@ jest.mock('~/app/hooks/useMCPServerStatuses', () => ({
 }));
 
 jest.mock('~/app/services/llamaStackService', () => ({
-  uploadVisionFile: jest.fn(),
+  uploadMediaFile: jest.fn(),
 }));
 
 jest.mock('~/app/context/UserContext', () => ({
@@ -1069,10 +1069,10 @@ describe('ChatbotPlayground — inline document chips', () => {
 
   describe('default message injection and alwaysShowSendButton', () => {
     const triggerImageUpload = async () => {
-      const { uploadVisionFile } = require('~/app/services/llamaStackService') as {
-        uploadVisionFile: jest.Mock;
+      const { uploadMediaFile } = require('~/app/services/llamaStackService') as {
+        uploadMediaFile: jest.Mock;
       };
-      uploadVisionFile.mockReturnValue({
+      uploadMediaFile.mockReturnValue({
         promise: Promise.resolve({ data: { id: 'img-file-123' } }),
         xhr: { abort: jest.fn() },
       });
@@ -1218,14 +1218,14 @@ describe('ChatbotPlayground — inline document chips', () => {
 
   describe('replace media modal', () => {
     const setupImageUpload = () => {
-      const { uploadVisionFile } = require('~/app/services/llamaStackService') as {
-        uploadVisionFile: jest.Mock;
+      const { uploadMediaFile } = require('~/app/services/llamaStackService') as {
+        uploadMediaFile: jest.Mock;
       };
-      uploadVisionFile.mockReturnValue({
+      uploadMediaFile.mockReturnValue({
         promise: Promise.resolve({ data: { id: 'img-file-1' } }),
         xhr: { abort: jest.fn() },
       });
-      return uploadVisionFile;
+      return uploadMediaFile;
     };
 
     const triggerImageFileChange = async (fileName = 'photo.png') => {
@@ -1241,28 +1241,28 @@ describe('ChatbotPlayground — inline document chips', () => {
     };
 
     it('opens replace-media modal when uploading a second image before sending', async () => {
-      const uploadVisionFile = setupImageUpload();
+      const uploadMediaFile = setupImageUpload();
       renderPlayground();
 
       // First upload
       await triggerImageFileChange('first.png');
       await waitFor(() => {
-        expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+        expect(uploadMediaFile).toHaveBeenCalledTimes(1);
       });
 
       // Second upload triggers the modal instead of uploading
       await triggerImageFileChange('second.png');
       expect(screen.getByTestId('replace-media-modal')).toBeInTheDocument();
-      expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+      expect(uploadMediaFile).toHaveBeenCalledTimes(1);
     });
 
     it('confirm replaces image and revokes old blob', async () => {
-      const uploadVisionFile = setupImageUpload();
+      const uploadMediaFile = setupImageUpload();
       renderPlayground();
 
       await triggerImageFileChange('first.png');
       await waitFor(() => {
-        expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+        expect(uploadMediaFile).toHaveBeenCalledTimes(1);
       });
 
       // Trigger replace modal
@@ -1278,17 +1278,17 @@ describe('ChatbotPlayground — inline document chips', () => {
       expect(screen.queryByTestId('replace-media-modal')).not.toBeInTheDocument();
       expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-preview-url');
       await waitFor(() => {
-        expect(uploadVisionFile).toHaveBeenCalledTimes(2);
+        expect(uploadMediaFile).toHaveBeenCalledTimes(2);
       });
     });
 
     it('cancel closes modal without uploading', async () => {
-      const uploadVisionFile = setupImageUpload();
+      const uploadMediaFile = setupImageUpload();
       renderPlayground();
 
       await triggerImageFileChange('first.png');
       await waitFor(() => {
-        expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+        expect(uploadMediaFile).toHaveBeenCalledTimes(1);
       });
 
       // Trigger replace modal
@@ -1302,7 +1302,7 @@ describe('ChatbotPlayground — inline document chips', () => {
 
       // Modal closes, no new upload
       expect(screen.queryByTestId('replace-media-modal')).not.toBeInTheDocument();
-      expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+      expect(uploadMediaFile).toHaveBeenCalledTimes(1);
     });
   });
 });
