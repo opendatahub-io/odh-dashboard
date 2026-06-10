@@ -874,6 +874,31 @@ export const uploadMediaFile = (
   return { promise, xhr };
 };
 
+// Audio transcription via ASR model
+export const transcribeAudio = async (
+  url: string,
+  fileId: string,
+  asrModelId: string,
+  signal?: AbortSignal,
+): Promise<{ text: string }> => {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_id: fileId, asr_model_id: asrModelId }),
+    signal,
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    if (body?.error?.component && body?.error?.code) {
+      throw new ApiErrorClass(body.error);
+    }
+    const message =
+      body?.error?.message || body?.message || `Transcription failed (${response.status})`;
+    throw Object.assign(new Error(message), { status: response.status });
+  }
+  return response.json();
+};
+
 // LSD Models
 export const getLSDModels = modArchRestGET<LlamaModel[]>('/lsd/models');
 
