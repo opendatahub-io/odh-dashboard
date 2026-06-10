@@ -327,13 +327,13 @@ export async function fetchS3Json<T>(
  */
 /* eslint-disable camelcase */
 
-const AutomlModelBaseSchema = z.strictObject({
+const AutomlModelBaseSchema = z.object({
   name: z.string(),
-  location: z.strictObject({
+  location: z.object({
     model_directory: z.string().optional(),
     predictor: z.string(),
   }),
-  metrics: z.strictObject({
+  metrics: z.object({
     test_data: z.record(z.string(), z.number()),
   }),
 });
@@ -343,7 +343,7 @@ const AutomlTabularModelSchemaV34 = AutomlModelBaseSchema.extend({
   location: AutomlModelBaseSchema.shape.location.extend({
     notebook: z.string(),
   }),
-}).strict();
+});
 
 // Legacy timeseries schema (pre-3.5): notebooks plural (directory), base_model, metrics in location
 const AutomlTimeseriesModelSchemaV34 = AutomlModelBaseSchema.extend({
@@ -352,18 +352,18 @@ const AutomlTimeseriesModelSchemaV34 = AutomlModelBaseSchema.extend({
     notebooks: z.string(),
     metrics: z.string(),
   }),
-}).strict();
+});
 
 // Unified schema (3.5+): notebook singular (file path), metrics in location, no base_model
 const AutomlModelSchemaV35 = AutomlModelBaseSchema.extend({
   location: AutomlModelBaseSchema.shape.location.extend({
     notebook: z.string(),
     metrics: z.string(),
+    back_testing: z.string().optional(), // added in 3.5 EA2
   }),
-}).strict();
+});
 
 // Try 3.5 first, then fall back to legacy schemas for backwards compatibility.
-// strict() on each schema is what disambiguates V35 from V34 tabular (both have `notebook`).
 export const AutomlModelSchema = z.union([
   AutomlModelSchemaV35,
   AutomlTimeseriesModelSchemaV34,

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase -- test data matches API response field names */
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -521,13 +522,13 @@ describe('AutomlModelSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should reject a unified 3.5 model that includes base_model', () => {
-    const invalid = {
+  it('should accept a unified 3.5 model with extra fields like base_model', () => {
+    const extended = {
       ...validUnifiedModel,
       base_model: 'gpt-4',
     };
-    const result = AutomlModelSchema.safeParse(invalid);
-    expect(result.success).toBe(false);
+    const result = AutomlModelSchema.safeParse(extended);
+    expect(result.success).toBe(true);
   });
 
   it('should parse a v3.4 tabular model with extra metrics in location as v3.5', () => {
