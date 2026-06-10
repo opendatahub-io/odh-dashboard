@@ -3,6 +3,7 @@ import type { AIModel, MaaSModel } from '~/app/types';
 import {
   convertMaaSModelToAIModel,
   getSourceLabel,
+  isASRModel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
 
@@ -20,6 +21,28 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
   sa_token: { name: '', token_name: '', token: '' },
   model_source_type: 'namespace',
   ...overrides,
+});
+
+describe('isASRModel', () => {
+  it('should return true for model with modality audio-transcription', () => {
+    expect(isASRModel(makeModel({ modality: 'audio-transcription' }))).toBe(true);
+  });
+
+  it('should return false for model with undefined modality', () => {
+    expect(isASRModel(makeModel())).toBe(false);
+  });
+
+  it('should return false for model with empty string modality', () => {
+    expect(isASRModel(makeModel({ modality: '' }))).toBe(false);
+  });
+
+  it('should return false for model with different modality value', () => {
+    expect(isASRModel(makeModel({ modality: 'image-generation' }))).toBe(false);
+  });
+
+  it('should be case-sensitive', () => {
+    expect(isASRModel(makeModel({ modality: 'Audio-Transcription' }))).toBe(false);
+  });
 });
 
 describe('getSourceLabel', () => {

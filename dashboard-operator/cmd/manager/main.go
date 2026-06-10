@@ -65,12 +65,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	applicationsNamespace := os.Getenv("APPLICATIONS_NAMESPACE")
+	if applicationsNamespace == "" {
+		applicationsNamespace = operatorNamespace
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
 		HealthProbeBindAddress: healthProbeAddr,
 		LeaderElection:         leaderElect,
-		LeaderElectionID:       "dashboard.opendatahub.io",
+		LeaderElectionID:       "dashboard.components.platform.opendatahub.io",
 		WebhookServer:          ctrlwebhook.NewServer(ctrlwebhook.Options{Port: webhookPort}),
 	})
 	if err != nil {
@@ -87,9 +92,10 @@ func main() {
 	setupLog.Info("Detected platform", "platform", platform)
 
 	if err := controller.SetupWithManager(mgr, controller.Options{
-		ManifestsBasePath: manifestsBasePath,
-		Platform:          platform,
-		Namespace:         operatorNamespace,
+		ManifestsBasePath:     manifestsBasePath,
+		Platform:              platform,
+		Namespace:             operatorNamespace,
+		ApplicationsNamespace: applicationsNamespace,
 	}); err != nil {
 		setupLog.Error(err, "unable to create Dashboard controller")
 		os.Exit(1)

@@ -81,7 +81,15 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User Can Deploy an LLMD Model in Deployments',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@LLMDServingCI',
+        '@ModelServingCI',
+      ],
     },
     () => {
       cy.step('Log into the application as admin');
@@ -190,7 +198,15 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User can deploy an LLmd Model from Manual YAML editor',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@LLMDServingCI',
+        '@ModelServingCI',
+      ],
     },
     () => {
       cy.step('Log into the application as admin with YAML viewer feature flag enabled');
