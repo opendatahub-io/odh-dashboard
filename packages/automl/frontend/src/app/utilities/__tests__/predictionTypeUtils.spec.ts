@@ -3,6 +3,7 @@ import {
   assessPredictionTypes,
   getInferredPredictionType,
   getPredictionTypeHardIncompatibility,
+  getPredictionTypeRecommendationReason,
   getPredictionTypeSoftNotRecommendedReason,
   orderRecommendedAssessments,
   partitionPredictionTypeAssessments,
@@ -99,6 +100,34 @@ describe('predictionTypeUtils', () => {
         }),
       ).toBe('2 unique values detected. Multiclass classification requires 3 or more categories.');
     });
+
+    it('should return undefined when selected column is undefined', () => {
+      expect(getPredictionTypeHardIncompatibility('binary', undefined)).toBeUndefined();
+      expect(getPredictionTypeHardIncompatibility('multiclass', undefined)).toBeUndefined();
+      expect(getPredictionTypeHardIncompatibility('regression', undefined)).toBeUndefined();
+      expect(getPredictionTypeHardIncompatibility('timeseries', undefined)).toBeUndefined();
+    });
+
+    it('should flag binary when unique count is unknown', () => {
+      expect(
+        getPredictionTypeHardIncompatibility('binary', {
+          name: 'status',
+          type: 'string',
+          task_type: 'binary',
+        }),
+      ).toBe('Binary classification requires a target column with at most 2 distinct values.');
+    });
+
+    it('should use singular wording for multiclass with 1 unique value', () => {
+      expect(
+        getPredictionTypeHardIncompatibility('multiclass', {
+          name: 'status',
+          type: 'string',
+          task_type: 'binary',
+          unique_count: 1,
+        }),
+      ).toBe('1 unique value detected. Multiclass classification requires 3 or more categories.');
+    });
   });
 
   describe('getPredictionTypeSoftNotRecommendedReason', () => {
@@ -122,6 +151,20 @@ describe('predictionTypeUtils', () => {
           columnsWithTimestamp,
         ),
       ).toBeUndefined();
+    });
+
+    it('should return undefined when selected column is undefined', () => {
+      expect(
+        getPredictionTypeSoftNotRecommendedReason('timeseries', undefined, columnsWithTimestamp),
+      ).toBeUndefined();
+    });
+  });
+
+  describe('getPredictionTypeRecommendationReason', () => {
+    it('should use generic binary copy when unique count is unknown', () => {
+      expect(getPredictionTypeRecommendationReason('binary', undefined)).toBe(
+        'Exactly 2 unique values detected in the target column.',
+      );
     });
   });
 
@@ -171,6 +214,10 @@ describe('predictionTypeUtils', () => {
       ).toBe('binary');
     });
 
+    it('should return undefined when selected column is undefined', () => {
+      expect(getInferredPredictionType(undefined, columnsWithTimestamp)).toBeUndefined();
+    });
+
     it('should fall back to column task_type for a boolean target when no timestamp exists', () => {
       expect(
         getInferredPredictionType(
@@ -204,6 +251,40 @@ describe('predictionTypeUtils', () => {
         'regression',
         'multiclass',
       ]);
+    });
+
+    it('should return the original order when preferred type is undefined', () => {
+      const recommended = [
+        {
+          value: 'multiclass' as const,
+          isRecommended: true as const,
+          recommendationReason: 'reason',
+        },
+        {
+          value: 'regression' as const,
+          isRecommended: true as const,
+          recommendationReason: 'reason',
+        },
+      ];
+
+      expect(orderRecommendedAssessments(recommended, undefined)).toBe(recommended);
+    });
+
+    it('should return the original order when preferred type is already first', () => {
+      const recommended = [
+        {
+          value: 'regression' as const,
+          isRecommended: true as const,
+          recommendationReason: 'reason',
+        },
+        {
+          value: 'multiclass' as const,
+          isRecommended: true as const,
+          recommendationReason: 'reason',
+        },
+      ];
+
+      expect(orderRecommendedAssessments(recommended, 'regression')).toBe(recommended);
     });
   });
 
