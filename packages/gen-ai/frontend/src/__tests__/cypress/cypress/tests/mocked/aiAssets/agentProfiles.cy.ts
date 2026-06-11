@@ -42,8 +42,8 @@ describe('AI Assets - Agent Profiles', () => {
     cy.findByTestId('agent-profiles-table').should('contain.text', 'Coding assistant');
     cy.findByTestId('agent-profiles-table').should('not.contain.text', 'Expense report');
 
-    cy.step('Clear the filter');
-    cy.findByTestId('agent-profiles-search-input').clear();
+    cy.step('Clear the filter via the chip close button');
+    cy.findByRole('button', { name: 'Remove Name filter' }).click();
     cy.findByTestId('agent-profiles-table').should('contain.text', 'Expense report assistant');
   });
 
@@ -109,8 +109,8 @@ describe('AI Assets - Agent Profiles', () => {
       cy.findByTestId('delete-agent-profile-test-uuid-1').click();
 
       cy.step('Verify the delete confirmation modal is open');
-      cy.findByTestId('delete-agent-profile-modal').should('be.visible');
-      cy.findByText('Coding assistant').should('be.visible');
+      cy.findByRole('dialog').should('be.visible');
+      cy.findByRole('dialog').should('contain.text', 'Coding assistant');
 
       cy.step('Confirm deletion');
       cy.findByTestId('delete-agent-profile-confirm-button').click();
