@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import {
   Breadcrumb,
@@ -24,9 +24,10 @@ import SubscriptionGroupsSection from './viewSubscription/SubscriptionGroupsSect
 
 type SubscriptionActionsProps = {
   subscription: MaaSSubscription;
+  returnTo?: string;
 };
 
-const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription }) => {
+const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription, returnTo }) => {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
 
@@ -56,7 +57,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription 
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
-              navigate(`${URL_PREFIX}/subscriptions`);
+              navigate(returnTo ?? `${URL_PREFIX}/subscriptions`);
             }
           }}
         />
@@ -87,15 +88,28 @@ const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSumm
 
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
+  const location = useLocation();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [subscriptionInfo, loaded, loadError] = useGetSubscriptionInfo(subscriptionName);
   const displaySubscriptionName =
     subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
 
+  const { state } = location;
+  const returnTo =
+    state != null &&
+    typeof state === 'object' &&
+    'returnTo' in state &&
+    typeof state.returnTo === 'string'
+      ? state.returnTo
+      : undefined;
+
   const breadcrumb = (
     <Breadcrumb>
       <BreadcrumbItem>
-        <Link to={`${URL_PREFIX}/subscriptions`} data-testid="breadcrumb-subscriptions-link">
+        <Link
+          to={returnTo ?? `${URL_PREFIX}/subscriptions`}
+          data-testid="breadcrumb-subscriptions-link"
+        >
           Subscriptions
         </Link>
       </BreadcrumbItem>
@@ -108,7 +122,9 @@ const ViewSubscriptionPage: React.FC = () => {
       title={displaySubscriptionName}
       breadcrumb={breadcrumb}
       headerAction={
-        subscriptionInfo && <SubscriptionActions subscription={subscriptionInfo.subscription} />
+        subscriptionInfo && (
+          <SubscriptionActions subscription={subscriptionInfo.subscription} returnTo={returnTo} />
+        )
       }
       empty={false}
       loaded={loaded || !!loadError}
