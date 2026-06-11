@@ -204,7 +204,7 @@ export function normalizeMetricKey(key: string): string {
   return METRIC_ALIASES[key.toUpperCase()] ?? key;
 }
 
-const REVERSE_METRIC_ALIASES: Readonly<Record<string, string>> = Object.fromEntries(
+const REVERSE_METRIC_ALIASES: Readonly<Partial<Record<string, string>>> = Object.fromEntries(
   Object.entries(METRIC_ALIASES).map(([acronym, snakeCase]) => [snakeCase, acronym]),
 );
 
