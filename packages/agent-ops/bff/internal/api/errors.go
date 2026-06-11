@@ -7,6 +7,7 @@ import (
 
 const (
 	ErrCodeBadRequest          = "BAD_REQUEST"
+	ErrCodeForbidden           = "FORBIDDEN"
 	ErrCodeNotFound            = "NOT_FOUND"
 	ErrCodeMethodNotAllowed    = "METHOD_NOT_ALLOWED"
 	ErrCodeInternalServerError = "INTERNAL_SERVER_ERROR"
@@ -41,7 +42,7 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
 	app.logger.Warn("Access forbidden", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
 
-	httpError := &HTTPError{StatusCode: http.StatusForbidden, Error: ErrorPayload{Code: strconv.Itoa(http.StatusForbidden), Message: "Access forbidden"}}
+	httpError := &HTTPError{StatusCode: http.StatusForbidden, Error: ErrorPayload{Code: ErrCodeForbidden, Message: "Access forbidden"}}
 	app.errorResponse(w, r, httpError)
 }
 

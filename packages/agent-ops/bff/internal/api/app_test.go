@@ -15,36 +15,23 @@ func testAppLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError}))
 }
 
-func testRoutesApp(t *testing.T, agentBackendAvailable bool) *App {
+func testRoutesApp(t *testing.T) *App {
 	t.Helper()
-	app := &App{
+	return &App{
 		config: config.EnvConfig{
 			AuthMethod:      config.AuthMethodDisabled,
 			StaticAssetsDir: t.TempDir(),
 		},
-		logger:                  testAppLogger(),
-		repositories:            testRepositoriesWithAgents(),
-		agentBackendAvailable:   agentBackendAvailable,
+		logger:       testAppLogger(),
+		repositories: testRepositoriesWithAgents(),
 	}
-	return app
 }
 
-func TestAgentRoutes_MockAgentClientGating(t *testing.T) {
-	t.Run("mock agent client enabled registers agent routes", func(t *testing.T) {
-		app := testRoutesApp(t, true)
+func TestAgentRoutes_Registered(t *testing.T) {
+	app := testRoutesApp(t)
 
-		rr := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath, nil)
-		app.Routes().ServeHTTP(rr, req)
-		assert.Equal(t, http.StatusOK, rr.Code)
-	})
-
-	t.Run("mock agent client disabled returns not found for agent routes", func(t *testing.T) {
-		app := testRoutesApp(t, false)
-
-		rr := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath, nil)
-		app.Routes().ServeHTTP(rr, req)
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath, nil)
+	app.Routes().ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
 }
