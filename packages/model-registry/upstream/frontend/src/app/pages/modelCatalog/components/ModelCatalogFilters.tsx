@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { Content, ContentVariants } from '@patternfly/react-core';
+import { Content, ContentVariants, Flex } from '@patternfly/react-core';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import {
+  ModelCatalogNumberFilterKey,
   ModelCatalogStringFilterKey,
   MODEL_CATALOG_FILTER_CATEGORY_NAMES,
   MODEL_CATALOG_TASK_NAME_MAPPING,
@@ -17,8 +18,10 @@ import {
   CatalogFilterPanel,
   useCatalogFilterConfigs,
   type FilterPanelItem,
+  type StringFilterPanelItem,
 } from '~/app/shared/components/catalog';
 import ModelPerformanceViewToggleCard from './ModelPerformanceViewToggleCard';
+import SidebarSliderFilter from './SidebarSliderFilter';
 
 const BASIC_STRING_FILTER_KEYS: ModelCatalogStringFilterKey[] = [
   ModelCatalogStringFilterKey.TASK,
@@ -45,8 +48,14 @@ const LABEL_MAPPINGS: Record<string, Record<string, string>> = {
 };
 
 const ModelCatalogFilters: React.FC = () => {
-  const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filters, setFilters } =
-    React.useContext(ModelCatalogContext);
+  const {
+    filterOptions,
+    filterOptionsLoaded,
+    filterOptionsLoadError,
+    filters,
+    setFilters,
+    performanceViewEnabled,
+  } = React.useContext(ModelCatalogContext);
   const { toolCalling: toolCallingFeatureAvailable } = useModelRegistryDashboardConfig();
 
   React.useEffect(() => {
@@ -92,8 +101,8 @@ const ModelCatalogFilters: React.FC = () => {
 
   const filterPanelItems = React.useMemo((): FilterPanelItem[] => {
     const validatedConfigKey = ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION;
-    return baseFilterItems.map((item) => {
-      const itemWithTestIds: FilterPanelItem = {
+    const items: FilterPanelItem[] = baseFilterItems.map((item) => {
+      const itemWithTestIds: StringFilterPanelItem = {
         ...item,
         testIdBase: `${item.title}-filter`,
         getCheckboxTestId: (value: string) => `${item.title}-${value}-checkbox`,
@@ -114,7 +123,39 @@ const ModelCatalogFilters: React.FC = () => {
       }
       return itemWithTestIds;
     });
-  }, [baseFilterItems, toolCallingFeatureAvailable]);
+
+    const validatedIndex = items.findIndex((item) => item.key === validatedConfigKey);
+    const insertIndex = validatedIndex >= 0 ? validatedIndex + 1 : items.length;
+
+    const sliderItems: FilterPanelItem[] = [
+      {
+        key: 'hardware-slider-filters',
+        title: 'Hardware filters',
+        visible: performanceViewEnabled,
+        customContent: (
+          <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+            <SidebarSliderFilter
+              filterKey={ModelCatalogNumberFilterKey.MIN_VRAM}
+              label="Minimum vRAM"
+              suffix="GB"
+              fallbackMin={4}
+              fallbackMax={480}
+            />
+            <SidebarSliderFilter
+              filterKey={ModelCatalogNumberFilterKey.IMAGE_SIZE}
+              label="Container size"
+              suffix="GB"
+              fallbackMin={4}
+              fallbackMax={500}
+            />
+          </Flex>
+        ),
+      },
+    ];
+
+    items.splice(insertIndex, 0, ...sliderItems);
+    return items;
+  }, [baseFilterItems, toolCallingFeatureAvailable, performanceViewEnabled]);
 
   return (
     <CatalogFilterPanel

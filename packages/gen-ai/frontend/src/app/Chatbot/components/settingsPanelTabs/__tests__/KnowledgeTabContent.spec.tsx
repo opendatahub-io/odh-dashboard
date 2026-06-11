@@ -340,6 +340,22 @@ describe('KnowledgeTabContent', () => {
       );
     });
 
+    it('clears selectedVectorStoreId when switching from inline to external via radio button', async () => {
+      const user = userEvent.setup();
+      useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'inline');
+      useChatbotConfigStore
+        .getState()
+        .updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, 'vs-inline-abc');
+
+      render(<KnowledgeTabContent {...defaultProps} />);
+
+      await user.click(screen.getByTestId('knowledge-mode-external-radio'));
+
+      expect(
+        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId,
+      ).toBeNull();
+    });
+
     it('fires tracking event when switching back to upload mode', async () => {
       const user = userEvent.setup();
       useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');

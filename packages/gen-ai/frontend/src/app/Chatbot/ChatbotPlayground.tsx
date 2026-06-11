@@ -27,6 +27,7 @@ import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
 import { getId } from '~/app/utilities/utils';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -197,6 +198,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     uploadedFiles: fileManagement.files,
     isFilesLoading: fileManagement.isLoading,
   });
+
+  // Load AgentProfile from URL query param (?agentProfileId=<uuid>)
+  useAgentProfileUrlParam({ mcpServers, mcpServersLoaded });
 
   // Message hooks tracking
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
