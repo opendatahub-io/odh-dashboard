@@ -647,6 +647,16 @@ describe('isRawModelV35', () => {
 });
 /* eslint-enable camelcase */
 
+// jsdom's Blob lacks .text() — polyfill so fetchS3Json can decode streamed Blobs
+Blob.prototype.text = function blobText() {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(this);
+  });
+};
+
 /* eslint-disable camelcase */
 describe('useModelEvaluationArtifactsQuery', () => {
   const mockFeatureImportance = {
