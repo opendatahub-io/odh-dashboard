@@ -39,19 +39,27 @@ const EditAgentProfileModal: React.FC<EditAgentProfileModalProps> = ({
 
   React.useEffect(() => {
     if (!apiAvailable) {
-      return;
+      return undefined;
     }
+    const controller = new AbortController();
     api
-      .getAgentProfile({ id: profile.profileId })
+      .getAgentProfile({ id: profile.profileId }, { signal: controller.signal })
       .then((full) => {
-        fullProfileRef.current = full;
+        if (!controller.signal.aborted) {
+          fullProfileRef.current = full;
+        }
       })
       .catch(() => {
-        setError('Failed to load agent profile. Please close and try again.');
+        if (!controller.signal.aborted) {
+          setError('Failed to load agent profile. Please close and try again.');
+        }
       })
       .finally(() => {
-        setIsLoadingSpec(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingSpec(false);
+        }
       });
+    return () => controller.abort();
   }, [api, apiAvailable, profile.profileId]);
 
   const handleSubmit = async (e: React.FormEvent) => {

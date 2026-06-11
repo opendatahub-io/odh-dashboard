@@ -84,9 +84,10 @@ describe('EditAgentProfileModal', () => {
 
     // Wait for full profile fetch
     await waitFor(() => {
-      expect(mockGenAiContextValue.apiState.api.getAgentProfile).toHaveBeenCalledWith({
-        id: 'test-uuid',
-      });
+      expect(mockGenAiContextValue.apiState.api.getAgentProfile).toHaveBeenCalledWith(
+        { id: 'test-uuid' },
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
     });
 
     const nameInput = screen.getByTestId('edit-agent-profile-name');

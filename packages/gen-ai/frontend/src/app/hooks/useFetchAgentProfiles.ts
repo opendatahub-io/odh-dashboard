@@ -18,7 +18,12 @@ const useFetchAgentProfiles = (): FetchStateObject<AgentProfileSummary[]> => {
       return Promise.reject(new NotReadyError('API not yet available'));
     }
     const response = await api.listAgentProfiles();
-    return Array.isArray(response.profiles) ? response.profiles : [];
+    if (!Array.isArray(response.profiles)) {
+      throw new Error(
+        `Unexpected response from listAgentProfiles: profiles=${String(response.profiles)}`,
+      );
+    }
+    return response.profiles;
   }, [api, apiAvailable]);
 
   const [data, loaded, error, refresh] = useFetchState(fetchAgentProfiles, [], {

@@ -17,7 +17,11 @@ const AgentProfileColumns: SortableData<AgentProfileSummary>[] = [
   {
     field: 'lastModified',
     label: 'Last modified',
-    sortable: (a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime(),
+    sortable: (a: AgentProfileSummary, b: AgentProfileSummary): number => {
+      const ta = Date.parse(a.lastModified);
+      const tb = Date.parse(b.lastModified);
+      return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta);
+    },
     width: 20,
   },
   {
