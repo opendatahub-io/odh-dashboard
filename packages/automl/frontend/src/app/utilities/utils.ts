@@ -1,12 +1,15 @@
 import type { PipelineRun, TaskType } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
+  ALL_EVAL_METRICS,
   DEFAULT_EVAL_METRIC_BY_TASK,
+  EVAL_METRICS_BY_TASK_TYPE,
   METRIC_ALIASES,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
+  type EvalMetric,
 } from './const';
 
 /**
@@ -201,6 +204,39 @@ export function normalizeMetricKey(key: string): string {
   return METRIC_ALIASES[key.toUpperCase()] ?? key;
 }
 
+const REVERSE_METRIC_ALIASES: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(METRIC_ALIASES).map(([acronym, snakeCase]) => [snakeCase, acronym]),
+);
+
+/**
+ * Find the equivalent metric key in a target task type's supported list.
+ * Handles the regression↔timeseries naming difference (snake_case vs acronyms)
+ * by checking both the original key and its alias.
+ * Returns `undefined` if no equivalent exists.
+ */
+export function findEquivalentMetric(
+  metric: EvalMetric | undefined,
+  targetTaskType: string,
+): EvalMetric | undefined {
+  if (!metric) {
+    return undefined;
+  }
+  const supported = EVAL_METRICS_BY_TASK_TYPE[targetTaskType];
+  if (!supported) {
+    return undefined;
+  }
+  const supportedSet = new Set<string>(supported);
+  if (supportedSet.has(metric)) {
+    return metric;
+  }
+  // Try the alias: snake_case → acronym or acronym → snake_case
+  const alias = REVERSE_METRIC_ALIASES[metric] ?? METRIC_ALIASES[metric.toUpperCase()];
+  if (alias && supportedSet.has(alias)) {
+    return ALL_EVAL_METRICS.find((m) => m === alias);
+  }
+  return undefined;
+}
+
 /**
  * Gets the optimized metric for a given task type.
  * @param taskType - The task type to get the metric for
@@ -214,6 +250,14 @@ export function getOptimizedMetricForTask(taskType: string): string {
 }
 
 /**
+ * Resolves the evaluation metric: uses the user-specified metric if provided,
+ * otherwise falls back to the default metric for the given task type.
+ */
+export function resolveEvalMetric(evalMetric: string | undefined, taskType: string): string {
+  return evalMetric ? normalizeMetricKey(evalMetric) : getOptimizedMetricForTask(taskType);
+}
+
+/**
  * Build a mapping from model name → leaderboard rank (1-based).
  * Ranks are assigned by sorting on the optimized metric descending (higher is better).
  * AutoGluon negates error/loss metrics so all metrics are uniformly "higher is better".
@@ -223,9 +267,7 @@ export function computeRankMap(
   taskType: string,
   evalMetric?: string,
 ): Record<string, number> {
-  const optimizedMetric = evalMetric
-    ? normalizeMetricKey(evalMetric)
-    : getOptimizedMetricForTask(taskType);
+  const optimizedMetric = resolveEvalMetric(evalMetric, taskType);
 
   const sorted = Object.keys(models).toSorted((a, b) => {
     const aMetric = models[a].metrics.test_data?.[optimizedMetric];

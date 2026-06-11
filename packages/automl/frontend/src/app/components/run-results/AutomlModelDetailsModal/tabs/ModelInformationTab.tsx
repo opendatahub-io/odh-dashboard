@@ -7,11 +7,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
-import {
-  formatMetricName,
-  getOptimizedMetricForTask,
-  normalizeMetricKey,
-} from '~/app/utilities/utils';
+import { formatMetricName, resolveEvalMetric } from '~/app/utilities/utils';
 
 /** Keys excluded from the parameter list (not useful as model-level metadata). */
 const HIDDEN_KEYS = new Set([
@@ -31,9 +27,7 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
     }
     return !Array.isArray(value) || value.length > 0;
   });
-  const evalMetric = parameters?.eval_metric
-    ? normalizeMetricKey(parameters.eval_metric)
-    : getOptimizedMetricForTask(taskType);
+  const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
 
   return (
     <>

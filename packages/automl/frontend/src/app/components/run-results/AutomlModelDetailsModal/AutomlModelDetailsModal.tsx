@@ -13,11 +13,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
-import {
-  computeRankMap,
-  getOptimizedMetricForTask,
-  normalizeMetricKey,
-} from '~/app/utilities/utils';
+import { computeRankMap, resolveEvalMetric } from '~/app/utilities/utils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
@@ -55,9 +51,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   const { models: modelsRecord, parameters, pipelineRun } = useAutomlResultsContext();
   const models = Object.values(modelsRecord);
   const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
-  const evalMetric = parameters?.eval_metric
-    ? normalizeMetricKey(parameters.eval_metric)
-    : getOptimizedMetricForTask(taskType);
+  const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
   const createdAt = pipelineRun?.created_at;
 
   const [selectedModelName, setSelectedModelName] = React.useState(modelName);

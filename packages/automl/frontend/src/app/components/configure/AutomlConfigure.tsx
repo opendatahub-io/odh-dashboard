@@ -94,7 +94,7 @@ import {
   TRAINING_DATA_FILE_ACCEPT,
   TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
 } from '~/app/utilities/automlTrainingDataFile';
-import { formatMetricName } from '~/app/utilities/utils';
+import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
 import LoadingFormField from './LoadingFormField';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import OptimizationMetricModal from './OptimizationMetricModal';
@@ -271,13 +271,17 @@ function AutomlConfigure({
     notification,
   ]);
 
-  // Set eval_metric to the task-type default and re-validate top_n when task type changes (skips mount to preserve reconfigure)
+  // Cast eval_metric to the new task type's key format, or reset to the default if unsupported
   useReconfigureSafeEffect(() => {
     if (isTaskTypeSelected) {
-      setValue('eval_metric', DEFAULT_EVAL_METRIC_BY_TASK[taskType], { shouldValidate: true });
+      const current = getValues('eval_metric');
+      const equivalent = findEquivalentMetric(current, taskType);
+      setValue('eval_metric', equivalent ?? DEFAULT_EVAL_METRIC_BY_TASK[taskType], {
+        shouldValidate: true,
+      });
       void trigger('top_n');
     }
-  }, [taskType, isTaskTypeSelected, setValue, trigger]);
+  }, [taskType, isTaskTypeSelected, getValues, setValue, trigger]);
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);

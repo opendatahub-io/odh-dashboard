@@ -11,7 +11,9 @@ import {
   toNumericMetric,
   normalizeMetricKey,
   getOptimizedMetricForTask,
+  resolveEvalMetric,
   computeRankMap,
+  findEquivalentMetric,
   generateReconfigureName,
 } from '~/app/utilities/utils';
 
@@ -303,6 +305,66 @@ describe('getOptimizedMetricForTask', () => {
   it('should return Unknown metric for unknown task types', () => {
     expect(getOptimizedMetricForTask('unknown')).toBe('Unknown metric');
     expect(getOptimizedMetricForTask('')).toBe('Unknown metric');
+  });
+});
+
+describe('resolveEvalMetric', () => {
+  it('should normalize and return the provided eval metric', () => {
+    expect(resolveEvalMetric('MSE', 'regression')).toBe('mean_squared_error');
+  });
+
+  it('should fall back to the task-type default when eval metric is undefined', () => {
+    expect(resolveEvalMetric(undefined, 'binary')).toBe('accuracy');
+    expect(resolveEvalMetric(undefined, 'regression')).toBe('r2');
+  });
+
+  it('should fall back to the task-type default when eval metric is empty', () => {
+    expect(resolveEvalMetric('', 'binary')).toBe('accuracy');
+  });
+});
+
+describe('findEquivalentMetric', () => {
+  it('should return the same metric when it exists in the target task type', () => {
+    expect(findEquivalentMetric('accuracy', 'binary')).toBe('accuracy');
+    expect(findEquivalentMetric('r2', 'regression')).toBe('r2');
+    expect(findEquivalentMetric('MASE', 'timeseries')).toBe('MASE');
+  });
+
+  it('should return undefined for metrics not supported by the target task type', () => {
+    expect(findEquivalentMetric('accuracy', 'regression')).toBeUndefined();
+    expect(findEquivalentMetric('r2', 'binary')).toBeUndefined();
+  });
+
+  it('should cast regression snake_case to timeseries acronym', () => {
+    expect(findEquivalentMetric('mean_absolute_error', 'timeseries')).toBe('MAE');
+    expect(findEquivalentMetric('mean_squared_error', 'timeseries')).toBe('MSE');
+    expect(findEquivalentMetric('root_mean_squared_error', 'timeseries')).toBe('RMSE');
+    expect(findEquivalentMetric('symmetric_mean_absolute_percentage_error', 'timeseries')).toBe(
+      'SMAPE',
+    );
+  });
+
+  it('should cast timeseries acronym to regression snake_case', () => {
+    expect(findEquivalentMetric('MAE', 'regression')).toBe('mean_absolute_error');
+    expect(findEquivalentMetric('MSE', 'regression')).toBe('mean_squared_error');
+    expect(findEquivalentMetric('RMSE', 'regression')).toBe('root_mean_squared_error');
+    expect(findEquivalentMetric('SMAPE', 'regression')).toBe(
+      'symmetric_mean_absolute_percentage_error',
+    );
+  });
+
+  it('should return undefined for timeseries-only metrics against regression', () => {
+    expect(findEquivalentMetric('MASE', 'regression')).toBeUndefined();
+    expect(findEquivalentMetric('SQL', 'regression')).toBeUndefined();
+    expect(findEquivalentMetric('WQL', 'regression')).toBeUndefined();
+  });
+
+  it('should return undefined when metric is undefined', () => {
+    expect(findEquivalentMetric(undefined, 'regression')).toBeUndefined();
+  });
+
+  it('should return undefined for unknown task type', () => {
+    expect(findEquivalentMetric('accuracy', 'unknown')).toBeUndefined();
   });
 });
 

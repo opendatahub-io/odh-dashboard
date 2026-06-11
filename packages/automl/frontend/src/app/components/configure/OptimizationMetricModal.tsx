@@ -61,20 +61,22 @@ const OptimizationMetricModal: React.FC<OptimizationMetricModalProps> = ({
           Choose the metric to optimize when comparing models. AutoML will rank models based on this
           metric.
         </Content>
-        <Flex direction={{ default: 'column' }}>
-          {metrics.map((metric) => (
-            <Radio
-              key={metric}
-              id={`eval-metric-${metric}`}
-              name="eval_metric"
-              label={formatMetricName(metric)}
-              description={EVAL_METRIC_DESCRIPTIONS[metric]}
-              isChecked={selectedMetric === metric}
-              onChange={() => setSelectedMetric(metric)}
-              data-testid={`eval-metric-radio-${metric}`}
-            />
-          ))}
-        </Flex>
+        <div className="automl-optimization-metric-modal__radio-list">
+          <Flex direction={{ default: 'column' }}>
+            {metrics.map((metric) => (
+              <Radio
+                key={metric}
+                id={`eval-metric-${metric}`}
+                name="eval_metric"
+                label={formatMetricName(metric)}
+                description={EVAL_METRIC_DESCRIPTIONS[metric]}
+                isChecked={selectedMetric === metric}
+                onChange={() => setSelectedMetric(metric)}
+                data-testid={`eval-metric-radio-${metric}`}
+              />
+            ))}
+          </Flex>
+        </div>
       </ModalBody>
       <ModalFooter>
         <Button

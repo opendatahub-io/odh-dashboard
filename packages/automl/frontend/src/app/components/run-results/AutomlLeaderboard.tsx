@@ -37,9 +37,8 @@ import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
   formatMetricName,
   formatMetricValue,
-  getOptimizedMetricForTask,
   isRunInProgress,
-  normalizeMetricKey,
+  resolveEvalMetric,
 } from '~/app/utilities/utils';
 import './AutomlLeaderboard.scss';
 
@@ -408,9 +407,7 @@ function AutomlLeaderboard({
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
 
   // Determine the optimized metric (prefer the user's choice, fall back to task-type default)
-  const optimizedMetric = parameters?.eval_metric
-    ? normalizeMetricKey(parameters.eval_metric)
-    : getOptimizedMetricForTask(taskType);
+  const optimizedMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
 
   // Extract all unique metric keys across all models
   const metricKeys = React.useMemo(() => {
