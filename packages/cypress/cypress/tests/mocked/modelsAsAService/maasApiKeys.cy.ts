@@ -958,6 +958,9 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Basic Team');
 
+    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '10+ keys');
+    subscriptionsTab.findSubscriptionRows().eq(1).should('contain.text', '5 keys');
+
     subscriptionsTab.findSearchInput().type('Premium');
     subscriptionsTab.findSubscriptionRows().should('have.length', 1);
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
@@ -1002,6 +1005,34 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     subscriptionsTab.expandModelGroupRow(0);
     subscriptionsTab.findModelsTable().should('contain.text', 'Premium Team');
     subscriptionsTab.findModelsTable().should('contain.text', 'Basic Team');
+  });
+
+  it('should show a key count badge when key_count is 0 or absent', () => {
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: [
+        {
+          // eslint-disable-next-line camelcase
+          subscription_id_header: 'no-keys-sub',
+          // eslint-disable-next-line camelcase
+          subscription_description: 'Subscription with no keys',
+          // eslint-disable-next-line camelcase
+          display_name: 'No Keys Sub',
+          priority: 1,
+          // eslint-disable-next-line camelcase
+          key_count: 0,
+          // eslint-disable-next-line camelcase
+          model_refs: [],
+        },
+      ],
+    });
+
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    subscriptionsTab.findSubscriptionRows().should('have.length', 1);
+    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', 'No Keys Sub');
+    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '0 keys');
   });
 
   it('should show empty state when no subscriptions exist', () => {
@@ -1079,6 +1110,77 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
 
     cy.wait('@deleteApiKey').then((interception) => {
       expect(interception.response?.statusCode).to.eq(200);
+    });
+  });
+
+  it('should sort subscription details api keys by column', () => {
+    mySubscriptionsPage.visit('premium-team-sub');
+    cy.wait('@initialSearch');
+    mySubscriptionsPage.findApiKeysTable().should('exist');
+
+    const premiumKeys = mockAPIKeys().filter(
+      (k) => k.subscription === 'premium-team-sub' && k.status !== 'revoked',
+    );
+    const nameAsc = premiumKeys.toSorted((a, b) => a.name.localeCompare(b.name));
+    const expiresAsc = premiumKeys.toSorted(
+      (a, b) =>
+        new Date(a.expirationDate ?? 0).getTime() - new Date(b.expirationDate ?? 0).getTime(),
+    );
+
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      req.reply(mockSearchResponse(nameAsc));
+    }).as('sortNameAsc');
+    mySubscriptionsPage.findColumnSortButton('Name').click();
+
+    cy.wait('@sortNameAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.nested.property('sort.by', 'name');
+    });
+    mySubscriptionsPage
+      .findApiKeysTable()
+      .find('tbody tr')
+      .eq(0)
+      .should('contain.text', 'old-service-key');
+    mySubscriptionsPage
+      .findApiKeysTable()
+      .find('tbody tr')
+      .eq(1)
+      .should('contain.text', 'production-backend');
+
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      req.reply(mockSearchResponse(expiresAsc));
+    }).as('sortExpiresAsc');
+    mySubscriptionsPage.findColumnSortButton('Expires').click();
+
+    cy.wait('@sortExpiresAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.nested.property('sort.by', 'expires_at');
+    });
+    mySubscriptionsPage
+      .findApiKeysTable()
+      .find('tbody tr')
+      .eq(0)
+      .should('contain.text', 'old-service-key');
+    mySubscriptionsPage
+      .findApiKeysTable()
+      .find('tbody tr')
+      .eq(1)
+      .should('contain.text', 'production-backend');
+
+    const mockReply = () => mockSearchResponse(premiumKeys);
+
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      req.reply(mockReply());
+    }).as('sortCreated');
+    mySubscriptionsPage.findColumnSortButton('Created').click();
+    cy.wait('@sortCreated').then((interception) => {
+      expect(interception.request.body.data).to.have.nested.property('sort.by', 'created_at');
+    });
+
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      req.reply(mockReply());
+    }).as('sortLastUsed');
+    mySubscriptionsPage.findColumnSortButton('Last used').click();
+    cy.wait('@sortLastUsed').then((interception) => {
+      expect(interception.request.body.data).to.have.nested.property('sort.by', 'last_used_at');
     });
   });
 });

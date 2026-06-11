@@ -593,4 +593,91 @@ describe('ViewCodeModal', () => {
     expect(callArg.files).toBeUndefined();
     expect(callArg.tools).toEqual([{ type: 'file_search', vector_store_ids: ['vs-1'] }]);
   });
+
+  it('includes asr_model in request when ASR is enabled and model is selected', async () => {
+    setupMockStore({ isAsrModelEnabled: true, selectedAsrModel: 'whisper-large-v3-turbo' });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          asr_model: 'whisper-large-v3-turbo',
+        }),
+      );
+    });
+  });
+
+  it('does not include asr_model when ASR is disabled', async () => {
+    setupMockStore({ isAsrModelEnabled: false, selectedAsrModel: 'whisper-large-v3-turbo' });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalled();
+    });
+
+    const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.asr_model).toBeUndefined();
+  });
+
+  it('does not include asr_model when ASR is enabled but no model is selected', async () => {
+    setupMockStore({ isAsrModelEnabled: true, selectedAsrModel: '' });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalled();
+    });
+
+    const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.asr_model).toBeUndefined();
+  });
+
+  it('includes vision_image in request when hasVisionImage is true', async () => {
+    setupMockStore({ hasVisionImage: true });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          vision_image: true,
+        }),
+      );
+    });
+  });
+
+  it('does not include vision_image when hasVisionImage is false', async () => {
+    setupMockStore({ hasVisionImage: false });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalled();
+    });
+
+    const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.vision_image).toBeUndefined();
+  });
 });

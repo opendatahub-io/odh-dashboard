@@ -21,10 +21,14 @@ type ChatbotHeaderActionsProps = {
   onDeletePlayground: () => void;
   onNewChat: () => void;
   onCompareChat: () => void;
+  onSaveAs: () => void;
   onSettingsClick: () => void;
   isSettingsOpen: boolean;
   isCompareMode: boolean;
 };
+
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+const RENDER_SAVE_AS_BUTTON = false;
 
 const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onViewCode,
@@ -32,6 +36,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onDeletePlayground,
   onNewChat,
   onCompareChat,
+  onSaveAs,
   onSettingsClick,
   isSettingsOpen,
   isCompareMode,
@@ -62,6 +67,20 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
       <ActionListGroup>
         {lsdStatus?.phase === 'Ready' && (
           <>
+            {/* Temp: serializer test button — remove before feature delivery */}
+            {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+            {!isCompareMode && RENDER_SAVE_AS_BUTTON && (
+              <ActionListItem>
+                <Button
+                  variant="link"
+                  aria-label="Save as"
+                  onClick={onSaveAs}
+                  data-testid="save-as-agent-profile-button"
+                >
+                  Save as
+                </Button>
+              </ActionListItem>
+            )}
             {/* Hide compare button when in compare mode - use close button on pane to exit */}
             {!isCompareMode && (
               <ActionListItem>
