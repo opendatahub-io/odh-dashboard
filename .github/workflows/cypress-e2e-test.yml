@@ -1257,11 +1257,20 @@ jobs:
         run: |
           cd frontend
 
+          TAG="${{ matrix.tag }}"
+          if [ ${#TAG} -gt 200 ]; then
+            TAG_DIR=$(echo -n "$TAG" | sha256sum | cut -c1-12)
+            echo "📁 Tag too long for directory name (${#TAG} chars), using hash: ${TAG_DIR}"
+          else
+            TAG_DIR="$TAG"
+          fi
+          echo "TAG_DIR=${TAG_DIR}" >> $GITHUB_ENV
+
           echo "🧪 Running E2E tests for ${{ matrix.tag }}..."
           echo "🚀 Running tests against live dashboard on port ${WEBPACK_PORT}"
           echo "📌 Tag source: ${{ needs.get-test-tags.outputs.source }}"
 
-          export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${{ matrix.tag }}"
+          export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${TAG_DIR}"
           mkdir -p "$CY_RESULTS_DIR"
 
           # Determine OC_SERVER based on cluster (for oc user switching in tests)
@@ -1289,7 +1298,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: e2e-results-${{ matrix.tag }}
+          name: e2e-results-${{ env.TAG_DIR }}
           path: |
             packages/cypress/results/
             packages/cypress/videos/
