@@ -2,6 +2,10 @@
 
 Shared Go library consumed by automl and autorag BFFs. This is a code-only package — no binary, no server, no BFF of its own.
 
+## Key Decisions & Rationale
+
+See the [original PR](https://github.com/opendatahub-io/odh-dashboard/pull/7516) for the full list of architectural decisions and rationale behind autox-core/services.
+
 ## Build & Linking
 
 `go.work` files link autox-core with consuming packages (automl, autorag) during local development. `go mod tidy` may report that autox-core is not found — this is expected because the module is not published to a registry; the `go.work` replace directive handles resolution.
