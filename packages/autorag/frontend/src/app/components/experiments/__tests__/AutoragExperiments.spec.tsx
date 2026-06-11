@@ -209,22 +209,21 @@ describe('AutoragExperiments', () => {
     ).toBeInTheDocument();
   });
 
-  it('should show error alert when BFF reports no AutoRAG pipeline (auto-creation handles this at submit time)', () => {
-    mockGetGenericErrorCode.mockReturnValue(500);
+  it('should show NoPipelineServer when BFF reports no managed AutoRAG pipeline', () => {
+    mockGetGenericErrorCode.mockReturnValue(undefined);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
       error: new Error(
-        'no AutoRAG pipeline found in namespace ai-pipelines - ensure a managed AutoRAG pipeline is deployed',
+        'no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
       ),
     });
 
     renderAutorag(<AutoragExperiments />);
 
-    // No longer shows NoPipelineServer — the BFF auto-creates pipelines on submit
     expect(
-      screen.queryByRole('heading', { name: 'Configure a compatible pipeline server' }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText('Failed to load experiments')).toBeInTheDocument();
+      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Failed to load experiments')).not.toBeInTheDocument();
   });
 
   it('should show NoPipelineServer for no Pipeline Server (DSPipelineApplication) message', () => {

@@ -730,7 +730,7 @@ The API automatically discovers all managed AutoML pipelines (time-series and ta
 **Discovery Details:**
 - Time-series prefix: configurable via `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` (default: "autogluon-timeseries-training-pipeline")
 - Tabular prefix: configurable via `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` (default: "autogluon-tabular-training-pipeline")
-- Returns 200 with an empty runs list if no managed AutoML pipelines are found in the namespace (pipelines are auto-created when the user submits their first experiment)
+- Returns `404 Not Found` if no managed AutoML pipelines are found in the namespace, or if only one of the required tabular and timeseries pipelines is present. Enable managed pipelines on the pipeline server to provision both pipelines.
 
 ## Error Responses
 

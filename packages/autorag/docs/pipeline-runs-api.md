@@ -677,7 +677,7 @@ The API always filters runs to the auto-discovered AutoRAG-managed pipeline:
 
 1. Discovers the AutoRAG-managed pipeline in the namespace (cached for 5 minutes)
 2. Filters runs to show only those from the discovered AutoRAG pipeline version
-3. The List endpoint returns 200 with an empty runs list if no AutoRAG pipeline is found; other endpoints (Create, Get, Terminate, Retry) return a 500 error
+3. The List endpoint returns `404 Not Found` if no AutoRAG managed pipeline is found; Create also returns `404` when managed pipelines are unavailable
 
 This ensures users see only AutoRAG-related runs and prevents accidentally displaying unrelated pipeline runs from the namespace.
 
@@ -741,7 +741,7 @@ Returned when:
 ### 500 Internal Server Error
 
 Returned when:
-- No AutoRAG pipeline found in namespace (for Create, Get, Terminate, and Retry endpoints — the List endpoint returns 200 with an empty runs list instead)
+- No AutoRAG managed pipeline found in namespace (List and Create return `404 Not Found`)
 - Internal processing error occurs
 - Unable to communicate with Kubernetes API
 - Unable to communicate with Pipeline Server API

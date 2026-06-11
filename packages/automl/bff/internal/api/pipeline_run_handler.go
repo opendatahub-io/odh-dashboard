@@ -24,13 +24,11 @@ func (app *App) pipelineDefinition(pipelineType string) repositories.PipelineDef
 	switch pipelineType {
 	case constants.PipelineTypeTimeSeries:
 		return repositories.PipelineDefinition{
-			Name:        app.config.AutoMLTimeSeriesPipelineNamePrefix,
-			PipelineDir: "autogluon_timeseries_training_pipeline",
+			Name: app.config.AutoMLTimeSeriesPipelineNamePrefix,
 		}
 	case constants.PipelineTypeTabular:
 		return repositories.PipelineDefinition{
-			Name:        app.config.AutoMLTabularPipelineNamePrefix,
-			PipelineDir: "autogluon_tabular_training_pipeline",
+			Name: app.config.AutoMLTabularPipelineNamePrefix,
 		}
 	default:
 		return repositories.PipelineDefinition{Name: pipelineType}
@@ -48,7 +46,8 @@ func (app *App) pipelineDefinition(pipelineType string) repositories.PipelineDef
 //
 // Error Responses:
 //   - 400: Invalid or missing required fields, unknown JSON fields, unsupported pipelineType
-//   - 500: No matching AutoML pipeline discovered or Pipeline Server error
+//   - 404: Required managed AutoML pipelines not found on the pipeline server
+//   - 500: Pipeline Server error
 func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -84,27 +83,19 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Always use EnsurePipeline for run creation — it requires the exact
-	// DefaultPipelineVersion and creates it if missing. DiscoverNamedPipelines
-	// (used by the listing middleware) falls back to any version, which would
-	// silently skip version creation.
-	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-	if namespace == "" {
-		app.serverErrorResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used"))
+	discoveredPipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
 		return
 	}
-	pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
-	if pipelineServerBaseURL == "" {
-		app.serverErrorResponse(w, r, fmt.Errorf("missing pipeline server base URL in context - ensure AttachDSPAApiServerBase middleware is used"))
+	if !repositories.HasAllRequiredAutoMLPipelines(discoveredPipelines) {
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return
 	}
-	def := app.pipelineDefinition(pipelineType)
 
-	discovered, ensureErr := app.repositories.Pipeline.EnsurePipeline(client, ctx, namespace, pipelineServerBaseURL, def)
-	if ensureErr != nil {
-		app.serverErrorResponseWithMessage(w, r,
-			fmt.Errorf("failed to ensure AutoML %s pipeline: %w", pipelineType, ensureErr),
-			fmt.Sprintf("failed to create AutoML %s pipeline in namespace", pipelineType))
+	discovered := discoveredPipelines[pipelineType]
+	if discovered == nil {
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return
 	}
 

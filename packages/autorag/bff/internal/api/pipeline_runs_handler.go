@@ -31,7 +31,8 @@ type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 //
 // Error Responses:
 //   - 400: Invalid query parameters
-//   - 500: Missing pipeline server client (middleware misconfiguration) or no AutoRAG pipeline found
+//   - 404: Required managed AutoRAG pipeline not found on the pipeline server
+//   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -50,13 +51,7 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	}
 	discovered := pipelines[constants.PipelineTypeAutoRAG]
 	if discovered == nil {
-		// No pipeline discovered — return empty runs list.
-		// The pipeline will be auto-created when the user submits their first experiment.
-		if err := app.WriteJSON(w, http.StatusOK, PipelineRunsEnvelope{
-			Data: &models.PipelineRunsData{Runs: []models.PipelineRun{}},
-		}, nil); err != nil {
-			app.serverErrorResponse(w, r, err)
-		}
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return
 	}
 

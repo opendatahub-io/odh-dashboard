@@ -121,7 +121,7 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
-	t.Run("should return empty runs list when no AutoRAG pipeline discovered", func(t *testing.T) {
+	t.Run("should return 404 when no AutoRAG pipeline discovered", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
@@ -133,20 +133,12 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		// Set empty pipelines map (no AutoRAG pipeline discovered)
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
 		req = req.WithContext(ctx)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-		var response struct {
-			Data models.PipelineRunsData `json:"data"`
-		}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.NotNil(t, response.Data.Runs)
-		assert.Len(t, response.Data.Runs, 0)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
 }
