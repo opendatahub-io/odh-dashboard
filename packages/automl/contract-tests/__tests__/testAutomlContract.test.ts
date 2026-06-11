@@ -1121,6 +1121,7 @@ describe('AutoML API Contract Tests', () => {
             train_data_file_key: 'data/train.csv',
             label_column: 'target',
             task_type: 'multiclass',
+            eval_metric: 'roc_auc',
             top_n: 5,
           });
           expect(result).toMatchContract(apiSchema, {
@@ -1166,6 +1167,22 @@ describe('AutoML API Contract Tests', () => {
             train_data_file_key: 'k',
             label_column: 'target',
             task_type: 'unsupervised',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 for invalid eval_metric', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'bad-eval-metric-run',
+            train_data_secret_name: 's',
+            train_data_bucket_name: 'b',
+            train_data_file_key: 'k',
+            label_column: 'target',
+            task_type: 'binary',
+            eval_metric: 'invalid_metric',
           });
           expect(result.success).toBe(false);
           if (!result.success) {
@@ -1224,6 +1241,7 @@ describe('AutoML API Contract Tests', () => {
             timestamp_column: 'date',
             prediction_length: 7,
             known_covariates_names: ['temperature', 'is_holiday'],
+            eval_metric: 'RMSE',
             top_n: 5,
           });
           expect(result).toMatchContract(apiSchema, {
