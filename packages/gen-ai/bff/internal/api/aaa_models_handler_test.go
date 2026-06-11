@@ -745,6 +745,45 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		assert.Equal(t, http.StatusServiceUnavailable, rr.Code, "Should return 503 when MaaS is unavailable and it's the only source")
 	})
 
+	It("should return partial response headers when MaaS fails in mixed-source request", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace,maas", nil)
+		assert.NoError(t, err)
+
+		// Create mock MaaS client that returns error
+		mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		mockMaaSClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+			return bffclient.NewBFFClientError(bffclient.ErrCodeInternalError, "MaaS service unavailable", 503)
+		}
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.ModelsAAHandler(rr, req, nil)
+
+		// Mixed-source request should succeed with partial response headers
+		assert.Equal(t, http.StatusOK, rr.Code, "Should return 200 with partial response when MaaS fails but namespace succeeds")
+		assert.Equal(t, "true", rr.Header().Get("X-Partial-Response"), "Should set X-Partial-Response header")
+		assert.Equal(t, "MaaS source unavailable", rr.Header().Get("X-Partial-Reason"), "Should set X-Partial-Reason header")
+
+		var response ModelsAAEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		// Should still have namespace models (no MaaS models)
+		assert.NotEmpty(t, response.Data, "Should return namespace models despite MaaS failure")
+		for _, model := range response.Data {
+			assert.NotEqual(t, models.ModelSourceTypeMaaS, model.ModelSourceType, "Should not have MaaS models when MaaS source failed")
+		}
+	})
+
 	It("should reject empty tokens in sources parameter", func() {
 		t := GinkgoT()
 		// Empty tokens (from trailing commas, etc.) are now rejected

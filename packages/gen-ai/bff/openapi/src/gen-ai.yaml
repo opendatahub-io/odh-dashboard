@@ -432,13 +432,37 @@ paths:
               summary: Only MaaS models
       responses:
         '200':
-          $ref: '#/components/responses/AAModelsResponse'
+          description: >-
+            Successful response with models from requested sources.
+            In mixed-source requests, if one source fails, the response includes models from successful sources
+            with X-Partial-Response: true and X-Partial-Reason headers indicating which source failed.
+          headers:
+            X-Partial-Response:
+              schema:
+                type: string
+                enum: ['true']
+              description: Present when a mixed-source request partially failed (e.g., MaaS unavailable but namespace succeeded)
+            X-Partial-Reason:
+              schema:
+                type: string
+                example: 'MaaS source unavailable'
+              description: Explanation of which source failed in a partial response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AAModelsResponseEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          description: MaaS BFF unavailable (only when sources=maas is the sole requested source)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
       operationId: listAAModels
       summary: List AI Available Assets Models
       description: Gets a list of all available AI Available Assets models from selected sources.
@@ -781,7 +805,7 @@ paths:
               properties:
                 name:
                   type: string
-                  description: Optional name for the key. If omitted, the MaaS service assigns a name automatically.
+                  description: Optional name for the key. If omitted, the BFF generates an ephemeral name (genai-ephemeral-{unix}).
                 description:
                   type: string
                   description: Optional description for the key.
@@ -836,6 +860,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          description: MaaS BFF unavailable or unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
       operationId: issueMaaSToken
 
   # =============================================================================
