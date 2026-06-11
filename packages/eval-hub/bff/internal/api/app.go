@@ -161,7 +161,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		var discErr error
 		crDiscoverer, discErr = k8s.NewSADiscoverer(logger)
 		if discErr != nil {
-			logger.Warn("Failed to create SA-based CR discoverer; cluster-wide CR discovery will be unavailable",
+			if cfg.EvalHubURL == "" {
+				return nil, fmt.Errorf("SA-based CR discoverer init failed and no EVAL_HUB_URL override is set: %w", discErr)
+			}
+			logger.Warn("Failed to create SA-based CR discoverer; using EVAL_HUB_URL override only",
 				slog.Any("error", discErr))
 		}
 	}

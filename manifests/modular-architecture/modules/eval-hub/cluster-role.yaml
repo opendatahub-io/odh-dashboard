@@ -13,6 +13,5 @@ rules:
       - trustyai.opendatahub.io
     verbs:
       - list
-      - get
     resources:
       - evalhubs
