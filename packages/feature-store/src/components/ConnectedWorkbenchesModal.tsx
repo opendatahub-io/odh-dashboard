@@ -50,24 +50,15 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
 
-  React.useEffect(() => {
-    if (initialFeastProjectName) {
-      setSelectedFeastProjectName(initialFeastProjectName);
-    }
-  }, [initialFeastProjectName]);
-
   const { projects, selectedProject, loaded, error } = useConnectedWorkbenches(
     selectedFeastProjectName || undefined,
   );
 
-  const activeProject =
-    selectedProject ??
-    projects.find((project) => project.feastProjectName === selectedFeastProjectName);
-
   const tableRows = React.useMemo(() => {
-    const rows = buildConnectedWorkbenchRows(selectedFeastProjectName ? activeProject : projects);
+    const projectData = selectedFeastProjectName ? selectedProject : projects;
+    const rows = buildConnectedWorkbenchRows(projectData);
     return filterRowsByToggle(rows, hideProjectsWithConnectedWorkbenches);
-  }, [selectedFeastProjectName, activeProject, projects, hideProjectsWithConnectedWorkbenches]);
+  }, [selectedFeastProjectName, selectedProject, projects, hideProjectsWithConnectedWorkbenches]);
 
   const filteredProjects = React.useMemo(
     () =>
@@ -84,7 +75,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
   );
 
   const sort = useTableColumnSort<ConnectedWorkbenchTableRowData>(columns, [], 0);
-  const sortedRows = sort.transformData(tableRows);
+  const sortedRows = React.useMemo(() => sort.transformData(tableRows), [sort, tableRows]);
   const paginatedRows = sortedRows.slice(pageSize * (page - 1), pageSize * page);
 
   React.useEffect(() => {
@@ -164,7 +155,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
           </StackItem>
 
           <StackItem>
-            {!loaded && !error && (
+            {isLoading && (
               <Bullseye aria-live="polite" aria-busy>
                 <Spinner
                   size="xl"

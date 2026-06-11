@@ -16,7 +16,9 @@ const TOOLTIP_ADMIN =
 
 const ConnectedWorkbenchesLink: React.FC = () => {
   const { accessibleProjects, projectsLoaded, projectsError } = useFeatureStoreAccessibleProjects();
-  const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
+  const [canCreateFeatureStore, canCreateLoaded] = useAccessAllowed(
+    verbModelAccess('create', FeatureStoreModel),
+  );
   const { currentProject } = useFeatureStoreProject();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
@@ -39,10 +41,12 @@ const ConnectedWorkbenchesLink: React.FC = () => {
   );
 
   const content =
-    !hasNoProjects || !isAdminLoaded ? (
+    !hasNoProjects || !canCreateLoaded ? (
       button
     ) : (
-      <Tooltip content={isAdmin ? TOOLTIP_ADMIN : TOOLTIP_REGULAR_USER}>{button}</Tooltip>
+      <Tooltip content={canCreateFeatureStore ? TOOLTIP_ADMIN : TOOLTIP_REGULAR_USER}>
+        {button}
+      </Tooltip>
     );
 
   return (
