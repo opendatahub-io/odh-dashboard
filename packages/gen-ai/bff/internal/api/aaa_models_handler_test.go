@@ -359,7 +359,7 @@ var _ = Describe("fetchMaaSModels", func() {
 
 		assert.Error(t, err)
 		assert.Nil(t, aaModels)
-		assert.Contains(t, err.Error(), "MaaS BFF client not available")
+		assert.Contains(t, err.Error(), "Target BFF service is not available")
 	})
 
 	It("should return error when MaaS BFF call fails", func() {
