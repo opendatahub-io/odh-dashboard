@@ -530,6 +530,17 @@ jobs:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
       MATRIX_TAG: ${{ matrix.tag }}
     steps:
+      - name: Validate tag format
+        run: |
+          for tag in $MATRIX_TAG; do
+            if [[ ! "$tag" =~ ^@[a-zA-Z0-9_-]+$ ]]; then
+              echo "❌ Invalid tag format (security): $tag"
+              echo "   Tags must match: ^@[a-zA-Z0-9_-]+$"
+              exit 1
+            fi
+          done
+          echo "✅ Tag format valid: $MATRIX_TAG"
+
       - name: Check Disk Space
         run: |
           echo "📊 Checking available disk space..."
@@ -1259,12 +1270,6 @@ jobs:
           cd frontend
 
           TAG="$MATRIX_TAG"
-          if [[ ! "$TAG" =~ ^[@a-zA-Z0-9_\ -]+$ ]]; then
-            echo "❌ Invalid tag format (security): $TAG"
-            echo "   Tags must contain only: @ a-z A-Z 0-9 _ - space"
-            exit 1
-          fi
-
           if [ ${#TAG} -gt 200 ]; then
             TAG_DIR=$(echo -n "$TAG" | sha256sum | cut -c1-12)
             echo "📁 Tag too long for directory name (${#TAG} chars), using hash: ${TAG_DIR}"
