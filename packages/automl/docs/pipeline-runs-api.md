@@ -432,7 +432,7 @@ Additional required fields for timeseries forecasting pipelines:
 - Unknown JSON fields are rejected (strict decoding)
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF
 - The `task_type` field selects between the auto-discovered timeseries and tabular pipelines
-- If the requested pipeline type is not found in the namespace, the request returns a 500 error
+- If required managed AutoML pipelines are unavailable in the namespace, the request returns `404 Not Found`
 - Request body validation is performed based on the selected task type
 
 ### Request Examples
@@ -524,7 +524,8 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 | `400 Bad Request` | Missing required fields (common or task-type-specific), missing `task_type`, invalid `task_type` value, unknown JSON fields, or missing `namespace` |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
-| `500 Internal Server Error` | No matching AutoML pipeline found or KFP client failure |
+| `404 Not Found` | Required managed AutoML pipelines are unavailable in the namespace |
+| `500 Internal Server Error` | KFP client failure or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
 #### Example Validation Errors
@@ -770,7 +771,8 @@ Returned when the authenticated user does not have permission to access pipeline
 
 Returned when:
 - The specified namespace does not exist in the cluster, OR
-- No Pipeline Server (DSPipelineApplication) resources exist in the namespace
+- No Pipeline Server (DSPipelineApplication) resources exist in the namespace, OR
+- Required managed AutoML pipelines are unavailable in the namespace (List and Create require both tabular and timeseries pipelines)
 
 **Example response when no DSPA exists:**
 ```json
@@ -778,6 +780,16 @@ Returned when:
   "error": {
     "code": "404",
     "message": "no Pipeline Server (DSPipelineApplication) found in namespace"
+  }
+}
+```
+
+**Example response when managed pipelines are unavailable (List and Create):**
+```json
+{
+  "error": {
+    "code": "404",
+    "message": "no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
   }
 }
 ```
@@ -1023,7 +1035,7 @@ If you receive a 403 error:
 
 ### 404 Not Found
 
-A 404 error can occur in two scenarios:
+A 404 error can occur in these scenarios:
 
 **Scenario 1: Namespace does not exist**
 1. Verify the namespace exists:
@@ -1042,6 +1054,13 @@ If the error message is "no Pipeline Server (DSPipelineApplication) found in nam
    ```
 2. If no DSPA exists, create one following the Data Science Pipelines documentation
 3. If you just created a DSPA, wait a moment for it to be discovered and become ready
+
+**Scenario 3: Required managed AutoML pipelines unavailable**
+
+If the error message is "no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server":
+1. Verify the pipeline server has managed pipelines enabled (AutoML and AutoRAG)
+2. Confirm both managed AutoML pipelines exist on the pipeline server (`autogluon-tabular-training-pipeline` and `autogluon-timeseries-training-pipeline` by default)
+3. Wait for discovery cache to refresh (5 minutes) or restart the BFF if you just enabled managed pipelines
 
 ### 503 Service Unavailable - Pipeline Server Not Ready
 

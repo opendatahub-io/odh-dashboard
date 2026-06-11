@@ -258,8 +258,7 @@ This endpoint automatically discovers the AutoRAG managed pipeline in the namesp
 - Returns the run if it exists and belongs to the discovered AutoRAG pipeline
 - Returns `404 Not Found` if:
   - The run does not exist, OR
-  - The run belongs to a different pipeline (not the AutoRAG pipeline)
-- Returns `500 Internal Server Error` if:
+  - The run belongs to a different pipeline (not the AutoRAG pipeline), OR
   - No AutoRAG managed pipeline is found in the namespace
 
 ### Request Example
@@ -393,7 +392,7 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF - no manual configuration needed
 - The BFF discovers the AutoRAG managed pipeline by searching for pipelines with names starting with "autorag" (case-insensitive)
 - Discovery results are cached for 5 minutes per namespace to reduce API calls
-- If no AutoRAG pipeline is found, the request returns a 500 error
+- If no AutoRAG managed pipeline is found, the request returns `404 Not Found`
 - `experiment_id` is not passed — KFP assigns one automatically (defaults to "Default" experiment)
 
 ### Request Example
@@ -457,6 +456,7 @@ Returns `200 OK` with the created pipeline run:
 | `400 Bad Request` | Missing required fields, invalid `optimization_metric`, unknown JSON fields, malformed JSON, or missing `namespace` |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | No AutoRAG managed pipeline is found in the namespace |
 | `500 Internal Server Error` | KFP client failure or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
@@ -726,7 +726,8 @@ Returned when the authenticated user does not have permission to access services
 
 Returned when:
 - The specified namespace does not exist in the cluster, OR
-- No Pipeline Server (DSPipelineApplication) resources exist in the namespace
+- No Pipeline Server (DSPipelineApplication) resources exist in the namespace, OR
+- No AutoRAG managed pipeline is found in the namespace (List and Create)
 
 **Example response when no DSPA exists:**
 ```json
@@ -738,20 +739,29 @@ Returned when:
 }
 ```
 
+**Example response when managed pipelines are unavailable (List and Create):**
+```json
+{
+  "error": {
+    "code": "404",
+    "message": "no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
+  }
+}
+```
+
 ### 500 Internal Server Error
 
 Returned when:
-- No AutoRAG managed pipeline found in namespace (List and Create return `404 Not Found`)
 - Internal processing error occurs
 - Unable to communicate with Kubernetes API
 - Unable to communicate with Pipeline Server API
 
-**Example response (no AutoRAG pipeline — Create/Get/Terminate/Retry only):**
+**Example response:**
 ```json
 {
   "error": {
     "code": "500",
-    "message": "no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed"
+    "message": "failed to get pipeline runs: connection refused"
   }
 }
 ```
@@ -934,7 +944,7 @@ If you receive a 403 error:
 
 ### 404 Not Found
 
-A 404 error can occur in two scenarios:
+A 404 error can occur in these scenarios:
 
 **Scenario 1: Namespace does not exist**
 1. Verify the namespace exists:
@@ -953,6 +963,13 @@ If the error message is "no Pipeline Server (DSPipelineApplication) found in nam
    ```
 2. If no DSPA exists, create one following the Data Science Pipelines documentation
 3. If you just created a DSPA, wait a moment for it to be discovered and become ready
+
+**Scenario 3: No AutoRAG managed pipeline found in the namespace**
+
+If the error message is "no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server":
+1. Verify the pipeline server has managed pipelines enabled (AutoML and AutoRAG)
+2. Confirm the AutoRAG managed pipeline (`documents-rag-optimization-pipeline` by default) exists on the pipeline server
+3. Wait for discovery cache to refresh (5 minutes) or restart the BFF if you just enabled managed pipelines
 
 ### 503 Service Unavailable - Pipeline Server Not Ready
 

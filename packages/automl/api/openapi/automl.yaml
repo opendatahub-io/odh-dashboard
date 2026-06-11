@@ -597,7 +597,8 @@ paths:
       description: >-
         Returns merged pipeline runs from all auto-discovered AutoML pipelines (time-series
         and tabular). Runs are sorted by creation time descending and paginated using
-        page/pageSize. Returns 500 if no managed AutoML pipelines are found in the namespace.
+        page/pageSize. Returns 404 Not Found if no managed AutoML pipelines are found in the
+        namespace, or if only one of the required tabular and timeseries pipelines is present.
     post:
       tags:
         - PipelineOperation
@@ -694,6 +695,10 @@ paths:
           target (required), id_column (required), timestamp_column (required),
           task_type (required, must be "timeseries"),
           prediction_length (optional, default: 1), known_covariates_names (optional array)
+
+
+        Returns 404 Not Found if required managed AutoML pipelines are unavailable in the
+        namespace (both tabular and timeseries must be present).
 
   /api/v1/pipeline-runs/{runId}:
     summary: Get a single pipeline run by ID
