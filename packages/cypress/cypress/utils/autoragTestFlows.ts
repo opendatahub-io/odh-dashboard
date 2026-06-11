@@ -30,18 +30,10 @@ export const configureAutoragRun = (
   autoragExperimentsPage.visit(projectName);
 
   cy.step('Wait for pipeline server to be fully ready and click Create run');
-  // Wait for either the header create button or empty state create button to appear
-  cy.get('[data-testid="autorag-header-create-run-button"], [data-testid="create-run-button"]', {
-    timeout: 120000,
-  })
-    .first()
-    .click();
+  autoragExperimentsPage.findAnyCreateRunButton({ timeout: 120000 }).click();
 
   cy.step('Fill name and description');
-  autoragConfigurePage
-    .findNameInput()
-    .should('be.visible', { timeout: 30000 })
-    .type(testData.runName);
+  autoragConfigurePage.findNameInput({ timeout: 30000 }).type(testData.runName);
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
 
   cy.step('Select OGX secret');

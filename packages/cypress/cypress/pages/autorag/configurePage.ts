@@ -10,8 +10,8 @@ class AutoragConfigurePage {
   }
 
   // Step 1 - Create
-  findNameInput() {
-    return cy.findByTestId('autorag-name-input');
+  findNameInput(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return cy.findByTestId('autorag-name-input', options);
   }
 
   findDescriptionInput() {

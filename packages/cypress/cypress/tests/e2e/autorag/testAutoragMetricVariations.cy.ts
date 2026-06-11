@@ -25,7 +25,7 @@ const faithUuid = `${uuid}-faith`;
 
 const isExternalOgx = (): boolean => !!(Cypress.env('OGX_URL') as string);
 
-describe('AutoRAG Metric Variations E2E', () => {
+describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   let testData: AutoragTestData;
   let projectName: string;
   let autoragWasEnabled = false;

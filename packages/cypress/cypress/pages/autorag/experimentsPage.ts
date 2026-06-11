@@ -43,6 +43,15 @@ class AutoragExperimentsPage {
   findHeaderCreateRunButton() {
     return cy.findByTestId('autorag-header-create-run-button');
   }
+
+  findAnyCreateRunButton(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return cy
+      .get(
+        '[data-testid="autorag-header-create-run-button"], [data-testid="create-run-button"]',
+        options,
+      )
+      .first();
+  }
 }
 
 export const autoragExperimentsPage = new AutoragExperimentsPage();
