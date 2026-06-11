@@ -28,6 +28,7 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOps: false,
   roleManagement: false,
+  agentProfileManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
