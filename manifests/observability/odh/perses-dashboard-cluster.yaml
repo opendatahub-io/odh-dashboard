@@ -6,7 +6,7 @@ spec:
   display:
     name: Cluster
   duration: 1h
-  # Namespace variable - queries Prometheus by default, but can be overridden by NamespaceVariablesProvider
+  # Namespace variable - queries the cluster-scoped Prometheus datasource, can be overridden by NamespaceVariablesProvider
   variables:
     - kind: ListVariable
       spec:
@@ -23,6 +23,7 @@ spec:
           spec:
             datasource:
               kind: PrometheusDatasource
+              name: cluster-prometheus-datasource
             labelName: namespace
             matchers:
               - kserve_vllm:num_requests_running
@@ -76,6 +77,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   # Healthy nodes / Total nodes
                   query: count(max by (node) (kube_node_status_condition{condition="Ready",status="true"} == 1)) / count(max by (node) (kube_node_status_condition{condition="Ready",status="true"}))
                   seriesNameFormat: System health
@@ -99,6 +101,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   # Count unique models by model_name and namespace from vLLM metrics
                   query: count(group(kserve_vllm:num_requests_running) by (model_name, namespace))
                   seriesNameFormat: Deployed models
@@ -121,6 +124,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   query: avg(accelerator_gpu_utilization)
                   seriesNameFormat: GPU usage
     successRate:
@@ -143,6 +147,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   # Request success rate using kserve_vllm metrics
                   query: (sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace", finished_reason=~"length|stop"}[$__range])) / sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace"}[$__range]))) and (sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace"}[$__range])) > 0)
                   seriesNameFormat: Request success rate
@@ -172,6 +177,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   query: avg(accelerator_gpu_utilization)
                   seriesNameFormat: GPU usage
     memoryUtilizationArea:
@@ -199,6 +205,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   query: sum(container_memory_working_set_bytes{container!="", image!=""}) / sum(node_memory_MemTotal_bytes)
                   seriesNameFormat: Memory allocated
     cpuUtilizationArea:
@@ -226,6 +233,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   query: sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate) / sum(kube_node_status_allocatable{resource="cpu"})
                   seriesNameFormat: CPU usage
     networkUtilizationArea:
@@ -253,6 +261,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   # Network receive rate in bytes/second
                   query: sum(rate(container_network_receive_bytes_total[$__rate_interval]))
                   seriesNameFormat: Network
@@ -286,6 +295,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   query: sum by (exported_namespace) (accelerator_gpu_utilization{exported_namespace=~"$namespace"}) / scalar(count(accelerator_gpu_utilization))
                   seriesNameFormat: "{{exported_namespace}}"
     cpuUtilizationByProject:
@@ -318,6 +328,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   # CPU usage by namespace as percentage of total cluster allocatable CPU
                   query: sum by (namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"}) / scalar(sum(kube_node_status_allocatable{resource="cpu"}))
                   seriesNameFormat: "{{namespace}}"
@@ -351,6 +362,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                    name: cluster-prometheus-datasource
                   # Memory allocated by namespace as percentage of total cluster memory
                   query: sum by (namespace) (container_memory_working_set_bytes{namespace=~"$namespace", container!="", image!=""}) / scalar(sum(node_memory_MemTotal_bytes))
                   seriesNameFormat: "{{namespace}}"

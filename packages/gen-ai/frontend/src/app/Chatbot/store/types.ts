@@ -78,6 +78,12 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
 export interface ChatbotConfigStoreState {
   configurations: { [id: string]: ChatbotConfiguration | undefined };
   configIds: string[];
+  /**
+   * True when the current configuration was loaded from an AgentProfile.
+   * Set by applyAgentProfile(), cleared by resetConfiguration().
+   * Use this to drive loaded-profile UI state (e.g. header indicators, save/discard flows).
+   */
+  profileApplied: boolean;
 }
 
 /**
@@ -135,6 +141,12 @@ export interface ChatbotConfigStoreActions {
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
+  /**
+   * Apply an AgentProfile to the store. Behaves like resetConfiguration but sets
+   * profileApplied: true so the knowledge-mode sync effect in ChatbotConfigInstance
+   * knows not to clear an external vector store ID that came from the profile.
+   */
+  applyAgentProfile: (config: Partial<ChatbotConfiguration>) => void;
 
   // Utility
   getConfiguration: (id: string) => ChatbotConfiguration | undefined;
