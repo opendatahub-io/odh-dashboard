@@ -1,5 +1,5 @@
 import type { ColumnSchema } from '~/app/hooks/queries';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { TASK_TYPES, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   TASK_TYPE_BINARY,
   TASK_TYPE_LABELS,
@@ -17,28 +17,29 @@ export type PredictionTypeOption = {
   description: string;
 };
 
-export const PREDICTION_TYPE_OPTIONS: PredictionTypeOption[] = [
-  {
-    value: TASK_TYPE_BINARY,
+const PREDICTION_TYPE_CONFIG = {
+  [TASK_TYPE_BINARY]: {
     label: TASK_TYPE_LABELS[TASK_TYPE_BINARY],
     description: 'Classify data into exactly 2 categories (for example, yes/no or true/false).',
   },
-  {
-    value: TASK_TYPE_MULTICLASS,
+  [TASK_TYPE_MULTICLASS]: {
     label: TASK_TYPE_LABELS[TASK_TYPE_MULTICLASS],
     description: 'Classify data into 3 or more categories with distinct boundaries.',
   },
-  {
-    value: TASK_TYPE_REGRESSION,
+  [TASK_TYPE_REGRESSION]: {
     label: TASK_TYPE_LABELS[TASK_TYPE_REGRESSION],
     description: 'Predict a continuous numeric output from input features.',
   },
-  {
-    value: TASK_TYPE_TIMESERIES,
+  [TASK_TYPE_TIMESERIES]: {
     label: TASK_TYPE_LABELS[TASK_TYPE_TIMESERIES],
     description: 'Predict future values based on time-ordered historical data.',
   },
-];
+} satisfies Record<PredictionTypeValue, { label: string; description: string }>;
+
+export const PREDICTION_TYPE_OPTIONS: PredictionTypeOption[] = TASK_TYPES.map((taskType) => ({
+  value: taskType,
+  ...PREDICTION_TYPE_CONFIG[taskType],
+}));
 
 type PredictionTypeAssessmentBase = {
   value: PredictionTypeValue;
