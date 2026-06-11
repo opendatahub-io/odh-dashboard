@@ -28,16 +28,15 @@ const mockExportCode = jest.fn();
 // Create a shared mock store that will be modified per test
 let mockStore: ChatbotConfigStore | undefined;
 
-type MockConfig = NonNullable<ReturnType<ChatbotConfigStore['getConfiguration']>>;
+type MockConfig = Partial<NonNullable<ReturnType<ChatbotConfigStore['getConfiguration']>>>;
 
-const createMockStore = (configOverrides: Partial<MockConfig> = {}) => {
-  const defaultConfig: MockConfig = {
+const createMockStore = (configOverrides: MockConfig = {}) => {
+  const defaultConfig = {
     selectedModel: 'test-model',
     systemInstruction: 'You are a helpful assistant.',
     selectedMcpServerIds: [] as string[],
     temperature: 0.1,
     isStreamingEnabled: true,
-    guardrailsEnabled: false,
     mcpToolSelections: {},
     isRagEnabled: false,
     knowledgeMode: 'inline' as const,
@@ -65,7 +64,7 @@ const createMockStore = (configOverrides: Partial<MockConfig> = {}) => {
   return store as unknown as ChatbotConfigStore;
 };
 
-const setupMockStore = (configOverrides: Partial<MockConfig> = {}) => {
+const setupMockStore = (configOverrides: MockConfig = {}) => {
   mockStore = createMockStore(configOverrides);
 
   // Reset the mock implementation with the new store
@@ -518,7 +517,12 @@ describe('ViewCodeModal', () => {
     setupMockStore({
       systemInstruction: 'Review {{language}} code for {{name}}.',
       variableValues: { language: 'TypeScript', name: 'Alice' },
-      activePrompt: { name: 'Code_reviewer', version: 2 },
+      activePrompt: {
+        name: 'Code_reviewer',
+        version: 2,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
     });
 
     render(
@@ -541,7 +545,12 @@ describe('ViewCodeModal', () => {
     setupMockStore({
       systemInstruction: 'You are a helpful assistant.',
       variableValues: {},
-      activePrompt: { name: 'Basic_prompt', version: 1 },
+      activePrompt: {
+        name: 'Basic_prompt',
+        version: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
     });
 
     render(
