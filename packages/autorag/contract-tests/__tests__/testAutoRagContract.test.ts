@@ -562,6 +562,52 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
+  describe('Secret Data Endpoint', () => {
+    describe('Success Cases', () => {
+      it('should retrieve a single secret with base64-encoded values', async () => {
+        const result = await apiClient.get('/api/v1/secret/test-secret?namespace=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretDataResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        if (result.success) {
+          const responseData = result.response.data as { data?: Record<string, string> };
+          expect(responseData.data).toBeDefined();
+          expect(typeof responseData.data).toBe('object');
+          expect(Array.isArray(responseData.data)).toBe(false);
+
+          if (responseData.data) {
+            Object.values(responseData.data).forEach((value) => {
+              expect(typeof value).toBe('string');
+              expect(value).not.toBe('[REDACTED]');
+            });
+          }
+        }
+      });
+    });
+
+    describe('Error Cases', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const result = await apiClient.get('/api/v1/secret/some-secret');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 404 for non-existent secret', async () => {
+        const result = await apiClient.get(
+          '/api/v1/secret/nonexistent-secret-12345?namespace=default',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+  });
+
   describe('S3 File Endpoint', () => {
     describe('Success Cases', () => {
       it('should successfully download a file from S3', async () => {
