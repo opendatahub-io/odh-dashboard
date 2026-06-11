@@ -1,0 +1,42 @@
+{
+  "name": "@odh-dashboard/internal",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "type-check": "cd src && tsc --noEmit",
+    "lint": "cd src && eslint .",
+    "lint:fix": "cd src && eslint . --fix",
+    "test-unit": "cd src && jest --silent",
+    "test-unit-coverage": "cd src && jest --silent --coverage"
+  },
+  "imports": {
+    "#~/*": [
+      "./src/*",
+      "./src/*.ts",
+      "./src/*.d.ts",
+      "./src/*.tsx",
+      "./src/*/index.ts",
+      "./src/*/index.tsx"
+    ]
+  },
+  "exports": {
+    "./extensions": "./src/plugins/extensions/index.ts",
+    "./app/AppContext": "./src/app/AppContext.ts",
+    "./app/AppLauncher": "./src/app/AppLauncher.tsx",
+    "./app/ThemeContext": "./src/app/ThemeContext.tsx",
+    "./app/*": null,
+    "./plugin/*": null,
+    "./third_party/*": null,
+    "./*": [
+      "./src/*",
+      "./src/*.ts",
+      "./src/*.d.ts",
+      "./src/*.tsx",
+      "./src/*/index.ts",
+      "./src/*/index.tsx"
+    ]
+  },
+  "dependencies": {
+    "@odh-dashboard/plugin-core": "*"
+  }
+}

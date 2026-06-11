@@ -19,6 +19,8 @@ import {
   HardwareProfileAnnotations,
   HardwareProfileBindingAnnotations,
 } from './types';
+import type { AccessReviewResourceAttributes } from './k8sTypes-core';
+
 export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 export type {
   K8sVerb,

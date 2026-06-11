@@ -82,7 +82,7 @@ const getWorkspacePackages = () => {
 const workspacePackages = getWorkspacePackages();
 
 const odhDashboardShared = Object.fromEntries(
-  [...getRuntimeOdhPackages(workspacePackages, require('../src/package.json'))].map((name) => [
+  [...getRuntimeOdhPackages(workspacePackages)].map((name) => [
     name,
     { singleton: true, requiredVersion: '*', eager: true },
   ]),

@@ -33,7 +33,9 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
     "react": "^18",
     "react-dom": "^18"
   }
