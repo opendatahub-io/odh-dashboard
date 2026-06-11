@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
@@ -451,9 +452,9 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		}
 
 		// Check if MaaS BFF target is configured
-		if !app.bffClientFactory.IsTargetConfigured("maas") {
+		if !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			logger.Debug("MaaS BFF target not configured, attaching nil client")
-			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), nil)
 			next(w, r.WithContext(ctx), ps)
 			return
 		}
@@ -466,7 +467,7 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 
 		// Build headers based on MaaS BFF's auth method
 		forwardHeaders := make(map[string]string)
-		maasConfig := app.bffClientFactory.GetConfig("maas")
+		maasConfig := app.bffClientFactory.GetConfig(bffclient.BFFTargetMaaS)
 
 		if maasConfig != nil && maasConfig.AuthMethod == "internal" {
 			// For internal auth mode (Kubeflow only), forward kubeflow identity headers
@@ -488,10 +489,10 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		forwardHeaders["X-MaaS-Return-All-Models"] = "true"
 
 		// Create BFF client for MaaS target with forwarded headers
-		client := app.bffClientFactory.CreateClientWithHeaders("maas", authToken, forwardHeaders)
+		client := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMaaS, authToken, forwardHeaders)
 		if client == nil {
 			logger.Warn("Failed to create MaaS BFF client")
-			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), nil)
 			next(w, r.WithContext(ctx), ps)
 			return
 		}
@@ -499,7 +500,7 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		logger.Debug("Created MaaS BFF client", "baseURL", client.GetBaseURL())
 
 		// Attach to context
-		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), client)
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), client)
 		next(w, r.WithContext(ctx), ps)
 	}
 }

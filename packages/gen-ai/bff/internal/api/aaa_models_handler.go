@@ -191,12 +191,12 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 	// Get MaaS BFF client from context (set by AttachBFFMaaSClient middleware)
 	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
 	if maasClient == nil {
-		return nil, fmt.Errorf("MaaS BFF client not available")
+		return nil, bffclient.NewServerUnavailableError(bffclient.BFFTargetMaaS)
 	}
 
 	// Call MaaS BFF to get models
 	var bffResponse models.MaaSBFFModelsResponse
-	err := maasClient.Call(ctx, "GET", "/api/v1/models?namespace="+url.QueryEscape(namespace), nil, &bffResponse)
+	err := maasClient.Call(ctx, "GET", "/models?namespace="+url.QueryEscape(namespace), nil, &bffResponse)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call MaaS BFF: %w", err)
 	}
@@ -204,10 +204,16 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 	// Convert MaaS models to AAModel format
 	aaModels := make([]models.AAModel, 0, len(bffResponse.Data.Data))
 	for _, maasModel := range bffResponse.Data.Data {
+		// Build endpoints array, skipping empty URLs
+		var endpoints []string
+		if maasModel.URL != "" {
+			endpoints = []string{maasModel.URL}
+		}
+
 		aaModel := models.AAModel{
 			ModelName:       maasModel.ID,
 			ModelID:         maasModel.ID,
-			Endpoints:       []string{maasModel.URL},
+			Endpoints:       endpoints,
 			Status:          getMaaSModelStatus(maasModel.Ready),
 			ModelSourceType: models.ModelSourceTypeMaaS,
 			ModelType:       models.ModelTypeEnum(maasModel.ModelType),

@@ -66,7 +66,7 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 	// Call MaaS BFF to create API key
 	// MaaS BFF returns response wrapped in envelope: {"data": {"key": "...", "expiresAt": "...", ...}}
 	var bffResponse models.MaaSBFFAPIKeyResponse
-	err := maasClient.Call(ctx, "POST", "/api/v1/api-keys", bffRequest, &bffResponse)
+	err := maasClient.Call(ctx, "POST", "/api-keys", bffRequest, &bffResponse)
 	if err != nil {
 		app.handleBFFClientError(w, r, err)
 		return
