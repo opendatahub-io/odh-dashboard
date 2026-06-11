@@ -337,6 +337,7 @@ var commonFields = []fieldCheck{
 	{"train_data_secret_name", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataSecretName != "" }, true},
 	{"train_data_bucket_name", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataBucketName != "" }, true},
 	{"train_data_file_key", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataFileKey != "" }, true},
+	{"eval_metric", func(r models.CreateAutoMLRunRequest) bool { return r.EvalMetric != nil }, false},
 	{"top_n", func(r models.CreateAutoMLRunRequest) bool { return r.TopN != nil }, false},
 	{"description", func(r models.CreateAutoMLRunRequest) bool { return r.Description != "" }, false},
 }
@@ -417,6 +418,30 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		}
 	}
 
+	if req.EvalMetric != nil {
+		var allowedMetrics map[string]bool
+		switch pipelineType {
+		case constants.PipelineTypeTabular:
+			if req.TaskType != nil {
+				switch *req.TaskType {
+				case constants.TaskTypeBinary, constants.TaskTypeMulticlass:
+					allowedMetrics = constants.ValidClassificationEvalMetrics
+				case constants.TaskTypeRegression:
+					allowedMetrics = constants.ValidRegressionEvalMetrics
+				}
+			}
+		case constants.PipelineTypeTimeSeries:
+			allowedMetrics = constants.ValidTimeseriesEvalMetrics
+		}
+		if allowedMetrics != nil && !allowedMetrics[*req.EvalMetric] {
+			taskTypeStr := pipelineType
+			if req.TaskType != nil {
+				taskTypeStr = *req.TaskType
+			}
+			return NewValidationError(fmt.Sprintf("invalid eval_metric %q for task_type %q", *req.EvalMetric, taskTypeStr))
+		}
+	}
+
 	if req.TopN != nil {
 		if *req.TopN < constants.MinTopN {
 			return NewValidationError(fmt.Sprintf("invalid top_n: must be at least %d", constants.MinTopN))
@@ -474,6 +499,10 @@ func BuildPipelineRunInput(req models.CreateAutoMLRunRequest, pipelineID, pipeli
 		if req.KnownCovariatesNames != nil {
 			params["known_covariates_names"] = *req.KnownCovariatesNames
 		}
+	}
+
+	if req.EvalMetric != nil {
+		params["eval_metric"] = *req.EvalMetric
 	}
 
 	topN := constants.DefaultTopN

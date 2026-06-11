@@ -303,6 +303,101 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 			t.Fatal("expected error")
 		}
 	})
+
+	t.Run("nil eval_metric allowed", func(t *testing.T) {
+		req := validTabularRequest()
+		req.EvalMetric = nil
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("valid eval_metric for binary classification", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TaskType = ptr("binary")
+		req.EvalMetric = ptr("f1")
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("valid eval_metric for multiclass classification", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TaskType = ptr("multiclass")
+		req.EvalMetric = ptr("roc_auc")
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("valid eval_metric for regression", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TaskType = ptr("regression")
+		req.LabelColumn = ptr("price")
+		req.EvalMetric = ptr("r2")
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("valid eval_metric for timeseries", func(t *testing.T) {
+		req := validTimeSeriesRequest()
+		req.EvalMetric = ptr("MASE")
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("reject regression eval_metric for binary", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TaskType = ptr("binary")
+		req.EvalMetric = ptr("r2")
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "invalid eval_metric") {
+			t.Errorf("error should mention invalid eval_metric: %v", err)
+		}
+	})
+
+	t.Run("reject classification eval_metric for regression", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TaskType = ptr("regression")
+		req.LabelColumn = ptr("price")
+		req.EvalMetric = ptr("accuracy")
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "invalid eval_metric") {
+			t.Errorf("error should mention invalid eval_metric: %v", err)
+		}
+	})
+
+	t.Run("reject tabular eval_metric for timeseries", func(t *testing.T) {
+		req := validTimeSeriesRequest()
+		req.EvalMetric = ptr("accuracy")
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "invalid eval_metric") {
+			t.Errorf("error should mention invalid eval_metric: %v", err)
+		}
+	})
+
+	t.Run("reject timeseries eval_metric for tabular", func(t *testing.T) {
+		req := validTabularRequest()
+		req.EvalMetric = ptr("MASE")
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "invalid eval_metric") {
+			t.Errorf("error should mention invalid eval_metric: %v", err)
+		}
+	})
 }
 
 func TestBuildPipelineRunInput(t *testing.T) {
@@ -358,6 +453,24 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		}
 		if params["prediction_length"] != 1 {
 			t.Errorf("prediction_length = %v, want default 1", params["prediction_length"])
+		}
+	})
+
+	t.Run("includes eval_metric when provided", func(t *testing.T) {
+		req := validTabularRequest()
+		req.EvalMetric = ptr("f1")
+		kfp := BuildPipelineRunInput(req, "pid", "vid", constants.PipelineTypeTabular)
+		if kfp.RuntimeConfig.Parameters["eval_metric"] != "f1" {
+			t.Errorf("eval_metric = %v, want f1", kfp.RuntimeConfig.Parameters["eval_metric"])
+		}
+	})
+
+	t.Run("omits eval_metric when nil", func(t *testing.T) {
+		req := validTabularRequest()
+		req.EvalMetric = nil
+		kfp := BuildPipelineRunInput(req, "pid", "vid", constants.PipelineTypeTabular)
+		if _, ok := kfp.RuntimeConfig.Parameters["eval_metric"]; ok {
+			t.Error("eval_metric should not be present when nil")
 		}
 	})
 

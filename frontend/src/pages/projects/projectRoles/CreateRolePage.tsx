@@ -17,7 +17,7 @@ import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescripti
 import { RoleKind } from '#~/k8sTypes';
 import CreateRoleForm from './CreateRoleForm';
 import CreateRoleFooter from './CreateRoleFooter';
-import type { LabelEntry } from './types';
+import type { LabelEntry, RuleEntry } from './types';
 
 type CreateRolePageProps = {
   existingRole?: RoleKind;
@@ -52,6 +52,15 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
       value,
     }));
   });
+  const [rules, setRules] = React.useState<RuleEntry[]>(() => {
+    if (!existingRole?.rules) {
+      return [];
+    }
+    return existingRole.rules.map((rule) => ({
+      ...rule,
+      id: getUniqueId('rule'),
+    }));
+  });
 
   const handleDescriptionChange = React.useCallback((value: string) => {
     setDescription(value);
@@ -59,6 +68,10 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
 
   const handleLabelsChange = React.useCallback((newLabels: LabelEntry[]) => {
     setLabels(newLabels);
+  }, []);
+
+  const handleRulesChange = React.useCallback((newRules: RuleEntry[]) => {
+    setRules(newRules);
   }, []);
 
   const hasDuplicateLabelKeys = React.useMemo(
@@ -120,6 +133,8 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
           onDescriptionChange={handleDescriptionChange}
           labels={labels}
           onLabelsChange={handleLabelsChange}
+          rules={rules}
+          onRulesChange={handleRulesChange}
         />
       </PageSection>
       <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>

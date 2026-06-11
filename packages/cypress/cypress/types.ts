@@ -302,6 +302,7 @@ export type DataScienceProjectData = {
   legacyHardwareProfileName?: string;
   subscriptionDisplayName: string;
   subscriptionName: string;
+  subscriptionNamespace: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
@@ -754,6 +755,10 @@ export type AutomlTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   // Number of top models to train (min 1, default 3)
   topN?: number;
+  // Optimization metric
+  defaultMetricLabel?: string;
+  changedMetricKey?: string;
+  changedMetricLabel?: string;
   // Tabular task types (binary, multiclass, regression)
   labelColumn?: string;
   // Timeseries task type
