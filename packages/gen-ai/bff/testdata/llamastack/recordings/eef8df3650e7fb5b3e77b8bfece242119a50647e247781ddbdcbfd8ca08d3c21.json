@@ -16,7 +16,7 @@
           "content": "",
           "tool_calls": [
             {
-              "id": "function-call-15489403476799222780",
+              "id": "function-call-7028328847705179176",
               "type": "function",
               "function": {
                 "name": "file_search",
@@ -27,7 +27,7 @@
         },
         {
           "role": "tool",
-          "tool_call_id": "function-call-15489403476799222780",
+          "tool_call_id": "function-call-7028328847705179176",
           "content": [
             {
               "type": "text",
@@ -75,7 +75,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.37.0"
+      "openai_sdk_version": "2.41.1"
     }
   },
   "response": {
@@ -83,11 +83,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-261f050ed4ad",
+          "id": "rec-eef8df3650e7",
           "choices": [
             {
               "delta": {
-                "content": "I",
+                "content": "Machine",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -101,6 +101,7 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
@@ -115,11 +116,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-261f050ed4ad",
+          "id": "rec-eef8df3650e7",
           "choices": [
             {
               "delta": {
-                "content": " couldn't find a specific definition of machine learning in the files I searched. However, generally",
+                "content": " learning is a field of artificial intelligence that uses statistical techniques to give computer systems the ability to",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -133,12 +134,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 21,
+            "completion_tokens": 19,
             "prompt_tokens": 139,
-            "total_tokens": 160,
+            "total_tokens": 158,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -147,43 +149,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-261f050ed4ad",
+          "id": "rec-eef8df3650e7",
           "choices": [
             {
               "delta": {
-                "content": " speaking, machine learning is a field of artificial intelligence that focuses on enabling computer systems to learn from data without being explicitly programmed. It involves developing algorithms and models that can analyze data, identify patterns, and make predictions or decisions based on those patterns.\n",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 70,
-            "prompt_tokens": 139,
-            "total_tokens": 209,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-261f050ed4ad",
-          "choices": [
-            {
-              "delta": {
-                "content": null,
+                "content": " \"learn\" from data, without being explicitly programmed. It's about creating models that can identify patterns in data and make predictions or decisions based on those patterns.\n",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -197,12 +167,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 70,
+            "completion_tokens": 52,
             "prompt_tokens": 139,
-            "total_tokens": 209,
+            "total_tokens": 191,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
