@@ -143,7 +143,7 @@ describe('NotebookFeatureStoreList', () => {
   });
 
   describe('availability indicators', () => {
-    it('should show warning icon for unavailable feature stores', () => {
+    it('should show info icon for unavailable feature stores', () => {
       renderFeatureStoreList('project-a,project-b,project-c', new Set(['project-a']));
 
       const list = screen.getByTestId('notebook-feature-store-list');
@@ -156,17 +156,17 @@ describe('NotebookFeatureStoreList', () => {
       expect(within(items[2]).getByTestId('feature-store-unavailable-icon')).toBeInTheDocument();
     });
 
-    it('should not show warning icons when all stores are available', () => {
+    it('should not show info icons when all stores are available', () => {
       renderFeatureStoreList(THREE_PROJECTS, new Set(['project-a', 'project-b', 'project-c']));
       expect(screen.queryAllByTestId('feature-store-unavailable-icon')).toHaveLength(0);
     });
 
-    it('should show warning icons for all stores when none are available', () => {
+    it('should show info icons for all stores when none are available', () => {
       renderFeatureStoreList(THREE_PROJECTS, new Set());
       expect(screen.getAllByTestId('feature-store-unavailable-icon')).toHaveLength(3);
     });
 
-    it('should not show warning icons while availability is still loading', () => {
+    it('should not show info icons while availability is still loading', () => {
       renderFeatureStoreList(THREE_PROJECTS, new Set(), false);
 
       expect(screen.queryAllByTestId('feature-store-unavailable-icon')).toHaveLength(0);
@@ -191,7 +191,7 @@ describe('NotebookFeatureStoreList', () => {
       expect(within(items[2]).getByTestId('feature-store-unavailable-icon')).toBeInTheDocument();
     });
 
-    it('should show warning icons with expand/collapse for mixed stores', async () => {
+    it('should show info icons with expand/collapse for mixed stores', async () => {
       const user = userEvent.setup();
       renderFeatureStoreList(SEVEN_STORES, new Set(['store-1', 'store-3', 'store-5']));
 

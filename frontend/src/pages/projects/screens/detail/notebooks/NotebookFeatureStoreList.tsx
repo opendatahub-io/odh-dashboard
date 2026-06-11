@@ -1,6 +1,16 @@
 import * as React from 'react';
-import { Content, Icon, List, ListItem, Stack, StackItem, Tooltip } from '@patternfly/react-core';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import {
+  Content,
+  Flex,
+  FlexItem,
+  Icon,
+  List,
+  ListItem,
+  Stack,
+  StackItem,
+  Tooltip,
+} from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 
 import { NotebookKind } from '#~/k8sTypes';
 import { FEAST_CONFIG_ANNOTATION } from '#~/pages/projects/screens/spawner/featureStore/const';
@@ -57,24 +67,29 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
             {visibleNames.map((name) => {
               const isUnavailable = availabilityLoaded && !availableNames.has(name);
 
-              return (
-                <ListItem key={name}>
-                  {name}
-                  {isUnavailable && (
-                    <span style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}>
-                      <Tooltip content="This feature store is no longer available. It may have been deleted or access has been revoked.">
-                        <Icon
-                          isInline
-                          status="warning"
-                          data-testid="feature-store-unavailable-icon"
-                        >
-                          <ExclamationTriangleIcon />
-                        </Icon>
-                      </Tooltip>
-                    </span>
-                  )}
-                </ListItem>
-              );
+              if (isUnavailable) {
+                return (
+                  <ListItem key={name}>
+                    <Flex
+                      spaceItems={{ default: 'spaceItemsSm' }}
+                      alignItems={{ default: 'alignItemsCenter' }}
+                    >
+                      <FlexItem>
+                        <Content className="pf-v6-u-text-color-subtle">{name}</Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <Tooltip content="This feature store is no longer available. It may have been deleted or access has been revoked.">
+                          <Icon isInline status="info" data-testid="feature-store-unavailable-icon">
+                            <InfoCircleIcon />
+                          </Icon>
+                        </Tooltip>
+                      </FlexItem>
+                    </Flex>
+                  </ListItem>
+                );
+              }
+
+              return <ListItem key={name}>{name}</ListItem>;
             })}
           </List>
         )}
