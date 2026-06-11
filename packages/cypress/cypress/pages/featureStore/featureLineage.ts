@@ -68,15 +68,10 @@ class FeatureLineage extends Contextual<HTMLElement> {
     return this;
   }
 
-  selectMultiSelectionOption(ariaLabel: string, optionName: string) {
-    cy.findByLabelText(ariaLabel).should('be.enabled').click();
-    cy.findByTestId(`select-multi-typeahead-${optionName.replace(/ /g, '-')}`).click();
-    return this;
-  }
-
   applyEntityFilter(entityName: string) {
     this.selectFilterType('Entity');
-    this.selectMultiSelectionOption('Search entities', entityName);
+    cy.findByPlaceholderText('Filter by entity name').type(entityName);
+    cy.findByTestId(`select-multi-typeahead-${entityName}`).click();
     return this;
   }
 
@@ -86,7 +81,10 @@ class FeatureLineage extends Contextual<HTMLElement> {
   }
 
   clickNodeByLabel(nodeLabel: string) {
-    this.findLineageGraphSurface().contains(nodeLabel).closest('[data-kind="node"]').click();
+    this.findLineageGraphSurface()
+      .contains(new RegExp(`\\b${nodeLabel}\\b`))
+      .closest('[data-kind="node"]')
+      .click();
     return this;
   }
 
@@ -107,7 +105,7 @@ class FeatureLineage extends Contextual<HTMLElement> {
   }
 
   findNodeLabel(nodeLabel: string) {
-    return this.findLineageGraphSurface().contains(nodeLabel);
+    return this.findLineageGraphSurface().contains(new RegExp(`\\b${nodeLabel}\\b`));
   }
 
   shouldNodeLabelExist(nodeLabel: string) {
