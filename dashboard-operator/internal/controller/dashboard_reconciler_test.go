@@ -10,6 +10,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -108,18 +109,23 @@ func TestReconcile_NotFound(t *testing.T) {
 }
 
 func TestReconcile(t *testing.T) {
+	registrySize := len(ctrlpkg.ModuleNames())
+
 	tests := []struct {
-		name            string
-		generation      int64
-		manifestsBase   func(t *testing.T) string
-		extraObjects    func(t *testing.T) []client.Object
-		wantErr         bool
-		wantRequeue     time.Duration
-		wantPhase       common.Phase
-		wantReady       *bool
-		wantProvisioned *bool
-		wantURL         string
-		wantGeneration  int64
+		name             string
+		generation       int64
+		dashboardSpec    *v1alpha1.DashboardSpec
+		manifestsBase    func(t *testing.T) string
+		extraObjects     func(t *testing.T) []client.Object
+		wantErr          bool
+		wantRequeue      time.Duration
+		wantPhase        common.Phase
+		wantReady        *bool
+		wantProvisioned  *bool
+		wantURL          string
+		wantGeneration   int64
+		wantModuleCount  int
+		wantModulePhases map[string]v1alpha1.ModulePhase
 	}{
 		{
 			name:       "success with admitted route",
@@ -158,6 +164,7 @@ func TestReconcile(t *testing.T) {
 			wantReady:       boolPtr(false),
 			wantProvisioned: boolPtr(true),
 			wantGeneration:  2,
+			wantModuleCount: registrySize,
 		},
 		{
 			name:       "observed generation matches CR",
@@ -170,6 +177,63 @@ func TestReconcile(t *testing.T) {
 			wantReady:       boolPtr(false),
 			wantProvisioned: boolPtr(true),
 			wantGeneration:  42,
+			wantModuleCount: registrySize,
+		},
+		{
+			name:       "module statuses populated with components",
+			generation: 1,
+			dashboardSpec: &v1alpha1.DashboardSpec{
+				Components: map[string]v1alpha1.ComponentAvailability{
+					"modelregistry": {ManagementState: "Managed"},
+				},
+			},
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			extraObjects: func(t *testing.T) []client.Object {
+				return []client.Object{admittedRoute(testNamespace)}
+			},
+			wantPhase:       common.PhaseReady,
+			wantReady:       boolPtr(true),
+			wantProvisioned: boolPtr(true),
+			wantURL:         "https://dashboard.apps.example.com",
+			wantGeneration:  1,
+			wantModuleCount: registrySize,
+			wantModulePhases: map[string]v1alpha1.ModulePhase{
+				"modelRegistry":  v1alpha1.ModulePhaseDeployed,
+				"genAi":          v1alpha1.ModulePhaseDeployed,
+				"mlflow":         v1alpha1.ModulePhaseNotDeployed,
+				"mlflowEmbedded": v1alpha1.ModulePhaseNotDeployed,
+				"perses":         v1alpha1.ModulePhaseNotDeployed,
+			},
+		},
+		{
+			name:       "operator config reconcile interval applied",
+			generation: 1,
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			extraObjects: func(t *testing.T) []client.Object {
+				return []client.Object{
+					admittedRoute(testNamespace),
+					&corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "dashboard-operator-config",
+							Namespace: testNamespace,
+						},
+						Data: map[string]string{
+							"reconcileInterval": "30s",
+						},
+					},
+				}
+			},
+			wantRequeue:     30 * time.Second,
+			wantPhase:       common.PhaseReady,
+			wantReady:       boolPtr(true),
+			wantProvisioned: boolPtr(true),
+			wantURL:         "https://dashboard.apps.example.com",
+			wantGeneration:  1,
+			wantModuleCount: registrySize,
 		},
 	}
 
@@ -183,6 +247,9 @@ func TestReconcile(t *testing.T) {
 					Generation: tt.generation,
 					Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 				},
+			}
+			if tt.dashboardSpec != nil {
+				dashboard.Spec = *tt.dashboardSpec
 			}
 
 			builder := fake.NewClientBuilder().
@@ -246,6 +313,15 @@ func TestReconcile(t *testing.T) {
 
 			require.NotEmpty(t, updated.GetReleaseStatus().Releases)
 			assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
+
+			if tt.wantModuleCount > 0 {
+				assert.Len(t, updated.Status.ModuleStatuses, tt.wantModuleCount, "module status count")
+			}
+			for name, wantPhase := range tt.wantModulePhases {
+				ms, ok := updated.Status.ModuleStatuses[name]
+				require.True(t, ok, "module %q should be in status", name)
+				assert.Equal(t, wantPhase, ms.Phase, "module %q phase", name)
+			}
 		})
 	}
 }

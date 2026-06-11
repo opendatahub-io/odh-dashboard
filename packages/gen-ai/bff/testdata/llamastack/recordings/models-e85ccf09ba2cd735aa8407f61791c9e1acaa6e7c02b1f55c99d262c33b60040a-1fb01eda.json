@@ -8,7 +8,7 @@
     "endpoint": "/v1/models",
     "model": "",
     "provider_metadata": {
-      "openai_sdk_version": "2.37.0"
+      "openai_sdk_version": "2.41.1"
     }
   },
   "response": {
@@ -236,6 +236,16 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "models/gemini-3-pro-image",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Nano Banana Pro"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "models/nano-banana-pro-preview",
           "created": null,
           "object": "model",
@@ -247,6 +257,16 @@
         "__type__": "openai.types.model.Model",
         "__data__": {
           "id": "models/gemini-3.1-flash-image-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Nano Banana 2"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-3.1-flash-image",
           "created": null,
           "object": "model",
           "owned_by": "google",
@@ -531,6 +551,16 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini 3.1 Flash Live Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-3.5-live-translate-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini 3.5 Live Translate Preview"
         }
       },
       {

@@ -58,6 +58,8 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
         response_time_ms: 500,
       }),
       deleteExternalModel: jest.fn().mockResolvedValue('Model deleted successfully'),
+      getAgentProfile: jest.fn().mockResolvedValue({ data: null }),
+      createAgentProfile: jest.fn().mockResolvedValue({ data: null }),
     },
   },
   refreshAPIState: jest.fn(),

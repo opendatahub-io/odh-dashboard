@@ -289,18 +289,16 @@ func (app *App) LlamaStackFileUploadStatusHandler(w http.ResponseWriter, r *http
 	}
 }
 
-var allowedVisionMIMETypes = map[string]bool{
-	"image/jpeg": true,
-	"image/png":  true,
-}
-
-// LlamaStackVisionFileUploadHandler handles POST /gen-ai/api/v1/lsd/files/vision.
-// Synchronous proxy to OGX Files API for vision image uploads.
-func (app *App) LlamaStackVisionFileUploadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// LlamaStackMediaFileUploadHandler handles POST /gen-ai/api/v1/lsd/files/media.
+// Synchronous proxy to OGX Files API for media file uploads (vision images, audio).
+// The required "type" form field drives MIME validation and OGX purpose mapping.
+func (app *App) LlamaStackMediaFileUploadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	start := time.Now()
 
-	r.Body = http.MaxBytesReader(w, r.Body, constants.VisionUploadMaxBodySize)
-	if err := r.ParseMultipartForm(constants.VisionUploadMaxBodySize); err != nil {
+	// Use the largest configured limit for initial body parsing.
+	// Per-type size validation happens after reading the type field.
+	r.Body = http.MaxBytesReader(w, r.Body, constants.MediaUploadMaxBodySize)
+	if err := r.ParseMultipartForm(constants.MediaUploadMaxBodySize); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			app.payloadTooLargeResponse(w, r, maxBytesErr.Limit)
@@ -315,6 +313,13 @@ func (app *App) LlamaStackVisionFileUploadHandler(w http.ResponseWriter, r *http
 		}
 	}()
 
+	mediaType := r.FormValue("type")
+	config, exists := constants.MediaTypeConfigs[mediaType]
+	if !exists {
+		app.badRequestResponse(w, r, fmt.Errorf("type is required; must be one of: %v", constants.SupportedMediaTypes()))
+		return
+	}
+
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		app.badRequestResponse(w, r, errors.New("file is required"))
@@ -323,17 +328,21 @@ func (app *App) LlamaStackVisionFileUploadHandler(w http.ResponseWriter, r *http
 	defer file.Close()
 
 	contentType := header.Header.Get("Content-Type")
-	if !allowedVisionMIMETypes[contentType] {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid file type '%s'; only image/jpeg and image/png are accepted for vision uploads", contentType))
+	if !config.AllowedMIME[contentType] {
+		allowed := make([]string, 0, len(config.AllowedMIME))
+		for mime := range config.AllowedMIME {
+			allowed = append(allowed, mime)
+		}
+		app.badRequestResponse(w, r, fmt.Errorf("invalid file type '%s' for type '%s'; accepted: %v", contentType, mediaType, allowed))
 		return
 	}
 
-	if header.Size > constants.VisionUploadMaxBodySize {
-		app.payloadTooLargeResponse(w, r, constants.VisionUploadMaxBodySize)
+	if header.Size > config.MaxBodySize {
+		app.payloadTooLargeResponse(w, r, config.MaxBodySize)
 		return
 	}
 
-	app.logger.Info("Vision file upload started", "filename", header.Filename, "size", header.Size, "mime", contentType)
+	app.logger.Info("Media file upload started", "type", mediaType, "filename", header.Filename, "size", header.Size, "mime", contentType)
 
 	lsClient, ok := r.Context().Value(constants.LlamaStackClientKey).(llamastack.LlamaStackClientInterface)
 	if !ok || lsClient == nil {
@@ -345,16 +354,16 @@ func (app *App) LlamaStackVisionFileUploadHandler(w http.ResponseWriter, r *http
 		Reader:      file,
 		Filename:    header.Filename,
 		ContentType: contentType,
-		Purpose:     "vision",
+		Purpose:     config.OGXPurpose,
 	})
 	elapsed := time.Since(start).Milliseconds()
 	if err != nil {
-		app.logger.Error("Vision file upload failed", "filename", header.Filename, "error", err, "duration_ms", elapsed)
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to upload file to upstream service: %w", err))
+		app.logger.Error("Media file upload failed", "type", mediaType, "filename", header.Filename, "error", err, "duration_ms", elapsed)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
-	app.logger.Info("Vision file upload complete", "filename", header.Filename, "file_id", result.FileID, "duration_ms", elapsed)
+	app.logger.Info("Media file upload complete", "type", mediaType, "filename", header.Filename, "file_id", result.FileID, "duration_ms", elapsed)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -363,7 +372,7 @@ func (app *App) LlamaStackVisionFileUploadHandler(w http.ResponseWriter, r *http
 			"id":       result.FileID,
 			"object":   "file",
 			"filename": header.Filename,
-			"purpose":  "vision",
+			"type":     mediaType,
 			"status":   "processed",
 		},
 	})

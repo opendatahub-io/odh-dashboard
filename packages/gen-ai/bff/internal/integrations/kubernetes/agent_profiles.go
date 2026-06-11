@@ -3,7 +3,9 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/google/uuid"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"gopkg.in/yaml.v2"
@@ -187,6 +189,9 @@ func (kc *TokenKubernetesClient) GetAgentProfile(
 		}
 	}
 
+	// Augment with Kubernetes metadata (resourceVersion for optimistic concurrency)
+	profile.Metadata.ResourceVersion = configMap.ResourceVersion
+
 	return &profile, nil
 }
 
@@ -284,5 +289,325 @@ func validateAgentProfile(profile *models.AgentProfile) error {
 		}
 	}
 
+	return nil
+}
+
+// ListAgentProfiles retrieves all AgentProfile ConfigMaps in a namespace
+func (kc *TokenKubernetesClient) ListAgentProfiles(
+	ctx context.Context,
+	namespace string,
+) (*models.AgentProfileListResponse, error) {
+	// List ConfigMaps with label filter
+	configMapList := &corev1.ConfigMapList{}
+	listOptions := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels{
+			AgentProfileLabel: "true",
+		},
+	}
+
+	if err := kc.Client.List(ctx, configMapList, listOptions...); err != nil {
+		if apierrors.IsForbidden(err) {
+			kc.Logger.Error("RBAC forbidden to list agent profile ConfigMaps", "error", err, "namespace", namespace)
+			return nil, &integrations.HTTPError{
+				StatusCode: 403,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "forbidden",
+					Message: "insufficient permissions to list agent profiles in this namespace",
+				},
+			}
+		}
+		kc.Logger.Error("failed to list agent profile ConfigMaps", "error", err, "namespace", namespace)
+		return nil, &integrations.HTTPError{
+			StatusCode: 500,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "list_error",
+				Message: "failed to list agent profiles",
+			},
+		}
+	}
+
+	// Convert ConfigMaps to summaries
+	profiles := make([]models.AgentProfileSummary, 0, len(configMapList.Items))
+	for _, cm := range configMapList.Items {
+		// Extract profile YAML
+		profileYAML, ok := cm.Data[AgentProfileDataKey]
+		if !ok {
+			kc.Logger.Warn("skipping ConfigMap with missing profile.yaml", "name", cm.Name, "namespace", cm.Namespace)
+			continue
+		}
+
+		// Deserialize to extract spec fields
+		var profile models.AgentProfile
+		if err := yaml.Unmarshal([]byte(profileYAML), &profile); err != nil {
+			kc.Logger.Warn("skipping ConfigMap with invalid YAML", "name", cm.Name, "error", err)
+			continue
+		}
+
+		// Extract UUID from ConfigMap name
+		if !strings.HasPrefix(cm.Name, AgentProfileNamePrefix) {
+			kc.Logger.Warn("skipping ConfigMap with invalid name format", "name", cm.Name, "namespace", cm.Namespace)
+			continue
+		}
+		profileID := cm.Name[len(AgentProfileNamePrefix):]
+
+		// Validate profileID is a valid UUID
+		if _, err := uuid.Parse(profileID); err != nil {
+			kc.Logger.Warn("skipping ConfigMap with invalid UUID in name", "profileID", profileID, "namespace", cm.Namespace)
+			continue
+		}
+
+		// Get last modified timestamp from ManagedFields
+		lastModified := getLastModifiedTimestamp(&cm)
+
+		summary := models.AgentProfileSummary{
+			Name:         cm.Name,
+			ProfileID:    profileID,
+			DisplayName:  profile.Spec.DisplayName,
+			Description:  profile.Spec.Description,
+			Namespace:    cm.Namespace,
+			LastModified: lastModified,
+		}
+
+		profiles = append(profiles, summary)
+	}
+
+	// Sort by lastModified (most recent first)
+	// Using bubble sort for small lists (AC: up to 50 profiles)
+	for i := 0; i < len(profiles)-1; i++ {
+		for j := 0; j < len(profiles)-i-1; j++ {
+			if profiles[j].LastModified < profiles[j+1].LastModified {
+				profiles[j], profiles[j+1] = profiles[j+1], profiles[j]
+			}
+		}
+	}
+
+	return &models.AgentProfileListResponse{
+		Profiles:   profiles,
+		TotalCount: len(profiles),
+	}, nil
+}
+
+// getLastModifiedTimestamp extracts the last modified timestamp from ConfigMap
+func getLastModifiedTimestamp(cm *corev1.ConfigMap) string {
+	// Prefer ManagedFields for accurate last modification time
+	if len(cm.ManagedFields) > 0 {
+		var latestTime *metav1.Time
+		for _, field := range cm.ManagedFields {
+			if field.Time != nil {
+				if latestTime == nil || field.Time.After(latestTime.Time) {
+					latestTime = field.Time
+				}
+			}
+		}
+		if latestTime != nil {
+			return latestTime.Format("2006-01-02T15:04:05Z")
+		}
+	}
+
+	// Fallback to creation timestamp
+	if !cm.CreationTimestamp.IsZero() {
+		return cm.CreationTimestamp.Format("2006-01-02T15:04:05Z")
+	}
+
+	return ""
+}
+
+// UpdateAgentProfile updates an existing AgentProfile ConfigMap with optimistic concurrency control
+func (kc *TokenKubernetesClient) UpdateAgentProfile(
+	ctx context.Context,
+	namespace string,
+	profileID string,
+	request *models.AgentProfileUpdateRequest,
+) (*models.AgentProfileUpdateResponse, error) {
+	// Construct ConfigMap name
+	configMapName := AgentProfileNamePrefix + profileID
+
+	// Get the existing ConfigMap
+	existingCM := &corev1.ConfigMap{}
+	key := client.ObjectKey{
+		Namespace: namespace,
+		Name:      configMapName,
+	}
+
+	if err := kc.Client.Get(ctx, key, existingCM); err != nil {
+		if apierrors.IsNotFound(err) {
+			kc.Logger.Warn("agent profile not found for update", "id", profileID, "namespace", namespace)
+			return nil, &integrations.HTTPError{
+				StatusCode: 404,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "not_found",
+					Message: fmt.Sprintf("agent profile %s not found", profileID),
+				},
+			}
+		}
+		if apierrors.IsForbidden(err) {
+			kc.Logger.Error("RBAC forbidden to get agent profile ConfigMap", "error", err, "namespace", namespace)
+			return nil, &integrations.HTTPError{
+				StatusCode: 403,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "forbidden",
+					Message: "insufficient permissions to access agent profile in this namespace",
+				},
+			}
+		}
+		kc.Logger.Error("failed to get agent profile ConfigMap for update", "error", err, "name", configMapName)
+		return nil, &integrations.HTTPError{
+			StatusCode: 500,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "get_error",
+				Message: "failed to retrieve agent profile",
+			},
+		}
+	}
+
+	// Check resourceVersion for optimistic concurrency control
+	if existingCM.ResourceVersion != request.ResourceVersion {
+		kc.Logger.Warn("resource version conflict during update",
+			"expected", request.ResourceVersion,
+			"actual", existingCM.ResourceVersion,
+			"name", configMapName)
+		return nil, &integrations.HTTPError{
+			StatusCode: 409,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "conflict",
+				Message: "resource version conflict: profile was modified by another client",
+			},
+		}
+	}
+
+	// Build updated profile
+	updatedProfile := &models.AgentProfile{
+		APIVersion: "genai.redhat.com/v1alpha1",
+		Kind:       "AgentProfile",
+		Metadata: models.AgentProfileMetadata{
+			Name: profileID,
+		},
+		Spec: request.Spec,
+	}
+
+	// Validate the updated profile
+	if err := validateAgentProfile(updatedProfile); err != nil {
+		return nil, &integrations.HTTPError{
+			StatusCode: 400,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "invalid_request",
+				Message: fmt.Sprintf("profile validation failed: %v", err),
+			},
+		}
+	}
+
+	// Serialize to YAML
+	profileYAML, err := yaml.Marshal(updatedProfile)
+	if err != nil {
+		kc.Logger.Error("failed to marshal updated agent profile to YAML", "error", err, "profile", profileID)
+		return nil, &integrations.HTTPError{
+			StatusCode: 500,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "serialization_error",
+				Message: "failed to serialize agent profile",
+			},
+		}
+	}
+
+	// Update ConfigMap data (initialize map if nil)
+	if existingCM.Data == nil {
+		existingCM.Data = make(map[string]string)
+	}
+	existingCM.Data[AgentProfileDataKey] = string(profileYAML)
+
+	// Update the ConfigMap in the cluster
+	if err := kc.Client.Update(ctx, existingCM); err != nil {
+		if apierrors.IsConflict(err) {
+			kc.Logger.Warn("conflict during ConfigMap update (concurrent modification)", "name", configMapName)
+			return nil, &integrations.HTTPError{
+				StatusCode: 409,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "conflict",
+					Message: "resource version conflict: profile was modified by another client",
+				},
+			}
+		}
+		if apierrors.IsForbidden(err) {
+			kc.Logger.Error("RBAC forbidden to update agent profile ConfigMap", "error", err, "namespace", namespace)
+			return nil, &integrations.HTTPError{
+				StatusCode: 403,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "forbidden",
+					Message: "insufficient permissions to update agent profile in this namespace",
+				},
+			}
+		}
+		kc.Logger.Error("failed to update agent profile ConfigMap", "error", err, "name", configMapName)
+		return nil, &integrations.HTTPError{
+			StatusCode: 500,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "update_error",
+				Message: "failed to update agent profile",
+			},
+		}
+	}
+
+	kc.Logger.Info("updated agent profile ConfigMap", "name", configMapName, "namespace", namespace)
+
+	return &models.AgentProfileUpdateResponse{
+		Name:            configMapName,
+		ProfileID:       profileID,
+		DisplayName:     request.Spec.DisplayName,
+		Namespace:       namespace,
+		ResourceVersion: existingCM.ResourceVersion,
+	}, nil
+}
+
+// DeleteAgentProfile deletes an AgentProfile ConfigMap
+func (kc *TokenKubernetesClient) DeleteAgentProfile(
+	ctx context.Context,
+	namespace string,
+	profileID string,
+) error {
+	// Construct ConfigMap name
+	configMapName := AgentProfileNamePrefix + profileID
+
+	// Create ConfigMap object for deletion
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: namespace,
+		},
+	}
+
+	// Delete the ConfigMap
+	if err := kc.Client.Delete(ctx, configMap); err != nil {
+		if apierrors.IsNotFound(err) {
+			kc.Logger.Warn("agent profile not found for deletion", "id", profileID, "namespace", namespace)
+			return &integrations.HTTPError{
+				StatusCode: 404,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "not_found",
+					Message: fmt.Sprintf("agent profile %s not found", profileID),
+				},
+			}
+		}
+		if apierrors.IsForbidden(err) {
+			kc.Logger.Error("RBAC forbidden to delete agent profile ConfigMap", "error", err, "namespace", namespace)
+			return &integrations.HTTPError{
+				StatusCode: 403,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "forbidden",
+					Message: "insufficient permissions to delete agent profile in this namespace",
+				},
+			}
+		}
+		kc.Logger.Error("failed to delete agent profile ConfigMap", "error", err, "name", configMapName)
+		return &integrations.HTTPError{
+			StatusCode: 500,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "delete_error",
+				Message: "failed to delete agent profile",
+			},
+		}
+	}
+
+	kc.Logger.Info("deleted agent profile ConfigMap", "name", configMapName, "namespace", namespace)
 	return nil
 }
