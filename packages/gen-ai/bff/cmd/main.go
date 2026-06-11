@@ -195,13 +195,21 @@ func validateInsecureSkipVerify(insecureSkipVerify bool) error {
 		return fmt.Errorf("InsecureSkipVerify requires ALLOW_INSECURE_TLS=true")
 	}
 
-	if normalizedEnv == "prod" || normalizedEnv == "production" || normalizedEnv == "staging" {
-		slog.Error("SECURITY: InsecureSkipVerify cannot be used in production/staging environments",
+	// Check for CI environment
+	isCI := os.Getenv("CI") == "true"
+
+	if normalizedEnv == "prod" || normalizedEnv == "production" || normalizedEnv == "staging" || isCI {
+		envType := env
+		if isCI {
+			envType = "CI"
+		}
+		slog.Error("SECURITY: InsecureSkipVerify cannot be used in production/staging/CI environments",
 			"env", env,
+			"is_ci", isCI,
 			"insecure_skip_verify", insecureSkipVerify,
 		)
 		slog.Error("To fix: Remove --insecure-skip-verify flag and INSECURE_SKIP_VERIFY env var")
-		return fmt.Errorf("InsecureSkipVerify cannot be used in %s environment", env)
+		return fmt.Errorf("InsecureSkipVerify cannot be used in %s environment", envType)
 	}
 
 	slog.Warn("SECURITY WARNING: TLS certificate verification is DISABLED (InsecureSkipVerify=true)",
