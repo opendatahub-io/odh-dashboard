@@ -529,6 +529,7 @@ export type MLflowPromptVersionsResponse = {
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
   enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
+  enable_tracing?: boolean; // If true, enables OTel tracing for the playground session
   vector_stores?: { vector_store_id: string }[]; // Optional vector stores to register; embedding models must be in models
 };
 
