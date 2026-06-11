@@ -14,6 +14,9 @@ on:
       - 'manifests/**'
       - '.github/workflows/pr-build-validation.yml'
 
+env:
+  NODE_VERSION: '22'
+
 # Concurrency control: Cancel in-progress runs when new commits are pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -33,10 +36,10 @@ jobs:
         run: |
           if [[ "${{ contains(github.event.pull_request.title, '[skip konflux-sim]') }}" == "true" ]] || \
              [[ "${{ contains(github.event.pull_request.labels.*.name, 'skip-konflux-sim') }}" == "true" ]]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "ℹ️  Validation will be skipped ([skip konflux-sim] marker found)"
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "✅ Validation will run"
           fi
 
@@ -52,10 +55,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.2.0
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Free disk space
+        run: |
+          echo "::group::Disk usage before cleanup"
+          df -h
+          echo "::endgroup::"
+          # Remove large pre-installed toolchains that are unused in this workflow
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost /usr/local/graalvm /usr/local/.ghcup \
+            /usr/share/swift || true
+          docker system prune -af || true
+          echo "::group::Disk usage after cleanup"
+          df -h
+          echo "::endgroup::"
 
       - name: Validate lockfile for Hermeto/Cachi2 compatibility
         run: |
@@ -234,6 +251,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
 
+      - name: Free disk space
+        run: |
+          echo "::group::Disk usage before cleanup"
+          df -h
+          echo "::endgroup::"
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost /usr/local/graalvm /usr/local/.ghcup \
+            /usr/share/swift || true
+          docker system prune -af || true
+          echo "::group::Disk usage after cleanup"
+          df -h
+          echo "::endgroup::"
+
       - name: Build ODH image
         run: |
           set -euo pipefail
@@ -266,6 +296,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Free disk space
+        run: |
+          echo "::group::Disk usage before cleanup"
+          df -h
+          echo "::endgroup::"
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost /usr/local/graalvm /usr/local/.ghcup \
+            /usr/share/swift || true
+          docker system prune -af || true
+          echo "::group::Disk usage after cleanup"
+          df -h
+          echo "::endgroup::"
 
       - name: Build RHOAI image
         run: |
@@ -397,7 +440,7 @@ jobs:
             echo "❌ FAIL: app.*.js not found - build did not complete"
             FAILURES=$((FAILURES + 1))
           else
-            APP_FILE=$(ls /tmp/odh-dist/app.*.js | head -1)
+            APP_FILE=$(find /tmp/odh-dist -name 'app.*.js' | head -1)
             APP_SIZE=$(stat -c%s "$APP_FILE" 2>/dev/null || stat -f%z "$APP_FILE" 2>/dev/null)
             echo "✅ PASS: Main app bundle present ($(basename "$APP_FILE"), ${APP_SIZE} bytes)"
           fi
@@ -673,6 +716,22 @@ jobs:
       - name: Patch deployment for Kind resource constraints
         run: |
           set -euo pipefail
+
+          # Swap the odh-dashboard container to use the PR-built image.
+          # The manifests set imagePullPolicy: Always on every container, so simply
+          # loading the image into Kind is not enough — Kubernetes would still pull the
+          # live quay.io:main image from the registry and we'd never test the PR.
+          # Using imagePullPolicy: Never forces Kubernetes to use only Kind's local store;
+          # it will error immediately if the image isn't there, making the intent explicit.
+          echo "Patching odh-dashboard container to use PR-built image..."
+          kubectl set image deployment/odh-dashboard \
+            odh-dashboard=odh-dashboard:odh-test \
+            -n opendatahub
+          kubectl patch deployment odh-dashboard -n opendatahub \
+            --type=strategic \
+            -p='{"spec":{"template":{"spec":{"containers":[{"name":"odh-dashboard","imagePullPolicy":"Never"}]}}}}'
+          echo "✅ Image → odh-dashboard:odh-test (imagePullPolicy: Never)"
+
           # Reduce resource requests to fit in Kind's limited memory (~2Gi total)
           # Dashboard has many containers - reduce each to minimal viable requests
           # Note: Patch may fail if deployment structure differs - this is acceptable
@@ -749,12 +808,44 @@ jobs:
             exit 1
           fi
 
-          echo "✅ PASS: Containers attempted to start, $IMAGES_PULLED image(s) pulled"
+          echo "✅ PASS: $IMAGES_PULLED image(s) pulled"
           echo "Container states: $CONTAINER_STATUSES"
 
-          # Show logs from main container (even if it failed)
-          echo "::group::Container logs"
+          # Show logs from main container before the health check so they are visible
+          # even when the container is crashing.
+          echo "::group::Container logs (odh-dashboard)"
           kubectl logs -n opendatahub "$POD" -c odh-dashboard --tail=100 || echo "No logs available"
+          echo "::endgroup::"
+
+          # Assert that the PR-built odh-dashboard container is actually running and has
+          # not restarted. A CrashLoopBackOff or any restart count > 0 means the server
+          # failed to start and is a hard failure.
+          echo "::group::Health check: odh-dashboard container"
+          DASHBOARD_RUNNING=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+            -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].state.running}' \
+            2>/dev/null || echo "")
+          DASHBOARD_RESTARTS=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+            -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].restartCount}' \
+            2>/dev/null || echo "0")
+
+          if [ -z "$DASHBOARD_RUNNING" ]; then
+            TERM_REASON=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+              -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].state.terminated.reason}' \
+              2>/dev/null || echo "unknown")
+            echo "❌ FAIL: odh-dashboard container is not running (reason: ${TERM_REASON})"
+            echo "   This usually means the server crashed at startup."
+            echo "   Check the container logs above for the root cause."
+            exit 1
+          fi
+
+          if [ "${DASHBOARD_RESTARTS:-0}" -gt "0" ]; then
+            echo "❌ FAIL: odh-dashboard container has restarted ${DASHBOARD_RESTARTS} time(s)"
+            echo "   The server is crashing on startup (CrashLoopBackOff)."
+            echo "   Check the container logs above for the root cause."
+            exit 1
+          fi
+
+          echo "✅ PASS: odh-dashboard container is running with 0 restarts"
           echo "::endgroup::"
 
       - name: Cleanup
