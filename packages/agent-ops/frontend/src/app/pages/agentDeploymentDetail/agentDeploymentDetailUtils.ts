@@ -1,3 +1,4 @@
+import { AgentCapabilities, AgentOptionalCapability } from '~/app/types/agentCard';
 import { AgentRuntimeDetail } from '~/app/types/agentRuntimes';
 
 export const getAgentEndpointUrl = (detail: AgentRuntimeDetail): string =>
@@ -16,3 +17,15 @@ export const getAgentCardUrl = (detail: AgentRuntimeDetail): string => {
 
 export const getAgentSpiffeId = (detail: AgentRuntimeDetail): string =>
   `spiffe://cluster.local/ns/${detail.namespace}/sa/${detail.name}`;
+
+export const getEnabledOptionalCapabilities = (
+  capabilities?: AgentCapabilities,
+): AgentOptionalCapability[] =>
+  [
+    capabilities?.streaming && AgentOptionalCapability.Streaming,
+    capabilities?.pushNotifications && AgentOptionalCapability.PushNotifications,
+  ].filter((capability): capability is AgentOptionalCapability => Boolean(capability));
+
+export const getAgentOptionalCapabilityTestId = (
+  capability: AgentOptionalCapability,
+): string => `agent-optional-capability-${capability.toLowerCase().replace(/\s+/g, '-')}`;

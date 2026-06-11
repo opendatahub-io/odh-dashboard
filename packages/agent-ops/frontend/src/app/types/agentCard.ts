@@ -1,3 +1,15 @@
+/**
+ * Future AgentCard fields (blocked on BFF / OpenAPI):
+ * - AgentSkill.tags → AgentDeploymentSkillCard (label group under description)
+ * - AgentSkill.examples → AgentDeploymentSkillCard (examples list under description)
+ * - AgentCapabilities.stateTransitionHistory → getEnabledOptionalCapabilities + optional capability labels
+ * - AgentCard.toolConnections → AgentDeploymentCapabilitiesCard ("Tool connections" section)
+ */
+export enum AgentOptionalCapability {
+  Streaming = 'Streaming',
+  PushNotifications = 'Push notifications',
+}
+
 export type AgentSkill = {
   id: string;
   name: string;

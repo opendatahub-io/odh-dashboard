@@ -2,6 +2,7 @@ import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockAgentRuntime, mockAgentRuntimesList } from '~/__mocks__/mockAgentRuntime';
 import { mockAgentCard } from '~/__mocks__/mockAgentCard';
 import { mockAgentRuntimeDetail } from '~/__mocks__/mockAgentRuntimeDetail';
+import { AgentOptionalCapability } from '~/app/types/agentCard';
 import type { AgentRuntime } from '~/app/types/agentRuntimes';
 import { agentDeploymentDetailPage } from '~/__tests__/cypress/cypress/pages/agentDeploymentDetail';
 import { agentDeploymentsPage } from '~/__tests__/cypress/cypress/pages/agentDeployments';
@@ -83,6 +84,14 @@ describe('Agent Deployment Detail', () => {
     agentDeploymentDetailPage.findCapabilitiesCard().should('be.visible');
     agentDeploymentDetailPage.findAgentCardCopy().should('exist');
     agentDeploymentDetailPage.findVersion().should('contain.text', '1.2.0');
+    agentDeploymentDetailPage
+      .findCapabilitiesCard()
+      .findByTestId('agent-skill-name')
+      .first()
+      .should('contain.text', 'Ticket triage');
+    agentDeploymentDetailPage
+      .findOptionalCapability(AgentOptionalCapability.Streaming)
+      .should('be.visible');
   });
 
   it('should load overview when visiting detail URL directly', () => {
@@ -92,6 +101,10 @@ describe('Agent Deployment Detail', () => {
     cy.wait('@getAgentRuntimeDetail');
     agentDeploymentDetailPage.findOverviewTab().should('be.visible');
     agentDeploymentDetailPage.findCapabilitiesCard().should('be.visible');
+    agentDeploymentDetailPage
+      .findCapabilitiesCard()
+      .findAllByTestId('agent-skill-card')
+      .should('have.length', 2);
   });
 
   it('should show not found empty state when detail fetch returns 404', () => {

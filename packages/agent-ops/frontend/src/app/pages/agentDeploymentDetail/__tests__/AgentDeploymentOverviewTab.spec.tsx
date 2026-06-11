@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { mockAgentCard } from '~/__mocks__/mockAgentCard';
 import { mockAgentRuntimeDetail } from '~/__mocks__/mockAgentRuntimeDetail';
 import { NO_REFRESH_INTERVAL } from '~/app/const';
@@ -37,6 +37,22 @@ describe('AgentDeploymentOverviewTab', () => {
       detail.namespace,
       detail.name,
       NO_REFRESH_INTERVAL,
+    );
+  });
+
+  it('should show skill names from agent card in the capabilities card', () => {
+    const detail = mockAgentRuntimeDetail();
+    render(<AgentDeploymentOverviewTab detail={detail} />);
+
+    const capabilitiesCard = screen.getByTestId('agent-deployment-capabilities-card');
+    expect(within(capabilitiesCard).getAllByTestId('agent-skill-name')[0]).toHaveTextContent(
+      'Ticket triage',
+    );
+    expect(within(capabilitiesCard).getAllByTestId('agent-skill-name')[1]).toHaveTextContent(
+      'Response drafting',
+    );
+    expect(screen.getByTestId('agent-optional-capability-streaming')).toHaveTextContent(
+      'Streaming',
     );
   });
 });

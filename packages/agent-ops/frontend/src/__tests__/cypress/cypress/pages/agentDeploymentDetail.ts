@@ -1,3 +1,6 @@
+import { getAgentOptionalCapabilityTestId } from '~/app/pages/agentDeploymentDetail/agentDeploymentDetailUtils';
+import { AgentOptionalCapability } from '~/app/types/agentCard';
+
 class AgentDeploymentDetailPage {
   visit(namespace: string, agentId: string, tab = 'overview') {
     cy.visit(`/deployments/${namespace}/${agentId}/${tab}`);
@@ -43,6 +46,19 @@ class AgentDeploymentDetailPage {
 
   findNotFoundState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('agent-deployment-not-found');
+  }
+
+  findSkillCard(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findCapabilitiesCard()
+      .findAllByTestId('agent-skill-card')
+      .contains('[data-testid="agent-skill-name"]', name)
+      .closest('[data-testid="agent-skill-card"]');
+  }
+
+  findOptionalCapability(
+    capability: AgentOptionalCapability,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(getAgentOptionalCapabilityTestId(capability));
   }
 }
 

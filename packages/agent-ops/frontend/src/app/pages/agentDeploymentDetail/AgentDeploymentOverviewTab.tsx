@@ -23,7 +23,7 @@ type AgentDeploymentOverviewTabProps = {
 };
 
 const AgentDeploymentOverviewTab: React.FC<AgentDeploymentOverviewTabProps> = ({ detail }) => {
-  const [agentCard] = useAgentCard(detail.namespace, detail.name, NO_REFRESH_INTERVAL);
+  const [agentCard, loaded, error] = useAgentCard(detail.namespace, detail.name, NO_REFRESH_INTERVAL);
 
   return (
     <PageSection
@@ -52,7 +52,7 @@ const AgentDeploymentOverviewTab: React.FC<AgentDeploymentOverviewTabProps> = ({
               </Card>
             </StackItem>
             <StackItem>
-              <AgentDeploymentCapabilitiesCard detail={detail} />
+              <AgentDeploymentCapabilitiesCard agentCard={agentCard} loaded={loaded} error={error} />
             </StackItem>
           </Stack>
         </SidebarContent>
