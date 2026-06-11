@@ -103,14 +103,11 @@ export async function fetchS3File(
 
   if (maxBytes != null) {
     const contentLength = response.headers.get('Content-Length');
-    if (contentLength != null) {
-      if (parseInt(contentLength, 10) > maxBytes) {
-        abortController?.abort();
-        throw new Error(
-          `S3 file too large: ${contentLength} bytes exceeds limit of ${maxBytes} bytes`,
-        );
-      }
-      return response.blob();
+    if (contentLength != null && parseInt(contentLength, 10) > maxBytes) {
+      abortController?.abort();
+      throw new Error(
+        `S3 file too large: ${contentLength} bytes exceeds limit of ${maxBytes} bytes`,
+      );
     }
 
     const reader = response.body?.getReader();
