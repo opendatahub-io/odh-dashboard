@@ -520,6 +520,7 @@ describe('ViewCodeModal', () => {
       activePrompt: {
         name: 'Code_reviewer',
         version: 2,
+        template: 'Review {{language}} code for {{name}}.',
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
       },
@@ -548,6 +549,7 @@ describe('ViewCodeModal', () => {
       activePrompt: {
         name: 'Basic_prompt',
         version: 1,
+        template: 'You are a helpful assistant.',
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
       },
