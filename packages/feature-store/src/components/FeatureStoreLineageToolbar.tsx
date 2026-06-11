@@ -42,7 +42,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
 }) => {
   React.useEffect(() => {
     const hasFilters = Object.values(searchFilters).some(
-      (filter) => filter && filter.trim() !== '',
+      (filter) => Array.isArray(filter) && filter.length > 0,
     );
 
     if (hasFilters) {
@@ -93,7 +93,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           .filter((s) => s.selected && !s.isAriaDisabled)
           .map((s) => s.name);
         if (selectedNames.length > 0) {
-          newFilters[filterType] = selectedNames.join(', ');
+          newFilters[filterType] = selectedNames;
         } else {
           delete newFilters[filterType];
         }
@@ -105,7 +105,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
 
   const getEntityOptions = useMemo(() => {
     const items = availableOptions.entity;
-    const selectedNames = searchFilters.entity?.split(', ') || [];
+    const selectedNames = searchFilters.entity || [];
 
     if (items.length === 0) {
       return [
@@ -126,7 +126,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
 
   const getFeatureViewOptions = useMemo(() => {
     const items = availableOptions.featureView;
-    const selectedNames = searchFilters.featureView?.split(', ') || [];
+    const selectedNames = searchFilters.featureView || [];
 
     if (items.length === 0) {
       return [
@@ -147,7 +147,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
 
   const getDataSourceOptions = useMemo(() => {
     const items = availableOptions.dataSource;
-    const selectedNames = searchFilters.dataSource?.split(', ') || [];
+    const selectedNames = searchFilters.dataSource || [];
 
     if (items.length === 0) {
       return [
@@ -168,7 +168,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
 
   const getFeatureServiceOptions = useMemo(() => {
     const items = availableOptions.featureService;
-    const selectedNames = searchFilters.featureService?.split(', ') || [];
+    const selectedNames = searchFilters.featureService || [];
 
     if (items.length === 0) {
       return [
@@ -256,7 +256,8 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           delete newFilters[filterType];
         } else {
           const filterValue = typeof value === 'string' ? value : value.value;
-          newFilters[filterType] = filterValue;
+          // Wrap single string from FilterToolbar chip into an array
+          newFilters[filterType] = [filterValue];
         }
         onSearchFiltersChange(newFilters);
       }
@@ -270,13 +271,13 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
     }
   }, [onSearchFiltersChange]);
 
-  // Memoize filterData to prevent FilterToolbar from remounting
+  // FilterToolbar expects string chip values; join arrays for display only
   const filterData = useMemo(
     () => ({
-      entity: searchFilters.entity,
-      featureView: searchFilters.featureView,
-      dataSource: searchFilters.dataSource,
-      featureService: searchFilters.featureService,
+      entity: searchFilters.entity?.join(', '),
+      featureView: searchFilters.featureView?.join(', '),
+      dataSource: searchFilters.dataSource?.join(', '),
+      featureService: searchFilters.featureService?.join(', '),
     }),
     [
       searchFilters.entity,
