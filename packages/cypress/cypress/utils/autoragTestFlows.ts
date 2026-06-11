@@ -137,7 +137,7 @@ export const verifyAutoragResultsInteraction = (): void => {
   autoragResultsPage.findRunDetailsButton().click();
   autoragResultsPage.findRunDetailsDrawerPanel().should('be.visible');
   autoragResultsPage.findRunDetailsDrawerClose().click();
-  autoragResultsPage.findRunDetailsDrawerPanel().should('not.be.visible');
+  autoragResultsPage.findRunDetailsDrawerPanel().should('not.exist');
 
   cy.step('Open manage columns modal and close it');
   autoragResultsPage.findManageColumnsButton().click();
