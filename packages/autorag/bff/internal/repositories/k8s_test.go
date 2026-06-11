@@ -11,57 +11,57 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// mockK8sServiceForSecrets only needs GetSecretInfos.
-type mockK8sServiceForSecrets struct {
+// mockK8sService only needs GetSecretInfos.
+type mockK8sService struct {
 	getSecretInfosFn func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error)
 }
 
-func (m *mockK8sServiceForSecrets) GetSecretInfos(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+func (m *mockK8sService) GetSecretInfos(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 	return m.getSecretInfosFn(ctx, namespace)
 }
 
 // Unused — satisfy kubernetes.Service
-func (m *mockK8sServiceForSecrets) GetNamespaces(context.Context) ([]v1.Namespace, error) {
+func (m *mockK8sService) GetNamespaces(context.Context) ([]v1.Namespace, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) GetNamespaceInfos(context.Context) ([]kubernetes.NamespaceInfo, error) {
+func (m *mockK8sService) GetNamespaceInfos(context.Context) ([]kubernetes.NamespaceInfo, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) GetAccessibleNamespaces(context.Context) ([]v1.Namespace, error) {
+func (m *mockK8sService) GetAccessibleNamespaces(context.Context) ([]v1.Namespace, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) GetAccessibleNamespaceInfos(context.Context) ([]kubernetes.NamespaceInfo, error) {
+func (m *mockK8sService) GetAccessibleNamespaceInfos(context.Context) ([]kubernetes.NamespaceInfo, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) GetPods(context.Context, string) (*v1.PodList, error) {
+func (m *mockK8sService) GetPods(context.Context, string) (*v1.PodList, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) GetSecrets(context.Context, string) ([]v1.Secret, error) {
+func (m *mockK8sService) GetSecrets(context.Context, string) ([]v1.Secret, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) GetSecret(context.Context, string, string) (*v1.Secret, error) {
+func (m *mockK8sService) GetSecret(context.Context, string, string) (*v1.Secret, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) GetUser(context.Context) (string, error) { return "", nil }
-func (m *mockK8sServiceForSecrets) IsClusterAdmin(context.Context) (bool, error) {
+func (m *mockK8sService) GetUser(context.Context) (string, error) { return "", nil }
+func (m *mockK8sService) IsClusterAdmin(context.Context) (bool, error) {
 	return false, nil
 }
-func (m *mockK8sServiceForSecrets) GetUserInfo(context.Context) (*kubernetes.UserInfo, error) {
+func (m *mockK8sService) GetUserInfo(context.Context) (*kubernetes.UserInfo, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) CanAccessResource(context.Context, string, string, string, string, string) (bool, error) {
+func (m *mockK8sService) CanAccessResource(context.Context, string, string, string, string, string) (bool, error) {
 	return false, nil
 }
-func (m *mockK8sServiceForSecrets) ListResources(context.Context, schema.GroupVersionResource, string) (*unstructured.UnstructuredList, error) {
+func (m *mockK8sService) ListResources(context.Context, schema.GroupVersionResource, string) (*unstructured.UnstructuredList, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) GetResource(context.Context, schema.GroupVersionResource, string, string) (*unstructured.Unstructured, error) {
+func (m *mockK8sService) GetResource(context.Context, schema.GroupVersionResource, string, string) (*unstructured.Unstructured, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) CreateResource(context.Context, schema.GroupVersionResource, string, *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func (m *mockK8sService) CreateResource(context.Context, schema.GroupVersionResource, string, *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForSecrets) DiscoverResourceGVR(context.Context, string, string, string, []string) (schema.GroupVersionResource, error) {
+func (m *mockK8sService) DiscoverResourceGVR(context.Context, string, string, string, []string) (schema.GroupVersionResource, error) {
 	return schema.GroupVersionResource{}, nil
 }
 
@@ -168,12 +168,12 @@ func TestGetFilteredSecrets(t *testing.T) {
 		plainSecret("db-creds"),
 	}
 
-	k8s := &mockK8sServiceForSecrets{
+	k8s := &mockK8sService{
 		getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 			return allSecrets, nil
 		},
 	}
-	repo := NewSecretRepository()
+	repo := NewK8sRepository()
 
 	t.Run("empty type returns all secrets", func(t *testing.T) {
 		result, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "")
@@ -259,7 +259,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 	})
 
 	t.Run("annotation type preserved", func(t *testing.T) {
-		k8sAnnotated := &mockK8sServiceForSecrets{
+		k8sAnnotated := &mockK8sService{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 				return []kubernetes.SecretInfo{
 					annotatedSecret("annotated", "custom-s3", map[string]string{
@@ -278,7 +278,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 	})
 
 	t.Run("k8s service error propagated", func(t *testing.T) {
-		failing := &mockK8sServiceForSecrets{
+		failing := &mockK8sService{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 				return nil, fmt.Errorf("forbidden")
 			},
@@ -290,7 +290,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 	})
 
 	t.Run("empty secrets list", func(t *testing.T) {
-		empty := &mockK8sServiceForSecrets{
+		empty := &mockK8sService{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 				return []kubernetes.SecretInfo{}, nil
 			},

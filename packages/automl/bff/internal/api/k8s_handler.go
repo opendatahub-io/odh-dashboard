@@ -100,7 +100,7 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	secrets, err := app.repositories.Secret.GetFilteredSecrets(app.k8sService, ctx, namespace, secretType)
+	secrets, err := app.repositories.K8s.GetFilteredSecrets(app.k8sService, ctx, namespace, secretType)
 	if err != nil {
 		switch {
 		case errors.Is(err, kubernetes.ErrNotFound):

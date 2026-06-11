@@ -33,7 +33,7 @@ func (m *mockOGXClient) ListProviders(ctx context.Context, baseURL, apiKey strin
 }
 
 type mockK8sForOGX struct {
-	mockK8sServiceForSecrets
+	mockK8sService
 	getSecretFn func(ctx context.Context, namespace, secretName string) (*v1.Secret, error)
 }
 

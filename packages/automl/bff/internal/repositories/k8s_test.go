@@ -8,13 +8,13 @@ import (
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
-// mockK8sServiceForSecrets only needs GetSecretInfos.
-type mockK8sServiceForSecrets struct {
+// mockK8sServiceForK8s only needs GetSecretInfos.
+type mockK8sServiceForK8s struct {
 	mockK8sService
 	getSecretInfosFn func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error)
 }
 
-func (m *mockK8sServiceForSecrets) GetSecretInfos(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+func (m *mockK8sServiceForK8s) GetSecretInfos(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 	return m.getSecretInfosFn(ctx, namespace)
 }
 
@@ -54,12 +54,12 @@ func TestGetFilteredSecrets(t *testing.T) {
 		nonStorageSecret("db-creds"),
 	}
 
-	k8s := &mockK8sServiceForSecrets{
+	k8s := &mockK8sServiceForK8s{
 		getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 			return allSecrets, nil
 		},
 	}
-	repo := NewSecretRepository()
+	repo := NewK8sRepository()
 
 	t.Run("empty type returns all secrets with redaction", func(t *testing.T) {
 		result, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "")
@@ -105,7 +105,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 	})
 
 	t.Run("type detection from annotation takes precedence", func(t *testing.T) {
-		k8sAnnotated := &mockK8sServiceForSecrets{
+		k8sAnnotated := &mockK8sServiceForK8s{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 				return []kubernetes.SecretInfo{
 					annotatedS3Secret("annotated-conn", "custom-s3"),
@@ -159,7 +159,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 	})
 
 	t.Run("k8s service error propagated", func(t *testing.T) {
-		failing := &mockK8sServiceForSecrets{
+		failing := &mockK8sServiceForK8s{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 				return nil, fmt.Errorf("forbidden")
 			},
@@ -171,7 +171,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 	})
 
 	t.Run("empty secrets list", func(t *testing.T) {
-		empty := &mockK8sServiceForSecrets{
+		empty := &mockK8sServiceForK8s{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 				return []kubernetes.SecretInfo{}, nil
 			},

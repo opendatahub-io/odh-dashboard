@@ -27,10 +27,10 @@ var allowedSecretKeys = map[string]bool{
 	"AWS_S3_BUCKET": true,
 }
 
-type SecretRepository struct{}
+type K8sRepository struct{}
 
-func NewSecretRepository() *SecretRepository {
-	return &SecretRepository{}
+func NewK8sRepository() *K8sRepository {
+	return &K8sRepository{}
 }
 
 // GetFilteredSecrets retrieves secrets from a namespace and filters them based on secretType.
@@ -38,7 +38,7 @@ func NewSecretRepository() *SecretRepository {
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
 //   - "ogx": filter for secrets matching OGX (Open GenAI Stack) requirements
-func (r *SecretRepository) GetFilteredSecrets(
+func (r *K8sRepository) GetFilteredSecrets(
 	k8sService kubernetes.Service,
 	ctx context.Context,
 	namespace string,
