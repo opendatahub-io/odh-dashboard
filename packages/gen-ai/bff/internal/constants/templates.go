@@ -3,20 +3,16 @@ package constants
 const PythonCodeTemplate = `# OGX Quickstart Script
 #
 # README:
-# This example shows how to configure an assistant using the OGX client.
+# This example shows how to configure an assistant using the OpenAI Python SDK.
 # Before using this code, make sure of the following:
 #
 # Required Packages:
 #    - Install the required dependencies using pip:
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
-#      pip install ogx-client requests{{if .ASRModel}} openai{{end}}
-{{- else if .ASRModel }}
-#      pip install ogx-client openai
+#      pip install openai requests
 {{- else }}
-#      pip install ogx-client
+#      pip install openai
 {{- end }}
-#    - NOTE: Verify the correct ogx-client version for your OGX server instance,
-#      then install that version as needed.
 #
 # OGX Server:
 #    - Your OGX instance must be running and accessible
@@ -122,13 +118,10 @@ import os
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 import requests
 {{- end }}
-{{- if .ASRModel }}
+
 from openai import OpenAI
-{{- end }}
 
-from ogx_client import OgxClient
-
-client = OgxClient(base_url=OGX_URL)
+client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused")
 {{- if .ASRModel }}
 
 # --- Audio Transcription ---
