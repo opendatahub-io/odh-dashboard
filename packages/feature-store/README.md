@@ -57,15 +57,22 @@ No separate dev server is needed. Feature Store code is compiled into the host d
 npm run dev
 ```
 
-For local development, the backend needs to reach the Feast service. Since Feast runs inside the cluster, port-forward the registry service:
+For local development, the backend needs to reach the Feast service. Since Feast runs inside the cluster, use the port-forward script to discover and wire up all active Feature Stores automatically:
 
 ```bash
-# Port-forward the Feast registry to localhost
-oc port-forward -n <feast-namespace> svc/<feast-registry-service> 8443:443
+# Discover all enabled FeatureStores, port-forward them, and update .env.local
+./packages/feature-store/scripts/feast-dev-portforward.sh
 
-# Set the env var so the backend routes to localhost
-FEAST_REGISTRY_SERVICE_PORT=8443 npm run dev
+# Check status of active forwards (from a second terminal)
+./packages/feature-store/scripts/feast-dev-portforward.sh status
+
+# Stop all forwards (or press Ctrl+C in the running terminal)
+./packages/feature-store/scripts/feast-dev-portforward.sh stop
 ```
+
+If setting up `.env.local` manually, each FeatureStore needs a port variable named after its registry service — e.g. `FEAST_FEAST_<NAME>_REGISTRY_REST_PORT=6570`. Otherwise the script handles this automatically.
+
+See [`scripts/feast-dev-portforward.md`](scripts/feast-dev-portforward.md) for full usage, options, env var naming details, and the two-terminal workflow.
 
 ### Scripts
 
