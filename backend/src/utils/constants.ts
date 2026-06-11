@@ -104,6 +104,7 @@ export const blankDashboardCR: DashboardConfig = {
       llmGatewayField: false,
       promptManagement: false,
       mySubscriptions: false,
+      iaRedesign: false,
     },
     notebookController: {
       enabled: true,
