@@ -570,7 +570,9 @@ export type GenAiAPIs = {
   createExternalModel: CreateExternalModel;
   verifyExternalModel: VerifyExternalModel;
   deleteExternalModel: DeleteExternalModel;
+  listAgentProfiles: ListAgentProfiles;
   getAgentProfile: GetAgentProfile;
+  deleteAgentProfile: DeleteAgentProfile;
   createAgentProfile: CreateAgentProfile;
 };
 
@@ -662,7 +664,9 @@ type VerifyExternalModel = ModArchRestCREATE<
   VerifyExternalModelRequest
 >;
 type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
+type ListAgentProfiles = ModArchRestGET<import('./agentProfile/types').AgentProfileListResponse>;
 type GetAgentProfile = ModArchRestGET<import('./agentProfile/types').AgentProfile>;
+type DeleteAgentProfile = ModArchRestGET<void>;
 type CreateAgentProfile = ModArchRestCREATE<
   import('./agentProfile/types').AgentProfileCreateResponse,
   import('./agentProfile/types').AgentProfileCreateRequest

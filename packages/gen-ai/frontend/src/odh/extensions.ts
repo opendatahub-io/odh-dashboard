@@ -191,6 +191,17 @@ const extensions: (
       component: () => import('../app/AIAssets/AIAssetsVectorStoresTab').then((m) => m.default),
     },
   },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [PLUGIN_GEN_AI, AGENT_PROFILES],
+    },
+    properties: {
+      id: 'agentprofile',
+      title: 'Agent profiles',
+      component: () => import('../app/AIAssets/AIAssetsAgentProfilesTab').then((m) => m.default),
+    },
+  },
 
   // -- Task Assistant --
 
