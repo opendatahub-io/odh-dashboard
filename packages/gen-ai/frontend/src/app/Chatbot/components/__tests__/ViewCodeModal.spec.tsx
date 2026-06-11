@@ -28,8 +28,10 @@ const mockExportCode = jest.fn();
 // Create a shared mock store that will be modified per test
 let mockStore: ChatbotConfigStore | undefined;
 
-const createMockStore = (configOverrides = {}) => {
-  const defaultConfig = {
+type MockConfig = NonNullable<ReturnType<ChatbotConfigStore['getConfiguration']>>;
+
+const createMockStore = (configOverrides: Partial<MockConfig> = {}) => {
+  const defaultConfig: MockConfig = {
     selectedModel: 'test-model',
     systemInstruction: 'You are a helpful assistant.',
     selectedMcpServerIds: [] as string[],
@@ -41,19 +43,13 @@ const createMockStore = (configOverrides = {}) => {
     knowledgeMode: 'inline' as const,
     selectedVectorStoreId: null as string | null,
     variableValues: {} as Record<string, string>,
-    activePrompt: null as {
-      name: string;
-      version: number;
-      template?: string;
-      created_at: string;
-      updated_at: string;
-    } | null,
+    activePrompt: null,
     guardrail: '',
     guardrailUserInputEnabled: false,
     guardrailModelOutputEnabled: false,
     guardrailSubscription: '',
     ...configOverrides,
-  };
+  } as MockConfig;
 
   const configurations: Record<string, typeof defaultConfig | undefined> = {
     [DEFAULT_CONFIG_ID]: defaultConfig,
@@ -69,7 +65,7 @@ const createMockStore = (configOverrides = {}) => {
   return store as unknown as ChatbotConfigStore;
 };
 
-const setupMockStore = (configOverrides = {}) => {
+const setupMockStore = (configOverrides: Partial<MockConfig> = {}) => {
   mockStore = createMockStore(configOverrides);
 
   // Reset the mock implementation with the new store
@@ -584,7 +580,7 @@ describe('ViewCodeModal', () => {
     expect(callArg.prompt_variable_values).toBeUndefined();
   });
 
-  it('does not include tools when RAG is enabled but no files are present', async () => {
+  it('includes file_search tools but omits files when RAG is enabled with no files', async () => {
     // Setup store with RAG enabled, inline mode
     setupMockStore({ isRagEnabled: true, knowledgeMode: 'inline', selectedVectorStoreId: 'vs-1' });
 
