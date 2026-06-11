@@ -40,12 +40,23 @@ export const PREDICTION_TYPE_OPTIONS: PredictionTypeOption[] = [
   },
 ];
 
-export type PredictionTypeAssessment = {
+type PredictionTypeAssessmentBase = {
   value: PredictionTypeValue;
-  isRecommended: boolean;
-  recommendationReason: string;
-  notRecommendedReason?: string;
 };
+
+export type RecommendedPredictionTypeAssessment = PredictionTypeAssessmentBase & {
+  isRecommended: true;
+  recommendationReason: string;
+};
+
+export type NotRecommendedPredictionTypeAssessment = PredictionTypeAssessmentBase & {
+  isRecommended: false;
+  notRecommendedReason: string;
+};
+
+export type PredictionTypeAssessment =
+  | RecommendedPredictionTypeAssessment
+  | NotRecommendedPredictionTypeAssessment;
 
 const isNumericColumnType = (type: string): boolean => type === 'integer' || type === 'double';
 
@@ -146,16 +157,22 @@ export const assessPredictionTypes = (
       columns,
     );
     const notRecommendedReason = hardReason ?? softReason;
-    const isRecommended = notRecommendedReason == null;
+
+    if (notRecommendedReason == null) {
+      return {
+        value: option.value,
+        isRecommended: true,
+        recommendationReason: getPredictionTypeRecommendationReason(
+          option.value,
+          selectedColumn,
+          columns,
+        ),
+      };
+    }
 
     return {
       value: option.value,
-      isRecommended,
-      recommendationReason: getPredictionTypeRecommendationReason(
-        option.value,
-        selectedColumn,
-        columns,
-      ),
+      isRecommended: false,
       notRecommendedReason,
     };
   });
@@ -163,11 +180,15 @@ export const assessPredictionTypes = (
 export const partitionPredictionTypeAssessments = (
   assessments: PredictionTypeAssessment[],
 ): {
-  recommended: PredictionTypeAssessment[];
-  notRecommended: PredictionTypeAssessment[];
+  recommended: RecommendedPredictionTypeAssessment[];
+  notRecommended: NotRecommendedPredictionTypeAssessment[];
 } => ({
-  recommended: assessments.filter((a) => a.isRecommended),
-  notRecommended: assessments.filter((a) => !a.isRecommended),
+  recommended: assessments.filter(
+    (assessment): assessment is RecommendedPredictionTypeAssessment => assessment.isRecommended,
+  ),
+  notRecommended: assessments.filter(
+    (assessment): assessment is NotRecommendedPredictionTypeAssessment => !assessment.isRecommended,
+  ),
 });
 
 /** Mirrors AutomlConfigure target-column selection: timeseries when a timestamp exists and target is numeric. */
@@ -186,9 +207,9 @@ export const getInferredPredictionType = (
 
 /** Puts the inferred default first among recommended tiles; stable order for the rest. */
 export const orderRecommendedAssessments = (
-  recommended: PredictionTypeAssessment[],
+  recommended: RecommendedPredictionTypeAssessment[],
   preferredTaskType?: PredictionTypeValue,
-): PredictionTypeAssessment[] => {
+): RecommendedPredictionTypeAssessment[] => {
   if (!preferredTaskType) {
     return recommended;
   }

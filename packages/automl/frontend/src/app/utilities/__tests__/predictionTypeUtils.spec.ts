@@ -236,9 +236,13 @@ describe('predictionTypeUtils', () => {
         ],
       );
 
-      expect(assessments.find((a) => a.value === 'timeseries')?.recommendationReason).toBe(
-        'Column "ds" indicates a time-based series.',
-      );
+      const timeseriesAssessment = assessments.find((a) => a.value === 'timeseries');
+      expect(timeseriesAssessment?.isRecommended).toBe(true);
+      if (timeseriesAssessment?.isRecommended) {
+        expect(timeseriesAssessment.recommendationReason).toBe(
+          'Column "ds" indicates a time-based series.',
+        );
+      }
     });
 
     it('should recommend multiclass and regression for numeric target with 3 unique values', () => {
