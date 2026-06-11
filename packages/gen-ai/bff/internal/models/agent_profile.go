@@ -10,7 +10,8 @@ type AgentProfile struct {
 
 // AgentProfileMetadata contains identifying information for an agent profile
 type AgentProfileMetadata struct {
-	Name string `json:"name" yaml:"name"`
+	Name            string `json:"name" yaml:"name"`
+	ResourceVersion string `json:"resourceVersion" yaml:"-"` // K8s metadata, not stored in YAML
 }
 
 // AgentProfileSpec defines the desired state of an agent profile
@@ -115,4 +116,35 @@ type AgentProfileCreateResponse struct {
 	DisplayName     string `json:"displayName"`     // User-friendly name from spec
 	Namespace       string `json:"namespace"`       // Kubernetes namespace
 	ResourceVersion string `json:"resourceVersion"` // K8s resource version
+}
+
+// AgentProfileSummary is a lightweight representation for list operations
+type AgentProfileSummary struct {
+	Name         string `json:"name"`                  // ConfigMap name: "agent-profile-{uuid}"
+	ProfileID    string `json:"profileId"`             // The UUID (metadata.name)
+	DisplayName  string `json:"displayName"`           // User-friendly name from spec
+	Description  string `json:"description,omitempty"` // Optional description from spec
+	Namespace    string `json:"namespace"`             // Kubernetes namespace
+	LastModified string `json:"lastModified"`          // ISO 8601 timestamp
+}
+
+// AgentProfileListResponse is the HTTP response for listing agent profiles
+type AgentProfileListResponse struct {
+	Profiles   []AgentProfileSummary `json:"profiles"`
+	TotalCount int                   `json:"totalCount"`
+}
+
+// AgentProfileUpdateRequest is the HTTP request body for updating an agent profile
+type AgentProfileUpdateRequest struct {
+	Spec            AgentProfileSpec `json:"spec"`
+	ResourceVersion string           `json:"resourceVersion"`
+}
+
+// AgentProfileUpdateResponse is the HTTP response for successful agent profile update
+type AgentProfileUpdateResponse struct {
+	Name            string `json:"name"`            // ConfigMap name: "agent-profile-{uuid}"
+	ProfileID       string `json:"profileId"`       // The UUID (metadata.name)
+	DisplayName     string `json:"displayName"`     // User-friendly name from spec
+	Namespace       string `json:"namespace"`       // Kubernetes namespace
+	ResourceVersion string `json:"resourceVersion"` // K8s resource version after update
 }

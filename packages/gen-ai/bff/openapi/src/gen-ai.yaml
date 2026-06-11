@@ -972,7 +972,7 @@ paths:
             example: 10
         - name: filter_name
           in: query
-          description: Filter prompts by name prefix (e.g. "pet" matches "pet-health-bella", "pet-adoption-letter")
+          description: Filter prompts by name substring (e.g. "reminder" matches "medication-reminder-patient")
           required: false
           schema:
             type: string
@@ -995,8 +995,12 @@ paths:
                       next_page_token:
                         type: string
                         description: Token for fetching the next page of results
+                      total_count:
+                        type: integer
+                        description: Total number of prompts matching the filter criteria (up to 1000)
                     required:
                       - prompts
+                      - total_count
                   metadata:
                     type: object
                     nullable: true
@@ -2269,6 +2273,74 @@ paths:
   # =============================================================================
 
   /gen-ai/api/v1/agent-profiles:
+    get:
+      tags:
+        - AgentProfiles
+      operationId: listAgentProfiles
+      summary: List Agent Profiles
+      description: >-
+        Lists all agent configuration profiles in the specified namespace.
+        Returns ConfigMaps filtered by label opendatahub.io/agent-profile: true.
+        Results are sorted by last-modified timestamp (most recent first).
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      responses:
+        '200':
+          description: Agent profiles retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentProfileListResponseEnvelope'
+              examples:
+                with_profiles:
+                  summary: Namespace with profiles
+                  value:
+                    data:
+                      profiles:
+                        - name: "agent-profile-550e8400-e29b-41d4-a716-446655440000"
+                          profileId: "550e8400-e29b-41d4-a716-446655440000"
+                          displayName: "Customer Support Agent"
+                          description: "Professional customer support agent with RAG and guardrails"
+                          namespace: "my-namespace"
+                          lastModified: "2024-01-15T10:30:00Z"
+                        - name: "agent-profile-7c1e5f23-9a8b-4d12-b3c6-789012345678"
+                          profileId: "7c1e5f23-9a8b-4d12-b3c6-789012345678"
+                          displayName: "Code Assistant"
+                          namespace: "my-namespace"
+                          lastModified: "2024-01-14T15:20:00Z"
+                      totalCount: 2
+                empty:
+                  summary: Empty namespace
+                  value:
+                    data:
+                      profiles: []
+                      totalCount: 0
+        '400':
+          description: Invalid request (e.g., missing namespace parameter)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: "400"
+                  message: "HTTP 400: missing_namespace - namespace parameter is required"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to list ConfigMaps
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: "403"
+                  message: "insufficient permissions to list agent profiles in this namespace"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     post:
       tags:
         - AgentProfiles
@@ -2356,6 +2428,192 @@ paths:
                 error:
                   code: "already_exists"
                   message: "agent profile 550e8400-e29b-41d4-a716-446655440000 already exists"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /gen-ai/api/v1/agent-profiles/{id}:
+    get:
+      tags:
+        - AgentProfiles
+      operationId: getAgentProfile
+      summary: Get Agent Profile by ID
+      description: >-
+        Retrieves a single agent profile by its UUID.
+        Returns the full AgentProfile resource with all configuration details.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: id
+          in: path
+          required: true
+          description: Agent profile UUID (without 'agent-profile-' prefix)
+          schema:
+            type: string
+            format: uuid
+            example: '550e8400-e29b-41d4-a716-446655440000'
+      responses:
+        '200':
+          description: Agent profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentProfileEnvelope'
+              example:
+                data:
+                  apiVersion: "genai.redhat.com/v1alpha1"
+                  kind: "AgentProfile"
+                  metadata:
+                    name: "550e8400-e29b-41d4-a716-446655440000"
+                    resourceVersion: "12345"
+                  spec:
+                    displayName: "Customer Support Agent"
+                    description: "Professional customer support agent"
+                    model:
+                      id: "llama-3-70b"
+                      uri: "https://api.example.com/v1/models"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to access the profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Agent profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: "404"
+                  message: "agent profile 550e8400-e29b-41d4-a716-446655440000 not found"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - AgentProfiles
+      operationId: updateAgentProfile
+      summary: Update Agent Profile
+      description: >-
+        Updates an existing agent profile. Requires resourceVersion for optimistic concurrency control.
+        Returns 409 Conflict if resourceVersion does not match current version.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: id
+          in: path
+          required: true
+          description: Agent profile UUID (without 'agent-profile-' prefix)
+          schema:
+            type: string
+            format: uuid
+            example: '550e8400-e29b-41d4-a716-446655440000'
+      requestBody:
+        required: true
+        description: Updated agent profile specification with resourceVersion
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentProfileUpdateRequest'
+            example:
+              spec:
+                displayName: "Updated Customer Support Agent"
+                description: "Enhanced customer support with new features"
+                model:
+                  id: "llama-3-70b"
+                  uri: "https://api.example.com/v1/models"
+                temperature: 0.8
+              resourceVersion: "12345"
+      responses:
+        '200':
+          description: Agent profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentProfileUpdateResponseEnvelope'
+              example:
+                data:
+                  name: "agent-profile-550e8400-e29b-41d4-a716-446655440000"
+                  profileId: "550e8400-e29b-41d4-a716-446655440000"
+                  displayName: "Updated Customer Support Agent"
+                  namespace: "my-namespace"
+                  resourceVersion: "12346"
+        '400':
+          description: Invalid request or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to update the profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Agent profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Conflict - resourceVersion mismatch (concurrent modification detected)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: "409"
+                  message: "resource version conflict: profile was modified by another client"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - AgentProfiles
+      operationId: deleteAgentProfile
+      summary: Delete Agent Profile
+      description: >-
+        Deletes an agent profile ConfigMap. Returns 204 No Content on success.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: id
+          in: path
+          required: true
+          description: Agent profile UUID (without 'agent-profile-' prefix)
+          schema:
+            type: string
+            format: uuid
+            example: '550e8400-e29b-41d4-a716-446655440000'
+      responses:
+        '204':
+          description: Agent profile deleted successfully (no content)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to delete the profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Agent profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -4908,6 +5166,7 @@ components:
           description: Kubernetes namespace where the ConfigMap was created
         resourceVersion:
           type: string
+          minLength: 1
           example: '12345'
           description: Kubernetes resource version for optimistic concurrency
 
@@ -4918,6 +5177,170 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/AgentProfileCreateResponse'
+
+    AgentProfileSummary:
+      type: object
+      required:
+        - name
+        - profileId
+        - displayName
+        - namespace
+        - lastModified
+      properties:
+        name:
+          type: string
+          example: 'agent-profile-550e8400-e29b-41d4-a716-446655440000'
+          description: Full ConfigMap name with prefix
+        profileId:
+          type: string
+          format: uuid
+          example: '550e8400-e29b-41d4-a716-446655440000'
+          description: The UUID (metadata.name) for this profile
+        displayName:
+          type: string
+          example: 'Customer Support Agent'
+          description: User-friendly name from spec.displayName
+        description:
+          type: string
+          example: 'Professional customer support agent with RAG and guardrails'
+          description: Optional description from spec.description
+        namespace:
+          type: string
+          example: 'my-namespace'
+          description: Kubernetes namespace containing the ConfigMap
+        lastModified:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+          description: Timestamp when the ConfigMap was last modified
+
+    AgentProfileListResponse:
+      type: object
+      required:
+        - profiles
+        - totalCount
+      properties:
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentProfileSummary'
+          description: Array of agent profile summaries
+        totalCount:
+          type: integer
+          minimum: 0
+          example: 2
+          description: Total number of profiles in the namespace
+
+    AgentProfileListResponseEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentProfileListResponse'
+
+    AgentProfileEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentProfile'
+      description: Envelope for single AgentProfile GET response
+
+    AgentProfile:
+      type: object
+      required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+      properties:
+        apiVersion:
+          type: string
+          example: 'genai.redhat.com/v1alpha1'
+          description: API version
+        kind:
+          type: string
+          example: 'AgentProfile'
+          description: Resource kind
+        metadata:
+          $ref: '#/components/schemas/AgentProfileMetadata'
+        spec:
+          $ref: '#/components/schemas/AgentProfileSpec'
+      description: Complete AgentProfile resource
+
+    AgentProfileMetadata:
+      type: object
+      required:
+        - name
+        - resourceVersion
+      properties:
+        name:
+          type: string
+          format: uuid
+          example: '550e8400-e29b-41d4-a716-446655440000'
+          description: Profile UUID
+        resourceVersion:
+          type: string
+          minLength: 1
+          example: '12345'
+          description: Kubernetes resource version for optimistic concurrency control. Required for PUT requests.
+
+    AgentProfileUpdateRequest:
+      type: object
+      required:
+        - spec
+        - resourceVersion
+      properties:
+        spec:
+          $ref: '#/components/schemas/AgentProfileSpec'
+        resourceVersion:
+          type: string
+          minLength: 1
+          example: '12345'
+          description: Kubernetes resource version for optimistic concurrency control
+      description: Request to update an agent profile with concurrency control
+
+    AgentProfileUpdateResponse:
+      type: object
+      required:
+        - name
+        - profileId
+        - displayName
+        - namespace
+        - resourceVersion
+      properties:
+        name:
+          type: string
+          example: 'agent-profile-550e8400-e29b-41d4-a716-446655440000'
+          description: Full ConfigMap name with prefix
+        profileId:
+          type: string
+          format: uuid
+          example: '550e8400-e29b-41d4-a716-446655440000'
+          description: The UUID for this profile
+        displayName:
+          type: string
+          example: 'Customer Support Agent'
+          description: User-friendly name from spec.displayName
+        namespace:
+          type: string
+          example: 'my-namespace'
+          description: Kubernetes namespace
+        resourceVersion:
+          type: string
+          minLength: 1
+          example: '12346'
+          description: New Kubernetes resource version after update
+
+    AgentProfileUpdateResponseEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentProfileUpdateResponse'
 
     AgentProfileSpec:
       type: object

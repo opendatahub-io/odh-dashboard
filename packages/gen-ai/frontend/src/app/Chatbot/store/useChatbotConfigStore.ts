@@ -151,6 +151,7 @@ export const createChatbotConfigStore = (
       },
     },
     configIds: ['default'],
+    profileApplied: false,
   };
 
   return create<ChatbotConfigStore>()(
@@ -273,6 +274,7 @@ const createStoreActions = (
       variableValues: { ...sourceConfig.variableValues },
       selectedAsrModel: sourceConfig.selectedAsrModel,
       isAsrModelEnabled: sourceConfig.isAsrModelEnabled,
+      hasVisionImage: sourceConfig.hasVisionImage,
     };
 
     set(
@@ -598,6 +600,19 @@ const createStoreActions = (
     );
   },
 
+  updateHasVisionImage: (id: string, value: boolean) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.hasVisionImage !== value) {
+          config.hasVisionImage = value;
+        }
+      },
+      false,
+      'updateHasVisionImage',
+    );
+  },
+
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => {
     set(
@@ -613,6 +628,26 @@ const createStoreActions = (
       }),
       false,
       'resetConfiguration',
+    );
+  },
+
+  applyAgentProfile: (config: Partial<ChatbotConfiguration>) => {
+    set(
+      () => ({
+        ...storeInitialState,
+        profileApplied: true,
+        configurations: {
+          default: {
+            ...DEFAULT_CONFIGURATION,
+            ...config,
+            // Profile load always starts with a clean slate — never read from sessionStorage.
+            // The correct tool selections are applied explicitly via saveToolSelections afterward.
+            mcpToolSelections: config.mcpToolSelections ?? {},
+          },
+        },
+      }),
+      false,
+      'applyAgentProfile',
     );
   },
 

@@ -6,7 +6,6 @@
     "priority": 10,
     "cost_center": "engineering",
     "organization_id": "org-123",
-    "key_count": 10,
     "model_refs": [
       {
         "name": "granite-3-8b-instruct",
@@ -38,7 +37,6 @@
     "subscription_description": "Basic Team Subscription",
     "display_name": "Basic Team",
     "priority": 1,
-    "key_count": 5,
     "model_refs": [
       {
         "name": "flan-t5-small",

@@ -82,7 +82,15 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
   it(
     'Verify User can deploy a model by selecting an LLMInferenceServiceConfig',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@ModelServingCI',
+        '@LLMDServingCI',
+      ],
     },
     () => {
       cy.step('Log into the application as admin');
