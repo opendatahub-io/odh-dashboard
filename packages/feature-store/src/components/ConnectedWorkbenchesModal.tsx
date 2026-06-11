@@ -54,6 +54,12 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
     selectedFeastProjectName || undefined,
   );
 
+  React.useEffect(() => {
+    if (loaded && selectedFeastProjectName && !selectedProject) {
+      setSelectedFeastProjectName('');
+    }
+  }, [loaded, selectedFeastProjectName, selectedProject]);
+
   const tableRows = React.useMemo(() => {
     const projectData = selectedFeastProjectName ? selectedProject : projects;
     const rows = buildConnectedWorkbenchRows(projectData);
