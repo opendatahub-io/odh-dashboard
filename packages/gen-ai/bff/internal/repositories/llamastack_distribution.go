@@ -61,9 +61,10 @@ func (r *OGXServerRepository) InstallOGXServer(
 	namespace string,
 	installmodels []models.InstallModel,
 	vectorStores []models.InstallVectorStore,
+	enableTracing bool,
 	maasClient maas.MaaSClientInterface,
 ) (*models.OGXServerInstallModel, error) {
-	ogxServer, err := client.InstallOGXServer(ctx, identity, namespace, installmodels, vectorStores, maasClient)
+	ogxServer, err := client.InstallOGXServer(ctx, identity, namespace, installmodels, vectorStores, enableTracing, maasClient)
 	if err != nil {
 		return nil, err
 	}

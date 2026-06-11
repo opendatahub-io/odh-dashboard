@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"os"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -1340,9 +1341,40 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 	return aaModels, nil
 }
 
-// findGuardrailsServiceAccountTokenSecret finds the token secret for the guardrails service account
-// This follows the same pattern as VLLM token discovery - finding SA token secrets by type and annotation
-func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error) {
+// ogxCommand returns the container command for the OGXServer pod.
+// When tracing is enabled, it invokes the image's native entrypoint which
+// wraps the process with opentelemetry-instrument automatically.
+func ogxCommand(enableTracing bool) []string {
+	if enableTracing {
+		return []string{"/opt/app-root/entrypoint.sh"}
+	}
+	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"}
+}
+
+// ogxEnvVars returns the environment variables for the OGXServer pod.
+// When tracing is enabled, OTel env vars are appended so the entrypoint's
+// opentelemetry-instrument wrapper exports spans to the collector.
+func ogxEnvVars(base []corev1.EnvVar, enableTracing bool, namespace string, collectorEndpoint string) []corev1.EnvVar {
+	vars := append(base, corev1.EnvVar{
+		Name:  "OGX_CONFIG_DIR",
+		Value: "/opt/app-root/src/.ogx/distributions/rh/",
+	})
+
+	if enableTracing {
+		vars = append(vars,
+			corev1.EnvVar{Name: "RUN_CONFIG_PATH", Value: "/etc/ogx/config.yaml"},
+			corev1.EnvVar{Name: "OTEL_SERVICE_NAME", Value: "ogx-server"},
+			corev1.EnvVar{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: collectorEndpoint},
+			corev1.EnvVar{Name: "OTEL_RESOURCE_ATTRIBUTES", Value: fmt.Sprintf("k8s.namespace.name=%s", namespace)},
+			corev1.EnvVar{Name: "OTEL_SEMCONV_STABILITY_OPT_IN", Value: "http"},
+			corev1.EnvVar{Name: "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", Value: "true"},
+		)
+	}
+
+	return vars
+}
+
+func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, enableTracing bool, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -1604,11 +1636,8 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"},
-					Env: append(envVars, corev1.EnvVar{
-						Name:  "OGX_CONFIG_DIR",
-						Value: "/opt/app-root/src/.ogx/distributions/rh/",
-					}),
+					Command: ogxCommand(enableTracing),
+					Env:     ogxEnvVars(envVars, enableTracing, namespace, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")),
 				},
 			},
 			Network: &ogxapi.NetworkSpec{

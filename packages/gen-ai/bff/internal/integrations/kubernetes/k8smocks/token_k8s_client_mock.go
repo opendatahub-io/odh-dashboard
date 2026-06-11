@@ -355,7 +355,7 @@ func (m *TokenKubernetesClientMock) GetOGXServers(ctx context.Context, identity 
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error) {
+func (m *TokenKubernetesClientMock) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, enableTracing bool, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error) {
 	if len(vectorStores) > 0 {
 		if _, err := m.LoadAndValidateVectorStores(ctx, identity, namespace, vectorStores); err != nil {
 			return nil, err

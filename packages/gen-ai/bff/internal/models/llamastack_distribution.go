@@ -21,8 +21,9 @@ type OGXServerResponse struct {
 
 // OGXServerInstallRequest represents the request body for installing models.
 type OGXServerInstallRequest struct {
-	Models       []InstallModel       `json:"models"`
-	VectorStores []InstallVectorStore `json:"vector_stores,omitempty"` // Optional vector stores to configure; embedding models must be included in Models
+	Models        []InstallModel       `json:"models"`
+	EnableTracing bool                 `json:"enable_tracing,omitempty"` // When true, wraps OGX with opentelemetry-instrument for distributed tracing
+	VectorStores  []InstallVectorStore `json:"vector_stores,omitempty"`  // Optional vector stores to configure; embedding models must be included in Models
 }
 
 // InstallVectorStore identifies a vector store to include in the OGX server install.
