@@ -1,5 +1,5 @@
 {
-  "test_id": "bff/testdata/llamastack/test.py::record",
+  "test_id": null,
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
@@ -8,36 +8,18 @@
       "model": "models/gemini-2.5-flash",
       "messages": [
         {
+          "role": "system",
+          "content": "You are a helpful assistant. Keep responses brief."
+        },
+        {
           "role": "user",
-          "content": "What is machine learning?"
+          "content": "Hello"
         }
       ],
-      "parallel_tool_calls": true,
       "stream": true,
       "stream_options": {
         "include_usage": true
-      },
-      "tools": [
-        {
-          "type": "function",
-          "function": {
-            "name": "file_search",
-            "description": "Search files for relevant information",
-            "parameters": {
-              "type": "object",
-              "properties": {
-                "query": {
-                  "type": "string",
-                  "description": "The search query"
-                }
-              },
-              "required": [
-                "query"
-              ]
-            }
-          }
-        }
-      ]
+      }
     },
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
@@ -50,27 +32,17 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-601d683b642f",
+          "id": "rec-134e2f7e941b",
           "choices": [
             {
               "delta": {
-                "content": null,
+                "content": "Hi there!",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
-                "tool_calls": [
-                  {
-                    "index": null,
-                    "id": "function-call-7028328847705179176",
-                    "function": {
-                      "arguments": "{\"query\":\"machine learning\"}",
-                      "name": "file_search"
-                    },
-                    "type": "function"
-                  }
-                ]
+                "tool_calls": null
               },
-              "finish_reason": "tool_calls",
+              "finish_reason": "stop",
               "index": 0,
               "logprobs": null
             }
@@ -82,9 +54,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 16,
-            "prompt_tokens": 45,
-            "total_tokens": 137,
+            "completion_tokens": 3,
+            "prompt_tokens": 13,
+            "total_tokens": 29,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
