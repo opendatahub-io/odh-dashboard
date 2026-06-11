@@ -34,6 +34,7 @@ describe('agent-ops extensions', () => {
         id: 'deployments',
         title: 'Deployments',
         group: '1_deployments',
+        hidePageTitleOnNestedRoutes: true,
       },
     });
     expect(tab?.type === 'app.tab-route/tab' && tab.properties.component).toBeTruthy();

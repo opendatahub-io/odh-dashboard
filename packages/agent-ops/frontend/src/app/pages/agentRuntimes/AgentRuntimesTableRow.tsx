@@ -5,7 +5,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
 import AgentRuntimeStatusLabel from '~/app/components/AgentRuntimeStatusLabel';
 import AgentRuntimeEndpointsModal from '~/app/components/AgentRuntimeEndpointsModal';
-import { agentOpsDeploymentDetailRoute } from '~/app/utilities/routes';
 import { agentRuntimesColumns } from './columns';
 
 const COMING_SOON_TOOLTIP = 'Coming soon';
@@ -17,7 +16,7 @@ type AgentRuntimesTableRowProps = {
 const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }) => {
   const [isEndpointsModalOpen, setIsEndpointsModalOpen] = React.useState(false);
   const navigate = useNavigate();
-  const detailRoute = agentOpsDeploymentDetailRoute(runtime.namespace, runtime.name);
+  const detailRoute = `${runtime.name}/overview`;
 
   const actions: IAction[] = React.useMemo(
     () => [

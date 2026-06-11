@@ -25,6 +25,7 @@ const extensions: (AreaExtension | TabRouteTabExtension)[] = [
       title: 'Deployments',
       component: () => import('./AgentDeploymentsWrapper'),
       group: '1_deployments',
+      hidePageTitleOnNestedRoutes: true,
     },
   },
 ];

@@ -137,6 +137,38 @@ describe('TabRoutePage', () => {
       // After redirect, content should render
       expect(screen.getByTestId('lazy-content')).toBeInTheDocument();
     });
+
+    it('should hide page title on nested routes when hidePageTitleOnNestedRoutes is set', () => {
+      const tab = createTabExtension({
+        id: 'deployments',
+        title: 'Deployments',
+        hidePageTitleOnNestedRoutes: true,
+      });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({ href: '/ai-hub/agents', path: '/ai-hub/agents/*' });
+
+      renderWithRouter(
+        extension,
+        '/ai-hub/agents/deployments/agent-ops-demo/sample-support-agent/overview',
+      );
+
+      expect(screen.queryByTestId('app-tab-page-title')).not.toBeInTheDocument();
+      expect(screen.getByTestId('lazy-content')).toBeInTheDocument();
+    });
+
+    it('should keep page title on list routes when hidePageTitleOnNestedRoutes is set', () => {
+      const tab = createTabExtension({
+        id: 'deployments',
+        title: 'Deployments',
+        hidePageTitleOnNestedRoutes: true,
+      });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({ href: '/ai-hub/agents', path: '/ai-hub/agents/*' });
+
+      renderWithRouter(extension, '/ai-hub/agents/deployments/agent-ops-demo');
+
+      expect(screen.getByTestId('app-tab-page-title')).toHaveTextContent('Test Page');
+    });
   });
 
   describe('2+ tabs (multi-tab)', () => {

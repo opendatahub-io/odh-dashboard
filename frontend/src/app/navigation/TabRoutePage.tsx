@@ -60,6 +60,22 @@ const getDefaultTab = (
 const isProjectObjectType = (value: string): value is ProjectObjectType =>
   Object.values<string>(ProjectObjectType).includes(value);
 
+export const shouldShowTabRoutePageTitle = (
+  pageHref: string,
+  tabId: string,
+  pathname: string,
+  hidePageTitleOnNestedRoutes?: boolean,
+): boolean => {
+  if (!hidePageTitleOnNestedRoutes) {
+    return true;
+  }
+  const basePath = `${pageHref}/${tabId}`;
+  const relativePath = pathname.startsWith(basePath)
+    ? pathname.slice(basePath.length).replace(/^\//, '')
+    : '';
+  return relativePath.split('/').filter(Boolean).length <= 1;
+};
+
 type MultiTabContentProps = {
   pageTitle: React.ReactNode;
   tabExtensions: LoadedExtension<TabRouteTabExtension>[];
@@ -77,6 +93,7 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
 }) => {
   const { tabId = '' } = useParams<{ tabId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const activeTab = tabExtensions.find((t) => t.properties.id === tabId);
 
@@ -84,9 +101,16 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
     return <Navigate to={`../${defaultTab}`} replace />;
   }
 
+  const showPageTitle = shouldShowTabRoutePageTitle(
+    extension.properties.href,
+    activeTab.properties.id,
+    location.pathname,
+    activeTab.properties.hidePageTitleOnNestedRoutes,
+  );
+
   return (
     <>
-      {pageTitle}
+      {showPageTitle && pageTitle}
       <PageSection type="tabs">
         <Tabs
           activeKey={tabId}
@@ -120,6 +144,35 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
           )}
         </div>
       ))}
+    </>
+  );
+};
+
+type TabRouteSingleTabContentProps = {
+  tab: LoadedExtension<TabRouteTabExtension>;
+  pageExtension: LoadedExtension<TabRoutePageExtension>;
+  pageTitle: React.ReactNode;
+  tabContentFallback: React.ReactNode;
+};
+
+const TabRouteSingleTabContent: React.FC<TabRouteSingleTabContentProps> = ({
+  tab,
+  pageExtension,
+  pageTitle,
+  tabContentFallback,
+}) => {
+  const location = useLocation();
+  const showPageTitle = shouldShowTabRoutePageTitle(
+    pageExtension.properties.href,
+    tab.properties.id,
+    location.pathname,
+    tab.properties.hidePageTitleOnNestedRoutes,
+  );
+
+  return (
+    <>
+      {showPageTitle && pageTitle}
+      <LazyCodeRefComponent component={tab.properties.component} fallback={tabContentFallback} />
     </>
   );
 };
@@ -184,13 +237,12 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
         <Route
           path={`${singleTab.properties.id}/*`}
           element={
-            <>
-              {pageTitle}
-              <LazyCodeRefComponent
-                component={singleTab.properties.component}
-                fallback={tabContentFallback}
-              />
-            </>
+            <TabRouteSingleTabContent
+              tab={singleTab}
+              pageExtension={extension}
+              pageTitle={pageTitle}
+              tabContentFallback={tabContentFallback}
+            />
           }
         />
         <Route

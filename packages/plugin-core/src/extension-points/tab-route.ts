@@ -53,6 +53,7 @@ export type TabRouteTabExtension = Extension<
     component: ComponentCodeRef;
     /** Group used to sort tabs lexicographically. Unspecified tabs will be sorted into the '5_default' group. */
     group?: string;
+    hidePageTitleOnNestedRoutes?: boolean;
   }
 >;
 
