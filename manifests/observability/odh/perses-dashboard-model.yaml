@@ -107,7 +107,6 @@ spec:
                   datasource:
                     kind: PrometheusDatasource
                     name: cluster-prometheus-tenancy-datasource
-                    name: cluster-prometheus-tenancy-datasource
                   query: group by (model_name, namespace) (kserve_vllm:num_requests_running{model_name=~"$model_name"})
           # Query 2: Total requests - defaults to 0
           - kind: TimeSeriesQuery
