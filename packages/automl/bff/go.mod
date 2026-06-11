@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/automl-library/bff
 
-go 1.26.4
+go 1.26.3
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.5
