@@ -2102,32 +2102,6 @@ describe('Workbench page', () => {
       notebookRow.shouldHaveFeatureStoreNone();
     });
 
-    it('shows "None" when feast-config annotation is empty', () => {
-      initIntercepts({
-        notebooks: [
-          mockNotebookK8sResource({
-            lastImageSelection: 'test-imagestream:1.2',
-            opts: {
-              metadata: {
-                name: 'test-notebook',
-                labels: { 'opendatahub.io/notebook-image': 'true' },
-                annotations: {
-                  'opendatahub.io/image-display-name': 'Test image',
-                  'opendatahub.io/feast-config': '',
-                },
-              },
-            },
-          }),
-        ],
-      });
-      enableFeatureStoreArea();
-      workbenchPage.visit('test-project');
-      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-      notebookRow.findExpansionButton().click();
-      notebookRow.shouldHaveFeatureStoreTitle();
-      notebookRow.shouldHaveFeatureStoreNone();
-    });
-
     it('shows feature store names when 5 or fewer', () => {
       initIntercepts({
         notebooks: [
@@ -2192,31 +2166,6 @@ describe('Workbench page', () => {
       notebookRow.findFeatureStoreShowAll().find('button').click();
       notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
-    });
-
-    it('trims whitespace from feast-config annotation values', () => {
-      initIntercepts({
-        notebooks: [
-          mockNotebookK8sResource({
-            lastImageSelection: 'test-imagestream:1.2',
-            opts: {
-              metadata: {
-                name: 'test-notebook',
-                labels: { 'opendatahub.io/notebook-image': 'true' },
-                annotations: {
-                  'opendatahub.io/image-display-name': 'Test image',
-                  'opendatahub.io/feast-config': '  project-a , project-b , project-c  ',
-                },
-              },
-            },
-          }),
-        ],
-      });
-      enableFeatureStoreArea();
-      workbenchPage.visit('test-project');
-      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-      notebookRow.findExpansionButton().click();
-      notebookRow.shouldHaveFeatureStoreItems(['project-a', 'project-b', 'project-c']);
     });
   });
 

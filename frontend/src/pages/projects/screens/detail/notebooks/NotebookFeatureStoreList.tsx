@@ -11,6 +11,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
+import text from '@patternfly/react-styles/css/utilities/Text/text';
 
 import { NotebookKind } from '#~/k8sTypes';
 import { FEAST_CONFIG_ANNOTATION } from '#~/pages/projects/screens/spawner/featureStore/const';
@@ -75,7 +76,7 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
                       alignItems={{ default: 'alignItemsCenter' }}
                     >
                       <FlexItem>
-                        <Content className="pf-v6-u-text-color-subtle">{name}</Content>
+                        <Content className={text.textColorDisabled}>{name}</Content>
                       </FlexItem>
                       <FlexItem>
                         <Tooltip content="This feature store is no longer available. It may have been deleted or access has been revoked.">
