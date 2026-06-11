@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import { getTaskType } from '~/app/utilities/utils';
 
@@ -31,6 +32,9 @@ export type AutomlResultsContextProps = {
   onRetryModels?: () => void;
   parameters?: Partial<ConfigureSchema>;
   modelsBasePath?: string;
+  componentStageMap?: ComponentStageMap;
+  componentStageMapLoading?: boolean;
+  componentStageMapError?: boolean;
 };
 
 export const AutomlResultsContext = React.createContext<AutomlResultsContextProps | undefined>(
@@ -54,6 +58,9 @@ export function getAutomlContext({
   modelsError,
   modelsLoadError,
   onRetryModels,
+  componentStageMap,
+  componentStageMapLoading,
+  componentStageMapError,
 }: {
   pipelineRun?: PipelineRun;
   models?: Record<string, AutomlModel>;
@@ -63,6 +70,9 @@ export function getAutomlContext({
   modelsError?: boolean;
   modelsLoadError?: Error;
   onRetryModels?: () => void;
+  componentStageMap?: ComponentStageMap;
+  componentStageMapLoading?: boolean;
+  componentStageMapError?: boolean;
 }): AutomlResultsContextProps {
   const inputParams = pipelineRun?.runtime_config?.parameters;
 
@@ -93,5 +103,8 @@ export function getAutomlContext({
     onRetryModels,
     parameters,
     modelsBasePath,
+    componentStageMap,
+    componentStageMapLoading,
+    componentStageMapError,
   };
 }
