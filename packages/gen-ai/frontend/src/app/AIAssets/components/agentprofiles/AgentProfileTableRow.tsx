@@ -14,10 +14,12 @@ import { TruncatedText } from 'mod-arch-shared';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import DeleteAgentProfileModal from './DeleteAgentProfileModal';
+import EditAgentProfileModal from './EditAgentProfileModal';
 
 type AgentProfileTableRowProps = {
   profile: AgentProfileSummary;
   onDelete: (profileId: string) => Promise<void>;
+  onRefresh: () => void;
 };
 
 const formatDate = (iso: string): string => {
@@ -34,10 +36,15 @@ const formatDate = (iso: string): string => {
   });
 };
 
-const AgentProfileTableRow: React.FC<AgentProfileTableRowProps> = ({ profile, onDelete }) => {
+const AgentProfileTableRow: React.FC<AgentProfileTableRowProps> = ({
+  profile,
+  onDelete,
+  onRefresh,
+}) => {
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
 
   const handleTryInPlayground = () => {
@@ -94,6 +101,16 @@ const AgentProfileTableRow: React.FC<AgentProfileTableRowProps> = ({ profile, on
             >
               <DropdownList>
                 <DropdownItem
+                  key="edit"
+                  onClick={() => {
+                    setIsKebabOpen(false);
+                    setIsEditModalOpen(true);
+                  }}
+                  data-testid={`edit-agent-profile-${profile.profileId}`}
+                >
+                  Edit
+                </DropdownItem>
+                <DropdownItem
                   key="delete"
                   isDanger
                   onClick={() => {
@@ -109,6 +126,13 @@ const AgentProfileTableRow: React.FC<AgentProfileTableRowProps> = ({ profile, on
           </div>
         </Td>
       </Tr>
+      {isEditModalOpen && (
+        <EditAgentProfileModal
+          profile={profile}
+          onClose={() => setIsEditModalOpen(false)}
+          onSaved={onRefresh}
+        />
+      )}
       {isDeleteModalOpen && (
         <DeleteAgentProfileModal
           profile={profile}

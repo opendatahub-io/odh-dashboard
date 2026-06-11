@@ -6,6 +6,7 @@ import {
   restCREATE,
   restDELETE,
   restGET,
+  restUPDATE,
 } from 'mod-arch-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
@@ -13,6 +14,8 @@ import {
   AgentProfileCreateRequest,
   AgentProfileCreateResponse,
   AgentProfileListResponse,
+  AgentProfileUpdateRequest,
+  AgentProfileUpdateResponse,
 } from '~/app/agentProfile/types';
 import {
   ApiErrorClass,
@@ -1141,6 +1144,36 @@ export const deleteAgentProfile =
         },
       ),
     ).then(() => undefined);
+  };
+
+export const updateAgentProfile =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ((
+    data: AgentProfileUpdateRequest & { id: string },
+    opts?: APIOptions,
+  ) => Promise<AgentProfileUpdateResponse>) =>
+  (data: AgentProfileUpdateRequest & { id: string }, opts: APIOptions = {}) => {
+    const { id, spec, resourceVersion } = data;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restUPDATE<AgentProfileUpdateResponse>(
+        hostPath,
+        path,
+        { spec, resourceVersion },
+        baseQueryParams,
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<AgentProfileUpdateResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
   };
 
 export const getAgentProfile =

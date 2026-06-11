@@ -36,9 +36,14 @@ const INITIAL_FILTER: FilterData = { name: undefined, description: undefined };
 type AgentProfilesTableProps = {
   profiles: AgentProfileSummary[];
   onDelete: (profileId: string) => Promise<void>;
+  onRefresh: () => void;
 };
 
-const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({ profiles, onDelete }) => {
+const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
+  profiles,
+  onDelete,
+  onRefresh,
+}) => {
   const [filterData, setFilterData] = React.useState<FilterData>(INITIAL_FILTER);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterKey, setCurrentFilterKey] = React.useState<FilterKey>('name');
@@ -169,7 +174,12 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({ profiles, onDel
       defaultSortColumn={2}
       emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
       rowRenderer={(profile: AgentProfileSummary) => (
-        <AgentProfileTableRow key={profile.profileId} profile={profile} onDelete={onDelete} />
+        <AgentProfileTableRow
+          key={profile.profileId}
+          profile={profile}
+          onDelete={onDelete}
+          onRefresh={onRefresh}
+        />
       )}
       toolbarContent={toolbar}
       onClearFilters={onClearFilters}

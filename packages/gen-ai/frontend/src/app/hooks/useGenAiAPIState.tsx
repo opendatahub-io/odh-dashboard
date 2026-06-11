@@ -33,6 +33,7 @@ import {
   deleteExternalModel,
   listAgentProfiles,
   getAgentProfile,
+  updateAgentProfile,
   deleteAgentProfile,
   createAgentProfile,
 } from '~/app/services/llamaStackService';
@@ -76,6 +77,7 @@ const useGenAiAPIState = (
       deleteExternalModel: deleteExternalModel(path, queryParameters),
       listAgentProfiles: listAgentProfiles(path, queryParameters),
       getAgentProfile: getAgentProfile(path, queryParameters),
+      updateAgentProfile: updateAgentProfile(path, queryParameters),
       deleteAgentProfile: deleteAgentProfile(path, queryParameters),
       createAgentProfile: createAgentProfile(path, queryParameters),
     }),

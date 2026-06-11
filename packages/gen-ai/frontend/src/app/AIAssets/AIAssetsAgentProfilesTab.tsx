@@ -46,7 +46,7 @@ const AIAssetsAgentProfilesTab: React.FC = () => {
     );
   }
 
-  return <AgentProfilesTable profiles={profiles} onDelete={handleDelete} />;
+  return <AgentProfilesTable profiles={profiles} onDelete={handleDelete} onRefresh={refresh} />;
 };
 
 export default AIAssetsAgentProfilesTab;
