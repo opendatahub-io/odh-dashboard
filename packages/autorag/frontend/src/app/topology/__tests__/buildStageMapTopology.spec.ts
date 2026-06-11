@@ -33,13 +33,13 @@ jest.mock('~/app/topology/utils', () => ({
 // eslint-disable-next-line import/first
 import { RunStatus } from '@patternfly/react-topology';
 // eslint-disable-next-line import/first
-import type {
+import {
   ComponentStageMap,
   ComponentStageMapComponent,
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
 // eslint-disable-next-line import/first
-import type { RunDetailsKF } from '~/app/types/pipeline';
+import { RunDetailsKF } from '~/app/types/pipeline';
 // eslint-disable-next-line import/first
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 
@@ -141,13 +141,9 @@ describe('buildStageMapTopology', () => {
       expect(nodeIds).toContain('rag_optimization__pattern__branch-0');
       expect(nodeIds).toContain('rag_optimization__pattern__branch-1');
 
-      // Per-branch run_optimization + write_patterns
-      expect(nodeIds).toContain('rag_optimization__run_optimization__branch-0');
-      expect(nodeIds).toContain('rag_optimization__write_patterns__branch-0');
-      expect(nodeIds).toContain('rag_optimization__run_optimization__branch-1');
-      expect(nodeIds).toContain('rag_optimization__write_patterns__branch-1');
-
-      // Post-branch
+      // Post-branch (linear, not per-branch)
+      expect(nodeIds).toContain('rag_optimization__run_optimization');
+      expect(nodeIds).toContain('rag_optimization__write_patterns');
       expect(nodeIds).toContain('rag_optimization__build_leaderboard');
     });
 
@@ -155,7 +151,9 @@ describe('buildStageMapTopology', () => {
       const stageMap = makeStageMap([branchingComponent]);
       const nodes = buildStageMapTopology(stageMap);
 
-      const patternNodes = nodes.filter((n) => n.id.includes('__pattern__'));
+      const patternNodes = nodes.filter(
+        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
       expect(patternNodes[0].label).toBe('pattern_a');
       expect(patternNodes[1].label).toBe('pattern_b');
     });
@@ -164,7 +162,9 @@ describe('buildStageMapTopology', () => {
       const stageMap = makeStageMap([branchingComponent]);
       const nodes = buildStageMapTopology(stageMap);
 
-      const patternNodes = nodes.filter((n) => n.id.includes('__pattern__'));
+      const patternNodes = nodes.filter(
+        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
       expect(patternNodes[0].runAfterTasks).toEqual(['rag_optimization__pattern_selection']);
       expect(patternNodes[1].runAfterTasks).toEqual(['rag_optimization__pattern_selection']);
     });
@@ -176,23 +176,88 @@ describe('buildStageMapTopology', () => {
       const spacer = nodes.find((n) => n.type === 'DEFAULT_SPACER_NODE');
       expect(spacer).toBeDefined();
 
-      const leaderboard = nodes.find((n) => n.id === 'rag_optimization__build_leaderboard');
-      expect(leaderboard?.runAfterTasks).toEqual([spacer!.id]);
+      const optimizeNode = nodes.find((n) => n.id === 'rag_optimization__run_optimization');
+      expect(optimizeNode?.runAfterTasks).toEqual([spacer!.id]);
     });
 
-    it('should use branch stage labels for branched stages', () => {
+    it('should use post-branch stage labels', () => {
       const stageMap = makeStageMap([branchingComponent]);
       const nodes = buildStageMapTopology(stageMap);
 
-      const optimizeNode = nodes.find(
-        (n) => n.id === 'rag_optimization__run_optimization__branch-0',
-      );
+      const optimizeNode = nodes.find((n) => n.id === 'rag_optimization__run_optimization');
       expect(optimizeNode?.label).toBe('Run optimization');
 
-      const writePatternsNode = nodes.find(
-        (n) => n.id === 'rag_optimization__write_patterns__branch-0',
-      );
+      const writePatternsNode = nodes.find((n) => n.id === 'rag_optimization__write_patterns');
       expect(writePatternsNode?.label).toBe('Write patterns');
+    });
+  });
+
+  describe('branching with steps', () => {
+    const branchingWithSteps = makeComponent('rag_optimization', [
+      makeStage('validate_inputs'),
+      makeStage('pattern_selection', {
+        selected_patterns: ['pattern_a', 'pattern_b'],
+        steps: ['chunking', 'embedding', 'retrieval'],
+      }),
+      makeStage('run_optimization'),
+    ]);
+
+    it('should emit step nodes in each branch before the pattern name', () => {
+      const stageMap = makeStageMap([branchingWithSteps]);
+      const nodes = buildStageMapTopology(stageMap);
+
+      const nodeIds = nodes.map((n) => n.id);
+
+      expect(nodeIds).toContain('rag_optimization__step__chunking__branch-0');
+      expect(nodeIds).toContain('rag_optimization__step__embedding__branch-0');
+      expect(nodeIds).toContain('rag_optimization__step__retrieval__branch-0');
+
+      expect(nodeIds).toContain('rag_optimization__step__chunking__branch-1');
+      expect(nodeIds).toContain('rag_optimization__step__embedding__branch-1');
+      expect(nodeIds).toContain('rag_optimization__step__retrieval__branch-1');
+    });
+
+    it('should chain steps → pattern within each branch', () => {
+      const stageMap = makeStageMap([branchingWithSteps]);
+      const nodes = buildStageMapTopology(stageMap);
+
+      const step1 = nodes.find((n) => n.id === 'rag_optimization__step__chunking__branch-0');
+      const step2 = nodes.find((n) => n.id === 'rag_optimization__step__embedding__branch-0');
+      const step3 = nodes.find((n) => n.id === 'rag_optimization__step__retrieval__branch-0');
+      const pattern = nodes.find((n) => n.id === 'rag_optimization__pattern__branch-0');
+
+      expect(step1?.runAfterTasks).toEqual(['rag_optimization__pattern_selection']);
+      expect(step2?.runAfterTasks).toEqual([step1!.id]);
+      expect(step3?.runAfterTasks).toEqual([step2!.id]);
+      expect(pattern?.runAfterTasks).toEqual([step3!.id]);
+    });
+
+    it('should use step display names', () => {
+      const stageMap = makeStageMap([branchingWithSteps]);
+      const nodes = buildStageMapTopology(stageMap);
+
+      const step1 = nodes.find((n) => n.id === 'rag_optimization__step__chunking__branch-0');
+      const step2 = nodes.find((n) => n.id === 'rag_optimization__step__embedding__branch-0');
+      const step3 = nodes.find((n) => n.id === 'rag_optimization__step__retrieval__branch-0');
+
+      expect(step1?.label).toBe('Chunking');
+      expect(step2?.label).toBe('Embedding');
+      expect(step3?.label).toBe('Retrieval');
+    });
+
+    it('should use fallback label for unknown step IDs', () => {
+      const comp = makeComponent('rag_optimization', [
+        makeStage('pattern_selection', {
+          selected_patterns: ['p1'],
+          steps: ['some_custom_step'],
+        }),
+        makeStage('run_optimization'),
+      ]);
+      const stageMap = makeStageMap([comp]);
+      const nodes = buildStageMapTopology(stageMap);
+
+      const stepNode = nodes.find((n) => n.id.includes('__step__some_custom_step'));
+      expect(stepNode?.label).toBe('Some custom step');
     });
   });
 
@@ -209,7 +274,9 @@ describe('buildStageMapTopology', () => {
       const stageMap = makeStageMap([noPatternsComponent]);
       const nodes = buildStageMapTopology(stageMap);
 
-      const patternNodes = nodes.filter((n) => n.id.includes('__pattern__'));
+      const patternNodes = nodes.filter(
+        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
       expect(patternNodes).toHaveLength(3);
       expect(patternNodes[0].label).toBe('Pattern 1');
       expect(patternNodes[1].label).toBe('Pattern 2');
@@ -220,7 +287,9 @@ describe('buildStageMapTopology', () => {
       const stageMap = makeStageMap([noPatternsComponent]);
       const nodes = buildStageMapTopology(stageMap, undefined, undefined, 5);
 
-      const patternNodes = nodes.filter((n) => n.id.includes('__pattern__'));
+      const patternNodes = nodes.filter(
+        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
       expect(patternNodes).toHaveLength(5);
     });
   });
@@ -402,7 +471,9 @@ describe('buildStageMapTopology', () => {
       ]);
 
       const nodes = buildStageMapTopology(stageMap);
-      const patternNodes = nodes.filter((n) => n.id.includes('__pattern__'));
+      const patternNodes = nodes.filter(
+        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
       patternNodes.forEach((n) => {
         expect(n.data?.runStatus).toBe(RunStatus.InProgress);
       });

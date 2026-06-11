@@ -33,7 +33,6 @@ const STAGE_DISPLAY_NAMES: Record<string, string> = {
 };
 
 const BRANCHING_STAGE_ID = 'pattern_selection';
-const BRANCH_STAGE_IDS = new Set(['run_optimization', 'write_patterns']);
 
 const SKIP_COMPONENT_IDS = new Set(['publish_component_stage_map']);
 
@@ -48,10 +47,17 @@ const fallbackStageLabel = (stageId: string): string => {
 const resolveStageLabel = (stageId: string): string =>
   STAGE_DISPLAY_NAMES[stageId] ?? fallbackStageLabel(stageId);
 
-const BRANCH_STAGE_LABELS: Record<string, string> = {
-  run_optimization: 'Run optimization',
-  write_patterns: 'Write patterns',
+const STEP_DISPLAY_NAMES: Record<string, string> = {
+  chunking: 'Chunking',
+  embedding: 'Embedding',
+  retrieval: 'Retrieval',
+  generation: 'Generation',
+  evaluation: 'Evaluation',
 };
+
+const resolveStepLabel = (stepId: string): string =>
+  STEP_DISPLAY_NAMES[stepId] ?? fallbackStageLabel(stepId);
+
 /* eslint-enable camelcase */
 
 const translateStageStatus = (status?: string): RunStatus | undefined => {
@@ -187,13 +193,10 @@ export const buildStageMapTopology = (
       continue;
     }
 
-    // Component has branching: split into pre-branch, branch, and post-branch stages
+    // Component has branching: split into pre-branch and post-branch stages
     const branchIndex = component.stages.findIndex((s) => s.id === BRANCHING_STAGE_ID);
     const preBranchStages = component.stages.slice(0, branchIndex + 1);
-    const branchStages = component.stages.filter((s) => BRANCH_STAGE_IDS.has(s.id));
-    const postBranchStages = component.stages.filter(
-      (s) => !BRANCH_STAGE_IDS.has(s.id) && component.stages.indexOf(s) > branchIndex,
-    );
+    const postBranchStages = component.stages.slice(branchIndex + 1);
 
     for (const stage of preBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
@@ -222,12 +225,39 @@ export const buildStageMapTopology = (
     const { patterns, isPlaceholder } = getSelectedPatterns(component.stages, maxPatterns);
     const branchTailNodeIds: string[] = [];
 
+    const patternSelectionStage = component.stages.find((s) => s.id === BRANCHING_STAGE_ID);
+    const steps = patternSelectionStage?.steps ?? [];
+
     for (let patternIdx = 0; patternIdx < patterns.length; patternIdx++) {
       const patternId = patterns[patternIdx];
       const patternLabel = isPlaceholder ? `Pattern ${patternIdx + 1}` : patternId;
       const branchKey = `branch-${patternIdx}`;
 
-      const patternSelectionStage = component.stages.find((s) => s.id === BRANCHING_STAGE_ID);
+      // Emit step nodes first in each branch (e.g. chunking → embedding → …)
+      let branchPreviousNodeId = branchSourceNodeId;
+      for (const stepId of steps) {
+        const stepNodeId = `${component.id}__step__${stepId}__${branchKey}`;
+        const stepLabel = resolveStepLabel(stepId);
+        const stepStatus = resolveStageRunStatus(
+          patternSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
+          componentStatus,
+          terminalFallback,
+        );
+
+        nodes.push(
+          createNode(
+            stepNodeId,
+            stepLabel,
+            { type: 'task', name: stepLabel },
+            [branchPreviousNodeId],
+            stepStatus,
+          ),
+        );
+
+        branchPreviousNodeId = stepNodeId;
+      }
+
+      // Pattern name node follows the step chain
       const branchStatus = isPlaceholder
         ? componentStatus === RunStatus.Succeeded
           ? RunStatus.InProgress
@@ -243,36 +273,12 @@ export const buildStageMapTopology = (
           patternNodeId,
           patternLabel,
           { type: 'task', name: patternLabel },
-          [branchSourceNodeId],
+          [branchPreviousNodeId],
           branchStatus,
         ),
       );
 
-      let branchPreviousNodeId = patternNodeId;
-
-      for (const stage of branchStages) {
-        const nodeId = `${component.id}__${stage.id}__${branchKey}`;
-        const label = BRANCH_STAGE_LABELS[stage.id] ?? resolveStageLabel(stage.id);
-        const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
-
-        nodes.push(
-          createNode(
-            nodeId,
-            label,
-            {
-              type: 'task',
-              name: label,
-              status: stage.timestamp ? { startTime: stage.timestamp } : undefined,
-            },
-            [branchPreviousNodeId],
-            runStatus,
-          ),
-        );
-
-        branchPreviousNodeId = nodeId;
-      }
-
-      branchTailNodeIds.push(branchPreviousNodeId);
+      branchTailNodeIds.push(patternNodeId);
     }
 
     if (branchTailNodeIds.length > 1) {

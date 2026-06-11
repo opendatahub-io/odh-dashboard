@@ -33,13 +33,13 @@ jest.mock('~/app/topology/utils', () => ({
 // eslint-disable-next-line import/first
 import { RunStatus } from '@patternfly/react-topology';
 // eslint-disable-next-line import/first
-import type {
+import {
   ComponentStageMap,
   ComponentStageMapComponent,
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
 // eslint-disable-next-line import/first
-import type { RunDetailsKF } from '~/app/types/pipeline';
+import { RunDetailsKF } from '~/app/types/pipeline';
 // eslint-disable-next-line import/first
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 
@@ -138,13 +138,9 @@ describe('buildStageMapTopology', () => {
       expect(nodeIds).toContain('training__model__branch-0');
       expect(nodeIds).toContain('training__model__branch-1');
 
-      // Per-branch refit + evaluate
-      expect(nodeIds).toContain('training__refit_full__branch-0');
-      expect(nodeIds).toContain('training__evaluate_models__branch-0');
-      expect(nodeIds).toContain('training__refit_full__branch-1');
-      expect(nodeIds).toContain('training__evaluate_models__branch-1');
-
-      // Post-branch
+      // Post-branch (linear, not per-branch)
+      expect(nodeIds).toContain('training__refit_full');
+      expect(nodeIds).toContain('training__evaluate_models');
       expect(nodeIds).toContain('training__build_leaderboard');
     });
 
@@ -152,7 +148,9 @@ describe('buildStageMapTopology', () => {
       const stageMap = makeStageMap([branchingComponent]);
       const nodes = buildStageMapTopology(stageMap);
 
-      const modelNodes = nodes.filter((n) => n.id.includes('__model__'));
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
       expect(modelNodes[0].label).toBe('xgboost');
       expect(modelNodes[1].label).toBe('lightgbm');
     });
@@ -161,7 +159,9 @@ describe('buildStageMapTopology', () => {
       const stageMap = makeStageMap([branchingComponent]);
       const nodes = buildStageMapTopology(stageMap);
 
-      const modelNodes = nodes.filter((n) => n.id.includes('__model__'));
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
       expect(modelNodes[0].runAfterTasks).toEqual(['training__model_selection']);
       expect(modelNodes[1].runAfterTasks).toEqual(['training__model_selection']);
     });
@@ -173,19 +173,90 @@ describe('buildStageMapTopology', () => {
       const spacer = nodes.find((n) => n.type === 'DEFAULT_SPACER_NODE');
       expect(spacer).toBeDefined();
 
-      const leaderboard = nodes.find((n) => n.id === 'training__build_leaderboard');
-      expect(leaderboard?.runAfterTasks).toEqual([spacer!.id]);
+      const refitNode = nodes.find((n) => n.id === 'training__refit_full');
+      expect(refitNode?.runAfterTasks).toEqual([spacer!.id]);
     });
 
-    it('should use branch stage labels for branched stages', () => {
+    it('should use plural labels for post-branch stages', () => {
       const stageMap = makeStageMap([branchingComponent]);
       const nodes = buildStageMapTopology(stageMap);
 
-      const refitNode = nodes.find((n) => n.id === 'training__refit_full__branch-0');
-      expect(refitNode?.label).toBe('Refit model');
+      const refitNode = nodes.find((n) => n.id === 'training__refit_full');
+      expect(refitNode?.label).toBe('Refit models');
 
-      const evalNode = nodes.find((n) => n.id === 'training__evaluate_models__branch-0');
-      expect(evalNode?.label).toBe('Evaluate model');
+      const evalNode = nodes.find((n) => n.id === 'training__evaluate_models');
+      expect(evalNode?.label).toBe('Evaluate models');
+    });
+  });
+
+  describe('branching with steps', () => {
+    const branchingWithSteps = makeComponent('training', [
+      makeStage('load_data'),
+      makeStage('model_selection', {
+        selected_models: ['xgboost', 'lightgbm'],
+        steps: ['feature_engineering', 'model_training', 'stacking'],
+      }),
+      makeStage('refit_full'),
+    ]);
+
+    it('should emit step nodes in each branch before the model name', () => {
+      const stageMap = makeStageMap([branchingWithSteps]);
+      const nodes = buildStageMapTopology(stageMap);
+
+      const nodeIds = nodes.map((n) => n.id);
+
+      // Steps in branch-0
+      expect(nodeIds).toContain('training__step__feature_engineering__branch-0');
+      expect(nodeIds).toContain('training__step__model_training__branch-0');
+      expect(nodeIds).toContain('training__step__stacking__branch-0');
+
+      // Steps in branch-1
+      expect(nodeIds).toContain('training__step__feature_engineering__branch-1');
+      expect(nodeIds).toContain('training__step__model_training__branch-1');
+      expect(nodeIds).toContain('training__step__stacking__branch-1');
+    });
+
+    it('should chain steps → model within each branch', () => {
+      const stageMap = makeStageMap([branchingWithSteps]);
+      const nodes = buildStageMapTopology(stageMap);
+
+      const step1 = nodes.find((n) => n.id === 'training__step__feature_engineering__branch-0');
+      const step2 = nodes.find((n) => n.id === 'training__step__model_training__branch-0');
+      const step3 = nodes.find((n) => n.id === 'training__step__stacking__branch-0');
+      const model = nodes.find((n) => n.id === 'training__model__branch-0');
+
+      expect(step1?.runAfterTasks).toEqual(['training__model_selection']);
+      expect(step2?.runAfterTasks).toEqual([step1!.id]);
+      expect(step3?.runAfterTasks).toEqual([step2!.id]);
+      expect(model?.runAfterTasks).toEqual([step3!.id]);
+    });
+
+    it('should use step display names', () => {
+      const stageMap = makeStageMap([branchingWithSteps]);
+      const nodes = buildStageMapTopology(stageMap);
+
+      const step1 = nodes.find((n) => n.id === 'training__step__feature_engineering__branch-0');
+      const step2 = nodes.find((n) => n.id === 'training__step__model_training__branch-0');
+      const step3 = nodes.find((n) => n.id === 'training__step__stacking__branch-0');
+
+      expect(step1?.label).toBe('Feature engineering');
+      expect(step2?.label).toBe('Model training');
+      expect(step3?.label).toBe('Stacking');
+    });
+
+    it('should use fallback label for unknown step IDs', () => {
+      const comp = makeComponent('training', [
+        makeStage('model_selection', {
+          selected_models: ['m1'],
+          steps: ['some_custom_step'],
+        }),
+        makeStage('refit_full'),
+      ]);
+      const stageMap = makeStageMap([comp]);
+      const nodes = buildStageMapTopology(stageMap);
+
+      const stepNode = nodes.find((n) => n.id.includes('__step__some_custom_step'));
+      expect(stepNode?.label).toBe('Some custom step');
     });
   });
 
@@ -202,7 +273,9 @@ describe('buildStageMapTopology', () => {
       const stageMap = makeStageMap([noModelsComponent]);
       const nodes = buildStageMapTopology(stageMap);
 
-      const modelNodes = nodes.filter((n) => n.id.includes('__model__'));
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
       expect(modelNodes).toHaveLength(3);
       expect(modelNodes[0].label).toBe('Model 1');
       expect(modelNodes[1].label).toBe('Model 2');
@@ -213,7 +286,9 @@ describe('buildStageMapTopology', () => {
       const stageMap = makeStageMap([noModelsComponent]);
       const nodes = buildStageMapTopology(stageMap, undefined, undefined, 5);
 
-      const modelNodes = nodes.filter((n) => n.id.includes('__model__'));
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
       expect(modelNodes).toHaveLength(5);
     });
   });
@@ -391,7 +466,9 @@ describe('buildStageMapTopology', () => {
       ]);
 
       const nodes = buildStageMapTopology(stageMap);
-      const modelNodes = nodes.filter((n) => n.id.includes('__model__'));
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
       modelNodes.forEach((n) => {
         expect(n.data?.runStatus).toBe(RunStatus.InProgress);
       });

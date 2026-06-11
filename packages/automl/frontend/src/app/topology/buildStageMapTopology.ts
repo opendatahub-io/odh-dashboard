@@ -28,7 +28,6 @@ const STAGE_DISPLAY_NAMES: Record<string, string> = {
 };
 
 const BRANCHING_STAGE_ID = 'model_selection';
-const BRANCH_STAGE_IDS = new Set(['refit_full', 'evaluate_models']);
 
 const SKIP_COMPONENT_IDS = new Set(['publish_component_stage_map']);
 
@@ -43,10 +42,16 @@ const fallbackStageLabel = (stageId: string): string => {
 const resolveStageLabel = (stageId: string): string =>
   STAGE_DISPLAY_NAMES[stageId] ?? fallbackStageLabel(stageId);
 
-const BRANCH_STAGE_LABELS: Record<string, string> = {
-  refit_full: 'Refit model',
-  evaluate_models: 'Evaluate model',
+const STEP_DISPLAY_NAMES: Record<string, string> = {
+  feature_engineering: 'Feature engineering',
+  model_training: 'Model training',
+  stacking: 'Stacking',
+  model_evaluation: 'Model evaluation',
 };
+
+const resolveStepLabel = (stepId: string): string =>
+  STEP_DISPLAY_NAMES[stepId] ?? fallbackStageLabel(stepId);
+
 /* eslint-enable camelcase */
 
 const translateStageStatus = (status?: string): RunStatus | undefined => {
@@ -187,10 +192,7 @@ export const buildStageMapTopology = (
     // Component has branching: split into pre-branch, branch, and post-branch stages
     const branchIndex = component.stages.findIndex((s) => s.id === BRANCHING_STAGE_ID);
     const preBranchStages = component.stages.slice(0, branchIndex + 1);
-    const branchStages = component.stages.filter((s) => BRANCH_STAGE_IDS.has(s.id));
-    const postBranchStages = component.stages.filter(
-      (s) => !BRANCH_STAGE_IDS.has(s.id) && component.stages.indexOf(s) > branchIndex,
-    );
+    const postBranchStages = component.stages.slice(branchIndex + 1);
 
     // Emit pre-branch stages linearly (load_data, model_selection)
     for (const stage of preBranchStages) {
@@ -220,15 +222,39 @@ export const buildStageMapTopology = (
     const { models, isPlaceholder } = getSelectedModels(component.stages, topN);
     const branchTailNodeIds: string[] = [];
 
+    const modelSelectionStage = component.stages.find((s) => s.id === BRANCHING_STAGE_ID);
+    const steps = modelSelectionStage?.steps ?? [];
+
     for (let modelIdx = 0; modelIdx < models.length; modelIdx++) {
       const modelId = models[modelIdx];
       const modelLabel = isPlaceholder ? `Model ${modelIdx + 1}` : modelId;
       const branchKey = `branch-${modelIdx}`;
 
-      // Model name nodes derive status from the model_selection stage when
-      // real names are available; placeholders show loading when the component
-      // has completed but the status file hasn't been merged yet.
-      const modelSelectionStage = component.stages.find((s) => s.id === BRANCHING_STAGE_ID);
+      // Emit step nodes first in each branch (e.g. feature_engineering → model_training → …)
+      let branchPreviousNodeId = branchSourceNodeId;
+      for (const stepId of steps) {
+        const stepNodeId = `${component.id}__step__${stepId}__${branchKey}`;
+        const stepLabel = resolveStepLabel(stepId);
+        const stepStatus = resolveStageRunStatus(
+          modelSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
+          componentStatus,
+          terminalFallback,
+        );
+
+        nodes.push(
+          createNode(
+            stepNodeId,
+            stepLabel,
+            { type: 'task', name: stepLabel },
+            [branchPreviousNodeId],
+            stepStatus,
+          ),
+        );
+
+        branchPreviousNodeId = stepNodeId;
+      }
+
+      // Model name node follows the step chain
       const branchStatus = isPlaceholder
         ? componentStatus === RunStatus.Succeeded
           ? RunStatus.InProgress
@@ -244,36 +270,12 @@ export const buildStageMapTopology = (
           modelNodeId,
           modelLabel,
           { type: 'task', name: modelLabel },
-          [branchSourceNodeId],
+          [branchPreviousNodeId],
           branchStatus,
         ),
       );
 
-      let branchPreviousNodeId = modelNodeId;
-
-      for (const stage of branchStages) {
-        const nodeId = `${component.id}__${stage.id}__${branchKey}`;
-        const label = BRANCH_STAGE_LABELS[stage.id] ?? resolveStageLabel(stage.id);
-        const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
-
-        nodes.push(
-          createNode(
-            nodeId,
-            label,
-            {
-              type: 'task',
-              name: label,
-              status: stage.timestamp ? { startTime: stage.timestamp } : undefined,
-            },
-            [branchPreviousNodeId],
-            runStatus,
-          ),
-        );
-
-        branchPreviousNodeId = nodeId;
-      }
-
-      branchTailNodeIds.push(branchPreviousNodeId);
+      branchTailNodeIds.push(modelNodeId);
     }
 
     // Insert a convergence spacer so the fan-in renders as a single merge point.
