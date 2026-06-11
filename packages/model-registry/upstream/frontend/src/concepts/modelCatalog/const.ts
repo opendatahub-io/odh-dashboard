@@ -595,7 +595,7 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
   [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: 'Validated arguments',
   // Number filter keys
   [ModelCatalogNumberFilterKey.MAX_RPS]: 'Max RPS',
-  [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: 'Cold start latency',
+  [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: 'Cold start load time',
   // Latency field names - all use "Latency" as category name
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   ...(Object.fromEntries(ALL_LATENCY_FILTER_KEYS.map((field) => [field, 'Latency'])) as Record<
@@ -607,7 +607,7 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
 export const MODEL_CATALOG_FILTER_CHIP_PREFIXES = {
   WORKLOAD_TYPE: 'Workload type:',
   MAX_RPS: 'Max RPS:',
-  COLD_START_LATENCY: 'Cold start latency:',
+  COLD_START_LATENCY: 'Cold start load time: ≤',
   LATENCY_METRIC: 'Metric:',
   LATENCY_PERCENTILE: 'Percentile:',
   LATENCY_THRESHOLD: 'Under',

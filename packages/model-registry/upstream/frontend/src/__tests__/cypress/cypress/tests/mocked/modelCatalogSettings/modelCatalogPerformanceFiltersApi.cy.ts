@@ -301,7 +301,7 @@ describe('Model Catalog Performance Filters API Behavior', () => {
     });
   });
 
-  describe('Cold start latency filter API behavior', () => {
+  describe('Cold start load time filter API behavior', () => {
     it('should include cold_start_load_time_seconds in filterQuery when applied with toggle ON', () => {
       visitWithPerformanceToggle(true);
 

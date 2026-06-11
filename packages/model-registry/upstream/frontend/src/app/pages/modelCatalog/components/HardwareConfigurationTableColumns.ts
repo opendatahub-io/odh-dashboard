@@ -358,23 +358,23 @@ export const hardwareConfigColumns: HardwareConfigColumn[] = [
   },
   {
     field: 'cold_start_load_time',
-    label: `Cold start\nlatency`,
+    label: `Cold start load time`,
     info: {
       popover:
-        'The estimated time required to provision hardware resources and initialize the container before the model can accept traffic.',
+        'The time it takes for vLLM to load the model. This does not include the time it takes to download the model.',
       popoverProps: {
         position: 'left',
       },
     },
     sortable: false,
     width: 20,
-    modifier: 'wrap',
   },
   {
     field: 'runtime_command',
     label: 'Runtime Command',
     info: {
-      popover: 'Runtime configuration used to validate this model.',
+      popover:
+        'The vLLM runtime command used to validate the model with the selected hardware configuration.',
       popoverProps: {
         position: 'left',
       },

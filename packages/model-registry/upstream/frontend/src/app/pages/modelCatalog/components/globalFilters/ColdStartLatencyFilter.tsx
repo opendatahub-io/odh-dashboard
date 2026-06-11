@@ -39,11 +39,11 @@ const ColdStartLatencyFilter: React.FC = () => {
     if (hasActiveFilter) {
       return (
         <>
-          <strong>Cold start latency:</strong> {filterValue} ms
+          <strong>Cold start load time:</strong> ≤ {filterValue} ms
         </>
       );
     }
-    return 'Cold start latency';
+    return 'Cold start load time';
   };
 
   const handleApplyFilter = () => {
@@ -75,7 +75,7 @@ const ColdStartLatencyFilter: React.FC = () => {
       flexWrap={{ default: 'wrap' }}
       style={{ minWidth: '400px', padding: '16px' }}
     >
-      <FlexItem>Cold start latency (ms)</FlexItem>
+      <FlexItem>Cold start load time (ms)</FlexItem>
       <FlexItem>
         <SliderWithInput
           value={clampedValue}
@@ -83,7 +83,7 @@ const ColdStartLatencyFilter: React.FC = () => {
           max={maxValue}
           isDisabled={isSliderDisabled}
           onChange={setLocalValue}
-          ariaLabel="Cold start latency value input"
+          ariaLabel="Cold start load time value input"
         />
       </FlexItem>
       <FlexItem>
