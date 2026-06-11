@@ -101,7 +101,7 @@
     "react-dropzone": "^14.2.3",
     "react-markdown": "^10.1.0",
     "react-redux": "^8.0.4",
-    "react-router": "^7.6.2",
+    "react-router": "^7.15.0",
     "react-router-dom": "^7.6.2",
     "redux": "^4.2.0",
     "redux-thunk": "^2.4.1",
@@ -232,7 +232,7 @@
   "overrides": {
     "@openshift/dynamic-plugin-sdk-utils": {
       "react-redux": "^8.0.4",
-      "react-router": "^7.6.2",
+      "react-router": "^7.15.0",
       "react-router-dom": "^7.6.2",
       "react": "^18.2.0",
       "react-dom": "^18.2.0",
