@@ -88,6 +88,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
 
+	cfg := readOperatorConfig(ctx, r.Client, r.Namespace)
+
 	// Ready is the rollup condition — auto-derived by the Manager from
 	// ProvisioningSucceeded and Degraded. It is never set explicitly.
 	cm := conditions.NewManager(
@@ -97,7 +99,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		string(common.ConditionTypeDegraded),
 	)
 
-	result, err := r.reconcile(ctx, dashboard, cm)
+	result, err := r.reconcile(ctx, dashboard, cm, cfg)
 
 	dashboard.SetReleaseStatus(common.ComponentReleaseStatus{
 		Releases: []common.ComponentRelease{{
@@ -125,6 +127,7 @@ func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
+	cfg OperatorConfig,
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -211,7 +214,28 @@ func (r *DashboardReconciler) reconcile(
 			conditions.WithMessage("All sub-modules healthy"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		dashboard.Status.URL = url
-		logger.Info("Dashboard reconciled successfully", "url", url)
+	}
+
+	nextStatuses := resolveModuleStatuses(&dashboard.Spec)
+	for name, next := range nextStatuses {
+		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
+			prev.Phase == next.Phase &&
+			prev.Reason == next.Reason &&
+			prev.Message == next.Message {
+			next.LastTransitionTime = prev.LastTransitionTime
+			nextStatuses[name] = next
+		}
+	}
+	dashboard.Status.ModuleStatuses = nextStatuses
+
+	if requeueAfter > 0 {
+		logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", requeueAfter, "modules", len(dashboard.Status.ModuleStatuses))
+	} else {
+		logger.Info("Dashboard reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
+	}
+
+	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
+		requeueAfter = cfg.ReconcileInterval
 	}
 
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil

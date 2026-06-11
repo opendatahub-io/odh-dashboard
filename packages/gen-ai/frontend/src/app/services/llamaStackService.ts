@@ -9,6 +9,11 @@ import {
 } from 'mod-arch-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  AgentProfile,
+  AgentProfileCreateRequest,
+  AgentProfileCreateResponse,
+} from '~/app/agentProfile/types';
+import {
   ApiErrorClass,
   BackendResponseData,
   BFFConfig,
@@ -874,6 +879,31 @@ export const uploadMediaFile = (
   return { promise, xhr };
 };
 
+// Audio transcription via ASR model
+export const transcribeAudio = async (
+  url: string,
+  fileId: string,
+  asrModelId: string,
+  signal?: AbortSignal,
+): Promise<{ text: string }> => {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_id: fileId, asr_model_id: asrModelId }),
+    signal,
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    if (body?.error?.component && body?.error?.code) {
+      throw new ApiErrorClass(body.error);
+    }
+    const message =
+      body?.error?.message || body?.message || `Transcription failed (${response.status})`;
+    throw Object.assign(new Error(message), { status: response.status });
+  }
+  return response.json();
+};
+
 // LSD Models
 export const getLSDModels = modArchRestGET<LlamaModel[]>('/lsd/models');
 
@@ -1076,6 +1106,29 @@ export const listMLflowPromptVersions =
       ),
     ).then((response) => {
       if (isModArchResponse<MLflowPromptVersionsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const createAgentProfile = modArchRestCREATE<
+  AgentProfileCreateResponse,
+  AgentProfileCreateRequest
+>('/agent-profiles');
+
+export const getAgentProfile =
+  (hostPath: string, baseQueryParams: Record<string, unknown> = {}): ModArchRestGET<AgentProfile> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { id, ...restParams } = queryParams;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restGET<AgentProfile>(hostPath, path, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<AgentProfile>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

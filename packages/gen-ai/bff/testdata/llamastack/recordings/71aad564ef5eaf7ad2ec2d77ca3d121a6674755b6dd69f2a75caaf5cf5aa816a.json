@@ -40,7 +40,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.37.0"
+      "openai_sdk_version": "2.41.1"
     }
   },
   "response": {
@@ -66,12 +66,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
             "completion_tokens": 6,
             "prompt_tokens": 287,
-            "total_tokens": 328,
+            "total_tokens": 329,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

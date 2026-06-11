@@ -1,78 +1,30 @@
 import * as React from 'react';
-import {
-  ClipboardCopy,
-  Content,
-  StackItem,
-  Stack,
-  Popover,
-  Flex,
-  FlexItem,
-  Label,
-} from '@patternfly/react-core';
-import { DashboardPopupIconButton } from 'mod-arch-shared';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { Flex, FlexItem, Label } from '@patternfly/react-core';
 import { AIModel } from '~/app/types';
-import { copyToClipboardWithTracking } from '~/app/utilities/utils';
+import { isASRModel } from '~/app/utilities/utils';
 
 type AIModelsTableRowInfoProps = {
   model: AIModel;
 };
 
-const AIModelsTableRowInfo: React.FC<AIModelsTableRowInfoProps> = ({ model }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  return (
-    <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <FlexItem>{model.display_name}</FlexItem>
-      {model.model_type === 'embedding' && (
-        <FlexItem style={{ fontWeight: 'normal' }}>
-          <Label color="blue" isCompact>
-            Embedding
-          </Label>
-        </FlexItem>
-      )}
-      <Popover
-        position="right"
-        isVisible={isOpen}
-        shouldClose={() => setIsOpen(false)}
-        bodyContent={
-          <Stack hasGutter>
-            <StackItem>
-              The model ID is a unique identifier required to locate and access this model.
-            </StackItem>
-            <StackItem>
-              <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-                Model ID
-              </Content>
-              <ClipboardCopy
-                data-testid="clipboard-copy-model-id"
-                hoverTip="Copy model ID"
-                clickTip="Model ID copied"
-                aria-label="Copy model ID"
-                onCopy={() =>
-                  copyToClipboardWithTracking(
-                    model.model_id,
-                    'Available Endpoints Model Id Copied',
-                    {},
-                  )
-                }
-              >
-                {model.model_id}
-              </ClipboardCopy>
-            </StackItem>
-          </Stack>
-        }
-      >
-        <DashboardPopupIconButton
-          data-testid="model-id-icon-button"
-          icon={<OutlinedQuestionCircleIcon />}
-          aria-label="More info"
-          style={{ paddingTop: 0, paddingBottom: 0 }}
-          onClick={() => setIsOpen(!isOpen)}
-        />
-      </Popover>
-    </Flex>
-  );
-};
+const AIModelsTableRowInfo: React.FC<AIModelsTableRowInfoProps> = ({ model }) => (
+  <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+    <FlexItem>{model.display_name}</FlexItem>
+    {model.model_type === 'embedding' && (
+      <FlexItem style={{ fontWeight: 'normal' }}>
+        <Label color="blue" isCompact>
+          Embedding
+        </Label>
+      </FlexItem>
+    )}
+    {isASRModel(model) && (
+      <FlexItem style={{ fontWeight: 'normal' }}>
+        <Label color="purple" isCompact data-testid="asr-badge">
+          ASR
+        </Label>
+      </FlexItem>
+    )}
+  </Flex>
+);
 
 export default AIModelsTableRowInfo;
