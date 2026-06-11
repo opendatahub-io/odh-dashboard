@@ -36,6 +36,10 @@ func (app *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps http
 		app.badRequestResponse(w, r, fmt.Errorf("missing secret name in path"))
 		return
 	}
+	if !isValidDNS1123Subdomain(name) {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid secret name: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
+		return
+	}
 
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {

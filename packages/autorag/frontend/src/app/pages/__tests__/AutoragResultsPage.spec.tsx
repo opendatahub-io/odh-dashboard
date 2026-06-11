@@ -43,8 +43,11 @@ jest.mock('mod-arch-core', () => ({
 const mockUsePipelineRunQuery = jest.fn();
 const mockUseAutoragResults = jest.fn();
 
+const mockUseSecretCredentialsQuery = jest.fn();
+
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
+  useSecretCredentialsQuery: (...args: unknown[]) => mockUseSecretCredentialsQuery(...args),
 }));
 
 jest.mock('~/app/hooks/useAutoragResults', () => ({
@@ -281,6 +284,12 @@ describe('AutoragResultsPage', () => {
     useRetryPipelineRunMutation.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: false,
+    });
+
+    mockUseSecretCredentialsQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: undefined,
     });
 
     mockUseAutoragResults.mockReturnValue({
