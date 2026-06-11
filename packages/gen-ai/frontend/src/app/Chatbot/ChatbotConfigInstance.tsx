@@ -143,6 +143,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     namespace,
     guardrailsConfig,
     subscription: selectedSubscription,
+    isTracingEnabled: false,
     configIndex,
     isCompareMode,
     isGuardrailEnabled: Boolean(guardrail),
