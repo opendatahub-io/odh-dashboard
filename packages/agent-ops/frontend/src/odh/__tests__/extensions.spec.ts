@@ -3,11 +3,12 @@ import extensions from '~/odh/extensions';
 const AGENT_OPS = 'agent-ops';
 
 describe('agent-ops extensions', () => {
-  it('should register area and tab-route tab extensions', () => {
-    expect(extensions).toHaveLength(2);
+  it('should register area, tab-route tab, and detail route extensions', () => {
+    expect(extensions).toHaveLength(3);
     expect(extensions.map((extension) => extension.type)).toEqual([
       'app.area',
       'app.tab-route/tab',
+      'app.route',
     ]);
   });
 
@@ -37,5 +38,19 @@ describe('agent-ops extensions', () => {
       },
     });
     expect(tab?.type === 'app.tab-route/tab' && tab.properties.component).toBeTruthy();
+  });
+
+  it('should register deployment detail route outside the tab layout', () => {
+    const route = extensions.find((extension) => extension.type === 'app.route');
+    expect(route).toMatchObject({
+      type: 'app.route',
+      flags: {
+        required: [AGENT_OPS],
+      },
+      properties: {
+        path: '/ai-hub/agents/deployments/:namespace/:agentId/*',
+      },
+    });
+    expect(route?.type === 'app.route' && route.properties.component).toBeTruthy();
   });
 });

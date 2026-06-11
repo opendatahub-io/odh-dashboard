@@ -44,14 +44,14 @@ describe('AgentRuntimesTableRow', () => {
     ).toBeInTheDocument();
   });
 
-  it('should show row actions with disabled lifecycle actions', async () => {
+  it('should show View details row action', async () => {
     const user = userEvent.setup();
     renderRow(createReadyRuntime());
 
     await user.click(screen.getByRole('button', { name: 'Kebab toggle' }));
     expect(screen.getByRole('menuitem', { name: 'View details' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Restart' })).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('menuitem', { name: 'Stop' })).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('menuitem', { name: 'Delete' })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.queryByRole('menuitem', { name: 'Restart' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Stop' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
   });
 });

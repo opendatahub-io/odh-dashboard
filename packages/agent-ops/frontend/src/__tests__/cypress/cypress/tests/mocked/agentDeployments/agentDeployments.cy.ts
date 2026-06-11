@@ -75,13 +75,15 @@ describe('Agent Deployments', () => {
     readyRow.findName().should('contain.text', 'sample-support-agent');
     readyRow.findNamespace().should('contain.text', TEST_NAMESPACE);
     readyRow.findStatusLabel().should('contain.text', 'Ready');
-    readyRow.findEndpointViewButton().should('exist');
+    readyRow.findEndpointViewButton().should('exist').and('not.be.disabled');
 
     const pendingRow = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'pending-agent');
     pendingRow.findStatusLabel().should('contain.text', 'Pending');
+    pendingRow.findEndpointViewButton().should('be.disabled');
 
     const failedRow = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'failed-agent');
     failedRow.findStatusLabel().should('contain.text', 'Failed');
+    failedRow.findEndpointViewButton().should('be.disabled');
 
     const stoppedRow = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'sample-tool');
     stoppedRow.findStatusLabel().should('contain.text', 'Stopped');
@@ -173,15 +175,12 @@ describe('Agent Deployments', () => {
       );
   });
 
-  it('should show row actions with disabled lifecycle actions', () => {
+  it('should show View details row action', () => {
     initIntercepts();
     agentDeploymentsPage.visit(TEST_NAMESPACE);
 
     const row = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'sample-support-agent');
     row.findKebab().click();
     row.findViewDetailsAction().should('be.visible');
-    row.findRestartAction().should('have.attr', 'aria-disabled', 'true');
-    row.findStopAction().should('have.attr', 'aria-disabled', 'true');
-    row.findDeleteAction().should('have.attr', 'aria-disabled', 'true');
   });
 });
