@@ -42,6 +42,8 @@ export type PatternDetailsModalProps = {
   namespace?: string;
   ragPatternsBasePath?: string;
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
+  onTryPattern?: (patternName: string) => void;
+  onViewCode?: (patternName: string) => void;
 };
 
 const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
@@ -55,6 +57,8 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   namespace,
   ragPatternsBasePath,
   onSaveNotebook,
+  onTryPattern,
+  onViewCode,
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string>(OVERVIEW_KEY);
   const [scoreType, setScoreType] = React.useState<ScoreType>('mean');
@@ -182,6 +186,22 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             onPatternChange={onPatternChange}
             onDownload={() => setIsPrinting(true)}
             onSaveNotebook={onSaveNotebook}
+            onTryPattern={
+              onTryPattern
+                ? (patternName) => {
+                    onClose();
+                    onTryPattern(patternName);
+                  }
+                : undefined
+            }
+            onViewCode={
+              onViewCode
+                ? (patternName) => {
+                    onClose();
+                    onViewCode(patternName);
+                  }
+                : undefined
+            }
             comparisonEnabled={comparisonEnabled}
             comparisonPatternIndex={comparisonPatternIndex}
           />

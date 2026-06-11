@@ -28,13 +28,13 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
   isLoading = false,
   onSortChange,
 }) => {
-  const { filterData, resetPerformanceFiltersToDefaults } = React.useContext(ModelCatalogContext);
+  const { filters, resetPerformanceFiltersToDefaults } = React.useContext(ModelCatalogContext);
 
   // Note: Filtering is now done server-side via the /performance_artifacts endpoint.
   // The performanceArtifacts prop contains pre-filtered data from the server.
 
   // Get the active latency filter field name (if any)
-  const activeLatencyField = getActiveLatencyFieldName(filterData);
+  const activeLatencyField = getActiveLatencyFieldName(filters);
 
   // Use the custom hook that combines manage columns with the latency filter + sort logic
   const {
@@ -129,7 +129,7 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
               PerformancePropertyKey.HARDWARE_TYPE,
             );
             const matched = hardwareConfigurations?.find(
-              (c) => hwConfig.startsWith(c.hardware_type) || c.hardware_type === hwType,
+              (c) => hwConfig.startsWith(c.gpu_type) || c.gpu_type === hwType,
             );
             return (
               <HardwareConfigurationTableRow

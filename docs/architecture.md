@@ -8,6 +8,7 @@
 Main topics:
 
 - [Overall Architecture](#overview)
+- [Dashboard Module Controller](#dashboard-module-controller)
 - [Client Structure](#client-structure)
 
 ## Overview
@@ -157,6 +158,18 @@ These are made using your user's k8s permissions. It consumes your OpenShift OAu
   - Somewhat deprecated - it could probably be reworked to use the Proxy call endpoint, but serves as isolated functionality
 
 These all share the same underlying proxy to an endpoint call, they just structure the data differently before calling.
+
+## Dashboard Module Controller
+
+The Dashboard Module Controller (`dashboard-operator/`) is a standalone Kubernetes operator that manages the full lifecycle of the Dashboard application. It is co-located in the monorepo because the controller is tightly coupled to Dashboard frontend/backend versions and manifest layouts.
+
+- **Language**: Go 1.25+ with controller-runtime v0.23
+- **CRD**: `Dashboard` (cluster-scoped, singleton) in group `components.platform.opendatahub.io`
+- **Key dependencies**: `odh-platform-utilities` for manifest rendering, SSA deployment, platform detection, status conditions
+- **Reconciliation**: Kustomize rendering -> SSA deploy -> URL extraction -> module dependency resolution -> status update
+- **Module System**: Static module registry with two-pass dependency resolution; per-module status reported via `status.moduleStatuses`
+
+The controller is **not** part of the npm workspace or Turbo pipeline. It has its own `go.mod`, `Makefile`, and CI workflow. See [Dashboard Operator Architecture](dashboard-operator.md) for full details.
 
 ## Client Structure
 

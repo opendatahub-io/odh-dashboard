@@ -130,7 +130,7 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
   it(
     'Should pause running RayJob, scale worker count, and delete the job',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@RayJob', '@RHOAIENG-56125'],
+      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@ModelTrainingCI', '@RayJob'],
     },
     function verifyRayJobPauseScaleAndDelete() {
       if (skipTest) {

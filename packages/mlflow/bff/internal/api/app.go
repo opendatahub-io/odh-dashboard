@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -39,6 +40,28 @@ const (
 	PromptVersionsPath = APIPathPrefix + "/prompts/:name/versions"
 	PromptVersionPath  = APIPathPrefix + "/prompts/:name/versions/:version"
 )
+
+var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
+var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
+
+func isHashedAsset(filePath string) bool {
+	match := hashPattern.FindString(path.Base(filePath))
+	return match != "" && strings.ContainsAny(match, "abcdef")
+}
+
+func isStaticAsset(filePath string) bool {
+	return staticAssetPattern.MatchString(filePath)
+}
+
+func cacheControlForStaticFile(filePath string) string {
+	if isHashedAsset(filePath) {
+		return "public, max-age=31536000, immutable"
+	}
+	if isStaticAsset(filePath) {
+		return "public, max-age=86400"
+	}
+	return "no-cache"
+}
 
 type App struct {
 	config                  config.EnvConfig
@@ -238,15 +261,18 @@ func (app *App) Routes() http.Handler {
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 		// Check if the requested file exists
-		if _, err := staticDir.Open(r.URL.Path); err == nil {
+		if f, err := staticDir.Open(r.URL.Path); err == nil {
+			f.Close()
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 			// Serve the file if it exists
+			w.Header().Set("Cache-Control", cacheControlForStaticFile(r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return
 		}
 
 		// Fallback to index.html for SPA routes
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
 	})
 

@@ -45,18 +45,21 @@ const LABEL_MAPPINGS: Record<string, Record<string, string>> = {
 };
 
 const ModelCatalogFilters: React.FC = () => {
-  const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filterData, setFilterData } =
+  const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filters, setFilters } =
     React.useContext(ModelCatalogContext);
   const { toolCalling: toolCallingFeatureAvailable } = useModelRegistryDashboardConfig();
 
   React.useEffect(() => {
     if (
       !toolCallingFeatureAvailable &&
-      filterData[ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION].length > 0
+      filters[ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION].length > 0
     ) {
-      setFilterData(ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION, []);
+      setFilters((prev) => ({
+        ...prev,
+        [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [],
+      }));
     }
-    // Only react to flag changes — including filterData would cause an infinite loop
+    // Only react to flag changes — including filters would cause an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolCallingFeatureAvailable]);
 
@@ -64,19 +67,19 @@ const ModelCatalogFilters: React.FC = () => {
     (key: string, values: string[]) => {
       const match = BASIC_STRING_FILTER_KEYS.find((k) => k === key);
       if (match) {
-        setFilterData(match, values);
+        setFilters((prev) => ({ ...prev, [match]: values }));
       }
     },
-    [setFilterData],
+    [setFilters],
   );
 
   const selectedStringFilters = React.useMemo(() => {
     const result: Record<string, string[] | undefined> = {};
     for (const key of BASIC_STRING_FILTER_KEYS) {
-      result[key] = filterData[key];
+      result[key] = filters[key];
     }
     return result;
-  }, [filterData]);
+  }, [filters]);
 
   const baseFilterItems = useCatalogFilterConfigs({
     filterKeys: BASIC_STRING_FILTER_KEYS,

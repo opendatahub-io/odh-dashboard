@@ -36,6 +36,12 @@ func (app *App) LogError(r *http.Request, err error) {
 }
 
 func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
+	// Check if err is already an HTTPError with a custom code
+	if httpErr, ok := err.(*integrations.HTTPError); ok && httpErr.Code != "" {
+		app.errorResponse(w, r, httpErr)
+		return
+	}
+
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusBadRequest,
 		ErrorResponse: integrations.ErrorResponse{
@@ -91,9 +97,6 @@ func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err
 	app.errorResponse(w, r, httpError)
 }
 
-// TODO: remove nolint comment below when we use this method
-//
-//nolint:unused
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusForbidden,

@@ -8,8 +8,8 @@ import (
 //go:embed */pipeline.yaml
 var pipelineFS embed.FS
 
-// AutoMLImagePattern matches the automl pipeline runtime image with any sha256 digest.
-var AutoMLImagePattern = regexp.MustCompile(`registry\.redhat\.io/rhoai/odh-automl-rhel9@sha256:[0-9a-f]{64}`)
+// AutoMLImagePattern matches the automl pipeline runtime image from either registry.
+var AutoMLImagePattern = regexp.MustCompile(`(?:registry\.redhat\.io/rhoai/odh-automl-rhel9@sha256:[0-9a-f]{64}|quay\.io/opendatahub/odh-automl:[a-zA-Z0-9._-]+)`)
 
 // GetPipelineYAML returns the embedded pipeline YAML for the given pipeline name.
 // The name corresponds to a directory under internal/pipelines/ (e.g. "autogluon_tabular_training_pipeline").
