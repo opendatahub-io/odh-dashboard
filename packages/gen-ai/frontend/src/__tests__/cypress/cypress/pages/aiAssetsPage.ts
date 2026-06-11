@@ -30,9 +30,7 @@ class AIAssetsPage {
   }
 
   findAgentProfilesTab(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // The agent profiles tab is rendered after async devFeatureFlags URL param processing,
-    // so it appears later than tabs that don't require a feature flag override.
-    return cy.findByTestId('ai-assets-tab-agentprofile', { timeout: 20000 });
+    return cy.findByTestId('ai-assets-tab-agentprofile');
   }
 
   switchToAgentProfilesTab(): void {
