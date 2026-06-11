@@ -148,35 +148,6 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
   );
 };
 
-type TabRouteSingleTabContentProps = {
-  tab: LoadedExtension<TabRouteTabExtension>;
-  pageExtension: LoadedExtension<TabRoutePageExtension>;
-  pageTitle: React.ReactNode;
-  tabContentFallback: React.ReactNode;
-};
-
-const TabRouteSingleTabContent: React.FC<TabRouteSingleTabContentProps> = ({
-  tab,
-  pageExtension,
-  pageTitle,
-  tabContentFallback,
-}) => {
-  const location = useLocation();
-  const showPageTitle = shouldShowTabRoutePageTitle(
-    pageExtension.properties.href,
-    tab.properties.id,
-    location.pathname,
-    tab.properties.hidePageTitleOnNestedRoutes,
-  );
-
-  return (
-    <>
-      {showPageTitle && pageTitle}
-      <LazyCodeRefComponent component={tab.properties.component} fallback={tabContentFallback} />
-    </>
-  );
-};
-
 const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
   const pageId = extension.properties.id;
   const { objectType: objectTypeStr } = extension.properties;
@@ -229,33 +200,6 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
 
   const defaultTab = getDefaultTab(pageId, tabExtensions);
 
-  // Single tab: render content directly without tab bar
-  if (tabExtensions.length === 1) {
-    const singleTab = tabExtensions[0];
-    return (
-      <Routes>
-        <Route
-          path={`${singleTab.properties.id}/*`}
-          element={
-            <TabRouteSingleTabContent
-              tab={singleTab}
-              pageExtension={extension}
-              pageTitle={pageTitle}
-              tabContentFallback={tabContentFallback}
-            />
-          }
-        />
-        <Route
-          path="*"
-          element={
-            <Navigate to={`${extension.properties.href}/${singleTab.properties.id}`} replace />
-          }
-        />
-      </Routes>
-    );
-  }
-
-  // Multiple tabs: single parametric route with tab ID from URL
   return (
     <Routes>
       <Route

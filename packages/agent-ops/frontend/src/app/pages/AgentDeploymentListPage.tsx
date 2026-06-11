@@ -118,7 +118,7 @@ const AgentDeploymentListPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      noTitle
+      noTitle // rendered inside a TabRoutePage which provides the title and tabs
       description="View and manage agent deployments across your fleet."
       headerContent={headerContent}
       loadError={noProjectSelected ? undefined : loadError}

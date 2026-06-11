@@ -1,12 +1,14 @@
 import type {
   AreaExtension,
+  RouteExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+import { agentDeploymentsPath } from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
 const AGENTS_TAB_PAGE = 'agents-tab-page';
 
-const extensions: (AreaExtension | TabRouteTabExtension)[] = [
+const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
   {
     type: 'app.area',
     properties: {
@@ -26,6 +28,16 @@ const extensions: (AreaExtension | TabRouteTabExtension)[] = [
       component: () => import('./AgentDeploymentsWrapper'),
       group: '1_deployments',
       hidePageTitleOnNestedRoutes: true,
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      path: `${agentDeploymentsPath}/:namespace/:agentId/*`,
+      component: () => import('./AgentDeploymentDetailWrapper'),
     },
   },
 ];

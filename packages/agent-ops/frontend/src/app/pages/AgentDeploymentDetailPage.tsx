@@ -19,6 +19,7 @@ import AgentRuntimeStatusLabel from '~/app/components/AgentRuntimeStatusLabel';
 import { useAgentRuntimeDetail } from '~/app/hooks/useAgentRuntimeDetail';
 import AgentDeploymentOverviewTab from '~/app/pages/agentDeploymentDetail/AgentDeploymentOverviewTab';
 import { isNotFoundError } from '~/app/utilities/apiErrors';
+import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 
 // TODO: Re-enable when chat with agent is available.
 // headerAction={
@@ -32,6 +33,7 @@ import { isNotFoundError } from '~/app/utilities/apiErrors';
 const AgentDeploymentDetailPage: React.FC = () => {
   const { namespace = '', agentId = '' } = useParams<{ namespace: string; agentId: string }>();
   const [detail, loaded, loadError] = useAgentRuntimeDetail(namespace, agentId);
+  const agentsListPath = agentOpsDeploymentsRoute(namespace);
 
   const isNotFound = loaded && !detail && (!loadError || isNotFoundError(loadError));
 
@@ -48,7 +50,7 @@ const AgentDeploymentDetailPage: React.FC = () => {
         <Button
           variant="primary"
           component={(props) => (
-            <Link {...props} to=".." />
+            <Link {...props} to={agentsListPath} />
           )}
         >
           Return to Agents
@@ -89,7 +91,7 @@ const AgentDeploymentDetailPage: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem>
-            <Link to="..">Agents</Link>
+            <Link to={agentsListPath}>Agents</Link>
           </BreadcrumbItem>
           <BreadcrumbItem isActive data-testid="agent-deployment-breadcrumb-name">
             {detail?.name || agentId || 'Loading...'}
