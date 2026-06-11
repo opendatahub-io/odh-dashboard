@@ -82,7 +82,6 @@ func NewDefaultModelRegistryClient(cfg ModelRegistryClientConfig) *ModelRegistry
 
 	return NewModelRegistryClient(&http.Client{
 		Transport: rt,
-		Timeout:   30 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -93,6 +92,8 @@ func (c *ModelRegistryClient) CreateRegisteredModel(ctx context.Context, baseURL
 	if err := validateModelRegistryURL(baseURL); err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 	resp, err := c.postJSON(ctx, baseURL, registeredModelsPath, body)
 	if err != nil {
 		return nil, fmt.Errorf("creating registered model: %w", err)
@@ -108,6 +109,8 @@ func (c *ModelRegistryClient) CreateModelVersion(ctx context.Context, baseURL, m
 	if err := validateModelRegistryURL(baseURL); err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 	path, err := neturl.JoinPath(registeredModelsPath, modelID, versionsPath)
 	if err != nil {
 		return nil, fmt.Errorf("building model version path: %w", err)
@@ -127,6 +130,8 @@ func (c *ModelRegistryClient) CreateModelArtifact(ctx context.Context, baseURL, 
 	if err := validateModelRegistryURL(baseURL); err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 	if body.ArtifactType == nil {
 		t := DefaultArtifactType
 		body.ArtifactType = &t

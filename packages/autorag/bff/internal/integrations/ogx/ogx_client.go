@@ -63,7 +63,6 @@ func NewDefaultOGXClient(cfg OGXClientConfig) *OGXClient {
 	}
 	return NewOGXClient(&http.Client{
 		Transport: rt,
-		Timeout:   8 * time.Minute, // matches server WriteTimeout; model listing for large deployments can be slow
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -75,6 +74,8 @@ func NewDefaultOGXClient(cfg OGXClientConfig) *OGXClient {
 // explicitly rather than hidden behind the OpenAI SDK.
 // ogx v0.4.0+ serves all endpoints directly under /v1/ (removed the /v1/openai/v1/ prefix).
 func (c *OGXClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]models.OGXNativeModel, error) {
+	ctx, cancel := context.WithTimeout(ctx, 8*time.Minute)
+	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/models", nil)
 	if err != nil {
 		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Open GenAI Stack models: %s", err.Error()))
@@ -119,6 +120,8 @@ func (c *OGXClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]m
 
 // ListProviders retrieves all registered providers from Open GenAI Stack via /v1/providers.
 func (c *OGXClient) ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.OGXProvider, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/providers", nil)
 	if err != nil {
 		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Open GenAI Stack providers: %s", err.Error()))
