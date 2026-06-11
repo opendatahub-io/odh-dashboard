@@ -126,15 +126,18 @@ describe('fetchS3Json', () => {
     jest.clearAllMocks();
   });
 
-  const mockBlobResponse = (content: string, size?: number) =>
-    ({
+  const mockBlobResponse = (content: string, size?: number) => {
+    const byteLength = size ?? new TextEncoder().encode(content).byteLength;
+    return {
       ok: true,
+      headers: new Headers({ 'Content-Length': String(byteLength) }),
       blob: () =>
         Promise.resolve({
-          size: size ?? new Blob([content]).size,
+          size: byteLength,
           text: () => Promise.resolve(content),
         }),
-    }) as unknown as Response;
+    } as unknown as Response;
+  };
 
   it('should parse JSON from the fetched blob', async () => {
     const data = { componentId: 'test', stages: [] };
@@ -145,14 +148,13 @@ describe('fetchS3Json', () => {
   });
 
   it('should pass signal through to fetch', async () => {
-    const controller = new AbortController();
     jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse('{}'));
 
-    await fetchS3Json('ns', 'key.json', { signal: controller.signal });
+    await fetchS3Json('ns', 'key.json');
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.any(String),
-      expect.objectContaining({ signal: controller.signal }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 
@@ -166,7 +168,7 @@ describe('fetchS3Json', () => {
     jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse('{}', 100));
 
     await expect(fetchS3Json('ns', 'big.json', { maxBytes: 50 })).rejects.toThrow(
-      'S3 JSON response too large: 100 bytes exceeds limit of 50 bytes',
+      'S3 file too large: 100 bytes exceeds limit of 50 bytes',
     );
   });
 

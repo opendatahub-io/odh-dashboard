@@ -55,6 +55,7 @@ type FetchS3FileOptions = {
   secretName?: string;
   bucket?: string;
   signal?: AbortSignal;
+  maxBytes?: number;
 };
 
 /**
@@ -70,16 +71,21 @@ export async function fetchS3File(
     throw new Error('File key must be a non-empty string');
   }
 
-  const { secretName, bucket, signal } = options ?? {};
+  const { secretName, bucket, signal, maxBytes } = options ?? {};
   const params = new URLSearchParams({
     namespace,
     ...(secretName && { secretName }),
     ...(bucket && { bucket }),
   });
 
+  const abortController = maxBytes != null ? new AbortController() : undefined;
+  const combinedSignal = abortController
+    ? AbortSignal.any([abortController.signal, ...(signal ? [signal] : [])])
+    : signal;
+
   const response = await fetch(
     `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
-    { signal },
+    { signal: combinedSignal },
   );
 
   if (!response.ok) {
@@ -93,6 +99,46 @@ export async function fetchS3File(
       // If parsing fails, fall back to statusText
     }
     throw new Error(`Failed to fetch file: ${errorMessage}`);
+  }
+
+  if (maxBytes != null) {
+    const contentLength = response.headers.get('Content-Length');
+    if (contentLength != null) {
+      if (parseInt(contentLength, 10) > maxBytes) {
+        abortController?.abort();
+        throw new Error(
+          `S3 file too large: ${contentLength} bytes exceeds limit of ${maxBytes} bytes`,
+        );
+      }
+      return response.blob();
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      return response.blob();
+    }
+
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      received += value.byteLength;
+      if (received > maxBytes) {
+        abortController?.abort();
+        throw new Error(`S3 file too large: exceeded limit of ${maxBytes} bytes during download`);
+      }
+      chunks.push(value);
+    }
+    const combined = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return new Blob([combined]);
   }
 
   return response.blob();
@@ -109,12 +155,7 @@ export async function fetchS3Json<T>(
   },
 ): Promise<T> {
   const { signal, maxBytes = DEFAULT_MAX_JSON_BYTES } = options ?? {};
-  const blob = await fetchS3File(namespace, key, { signal });
-  if (blob.size > maxBytes) {
-    throw new Error(
-      `S3 JSON response too large: ${blob.size} bytes exceeds limit of ${maxBytes} bytes`,
-    );
-  }
+  const blob = await fetchS3File(namespace, key, { signal, maxBytes });
   const text = await blob.text();
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- caller accepts risk
   return JSON.parse(text) as T;

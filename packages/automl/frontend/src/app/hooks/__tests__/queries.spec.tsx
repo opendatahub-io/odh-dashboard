@@ -664,9 +664,23 @@ describe('useModelEvaluationArtifactsQuery', () => {
    */
   const mockBlobJsonResponse = (data: unknown) => {
     const json = JSON.stringify(data);
+    const encoded = new TextEncoder().encode(json);
+    let done = false;
     return {
       ok: true,
-      blob: async () => ({ text: async () => json }),
+      headers: new Headers({ 'Content-Length': String(encoded.byteLength) }),
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (done) {
+              return { done: true, value: undefined };
+            }
+            done = true;
+            return { done: false, value: encoded };
+          },
+        }),
+      },
+      blob: async () => ({ size: encoded.byteLength, text: async () => json }),
     };
   };
 
