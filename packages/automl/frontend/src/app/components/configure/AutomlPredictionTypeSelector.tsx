@@ -147,6 +147,8 @@ const AutomlPredictionTypeSelector: React.FC<AutomlPredictionTypeSelectorProps> 
   isDisabled = false,
 }) => {
   const [showOtherTypes, setShowOtherTypes] = React.useState(false);
+  // Reconfigure: auto-expand when a not-recommended type is pre-selected. Respect explicit collapse.
+  const userCollapsedOtherTypesRef = React.useRef(false);
 
   const assessments = React.useMemo(
     () => assessPredictionTypes(selectedColumn, columns),
@@ -165,10 +167,27 @@ const AutomlPredictionTypeSelector: React.FC<AutomlPredictionTypeSelectorProps> 
   }, [assessments, inferredTaskType]);
 
   React.useEffect(() => {
-    if (notRecommended.some((assessment) => assessment.value === value)) {
+    const isNotRecommendedSelected = notRecommended.some(
+      (assessment) => assessment.value === value,
+    );
+
+    if (!isNotRecommendedSelected) {
+      userCollapsedOtherTypesRef.current = false;
+      return;
+    }
+
+    if (!userCollapsedOtherTypesRef.current) {
       setShowOtherTypes(true);
     }
   }, [value, notRecommended]);
+
+  const handleToggleOtherTypes = () => {
+    setShowOtherTypes((prev) => {
+      const next = !prev;
+      userCollapsedOtherTypesRef.current = !next;
+      return next;
+    });
+  };
 
   const handleSelect = (taskType: ConfigureSchema['task_type']) => {
     onChange(taskType);
@@ -201,7 +220,7 @@ const AutomlPredictionTypeSelector: React.FC<AutomlPredictionTypeSelectorProps> 
               <AccordionToggle
                 id="prediction-type-other-types"
                 data-testid="prediction-type-show-other-toggle"
-                onClick={() => setShowOtherTypes((prev) => !prev)}
+                onClick={handleToggleOtherTypes}
               >
                 {showOtherTypes ? 'Hide other prediction types' : 'Show other prediction types'}
               </AccordionToggle>
