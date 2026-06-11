@@ -213,12 +213,16 @@ func (kc *SharedClientLogic) GetAllCatalogSourceConfigs(
 		Get(sessionCtx, CatalogSourceDefaultConfigMapName, metav1.GetOptions{})
 
 	if err != nil {
-		sessionLogger.Error("failed to fetch default catalog source configmap",
-			"namespace", namespace,
-			"name", CatalogSourceDefaultConfigMapName,
-			"error", err,
-		)
-		return corev1.ConfigMap{}, corev1.ConfigMap{}, fmt.Errorf("failed to get %s: %w", CatalogSourceDefaultConfigMapName, err)
+		if apierrors.IsNotFound(err) {
+			defaultCM = &corev1.ConfigMap{}
+		} else {
+			sessionLogger.Error("failed to fetch default catalog source configmap",
+				"namespace", namespace,
+				"name", CatalogSourceDefaultConfigMapName,
+				"error", err,
+			)
+			return corev1.ConfigMap{}, corev1.ConfigMap{}, fmt.Errorf("failed to get %s: %w", CatalogSourceDefaultConfigMapName, err)
+		}
 	}
 
 	userCM, err := kc.Client.CoreV1().ConfigMaps(namespace).Get(sessionCtx, CatalogSourceUserConfigMapName, metav1.GetOptions{})
