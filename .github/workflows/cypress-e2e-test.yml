@@ -532,10 +532,14 @@ jobs:
     steps:
       - name: Validate tag format
         run: |
+          if [[ -z "$MATRIX_TAG" ]]; then
+            echo "❌ MATRIX_TAG is empty or unset"
+            exit 1
+          fi
           for tag in $MATRIX_TAG; do
-            if [[ ! "$tag" =~ ^@[a-zA-Z0-9_-]+$ ]]; then
-              echo "❌ Invalid tag format (security): $tag"
-              echo "   Tags must match: ^@[a-zA-Z0-9_-]+$"
+            if [[ ! "$tag" =~ ^@[a-zA-Z0-9_.:-]+$ ]]; then
+              echo "❌ Invalid tag format: $tag"
+              echo "   Tags must match: ^@[a-zA-Z0-9_.:-]+$"
               exit 1
             fi
           done
