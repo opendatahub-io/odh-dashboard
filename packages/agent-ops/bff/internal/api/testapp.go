@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
-	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 )
@@ -16,12 +16,9 @@ import (
 //   - Downstream code that needs to construct custom App instances
 //   - Integration tests with mocked dependencies
 //
-// Parameters:
-//   - cfg: The environment configuration (set AuthMethod to config.AuthMethodDisabled
-//     when passing a nil k8sFactory for contract tests or mock-only handlers)
-//   - logger: The slog logger instance
-//   - k8sFactory: The Kubernetes client factory (can be nil when AuthMethodDisabled)
-//   - repos: The repositories container (can be nil, will create default if nil)
+// When repos is nil, repositories are created without an agent data source.
+// Pass an explicit repositories instance (for example from test helpers) to
+// exercise agent handlers.
 func NewTestApp( //nolint:unused
 	cfg config.EnvConfig,
 	logger *slog.Logger,
@@ -29,7 +26,10 @@ func NewTestApp( //nolint:unused
 	repos *repositories.Repositories,
 ) *App {
 	if repos == nil {
-		repos = repositories.NewRepositories(&agentsmock.Factory{Client: agentsmock.NewDemoClient()})
+		repos = repositories.NewRepositories(agents.NewUnavailableFactory())
+	}
+	if logger == nil {
+		logger = slog.Default()
 	}
 	return &App{
 		config:                  cfg,
