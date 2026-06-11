@@ -49,7 +49,7 @@ const createMockStore = (configOverrides: Partial<MockConfig> = {}) => {
     guardrailModelOutputEnabled: false,
     guardrailSubscription: '',
     ...configOverrides,
-  } as MockConfig;
+  };
 
   const configurations: Record<string, typeof defaultConfig | undefined> = {
     [DEFAULT_CONFIG_ID]: defaultConfig,
