@@ -47,8 +47,7 @@ export type PredictionTypeAssessment = {
   notRecommendedReason?: string;
 };
 
-const isNumericColumnType = (type: string): boolean =>
-  type === 'integer' || type === 'double' || type === 'int64' || type === 'float64';
+const isNumericColumnType = (type: string): boolean => type === 'integer' || type === 'double';
 
 /** Reasons a prediction type is not recommended for the selected target column. */
 export const getPredictionTypeHardIncompatibility = (
