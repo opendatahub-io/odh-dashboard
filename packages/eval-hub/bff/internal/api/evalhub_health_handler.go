@@ -30,17 +30,15 @@ type EvalHubServiceHealth struct {
 
 type EvalHubServiceHealthEnvelope Envelope[EvalHubServiceHealth, None]
 
-// EvalHubServiceHealthHandler performs per-request CR discovery using the caller's bearer
-// token and then pings the discovered EvalHub service. Because this endpoint does not have
-// the AttachNamespace middleware, it only checks app.dashboardNamespace. It always returns
-// HTTP 200 with one of the three EvalHubHealthStatus values so the frontend always reaches
-// a loaded state.
+// EvalHubServiceHealthHandler performs cluster-wide CR discovery using the pod's service
+// account and then pings the discovered EvalHub service. It always returns HTTP 200 with
+// one of the three EvalHubHealthStatus values so the frontend always reaches a loaded state.
 //
 // Priority:
 //  1. MockEvalHubClient=true — return healthy immediately (dev/test mode, no K8s call).
 //  2. EVAL_HUB_URL env override — skip CR discovery, ping the override URL directly.
-//  3. CR discovery — list evalhubs.trustyai.opendatahub.io in app.dashboardNamespace via
-//     the caller's bearer token; if no CR found → cr-not-found; if found, ping status.url.
+//  3. SA-based cluster-wide CR discovery — find the EvalHub CR in any namespace; if no CR
+//     found → cr-not-found; if found, ping status.url.
 func (app *App) EvalHubServiceHealthHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 

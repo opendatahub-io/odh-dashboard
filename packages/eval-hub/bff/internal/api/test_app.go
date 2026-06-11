@@ -14,6 +14,7 @@ func NewTestApp( //nolint:unused
 	cfg config.EnvConfig,
 	logger *slog.Logger,
 	k8sFactory k8s.KubernetesClientFactory,
+	crDiscoverer k8s.EvalHubCRDiscoverer,
 	ehFactory evalhub.EvalHubClientFactory,
 	repos *repositories.Repositories,
 ) *App {
@@ -24,6 +25,7 @@ func NewTestApp( //nolint:unused
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
+		crDiscoverer:            crDiscoverer,
 		evalHubClientFactory:    ehFactory,
 		repositories:            repos,
 	}

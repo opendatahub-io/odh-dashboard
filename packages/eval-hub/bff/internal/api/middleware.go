@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -17,7 +16,6 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	"github.com/rs/cors"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -95,15 +93,16 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 //   - serviceURL  — the URL to use for the EvalHub REST client.
 //   - authToken   — the caller's bearer token (empty when using an env-override URL and no
 //     identity is present, e.g. in dev mode).
-//   - crNotFound  — true when no EvalHub CR exists in either namespace (not an error;
+//   - crNotFound  — true when no EvalHub CR exists anywhere in the cluster (not an error;
 //     callers should surface this as a distinct state rather than 500).
 //   - err         — a real unexpected error (K8s API failure, missing identity, etc.).
 //
 // Priority (evaluated per-request):
 //  1. EVAL_HUB_URL env override — used directly; no K8s call needed.
-//  2. CR discovery in the user-selected namespace (from context, if present).
-//  3. Fallback CR discovery in app.dashboardNamespace (covers the health endpoint and cases
-//     where the CR lives in the platform namespace).
+//  2. SA-based cluster-wide CR discovery — uses the pod's service account to list EvalHub CRs
+//     across all namespaces, so tenant namespaces can discover the CR regardless of where it
+//     was created. This replaces the previous user-token per-namespace lookup which broke
+//     multi-tenancy when the CR lived outside the user's namespace and the dashboard namespace.
 //
 // Mock mode is NOT handled here; callers must short-circuit before calling this function.
 func (app *App) evalHubServiceURL(ctx context.Context) (serviceURL, authToken string, crNotFound bool, err error) {
@@ -122,42 +121,19 @@ func (app *App) evalHubServiceURL(ctx context.Context) (serviceURL, authToken st
 	}
 	authToken = identity.Token
 
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		return "", "", false, fmt.Errorf("failed to get Kubernetes client: %w", err)
+	if app.crDiscoverer == nil {
+		return "", "", false, fmt.Errorf("SA-based CR discoverer is not available; cannot discover EvalHub service")
 	}
 
-	// Try the user-selected namespace first (set by AttachNamespace middleware on API routes).
-	// Permission errors (Forbidden/NotFound) are non-fatal — fall through to the dashboard
-	// namespace where the CR typically lives.  Operational failures (API unavailable, network
-	// errors, etc.) are surfaced immediately so they are not silently masked.
-	if userNS, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && userNS != "" {
-		crStatus, err := k8sClient.GetEvalHubCRStatus(ctx, identity, userNS)
-		if err != nil {
-			var statusErr *k8serrors.StatusError
-			if errors.As(err, &statusErr) && (k8serrors.IsForbidden(statusErr) || k8serrors.IsNotFound(statusErr)) {
-				if logger := helper.GetContextLogger(ctx); logger != nil {
-					logger.Debug("EvalHub CR lookup not permitted in user namespace, falling through to dashboard namespace",
-						"namespace", userNS, "reason", statusErr.Status().Reason)
-				}
-			} else {
-				return "", "", false, fmt.Errorf("EvalHub CR lookup failed in namespace %q: %w", userNS, err)
-			}
-		} else if crStatus != nil && strings.TrimSpace(crStatus.URL) != "" {
-			return crStatus.URL, authToken, false, nil
-		}
-	}
-
-	// Fallback to the dashboard (platform) namespace for the health endpoint and clusters
-	// where the CR still lives in the operator-managed namespace.
-	crStatus, err := k8sClient.GetEvalHubCRStatus(ctx, identity, app.dashboardNamespace)
+	url, err := app.crDiscoverer.DiscoverServiceURL(ctx)
 	if err != nil {
-		return "", "", false, fmt.Errorf("EvalHub CR lookup failed in namespace %q: %w", app.dashboardNamespace, err)
+		return "", "", false, fmt.Errorf("EvalHub CR cluster-wide discovery failed: %w", err)
 	}
-	if crStatus == nil || strings.TrimSpace(crStatus.URL) == "" {
+	if url == "" {
 		return "", authToken, true, nil
 	}
-	return crStatus.URL, authToken, false, nil
+
+	return url, authToken, false, nil
 }
 
 // AttachEvalHubClient middleware creates an EvalHub client and attaches it to context.

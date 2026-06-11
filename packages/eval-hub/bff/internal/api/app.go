@@ -70,6 +70,7 @@ type App struct {
 	config                  config.EnvConfig
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
+	crDiscoverer            k8s.EvalHubCRDiscoverer
 	evalHubClientFactory    evalhub.EvalHubClientFactory
 	repositories            *repositories.Repositories
 	testEnv                 *envtest.Environment
@@ -152,6 +153,19 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	logger.Info("Detected dashboard namespace", slog.String("namespace", dashboardNamespace))
 
+	// SA-based CR discoverer for cluster-wide EvalHub CR discovery.
+	// Uses the pod's service account (or local kubeconfig in dev) instead of user tokens,
+	// so any tenant namespace can discover the CR regardless of where it was created.
+	var crDiscoverer k8s.EvalHubCRDiscoverer
+	if !cfg.MockK8Client {
+		var discErr error
+		crDiscoverer, discErr = k8s.NewSADiscoverer(logger)
+		if discErr != nil {
+			logger.Warn("Failed to create SA-based CR discoverer; cluster-wide CR discovery will be unavailable",
+				slog.Any("error", discErr))
+		}
+	}
+
 	var ehFactory evalhub.EvalHubClientFactory
 	if cfg.MockEvalHubClient {
 		ehFactory = ehmocks.NewMockClientFactory()
@@ -170,6 +184,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
+		crDiscoverer:            crDiscoverer,
 		evalHubClientFactory:    ehFactory,
 		repositories:            repositories.NewRepositories(),
 		testEnv:                 testEnv,

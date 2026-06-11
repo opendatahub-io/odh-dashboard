@@ -52,6 +52,22 @@ func (f *crStatusK8sFactory) ValidateRequestIdentity(_ *kubernetes.RequestIdenti
 	return nil
 }
 
+// mockCRDiscoverer is a test double for EvalHubCRDiscoverer.
+type mockCRDiscoverer struct {
+	serviceURL string
+	urlErr     error
+	crStatus   *models.EvalHubCRStatus
+	statusErr  error
+}
+
+func (d *mockCRDiscoverer) DiscoverServiceURL(_ context.Context) (string, error) {
+	return d.serviceURL, d.urlErr
+}
+
+func (d *mockCRDiscoverer) DiscoverCRStatus(_ context.Context) (*models.EvalHubCRStatus, error) {
+	return d.crStatus, d.statusErr
+}
+
 var testLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 // setupApiTestWithEvalHub exercises handlers that require an EvalHub client in context.
@@ -198,9 +214,9 @@ func (e *erroringEHClient) ListProviders(_ context.Context, _ string, _, _ int) 
 }
 
 // setupApiTestForHealth exercises the EvalHub service health handler with injectable
-// CR discovery (via the user's bearer token) and EvalHub client behaviour.
+// SA-based CR discovery and EvalHub client behaviour.
 //
-//   - crStatus / crErr control what GetEvalHubCRStatus returns for the test.
+//   - crStatus / crErr control what the SA discoverer returns for the test.
 //   - ehClient controls the EvalHub REST client used for the service ping; pass nil to use
 //     the default mock (healthy response).
 func setupApiTestForHealth[T any](
@@ -224,17 +240,69 @@ func setupApiTestForHealth[T any](
 		mockFactory.SetMockClient(ehClient)
 	}
 
-	k8sClient := &crStatusOverrideK8sClient{
-		fn: func(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (*models.EvalHubCRStatus, error) {
-			return crStatus, crErr
-		},
+	var serviceURL string
+	if crStatus != nil {
+		serviceURL = crStatus.URL
 	}
 
 	app := &App{
 		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
 		logger:                  testLogger,
-		kubernetesClientFactory: &crStatusK8sFactory{client: k8sClient},
+		kubernetesClientFactory: &testK8sFactory{},
+		crDiscoverer:            &mockCRDiscoverer{serviceURL: serviceURL, urlErr: crErr, crStatus: crStatus, statusErr: crErr},
 		evalHubClientFactory:    mockFactory,
+		repositories:            repositories.NewRepositories(),
+		dashboardNamespace:      "test-dashboard-ns",
+	}
+
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		return empty, nil, err
+	}
+	if len(data) == 0 {
+		return empty, res, nil
+	}
+	var out T
+	if err := json.Unmarshal(data, &out); err != nil && err != io.EOF {
+		return empty, nil, err
+	}
+	return out, res, nil
+}
+
+// setupApiTestForCRStatus exercises the EvalHub CR status handler with injectable K8s factory
+// and SA discoverer.
+func setupApiTestForCRStatus[T any](
+	method, url string,
+	identity *kubernetes.RequestIdentity,
+	k8Factory kubernetes.KubernetesClientFactory,
+	discoverer kubernetes.EvalHubCRDiscoverer,
+) (T, *http.Response, error) {
+	var empty T
+	req, err := http.NewRequest(method, url, http.NoBody)
+	if err != nil {
+		return empty, nil, err
+	}
+	if identity != nil && identity.UserID != "" {
+		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+	}
+
+	if k8Factory == nil {
+		k8Factory = &testK8sFactory{}
+	}
+
+	app := &App{
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
+		logger:                  testLogger,
+		kubernetesClientFactory: k8Factory,
+		crDiscoverer:            discoverer,
+		evalHubClientFactory:    ehmocks.NewMockClientFactory(),
 		repositories:            repositories.NewRepositories(),
 		dashboardNamespace:      "test-dashboard-ns",
 	}

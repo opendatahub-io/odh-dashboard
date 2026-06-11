@@ -9,3 +9,10 @@ rules:
       - create
     resources:
       - subjectaccessreviews
+  - apiGroups:
+      - trustyai.opendatahub.io
+    verbs:
+      - list
+      - get
+    resources:
+      - evalhubs
