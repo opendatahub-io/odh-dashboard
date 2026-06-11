@@ -19,22 +19,6 @@ const maxRequestBodyBytes = 10 << 20
 
 type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
-// pipelineDefinition returns the PipelineDefinition for the given pipeline type.
-func (app *App) pipelineDefinition(pipelineType string) repositories.PipelineDefinition {
-	switch pipelineType {
-	case constants.PipelineTypeTimeSeries:
-		return repositories.PipelineDefinition{
-			Name: app.config.AutoMLTimeSeriesPipelineNamePrefix,
-		}
-	case constants.PipelineTypeTabular:
-		return repositories.PipelineDefinition{
-			Name: app.config.AutoMLTabularPipelineNamePrefix,
-		}
-	default:
-		return repositories.PipelineDefinition{Name: pipelineType}
-	}
-}
-
 // CreatePipelineRunHandler handles POST /api/v1/pipeline-runs
 //
 // Creates a new AutoML pipeline run using the auto-discovered pipeline for the
