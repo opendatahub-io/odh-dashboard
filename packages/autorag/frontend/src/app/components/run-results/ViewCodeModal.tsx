@@ -1,10 +1,13 @@
 import {
+  Button,
   ClipboardCopyButton,
   CodeBlock,
   CodeBlockAction,
   CodeBlockCode,
   Content,
   ContentVariants,
+  Flex,
+  FlexItem,
   Modal,
   ModalBody,
   ModalHeader,
@@ -12,7 +15,9 @@ import {
   Tabs,
   TabTitleText,
 } from '@patternfly/react-core';
+import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import React from 'react';
+import type { OgxCredentials } from '~/app/types';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
 import {
@@ -21,12 +26,44 @@ import {
   generateNodeSnippet,
   generatePythonSnippet,
 } from './playgroundSnippets';
+import type { SnippetCredentials } from './playgroundSnippets';
 
 type ViewCodeModalProps = {
   isOpen: boolean;
   onClose: () => void;
   patternName: string;
   responsesTemplate: ResponsesTemplate;
+  ogxCredentials?: OgxCredentials;
+};
+
+const snippetTabs = [
+  {
+    label: 'curl',
+    generator: generateCurlSnippet,
+    id: 'copy-curl',
+    ariaLabel: 'Copy curl snippet',
+  },
+  {
+    label: 'Node.js',
+    generator: generateNodeSnippet,
+    id: 'copy-nodejs',
+    ariaLabel: 'Copy Node.js snippet',
+  },
+  { label: 'Go', generator: generateGoSnippet, id: 'copy-go', ariaLabel: 'Copy Go snippet' },
+  {
+    label: 'Python',
+    generator: generatePythonSnippet,
+    id: 'copy-python',
+    ariaLabel: 'Copy Python snippet',
+  },
+];
+
+const decodeCredentials = (ogxCredentials: OgxCredentials): SnippetCredentials => {
+  const decodedBaseUrl = atob(ogxCredentials.baseUrl);
+  return {
+    hostname: decodedBaseUrl.replace(/^https?:\/\//, ''),
+    apiKey: atob(ogxCredentials.apiKey),
+  };
 };
 
 const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
@@ -34,9 +71,16 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
   onClose,
   patternName,
   responsesTemplate,
+  ogxCredentials,
 }) => {
   const [activeCodeTab, setActiveCodeTab] = React.useState(0);
   const [copiedTab, setCopiedTab] = React.useState<number | null>(null);
+  const [showCredentials, setShowCredentials] = React.useState(false);
+
+  const hasCredentials = !!ogxCredentials;
+  const displayCredentials =
+    showCredentials && ogxCredentials ? decodeCredentials(ogxCredentials) : undefined;
+  const copyCredentials = ogxCredentials ? decodeCredentials(ogxCredentials) : undefined;
 
   const handleCopy = React.useCallback((text: string, tabIndex: number) => {
     navigator.clipboard.writeText(text).then(
@@ -45,7 +89,7 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
         setTimeout(() => setCopiedTab(null), 2000);
       },
       () => {
-        // clipboard access denied — don't show Copied feedback
+        // clipboard access denied
       },
     );
   }, []);
@@ -59,92 +103,71 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
     >
       <ModalHeader title={`${formatPatternName(patternName)} — Response payload`} />
       <ModalBody className="autorag-view-code-modal__body">
-        <Content component={ContentVariants.p} className="pf-v6-u-mb-md">
-          Use these code snippets to query this pattern programmatically via the Responses API.
-          Replace <code>&lt;HOSTNAME&gt;</code> and <code>&lt;API_KEY&gt;</code> with your OGX
-          instance URL and credentials.
-        </Content>
+        <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          className="pf-v6-u-mb-md"
+        >
+          <FlexItem>
+            <Content component={ContentVariants.p}>
+              {hasCredentials ? (
+                'Use these code snippets to query this pattern programmatically via the Responses API.'
+              ) : (
+                <>
+                  Use these code snippets to query this pattern programmatically via the Responses
+                  API. Replace <code>&lt;HOSTNAME&gt;</code> and <code>&lt;API_KEY&gt;</code> with
+                  your OGX instance URL and credentials.
+                </>
+              )}
+            </Content>
+          </FlexItem>
+          {hasCredentials && (
+            <FlexItem>
+              <Button
+                variant="link"
+                icon={showCredentials ? <EyeSlashIcon /> : <EyeIcon />}
+                onClick={() => setShowCredentials((prev) => !prev)}
+                data-testid="toggle-credentials-button"
+              >
+                {showCredentials ? 'Hide credentials' : 'Show credentials'}
+              </Button>
+            </FlexItem>
+          )}
+        </Flex>
         <Tabs
           activeKey={activeCodeTab}
           onSelect={(_e, key) => setActiveCodeTab(Number(key))}
           data-testid="view-code-tabs"
         >
-          <Tab eventKey={0} title={<TabTitleText>curl</TabTitleText>}>
-            <CodeBlock
-              className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
-              actions={
-                <CodeBlockAction>
-                  <ClipboardCopyButton
-                    id="copy-curl"
-                    aria-label="Copy curl snippet"
-                    onClick={() => handleCopy(generateCurlSnippet(responsesTemplate), 0)}
-                    variant="plain"
-                  >
-                    {copiedTab === 0 ? 'Copied' : 'Copy'}
-                  </ClipboardCopyButton>
-                </CodeBlockAction>
-              }
-            >
-              <CodeBlockCode>{generateCurlSnippet(responsesTemplate)}</CodeBlockCode>
-            </CodeBlock>
-          </Tab>
-          <Tab eventKey={1} title={<TabTitleText>Node.js</TabTitleText>}>
-            <CodeBlock
-              className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
-              actions={
-                <CodeBlockAction>
-                  <ClipboardCopyButton
-                    id="copy-nodejs"
-                    aria-label="Copy Node.js snippet"
-                    onClick={() => handleCopy(generateNodeSnippet(responsesTemplate), 1)}
-                    variant="plain"
-                  >
-                    {copiedTab === 1 ? 'Copied' : 'Copy'}
-                  </ClipboardCopyButton>
-                </CodeBlockAction>
-              }
-            >
-              <CodeBlockCode>{generateNodeSnippet(responsesTemplate)}</CodeBlockCode>
-            </CodeBlock>
-          </Tab>
-          <Tab eventKey={2} title={<TabTitleText>Go</TabTitleText>}>
-            <CodeBlock
-              className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
-              actions={
-                <CodeBlockAction>
-                  <ClipboardCopyButton
-                    id="copy-go"
-                    aria-label="Copy Go snippet"
-                    onClick={() => handleCopy(generateGoSnippet(responsesTemplate), 2)}
-                    variant="plain"
-                  >
-                    {copiedTab === 2 ? 'Copied' : 'Copy'}
-                  </ClipboardCopyButton>
-                </CodeBlockAction>
-              }
-            >
-              <CodeBlockCode>{generateGoSnippet(responsesTemplate)}</CodeBlockCode>
-            </CodeBlock>
-          </Tab>
-          <Tab eventKey={3} title={<TabTitleText>Python</TabTitleText>}>
-            <CodeBlock
-              className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
-              actions={
-                <CodeBlockAction>
-                  <ClipboardCopyButton
-                    id="copy-python"
-                    aria-label="Copy Python snippet"
-                    onClick={() => handleCopy(generatePythonSnippet(responsesTemplate), 3)}
-                    variant="plain"
-                  >
-                    {copiedTab === 3 ? 'Copied' : 'Copy'}
-                  </ClipboardCopyButton>
-                </CodeBlockAction>
-              }
-            >
-              <CodeBlockCode>{generatePythonSnippet(responsesTemplate)}</CodeBlockCode>
-            </CodeBlock>
-          </Tab>
+          {snippetTabs.map((tab, index) => (
+            <Tab key={tab.id} eventKey={index} title={<TabTitleText>{tab.label}</TabTitleText>}>
+              <CodeBlock
+                className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
+                actions={
+                  <CodeBlockAction>
+                    <ClipboardCopyButton
+                      id={tab.id}
+                      aria-label={tab.ariaLabel}
+                      onClick={() =>
+                        handleCopy(tab.generator(responsesTemplate, copyCredentials), index)
+                      }
+                      variant="plain"
+                    >
+                      {copiedTab === index
+                        ? 'Copied'
+                        : hasCredentials
+                          ? 'Copy with credentials'
+                          : 'Copy'}
+                    </ClipboardCopyButton>
+                  </CodeBlockAction>
+                }
+              >
+                <CodeBlockCode>
+                  {tab.generator(responsesTemplate, displayCredentials)}
+                </CodeBlockCode>
+              </CodeBlock>
+            </Tab>
+          ))}
         </Tabs>
       </ModalBody>
     </Modal>

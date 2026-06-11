@@ -6,6 +6,12 @@ import {
   generateNodeSnippet,
   generatePythonSnippet,
 } from '~/app/components/run-results/playgroundSnippets';
+import type { SnippetCredentials } from '~/app/components/run-results/playgroundSnippets';
+
+const mockCredentials: SnippetCredentials = {
+  hostname: 'ogx.example.com',
+  apiKey: 'sk-test-key-123',
+};
 
 const mockTemplate: ResponsesTemplate = {
   model: 'test-model',
@@ -121,4 +127,31 @@ describe('generatePythonSnippet', () => {
     expect(result).toContain('<HOSTNAME>');
     expect(result).toContain('<API_KEY>');
   });
+});
+
+describe('credential injection', () => {
+  const generators = [
+    { name: 'curl', fn: generateCurlSnippet },
+    { name: 'Node.js', fn: generateNodeSnippet },
+    { name: 'Go', fn: generateGoSnippet },
+    { name: 'Python', fn: generatePythonSnippet },
+  ];
+
+  it.each(generators)('should inject credentials and remove placeholders for $name', ({ fn }) => {
+    const result = fn(mockTemplate, mockCredentials);
+    expect(result).toContain('ogx.example.com');
+    expect(result).toContain('sk-test-key-123');
+    expect(result).not.toContain('<HOSTNAME>');
+    expect(result).not.toContain('<API_KEY>');
+  });
+
+  it.each(generators)(
+    'should use placeholders when credentials are undefined for $name',
+    ({ fn }) => {
+      const result = fn(mockTemplate);
+      expect(result).toContain('<HOSTNAME>');
+      expect(result).toContain('<API_KEY>');
+      expect(result).not.toContain('ogx.example.com');
+    },
+  );
 });

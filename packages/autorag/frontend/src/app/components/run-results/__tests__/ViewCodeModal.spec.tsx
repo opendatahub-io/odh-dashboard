@@ -35,6 +35,11 @@ const mockTemplate: ResponsesTemplate = {
   include: ['file_search_call.results'],
 };
 
+const mockOgxCredentials = {
+  baseUrl: btoa('https://ogx.example.com'),
+  apiKey: btoa('sk-test-key-123'),
+};
+
 const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
@@ -112,5 +117,61 @@ describe('ViewCodeModal', () => {
     const closeButton = screen.getByLabelText('Close');
     fireEvent.click(closeButton);
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe('with credentials', () => {
+    const propsWithCredentials = {
+      ...defaultProps,
+      ogxCredentials: mockOgxCredentials,
+    };
+
+    it('should render the show credentials toggle button', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      expect(screen.getByTestId('toggle-credentials-button')).toBeInTheDocument();
+      expect(screen.getByTestId('toggle-credentials-button')).toHaveTextContent('Show credentials');
+    });
+
+    it('should not render the toggle button when credentials are not provided', () => {
+      render(<ViewCodeModal {...defaultProps} />);
+      expect(screen.queryByTestId('toggle-credentials-button')).not.toBeInTheDocument();
+    });
+
+    it('should show placeholders by default when credentials are available', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      const codeBlock = screen.getByText(/curl -X POST/);
+      expect(codeBlock.textContent).toContain('<HOSTNAME>');
+      expect(codeBlock.textContent).toContain('<API_KEY>');
+    });
+
+    it('should inject credentials when show credentials is toggled', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      fireEvent.click(screen.getByTestId('toggle-credentials-button'));
+      expect(screen.getByTestId('toggle-credentials-button')).toHaveTextContent('Hide credentials');
+      const codeBlock = screen.getByText(/curl -X POST/);
+      expect(codeBlock.textContent).toContain('ogx.example.com');
+      expect(codeBlock.textContent).not.toContain('<HOSTNAME>');
+    });
+
+    it('should display "Copy with credentials" button text when credentials are provided', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      const copyButton = screen.getByLabelText('Copy curl snippet');
+      expect(copyButton).toBeInTheDocument();
+    });
+
+    it('should display copy button when no credentials', () => {
+      render(<ViewCodeModal {...defaultProps} />);
+      const copyButton = screen.getByLabelText('Copy curl snippet');
+      expect(copyButton).toBeInTheDocument();
+    });
+
+    it('should show replacement instruction text when no credentials', () => {
+      render(<ViewCodeModal {...defaultProps} />);
+      expect(screen.getByText(/Replace/)).toBeInTheDocument();
+    });
+
+    it('should not show replacement instruction text when credentials are available', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      expect(screen.queryByText(/Replace/)).not.toBeInTheDocument();
+    });
   });
 });

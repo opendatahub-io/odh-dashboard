@@ -176,3 +176,8 @@ export type Envelope<M, D> = {
   metadata: M;
   data: D;
 };
+
+export type OgxCredentials = {
+  baseUrl: string;
+  apiKey: string;
+};

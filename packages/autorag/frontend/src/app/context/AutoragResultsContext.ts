@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { PipelineRun } from '~/app/types';
+import type { OgxCredentials, PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
@@ -14,6 +14,7 @@ export type AutoragResultsContextProps = {
   onRetryPatterns?: () => void;
   parameters?: Partial<ConfigureSchema>;
   ragPatternsBasePath?: string;
+  ogxCredentials?: OgxCredentials;
 };
 
 export const AutoragResultsContext = React.createContext<AutoragResultsContextProps | undefined>(
@@ -37,6 +38,7 @@ export function getAutoragContext({
   patternsLoadError,
   onRetryPatterns,
   ragPatternsBasePath,
+  ogxCredentials,
 }: {
   pipelineRun?: PipelineRun;
   patterns?: Record<string, AutoragPattern>;
@@ -46,6 +48,7 @@ export function getAutoragContext({
   patternsLoadError?: Error;
   onRetryPatterns?: () => void;
   ragPatternsBasePath?: string;
+  ogxCredentials?: OgxCredentials;
 }): AutoragResultsContextProps {
   // Validate runtime_config.parameters against ConfigureSchema to ensure type safety
   const configureSchema = createConfigureSchema();
@@ -71,5 +74,6 @@ export function getAutoragContext({
     onRetryPatterns,
     parameters,
     ragPatternsBasePath,
+    ogxCredentials,
   };
 }
