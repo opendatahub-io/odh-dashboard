@@ -158,6 +158,9 @@ describe('Verify project access for user types in Ray Jobs', () => {
       modelTrainingGlobal.findProjectMenuItem(projectName).should('not.exist');
       modelTrainingGlobal.findProjectSelectorToggle().click();
 
+      cy.step('Restore admin oc session before granting role');
+      ensureAdminOcSession();
+
       cy.step('Grant edit role to regular user via oc command');
       addUserToProject(projectName, LDAP_CONTRIBUTOR_USER.USERNAME, 'edit');
 
