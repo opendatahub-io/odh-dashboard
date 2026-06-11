@@ -8,8 +8,6 @@ import AgentRuntimeEndpointsModal from '~/app/components/AgentRuntimeEndpointsMo
 import { agentOpsDeploymentDetailRoute } from '~/app/utilities/routes';
 import { agentRuntimesColumns } from './columns';
 
-const COMING_SOON_TOOLTIP = 'Coming soon';
-
 type AgentRuntimesTableRowProps = {
   runtime: AgentRuntime;
 };
@@ -25,25 +23,11 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }
         title: 'View details',
         onClick: () => navigate(detailRoute),
       },
-      { isSeparator: true },
-      {
-        title: 'Restart',
-        isAriaDisabled: true,
-        tooltipProps: { content: COMING_SOON_TOOLTIP },
-      },
-      {
-        title: 'Stop',
-        isAriaDisabled: true,
-        tooltipProps: { content: COMING_SOON_TOOLTIP },
-      },
-      {
-        title: 'Delete',
-        isAriaDisabled: true,
-        tooltipProps: { content: COMING_SOON_TOOLTIP },
-      },
     ],
     [navigate, detailRoute],
   );
+
+  const hasEndpoint = Boolean(runtime.endpointUrl?.trim());
 
   return (
     <Tr data-testid={`agent-runtime-row-${runtime.namespace}-${runtime.name}`}>
@@ -59,6 +43,8 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }
         <Button
           variant="link"
           isInline
+          isDisabled={!hasEndpoint}
+          style={{ textDecoration: 'none' }}
           onClick={() => setIsEndpointsModalOpen(true)}
           data-testid="agent-runtime-endpoint-view"
         >
@@ -71,7 +57,7 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }
       <Td isActionCell data-testid="agent-runtime-actions">
         <ActionsColumn items={actions} />
       </Td>
-      {isEndpointsModalOpen && (
+      {hasEndpoint && isEndpointsModalOpen && (
         <AgentRuntimeEndpointsModal
           runtime={runtime}
           onClose={() => setIsEndpointsModalOpen(false)}

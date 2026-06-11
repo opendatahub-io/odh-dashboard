@@ -10,12 +10,12 @@ describe('mapAgentRuntimeStatus', () => {
     ['ready', AgentRuntimeDisplayStatus.Ready, 'success', undefined],
     ['Running', AgentRuntimeDisplayStatus.Ready, 'success', undefined],
     ['running', AgentRuntimeDisplayStatus.Ready, 'success', undefined],
-    ['Pending', AgentRuntimeDisplayStatus.Pending, 'warning', undefined],
-    ['pending', AgentRuntimeDisplayStatus.Pending, 'warning', undefined],
+    ['Pending', AgentRuntimeDisplayStatus.Pending, undefined, 'purple'],
+    ['pending', AgentRuntimeDisplayStatus.Pending, undefined, 'purple'],
     ['Failed', AgentRuntimeDisplayStatus.Failed, 'danger', undefined],
     ['failed', AgentRuntimeDisplayStatus.Failed, 'danger', undefined],
-    ['Stopped', AgentRuntimeDisplayStatus.Stopped, undefined, 'blue'],
-    ['stopped', AgentRuntimeDisplayStatus.Stopped, undefined, 'blue'],
+    ['Stopped', AgentRuntimeDisplayStatus.Stopped, undefined, 'grey'],
+    ['stopped', AgentRuntimeDisplayStatus.Stopped, undefined, 'grey'],
   ] as const)(
     'should map %s to %s',
     (status, displayStatus, labelStatus, labelColor) => {
@@ -25,6 +25,14 @@ describe('mapAgentRuntimeStatus', () => {
       expect(result.labelColor).toBe(labelColor);
     },
   );
+
+  it('should map failed status to filled danger label', () => {
+    expect(mapAgentRuntimeStatus('failed')).toEqual({
+      displayStatus: AgentRuntimeDisplayStatus.Failed,
+      labelStatus: 'danger',
+      labelVariant: 'filled',
+    });
+  });
 
   it('should map unknown status to Stopped with grey label', () => {
     const result = mapAgentRuntimeStatus('unknown');

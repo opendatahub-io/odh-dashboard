@@ -19,6 +19,7 @@ export type AgentRuntimeStatusMapping = {
   displayStatus: AgentRuntimeDisplayStatus;
   labelStatus?: LabelProps['status'];
   labelColor?: LabelProps['color'];
+  labelVariant?: LabelProps['variant'];
 };
 
 const STATUS_SORT_WEIGHTS: Record<AgentRuntimeDisplayStatus, number> = {
@@ -37,11 +38,15 @@ export const mapAgentRuntimeStatus = (status: string | undefined): AgentRuntimeS
     case AgentRuntimeApiStatus.Running:
       return { displayStatus: AgentRuntimeDisplayStatus.Ready, labelStatus: 'success' };
     case AgentRuntimeApiStatus.Stopped:
-      return { displayStatus: AgentRuntimeDisplayStatus.Stopped, labelColor: 'blue' };
+      return { displayStatus: AgentRuntimeDisplayStatus.Stopped, labelColor: 'grey' };
     case AgentRuntimeApiStatus.Pending:
-      return { displayStatus: AgentRuntimeDisplayStatus.Pending, labelStatus: 'warning' };
+      return { displayStatus: AgentRuntimeDisplayStatus.Pending, labelColor: 'purple' };
     case AgentRuntimeApiStatus.Failed:
-      return { displayStatus: AgentRuntimeDisplayStatus.Failed, labelStatus: 'danger' };
+      return {
+        displayStatus: AgentRuntimeDisplayStatus.Failed,
+        labelStatus: 'danger',
+        labelVariant: 'filled',
+      };
     default:
       return { displayStatus: AgentRuntimeDisplayStatus.Stopped, labelColor: 'grey' };
   }
