@@ -122,7 +122,6 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
                     <SelectOption
                       key={status}
                       value={status}
-                      data-testid={`api-key-status-filter-option-${status}`}
                       hasCheckbox
                       isSelected={filterData.statuses.includes(status)}
                     >
