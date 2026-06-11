@@ -262,7 +262,7 @@ describe('dashboardUtils', () => {
       ];
       expect(
         filterDashboardsByThanosNonTenancyAccess(dashboards, false).map((d) => d.metadata.name),
-      ).toEqual(['dashboard-other']);
+      ).toEqual(['dashboard-1-model', 'dashboard-other']);
     });
   });
 
