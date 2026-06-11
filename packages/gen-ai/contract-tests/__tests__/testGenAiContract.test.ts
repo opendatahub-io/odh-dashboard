@@ -78,7 +78,7 @@ describe('Gen AI API Contract Tests', () => {
 
   describe('MaaS Models Endpoint', () => {
     it('should list available MaaS models', async () => {
-      const result = await apiClient.get('/gen-ai/api/v1/maas/models?namespace=default');
+      const result = await apiClient.get('/gen-ai/api/v1/maas/models');
       expect(result).toMatchContract(apiSchema, {
         ref: '#/paths/~1gen-ai~1api~1v1~1maas~1models/get/responses/200/content/application~1json/schema',
         status: 200,

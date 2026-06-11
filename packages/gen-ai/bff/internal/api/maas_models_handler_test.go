@@ -34,7 +34,6 @@ func newMaaSModelsTestApp(t *testing.T) *App {
 func newMaaSModelsTestCtx(app *App, r *http.Request) *http.Request {
 	maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
 	ctx := context.WithValue(r.Context(), constants.MaaSClientKey, maasClient)
-	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "token_mock"})
 	return r.WithContext(ctx)
 }
@@ -137,16 +136,27 @@ func TestMaaSModelsHandler(t *testing.T) {
 	})
 }
 
-func TestMaaSModelsHandler_MissingNamespace(t *testing.T) {
+func TestMaaSModelsHandler_WorksWithoutNamespace(t *testing.T) {
 	app := newMaaSModelsTestApp(t)
 
 	rr := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
 	assert.NoError(t, err)
+	req = newMaaSModelsTestCtx(app, req)
 
 	app.MaaSModelsHandler(rr, req, nil)
 
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	defer rr.Result().Body.Close()
+	body, err := io.ReadAll(rr.Result().Body)
+	assert.NoError(t, err)
+
+	var response models.MaaSModelsResponse
+	err = json.Unmarshal(body, &response)
+	assert.NoError(t, err)
+	assert.Equal(t, "list", response.Object)
+	assert.NotEmpty(t, response.Data)
 }
 
 func TestMaaSModelsHandler_MissingIdentity(t *testing.T) {
@@ -155,9 +165,6 @@ func TestMaaSModelsHandler_MissingIdentity(t *testing.T) {
 	rr := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
 	assert.NoError(t, err)
-
-	ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "test-namespace")
-	req = req.WithContext(ctx)
 
 	app.MaaSModelsHandler(rr, req, nil)
 
@@ -171,8 +178,7 @@ func TestMaaSModelsHandler_EmptyToken(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
 	assert.NoError(t, err)
 
-	ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "test-namespace")
-	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: ""})
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: ""})
 	req = req.WithContext(ctx)
 
 	app.MaaSModelsHandler(rr, req, nil)
@@ -189,7 +195,6 @@ func TestMaaSModelsHandler_ForwardsUserToken(t *testing.T) {
 
 	mockClient := maasmocks.NewMockMaaSClient()
 	ctx := context.WithValue(req.Context(), constants.MaaSClientKey, mockClient)
-	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "my-oidc-token"})
 	req = req.WithContext(ctx)
 

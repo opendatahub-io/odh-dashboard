@@ -601,20 +601,12 @@ paths:
     description: >-
       Lists all available models from MaaS (Model as a Service).
       Returns models with their identifiers, creation timestamps, ownership information, ready status, and service URLs.
-      Requires namespace parameter for proper multi-tenant isolation.
+      MaaS model access is subscription-based and does not require a namespace.
     get:
       tags:
         - MaaS
       security:
         - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          description: Kubernetes namespace for MaaS operations
-          required: true
-          schema:
-            type: string
-            example: 'default'
       responses:
         '200':
           description: Successful response with MaaS models list
