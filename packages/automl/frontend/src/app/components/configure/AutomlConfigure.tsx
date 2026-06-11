@@ -11,6 +11,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  CardTitle,
   Content,
   Divider,
   Dropdown,
@@ -65,7 +66,11 @@ import {
   TASK_TYPES,
 } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
-import { TASK_TYPE_TIMESERIES, REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
+import {
+  DEFAULT_EVAL_METRIC_BY_TASK,
+  TASK_TYPE_TIMESERIES,
+  REQUIRED_CONNECTION_SECRET_KEYS,
+} from '~/app/utilities/const';
 import { getTypeAcronym, findTimestampColumn } from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -80,10 +85,12 @@ import {
   TRAINING_DATA_FILE_ACCEPT,
   TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
 } from '~/app/utilities/automlTrainingDataFile';
+import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
 import LoadingFormField from './LoadingFormField';
 import AutomlPredictionTypeHelperText from './AutomlPredictionTypeHelperText';
 import AutomlPredictionTypeSelector from './AutomlPredictionTypeSelector';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
+import OptimizationMetricModal from './OptimizationMetricModal';
 import './AutomlConfigure.scss';
 
 type AutomlConfigureProps = {
@@ -110,6 +117,7 @@ function AutomlConfigure({
     [allConnectionTypes],
   );
   const [isTargetColumnOpen, setIsTargetColumnOpen] = useState(false);
+  const [isMetricModalOpen, setIsMetricModalOpen] = useState(false);
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
@@ -164,6 +172,7 @@ function AutomlConfigure({
     timestampColumn,
     idColumn,
     knownCovariatesNames,
+    evalMetric,
   ] = useWatch({
     control: form.control,
     name: [
@@ -175,6 +184,7 @@ function AutomlConfigure({
       'timestamp_column',
       'id_column',
       'known_covariates_names',
+      'eval_metric',
     ],
   });
   const isTargetColumnSelected = Boolean(targetColumn?.trim());
@@ -225,12 +235,17 @@ function AutomlConfigure({
     notification,
   ]);
 
-  // Re-validate top_n when task type changes (max depends on task type)
-  useEffect(() => {
+  // Cast eval_metric to the new task type's key format, or reset to the default if unsupported
+  useReconfigureSafeEffect(() => {
     if (isTaskTypeSelected) {
+      const current = getValues('eval_metric');
+      const equivalent = findEquivalentMetric(current, taskType);
+      setValue('eval_metric', equivalent ?? DEFAULT_EVAL_METRIC_BY_TASK[taskType], {
+        shouldValidate: true,
+      });
       void trigger('top_n');
     }
-  }, [taskType, isTaskTypeSelected, trigger]);
+  }, [taskType, isTaskTypeSelected, getValues, setValue, trigger]);
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
@@ -954,6 +969,37 @@ function AutomlConfigure({
                         </ConfigureFormGroup>
                       </StackItem>
                     )}
+
+                    {isTaskTypeSelected && (
+                      <>
+                        <Divider />
+                        <StackItem>
+                          <Card data-testid="optimization-metric-card">
+                            <CardHeader
+                              actions={{
+                                actions: (
+                                  <Button
+                                    variant="secondary"
+                                    isDisabled={formIsSubmitting}
+                                    onClick={() => setIsMetricModalOpen(true)}
+                                    data-testid="optimization-metric-edit"
+                                  >
+                                    Edit
+                                  </Button>
+                                ),
+                              }}
+                            >
+                              <CardTitle>Optimization Metric</CardTitle>
+                            </CardHeader>
+                            <CardBody>
+                              <Content component="p" data-testid="optimization-metric-value">
+                                {formatMetricName(evalMetric ?? '')}
+                              </Content>
+                            </CardBody>
+                          </Card>
+                        </StackItem>
+                      </>
+                    )}
                   </Stack>
                 )}
               </CardBody>
@@ -1014,6 +1060,14 @@ function AutomlConfigure({
         allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
+      />
+      <OptimizationMetricModal
+        isOpen={isMetricModalOpen}
+        onSave={(metric) => {
+          setValue('eval_metric', metric, { shouldValidate: true });
+          setIsMetricModalOpen(false);
+        }}
+        onCancel={() => setIsMetricModalOpen(false)}
       />
     </>
   );
