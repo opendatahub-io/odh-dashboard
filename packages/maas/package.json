@@ -51,16 +51,16 @@
     "./types/auth-policies": "./frontend/src/app/types/auth-policies.ts"
   },
   "dependencies": {
+    "@odh-dashboard/gen-ai": "*",
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/llmd-serving": "*",
-    "@odh-dashboard/gen-ai": "*"
+    "@odh-dashboard/model-serving": "*",
+    "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
     "cross-env": "^10.1.0",
-    "eslint-plugin-n": "^17.23.1"
+    "eslint-plugin-n": "^17.24.0"
   }
 }
