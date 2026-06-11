@@ -162,7 +162,7 @@ The CI pipeline uses dynamic port allocation based on the GitHub `run_id`. If yo
 
 1. Verify `bffConfig.enabled=true` in package.json
 2. Check that `startCommandCluster` command is correct
-3. Ensure Go is installed: `go version` (requires Go >= 1.24)
+3. Ensure Go is installed: `go version` (requires Go >= 1.26)
 
 ## Architecture
 
