@@ -93,8 +93,7 @@ describe('searchUtils', () => {
       type: string,
       project: string = TEST_PROJECTS.DEFAULT,
       featureView?: string,
-      // eslint-disable-next-line camelcase
-      matched_tags?: Record<string, string>,
+      matchedTags?: Record<string, string>,
     ): ISearchItem => ({
       id,
       category,
@@ -103,8 +102,7 @@ describe('searchUtils', () => {
       type,
       project,
       featureView,
-      // eslint-disable-next-line camelcase
-      matched_tags,
+      matchedTags,
     });
 
     const createRealisticMockData = (): ISearchItem[] => [
@@ -504,13 +502,11 @@ describe('searchUtils', () => {
       expect(featureViewGroup?.items).toHaveLength(2);
 
       // Verify matched_tag is preserved for first item
-      // eslint-disable-next-line camelcase
-      expect(featureViewGroup?.items[0].matched_tags).toEqual({ computation: 'derived' });
+      expect(featureViewGroup?.items[0].matchedTags).toEqual({ computation: 'derived' });
       expect(featureViewGroup?.items[0].title).toBe('risk_features');
 
       // Verify matched_tag is preserved for second item
-      // eslint-disable-next-line camelcase
-      expect(featureViewGroup?.items[1].matched_tags).toEqual({
+      expect(featureViewGroup?.items[1].matchedTags).toEqual({
         computation: 'aggregated',
         source: 'external',
       });
@@ -518,8 +514,7 @@ describe('searchUtils', () => {
 
       // Verify item without matched_tag doesn't have it
       const entityGroup = result.find((g) => g.category === FEATURE_STORE_TYPE_TO_CATEGORY.entity);
-      // eslint-disable-next-line camelcase
-      expect(entityGroup?.items[0].matched_tags).toBeUndefined();
+      expect(entityGroup?.items[0].matchedTags).toBeUndefined();
     });
 
     it('should handle items with empty matched_tag object', () => {
@@ -538,8 +533,7 @@ describe('searchUtils', () => {
       const result = groupResultsByCategory(items);
 
       expect(result).toHaveLength(1);
-      // eslint-disable-next-line camelcase
-      expect(result[0].items[0].matched_tags).toEqual({});
+      expect(result[0].items[0].matchedTags).toEqual({});
     });
   });
 });

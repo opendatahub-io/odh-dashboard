@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import {
   PopularTagsResponse,
   RecentlyVisitedResponse,
@@ -6,11 +5,11 @@ import {
 } from '../types/metrics';
 
 export const mockPopularTags = (partial?: Partial<PopularTagsResponse>): PopularTagsResponse => ({
-  popular_tags: [
+  popularTags: [
     {
-      tag_key: 'team',
-      tag_value: 'driver_performance',
-      feature_views: [
+      tagKey: 'team',
+      tagValue: 'driver_performance',
+      featureViews: [
         {
           name: 'driver_hourly_stats',
           project: 'rbac',
@@ -20,7 +19,7 @@ export const mockPopularTags = (partial?: Partial<PopularTagsResponse>): Popular
           project: 'rbac',
         },
       ],
-      total_feature_views: 2,
+      totalFeatureViews: 2,
     },
   ],
   metadata: {
@@ -41,7 +40,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -50,7 +49,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'feature_views',
-      object_name: 'transformed_conv_rate',
+      objectName: 'transformed_conv_rate',
       method: 'GET',
     },
     {
@@ -59,7 +58,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: 'driver',
+      objectName: 'driver',
       method: 'GET',
     },
     {
@@ -68,7 +67,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: 'driver',
+      objectName: 'driver',
       method: 'GET',
     },
     {
@@ -77,7 +76,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -86,7 +85,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -95,7 +94,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -104,7 +103,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -113,7 +112,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -122,7 +121,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -131,7 +130,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -140,7 +139,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -149,7 +148,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -158,7 +157,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'feature_views',
-      object_name: 'driver_hourly_stats',
+      objectName: 'driver_hourly_stats',
       method: 'GET',
     },
     {
@@ -167,7 +166,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
     {
@@ -176,7 +175,7 @@ export const mockRecentlyVisited = (
       project: 'rbac',
       user: 'anonymous',
       object: 'entities',
-      object_name: '__dummy',
+      objectName: '__dummy',
       method: 'GET',
     },
   ],

@@ -14,7 +14,10 @@
     ".": "./src/core/index.ts",
     "./helpers/ui": "./src/core/helpers/ui.ts",
     "./extension-points": "./src/extension-points/index.ts",
-    "./testing": "./src/testing/utils.ts"
+    "./testing": "./src/testing/utils.ts",
+    "./components/ApplicationsPage": "./src/shared-components/ApplicationsPage.ts",
+    "./components/IndentSection": "./src/shared-components/IndentSection.ts",
+    "./components/RedirectErrorState": "./src/shared-components/RedirectErrorState.ts"
   },
   "dependencies": {
     "@openshift/dynamic-plugin-sdk": "^5.0.1"

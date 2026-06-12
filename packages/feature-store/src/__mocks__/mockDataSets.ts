@@ -1,5 +1,4 @@
-/* eslint-disable camelcase */
-
+/* eslint-disable camelcase -- mock data uses Feast API naming conventions */
 import { DataSet, DataSetList } from '../types/dataSets';
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -81,10 +80,10 @@ export const mockDataSets = ({
   pagination = {
     page: 1,
     limit: 50,
-    total_count: 3,
-    total_pages: 1,
-    has_next: false,
-    has_previous: false,
+    totalCount: 3,
+    totalPages: 1,
+    hasNext: false,
+    hasPrevious: false,
   },
   relationships = {
     test_dataset: [

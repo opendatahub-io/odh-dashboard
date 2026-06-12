@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import * as React from 'react';
 import useFetch, {
   FetchStateCallbackPromise,

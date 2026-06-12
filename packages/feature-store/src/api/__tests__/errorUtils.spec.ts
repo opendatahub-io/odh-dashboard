@@ -1,4 +1,4 @@
-/* eslint-disable camelcase */
+/* eslint-disable camelcase -- test data mirrors raw Feast API snake_case responses */
 import { NotReadyError } from '@odh-dashboard/internal/utilities/useFetch';
 import { FeatureStoreError } from '../../types/global';
 import { handleFeatureStoreFailures, getFeatureStoreErrorMessage } from '../errorUtils';
@@ -28,10 +28,10 @@ describe('handleFeatureStoreFailures', () => {
       pagination: {
         page: 1,
         limit: 10,
-        total_count: 1,
-        total_pages: 1,
-        has_next: false,
-        has_previous: false,
+        totalCount: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
       },
     };
 
@@ -40,27 +40,50 @@ describe('handleFeatureStoreFailures', () => {
   });
 
   it('should throw FeatureStoreError when promise resolves with error object', async () => {
-    const featureStoreError: FeatureStoreError = {
+    const rawApiError = {
       code: 'FEATURE_STORE_001',
       message: 'Feature store not found',
       error_type: 'FeatureStoreNotFoundException',
     };
 
-    await expect(
-      handleFeatureStoreFailures(Promise.resolve(featureStoreError)),
-    ).rejects.toStrictEqual(featureStoreError);
+    await expect(handleFeatureStoreFailures(Promise.resolve(rawApiError))).rejects.toStrictEqual({
+      code: 'FEATURE_STORE_001',
+      message: 'Feature store not found',
+      errorType: 'FeatureStoreNotFoundException',
+      detail: undefined,
+      statusCode: undefined,
+    });
   });
 
-  it('should throw Error with message when promise rejects with FeatureStoreError', async () => {
-    const featureStoreError: FeatureStoreError = {
+  it('should transform raw API error when promise rejects with snake_case error', async () => {
+    const rawApiError = {
       code: 'FEATURE_STORE_002',
       message: 'Invalid project configuration',
+      error_type: 'ConfigurationError',
+      status_code: 400,
+    };
+
+    await expect(handleFeatureStoreFailures(Promise.reject(rawApiError))).rejects.toStrictEqual({
+      code: 'FEATURE_STORE_002',
+      message: 'Invalid project configuration',
+      detail: undefined,
+      errorType: 'ConfigurationError',
+      statusCode: 400,
+    });
+  });
+
+  it('should re-throw already-transformed FeatureStoreError as-is', async () => {
+    const transformedError: FeatureStoreError = {
+      code: 'FEATURE_STORE_003',
+      message: 'Invalid project configuration',
       detail: 'The project configuration is missing required fields',
+      errorType: 'ConfigurationError',
+      statusCode: 400,
     };
 
     await expect(
-      handleFeatureStoreFailures(Promise.reject(featureStoreError)),
-    ).rejects.toStrictEqual(featureStoreError);
+      handleFeatureStoreFailures(Promise.reject(transformedError)),
+    ).rejects.toStrictEqual(transformedError);
   });
 
   it('should re-throw NotReadyError when promise rejects with NotReadyError', async () => {
@@ -157,8 +180,8 @@ describe('getFeatureStoreErrorMessage', () => {
     const error = new Error('Error message');
     Object.assign(error, {
       detail: 'Feature view not found in project banking',
-      status_code: 404,
-      error_type: 'FeastObjectNotFoundException',
+      statusCode: 404,
+      errorType: 'FeastObjectNotFoundException',
     });
 
     const result = getFeatureStoreErrorMessage(error, 'Fallback message');

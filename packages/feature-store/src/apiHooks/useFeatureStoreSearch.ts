@@ -13,7 +13,7 @@ export const useFeatureStoreSearch = (): {
     type: string;
     project: string;
     featureView?: string;
-    matched_tags?: Record<string, string>;
+    matchedTags?: Record<string, string>;
   }>;
   isSearching: boolean;
   isLoadingMore: boolean;
@@ -57,8 +57,7 @@ export const useFeatureStoreSearch = (): {
       type: result.type,
       project: result.project,
       featureView: result.featureView,
-      // eslint-disable-next-line camelcase
-      matched_tags: result.matched_tags,
+      matchedTags: result.matchedTags,
     }));
     return converted;
   }, [allResults]);

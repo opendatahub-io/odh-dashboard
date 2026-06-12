@@ -1,4 +1,4 @@
-/* eslint-disable camelcase */
+/* eslint-disable camelcase -- mock data uses Feast API naming conventions */
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import { DataSource, DataSourceList } from '../../types/dataSources';
@@ -71,10 +71,10 @@ const mockDataSourceList = (partial?: Partial<DataSourceList>): DataSourceList =
     pagination: {
       page: 1,
       limit: 50,
-      total_count: mockDataSources.length,
-      total_pages: 1,
-      has_next: false,
-      has_previous: false,
+      totalCount: mockDataSources.length,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
     },
     relationships: {},
     ...partial,
@@ -89,10 +89,10 @@ describe('useFeatureStoreDataSources', () => {
     pagination: {
       page: 1,
       limit: 50,
-      total_count: 0,
-      total_pages: 0,
-      has_next: false,
-      has_previous: false,
+      totalCount: 0,
+      totalPages: 0,
+      hasNext: false,
+      hasPrevious: false,
     },
     relationships: {},
   };
@@ -307,10 +307,10 @@ describe('useFeatureStoreDataSources', () => {
       pagination: {
         page: 1,
         limit: 50,
-        total_count: 1,
-        total_pages: 1,
-        has_next: false,
-        has_previous: false,
+        totalCount: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
       },
     });
     mockGetDataSources.mockResolvedValue(updatedDataSourceList);
@@ -361,10 +361,10 @@ describe('useFeatureStoreDataSources', () => {
       pagination: {
         page: 1,
         limit: 50,
-        total_count: 0,
-        total_pages: 0,
-        has_next: false,
-        has_previous: false,
+        totalCount: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
       },
     });
 

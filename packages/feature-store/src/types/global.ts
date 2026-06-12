@@ -12,18 +12,18 @@ import { GetGlobalSearch } from './search';
 export type FeatureStorePagination = {
   page: number;
   limit: number;
-  total_count: number;
-  total_pages: number;
-  has_next: boolean;
-  has_previous: boolean;
+  totalCount: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
 };
 
 export type FeatureStoreError = {
   code?: string;
   message?: string;
   detail?: string;
-  error_type?: string;
-  status_code?: number;
+  errorType?: string;
+  statusCode?: number;
 };
 
 export type MaterializationInterval = {

@@ -1,10 +1,9 @@
-/* eslint-disable camelcase */
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
 import { RecentlyVisitedResource } from '../../types/metrics';
 
 export const recentlyVisitedResourcesColumns: SortableData<RecentlyVisitedResource>[] = [
   {
-    field: 'object_name',
+    field: 'objectName',
     label: 'Resource name',
     width: 25,
     sortable: false,
@@ -27,6 +26,7 @@ export const recentlyVisitedResourcesColumns: SortableData<RecentlyVisitedResour
   },
 ];
 
+/* eslint-disable camelcase -- keys match Feast API resource type values */
 export const resourceTypeMap: Record<string, string> = {
   entities: 'entity',
   feature_views: 'feature views',
@@ -35,6 +35,7 @@ export const resourceTypeMap: Record<string, string> = {
   feature_services: 'feature services',
   features: 'features',
 };
+/* eslint-enable camelcase */
 
 export const EMPTY_STATE_MESSAGES = {
   RECENTLY_VISITED_RESOURCES: 'No recently visited resources.',

@@ -1,4 +1,4 @@
-/* eslint-disable camelcase */
+/* eslint-disable camelcase -- mock data uses Feast API naming conventions */
 import { Entity, EntityList } from '../types/entities';
 
 export const mockEntity = (partial?: Partial<Entity>): Entity => ({
@@ -29,10 +29,10 @@ export const mockEntities = ({ entities = [] }: Partial<EntityList>): EntityList
   pagination: {
     page: 1,
     limit: 50,
-    total_count: 2,
-    total_pages: 1,
-    has_next: false,
-    has_previous: false,
+    totalCount: 2,
+    totalPages: 1,
+    hasNext: false,
+    hasPrevious: false,
   },
   relationships: {
     user_id: [

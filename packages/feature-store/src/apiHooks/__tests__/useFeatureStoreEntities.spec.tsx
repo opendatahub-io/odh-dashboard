@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockEntity, mockEntities } from '../../__mocks__/mockEntities';
 import { useFeatureStoreAPI } from '../../FeatureStoreContext';
@@ -25,10 +24,10 @@ describe('useFeatureStoreEntities', () => {
     pagination: {
       page: 0,
       limit: 0,
-      total_count: 0,
-      total_pages: 0,
-      has_next: false,
-      has_previous: false,
+      totalCount: 0,
+      totalPages: 0,
+      hasNext: false,
+      hasPrevious: false,
     },
     relationships: {},
   };

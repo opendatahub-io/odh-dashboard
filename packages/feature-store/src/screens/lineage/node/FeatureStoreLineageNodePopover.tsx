@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -32,12 +31,14 @@ export interface FeatureStoreLineageNodePopoverProps {
 }
 
 const getFsObjectTypeLabel = (fsObjectType: FsObjectType): string => {
+  /* eslint-disable camelcase -- Feast API object type identifiers */
   const typeLabels: Record<FsObjectType, string> = {
     entity: 'Entity details',
     data_source: 'Data source details',
     feature_view: 'Feature view details',
     feature_service: 'Feature service details',
   };
+  /* eslint-enable camelcase */
   return typeLabels[fsObjectType] || fsObjectType;
 };
 

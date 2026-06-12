@@ -1,6 +1,5 @@
 import React from 'react';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import ApplicationsPage from '@odh-dashboard/plugin-core/components/ApplicationsPage';
 import { Tab, Tabs, TabTitleText, TabContent, PageSection, Flex } from '@patternfly/react-core';
 import {
   LineageCenterProvider,

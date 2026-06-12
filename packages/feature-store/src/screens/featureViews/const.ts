@@ -1,8 +1,8 @@
-/* eslint-disable camelcase */
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
 import { FeatureView } from '../../types/featureView';
 import { MaterializationInterval } from '../../types/global';
 
+/* eslint-disable camelcase -- keys match table column field identifiers and Feast API types */
 export const featureViewTableFilterOptions: Record<string, string> = {
   featureView: 'Feature view',
   project: 'Feature store',
@@ -14,6 +14,7 @@ export const featureViewTableFilterOptions: Record<string, string> = {
   owner: 'Owner',
   storeType: 'Store type',
 };
+/* eslint-enable camelcase */
 
 export const columns: SortableData<FeatureView>[] = [
   {

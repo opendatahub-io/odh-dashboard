@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import { renderHook } from '@testing-library/react';
 import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockFeatureStoreProject } from '../../__mocks__/mockFeatureStoreProject';
@@ -22,10 +21,10 @@ describe('useFeatureStoreProjectsAPI', () => {
     pagination: {
       page: 1,
       limit: 10,
-      total_count: 2,
-      total_pages: 1,
-      has_next: false,
-      has_previous: false,
+      totalCount: 2,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
     },
   };
 
@@ -34,10 +33,10 @@ describe('useFeatureStoreProjectsAPI', () => {
     pagination: {
       page: 0,
       limit: 0,
-      total_count: 0,
-      total_pages: 0,
-      has_next: false,
-      has_previous: false,
+      totalCount: 0,
+      totalPages: 0,
+      hasNext: false,
+      hasPrevious: false,
     },
   };
 
