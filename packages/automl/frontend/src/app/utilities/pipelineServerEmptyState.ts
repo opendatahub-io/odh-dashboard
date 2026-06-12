@@ -16,7 +16,7 @@ export function shouldShowConfigurePipelineServerEmptyState(error: unknown): boo
     return true;
   }
   const msg = error.message;
-  if (/no\s+managed\s+AutoML\s+and\s+AutoRAG\s+pipelines\s+found/i.test(msg)) {
+  if (/required\s+managed\s+pipelines\s+not\s+found/i.test(msg)) {
     return true;
   }
   if (/no\s+pipeline\s+server\s*\(\s*dspipelineapplication\)/i.test(msg)) {

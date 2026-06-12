@@ -789,7 +789,7 @@ Returned when:
 {
   "error": {
     "code": "404",
-    "message": "no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
+    "message": "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
   }
 }
 ```
@@ -1057,7 +1057,7 @@ If the error message is "no Pipeline Server (DSPipelineApplication) found in nam
 
 **Scenario 3: Required managed AutoML pipelines unavailable**
 
-If the error message is "no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server":
+If the error message is "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server":
 1. Verify the pipeline server has managed pipelines enabled (AutoML and AutoRAG)
 2. Confirm both managed AutoML pipelines exist on the pipeline server (`autogluon-tabular-training-pipeline` and `autogluon-timeseries-training-pipeline` by default)
 3. Wait for discovery cache to refresh (5 minutes) or restart the BFF if you just enabled managed pipelines

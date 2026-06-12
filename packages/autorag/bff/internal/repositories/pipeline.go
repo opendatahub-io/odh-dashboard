@@ -23,7 +23,7 @@ func getEnvOrDefault(key, fallback string) string {
 }
 
 // ManagedPipelinesNotFoundMessage is returned when required managed pipelines are missing.
-const ManagedPipelinesNotFoundMessage = "no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
+const ManagedPipelinesNotFoundMessage = "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
 
 // TODO: Confirm caching architecture for shared ODH deployments
 // This implementation uses in-memory caching which has the following considerations:

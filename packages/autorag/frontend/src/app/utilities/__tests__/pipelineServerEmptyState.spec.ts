@@ -23,7 +23,7 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
     expect(
       shouldShowConfigurePipelineServerEmptyState(
         new Error(
-          'no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
+          'required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
         ),
       ),
     ).toBe(true);
@@ -34,7 +34,7 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
     expect(
       shouldShowConfigurePipelineServerEmptyState(
         new Error(
-          'no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
+          'required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
         ),
       ),
     ).toBe(true);

@@ -1536,11 +1536,11 @@ components:
             $ref: "#/components/schemas/ErrorEnvelope"
           examples:
             managed-pipeline-unavailable:
-              summary: Required managed AutoML and AutoRAG pipelines are not provisioned
+              summary: Required managed pipelines are not provisioned
               value:
                 error:
                   code: "404"
-                  message: "no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
+                  message: "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
             resource-not-found:
               summary: Requested resource does not exist
               value:
