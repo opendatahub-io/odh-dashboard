@@ -522,7 +522,7 @@ export type MLflowPromptVersionMeta = {
 };
 
 export type MLflowPromptVersionsResponse = {
-  versions: MLflowPromptVersionMeta[];
+  versions: MLflowPromptVersionMeta[] | null;
   next_page_token?: string;
 };
 

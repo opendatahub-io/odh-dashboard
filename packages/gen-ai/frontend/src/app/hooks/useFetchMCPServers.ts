@@ -20,7 +20,7 @@ const useFetchMCPServers = (): {
       api
         .getMCPServers({})
         .then((response) => {
-          setData(response.servers);
+          setData(response.servers ?? []);
           setLoaded(true);
         })
         .catch((err) => {

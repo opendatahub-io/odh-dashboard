@@ -69,7 +69,7 @@ const useAgentProfileUrlParam = ({
           playgroundModels,
         });
 
-        applyAgentProfile(config);
+        applyAgentProfile(config, agentProfileId, profile.spec.displayName);
 
         // Restore MCP tool selections — mcpServers is guaranteed loaded at this point
         if (mcpToolsPending) {
