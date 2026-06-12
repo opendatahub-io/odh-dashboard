@@ -92,6 +92,7 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
+      modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
@@ -106,6 +107,9 @@ describe('A model can be deployed with token auth', () => {
         });
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      modelServingWizard.findBackButton().click();
+      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
+      modelServingWizard.findNextButton().click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');
