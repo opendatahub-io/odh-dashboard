@@ -18,6 +18,7 @@ jest.mock('~/app/pages/modelCatalogSettings/utils/validation', () => ({
 jest.mock('~/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils', () => ({
   transformFormDataToConfig: jest.fn(() => ({
     type: 'yaml',
+    enabled: true,
     includedModels: ['*'],
     excludedModels: [],
     yaml: 'models:\n  - name: test',

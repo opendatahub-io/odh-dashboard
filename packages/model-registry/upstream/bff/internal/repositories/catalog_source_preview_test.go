@@ -1,6 +1,9 @@
 package repositories
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
@@ -185,6 +188,57 @@ func TestCreateCatalogSourcePreview_MissingBothYamlAndPath(t *testing.T) {
 	assert.Nil(t, result)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "either 'yaml' content or 'yamlCatalogPath' must be provided")
+}
+
+func TestCreateCatalogSourcePreview_WithEnabledField(t *testing.T) {
+	boolTrue := true
+	boolFalse := false
+
+	tests := []struct {
+		name    string
+		enabled *bool
+	}{
+		{"enabled true", &boolTrue},
+		{"enabled false", &boolFalse},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := &mocks.MockHTTPClient{}
+
+			// Mock successful response
+			responseJSON := `{"size": 5, "pageSize": 10, "nextPageToken": "", "items": []}`
+			mockClient.On("POSTWithContentType",
+				mock.Anything,
+				mock.MatchedBy(func(body io.Reader) bool {
+					buf, ok := body.(*bytes.Buffer)
+					if !ok {
+						return false
+					}
+					return assert.Contains(t, buf.String(), fmt.Sprintf(`"enabled":%v`, *tt.enabled))
+				}),
+				mock.Anything,
+			).Return([]byte(responseJSON), nil)
+
+			repo := CatalogSourcePreview{}
+			payload := models.CatalogSourcePreviewRequest{
+				Type:           "yaml",
+				Enabled:        tt.enabled,
+				IncludedModels: []string{},
+				ExcludedModels: []string{},
+				Properties: map[string]interface{}{
+					"yaml": "models:\n  - name: test",
+				},
+			}
+
+			result, err := repo.CreateCatalogSourcePreview(mockClient, payload, url.Values{})
+
+			assert.NoError(t, err)
+			assert.NotNil(t, result)
+			assert.Equal(t, int32(5), result.Size)
+			mockClient.AssertExpectations(t)
+		})
+	}
 }
 
 func TestCreateCatalogSourcePreview_EmptyYamlFallsBackToPath(t *testing.T) {

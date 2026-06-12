@@ -39,6 +39,10 @@ func (a CatalogSourcePreview) CreateCatalogSourcePreview(client httpclient.HTTPC
 		"excludedModels": sourcePreviewPayload.ExcludedModels,
 	}
 
+	if sourcePreviewPayload.Enabled != nil {
+		configData["enabled"] = *sourcePreviewPayload.Enabled
+	}
+
 	properties := make(map[string]interface{})
 	var yamlContent string
 	var hasYamlContent bool
