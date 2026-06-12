@@ -195,6 +195,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.NIM_MODEL]: {
     featureFlags: ['disableNIMModelServing'],
+    requiredComponents: [DataScienceStackComponent.NIM],
     reliantAreas: [SupportedArea.K_SERVE],
   },
   [SupportedArea.ADMIN_CONNECTION_TYPES]: {
@@ -277,4 +278,5 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
   [DataScienceStackComponent.TRAINER]: 'Trainer',
   [DataScienceStackComponent.MLFLOW]: 'MLflow',
+  [DataScienceStackComponent.NIM]: 'NVIDIA NIM',
 };
