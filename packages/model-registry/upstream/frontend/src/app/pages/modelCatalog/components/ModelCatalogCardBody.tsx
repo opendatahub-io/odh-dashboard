@@ -263,17 +263,16 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
             {matchedColdStart !== undefined && (
               <Flex direction={{ default: 'column' }}>
                 <span className="pf-v6-u-font-weight-bold" data-testid="validated-model-cold-start">
-                  {formatLatency(matchedColdStart * 1000)}
+                  {matchedColdStart.toFixed(2)} s
                 </span>
                 <Flex alignItems={{ default: 'alignItemsBaseline' }} gap={{ default: 'gapXs' }}>
-                  <Content component={ContentVariants.small}>Cold start latency</Content>
+                  <Content component={ContentVariants.small}>Cold start load time</Content>
                   <Popover
                     bodyContent={
                       <div>
                         <p>
-                          <strong>Cold start latency:</strong> The estimated time required to
-                          provision hardware resources and initialize the container before the model
-                          can accept traffic.
+                          This is the initial delay that occurs when a model is triggered after a
+                          period of inactivity.
                         </p>
                       </div>
                     }
@@ -281,7 +280,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
                     <Button
                       icon={<HelpIcon />}
                       hasNoPadding
-                      aria-label="More info for cold start latency"
+                      aria-label="More info for cold start load time"
                       variant="plain"
                     />
                   </Popover>
