@@ -191,7 +191,7 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 	if !repositories.HasAllRequiredAutoMLPipelines(discoveredPipelines) {
-		app.notFoundResponse(w, r)
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return nil, nil, false
 	}
 

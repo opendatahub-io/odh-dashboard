@@ -167,7 +167,7 @@ func (app *App) resolveOwnedRun(
 
 	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
 	if discovered == nil {
-		app.notFoundResponse(w, r)
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return nil, nil, false
 	}
 
