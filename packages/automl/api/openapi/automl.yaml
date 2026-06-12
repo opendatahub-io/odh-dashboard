@@ -706,6 +706,9 @@ paths:
       Retrieves a single pipeline run by its unique identifier from the
       Pipeline Server in the specified namespace. The Pipeline Server
       (DSPipelineApplication) and AutoML managed pipeline are automatically discovered.
+      The run is validated to ensure it belongs to one of the discovered AutoML pipelines
+      before being returned. Returns 404 if the run doesn't exist, belongs to a different
+      pipeline, or required managed AutoML pipelines are unavailable in the namespace.
     get:
       tags:
         - PipelineOperation
@@ -737,7 +740,10 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
       operationId: getPipelineRunById
       summary: Get Pipeline Run by ID
-      description: Returns a single pipeline run by its unique identifier
+      description: >-
+        Returns a single pipeline run by its unique identifier if it belongs to one of the
+        discovered AutoML managed pipelines. Returns 404 if the run doesn't exist, belongs to a
+        different pipeline, or required managed AutoML pipelines are unavailable in the namespace.
     delete:
       tags:
         - PipelineOperation

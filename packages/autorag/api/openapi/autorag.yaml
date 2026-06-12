@@ -580,7 +580,7 @@ paths:
       description: >-
         Returns pipeline runs across all versions of the auto-discovered AutoRAG managed pipeline.
         The AutoRAG pipeline is automatically discovered in the namespace by display name.
-        Returns 404 Not Found if no managed AutoRAG pipeline is found in the namespace.
+        Returns 404 Not Found if required managed pipelines are unavailable in the namespace.
     post:
       tags:
         - PipelineOperation
@@ -625,8 +625,8 @@ paths:
         Creates a new AutoRAG pipeline run. The BFF automatically discovers the managed
         AutoRAG pipeline in the namespace and injects the pipeline ID and version ID.
         The optional pipelineType parameter selects which discovered pipeline to use
-        (currently only "autorag" is supported). If no managed AutoRAG pipeline is found,
-        returns 404 Not Found. The Pipeline Server (DSPipelineApplication) is also
+        (currently only "autorag" is supported). Returns 404 Not Found if required managed
+        pipelines are unavailable in the namespace. The Pipeline Server (DSPipelineApplication) is also
         auto-discovered. The BFF maps AutoRAG-specific parameters to KFP v2beta1 runtime
         config and submits the run.
 
@@ -638,7 +638,7 @@ paths:
       (DSPipelineApplication) and AutoRAG managed pipeline are automatically discovered.
       The run is validated to ensure it belongs to the discovered AutoRAG pipeline before
       being returned. Returns 404 if the run doesn't exist, belongs to a different pipeline,
-      or no AutoRAG managed pipeline is found in the namespace.
+      or required managed pipelines are unavailable in the namespace.
     get:
       tags:
         - PipelineOperation
@@ -710,8 +710,8 @@ paths:
         that the run belongs to the discovered AutoRAG managed pipeline in the namespace and that it
         is in a deletable state (SUCCEEDED, FAILED, or CANCELED) before deleting it. This prevents
         users from deleting runs from other pipelines in the same namespace. Returns 404 if the run
-        doesn't exist, belongs to a different pipeline, or the discovered AutoRAG managed pipeline
-        is absent.
+        doesn't exist, belongs to a different pipeline, or required managed pipelines are
+        unavailable in the namespace.
 
   /api/v1/pipeline-runs/{runId}/terminate:
     summary: Terminate an active pipeline run
@@ -720,7 +720,7 @@ paths:
       to CANCELING and then CANCELED state. The run must be in an active state (PENDING, RUNNING,
       PAUSED, or CANCELING) and belong to the discovered AutoRAG pipeline in the namespace.
       Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist,
-      belongs to a different pipeline, or the discovered AutoRAG managed pipeline is absent.
+      belongs to a different pipeline, or required managed pipelines are unavailable in the namespace.
     post:
       tags:
         - PipelineOperation
@@ -758,7 +758,7 @@ paths:
         CANCELING). The BFF validates that the run belongs to the discovered AutoRAG managed
         pipeline in the namespace and that it is in a terminatable state before proceeding.
         Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist,
-        belongs to a different pipeline, or the discovered AutoRAG managed pipeline is absent.
+        belongs to a different pipeline, or required managed pipelines are unavailable in the namespace.
 
   /api/v1/pipeline-runs/{runId}/retry:
     summary: Retry a failed or canceled pipeline run
@@ -766,8 +766,8 @@ paths:
       Re-initiates a failed or canceled pipeline run from the point of failure. The run must
       belong to the discovered AutoRAG pipeline in the namespace and must be in FAILED or
       CANCELED state. Returns 400 if the run is not in a retryable state, or 404 if the run
-      doesn't exist, belongs to a different pipeline, or the discovered AutoRAG managed pipeline
-      is absent.
+      doesn't exist, belongs to a different pipeline, or required managed pipelines are
+      unavailable in the namespace.
     post:
       tags:
         - PipelineOperation
@@ -804,8 +804,8 @@ paths:
         belongs to the discovered AutoRAG managed pipeline in the namespace and that it is in a
         retryable state (FAILED or CANCELED) before retrying it. This prevents users from
         retrying runs from other pipelines in the same namespace. Returns 404 if the run doesn't
-        exist, belongs to a different pipeline, or the discovered AutoRAG managed pipeline is
-        absent.
+        exist, belongs to a different pipeline, or required managed pipelines are unavailable
+        in the namespace.
 
 components:
   schemas:

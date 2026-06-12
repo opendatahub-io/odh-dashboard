@@ -259,7 +259,7 @@ This endpoint automatically discovers the AutoRAG managed pipeline in the namesp
 - Returns `404 Not Found` if:
   - The run does not exist, OR
   - The run belongs to a different pipeline (not the AutoRAG pipeline), OR
-  - No AutoRAG managed pipeline is found in the namespace
+  - Required managed pipelines are unavailable in the namespace
 
 ### Request Example
 
@@ -390,9 +390,11 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF - no manual configuration needed
-- The BFF discovers the AutoRAG managed pipeline by searching for pipelines with names starting with "autorag" (case-insensitive)
+- The BFF discovers the managed AutoRAG pipeline by exact display name
+  (case-insensitive; default: `documents-rag-optimization-pipeline`)
 - Discovery results are cached for 5 minutes per namespace to reduce API calls
-- If no AutoRAG managed pipeline is found, the request returns `404 Not Found`
+- Pipeline-runs endpoints return `404 Not Found` when required managed pipelines are
+  unavailable in the namespace (see Error Responses)
 - `experiment_id` is not passed — KFP assigns one automatically (defaults to "Default" experiment)
 
 ### Request Example
@@ -456,7 +458,7 @@ Returns `200 OK` with the created pipeline run:
 | `400 Bad Request` | Missing required fields, invalid `optimization_metric`, unknown JSON fields, malformed JSON, or missing `namespace` |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
-| `404 Not Found` | No AutoRAG managed pipeline is found in the namespace |
+| `404 Not Found` | Required managed pipelines are unavailable in the namespace (List, Create, Get, Delete, Terminate, and Retry) |
 | `500 Internal Server Error` | KFP client failure or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
@@ -508,7 +510,7 @@ This endpoint enforces ownership and state validation:
 - Fetches the run and validates it belongs to the discovered AutoRAG pipeline before terminating
 - Validates the run is in a terminatable state (PENDING, RUNNING, or PAUSED) before proceeding
 - Returns `400 Bad Request` if the run is not in a terminatable state (PENDING, RUNNING, or PAUSED)
-- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `404 Not Found` if the run does not exist, belongs to a different pipeline, or required managed pipelines are unavailable in the namespace
 - Prevents users from terminating runs from other pipelines in the same namespace
 
 ### Request Example
@@ -529,7 +531,7 @@ Returns `200 OK` with an empty body on success.
 | `400 Bad Request` | Missing `runId` parameter, or run is not in a terminatable state (PENDING, RUNNING, or PAUSED) |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
-| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `404 Not Found` | Run not found, run belongs to a different pipeline, or required managed pipelines are unavailable |
 | `500 Internal Server Error` | Pipeline Server error or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
@@ -577,7 +579,7 @@ This endpoint enforces the same ownership validation as the Terminate Run endpoi
 
 - Fetches the run and validates it belongs to the discovered AutoRAG pipeline before retrying
 - Validates the run is in FAILED or CANCELED state before retrying
-- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `404 Not Found` if the run does not exist, belongs to a different pipeline, or required managed pipelines are unavailable in the namespace
 - Returns `400 Bad Request` if the run is not in a retryable state
 - Prevents users from retrying runs from other pipelines in the same namespace
 
@@ -599,7 +601,7 @@ Returns `200 OK` with an empty body on success.
 | `400 Bad Request` | Missing `runId` parameter, or run is not in FAILED or CANCELED state |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
-| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `404 Not Found` | Run not found, run belongs to a different pipeline, or required managed pipelines are unavailable |
 | `500 Internal Server Error` | Pipeline Server error or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
@@ -647,7 +649,7 @@ This endpoint enforces the same ownership validation as the Terminate Run endpoi
 
 - Fetches the run and validates it belongs to the discovered AutoRAG pipeline before deleting
 - Validates the run is in SUCCEEDED, FAILED, or CANCELED state before deleting
-- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `404 Not Found` if the run does not exist, belongs to a different pipeline, or required managed pipelines are unavailable in the namespace
 - Returns `400 Bad Request` if the run is not in an deletable state
 - Prevents users from deleting runs from other pipelines in the same namespace
 
@@ -669,7 +671,7 @@ Returns `200 OK` with an empty body on success.
 | `400 Bad Request` | Missing `runId` parameter, or run is not in SUCCEEDED, FAILED, or CANCELED state |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
-| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `404 Not Found` | Run not found, run belongs to a different pipeline, or required managed pipelines are unavailable |
 | `500 Internal Server Error` | Pipeline Server error or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
@@ -679,13 +681,15 @@ The API always filters runs to the auto-discovered AutoRAG-managed pipeline:
 
 1. Discovers the AutoRAG-managed pipeline in the namespace (cached for 5 minutes)
 2. Filters runs to show only those from the discovered AutoRAG pipeline version
-3. The List endpoint returns `404 Not Found` if no AutoRAG managed pipeline is found; Create also returns `404` when managed pipelines are unavailable
+3. All pipeline-runs endpoints return `404 Not Found` when required managed pipelines are unavailable in the namespace
 
 This ensures users see only AutoRAG-related runs and prevents accidentally displaying unrelated pipeline runs from the namespace.
 
 **Pipeline Discovery Details:**
-- The BFF searches for pipelines with display names starting with a configurable prefix (default: "autorag", case-insensitive)
-- The prefix can be customized via the `AUTORAG_PIPELINE_NAME_PREFIX` environment variable or `--autorag-pipeline-name-prefix` flag
+- The BFF discovers the managed AutoRAG pipeline by exact display name
+  (case-insensitive; default: `documents-rag-optimization-pipeline`)
+- Override the expected display name with `AUTORAG_PIPELINE_NAME_PREFIX` or
+  `--autorag-pipeline-name-prefix` when your managed pipeline uses a different name
 - Uses the most recently created version of the discovered pipeline
 - Discovery results are cached for 5 minutes per namespace
 - Future versions will use pipeline metadata/attributes for more robust identification
@@ -729,7 +733,8 @@ Returned when the authenticated user does not have permission to access services
 Returned when:
 - The specified namespace does not exist in the cluster, OR
 - No Pipeline Server (DSPipelineApplication) resources exist in the namespace, OR
-- No AutoRAG managed pipeline is found in the namespace (List and Create)
+- Required managed pipelines are unavailable in the namespace (applies to
+  List, Create, Get, Delete, Terminate, and Retry)
 
 **Example response when no DSPA exists:**
 
@@ -742,7 +747,7 @@ Returned when:
 }
 ```
 
-**Example response when managed pipelines are unavailable (List and Create):**
+**Example response when required managed pipelines are unavailable:**
 
 ```json
 {
@@ -976,11 +981,13 @@ If the error message is "no Pipeline Server (DSPipelineApplication) found in nam
 2. If no DSPA exists, create one following the Data Science Pipelines documentation
 3. If you just created a DSPA, wait a moment for it to be discovered and become ready
 
-**Scenario 3: No AutoRAG managed pipeline found in the namespace**
+**Scenario 3: Required managed pipelines unavailable**
 
 If the error message is "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server":
 1. Verify the pipeline server has managed pipelines enabled (AutoML and AutoRAG)
-2. Confirm the AutoRAG managed pipeline (`documents-rag-optimization-pipeline` by default) exists on the pipeline server
+2. Confirm a pipeline with the expected display name exists on the pipeline server
+   (default: `documents-rag-optimization-pipeline`, or the value configured in
+   `AUTORAG_PIPELINE_NAME_PREFIX` / `--autorag-pipeline-name-prefix`)
 3. Wait for discovery cache to refresh (5 minutes) or restart the BFF if you just enabled managed pipelines
 
 ### 503 Service Unavailable - Pipeline Server Not Ready

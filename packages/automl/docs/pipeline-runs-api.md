@@ -432,7 +432,8 @@ Additional required fields for timeseries forecasting pipelines:
 - Unknown JSON fields are rejected (strict decoding)
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF
 - The `task_type` field selects between the auto-discovered timeseries and tabular pipelines
-- If required managed AutoML pipelines are unavailable in the namespace, the request returns `404 Not Found`
+- Pipeline-runs endpoints return `404 Not Found` when required managed AutoML
+  pipelines are unavailable in the namespace (see Error Responses)
 - Request body validation is performed based on the selected task type
 
 ### Request Examples
@@ -600,7 +601,7 @@ This endpoint enforces ownership and state validation:
 - Fetches the run and validates it belongs to one of the discovered AutoML pipelines before terminating
 - Validates the run is in a terminatable state (PENDING, RUNNING, or PAUSED) before proceeding
 - Returns `400 Bad Request` if the run is not in a terminatable state (PENDING, RUNNING, or PAUSED)
-- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `404 Not Found` if the run does not exist, belongs to a different pipeline, or required managed AutoML pipelines are unavailable in the namespace
 - Prevents users from terminating runs from other pipelines in the same namespace
 
 ### Request Example
@@ -621,7 +622,7 @@ Returns `200 OK` with an empty body on success.
 | `400 Bad Request` | Missing `runId` parameter, or run is not in a terminatable state (PENDING, RUNNING, or PAUSED) |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
-| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `404 Not Found` | Run not found, run belongs to a different pipeline, or required managed AutoML pipelines are unavailable |
 | `500 Internal Server Error` | Pipeline Server error or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
@@ -648,7 +649,7 @@ This endpoint enforces the same ownership validation as the Terminate Run endpoi
 
 - Fetches the run and validates it belongs to one of the discovered AutoML pipelines before retrying
 - Validates the run is in FAILED or CANCELED state before retrying
-- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `404 Not Found` if the run does not exist, belongs to a different pipeline, or required managed AutoML pipelines are unavailable in the namespace
 - Returns `400 Bad Request` if the run is not in a retryable state
 - Prevents users from retrying runs from other pipelines in the same namespace
 
@@ -670,7 +671,7 @@ Returns `200 OK` with an empty body on success.
 | `400 Bad Request` | Missing `runId` parameter, or run is not in FAILED or CANCELED state |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
-| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `404 Not Found` | Run not found, run belongs to a different pipeline, or required managed AutoML pipelines are unavailable |
 | `500 Internal Server Error` | Pipeline Server error or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
@@ -697,7 +698,7 @@ This endpoint enforces the same ownership validation as the Terminate Run endpoi
 
 - Fetches the run and validates it belongs to one of the discovered AutoML pipelines before deleting
 - Validates the run is in SUCCEEDED, FAILED, or CANCELED state before deleting
-- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `404 Not Found` if the run does not exist, belongs to a different pipeline, or required managed AutoML pipelines are unavailable in the namespace
 - Returns `400 Bad Request` if the run is not in an deletable state
 - Prevents users from deleting runs from other pipelines in the same namespace
 
@@ -719,7 +720,7 @@ Returns `200 OK` with an empty body on success.
 | `400 Bad Request` | Missing `runId` parameter, or run is not in SUCCEEDED, FAILED, or CANCELED state |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
-| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `404 Not Found` | Run not found, run belongs to a different pipeline, or required managed AutoML pipelines are unavailable |
 | `500 Internal Server Error` | Pipeline Server error or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
@@ -776,7 +777,9 @@ Returned when the authenticated user does not have permission to access pipeline
 Returned when:
 - The specified namespace does not exist in the cluster, OR
 - No Pipeline Server (DSPipelineApplication) resources exist in the namespace, OR
-- Required managed AutoML pipelines are unavailable in the namespace (List and Create require both tabular and timeseries pipelines)
+- Required managed AutoML pipelines are unavailable in the namespace (applies to
+  List, Create, Get, Delete, Terminate, and Retry; both tabular and timeseries
+  pipelines must be available)
 
 **Example response when no DSPA exists:**
 
@@ -789,7 +792,7 @@ Returned when:
 }
 ```
 
-**Example response when managed pipelines are unavailable (List and Create):**
+**Example response when required managed AutoML pipelines are unavailable:**
 
 ```json
 {
