@@ -101,14 +101,19 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       />
     );
 
+    const childCount = element.getAllNodeChildren().length;
+    const groupLabel = element.getLabel();
+
     return (
       <g ref={hoverRef}>
         {element.isCollapsed() ? (
           <Popover
             triggerRef={popoverRef}
             triggerAction="hover"
-            aria-label="Hoverable popover"
-            headerContent={element.getLabel()}
+            aria-label={`${groupLabel} task group, ${childCount} ${
+              childCount === 1 ? 'task' : 'tasks'
+            }`}
+            headerContent={groupLabel}
             bodyContent={getPopoverTasksList(element.getAllNodeChildren())}
           >
             <g ref={popoverRef}>{groupNode}</g>

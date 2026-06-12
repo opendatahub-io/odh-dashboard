@@ -22,6 +22,7 @@ import { TaskNodeProps } from '@patternfly/react-topology/dist/esm/pipelines/com
 import { css } from '@patternfly/react-styles';
 import { StandardTaskNodeData } from '#~/concepts/topology/types';
 import { isMetricsArtifactType } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import { getRunStatusLabel } from '#~/concepts/topology/utils';
 
 const ICON_PADDING = 8;
 
@@ -50,6 +51,10 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
     ),
     AnchorEnd.target,
   );
+
+  const statusLabel = getRunStatusLabel(data?.runStatus);
+  const taskName = element.getLabel();
+  const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
 
   return (
     <g
@@ -93,6 +98,24 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
           <ListIcon width={iconSize} height={iconSize} />
         )}
       </g>
+      {/* Transparent button overlay for keyboard and screen reader access */}
+      <foreignObject x={0} y={0} width={bounds.width} height={bounds.height} overflow="visible">
+        <button
+          className="pipeline-node-a11y-button"
+          aria-label={ariaLabel}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect?.(e);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.currentTarget.click();
+            }
+          }}
+          data-testid={`pipeline-node-button-${taskName}`}
+        />
+      </foreignObject>
     </g>
   );
 });
@@ -122,6 +145,11 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
 
     const translateX = bounds.width / 2 - (iconSize / 2) * upScale;
     const translateY = iconPadding * upScale;
+
+    const statusLabel = getRunStatusLabel(data?.runStatus);
+    const taskName = element.getLabel();
+    const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
+
     return (
       <g className={css('pf-topology__pipelines__task-node')} ref={hoverRef}>
         {isHover || detailsLevel !== ScaleDetailsLevel.high ? (
@@ -158,6 +186,31 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
                 </g>
               </g>
             ) : null}
+            {/* Transparent button overlay for keyboard access in full-node (hover) mode.
+                IconTaskNode has its own overlay for compact mode. */}
+            <foreignObject
+              x={0}
+              y={0}
+              width={bounds.width}
+              height={bounds.height}
+              overflow="visible"
+            >
+              <button
+                className="pipeline-node-a11y-button"
+                aria-label={ariaLabel}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect?.(e);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.currentTarget.click();
+                  }
+                }}
+                data-testid={`pipeline-node-button-${taskName}`}
+              />
+            </foreignObject>
           </g>
         ) : (
           <IconTaskNode selected={selected} onSelect={onSelect} element={element} />

@@ -1,28 +1,30 @@
 import React from 'react';
 import {
   action,
+  addSpacerNodes,
   createTopologyControlButtons,
+  DEFAULT_EDGE_TYPE,
+  DEFAULT_SPACER_NODE_TYPE,
   defaultControlButtonsOptions,
   getEdgesFromNodes,
-  PipelineNodeModel,
+  isEdge,
+  SELECTION_EVENT,
   TopologyControlBar,
+  TopologySideBar,
   TopologyView,
   useVisualizationController,
   VisualizationSurface,
-  addSpacerNodes,
-  DEFAULT_SPACER_NODE_TYPE,
-  DEFAULT_EDGE_TYPE,
-  TopologySideBar,
-  isEdge,
 } from '@patternfly/react-topology';
-import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, Flex, FlexItem } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { css } from '@patternfly/react-styles';
 import { NODE_HEIGHT, NODE_WIDTH } from './const';
+import { PipelineNodeModelExpanded } from './types';
+import PipelineRunStatusSummary from './PipelineRunStatusSummary';
 import './PipelineVisualizationSurface.scss';
 
 type PipelineVisualizationSurfaceProps = {
-  nodes: PipelineNodeModel[];
+  nodes: PipelineNodeModelExpanded[];
   selectedIds?: string[];
   sidePanel?: React.ReactElement | null;
 };
@@ -160,6 +162,13 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     [controller],
   );
 
+  const handleNodeSelect = React.useCallback(
+    (nodeId: string) => {
+      controller.fireEvent(SELECTION_EVENT, [nodeId]);
+    },
+    [controller],
+  );
+
   if (error) {
     return (
       <EmptyState
@@ -174,49 +183,58 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
   }
 
   return (
-    <TopologyView
-      className={css('pipeline-visualization', !!selectedNode && 'm-is-open')}
-      controlBar={
-        <div data-testid="pipeline-topology-control-bar">
-          <TopologyControlBar
-            controlButtons={createTopologyControlButtons({
-              ...defaultControlButtonsOptions,
-              expandAll: !!collapseAllCallback,
-              collapseAll: !!collapseAllCallback,
-              zoomInCallback: action(() => {
-                controller.getGraph().scaleBy(4 / 3);
-              }),
-              zoomOutCallback: action(() => {
-                controller.getGraph().scaleBy(0.75);
-              }),
-              fitToScreenCallback: action(() => {
-                controller.getGraph().fit(80);
-              }),
-              resetViewCallback: action(() => {
-                controller.getGraph().reset();
-                controller.getGraph().layout();
-              }),
-              expandAllCallback: action(() => {
-                collapseAllCallback(false);
-              }),
-              collapseAllCallback: action(() => {
-                collapseAllCallback(true);
-              }),
-              legend: false,
-            })}
-          />
-        </div>
-      }
-      sideBarOpen={!!selectedNode}
-      sideBarResizable
-      sideBar={
-        <TopologySideBar data-testid="pipeline-topology-drawer" resizable>
-          {sidePanel}
-        </TopologySideBar>
-      }
+    <Flex
+      direction={{ default: 'column' }}
+      style={{ height: '100%' }}
+      spaceItems={{ default: 'spaceItemsNone' }}
     >
-      <VisualizationSurface state={{ selectedIds: selections }} />
-    </TopologyView>
+      <PipelineRunStatusSummary nodes={nodes} onNodeSelect={handleNodeSelect} />
+      <FlexItem flex={{ default: 'flex_1' }} style={{ minHeight: 0, overflow: 'hidden' }}>
+        <TopologyView
+          className={css('pipeline-visualization', !!selectedNode && 'm-is-open')}
+          controlBar={
+            <div data-testid="pipeline-topology-control-bar">
+              <TopologyControlBar
+                controlButtons={createTopologyControlButtons({
+                  ...defaultControlButtonsOptions,
+                  expandAll: !!collapseAllCallback,
+                  collapseAll: !!collapseAllCallback,
+                  zoomInCallback: action(() => {
+                    controller.getGraph().scaleBy(4 / 3);
+                  }),
+                  zoomOutCallback: action(() => {
+                    controller.getGraph().scaleBy(0.75);
+                  }),
+                  fitToScreenCallback: action(() => {
+                    controller.getGraph().fit(80);
+                  }),
+                  resetViewCallback: action(() => {
+                    controller.getGraph().reset();
+                    controller.getGraph().layout();
+                  }),
+                  expandAllCallback: action(() => {
+                    collapseAllCallback(false);
+                  }),
+                  collapseAllCallback: action(() => {
+                    collapseAllCallback(true);
+                  }),
+                  legend: false,
+                })}
+              />
+            </div>
+          }
+          sideBarOpen={!!selectedNode}
+          sideBarResizable
+          sideBar={
+            <TopologySideBar data-testid="pipeline-topology-drawer" resizable>
+              {sidePanel}
+            </TopologySideBar>
+          }
+        >
+          <VisualizationSurface state={{ selectedIds: selections }} />
+        </TopologyView>
+      </FlexItem>
+    </Flex>
   );
 };
 
