@@ -463,6 +463,7 @@ Returns `200 OK` with the created pipeline run:
 #### Example Validation Errors
 
 **Missing required fields:**
+
 ```json
 {
   "error": {
@@ -473,6 +474,7 @@ Returns `200 OK` with the created pipeline run:
 ```
 
 **Invalid optimization_metric value:**
+
 ```json
 {
   "error": {
@@ -730,6 +732,7 @@ Returned when:
 - No AutoRAG managed pipeline is found in the namespace (List and Create)
 
 **Example response when no DSPA exists:**
+
 ```json
 {
   "error": {
@@ -740,6 +743,7 @@ Returned when:
 ```
 
 **Example response when managed pipelines are unavailable (List and Create):**
+
 ```json
 {
   "error": {
@@ -757,6 +761,7 @@ Returned when:
 - Unable to communicate with Pipeline Server API
 
 **Example response:**
+
 ```json
 {
   "error": {
@@ -771,6 +776,7 @@ Returned when:
 Returned when a DSPipelineApplication exists in the namespace but is not ready. This occurs when the DSPA resource exists but does not have the `APIServerReady` condition set to `True`.
 
 **Example response:**
+
 ```json
 {
   "error": {
@@ -936,9 +942,11 @@ function displayTaskDetails(run) {
 
 If you receive a 403 error:
 1. Verify the user has permission to list DSPipelineApplications in the namespace:
+
    ```bash
    kubectl auth can-i list datasciencepipelinesapplications.datasciencepipelinesapplications.opendatahub.io -n <namespace> --as=<user>
    ```
+
 2. Check user's RBAC roles and role bindings in the namespace
 3. Ensure the user is a member of the correct groups
 
@@ -948,9 +956,11 @@ A 404 error can occur in these scenarios:
 
 **Scenario 1: Namespace does not exist**
 1. Verify the namespace exists:
+
    ```bash
    kubectl get namespace <namespace>
    ```
+
 2. Check that the namespace name in your request is correct
 3. Verify you have permission to access the namespace
 
@@ -958,9 +968,11 @@ A 404 error can occur in these scenarios:
 
 If the error message is "no Pipeline Server (DSPipelineApplication) found in namespace":
 1. Verify a DSPipelineApplication exists in the namespace:
+
    ```bash
    kubectl get dspipelineapplication -n <namespace>
    ```
+
 2. If no DSPA exists, create one following the Data Science Pipelines documentation
 3. If you just created a DSPA, wait a moment for it to be discovered and become ready
 
@@ -977,21 +989,29 @@ A 503 error with message "Pipeline Server exists but is not ready" indicates tha
 
 If you receive this error:
 1. Check if the DSPA has `APIServerReady` condition set to `True`:
+
    ```bash
    kubectl get dspipelineapplication -n <namespace> -o jsonpath='{.items[*].status.conditions[?(@.type=="APIServerReady")]}'
    ```
+
 2. If not ready, check the DSPA status and conditions:
+
    ```bash
    kubectl describe dspipelineapplication -n <namespace>
    ```
+
 3. Verify the APIServer component pods are running:
+
    ```bash
    kubectl get pods -n <namespace> -l component=data-science-pipelines
    ```
+
 4. Check the APIServer pod logs for errors:
+
    ```bash
    kubectl logs -n <namespace> -l app=ds-pipeline-<dspa-name>
    ```
+
 5. Wait for the Pipeline Server to become ready or troubleshoot the DSPA deployment
 
 ### No Runs Returned
