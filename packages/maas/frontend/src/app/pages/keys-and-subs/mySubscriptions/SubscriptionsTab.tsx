@@ -4,6 +4,7 @@ import { UserSubscription } from '~/app/types/subscriptions';
 import SubscriptionsToolbar from './SubscriptionsToolbar';
 import SubscriptionsViewTable, { ModelGroupEntry } from './SubscriptionsViewTable';
 import ModelsViewTable from './ModelsViewTable';
+import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
 
 export const deriveModelGroups = (subscriptions: UserSubscription[]): ModelGroupEntry[] => {
   const modelMap = new Map<string, ModelGroupEntry>();
@@ -117,11 +118,18 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ subscriptions }) =>
     });
   }, [modelGroups, modelSourceFilters, searchValue, modelSortDirection]);
 
+  if (subscriptions.length === 0) {
+    return (
+      <PageSection isFilled>
+        <EmptySubscriptionsTabState hasData={false} variant="subscription" />
+      </PageSection>
+    );
+  }
+
   return (
     <PageSection isFilled>
       <Content component={ContentVariants.p}>
-        Models available to you through your subscriptions, with token limits. Click a subscription
-        to create a key for it.
+        View your subscriptions and the models they give you access to.
       </Content>
       <SubscriptionsToolbar
         sourceFilters={sortField === 'subscription' ? subSourceFilters : modelSourceFilters}

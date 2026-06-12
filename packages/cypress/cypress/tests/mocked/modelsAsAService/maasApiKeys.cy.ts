@@ -100,7 +100,10 @@ describe('API Keys Page', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage
       .findDescription()
-      .should('contain.text', 'Manage your API keys and view your subscription access.');
+      .should(
+        'contain.text',
+        'Manage API keys that can be used to authenticate with model endpoints.',
+      );
 
     apiKeysPage.findTable().should('exist');
     apiKeysPage.findRows().should('have.length', 3);
@@ -877,7 +880,7 @@ describe('API Keys Page (Admin)', () => {
   });
 });
 
-describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
+describe('API keys (mySubscriptions feature flag)', () => {
   beforeEach(() => {
     asClusterAdminUser();
     cy.interceptOdh(
@@ -929,10 +932,13 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     apiKeysPage.visitKeysAndSubs();
     cy.wait('@initialSearch');
 
-    apiKeysPage.findTitle().should('contain.text', 'API keys and subscriptions');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage
       .findDescription()
-      .should('contain.text', 'Manage your API keys and view your subscription access');
+      .should(
+        'contain.text',
+        'Manage API keys that can be used to authenticate with model endpoints.',
+      );
 
     apiKeysPage.findApiKeysTab().should('have.attr', 'aria-selected', 'true');
     apiKeysPage.findTable().should('exist');
@@ -942,9 +948,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     cy.url().should('include', '/maas/keys-and-subs/subscriptions');
     apiKeysPage.findSubscriptionsTab().should('have.attr', 'aria-selected', 'true');
 
-    cy.contains('Models available to you through your subscriptions, with token limits.').should(
-      'exist',
-    );
+    cy.contains('View your subscriptions and the models they give you access to.').should('exist');
   });
 
   it('should display subscription view with search and source filter', () => {
@@ -1046,10 +1050,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
 
     subscriptionsTab.findEmptyState().should('exist');
     subscriptionsTab.findSubscriptionsTable().should('not.exist');
-
-    subscriptionsTab.findSortByModelButton().click();
-    cy.findByTestId('empty-models').should('exist');
-    subscriptionsTab.findModelsTable().should('not.exist');
+    subscriptionsTab.findEmptyState().should('contain.text', 'Request a subscription');
   });
 
   it('should show the correct data on the my subscriptions view page', () => {
