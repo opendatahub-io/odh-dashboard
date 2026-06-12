@@ -1911,10 +1911,21 @@ components:
                 properties:
                   code:
                     type: string
-                    example: "404"
                   message:
                     type: string
-                    example: "Resource not found"
+          examples:
+            managed-pipeline-unavailable:
+              summary: Required managed AutoML pipelines are not provisioned
+              value:
+                error:
+                  code: "404"
+                  message: "no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
+            resource-not-found:
+              summary: Requested resource does not exist
+              value:
+                error:
+                  code: "404"
+                  message: "the requested resource could not be found"
 
     Conflict:
       description: >-
