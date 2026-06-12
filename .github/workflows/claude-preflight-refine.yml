@@ -1,0 +1,165 @@
+name: "Preflight Skill Refinement"
+
+on:
+  schedule:
+    - cron: "23 14 * * 1" # Weekly on Monday ~2:23pm UTC
+  workflow_dispatch: # Manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install "mlflow>=3.12" pyyaml
+
+      # ── Query failing traces from the past week ──
+      - name: Query failing assessments
+        id: query-failures
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+          MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
+          MLFLOW_WORKSPACE: "odh-dashboard-tracing"
+        run: |
+          python3 - <<'PYEOF'
+          import mlflow
+          import json
+          import time
+          import os
+          import warnings
+          warnings.filterwarnings("ignore")
+
+          one_week_ago_ms = int((time.time() - 7 * 86400) * 1000)
+
+          traces = mlflow.search_traces(
+              experiment_ids=["1"],
+              return_type="list",
+          )
+
+          recent = [t for t in traces if t.info.timestamp_ms >= one_week_ago_ms]
+          print(f"Found {len(recent)} traces from the past week")
+
+          # Check for failing assessments from eval runs
+          failing = []
+          for trace in recent:
+              assessments = getattr(trace.info, 'assessments', []) or []
+              for a in assessments:
+                  if hasattr(a, 'value') and str(a.value).lower() in ('no', 'false', 'fail', '0'):
+                      failing.append({
+                          "trace_id": trace.info.request_id,
+                          "judge": getattr(a, 'name', 'unknown'),
+                          "value": str(a.value),
+                      })
+
+          if not failing:
+              # Fallback: re-run judges to check
+              from mlflow.entities import SpanType, Feedback
+              from mlflow.genai.scorers import scorer
+
+              @scorer(name="posted-review")
+              def posted_review(trace) -> Feedback:
+                  tool_spans = trace.search_spans(span_type=SpanType.TOOL)
+                  for span in tool_spans:
+                      inputs = span.inputs or {}
+                      cmd = inputs.get("command", "")
+                      if "reviews" in cmd and "gh api" in cmd:
+                          return Feedback(value="yes", rationale=f"Found: {cmd[:200]}")
+                  return Feedback(value="no", rationale="No gh api .../reviews call found")
+
+              for trace in recent:
+                  result = posted_review(trace=trace)
+                  if result.value == "no":
+                      commit = trace.info.request_metadata.get("mlflow.source.git.commit", "unknown")[:12]
+                      failing.append({
+                          "trace_id": trace.info.request_id,
+                          "judge": "posted-review",
+                          "value": "no",
+                          "commit": commit,
+                          "rationale": result.rationale,
+                      })
+
+          print(f"Failing traces: {len(failing)}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"failure_count={len(failing)}\n")
+              f.write(f"failures={json.dumps(failing)}\n")
+
+          if failing:
+              print("Failures found:")
+              for f_item in failing:
+                  print(f"  {f_item['judge']} on {f_item['trace_id'][:16]}")
+          PYEOF
+
+      # ── Skip if no failures ──
+      - name: Check if refinement needed
+        if: steps.query-failures.outputs.failure_count == '0'
+        run: |
+          echo "No failing traces this week — skipping refinement"
+          exit 0
+
+      # ── Install MLflow skills for trace analysis ──
+      - name: Install MLflow skills
+        if: steps.query-failures.outputs.failure_count != '0'
+        run: npx skills add mlflow/skills
+
+      # ── Run Claude to analyze and fix ──
+      - name: Generate app token
+        if: steps.query-failures.outputs.failure_count != '0'
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Refine preflight skill
+        if: steps.query-failures.outputs.failure_count != '0'
+        uses: anthropics/claude-code-action@787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251 # v1
+        with:
+          github_token: ${{ steps.app-token.outputs.token }}
+          use_vertex: "true"
+          settings: |
+            {
+              "env": {
+                "MLFLOW_TRACKING_URI": "${{ secrets.MLFLOW_TRACKING_URI }}",
+                "MLFLOW_TRACKING_TOKEN": "${{ secrets.MLFLOW_TRACKING_TOKEN }}",
+                "MLFLOW_EXPERIMENT_NAME": "${{ secrets.MLFLOW_EXPERIMENT_NAME }}",
+                "MLFLOW_WORKSPACE": "odh-dashboard-tracing"
+              }
+            }
+          claude_args: >-
+            --max-turns 50
+            --model "claude-sonnet-4-6[1m]"
+            --permission-mode acceptEdits
+            --allowedTools "Bash(gh *)"
+            --allowedTools "Bash(git *)"
+            --allowedTools "Bash(pip *)"
+            --allowedTools "Bash(python3 *)"
+          prompt: |
+            The following preflight judges failed this week:
+
+            ${{ steps.query-failures.outputs.failures }}
+
+            Your task:
+            1. Use the analyze-mlflow-trace skill to inspect the failing traces
+            2. Identify the root cause pattern — why did the agent fail to complete these steps?
+            3. Edit .claude/skills/preflight/SKILL.md with a targeted fix to prevent this failure mode
+            4. Create a new branch, commit the change, and open a PR to opendatahub-io/odh-dashboard
+
+            Focus on the SKILL.md instructions that would have prevented the failure.
+            Do not make broad changes — only fix what the traces show is broken.
