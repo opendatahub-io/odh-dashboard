@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
+	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
@@ -27,12 +29,15 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/mod-arch"
-	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	UserPath      = ApiPathPrefix + "/user"
-	NamespacePath = ApiPathPrefix + "/namespaces"
+	Version                = "1.0.0"
+	PathPrefix             = "/mod-arch"
+	ApiPathPrefix          = "/api/v1"
+	HealthCheckPath        = "/healthcheck"
+	UserPath               = ApiPathPrefix + "/user"
+	NamespacePath          = ApiPathPrefix + "/namespaces"
+	AgentRuntimesPath      = ApiPathPrefix + "/agents/runtimes"
+	AgentRuntimeDetailPath = ApiPathPrefix + "/agents/runtimes/:ns/:name"
+	AgentCardPath          = ApiPathPrefix + "/agents/cards/:ns/:name"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -67,7 +72,8 @@ type App struct {
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
 	// bffClientFactory creates clients for inter-BFF communication
-	bffClientFactory bffclient.BFFClientFactory
+	bffClientFactory      bffclient.BFFClientFactory
+	agentBackendAvailable bool
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -159,14 +165,27 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
+	var agentSourceFactory agents.ClientFactory
+	var agentBackendAvailable bool
+	if cfg.MockAgentClient {
+		logger.Warn("MOCK_AGENT_CLIENT is enabled (local development only): agent routes serve fabricated demo data without RBAC checks; do not enable in staging or production")
+		agentSourceFactory = &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
+		agentBackendAvailable = true
+	} else {
+		logger.Info("Agent backend unavailable, agent routes will be disabled")
+		agentSourceFactory = agents.NewUnavailableFactory()
+		agentBackendAvailable = false
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(),
+		repositories:            repositories.NewRepositories(agentSourceFactory),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		bffClientFactory:        bffFactory,
+		agentBackendAvailable:   agentBackendAvailable,
 	}
 	return app, nil
 }
@@ -189,8 +208,19 @@ func (app *App) Routes() http.Handler {
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(UserPath, app.UserHandler)
-	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+	apiRouter.GET(UserPath, app.handlerWithOverride(HandlerUserID, func() httprouter.Handle {
+		return app.UserHandler
+	}))
+	apiRouter.GET(NamespacePath, app.handlerWithOverride(HandlerNamespacesID, func() httprouter.Handle {
+		return app.GetNamespacesHandler
+	}))
+
+	// Agent endpoints - only register when agent backend is available
+	if app.agentBackendAvailable {
+		apiRouter.GET(AgentRuntimesPath, app.ListAgentRuntimesHandler)
+		apiRouter.GET(AgentRuntimeDetailPath, app.GetAgentRuntimeDetailHandler)
+		apiRouter.GET(AgentCardPath, app.GetAgentCardHandler)
+	}
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:
