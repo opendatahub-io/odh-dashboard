@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { capitalize, Label } from '@patternfly/react-core';
+import { capitalize, Label, Popover } from '@patternfly/react-core';
 import type { LabelProps } from '@patternfly/react-core';
 import {
   BanIcon,
   CheckCircleIcon,
+  MinusCircleIcon,
   OutlinedClockIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
@@ -15,10 +16,12 @@ import SubscriptionCell from './SubscriptionCell';
 
 const getApiKeyStatusProps = (
   status: APIKeyStatus,
-): { icon: React.ReactNode; status?: LabelProps['status'] } => {
+): { icon: React.ReactNode; status?: LabelProps['status']; variant?: LabelProps['variant'] } => {
   switch (status) {
     case 'active':
       return { icon: <CheckCircleIcon />, status: 'success' };
+    case 'inactive':
+      return { icon: <MinusCircleIcon />, variant: 'filled' };
     case 'expired':
       return { icon: <OutlinedClockIcon /> };
     case 'revoked':
@@ -43,10 +46,14 @@ const formatDate = (dateString?: string, fallback = '—'): string => {
   });
 };
 
+const getDisplayStatus = (apiKey: APIKey, isSubscriptionUnavailable: boolean): APIKeyStatus =>
+  apiKey.status === 'active' && isSubscriptionUnavailable ? 'inactive' : apiKey.status;
+
 const renderApiKeyCell = (
   col: ApiKeyColumn,
   apiKey: APIKey,
   subscriptionDetail: SubscriptionDetail | undefined,
+  isSubscriptionUnavailable: boolean,
 ): React.ReactNode => {
   switch (col.field) {
     case 'name':
@@ -57,12 +64,28 @@ const renderApiKeyCell = (
           truncateDescriptionLines={2}
         />
       );
-    case 'status':
-      return (
-        <Label variant="outline" {...getApiKeyStatusProps(apiKey.status)}>
-          {capitalize(apiKey.status)}
+    case 'status': {
+      const displayStatus = getDisplayStatus(apiKey, isSubscriptionUnavailable);
+      const { variant, ...labelProps } = getApiKeyStatusProps(displayStatus);
+      const label = (
+        <Label variant={variant ?? 'outline'} {...labelProps}>
+          {capitalize(displayStatus)}
         </Label>
       );
+
+      if (displayStatus !== 'inactive') {
+        return label;
+      }
+
+      return (
+        <Popover
+          headerContent="Subscription unavailable"
+          bodyContent="The subscription this key was created for has been deleted or is not ready. The key itself has not been revoked, but it cannot authenticate requests until the subscription is restored."
+        >
+          <span style={{ cursor: 'pointer' }}>{label}</span>
+        </Popover>
+      );
+    }
     case 'subscription':
       return (
         <SubscriptionCell
@@ -87,6 +110,7 @@ type ApiKeysTableRowProps = {
   apiKey: APIKey;
   columns: ApiKeyColumn[];
   subscriptionDetail?: SubscriptionDetail;
+  isSubscriptionUnavailable: boolean;
   onRevokeApiKey: (apiKey: APIKey) => void;
 };
 
@@ -94,12 +118,13 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
   apiKey,
   columns,
   subscriptionDetail,
+  isSubscriptionUnavailable,
   onRevokeApiKey,
 }) => (
   <Tr>
     {columns.map((col) => (
       <Td key={col.field} dataLabel={col.label}>
-        {renderApiKeyCell(col, apiKey, subscriptionDetail)}
+        {renderApiKeyCell(col, apiKey, subscriptionDetail, isSubscriptionUnavailable)}
       </Td>
     ))}
     <Td isActionCell>

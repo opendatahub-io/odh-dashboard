@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  APIKey,
   APIKeyStatus,
   APIKeySearchRequest,
   ApiKeyFilterDataType,
@@ -48,20 +49,75 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   const [localUsername, setLocalUsername] = React.useState('');
   const [isFetching, setIsFetching] = React.useState(false);
 
+  const serverStatuses = React.useMemo(() => {
+    const hasInactive = filterData.statuses.includes('inactive');
+    const result = filterData.statuses.filter((s) => s !== 'inactive');
+    if (hasInactive && !result.includes('active')) {
+      result.push('active');
+    }
+    return result;
+  }, [filterData.statuses]);
+
   const searchRequest: APIKeySearchRequest = React.useMemo(
     () => ({
       filters: {
         ...(filterData.username && { username: filterData.username }),
-        ...(filterData.statuses.length > 0 && { status: filterData.statuses }),
+        ...(serverStatuses.length > 0 && { status: serverStatuses }),
         ...(filterData.subscription && { subscription: filterData.subscription }),
       },
       sort: { by: sortField, order: sortDirection },
       pagination: { limit: perPage, offset: (page - 1) * perPage },
     }),
-    [filterData, sortField, sortDirection, page, perPage],
+    [
+      filterData.username,
+      serverStatuses,
+      filterData.subscription,
+      sortField,
+      sortDirection,
+      page,
+      perPage,
+    ],
   );
 
-  const [response, loaded, error, refresh] = useFetchApiKeys(searchRequest);
+  const [rawResponse, loaded, error, refresh] = useFetchApiKeys(searchRequest);
+
+  const isKeyInactive = React.useCallback(
+    (key: APIKey): boolean =>
+      key.status === 'active' &&
+      !!key.subscription &&
+      rawResponse.subscriptionDetails != null &&
+      !(key.subscription in rawResponse.subscriptionDetails),
+    [rawResponse.subscriptionDetails],
+  );
+
+  const response = React.useMemo((): APIKeyListResponse => {
+    const hasActive = filterData.statuses.includes('active');
+    const hasInactive = filterData.statuses.includes('inactive');
+
+    let { data } = rawResponse;
+
+    if (hasActive !== hasInactive) {
+      data = data.filter((key) => {
+        if (key.status !== 'active') {
+          return true;
+        }
+        return hasInactive ? isKeyInactive(key) : !isKeyInactive(key);
+      });
+    }
+
+    if (hasActive && hasInactive) {
+      data = data.toSorted((a, b) => {
+        const aInactive = isKeyInactive(a) ? 1 : 0;
+        const bInactive = isKeyInactive(b) ? 1 : 0;
+        return aInactive - bInactive;
+      });
+    }
+
+    if (data === rawResponse.data) {
+      return rawResponse;
+    }
+    return { ...rawResponse, data };
+  }, [rawResponse, filterData.statuses, isKeyInactive]);
 
   React.useEffect(() => {
     setIsFetching(false);

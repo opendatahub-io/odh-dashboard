@@ -201,9 +201,7 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 		details[sub.SubscriptionIDHeader] = models.SubscriptionDetail{DisplayName: displayName, Models: modelNames}
 	}
 
-	if len(details) > 0 {
-		response.SubscriptionDetails = details
-	}
+	response.SubscriptionDetails = details
 }
 
 // GetAPIKeyHandler handles GET /api/v1/api-keys/:id

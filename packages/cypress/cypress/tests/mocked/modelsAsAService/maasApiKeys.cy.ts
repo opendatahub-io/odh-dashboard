@@ -11,6 +11,7 @@ import {
   adminBulkRevokeAPIKeyModal,
   apiKeysPage,
   bulkRevokeAPIKeyModal,
+  inactiveStatusPopover,
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
@@ -204,6 +205,40 @@ describe('API Keys Page', () => {
       );
   });
 
+  it('should show Inactive status with popover for keys whose subscription was deleted', () => {
+    const deletedSubscriptionKey: APIKey = {
+      id: 'key-deleted-subscription-001',
+      name: 'deleted-subscription-key',
+      description: 'Key with a deleted subscription',
+      creationDate: '2026-01-10T10:00:00Z',
+      status: 'active',
+      username: 'alice',
+      subscription: 'deleted-sub',
+    };
+
+    const allActiveKeys = [
+      deletedSubscriptionKey,
+      ...mockAPIKeys().filter((k) => k.status === 'active'),
+    ];
+    const searchResponseWithOrphaned = mockSearchResponse(allActiveKeys, mockSubscriptionDetails);
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', searchResponseWithOrphaned).as(
+      'searchWithOrphaned',
+    );
+
+    apiKeysPage.visit();
+    cy.wait('@searchWithOrphaned');
+
+    apiKeysPage.findTable().should('contain.text', 'deleted-subscription-key');
+
+    const deletedSubscriptionRow = apiKeysPage.getRow('deleted-subscription-key');
+    deletedSubscriptionRow.findStatus().should('contain.text', 'Inactive').click();
+    inactiveStatusPopover.shouldBeVisible();
+
+    deletedSubscriptionRow.findSubscription().should('contain.text', 'deleted-sub');
+    deletedSubscriptionRow.findSubscriptionDetailLink().should('not.exist');
+  });
+
   it('should display all API keys when the status filter is cleared', () => {
     apiKeysPage.findRows().should('have.length', 3);
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
@@ -242,21 +277,6 @@ describe('API Keys Page', () => {
       .findSubscriptionDetailLink()
       .should('have.attr', 'href')
       .and('include', '/maas/keys-and-subs/subscriptions/premium-team-sub');
-  });
-
-  it('should show plain text (no link) for a subscription that no longer exists', () => {
-    const keyWithDeletedSub = mockAPIKeys().filter((k) => k.status === 'active');
-    cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search',
-      // Return keys with a subscription name but no subscriptionDetails entry for it
-      mockSearchResponse(keyWithDeletedSub, {}),
-    ).as('deletedSubSearch');
-    apiKeysPage.visit();
-    cy.wait('@deletedSubSearch');
-
-    const prodRow = apiKeysPage.getRow('production-backend');
-    prodRow.findSubscription().should('contain.text', 'premium-team-sub');
-    prodRow.findSubscriptionDetailLink().should('not.exist');
   });
 
   it('should filter api keys by subscription and clear the filter', () => {
@@ -340,8 +360,11 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findStatusFilterToggle().click();
     apiKeysPage.findStatusFilterOption('Active').click();
+    apiKeysPage.findStatusFilterOption('Inactive').click();
+    apiKeysPage.findStatusFilterToggle().click();
 
-    // Keys are filtered to show active and expired by default so here we're looking for just expired since active was pre-selected
+    // Keys are filtered to show active,inactive and expired by default so here we're looking for just expired since active and inactive was pre-selected
+    cy.wait('@filterByStatus');
     cy.wait('@filterByStatus').then((interception) => {
       expect(interception.request.body.data.filters.status).to.deep.equal(['expired']);
     });
