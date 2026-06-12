@@ -32,7 +32,6 @@ export const THANOS_QUERIER_NON_TENANCY_ACCESS: AccessReviewResourceAttributes =
  */
 export const THANOS_NON_TENANCY_GATED_DASHBOARD_NAMES: ReadonlySet<string> = new Set([
   'dashboard-0-cluster-admin',
-  'dashboard-1-model',
 ]);
 
 /**
