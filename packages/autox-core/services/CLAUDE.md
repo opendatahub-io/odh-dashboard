@@ -8,7 +8,9 @@ See the [original PR](https://github.com/opendatahub-io/odh-dashboard/pull/7516)
 
 ## Build & Linking
 
-`go.work` files link autox-core with consuming packages (automl, autorag) during local development. `go mod tidy` may report that autox-core is not found — this is expected because the module is not published to a registry; the `go.work` replace directive handles resolution.
+Consuming packages (automl, autorag) use `replace` directives in their `go.mod` to resolve autox-core via relative path (e.g. `replace github.com/opendatahub-io/odh-dashboard/packages/autox-core/services => ../../autox-core/services`). This works both locally and in Docker builds because the Dockerfile mirrors the monorepo layout so the relative path resolves inside the container.
+
+When adding a new dependency to autox-core, run `go mod tidy` in both autox-core and each consuming package to keep `go.sum` files in sync.
 
 ## Layered Architecture
 
