@@ -1787,6 +1787,95 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
   });
 
+  it('Deploy model with existing S3 connection should include connection-path annotation', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+
+    // Two S3 connections so user must actively select from dropdown
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockSecretK8sResource({
+          name: 'my-s3-connection-1',
+          namespace: 'test-project',
+          displayName: 'My S3 Connection 1',
+          connectionType: 's3',
+        }),
+        mockSecretK8sResource({
+          name: 'my-s3-connection-2',
+          namespace: 'test-project',
+          displayName: 'My S3 Connection 2',
+          connectionType: 's3',
+        }),
+      ]),
+    );
+    cy.interceptK8s(
+      'GET',
+      { model: SecretModel, ns: 'test-project', name: 'my-s3-connection-1' },
+      mockSecretK8sResource({
+        name: 'my-s3-connection-1',
+        namespace: 'test-project',
+        displayName: 'My S3 Connection 1',
+        connectionType: 's3',
+      }),
+    );
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Step 1: Model source
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .should('exist')
+      .click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('My S3 Connection 1')
+      .should('exist')
+      .click();
+    modelServingWizard.findLocationPathInput().should('exist').type('my-models/gpt2/');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    modelServingWizard.findModelDeploymentNameInput().type('test-s3-deploy');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced options — skip through
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 4: Submit
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // Verify dry-run has connection-path annotation
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body.metadata.annotations).to.have.property(
+        'opendatahub.io/connection-path',
+        'my-models/gpt2/',
+      );
+    });
+
+    // Verify actual has connection-path annotation
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+      expect(interception.request.body.metadata.annotations).to.have.property(
+        'opendatahub.io/connection-path',
+        'my-models/gpt2/',
+      );
+    });
+  });
+
   describe('YAML', () => {
     it('Should show YAML preview mode when toggled', () => {
       initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
