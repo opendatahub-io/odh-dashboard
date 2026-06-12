@@ -72,13 +72,16 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     [sortBy, performanceViewEnabled, activeLatencyField],
   );
 
+  // Extract the specific primitive value needed for performance params
+  // to avoid depending on the entire filters object reference
+  const targetRPS = filters[ModelCatalogNumberFilterKey.MAX_RPS];
+
   // Derive performance params to pass to the models API when performance view is enabled
   const performanceParams = React.useMemo(() => {
     if (!performanceViewEnabled) {
       return undefined;
     }
 
-    const targetRPS = filters[ModelCatalogNumberFilterKey.MAX_RPS];
     const latencyProperty = activeLatencyField
       ? parseLatencyFilterKey(activeLatencyField).propertyKey
       : undefined;
@@ -88,7 +91,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       latencyProperty,
       recommendations: true,
     };
-  }, [performanceViewEnabled, filters, activeLatencyField]);
+  }, [performanceViewEnabled, targetRPS, activeLatencyField]);
 
   const { catalogModels, catalogModelsLoaded, catalogModelsLoadError } = useCatalogModelsBySources(
     '',
