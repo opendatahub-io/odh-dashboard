@@ -1,5 +1,15 @@
 import React, { useMemo } from 'react';
-import { Bullseye, Content, Flex, FlexItem, PageSection, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Content,
+  Flex,
+  FlexItem,
+  Label,
+  PageSection,
+  Popover,
+  Spinner,
+} from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
@@ -9,14 +19,16 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
-import ProjectSelectorNavigator from '@odh-dashboard/internal/concepts/projects/ProjectSelectorNavigator';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import { useAppContext } from '@odh-dashboard/internal/app/AppContext';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
 import {
   promptManagementPath,
-  mlflowPromptManagementBaseRoute,
   WORKSPACE_QUERY_PARAM,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
+import PromptProjectSelector from './PromptProjectSelector';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 import MLflowNotConfigured from '../shared/MLflowNotConfigured';
 import MlflowBreadcrumbs, { type BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
@@ -32,6 +44,10 @@ const MlflowPromptManagementPage: React.FC = () => {
     loaded: mlflowLoaded,
     error: mlflowStatusError,
   } = useIsMlflowCRAvailable();
+  const { dashboardConfig } = useAppContext();
+  const { isAdmin } = useUser();
+  const globalNamespace = dashboardConfig.spec.globalMLflowNamespaces?.[0];
+  const isGlobalProject = !!globalNamespace && workspace === globalNamespace;
 
   const loadWrapper = useMemo(
     () => () =>
@@ -69,13 +85,30 @@ const MlflowPromptManagementPage: React.FC = () => {
                   <Content component="p">Project</Content>
                 </FlexItem>
                 <FlexItem>
-                  <ProjectSelectorNavigator
-                    getRedirectPath={mlflowPromptManagementBaseRoute}
-                    queryParamNamespace={WORKSPACE_QUERY_PARAM}
-                  />
+                  <PromptProjectSelector globalNamespace={globalNamespace} />
                 </FlexItem>
               </Flex>
             </FlexItem>
+            {isGlobalProject && (
+              <FlexItem alignSelf={{ default: 'alignSelfCenter' }}>
+                <Popover
+                  triggerAction="hover"
+                  bodyContent={
+                    isAdmin
+                      ? 'Prompts in this project are shared across the cluster. Any edits you make will affect all users.'
+                      : 'Prompts in this project are shared across the cluster.'
+                  }
+                >
+                  <Label
+                    data-testid="global-project-indicator"
+                    color="orange"
+                    icon={<InfoCircleIcon />}
+                  >
+                    Global project
+                  </Label>
+                </Popover>
+              </FlexItem>
+            )}
           </Flex>
         ) : undefined
       }
