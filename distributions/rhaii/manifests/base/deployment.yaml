@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rhaii-dashboard
+  labels:
+    app: rhaii-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rhaii-dashboard
+  template:
+    metadata:
+      labels:
+        app: rhaii-dashboard
+    spec:
+      containers:
+        - name: rhaii-dashboard
+          image: rhaii-dashboard:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+              protocol: TCP
+          env:
+            - name: AUTH_METHOD
+              value: disabled
+            - name: DEV_MODE
+              value: "true"
+            - name: DEPLOYMENT_MODE
+              value: standalone
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 4000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
