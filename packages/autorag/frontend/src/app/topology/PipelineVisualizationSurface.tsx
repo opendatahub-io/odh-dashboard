@@ -104,6 +104,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
               }
               graph.reset();
               graph.layout();
+              graph.fit(PIPELINE_TOPOLOGY_FIT_PADDING);
             }),
             legend: false,
           })}
