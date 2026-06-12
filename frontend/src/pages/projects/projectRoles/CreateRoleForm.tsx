@@ -1,20 +1,10 @@
 import * as React from 'react';
-import {
-  Button,
-  Content,
-  Flex,
-  FlexItem,
-  Form,
-  FormGroup,
-  TextArea,
-  Title,
-} from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import { Content, Form, FormGroup, TextArea, Title } from '@patternfly/react-core';
 import K8sNameDescriptionField from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import { UseK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import RoleLabelsSection from './RoleLabelsSection';
-import type { LabelEntry } from './types';
+import PermissionRulesSection from './PermissionRulesSection';
+import type { LabelEntry, RuleEntry } from './types';
 
 type CreateRoleFormProps = {
   nameDescriptionData: UseK8sNameDescriptionFieldData;
@@ -22,6 +12,8 @@ type CreateRoleFormProps = {
   onDescriptionChange: (value: string) => void;
   labels: LabelEntry[];
   onLabelsChange: (labels: LabelEntry[]) => void;
+  rules: RuleEntry[];
+  onRulesChange: (rules: RuleEntry[]) => void;
 };
 
 const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
@@ -30,6 +22,8 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
   onDescriptionChange,
   labels,
   onLabelsChange,
+  rules,
+  onRulesChange,
 }) => {
   const handleDescriptionChange = React.useCallback(
     (_event: React.FormEvent<HTMLTextAreaElement>, value: string) => {
@@ -70,28 +64,7 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
 
       <RoleLabelsSection labels={labels} onLabelsChange={onLabelsChange} />
 
-      <Title headingLevel="h2" size="md">
-        Permissions rules (verbs){' '}
-        <FieldGroupHelpLabelIcon content="Define the permissions that this role grants. Each rule specifies which actions (verbs) are allowed on which resources." />
-      </Title>
-      <Content component="p">Define the permissions that this role grants by adding rules.</Content>
-      <Content component="p" data-testid="permissions-empty-state">
-        No permissions set for this role.
-      </Content>
-      <Flex>
-        <FlexItem>
-          {/* TODO: Enable when permission rules are implemented (RHOAIENG-63157) */}
-          <Button variant="link" icon={<PlusCircleIcon />} data-testid="role-add-rule" isDisabled>
-            Add rule
-          </Button>
-        </FlexItem>
-        <FlexItem>
-          {/* TODO: Enable when template import is implemented (RHOAIENG-63156) */}
-          <Button variant="link" data-testid="role-import-template" isDisabled>
-            Import rules from template
-          </Button>
-        </FlexItem>
-      </Flex>
+      <PermissionRulesSection rules={rules} onRulesChange={onRulesChange} />
     </Form>
   );
 };

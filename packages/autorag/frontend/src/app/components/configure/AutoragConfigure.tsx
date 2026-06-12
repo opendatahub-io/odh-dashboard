@@ -477,6 +477,7 @@ function AutoragConfigure({
                           <ToggleGroupItem
                             text="Select file or folder"
                             buttonId="document-input-select"
+                            data-testid="input-data-source-select-toggle"
                             isSelected={inputDataSourceMode === 'select'}
                             isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('select')}
@@ -484,6 +485,7 @@ function AutoragConfigure({
                           <ToggleGroupItem
                             text="Upload file"
                             buttonId="document-input-upload"
+                            data-testid="input-data-source-upload-toggle"
                             isSelected={inputDataSourceMode === 'upload'}
                             isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('upload')}
@@ -506,6 +508,7 @@ function AutoragConfigure({
                             <Button
                               key="select-files"
                               variant="secondary"
+                              data-testid="browse-bucket-button"
                               onClick={() => setFileExplorerMode('input_data')}
                               isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
                             >
@@ -570,6 +573,7 @@ function AutoragConfigure({
                               ref={inputDataNativeInputRef}
                               type="file"
                               hidden
+                              data-testid="autorag-upload-file-input"
                               accept={INPUT_DATA_UPLOAD_NATIVE_ACCEPT}
                               aria-hidden
                               tabIndex={-1}
@@ -620,7 +624,7 @@ function AutoragConfigure({
                                 </Thead>
                                 <Tbody>
                                   <Tr>
-                                    <Td dataLabel="File">
+                                    <Td dataLabel="File" data-testid="uploaded-file-cell">
                                       <Split hasGutter>
                                         {isInputDataFileUploading && (
                                           <SplitItem>

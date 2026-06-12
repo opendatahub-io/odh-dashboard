@@ -323,6 +323,8 @@ export type CodeExportRequest = {
   };
   prompt_variable_values?: Record<string, string>;
   guardrail_config?: CodeExportGuardrailConfig;
+  asr_model?: string;
+  vision_image?: boolean;
 };
 
 export type CodeExportData = {
@@ -481,6 +483,7 @@ export type MLflowPrompt = {
 export type MLflowPromptsResponse = {
   prompts: MLflowPrompt[];
   next_page_token?: string;
+  total_count: number;
 };
 
 export type MLflowMessage = {
@@ -567,6 +570,11 @@ export type GenAiAPIs = {
   createExternalModel: CreateExternalModel;
   verifyExternalModel: VerifyExternalModel;
   deleteExternalModel: DeleteExternalModel;
+  listAgentProfiles: ListAgentProfiles;
+  getAgentProfile: GetAgentProfile;
+  updateAgentProfile: UpdateAgentProfile;
+  deleteAgentProfile: DeleteAgentProfile;
+  createAgentProfile: CreateAgentProfile;
 };
 
 export interface SubscriptionInfo {
@@ -657,6 +665,17 @@ type VerifyExternalModel = ModArchRestCREATE<
   VerifyExternalModelRequest
 >;
 type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
+type ListAgentProfiles = ModArchRestGET<import('./agentProfile/types').AgentProfileListResponse>;
+type GetAgentProfile = ModArchRestGET<import('./agentProfile/types').AgentProfile>;
+type DeleteAgentProfile = ModArchRestDELETE<void, { id: string }>;
+type UpdateAgentProfile = (
+  data: import('./agentProfile/types').AgentProfileUpdateRequest & { id: string },
+  opts?: APIOptions,
+) => Promise<import('./agentProfile/types').AgentProfileUpdateResponse>;
+type CreateAgentProfile = ModArchRestCREATE<
+  import('./agentProfile/types').AgentProfileCreateResponse,
+  import('./agentProfile/types').AgentProfileCreateRequest
+>;
 
 export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
 export type ErrorVariant = 'danger' | 'warning';

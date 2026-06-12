@@ -70,6 +70,7 @@ describe('getAutomlContext', () => {
           train_data_bucket_name: '',
           train_data_file_key: '',
           preset: 'faster',
+          eval_metric: 'accuracy',
           top_n: 3,
           target_column: '',
           label_column: '',
@@ -102,6 +103,7 @@ describe('getAutomlContext', () => {
           train_data_bucket_name: '',
           train_data_file_key: '',
           preset: 'faster',
+          eval_metric: 'MASE',
           top_n: 3,
           target_column: '',
           label_column: '',
@@ -180,6 +182,7 @@ describe('getAutomlContext', () => {
         train_data_bucket_name: 'my-bucket',
         train_data_file_key: 'data.csv',
         preset: 'faster',
+        eval_metric: 'accuracy',
         target_column: '',
         label_column: 'target',
         top_n: 5,
@@ -213,6 +216,7 @@ describe('getAutomlContext', () => {
         train_data_bucket_name: '',
         train_data_file_key: '',
         preset: 'faster',
+        eval_metric: 'MASE',
         top_n: 3,
         target_column: '',
         label_column: '',
@@ -240,6 +244,7 @@ describe('getAutomlContext', () => {
         display_name: expect.any(String), // Dynamic timestamp
         description: '',
         task_type: 'timeseries', // Special default when no task_type provided
+        eval_metric: 'MASE',
         train_data_secret_name: '',
         train_data_bucket_name: '',
         train_data_file_key: '',
@@ -266,6 +271,7 @@ describe('getAutomlContext', () => {
         display_name: expect.any(String), // Dynamic timestamp
         description: '',
         task_type: 'timeseries', // Special default when no task_type provided
+        eval_metric: 'MASE',
         train_data_secret_name: '',
         train_data_bucket_name: '',
         train_data_file_key: '',
@@ -279,6 +285,38 @@ describe('getAutomlContext', () => {
         prediction_length: 1,
         known_covariates_names: [],
       });
+    });
+  });
+
+  describe('eval_metric defaults', () => {
+    it('should populate eval_metric with task-type default when missing', () => {
+      const pipelineRun = createMockPipelineRun({ task_type: 'binary' });
+      const context = getAutomlContext({ pipelineRun });
+      expect(context.parameters?.eval_metric).toBe('accuracy');
+    });
+
+    it('should populate eval_metric for each task type', () => {
+      const expectedDefaults: Record<string, string> = {
+        binary: 'accuracy',
+        multiclass: 'accuracy',
+        regression: 'r2',
+        timeseries: 'MASE',
+      };
+
+      Object.entries(expectedDefaults).forEach(([taskType, expectedMetric]) => {
+        const pipelineRun = createMockPipelineRun({ task_type: taskType });
+        const context = getAutomlContext({ pipelineRun });
+        expect(context.parameters?.eval_metric).toBe(expectedMetric);
+      });
+    });
+
+    it('should preserve explicit eval_metric when provided', () => {
+      const pipelineRun = createMockPipelineRun({
+        task_type: 'binary',
+        eval_metric: 'f1',
+      });
+      const context = getAutomlContext({ pipelineRun });
+      expect(context.parameters?.eval_metric).toBe('f1');
     });
   });
 

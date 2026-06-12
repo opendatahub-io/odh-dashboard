@@ -231,6 +231,7 @@ var commonFields = []fieldCheck{
 	{"train_data_file_key", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataFileKey != "" }, true},
 	// Common optional fields
 	{"preset", func(r models.CreateAutoMLRunRequest) bool { return r.Preset != nil }, false},
+	{"eval_metric", func(r models.CreateAutoMLRunRequest) bool { return r.EvalMetric != nil }, false},
 	{"top_n", func(r models.CreateAutoMLRunRequest) bool { return r.TopN != nil }, false},
 	{"description", func(r models.CreateAutoMLRunRequest) bool { return r.Description != "" }, false},
 }
@@ -455,6 +456,31 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		}
 	}
 
+	// Validate eval_metric enum against task-type-specific allowed values (optional field)
+	if req.EvalMetric != nil {
+		var allowedMetrics map[string]bool
+		switch pipelineType {
+		case constants.PipelineTypeTabular:
+			if req.TaskType != nil {
+				switch *req.TaskType {
+				case constants.TaskTypeBinary, constants.TaskTypeMulticlass:
+					allowedMetrics = constants.ValidClassificationEvalMetrics
+				case constants.TaskTypeRegression:
+					allowedMetrics = constants.ValidRegressionEvalMetrics
+				}
+			}
+		case constants.PipelineTypeTimeSeries:
+			allowedMetrics = constants.ValidTimeseriesEvalMetrics
+		}
+		if allowedMetrics != nil && !allowedMetrics[*req.EvalMetric] {
+			taskTypeStr := pipelineType
+			if req.TaskType != nil {
+				taskTypeStr = *req.TaskType
+			}
+			return NewValidationError(fmt.Sprintf("invalid eval_metric %q for task_type %q", *req.EvalMetric, taskTypeStr))
+		}
+	}
+
 	if req.TopN != nil {
 		if *req.TopN < constants.MinTopN {
 			return NewValidationError(fmt.Sprintf("invalid top_n: must be at least %d", constants.MinTopN))
@@ -529,6 +555,9 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 	// Add optional common parameters
 	if req.Preset != nil {
 		params["preset"] = *req.Preset
+	}
+	if req.EvalMetric != nil {
+		params["eval_metric"] = *req.EvalMetric
 	}
 
 	topN := constants.DefaultTopN

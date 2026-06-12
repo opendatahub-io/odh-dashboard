@@ -110,6 +110,31 @@ class AutomlConfigurePage {
     return cy.findByTestId(`preset-radio-${preset}`);
   }
 
+  // Optimization metric
+  findOptimizationMetricCard() {
+    return cy.findByTestId('optimization-metric-card');
+  }
+
+  findOptimizationMetricValue() {
+    return cy.findByTestId('optimization-metric-value');
+  }
+
+  findOptimizationMetricEditButton() {
+    return cy.findByTestId('optimization-metric-edit');
+  }
+
+  findOptimizationMetricModal() {
+    return cy.findByTestId('optimization-metric-modal');
+  }
+
+  findEvalMetricRadio(metric: string) {
+    return cy.findByTestId(`eval-metric-radio-${metric}`);
+  }
+
+  findOptimizationMetricSaveButton() {
+    return cy.findByTestId('optimization-metric-save');
+  }
+
   // Top N models
   findTopNInput() {
     return cy.findByTestId('top-n-input');

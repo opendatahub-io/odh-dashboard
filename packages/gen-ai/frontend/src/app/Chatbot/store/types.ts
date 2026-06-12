@@ -40,6 +40,8 @@ export interface ChatbotConfiguration {
   selectedAsrModel: string;
   /** Whether the user has opted in to the transcription model section */
   isAsrModelEnabled: boolean;
+  /** Whether a vision image has been attached/sent in this conversation */
+  hasVisionImage: boolean;
 }
 
 /**
@@ -67,6 +69,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   variableValues: {},
   selectedAsrModel: '',
   isAsrModelEnabled: false,
+  hasVisionImage: false,
 };
 
 /**
@@ -75,6 +78,12 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
 export interface ChatbotConfigStoreState {
   configurations: { [id: string]: ChatbotConfiguration | undefined };
   configIds: string[];
+  /**
+   * True when the current configuration was loaded from an AgentProfile.
+   * Set by applyAgentProfile(), cleared by resetConfiguration().
+   * Use this to drive loaded-profile UI state (e.g. header indicators, save/discard flows).
+   */
+  profileApplied: boolean;
 }
 
 /**
@@ -116,6 +125,9 @@ export interface ChatbotConfigStoreActions {
   updateSelectedAsrModel: (id: string, value: string) => void;
   updateAsrModelEnabled: (id: string, value: boolean) => void;
 
+  // Vision image state
+  updateHasVisionImage: (id: string, value: boolean) => void;
+
   // RAG toggle (per-pane)
   updateRagEnabled: (id: string, value: boolean) => void;
   updateKnowledgeMode: (id: string, value: 'inline' | 'external') => void;
@@ -129,6 +141,12 @@ export interface ChatbotConfigStoreActions {
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
+  /**
+   * Apply an AgentProfile to the store. Behaves like resetConfiguration but sets
+   * profileApplied: true so the knowledge-mode sync effect in ChatbotConfigInstance
+   * knows not to clear an external vector store ID that came from the profile.
+   */
+  applyAgentProfile: (config: Partial<ChatbotConfiguration>) => void;
 
   // Utility
   getConfiguration: (id: string) => ChatbotConfiguration | undefined;

@@ -121,7 +121,7 @@ type ChildTask struct {
 // Timeseries-specific required fields (pipelineType=timeseries):
 //   - Target, IDColumn, TimestampColumn
 //
-// Optional fields: Description, Preset, TopN, PredictionLength, KnownCovariatesNames
+// Optional fields: Description, Preset, EvalMetric, TopN, PredictionLength, KnownCovariatesNames
 type CreateAutoMLRunRequest struct {
 	// Common fields for all pipeline types
 	DisplayName         string  `json:"display_name"`
@@ -130,6 +130,7 @@ type CreateAutoMLRunRequest struct {
 	TrainDataBucketName string  `json:"train_data_bucket_name"`
 	TrainDataFileKey    string  `json:"train_data_file_key"`
 	Preset              *string `json:"preset,omitempty"`
+	EvalMetric          *string `json:"eval_metric,omitempty"`
 	TopN                *int    `json:"top_n,omitempty"`
 
 	// Tabular-specific fields

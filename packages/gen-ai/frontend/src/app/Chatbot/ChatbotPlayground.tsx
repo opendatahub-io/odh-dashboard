@@ -27,6 +27,7 @@ import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
 import { getId } from '~/app/utilities/utils';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -197,6 +198,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     uploadedFiles: fileManagement.files,
     isFilesLoading: fileManagement.isLoading,
   });
+
+  // Load AgentProfile from URL query param (?agentProfileId=<uuid>)
+  useAgentProfileUrlParam({ mcpServers, mcpServersLoaded });
 
   // Message hooks tracking
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
@@ -470,6 +474,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             uploading: false,
             fileId: response.data.id,
           }));
+          const { configIds: allConfigIds, configurations } = useChatbotConfigStore.getState();
+          allConfigIds.forEach((cId) => {
+            if (configurations[cId]) {
+              useChatbotConfigStore.getState().updateHasVisionImage(cId, true);
+            }
+          });
         })
         .catch((error) => {
           if (uploadGenRef.current !== gen) {
@@ -545,7 +555,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       previewUrl: null,
       fileName: null,
     });
-  }, [imageUploadState.uploading, imageUploadState.previewUrl]);
+    if (!hasImageInConversation) {
+      const { configIds: ids, configurations: configs } = useChatbotConfigStore.getState();
+      ids.forEach((cId) => {
+        if (configs[cId]) {
+          useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+        }
+      });
+    }
+  }, [imageUploadState.uploading, imageUploadState.previewUrl, hasImageInConversation]);
 
   // Audio upload handler
   const handleAudioUpload = React.useCallback(
@@ -695,6 +713,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         handleRemoveImage();
         setPendingDocChips([]);
         audioTranscription.abort();
+        const { configIds: allCIds, configurations: allConfigs } = useChatbotConfigStore.getState();
+        allCIds.forEach((cId) => {
+          if (allConfigs[cId]) {
+            useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+          }
+        });
         audioUploadLatchRef.current = false;
         setHasAudioInCurrentMessage(false);
         setMessageBarValue('');
@@ -817,6 +841,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             setPendingDocChips([]);
             audioTranscription.abort();
             setHasAudioInCurrentMessage(false);
+            const { configIds: cIds, configurations: cfgs } = useChatbotConfigStore.getState();
+            cIds.forEach((cId) => {
+              if (cfgs[cId]) {
+                useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+              }
+            });
             setMessageBarValue('');
             if (isCompareMode) {
               fireMiscTrackingEvent('Playground Compare Chat Cleared', { success: true });

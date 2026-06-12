@@ -25,6 +25,7 @@ import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { PRESET_LABELS, TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import {
+  formatMetricName,
   isRunCompleted,
   isRunInTerminalState,
   resolvePresetFromBackend,
@@ -66,6 +67,7 @@ const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'known_covariates_names', label: 'Known covariates' },
   { key: 'prediction_length', label: 'Prediction length' },
   { key: 'preset', label: 'Run preset' },
+  { key: 'eval_metric', label: 'Optimization metric' },
   { key: 'top_n', label: 'Top models to consider' },
 ];
 
@@ -98,6 +100,9 @@ const formatValue = (key: string, value: unknown): React.ReactNode => {
   }
   if (key === 'preset' && typeof value === 'string') {
     return value;
+  }
+  if (key === 'eval_metric' && typeof value === 'string') {
+    return formatMetricName(value);
   }
   if (Array.isArray(value)) {
     return value.join(', ');

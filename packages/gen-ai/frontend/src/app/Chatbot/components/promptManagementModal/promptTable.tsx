@@ -59,9 +59,9 @@ export default function PromptTable({
   );
 
   const {
-    hasNextPage,
     fetchNextPage,
     prompts: rows,
+    totalCount,
     isLoading: isLoadingList,
     isFetchingNextPage,
     error: listError,
@@ -144,7 +144,7 @@ export default function PromptTable({
       <Pagination
         isStatic
         isCompact={isCompact}
-        itemCount={hasNextPage ? rows.length + 1 : rows.length}
+        itemCount={totalCount}
         page={activePage}
         perPage={perPage}
         onSetPage={(_, newPage) => {

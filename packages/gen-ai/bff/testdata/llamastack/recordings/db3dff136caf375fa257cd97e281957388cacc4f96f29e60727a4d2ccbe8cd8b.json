@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.37.0"
+      "openai_sdk_version": "2.41.1"
     }
   },
   "response": {
@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello! I'm doing well, thank you for asking. As an AI, I don't experience feelings, but I'",
+                "content": "Hello! As an AI, I don't experience emotions or physical states, but I'm functioning perfectly and ready to assist you.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -46,12 +46,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 27,
+            "completion_tokens": 28,
             "prompt_tokens": 7,
-            "total_tokens": 73,
+            "total_tokens": 662,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +65,7 @@
           "choices": [
             {
               "delta": {
-                "content": "m ready and available to help you with whatever you need.\n\nHow are you doing today?",
+                "content": " Thank you for asking!\n\nHow about you? How can I help you today?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -78,12 +79,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 46,
+            "completion_tokens": 45,
             "prompt_tokens": 7,
-            "total_tokens": 92,
+            "total_tokens": 679,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
