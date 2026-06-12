@@ -204,8 +204,9 @@ func validateInsecureSkipVerify(insecureSkipVerify bool) error {
 		return fmt.Errorf("InsecureSkipVerify requires ALLOW_INSECURE_TLS=true")
 	}
 
-	// Check for CI environment
-	isCI := os.Getenv("CI") == "true"
+	// Check for CI environment (normalize to handle "true", "1", case variants, whitespace)
+	ciValue := strings.ToLower(strings.TrimSpace(os.Getenv("CI")))
+	isCI := ciValue == "true" || ciValue == "1"
 
 	if normalizedEnv == "prod" || normalizedEnv == "production" || normalizedEnv == "staging" || isCI {
 		envType := env
