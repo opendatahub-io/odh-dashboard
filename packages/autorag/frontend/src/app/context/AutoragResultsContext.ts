@@ -3,6 +3,7 @@ import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
+import { parsePipelineVersion } from '~/app/utilities/version';
 
 export type AutoragResultsContextProps = {
   pipelineRun?: PipelineRun;
@@ -13,6 +14,7 @@ export type AutoragResultsContextProps = {
   patternsLoadError?: Error;
   onRetryPatterns?: () => void;
   parameters?: Partial<ConfigureSchema>;
+  pipelineVersion?: string;
   ragPatternsBasePath?: string;
 };
 
@@ -70,6 +72,7 @@ export function getAutoragContext({
     patternsLoadError,
     onRetryPatterns,
     parameters,
+    pipelineVersion: parsePipelineVersion(pipelineRun?.pipeline_version_name),
     ragPatternsBasePath,
   };
 }

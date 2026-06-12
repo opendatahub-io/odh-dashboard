@@ -4,6 +4,7 @@ import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
 import { DEFAULT_EVAL_METRIC_BY_TASK } from '~/app/utilities/const';
 import { getTaskType } from '~/app/utilities/utils';
+import { parsePipelineVersion } from '~/app/utilities/version';
 
 const configureSchema = createConfigureSchema();
 
@@ -31,6 +32,7 @@ export type AutomlResultsContextProps = {
   modelsLoadError?: Error;
   onRetryModels?: () => void;
   parameters?: Partial<ConfigureSchema>;
+  pipelineVersion?: string;
   modelsBasePath?: string;
 };
 
@@ -100,6 +102,7 @@ export function getAutomlContext({
     modelsLoadError,
     onRetryModels,
     parameters,
+    pipelineVersion: parsePipelineVersion(pipelineRun?.pipeline_version_name),
     modelsBasePath,
   };
 }
