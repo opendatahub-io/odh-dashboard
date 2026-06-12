@@ -14,19 +14,21 @@ The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs with a
 ## Endpoints
 
 ```http
-GET  /api/v1/pipeline-runs
-GET  /api/v1/pipeline-runs/{runId}
-POST /api/v1/pipeline-runs
-POST /api/v1/pipeline-runs/{runId}/terminate
-POST /api/v1/pipeline-runs/{runId}/retry
+GET    /api/v1/pipeline-runs
+GET    /api/v1/pipeline-runs/{runId}
+POST   /api/v1/pipeline-runs
+POST   /api/v1/pipeline-runs/{runId}/terminate
+POST   /api/v1/pipeline-runs/{runId}/retry
+DELETE /api/v1/pipeline-runs/{runId}
 ```
 
-The API provides five endpoints:
+The API provides six endpoints:
 - **List Runs**: Query multiple pipeline runs with optional filtering and pagination
 - **Get Run**: Retrieve a single pipeline run by its ID with full task details
 - **Create Run**: Submit a new AutoRAG pipeline run with optimization parameters
 - **Terminate Run**: Stop an active pipeline run that is currently in progress
 - **Retry Run**: Re-initiate a failed or canceled pipeline run from the point of failure
+- **Delete Run**: Permanently delete a pipeline run in a terminal state
 
 ## Authentication
 
