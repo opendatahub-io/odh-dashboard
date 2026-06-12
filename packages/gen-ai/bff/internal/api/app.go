@@ -472,6 +472,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSModelsHandler))))
 
 	// Tokens (MaaS) - via inter-BFF communication with MaaS BFF
+	// Note: DELETE /maas/tokens was never implemented in Gen AI BFF - token lifecycle
+	// is managed through the MaaS BFF /api-keys endpoint directly by the MaaS frontend.
+	// The Gen AI BFF only provides POST for ephemeral token issuance for playground sessions.
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSIssueTokenHandler))))
 
 	// MLflow API routes

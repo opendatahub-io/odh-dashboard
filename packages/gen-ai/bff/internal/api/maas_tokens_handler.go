@@ -14,6 +14,10 @@ import (
 // MaaSIssueTokenHandler handles POST /api/v1/maas/tokens.
 // Uses inter-BFF communication to call MaaS BFF POST /api/v1/api-keys.
 // Auto-generates ephemeral key name and always sets ephemeral: true.
+//
+// Note: namespace query parameter is required by OpenAPI spec and validated by AttachNamespace
+// middleware for consistency with other endpoints, but is not forwarded to MaaS BFF because
+// the upstream /api-keys endpoint does not currently support multi-tenant key issuance.
 func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 

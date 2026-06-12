@@ -486,6 +486,8 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 
 		// Always forward X-MaaS-Return-All-Models header to get enriched model details
 		// This ensures MaaS BFF returns models with modelDetails, subscriptions, and kind fields
+		// Set unconditionally for middleware simplicity since we cannot determine requested sources
+		// at this point in the chain. The header is only used if the handler actually calls MaaS BFF.
 		forwardHeaders["X-MaaS-Return-All-Models"] = "true"
 
 		// Create BFF client for MaaS target with forwarded headers
