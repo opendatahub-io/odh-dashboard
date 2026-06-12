@@ -6,8 +6,6 @@ import {
   CodeBlockCode,
   Content,
   ContentVariants,
-  Flex,
-  FlexItem,
   Modal,
   ModalBody,
   ModalHeader,
@@ -123,26 +121,20 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
     >
       <ModalHeader title={`${formatPatternName(patternName)} — Response payload`} />
       <ModalBody className="autorag-view-code-modal__body">
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsCenter' }}
-          className="pf-v6-u-mb-md"
-        >
-          <FlexItem>
-            <Content component={ContentVariants.p}>
-              {hasCredentials ? (
-                'Use these code snippets to query this pattern programmatically via the Responses API.'
-              ) : (
-                <>
-                  Use these code snippets to query this pattern programmatically via the Responses
-                  API. Replace <code>&lt;HOSTNAME&gt;</code> and <code>&lt;API_KEY&gt;</code> with
-                  your OGX instance URL and credentials.
-                </>
-              )}
-            </Content>
-          </FlexItem>
+        <Content component={ContentVariants.p} className="pf-v6-u-mb-md">
+          {hasCredentials ? (
+            'Use these code snippets to query this pattern programmatically via the Responses API.'
+          ) : (
+            <>
+              Use these code snippets to query this pattern programmatically via the Responses API.
+              Replace <code>&lt;HOSTNAME&gt;</code> and <code>&lt;API_KEY&gt;</code> with your OGX
+              instance URL and credentials.
+            </>
+          )}
+        </Content>
+        <div className="autorag-view-code-modal__tabs-container">
           {hasCredentials && (
-            <FlexItem>
+            <div className="autorag-view-code-modal__credentials-toggle">
               <Button
                 variant="link"
                 icon={showCredentials ? <EyeSlashIcon /> : <EyeIcon />}
@@ -151,44 +143,44 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
               >
                 {showCredentials ? 'Hide credentials' : 'Show credentials'}
               </Button>
-            </FlexItem>
+            </div>
           )}
-        </Flex>
-        <Tabs
-          activeKey={activeCodeTab}
-          onSelect={(_e, key) => setActiveCodeTab(Number(key))}
-          data-testid="view-code-tabs"
-        >
-          {snippetTabs.map((tab, index) => (
-            <Tab key={tab.id} eventKey={index} title={<TabTitleText>{tab.label}</TabTitleText>}>
-              <CodeBlock
-                className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
-                actions={
-                  <CodeBlockAction>
-                    <ClipboardCopyButton
-                      id={tab.id}
-                      aria-label={tab.ariaLabel}
-                      onClick={() =>
-                        handleCopy(tab.generator(responsesTemplate, decodedCredentials), index)
-                      }
-                      variant="plain"
-                    >
-                      {copiedTab === index
-                        ? 'Copied'
-                        : hasCredentials
-                          ? 'Copy with credentials included'
-                          : 'Copy'}
-                    </ClipboardCopyButton>
-                  </CodeBlockAction>
-                }
-              >
-                <CodeBlockCode>
-                  {tab.generator(responsesTemplate, displayCredentials)}
-                </CodeBlockCode>
-              </CodeBlock>
-            </Tab>
-          ))}
-        </Tabs>
+          <Tabs
+            activeKey={activeCodeTab}
+            onSelect={(_e, key) => setActiveCodeTab(Number(key))}
+            data-testid="view-code-tabs"
+          >
+            {snippetTabs.map((tab, index) => (
+              <Tab key={tab.id} eventKey={index} title={<TabTitleText>{tab.label}</TabTitleText>}>
+                <CodeBlock
+                  className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
+                  actions={
+                    <CodeBlockAction>
+                      <ClipboardCopyButton
+                        id={tab.id}
+                        aria-label={tab.ariaLabel}
+                        onClick={() =>
+                          handleCopy(tab.generator(responsesTemplate, decodedCredentials), index)
+                        }
+                        variant="plain"
+                      >
+                        {copiedTab === index
+                          ? 'Copied'
+                          : hasCredentials
+                            ? 'Copy with credentials included'
+                            : 'Copy'}
+                      </ClipboardCopyButton>
+                    </CodeBlockAction>
+                  }
+                >
+                  <CodeBlockCode>
+                    {tab.generator(responsesTemplate, displayCredentials)}
+                  </CodeBlockCode>
+                </CodeBlock>
+              </Tab>
+            ))}
+          </Tabs>
+        </div>
       </ModalBody>
     </Modal>
   );
