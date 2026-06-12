@@ -31,6 +31,57 @@ export const ModelTrainingContext = React.createContext<ModelTrainingContextType
   projects: null,
 });
 
+type ProjectWatcherProps = {
+  projectName: string;
+  onTrainJobsChange: (projectName: string, result: CustomWatchK8sResult<TrainJobKind[]>) => void;
+  onRayJobsChange: (projectName: string, result: CustomWatchK8sResult<RayJobKind[]>) => void;
+  onUnmount: (projectName: string) => void;
+  watchTrainJobs: boolean;
+  watchRayJobs: boolean;
+};
+
+const ProjectWatcher: React.FC<ProjectWatcherProps> = ({
+  projectName,
+  onTrainJobsChange,
+  onRayJobsChange,
+  onUnmount,
+  watchTrainJobs,
+  watchRayJobs,
+}) => {
+  const trainJobsResult = useTrainJobs(watchTrainJobs ? projectName : null);
+  const rayJobsResult = useRayJobs(watchRayJobs ? projectName : null);
+
+  React.useEffect(() => {
+    onTrainJobsChange(projectName, watchTrainJobs ? trainJobsResult : EMPTY_TRAIN_JOBS);
+  }, [projectName, trainJobsResult, onTrainJobsChange, watchTrainJobs]);
+
+  React.useEffect(() => {
+    onRayJobsChange(projectName, watchRayJobs ? rayJobsResult : EMPTY_RAY_JOBS);
+  }, [projectName, rayJobsResult, onRayJobsChange, watchRayJobs]);
+
+  React.useEffect(
+    () => () => {
+      onUnmount(projectName);
+    },
+    [projectName, onUnmount],
+  );
+
+  return null;
+};
+
+const useMergedWatchResults = <T extends TrainJobKind | RayJobKind>(
+  resultsMap: Record<string, CustomWatchK8sResult<T[]>>,
+  projectCount: number,
+): CustomWatchK8sResult<T[]> =>
+  React.useMemo(() => {
+    const entries = Object.values(resultsMap);
+    const allData = entries.flatMap(([data]) => data);
+    // React 18 batches both setState calls in handleUnmount so entries is never stale between them
+    const allLoaded = entries.length >= projectCount && entries.every(([, loaded]) => loaded);
+    const firstError = entries.find(([, , error]) => error)?.[2];
+    return [allData, allLoaded, firstError];
+  }, [resultsMap, projectCount]);
+
 export const ModelTrainingContextProvider: React.FC<ModelTrainingContextProviderProps> = ({
   children,
   namespace,
@@ -41,14 +92,66 @@ export const ModelTrainingContextProvider: React.FC<ModelTrainingContextProvider
   const isModelTrainingAvailable = useIsAreaAvailable(SupportedArea.MODEL_TRAINING).status;
   const isRayJobsAvailable = useIsAreaAvailable(SupportedArea.RAY_JOBS).status;
 
-  const trainJobsWatch = useTrainJobs(isModelTrainingAvailable ? namespace ?? '' : null);
-  const trainJobs: CustomWatchK8sResult<TrainJobKind[]> = isModelTrainingAvailable
-    ? trainJobsWatch
+  const isSingleProject = !!namespace;
+
+  // Single-project mode: watch one namespace directly
+  const trainJobsWatch = useTrainJobs(
+    isSingleProject && isModelTrainingAvailable ? namespace : null,
+  );
+  const rayJobsWatch = useRayJobs(isSingleProject && isRayJobsAvailable ? namespace : null);
+
+  // Multi-project mode: aggregate results from per-project watchers
+  const [trainJobsMap, setTrainJobsMap] = React.useState<
+    Record<string, CustomWatchK8sResult<TrainJobKind[]>>
+  >({});
+  const [rayJobsMap, setRayJobsMap] = React.useState<
+    Record<string, CustomWatchK8sResult<RayJobKind[]>>
+  >({});
+
+  const handleTrainJobsChange = React.useCallback(
+    (projectName: string, result: CustomWatchK8sResult<TrainJobKind[]>) => {
+      setTrainJobsMap((prev) => ({ ...prev, [projectName]: result }));
+    },
+    [],
+  );
+
+  const handleRayJobsChange = React.useCallback(
+    (projectName: string, result: CustomWatchK8sResult<RayJobKind[]>) => {
+      setRayJobsMap((prev) => ({ ...prev, [projectName]: result }));
+    },
+    [],
+  );
+
+  const handleUnmount = React.useCallback((projectName: string) => {
+    setTrainJobsMap((prev) => {
+      // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+      const { [projectName]: _, ...rest } = prev;
+      return rest;
+    });
+    setRayJobsMap((prev) => {
+      // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+      const { [projectName]: _, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
+  const mergedTrainJobs = useMergedWatchResults<TrainJobKind>(trainJobsMap, projects.length);
+  const mergedRayJobs = useMergedWatchResults<RayJobKind>(rayJobsMap, projects.length);
+
+  const trainJobs: CustomWatchK8sResult<TrainJobKind[]> = isSingleProject
+    ? isModelTrainingAvailable
+      ? trainJobsWatch
+      : EMPTY_TRAIN_JOBS
+    : isModelTrainingAvailable
+    ? mergedTrainJobs
     : EMPTY_TRAIN_JOBS;
 
-  const rayJobsWatch = useRayJobs(isRayJobsAvailable ? namespace ?? '' : null);
-  const rayJobs: CustomWatchK8sResult<RayJobKind[]> = isRayJobsAvailable
-    ? rayJobsWatch
+  const rayJobs: CustomWatchK8sResult<RayJobKind[]> = isSingleProject
+    ? isRayJobsAvailable
+      ? rayJobsWatch
+      : EMPTY_RAY_JOBS
+    : isRayJobsAvailable
+    ? mergedRayJobs
     : EMPTY_RAY_JOBS;
 
   const contextValue = React.useMemo(
@@ -63,7 +166,22 @@ export const ModelTrainingContextProvider: React.FC<ModelTrainingContextProvider
   );
 
   return (
-    <ModelTrainingContext.Provider value={contextValue}>{children}</ModelTrainingContext.Provider>
+    <ModelTrainingContext.Provider value={contextValue}>
+      {!isSingleProject &&
+        (isModelTrainingAvailable || isRayJobsAvailable) &&
+        projects.map((p) => (
+          <ProjectWatcher
+            key={p.metadata.name}
+            projectName={p.metadata.name}
+            onTrainJobsChange={handleTrainJobsChange}
+            onRayJobsChange={handleRayJobsChange}
+            onUnmount={handleUnmount}
+            watchTrainJobs={isModelTrainingAvailable}
+            watchRayJobs={isRayJobsAvailable}
+          />
+        ))}
+      {children}
+    </ModelTrainingContext.Provider>
   );
 };
 
