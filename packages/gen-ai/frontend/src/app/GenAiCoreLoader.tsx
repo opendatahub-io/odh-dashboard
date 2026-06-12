@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import GenAiCoreNoProjects from './GenAiCoreNoProjects';
 import GenAiCoreInvalidProject from './GenAiCoreInvalidProject';
 import { GenAiContextProvider } from './context/GenAiContext';
@@ -29,7 +29,8 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
   ...applicationPageProps
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
-  const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelector();
+  const { namespaces, namespacesLoaded, preferredNamespace } =
+    useNamespaceSelectorWithPersistence();
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (namespaces.length === 0) {
@@ -56,7 +57,8 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
       ),
     };
   } else {
-    const redirectNamespace = preferredNamespace ?? namespaces[0];
+    const validPreferred = namespaces.find((n) => n.name === preferredNamespace?.name);
+    const redirectNamespace = validPreferred ?? namespaces[0];
     return <Navigate to={getInvalidRedirectPath(redirectNamespace.name)} replace />;
   }
 
