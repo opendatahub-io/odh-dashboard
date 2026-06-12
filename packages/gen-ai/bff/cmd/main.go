@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -83,6 +84,11 @@ func main() {
 	klog.InitFlags(nil)
 
 	flag.Parse()
+
+	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
 
 	if cfg.LogLevel == slog.LevelDebug {
 		log.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -164,4 +170,53 @@ func main() {
 	logger.Info("server stopped")
 	os.Exit(0)
 
+}
+
+// validateInsecureSkipVerify validates the InsecureSkipVerify configuration at startup.
+// Returns an error if the configuration is invalid or poses a security risk.
+func validateInsecureSkipVerify(insecureSkipVerify bool) error {
+	if !insecureSkipVerify {
+		return nil
+	}
+
+	allowInsecure := os.Getenv("ALLOW_INSECURE_TLS")
+	env := os.Getenv("ENV")
+	normalizedEnv := strings.ToLower(strings.TrimSpace(env))
+
+	if allowInsecure != "true" {
+		slog.Error("SECURITY: InsecureSkipVerify requires explicit ALLOW_INSECURE_TLS=true",
+			"insecure_skip_verify", insecureSkipVerify,
+			"allow_insecure_tls", allowInsecure,
+			"env", env,
+		)
+		slog.Error("InsecureSkipVerify disables TLS certificate verification and MUST NOT be used in production")
+		slog.Error("To fix: For local development only, set ALLOW_INSECURE_TLS=true")
+		slog.Error("NEVER set ALLOW_INSECURE_TLS=true in production deployments")
+		return fmt.Errorf("InsecureSkipVerify requires ALLOW_INSECURE_TLS=true")
+	}
+
+	// Check for CI environment (normalize to handle "true", "1", case variants, whitespace)
+	ciValue := strings.ToLower(strings.TrimSpace(os.Getenv("CI")))
+	isCI := ciValue == "true" || ciValue == "1"
+
+	if normalizedEnv == "prod" || normalizedEnv == "production" || normalizedEnv == "staging" || isCI {
+		envType := env
+		if isCI {
+			envType = "CI"
+		}
+		slog.Error("SECURITY: InsecureSkipVerify cannot be used in production/staging/CI environments",
+			"env", env,
+			"is_ci", isCI,
+			"insecure_skip_verify", insecureSkipVerify,
+		)
+		slog.Error("To fix: Remove --insecure-skip-verify flag and INSECURE_SKIP_VERIFY env var")
+		return fmt.Errorf("InsecureSkipVerify cannot be used in %s environment", envType)
+	}
+
+	slog.Warn("SECURITY WARNING: TLS certificate verification is DISABLED (InsecureSkipVerify=true)",
+		"env", env,
+		"allow_insecure_tls", allowInsecure,
+		"use_case", "local development only - NEVER use in production",
+	)
+	return nil
 }
