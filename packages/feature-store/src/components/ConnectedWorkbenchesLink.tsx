@@ -4,6 +4,8 @@ import { WrenchIcon } from '@patternfly/react-icons';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
+import ConnectedWorkbenchesModal from './ConnectedWorkbenchesModal';
+import { useFeatureStoreProject } from '../FeatureStoreContext';
 import { useFeatureStoreAccessibleProjects } from '../hooks/useFeatureStoreAccessibleProjects';
 
 const TOOLTIP_REGULAR_USER =
@@ -14,18 +16,23 @@ const TOOLTIP_ADMIN =
 
 const ConnectedWorkbenchesLink: React.FC = () => {
   const { accessibleProjects, projectsLoaded, projectsError } = useFeatureStoreAccessibleProjects();
-  const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
+  const [canCreateFeatureStore, canCreateLoaded] = useAccessAllowed(
+    verbModelAccess('create', FeatureStoreModel),
+  );
+  const { currentProject } = useFeatureStoreProject();
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const hasProjects = accessibleProjects.length > 0;
-  const isDisabled = projectsLoaded && !projectsError && !hasProjects;
+  const hasNoProjects = projectsLoaded && !projectsError && !hasProjects;
 
   const button = (
     <Button
       variant="link"
       icon={<WrenchIcon />}
       iconPosition="start"
-      isAriaDisabled
-      onClick={undefined}
+      isDisabled={!projectsLoaded || !!projectsError}
+      isAriaDisabled={hasNoProjects}
+      onClick={() => setIsModalOpen(true)}
       className="pf-v6-u-font-weight-bold"
       data-testid="connected-workbenches-link"
     >
@@ -33,11 +40,26 @@ const ConnectedWorkbenchesLink: React.FC = () => {
     </Button>
   );
 
-  if (!isDisabled || !isAdminLoaded) {
-    return button;
-  }
+  const content =
+    !hasNoProjects || !canCreateLoaded ? (
+      button
+    ) : (
+      <Tooltip content={canCreateFeatureStore ? TOOLTIP_ADMIN : TOOLTIP_REGULAR_USER}>
+        {button}
+      </Tooltip>
+    );
 
-  return <Tooltip content={isAdmin ? TOOLTIP_ADMIN : TOOLTIP_REGULAR_USER}>{button}</Tooltip>;
+  return (
+    <>
+      {content}
+      {isModalOpen && (
+        <ConnectedWorkbenchesModal
+          onClose={() => setIsModalOpen(false)}
+          initialFeastProjectName={currentProject}
+        />
+      )}
+    </>
+  );
 };
 
 export default ConnectedWorkbenchesLink;
