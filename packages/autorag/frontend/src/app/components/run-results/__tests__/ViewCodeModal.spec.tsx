@@ -185,6 +185,21 @@ describe('ViewCodeModal', () => {
       expect(screen.queryByText(/Replace/)).not.toBeInTheDocument();
     });
 
+    it('should copy snippet with real credentials to clipboard regardless of toggle state', async () => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText } });
+
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      fireEvent.click(screen.getByLabelText('Copy curl snippet'));
+
+      expect(writeText).toHaveBeenCalledTimes(1);
+      const copiedText = writeText.mock.calls[0][0] as string;
+      expect(copiedText).toContain('ogx.example.com');
+      expect(copiedText).toContain('sk-test-key-123');
+      expect(copiedText).not.toContain('<HOSTNAME>');
+      expect(copiedText).not.toContain('<API_KEY>');
+    });
+
     it('should show error notification and fall back to placeholders when credentials have invalid base64', () => {
       const invalidCredentials = {
         baseUrl: '%%%invalid-base64%%%',
