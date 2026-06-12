@@ -59,6 +59,7 @@ export type MockDashboardConfigType = {
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  globalProjectPrompts?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
@@ -125,6 +126,7 @@ export const mockDashboardConfig = ({
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
   promptManagement = false,
+  globalProjectPrompts = false,
   nimWizard = false,
   mySubscriptions = true,
   maasSettingsIaRedesign = false,
@@ -314,6 +316,7 @@ export const mockDashboardConfig = ({
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,
+      globalProjectPrompts,
       nimWizard,
       mySubscriptions,
       maasSettingsIaRedesign,
