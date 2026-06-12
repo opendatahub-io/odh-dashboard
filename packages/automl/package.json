@@ -23,7 +23,9 @@
       "port": 8043
     }
   },
-  "e2eCiTags": ["@AutoMLCI"],
+  "e2eCiTags": [
+    "@AutoMLCI"
+  ],
   "bffConfig": {
     "enabled": true,
     "port": 4003,
@@ -50,6 +52,6 @@
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "eslint-plugin-n": "^17.23.1"
+    "eslint-plugin-n": "^17.24.0"
   }
 }
