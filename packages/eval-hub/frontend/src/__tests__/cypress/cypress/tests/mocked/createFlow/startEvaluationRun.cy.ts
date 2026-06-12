@@ -504,6 +504,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
 
     navigateToBenchmarkStart();
 
+    cy.findByTestId('mlflow-experiment-selector-toggle').should('exist');
     startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
   });
 
@@ -512,6 +513,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
 
     navigateToBenchmarkStart();
 
+    cy.findByTestId('mlflow-experiment-selector-toggle').should('exist');
     startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
     startEvaluationRunPage.findExperimentModeNew().click();
     startEvaluationRunPage.findNewExperimentNameInput().should('exist');
