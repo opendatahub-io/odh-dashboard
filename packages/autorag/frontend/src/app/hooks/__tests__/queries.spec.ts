@@ -2,10 +2,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { fetchS3File, useSecretCredentialsQuery } from '~/app/hooks/queries';
+import { getSecretByName } from '~/app/api/k8s';
 
 jest.mock('~/app/api/k8s', () => ({
   getSecretByName: jest.fn(),
 }));
+
+const getSecretByNameMock = jest.mocked(getSecretByName);
 
 global.fetch = jest.fn();
 
@@ -171,8 +174,7 @@ describe('useSecretCredentialsQuery', () => {
 
   it('should fetch when both namespace and secretName are provided', async () => {
     const mockData = { OGX_CLIENT_API_KEY: 'key', OGX_CLIENT_BASE_URL: 'url' };
-    const { getSecretByName } = jest.requireMock('~/app/api/k8s');
-    getSecretByName.mockReturnValue(() => () => Promise.resolve(mockData));
+    getSecretByNameMock.mockReturnValue((() => () => Promise.resolve(mockData)) as never);
 
     const { result } = renderHook(() => useSecretCredentialsQuery('test-ns', 'my-secret'), {
       wrapper: createWrapper(),
@@ -186,8 +188,9 @@ describe('useSecretCredentialsQuery', () => {
   });
 
   it('should return error when fetch fails', async () => {
-    const { getSecretByName } = jest.requireMock('~/app/api/k8s');
-    getSecretByName.mockReturnValue(() => () => Promise.reject(new Error('Not found')));
+    getSecretByNameMock.mockReturnValue(
+      (() => () => Promise.reject(new Error('Not found'))) as never,
+    );
 
     const { result } = renderHook(() => useSecretCredentialsQuery('test-ns', 'bad-secret'), {
       wrapper: createWrapper(),

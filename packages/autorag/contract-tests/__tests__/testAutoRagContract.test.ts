@@ -593,6 +593,28 @@ describe('AutoRAG API Contract Tests', () => {
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(400);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          });
+        }
+      });
+
+      it('should return 400 when secret name is an invalid DNS-1123 label', async () => {
+        const result = await apiClient.get('/api/v1/secret/INVALID_NAME?namespace=default');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          });
         }
       });
 
@@ -603,6 +625,13 @@ describe('AutoRAG API Contract Tests', () => {
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(404);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          });
         }
       });
     });
@@ -1279,6 +1308,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should terminate an active pipeline run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-ghi789-jkl012/terminate?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -1289,6 +1319,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 400 when attempting to terminate a non-terminatable (SUCCEEDED) run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-abc123-def456/terminate?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1299,6 +1330,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 404 for non-existent run ID', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/non-existent-run-id/terminate?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1311,6 +1343,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should retry a failed pipeline run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-mno345-pqr678/retry?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -1321,6 +1354,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 400 when attempting to retry a non-retryable (SUCCEEDED) run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-abc123-def456/retry?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1331,6 +1365,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 404 for non-existent run ID', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/non-existent-run-id/retry?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
