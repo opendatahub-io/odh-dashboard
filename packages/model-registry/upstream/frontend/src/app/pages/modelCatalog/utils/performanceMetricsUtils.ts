@@ -34,9 +34,9 @@ export const FALLBACK_LATENCY_RANGE: SliderRange = {
   isSliderDisabled: false,
 };
 
-export const COLD_START_LATENCY_RANGE: SliderRange = {
-  minValue: 45000,
-  maxValue: 200000,
+export const COLD_START_LOAD_TIME_RANGE: SliderRange = {
+  minValue: 15,
+  maxValue: 1000,
   isSliderDisabled: false,
 };
 

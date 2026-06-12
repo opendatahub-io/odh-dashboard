@@ -37,8 +37,8 @@ import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
   formatMetricName,
   formatMetricValue,
-  getOptimizedMetricForTask,
   isRunInProgress,
+  resolveEvalMetric,
 } from '~/app/utilities/utils';
 import './AutomlLeaderboard.scss';
 
@@ -111,12 +111,129 @@ const COLUMN_META: Record<string, ColumnMeta> = {
       'A correlation coefficient between observed and predicted classifications that accounts for all four quadrants of a confusion matrix. Ranges from -1 (total disagreement) to +1 (perfect prediction), with 0 indicating no better than random.',
     minWidth: '9rem',
   },
+  'metric:log_loss': {
+    name: 'Log Loss',
+    description:
+      'Penalizes confident wrong predictions. Lower values indicate better calibrated probabilities.',
+    minWidth: '9rem',
+  },
   'metric:f1': {
     name: formatMetricName('f1'),
     acronym: formatMetricName('f1'),
     description:
       'Harmonic average of the precision and recall, with best value of 1 (perfect precision and recall) and worst at 0.',
     minWidth: '8rem',
+  },
+  'metric:f1_macro': {
+    name: formatMetricName('f1_macro'),
+    acronym: formatMetricName('f1_macro'),
+    description:
+      'Unweighted mean of per-class F1 scores. Treats all classes equally regardless of support.',
+    minWidth: '9rem',
+  },
+  'metric:f1_micro': {
+    name: formatMetricName('f1_micro'),
+    acronym: formatMetricName('f1_micro'),
+    description:
+      'F1 computed on aggregate true positives, false positives, and false negatives across all classes.',
+    minWidth: '9rem',
+  },
+  'metric:f1_weighted': {
+    name: formatMetricName('f1_weighted'),
+    acronym: formatMetricName('f1_weighted'),
+    description:
+      'Weighted mean of per-class F1 scores, weighted by the number of samples in each class.',
+    minWidth: '9rem',
+  },
+  'metric:roc_auc_ovo': {
+    name: 'ROC AUC (One-vs-One)',
+    acronym: formatMetricName('roc_auc_ovo'),
+    description:
+      'ROC AUC using one-vs-one strategy, averaging over all pairwise class combinations.',
+    minWidth: '9rem',
+  },
+  'metric:roc_auc_ovo_macro': {
+    name: 'ROC AUC OvO Macro',
+    acronym: formatMetricName('roc_auc_ovo_macro'),
+    description: 'Macro-averaged one-vs-one ROC AUC. Unweighted mean across all class pairs.',
+    minWidth: '9rem',
+  },
+  'metric:roc_auc_ovo_weighted': {
+    name: 'ROC AUC OvO Weighted',
+    acronym: formatMetricName('roc_auc_ovo_weighted'),
+    description: 'Weighted one-vs-one ROC AUC, weighted by class prevalence.',
+    minWidth: '9rem',
+  },
+  'metric:roc_auc_ovr': {
+    name: 'ROC AUC (One-vs-Rest)',
+    acronym: formatMetricName('roc_auc_ovr'),
+    description: 'ROC AUC using one-vs-rest strategy, treating each class as a binary problem.',
+    minWidth: '9rem',
+  },
+  'metric:roc_auc_ovr_macro': {
+    name: 'ROC AUC OvR Macro',
+    acronym: formatMetricName('roc_auc_ovr_macro'),
+    description: 'Macro-averaged one-vs-rest ROC AUC. Unweighted mean across all classes.',
+    minWidth: '9rem',
+  },
+  'metric:roc_auc_ovr_micro': {
+    name: 'ROC AUC OvR Micro',
+    acronym: formatMetricName('roc_auc_ovr_micro'),
+    description:
+      'Micro-averaged one-vs-rest ROC AUC. Computed on aggregate counts across all classes.',
+    minWidth: '9rem',
+  },
+  'metric:roc_auc_ovr_weighted': {
+    name: 'ROC AUC OvR Weighted',
+    acronym: formatMetricName('roc_auc_ovr_weighted'),
+    description: 'Weighted one-vs-rest ROC AUC, weighted by class prevalence.',
+    minWidth: '9rem',
+  },
+  'metric:average_precision': {
+    name: 'Average Precision',
+    description:
+      'Area under the precision-recall curve. Summarizes the trade-off between precision and recall.',
+    minWidth: '9rem',
+  },
+  'metric:precision_macro': {
+    name: 'Precision Macro',
+    description: 'Unweighted mean of per-class precision. Treats all classes equally.',
+    minWidth: '9rem',
+  },
+  'metric:precision_micro': {
+    name: 'Precision Micro',
+    description:
+      'Precision computed on aggregate true positives and false positives across all classes.',
+    minWidth: '9rem',
+  },
+  'metric:precision_weighted': {
+    name: 'Precision Weighted',
+    description:
+      'Weighted mean of per-class precision, weighted by the number of samples in each class.',
+    minWidth: '9rem',
+  },
+  'metric:recall_macro': {
+    name: 'Recall Macro',
+    description: 'Unweighted mean of per-class recall. Treats all classes equally.',
+    minWidth: '9rem',
+  },
+  'metric:recall_micro': {
+    name: 'Recall Micro',
+    description:
+      'Recall computed on aggregate true positives and false negatives across all classes.',
+    minWidth: '9rem',
+  },
+  'metric:recall_weighted': {
+    name: 'Recall Weighted',
+    description:
+      'Weighted mean of per-class recall, weighted by the number of samples in each class.',
+    minWidth: '9rem',
+  },
+  'metric:pac_score': {
+    name: formatMetricName('pac_score'),
+    acronym: formatMetricName('pac_score'),
+    description: 'Probabilistic accuracy score that evaluates prediction confidence calibration.',
+    minWidth: '9rem',
   },
   'metric:r2': {
     name: formatMetricName('r2'),
@@ -289,8 +406,8 @@ function AutomlLeaderboard({
   // Check if pipeline is still running
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
 
-  // Determine the optimized metric
-  const optimizedMetric = getOptimizedMetricForTask(taskType);
+  // Determine the optimized metric (prefer the user's choice, fall back to task-type default)
+  const optimizedMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
 
   // Extract all unique metric keys across all models
   const metricKeys = React.useMemo(() => {

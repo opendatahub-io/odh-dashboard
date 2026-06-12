@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.37.0"
+      "openai_sdk_version": "2.41.1"
     }
   },
   "response": {
@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello there! Good to hear from the world of Mobility as a Service!\n\nBringing seamless, integrated",
+                "content": "Hello there!\n\nAh, from the world of Mobility as a Service, I presume? That's an incredibly dynamic and vital field.\n\nHow can I assist you today? What's on your mind from the integrated transportation ecosystem",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -46,12 +46,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 20,
+            "completion_tokens": 47,
             "prompt_tokens": 5,
-            "total_tokens": 853,
+            "total_tokens": 807,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +65,7 @@
           "choices": [
             {
               "delta": {
-                "content": " transport solutions to users, I presume? How can I help you explore or discuss MaaS today? Do you have a question, a project you're working on, or just want to chat about the future of transportation?",
+                "content": "?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -78,12 +79,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 65,
+            "completion_tokens": 48,
             "prompt_tokens": 5,
-            "total_tokens": 898,
+            "total_tokens": 808,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
