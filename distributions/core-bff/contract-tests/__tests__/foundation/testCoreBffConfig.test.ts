@@ -177,5 +177,17 @@ describe('Core BFF Config Endpoints', () => {
         401,
       );
     });
+
+    it('should return 401 for unauthenticated on PUT', async () => {
+      expectError(
+        await unauthenticatedClient.put('/api/cluster-settings', {
+          pvcSize: 20,
+          cullerTimeout: 600,
+          userTrackingEnabled: false,
+          modelServingPlatformEnabled: { kServe: true, LLMd: true },
+        }),
+        401,
+      );
+    });
   });
 });

@@ -1,10 +1,14 @@
 package repositories
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/maputil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestDeepMerge_OverridesTakePrecedence(t *testing.T) {
@@ -16,7 +20,7 @@ func TestDeepMerge_OverridesTakePrecedence(t *testing.T) {
 		"a": "override",
 	}
 
-	result := deepMerge(defaults, overrides)
+	result := maputil.DeepMerge(defaults, overrides)
 
 	assert.Equal(t, "override", result["a"])
 	assert.Equal(t, "default", result["b"])
@@ -40,7 +44,7 @@ func TestDeepMerge_NestedMaps(t *testing.T) {
 		},
 	}
 
-	result := deepMerge(defaults, overrides)
+	result := maputil.DeepMerge(defaults, overrides)
 
 	spec := result["spec"].(map[string]interface{})
 	dc := spec["dashboardConfig"].(map[string]interface{})
@@ -53,7 +57,7 @@ func TestDeepMerge_OverrideDoesNotMutateDefaults(t *testing.T) {
 	defaults := map[string]interface{}{"key": "original"}
 	overrides := map[string]interface{}{"key": "changed"}
 
-	_ = deepMerge(defaults, overrides)
+	_ = maputil.DeepMerge(defaults, overrides)
 
 	assert.Equal(t, "original", defaults["key"])
 }
@@ -67,7 +71,7 @@ func TestDeepMerge_NestedDefaultsNotMutated(t *testing.T) {
 		},
 	}
 
-	result := deepMerge(defaults, map[string]interface{}{})
+	result := maputil.DeepMerge(defaults, map[string]interface{}{})
 
 	// Mutate the result's nested map
 	result["spec"].(map[string]interface{})["nested"].(map[string]interface{})["flag"] = true
@@ -188,13 +192,41 @@ func TestLockoutsAndXKSOverridesCannotBeOverriddenByHeaders(t *testing.T) {
 	assert.Equal(t, true, dc["disablePipelines"])
 }
 
+func TestHandleFetchError_DiscoveryErrorReturnsDefaults(t *testing.T) {
+	repo := &DashboardConfigRepository{}
+	discoveryErr := &k8serrors.StatusError{ErrStatus: metav1.Status{
+		Code:   404,
+		Reason: metav1.StatusReasonNotFound,
+	}}
+
+	result, err := repo.handleFetchError(discoveryErr, "test-ns", "test-config")
+
+	require.NoError(t, err)
+	require.NotNil(t, result, "discovery error should return blank defaults, not nil")
+	spec, ok := result["spec"].(map[string]interface{})
+	require.True(t, ok, "defaults should have a spec")
+	_, hasDC := spec["dashboardConfig"]
+	assert.True(t, hasDC, "defaults should have dashboardConfig in spec")
+}
+
+func TestHandleFetchError_NonDiscoveryErrorReturnsError(t *testing.T) {
+	repo := &DashboardConfigRepository{}
+	serverErr := fmt.Errorf("connection refused")
+
+	result, err := repo.handleFetchError(serverErr, "test-ns", "test-config")
+
+	assert.Nil(t, result)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get dashboard config")
+}
+
 func TestToUnstructuredMap(t *testing.T) {
 	type sample struct {
 		Name  string `json:"name"`
 		Value int    `json:"value"`
 	}
 
-	result, err := toUnstructuredMap(sample{Name: "test", Value: 42})
+	result, err := maputil.ToUnstructuredMap(sample{Name: "test", Value: 42})
 	require.NoError(t, err)
 	assert.Equal(t, "test", result["name"])
 	assert.Equal(t, float64(42), result["value"])

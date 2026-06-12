@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 )
@@ -31,13 +32,17 @@ const (
 	NamespacePath = APIPathPrefix + APIVersion + "/namespaces"
 
 	// Config endpoints, /api/ prefix
-	ConfigPath               = APIPathPrefix + "/config"
-	ComponentsPath           = APIPathPrefix + "/components"
-	StatusPath               = APIPathPrefix + "/status"
-	DashboardConfigPath      = APIPathPrefix + "/dashboardConfig/:namespace/:name"
-	ClusterSettingsPath      = APIPathPrefix + "/cluster-settings"
-	ComponentsRemovePath     = APIPathPrefix + "/components/remove"
-	AllowedUsersPath         = APIPathPrefix + "/status/:namespace/allowedUsers"
+	ConfigPath           = APIPathPrefix + "/config"
+	ComponentsPath       = APIPathPrefix + "/components"
+	StatusPath           = APIPathPrefix + "/status"
+	DashboardConfigPath  = APIPathPrefix + "/dashboardConfig/:namespace/:name"
+	ClusterSettingsPath  = APIPathPrefix + "/cluster-settings"
+	ComponentsRemovePath = APIPathPrefix + "/components/remove"
+
+	// OpenShift-only endpoints
+	AllowedUsersPath = APIPathPrefix + "/status/:namespace/allowedUsers"
+
+	// Connection type endpoints
 	ConnectionTypesPath      = APIPathPrefix + "/connection-types"
 	ConnectionTypeSinglePath = APIPathPrefix + "/connection-types/:name"
 )
@@ -52,6 +57,7 @@ func (app *App) Routes() http.Handler {
 	app.registerStarterRoutes(apiRouter)
 	app.registerConfigRoutes(apiRouter)
 	app.registerConnectionTypeRoutes(apiRouter)
+	app.registerOpenShiftRoutes(apiRouter)
 
 	appMux := http.NewServeMux()
 
@@ -89,7 +95,7 @@ func (app *App) Routes() http.Handler {
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
 	})
 
-	// Healthcheck outside auth middleware
+	// Healthcheck bypasses auth for k8s liveness/readiness probes (matches Fastify)
 	healthcheckMux := http.NewServeMux()
 	healthcheckRouter := httprouter.New()
 	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
@@ -111,28 +117,37 @@ func (app *App) Routes() http.Handler {
 
 func (app *App) registerStarterRoutes(r *httprouter.Router) {
 	r.GET(APIHealthCheckPath, app.HealthcheckHandler)
-	r.GET(UserPath, app.UserHandler)
-	r.GET(NamespacePath, app.GetNamespacesHandler)
+	r.GET(UserPath, app.secureRoute(app.UserHandler))
+	r.GET(NamespacePath, app.secureRoute(app.GetNamespacesHandler))
 }
 
 func (app *App) registerConfigRoutes(r *httprouter.Router) {
-	r.GET(ConfigPath, app.GetConfigHandler)
-	r.PATCH(ConfigPath, app.requireAdmin(app.PatchConfigHandler))
-	r.GET(ComponentsPath, app.GetComponentsHandler)
-	r.GET(ComponentsRemovePath, app.requireAdmin(app.RemoveComponentHandler))
-	r.GET(StatusPath, app.GetStatusHandler)
-	r.GET(AllowedUsersPath, app.requireAdmin(app.GetAllowedUsersHandler))
-	r.GET(DashboardConfigPath, app.requireAdmin(app.GetDashboardConfigByNameHandler))
-	r.PATCH(DashboardConfigPath, app.requireAdmin(app.PatchDashboardConfigByNameHandler))
-	r.GET(ClusterSettingsPath, app.requireAdmin(app.GetClusterSettingsHandler))
-	r.PUT(ClusterSettingsPath, app.requireAdmin(app.UpdateClusterSettingsHandler))
+	// Authenticated
+	r.GET(ConfigPath, app.secureRoute(app.GetConfigHandler))
+	r.GET(ComponentsPath, app.secureRoute(app.GetComponentsHandler))
+	r.GET(StatusPath, app.secureRoute(app.GetStatusHandler))
+
+	// Admin-only
+	r.PATCH(ConfigPath, app.secureAdminRoute(app.PatchConfigHandler))
+	r.GET(ComponentsRemovePath, app.secureAdminRoute(app.RemoveComponentHandler))
+	r.GET(DashboardConfigPath, app.secureAdminRoute(app.GetDashboardConfigByNameHandler))
+	r.PATCH(DashboardConfigPath, app.secureAdminRoute(app.PatchDashboardConfigByNameHandler))
+	r.GET(ClusterSettingsPath, app.secureAdminRoute(app.GetClusterSettingsHandler))
+	r.PUT(ClusterSettingsPath, app.secureAdminRoute(app.UpdateClusterSettingsHandler))
+}
+
+func (app *App) registerOpenShiftRoutes(r *httprouter.Router) {
+	r.GET(AllowedUsersPath, app.requirePlatform(config.PlatformOpenShift, app.secureAdminRoute(app.GetAllowedUsersHandler)))
 }
 
 func (app *App) registerConnectionTypeRoutes(r *httprouter.Router) {
-	r.GET(ConnectionTypesPath, app.ListConnectionTypesHandler)
-	r.GET(ConnectionTypeSinglePath, app.GetConnectionTypeHandler)
-	r.POST(ConnectionTypesPath, app.requireAdmin(app.CreateConnectionTypeHandler))
-	r.PUT(ConnectionTypeSinglePath, app.requireAdmin(app.UpdateConnectionTypeHandler))
-	r.PATCH(ConnectionTypeSinglePath, app.requireAdmin(app.PatchConnectionTypeHandler))
-	r.DELETE(ConnectionTypeSinglePath, app.requireAdmin(app.DeleteConnectionTypeHandler))
+	// Authenticated
+	r.GET(ConnectionTypesPath, app.secureRoute(app.ListConnectionTypesHandler))
+	r.GET(ConnectionTypeSinglePath, app.secureRoute(app.GetConnectionTypeHandler))
+
+	// Admin-only
+	r.POST(ConnectionTypesPath, app.secureAdminRoute(app.CreateConnectionTypeHandler))
+	r.PUT(ConnectionTypeSinglePath, app.secureAdminRoute(app.UpdateConnectionTypeHandler))
+	r.PATCH(ConnectionTypeSinglePath, app.secureAdminRoute(app.PatchConnectionTypeHandler))
+	r.DELETE(ConnectionTypeSinglePath, app.secureAdminRoute(app.DeleteConnectionTypeHandler))
 }

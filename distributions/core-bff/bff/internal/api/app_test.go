@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -305,4 +306,45 @@ func TestRoutes_WsProxyPaths(t *testing.T) {
 			assert.Equal(t, "echo:"+testMsg, string(msg))
 		})
 	}
+}
+
+func TestRoutes_OpenShiftRoutesAccessibleWhenPlatformSet(t *testing.T) {
+	tmpDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.html"), []byte("<html></html>"), 0600))
+
+	app := newTestApp(func(a *App) {
+		a.config.StaticAssetsDir = tmpDir
+		a.config.PlatformType = config.PlatformOpenShift
+	})
+
+	ts := httptest.NewServer(app.Routes())
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/status/test-ns/allowedUsers")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.NotEqual(t, http.StatusNotFound, resp.StatusCode,
+		"allowed users should not return 404 when PlatformType is OpenShift - "+
+			"if this fails, requirePlatform is rejecting the request because PlatformType is not set")
+}
+
+func TestRoutes_OpenShiftRoutesReturn404OnNonOpenShift(t *testing.T) {
+	tmpDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.html"), []byte("<html></html>"), 0600))
+
+	app := newTestApp(func(a *App) {
+		a.config.StaticAssetsDir = tmpDir
+		a.config.PlatformType = config.PlatformXKS
+	})
+
+	ts := httptest.NewServer(app.Routes())
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/status/test-ns/allowedUsers")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode,
+		"allowed users should return 404 on non-OpenShift platforms")
 }
