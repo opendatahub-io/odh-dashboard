@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Slider, SliderOnChangeEvent } from '@patternfly/react-core';
+import './SliderWithInput.scss';
 
 type SliderWithInputProps = {
   value: number;
@@ -73,6 +74,7 @@ const SliderWithInput: React.FC<SliderWithInputProps> = ({
 
   return (
     <Slider
+      className={showBoundaries ? 'odh-slider-with-boundaries' : undefined}
       min={min}
       max={max}
       value={localValue}

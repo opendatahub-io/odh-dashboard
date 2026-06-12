@@ -103,7 +103,7 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
       <Flex
         direction={{ default: 'column' }}
         spaceItems={{ default: 'spaceItemsSm' }}
-        style={{ minWidth: '400px', padding: '16px' }}
+        style={{ minWidth: '400px', padding: 'var(--pf-t--global--spacer--md)' }}
       >
         <FlexItem>{label}</FlexItem>
         <FlexItem>

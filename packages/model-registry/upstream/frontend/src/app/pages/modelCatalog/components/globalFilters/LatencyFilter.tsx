@@ -224,7 +224,7 @@ const LatencyFilter: React.FC = () => {
       direction={{ default: 'column' }}
       spaceItems={{ default: 'spaceItemsSm' }}
       flexWrap={{ default: 'wrap' }}
-      style={{ width: '550px', padding: '16px' }}
+      style={{ width: '550px', padding: 'var(--pf-t--global--spacer--md)' }}
     >
       {/* Metric and Percentile on the same line */}
       <FlexItem>

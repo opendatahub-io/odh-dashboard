@@ -90,7 +90,7 @@ const ColdStartLatencyFilter: React.FC = () => {
       direction={{ default: 'column' }}
       spaceItems={{ default: 'spaceItemsSm' }}
       flexWrap={{ default: 'wrap' }}
-      style={{ minWidth: '450px', padding: '16px' }}
+      style={{ minWidth: '450px', padding: 'var(--pf-t--global--spacer--md)' }}
     >
       <FlexItem>Cold start load time (seconds)</FlexItem>
       <FlexItem>

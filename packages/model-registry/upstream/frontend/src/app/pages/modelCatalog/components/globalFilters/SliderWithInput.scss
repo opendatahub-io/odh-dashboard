@@ -1,0 +1,11 @@
+// Prevent boundary labels from being clipped at the slider edges.
+// The PF Slider's first/last step labels sit flush against the slider rail
+// boundary (translateX: 0 / translateX: -100%). When the slider is inside a
+// container with overflow: hidden (e.g. a PF Dropdown menu), the labels can
+// be cut off. Adding inline padding to the slider main area gives the labels
+// breathing room so they remain fully readable.
+.odh-slider-with-boundaries {
+  .pf-v6-c-slider__main {
+    padding-inline: var(--pf-t--global--spacer--sm);
+  }
+}
