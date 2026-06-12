@@ -18,6 +18,7 @@
   "workspaces": [
     "backend",
     "frontend",
+    "frontend/src",
     "packages/*"
   ],
   "scripts": {

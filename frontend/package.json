@@ -15,16 +15,6 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "imports": {
-    "#~/*": [
-      "./src/*",
-      "./src/*.ts",
-      "./src/*.d.ts",
-      "./src/*.tsx",
-      "./src/*/index.ts",
-      "./src/*/index.tsx"
-    ]
-  },
   "scripts": {
     "build": "run-s build:prod",
     "build:analyze": "run-s build build:bundle-profile build:bundle-analyze",
@@ -77,7 +67,6 @@
     "@module-federation/runtime": "^0.15.0",
     "@monaco-editor/react": "^4.7.0",
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-extensions": "^1.4.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
