@@ -14,6 +14,7 @@ import {
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { INADMISSIBLE_MESSAGE_REGEX } from '@odh-dashboard/internal/concepts/kueue';
 import type { JobsFilterDataType } from './const';
 import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
 import {
@@ -189,10 +190,10 @@ const extractWorkloadConditions = (
         type === WorkloadConditionType.Preempted && status === ConditionStatus.True,
     ),
     Inadmissible: conditions.find(
-      ({ type, status, reason }) =>
+      ({ type, status, reason, message }) =>
         type === WorkloadConditionType.QuotaReserved &&
         status === ConditionStatus.False &&
-        reason === 'Inadmissible',
+        (reason === 'Inadmissible' || INADMISSIBLE_MESSAGE_REGEX.test(message || '')),
     ),
     Pending: conditions.find(
       ({ type, status }) =>
