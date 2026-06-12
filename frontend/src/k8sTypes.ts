@@ -19,7 +19,7 @@ import {
   HardwareProfileAnnotations,
   HardwareProfileBindingAnnotations,
 } from './types';
-import type { AccessReviewResourceAttributes } from './k8sTypes-core';
+import type { AccessReviewResourceAttributes } from './types-core';
 
 export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 export type {
@@ -27,7 +27,7 @@ export type {
   AccessReviewResourceAttributes,
   DashboardCommonConfig,
   DashboardConfigKind,
-} from './k8sTypes-core';
+} from './types-core';
 
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
