@@ -61,6 +61,7 @@ export type MockDashboardConfigType = {
   promptManagement?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
+  iaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
   genAiStudioConfig?: {
@@ -123,6 +124,7 @@ export const mockDashboardConfig = ({
   promptManagement = false,
   nimWizard = false,
   mySubscriptions = false,
+  iaRedesign = false,
   agentOps = false,
   roleManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
@@ -308,6 +310,7 @@ export const mockDashboardConfig = ({
       promptManagement,
       nimWizard,
       mySubscriptions,
+      iaRedesign,
       agentOps,
       roleManagement,
     },

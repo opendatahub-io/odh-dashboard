@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import {
   Breadcrumb,
@@ -21,6 +21,7 @@ import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
 
 type PolicyActionsProps = {
   policy: MaaSAuthPolicy;
+  returnTo?: string;
 };
 
 const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] => {
@@ -41,7 +42,7 @@ const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] 
   });
 };
 
-const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
+const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
 
@@ -72,7 +73,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
-              navigate(`${URL_PREFIX}/auth-policies`);
+              navigate(returnTo ?? `${URL_PREFIX}/auth-policies`);
             }
           }}
         />
@@ -83,13 +84,23 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
 
 const ViewAuthPoliciesPage: React.FC = () => {
   const { authPolicyName = '' } = useParams<{ authPolicyName: string }>();
+  const location = useLocation();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [policyInfo, loaded, loadError] = useGetPolicyInfo(authPolicyName);
+
+  const { state } = location;
+  const returnTo =
+    state != null &&
+    typeof state === 'object' &&
+    'returnTo' in state &&
+    typeof state.returnTo === 'string'
+      ? state.returnTo
+      : undefined;
 
   const breadcrumb = (
     <Breadcrumb>
       <BreadcrumbItem>
-        <Link to={`${URL_PREFIX}/auth-policies`} data-testid="breadcrumb-policies-link">
+        <Link to={returnTo ?? `${URL_PREFIX}/auth-policies`} data-testid="breadcrumb-policies-link">
           Authorization policies
         </Link>
       </BreadcrumbItem>
@@ -101,7 +112,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
     <ApplicationsPage
       title={policyInfo?.policy.displayName ?? authPolicyName}
       breadcrumb={breadcrumb}
-      headerAction={policyInfo && <PolicyActions policy={policyInfo.policy} />}
+      headerAction={policyInfo && <PolicyActions policy={policyInfo.policy} returnTo={returnTo} />}
       empty={false}
       loaded={loaded || !!loadError}
       loadError={loadError}

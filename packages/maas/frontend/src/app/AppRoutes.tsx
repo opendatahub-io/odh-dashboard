@@ -13,13 +13,24 @@ import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage
 import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
 import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
 import ViewMySubscriptionPage from './pages/keys-and-subs/mySubscriptions/ViewMySubscriptionPage';
+import SubscriptionManagementPage from './pages/subscription-management/SubscriptionManagementPage';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
   const isKeysAndSubs = pathname.startsWith(`${URL_PREFIX}/keys-and-subs`);
   const isSubscriptions = pathname.startsWith(`${URL_PREFIX}/subscriptions`);
   const isAuthPolicies = pathname.startsWith(`${URL_PREFIX}/auth-policies`);
+  const isSubscriptionManagement = pathname.startsWith(`${URL_PREFIX}/subscription-management`);
 
+  if (isSubscriptionManagement) {
+    return (
+      <Routes>
+        <Route path="/" element={<SubscriptionManagementPage />} />
+        <Route path="/:tab" element={<SubscriptionManagementPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    );
+  }
   if (isAuthPolicies) {
     return (
       <Routes>
