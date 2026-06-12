@@ -1380,7 +1380,7 @@ curl -i -X DELETE -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost
 
 The audio transcription feature requires an ASR model (e.g., Whisper) that the BFF calls directly. In-cluster, this model is accessed via its KServe InferenceService internal endpoint (`*.svc.cluster.local`), which is unreachable from a developer's laptop.
 
-The `ASR_MODEL_URL` environment variable overrides the model endpoint for local development. Model validation (exists in K8s, correct modality label, running status) still runs — only the HTTP target URL is swapped.
+The `ASR_MODEL_URL` environment variable overrides the model endpoint for local development. Model validation (exists in K8s, audio-transcription capability, running status) still runs — only the HTTP target URL is swapped.
 
 ### Proxy Service Requirement
 

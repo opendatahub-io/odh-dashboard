@@ -203,10 +203,17 @@ const MODEL_TYPE_LABELS: Record<string, string> = {
 export const getModelTypeLabel = (modelType?: string): string =>
   MODEL_TYPE_LABELS[modelType || 'llm'] || 'Inferencing';
 
-export const MODALITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
+export const CAPABILITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
+export const CAPABILITY_VISION = 'vision';
 
-export const isASRModel = (model: { modality?: string }): boolean =>
-  model.modality === MODALITY_AUDIO_TRANSCRIPTION;
+export const hasCapability = (model: { capabilities?: string[] }, cap: string): boolean =>
+  model.capabilities?.includes(cap) ?? false;
+
+export const isASRModel = (model: { capabilities?: string[] }): boolean =>
+  hasCapability(model, CAPABILITY_AUDIO_TRANSCRIPTION);
+
+export const isVisionModel = (model: { capabilities?: string[] }): boolean =>
+  hasCapability(model, CAPABILITY_VISION);
 
 export const getSourceLabel = (model: AIModel): string => {
   const source = model.model_source_type;
@@ -249,6 +256,7 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
     token: '',
   },
   model_source_type: 'maas',
+  capabilities: [],
   externalEndpoint: maasModel.url || undefined,
   internalEndpoint: undefined,
   model_type: maasModel.model_type,
