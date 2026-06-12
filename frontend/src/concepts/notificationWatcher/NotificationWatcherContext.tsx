@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AppNotification } from '#~/redux/types';
+import { DashboardNotification } from '#~/concepts/notifications/types';
 import useNotification from '#~/utilities/useNotification';
 import { POLL_INTERVAL } from '#~/utilities/const';
 
@@ -21,7 +21,7 @@ export enum NotificationResponseStatus {
 
 export type FinalNotificationWatcherResponse =
   | ({ status: NotificationResponseStatus.SUCCESS | NotificationResponseStatus.ERROR } & Pick<
-      AppNotification,
+      DashboardNotification,
       'title' | 'message' | 'actions'
     >)
   | { status: NotificationResponseStatus.STOP };

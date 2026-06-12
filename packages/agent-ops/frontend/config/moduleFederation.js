@@ -13,6 +13,7 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
+    'mod-arch-core': { singleton: true, requiredVersion: deps['mod-arch-core'] },
     '@odh-dashboard/plugin-core': {
       singleton: true,
       requiredVersion: '0.0.0',

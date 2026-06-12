@@ -14,6 +14,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
+import { NotificationContextProvider } from 'mod-arch-core';
 import ErrorBoundary from '#~/components/error/ErrorBoundary';
 import ToastNotifications from '#~/components/ToastNotifications';
 import { useWatchBuildStatus } from '#~/utilities/useWatchBuildStatus';
@@ -32,7 +33,7 @@ import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { PluginStoreAreaFlagsProvider } from '#~/plugins/PluginStoreAreaFlagsProvider';
 import { OdhPlatformType } from '#~/types';
 import { HardwareProfilesContextProvider } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
-import { useFederatedNotificationListener } from '#~/utilities/useFederatedNotificationListener';
+import { DashboardNotificationContextProvider } from '#~/concepts/notifications/DashboardNotificationContext';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -51,10 +52,6 @@ import './App.scss';
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError, isAllowed } = useUser();
-
-  // TODO: TECH DEBT - Remove this once midstream uses mod-arch-core NotificationContext
-  // Listen for notifications from federated modules via CustomEvent bridge
-  useFederatedNotificationListener();
 
   const buildStatuses = useWatchBuildStatus();
   const {
@@ -205,7 +202,11 @@ const App: React.FC = () => {
 const AppWrapper: React.FC = () => (
   <ExtensibilityContextProvider>
     <AnimationsProvider config={{ hasAnimations: true }}>
-      <App />
+      <NotificationContextProvider>
+        <DashboardNotificationContextProvider>
+          <App />
+        </DashboardNotificationContextProvider>
+      </NotificationContextProvider>
     </AnimationsProvider>
   </ExtensibilityContextProvider>
 );

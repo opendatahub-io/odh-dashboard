@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   BrowserStorageContextProvider,
-  NotificationContextProvider,
   ModularArchContextProvider,
   ModularArchConfig,
   DeploymentMode,
@@ -30,9 +29,7 @@ const ModelCatalogSettingsRoutesWrapperContent: React.FC = () => {
     <AppContext.Provider value={appContextValue}>
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            <ModelCatalogSettingsRoutes />
-          </NotificationContextProvider>
+          <ModelCatalogSettingsRoutes />
         </BrowserStorageContextProvider>
       </ThemeProvider>
     </AppContext.Provider>

@@ -24,6 +24,18 @@ jest.mock('#~/redux/hooks', () => ({
   useAppDispatch: jest.fn(),
 }));
 
+const mockNotification = {
+  success: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn(),
+  warning: jest.fn(),
+};
+
+jest.mock('#~/utilities/useNotification', () => ({
+  __esModule: true,
+  default: () => mockNotification,
+}));
+
 const mockDispatch = jest.fn();
 
 describe('useEnableApplication', () => {
@@ -126,7 +138,10 @@ describe('useEnableApplication', () => {
 
     expect(renderResult.result.current[0]).toBe(EnableApplicationStatus.FAILED);
     expect(renderResult.result.current[1]).toBe(errorMessage);
-    expect(mockDispatch).toHaveBeenCalled();
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Error attempting to validate Test App',
+      errorMessage,
+    );
     expect(renderResult).hookToHaveUpdateCount(2);
   });
 

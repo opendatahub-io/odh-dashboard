@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   BrowserStorageContextProvider,
-  NotificationContextProvider,
   ModularArchContextProvider,
   ModularArchConfig,
   DeploymentMode,
@@ -22,11 +21,9 @@ const ModelRegistryWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
     <ThemeProvider theme={Theme.Patternfly}>
       <BrowserStorageContextProvider>
-        <NotificationContextProvider>
-          <ModelRegistrySelectorContextProvider>
-            <ModelRegistrySettingsRoutes />
-          </ModelRegistrySelectorContextProvider>
-        </NotificationContextProvider>
+        <ModelRegistrySelectorContextProvider>
+          <ModelRegistrySettingsRoutes />
+        </ModelRegistrySelectorContextProvider>
       </BrowserStorageContextProvider>
     </ThemeProvider>
   </ModularArchContextProvider>

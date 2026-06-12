@@ -3,7 +3,6 @@ import {
   ModularArchConfig,
   DeploymentMode,
   ModularArchContextProvider,
-  NotificationContextProvider,
   BrowserStorageContextProvider,
   useSettings,
 } from 'mod-arch-core';
@@ -36,10 +35,8 @@ const MaasWrapperContent: React.FC = () => {
   return (
     <AppContext.Provider value={contextValue}>
       <BrowserStorageContextProvider>
-        <NotificationContextProvider>
-          <ToastNotifications />
-          <AppRoutes />
-        </NotificationContextProvider>
+        <ToastNotifications />
+        <AppRoutes />
       </BrowserStorageContextProvider>
     </AppContext.Provider>
   );

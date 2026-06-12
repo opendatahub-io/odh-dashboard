@@ -5,19 +5,21 @@ import {
   AlertActionLink,
   AlertVariant,
 } from '@patternfly/react-core';
-import { AppNotification } from '#~/redux/types';
-import { ackNotification, hideNotification } from '#~/redux/actions/actions';
-import { useAppDispatch } from '#~/redux/hooks';
+import {
+  DashboardNotification,
+  DashboardNotificationActionTypes,
+} from '#~/concepts/notifications/types';
+import { useDashboardNotificationContext } from '#~/concepts/notifications/DashboardNotificationContext';
 import { asEnumMember } from '#~/utilities/utils';
 
 const TOAST_NOTIFICATION_TIMEOUT = 8 * 1000;
 
 interface ToastNotificationProps {
-  notification: AppNotification;
+  notification: DashboardNotification;
 }
 
 const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) => {
-  const dispatch = useAppDispatch();
+  const { dispatch } = useDashboardNotificationContext();
   const [timedOut, setTimedOut] = React.useState(false);
   const [mouseOver, setMouseOver] = React.useState(false);
 
@@ -31,8 +33,11 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) =
   }, [setTimedOut]);
 
   React.useEffect(() => {
-    if (!notification.hidden && timedOut && !mouseOver) {
-      dispatch(hideNotification(notification));
+    if (!notification.hidden && timedOut && !mouseOver && notification.id != null) {
+      dispatch({
+        type: DashboardNotificationActionTypes.HIDE,
+        payload: { id: notification.id },
+      });
     }
   }, [dispatch, mouseOver, notification, timedOut]);
 
@@ -46,7 +51,19 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) =
       data-testid="toast-notification-alert"
       title={notification.title}
       actionClose={
-        <AlertActionCloseButton onClose={() => dispatch(ackNotification(notification))} />
+        notification.id != null ? (
+          <AlertActionCloseButton
+            onClose={() => {
+              const notificationId = notification.id;
+              if (notificationId != null) {
+                dispatch({
+                  type: DashboardNotificationActionTypes.ACK,
+                  payload: { id: notificationId },
+                });
+              }
+            }}
+          />
+        ) : undefined
       }
       actionLinks={
         notification.actions && (
