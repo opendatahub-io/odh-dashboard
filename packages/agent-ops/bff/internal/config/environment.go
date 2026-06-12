@@ -44,10 +44,11 @@ func (d *DeploymentMode) Set(value string) error {
 	switch strings.ToLower(value) {
 	case "federated":
 		*d = DeploymentModeFederated
-	case "standalone":
+	case "standalone", "kubeflow":
+		// kubeflow is accepted as an alias for standalone (legacy Makefile / frontend naming).
 		*d = DeploymentModeStandalone
 	default:
-		return fmt.Errorf("invalid deployment mode: %s (must be federated or standalone)", value)
+		return fmt.Errorf("invalid deployment mode: %s (must be federated, standalone, or kubeflow)", value)
 	}
 	return nil
 }
@@ -102,6 +103,10 @@ type EnvConfig struct {
 	// MockBFFClients enables mock mode for BFF inter-communication clients.
 	// When true, BFF clients return mock responses instead of making real HTTP calls.
 	MockBFFClients bool
+
+	// MockAgentClient enables mock mode for the agent data source client.
+	// When true, agent APIs return built-in demo data instead of querying the cluster.
+	MockAgentClient bool
 
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility

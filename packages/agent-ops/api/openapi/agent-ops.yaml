@@ -71,6 +71,73 @@ paths:
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
+  /api/v1/agents/runtimes:
+    summary: List deployed agent runtimes.
+    description: >-
+      Returns deployed agents and tools with runtime status and endpoint details.
+    get:
+      tags:
+        - AgentOperation
+      responses:
+        "200":
+          $ref: "#/components/responses/AgentRuntimesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: listAgentRuntimes
+      summary: List agent runtimes
+      description: Returns deployed agent and tool runtimes.
+  /api/v1/agents/runtimes/{ns}/{name}:
+    summary: Get agent runtime detail.
+    description: >-
+      Returns full agent detail, runtime info, workload status, service endpoints,
+      pod count, and conditions for a single deployed agent.
+    get:
+      tags:
+        - AgentOperation
+      parameters:
+        - $ref: "#/components/parameters/agentNamespace"
+        - $ref: "#/components/parameters/agentName"
+      responses:
+        "200":
+          $ref: "#/components/responses/AgentRuntimeDetailResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getAgentRuntimeDetail
+      summary: Get agent runtime detail
+      description: Returns full runtime detail for a single deployed agent.
+  /api/v1/agents/cards/{ns}/{name}:
+    summary: Get agent discovery card.
+    description: >-
+      Returns agent card metadata including skills, capabilities, provider info,
+      and supported input/output modes.
+    get:
+      tags:
+        - AgentOperation
+      parameters:
+        - $ref: "#/components/parameters/agentNamespace"
+        - $ref: "#/components/parameters/agentName"
+      responses:
+        "200":
+          $ref: "#/components/responses/AgentCardResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getAgentCard
+      summary: Get agent card
+      description: Returns the agent discovery card for a single agent.
 components:
   schemas:
     Config:
@@ -162,6 +229,224 @@ components:
         - LAST_UPDATE_TIME
         - Id
       type: string
+    AgentRuntime:
+      description: A deployed agent or tool runtime.
+      required:
+        - name
+        - namespace
+        - status
+        - type
+        - endpointUrl
+        - lastSyncTime
+      type: object
+      properties:
+        name:
+          type: string
+          example: sample-support-agent
+        namespace:
+          type: string
+          example: agent-ops-demo
+        status:
+          type: string
+          description: Normalized deployment status (backend-specific values mapped to strings).
+          example: Ready
+        type:
+          type: string
+          description: Resource type label (e.g. Agent, Tool).
+          example: Agent
+        endpointUrl:
+          type: string
+          format: uri
+          example: https://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+        lastSyncTime:
+          type: string
+          format: date-time
+          example: "2026-05-26T14:30:00Z"
+    AgentRuntimesList:
+      description: Collection of deployed agent runtimes.
+      required:
+        - runtimes
+      type: object
+      properties:
+        runtimes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentRuntime"
+    AgentServiceEndpoint:
+      description: Network endpoint exposed by an agent runtime.
+      required:
+        - name
+        - url
+        - port
+      type: object
+      properties:
+        name:
+          type: string
+          example: http
+        url:
+          type: string
+          format: uri
+          example: https://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+        port:
+          type: integer
+          example: 8080
+    AgentRuntimeCondition:
+      description: Kubernetes-style condition for an agent runtime.
+      required:
+        - type
+        - status
+        - lastTransitionTime
+      type: object
+      properties:
+        type:
+          type: string
+          example: Ready
+        status:
+          type: string
+          example: "True"
+        reason:
+          type: string
+          example: MinimumReplicasAvailable
+        message:
+          type: string
+          example: Deployment has minimum availability.
+        lastTransitionTime:
+          type: string
+          format: date-time
+          example: "2026-05-26T14:30:00Z"
+    AgentRuntimeDetail:
+      description: Full runtime view for a single deployed agent.
+      required:
+        - name
+        - namespace
+        - description
+        - runtime
+        - workloadStatus
+        - serviceEndpoints
+        - podCount
+        - conditions
+      type: object
+      properties:
+        name:
+          type: string
+          example: sample-support-agent
+        namespace:
+          type: string
+          example: agent-ops-demo
+        description:
+          type: string
+          example: Customer support agent that triages tickets and drafts responses.
+        runtime:
+          $ref: "#/components/schemas/AgentRuntime"
+        workloadStatus:
+          type: string
+          description: High-level workload status from the monitoring backend.
+          example: Available
+        serviceEndpoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentServiceEndpoint"
+        podCount:
+          type: integer
+          example: 2
+        conditions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentRuntimeCondition"
+    AgentSkill:
+      description: Skill exposed by an agent.
+      required:
+        - id
+        - name
+        - description
+      type: object
+      properties:
+        id:
+          type: string
+          example: ticket-triage
+        name:
+          type: string
+          example: Ticket triage
+        description:
+          type: string
+          example: Classifies incoming support tickets by priority and topic.
+    AgentCapabilities:
+      description: Optional protocol features supported by the agent.
+      required:
+        - streaming
+        - pushNotifications
+      type: object
+      properties:
+        streaming:
+          type: boolean
+          example: true
+        pushNotifications:
+          type: boolean
+          example: true
+    AgentProvider:
+      description: Agent provider metadata.
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: opendatahub
+        displayName:
+          type: string
+          example: Open Data Hub
+        url:
+          type: string
+          format: uri
+          example: https://opendatahub.io
+    AgentCard:
+      description: Agent discovery card for a single agent.
+      required:
+        - name
+        - namespace
+        - description
+        - version
+        - skills
+        - capabilities
+        - provider
+        - supportedInputModes
+        - supportedOutputModes
+      type: object
+      properties:
+        name:
+          type: string
+          example: sample-support-agent
+        namespace:
+          type: string
+          example: agent-ops-demo
+        description:
+          type: string
+          example: Customer support agent that triages tickets and drafts responses.
+        version:
+          type: string
+          example: 1.2.0
+        skills:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentSkill"
+        capabilities:
+          $ref: "#/components/schemas/AgentCapabilities"
+        provider:
+          $ref: "#/components/schemas/AgentProvider"
+        supportedInputModes:
+          type: array
+          items:
+            type: string
+          example:
+            - text
+            - application/json
+        supportedOutputModes:
+          type: array
+          items:
+            type: string
+          example:
+            - text
+            - application/json
 
   responses:
     NotFound:
@@ -200,6 +485,117 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
+    AgentRuntimesResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/AgentRuntimesList"
+          examples:
+            default:
+              value:
+                metadata:
+                  requestId: req-agent-runtimes-001
+                  status: ok
+                  timestamp: "2026-05-12T16:00:03.214610Z"
+                data:
+                  runtimes:
+                    - name: sample-support-agent
+                      namespace: agent-ops-demo
+                      status: Ready
+                      type: agent
+                      endpointUrl: https://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                      lastSyncTime: "2026-05-12T16:00:03.214610Z"
+      description: A response containing deployed agent runtimes.
+    AgentRuntimeDetailResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/AgentRuntimeDetail"
+          examples:
+            default:
+              value:
+                metadata:
+                  requestId: req-agent-runtime-detail-001
+                  status: ok
+                  timestamp: "2026-05-12T16:00:03.214610Z"
+                data:
+                  name: sample-support-agent
+                  namespace: agent-ops-demo
+                  description: Customer support agent that triages tickets and drafts responses.
+                  runtime:
+                    name: sample-support-agent
+                    namespace: agent-ops-demo
+                    status: Ready
+                    type: agent
+                    endpointUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                    lastSyncTime: "2026-05-12T16:00:03.214610Z"
+                  workloadStatus: Ready
+                  serviceEndpoints:
+                    - name: http
+                      url: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                      port: 8080
+                  podCount: 2
+                  conditions:
+                    - type: Available
+                      status: "True"
+                      reason: MinimumReplicasAvailable
+                      message: Deployment has minimum availability.
+                      lastTransitionTime: "2026-05-12T16:00:03.214610Z"
+      description: A response containing full agent runtime detail.
+    AgentCardResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/AgentCard"
+          examples:
+            default:
+              value:
+                metadata:
+                  requestId: req-agent-card-001
+                  status: ok
+                  timestamp: "2026-05-12T16:00:03.214610Z"
+                data:
+                  name: sample-support-agent
+                  namespace: agent-ops-demo
+                  description: Customer support agent that triages tickets and drafts responses.
+                  version: "1.2.0"
+                  skills:
+                    - id: ticket-triage
+                      name: Ticket triage
+                      description: Classifies incoming support tickets by priority and topic.
+                    - id: response-draft
+                      name: Response drafting
+                      description: Drafts customer-facing replies from ticket context and knowledge base snippets.
+                  capabilities:
+                    streaming: true
+                    pushNotifications: false
+                  provider:
+                    name: opendatahub
+                    displayName: Open Data Hub
+                    url: https://opendatahub.io
+                  supportedInputModes:
+                    - text
+                  supportedOutputModes:
+                    - text
+      description: A response containing an agent discovery card.
     ConflictResponse:
       content:
         application/json:
@@ -293,6 +689,26 @@ components:
         type: string
       in: query
       required: false
+    agentNamespace:
+      name: ns
+      description: Kubernetes namespace of the agent.
+      schema:
+        type: string
+        pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+        maxLength: 63
+      in: path
+      required: true
+      example: agent-ops-demo
+    agentName:
+      name: name
+      description: Name of the agent resource.
+      schema:
+        type: string
+        pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+        maxLength: 63
+      in: path
+      required: true
+      example: sample-support-agent
 
   securitySchemes:
     Bearer:
@@ -305,3 +721,5 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: AgentOperation
+    description: Agent runtime operations

@@ -176,34 +176,6 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
 
   const defaultTab = getDefaultTab(pageId, tabExtensions);
 
-  // Single tab: render content directly without tab bar
-  if (tabExtensions.length === 1) {
-    const singleTab = tabExtensions[0];
-    return (
-      <Routes>
-        <Route
-          path={`${singleTab.properties.id}/*`}
-          element={
-            <>
-              {pageTitle}
-              <LazyCodeRefComponent
-                component={singleTab.properties.component}
-                fallback={tabContentFallback}
-              />
-            </>
-          }
-        />
-        <Route
-          path="*"
-          element={
-            <Navigate to={`${extension.properties.href}/${singleTab.properties.id}`} replace />
-          }
-        />
-      </Routes>
-    );
-  }
-
-  // Multiple tabs: single parametric route with tab ID from URL
   return (
     <Routes>
       <Route
