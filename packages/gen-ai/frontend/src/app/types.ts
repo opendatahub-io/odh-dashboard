@@ -667,7 +667,7 @@ type VerifyExternalModel = ModArchRestCREATE<
 type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
 type ListAgentProfiles = ModArchRestGET<import('./agentProfile/types').AgentProfileListResponse>;
 type GetAgentProfile = ModArchRestGET<import('./agentProfile/types').AgentProfile>;
-type DeleteAgentProfile = ModArchRestGET<void>;
+type DeleteAgentProfile = ModArchRestDELETE<void, { id: string }>;
 type UpdateAgentProfile = (
   data: import('./agentProfile/types').AgentProfileUpdateRequest & { id: string },
   opts?: APIOptions,

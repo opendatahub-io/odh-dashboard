@@ -6,6 +6,8 @@ import {
   ModalFooter,
   ModalHeader,
   Content,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
 
@@ -55,7 +57,9 @@ const DeleteAgentProfileModal: React.FC<DeleteAgentProfileModalProps> = ({
             This action cannot be undone.
           </p>
           {error && (
-            <p style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}>{error}</p>
+            <HelperText>
+              <HelperTextItem variant="error">{error}</HelperTextItem>
+            </HelperText>
           )}
         </Content>
       </ModalBody>

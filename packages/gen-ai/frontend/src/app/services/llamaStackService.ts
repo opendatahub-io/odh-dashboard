@@ -1124,9 +1124,11 @@ export const createAgentProfile = modArchRestCREATE<
 >('/agent-profiles');
 
 export const deleteAgentProfile =
-  (hostPath: string, baseQueryParams: Record<string, unknown> = {}): ModArchRestGET<void> =>
-  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
-    const { id, ...restParams } = queryParams;
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestDELETE<void, { id: string }> =>
+  ({ id }: { id: string }, queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
     if (!id || typeof id !== 'string') {
       return Promise.reject(new Error('id parameter is required'));
     }
@@ -1137,7 +1139,7 @@ export const deleteAgentProfile =
         hostPath,
         path,
         {},
-        { ...baseQueryParams, ...restParams },
+        { ...baseQueryParams, ...queryParams },
         {
           ...opts,
           parseJSON: false,
