@@ -3,12 +3,14 @@ import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { NotebookControllerContextProps } from '#~/pages/notebookController/notebookControllerContextTypes';
-import { Notebook } from '#~/types';
+import { EventStatus, Notebook, ProgressionStep } from '#~/types';
 import {
   getNotebookControllerUserState,
+  getNotebookEventStatus,
   useNotebookRedirectLink,
   usernameTranslate,
 } from '#~/utilities/notebookControllerUtils';
+import { EventKind } from '#~/k8sTypes';
 
 const validUnameRegex = new RegExp('^[a-z]{1}[a-z0-9-]{1,62}$');
 
@@ -256,5 +258,73 @@ describe('getNotebookControllerUserState', () => {
     expect(result).not.toBeNull();
     expect(result?.user).toBe(longUsername);
     expect(longUsername.length).toBeGreaterThan(63);
+  });
+});
+
+const createMockEvent = (overrides: Partial<EventKind>): EventKind => ({
+  apiVersion: 'v1',
+  kind: 'Event',
+  metadata: { uid: 'test-uid' },
+  involvedObject: { name: 'test-notebook' },
+  eventTime: '2024-01-01T00:00:00Z',
+  type: 'Normal',
+  reason: '',
+  message: '',
+  ...overrides,
+});
+
+describe('getNotebookEventStatus', () => {
+  it('should return ERROR for BackOff event outside grace period', () => {
+    const event = createMockEvent({
+      reason: 'BackOff',
+      type: 'Warning',
+      message: 'Back-off pulling image',
+    });
+    const result = getNotebookEventStatus(event, false);
+    expect(result.status).toBe(EventStatus.ERROR);
+    expect(result.step).toBe(ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM);
+    expect(result.description).toBe('ImagePullBackOff');
+  });
+
+  it('should return WARNING for BackOff event during grace period', () => {
+    const event = createMockEvent({
+      reason: 'BackOff',
+      type: 'Warning',
+      message: 'Back-off pulling image',
+    });
+    const result = getNotebookEventStatus(event, true);
+    expect(result.status).toBe(EventStatus.WARNING);
+  });
+
+  it('should return SUCCESS for Started event', () => {
+    const event = createMockEvent({
+      reason: 'Started',
+      message: 'Started container notebook',
+    });
+    const result = getNotebookEventStatus(event);
+    expect(result.status).toBe(EventStatus.SUCCESS);
+    expect(result.step).toBe(ProgressionStep.NOTEBOOK_CONTAINER_STARTED);
+  });
+
+  it('should return ERROR for FailedScheduling event outside grace period', () => {
+    const event = createMockEvent({
+      reason: 'FailedScheduling',
+      type: 'Warning',
+      message: 'Insufficient memory',
+    });
+    const result = getNotebookEventStatus(event, false);
+    expect(result.status).toBe(EventStatus.ERROR);
+    expect(result.step).toBe(ProgressionStep.POD_PROBLEM);
+  });
+
+  it('should return ERROR for FailedCreate event', () => {
+    const event = createMockEvent({
+      reason: 'FailedCreate',
+      type: 'Warning',
+      message: 'Failed to create pod',
+    });
+    const result = getNotebookEventStatus(event);
+    expect(result.status).toBe(EventStatus.ERROR);
+    expect(result.step).toBe(ProgressionStep.POD_PROBLEM);
   });
 });
