@@ -3,6 +3,32 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ModelTabContent from '~/app/Chatbot/components/settingsPanelTabs/ModelTabContent';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
+
+const mockWorkspaceCapabilities = {
+  hasVisionModel: false,
+  hasASRModel: true,
+  capabilitiesReady: true,
+  capabilitiesError: false,
+};
+
+jest.mock('~/app/hooks/useWorkspaceCapabilities', () => ({
+  __esModule: true,
+  default: () => mockWorkspaceCapabilities,
+}));
+
+jest.mock('~/app/context/ChatbotContext', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createContext } = require('react');
+  return {
+    ChatbotContext: createContext({
+      aiModels: [],
+      aiModelsLoaded: true,
+      aiModelsError: undefined,
+      maasModelsLoaded: true,
+    }),
+  };
+});
 
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   __esModule: true,
@@ -81,6 +107,10 @@ describe('ModelTabContent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockWorkspaceCapabilities.hasVisionModel = false;
+    mockWorkspaceCapabilities.hasASRModel = true;
+    mockWorkspaceCapabilities.capabilitiesReady = true;
+    mockWorkspaceCapabilities.capabilitiesError = false;
   });
 
   it('renders the Model title', () => {
@@ -154,11 +184,32 @@ describe('ModelTabContent', () => {
     expect(mockOnStreamingToggle).toHaveBeenCalledWith(true);
   });
 
-  it('renders TranscriptionModelSection with configId', () => {
+  it('renders TranscriptionModelSection with configId when ASR models exist', () => {
+    mockWorkspaceCapabilities.hasASRModel = true;
     render(<ModelTabContent {...defaultProps} configId="custom-config" />);
 
     const section = screen.getByTestId('transcription-model-section');
     expect(section).toBeInTheDocument();
     expect(section).toHaveAttribute('data-config-id', 'custom-config');
+  });
+
+  it('does not render TranscriptionModelSection when no ASR models exist', () => {
+    mockWorkspaceCapabilities.hasASRModel = false;
+    render(<ModelTabContent {...defaultProps} />);
+
+    expect(screen.queryByTestId('transcription-model-section')).not.toBeInTheDocument();
+  });
+
+  it('clears ASR store state when capabilities are ready and no ASR models exist', () => {
+    mockWorkspaceCapabilities.hasASRModel = false;
+    mockWorkspaceCapabilities.capabilitiesReady = true;
+
+    // Enable ASR in the store first
+    useChatbotConfigStore.getState().updateAsrModelEnabled('default', true);
+    expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(true);
+
+    render(<ModelTabContent {...defaultProps} configId="default" />);
+
+    expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(false);
   });
 });

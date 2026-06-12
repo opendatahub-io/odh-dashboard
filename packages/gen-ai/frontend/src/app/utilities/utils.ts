@@ -204,9 +204,16 @@ export const getModelTypeLabel = (modelType?: string): string =>
   MODEL_TYPE_LABELS[modelType || 'llm'] || 'Inferencing';
 
 export const CAPABILITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
+export const CAPABILITY_VISION = 'vision';
+
+export const hasCapability = (model: { capabilities?: string[] }, cap: string): boolean =>
+  model.capabilities?.includes(cap) ?? false;
 
 export const isASRModel = (model: { capabilities?: string[] }): boolean =>
-  model.capabilities?.includes(CAPABILITY_AUDIO_TRANSCRIPTION) ?? false;
+  hasCapability(model, CAPABILITY_AUDIO_TRANSCRIPTION);
+
+export const isVisionModel = (model: { capabilities?: string[] }): boolean =>
+  hasCapability(model, CAPABILITY_VISION);
 
 export const getSourceLabel = (model: AIModel): string => {
   const source = model.model_source_type;
