@@ -185,6 +185,16 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 
+	discoveredPipelines, dpOk := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !dpOk {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines missing from context: check middleware configuration"))
+		return nil, nil, false
+	}
+	if !repositories.HasAllRequiredAutoMLPipelines(discoveredPipelines) {
+		app.notFoundResponse(w, r)
+		return nil, nil, false
+	}
+
 	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
 	if err != nil {
 		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
@@ -200,11 +210,6 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 
-	discoveredPipelines, dpOk := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
-	if !dpOk {
-		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines missing from context: check middleware configuration"))
-		return nil, nil, false
-	}
 	matchedPipelineType := ""
 	for pipelineType, discovered := range discoveredPipelines {
 		if run.PipelineVersionReference.PipelineID == discovered.PipelineID {

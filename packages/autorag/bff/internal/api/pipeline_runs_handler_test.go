@@ -709,6 +709,31 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
+	t.Run("should return 404 not 500 when no discovered pipeline and GetRun would fail", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "server-error-run-id"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
 	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		runID := "run-nil-reference"

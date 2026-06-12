@@ -153,16 +153,21 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 
+	runID := params.ByName("runId")
+	if runID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		return nil, nil, false
+	}
+
 	discoveredPipelines, dpOk := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
 	if !dpOk {
 		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
 		return nil, nil, false
 	}
-	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
 
-	runID := params.ByName("runId")
-	if runID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
+	if discovered == nil {
+		app.notFoundResponse(w, r)
 		return nil, nil, false
 	}
 
@@ -185,8 +190,7 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 
-	if discovered == nil ||
-		run.PipelineVersionReference.PipelineID != discovered.PipelineID {
+	if run.PipelineVersionReference.PipelineID != discovered.PipelineID {
 		app.notFoundResponse(w, r)
 		return nil, nil, false
 	}
