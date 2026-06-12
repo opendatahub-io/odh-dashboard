@@ -11,7 +11,6 @@ import {
   ImageStreamStatusTagCondition,
   ImageStreamStatusTagItem,
   NodeSelector,
-  NotebookSize,
   PodAffinity,
   PodContainer,
   Toleration,
@@ -20,9 +19,15 @@ import {
   HardwareProfileAnnotations,
   HardwareProfileBindingAnnotations,
 } from './types';
-import { ModelServingSize } from './pages/modelServing/screens/types';
+import type { AccessReviewResourceAttributes } from './types-core';
 
 export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+export type {
+  K8sVerb,
+  AccessReviewResourceAttributes,
+  DashboardCommonConfig,
+  DashboardConfigKind,
+} from './types-core';
 
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
@@ -44,16 +49,6 @@ export type ModelRegistry = {
   description: string;
   serverAddress?: string;
 };
-
-export type K8sVerb =
-  | 'create'
-  | 'get'
-  | 'list'
-  | 'update'
-  | 'patch'
-  | 'delete'
-  | 'deletecollection'
-  | 'watch';
 
 /**
  * Annotations that we will use to allow the user flexibility in describing items outside of the
@@ -1164,21 +1159,6 @@ export type WorkloadPriorityClassKind = K8sResourceCommon & {
   description?: string;
 };
 
-export type AccessReviewResourceAttributes = {
-  /** CRD group, '*' for all groups, omit for core resources */
-  group?: '*' | string;
-  /** Plural resource name, omit for all */
-  resource?: string;
-  /** TODO: Not a full list, could be expanded, "" means none */
-  subresource?: '' | 'api' | 'spec' | 'status';
-  /** Must provide the verb you are trying to do; '*' means all verbs */
-  verb: '*' | K8sVerb;
-  /** A resource name, omit when not interested in a specific resource */
-  name?: string;
-  /** The namespace the check is in, omit for unbounded check */
-  namespace?: string;
-};
-
 export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
   spec: {
     resourceAttributes?: AccessReviewResourceAttributes;
@@ -1281,100 +1261,6 @@ export type TemplateParameter = {
   required: boolean;
 };
 
-export type DashboardCommonConfig = {
-  enablement: boolean;
-  disableInfo: boolean;
-  disableSupport: boolean;
-  disableClusterManager: boolean;
-  disableTracking: boolean;
-  disableBYONImageStream: boolean;
-  disableISVBadges: boolean;
-  disableAppLauncher: boolean;
-  disableUserManagement: boolean;
-  disableHome: boolean;
-  disableProjects: boolean;
-  disableModelServing: boolean;
-  disableProjectScoped: boolean;
-  disableProjectSharing: boolean;
-  disableCustomServingRuntimes: boolean;
-  disablePipelines: boolean;
-  disableTrustyBiasMetrics: boolean;
-  disablePerformanceMetrics: boolean;
-  disableKServe: boolean;
-  disableKServeAuth: boolean;
-  disableKServeMetrics: boolean;
-  disableKServeRaw: boolean;
-  disableDistributedWorkloads: boolean;
-  disableModelCatalog: boolean;
-  disableModelRegistry: boolean;
-  disableModelRegistrySecureDB: boolean;
-  disableServingRuntimeParams: boolean;
-  disableStorageClasses: boolean;
-  disableNIMModelServing: boolean;
-  disableAdminConnectionTypes: boolean;
-  disableFineTuning: boolean;
-  disableLMEval: boolean;
-  disableKueue: boolean;
-  trainingJobs: boolean;
-  disableFeatureStore?: boolean;
-  genAiStudio?: boolean;
-  guardrails?: boolean;
-  automl?: boolean;
-  autorag?: boolean;
-  modelAsService?: boolean;
-  maasAuthPolicies?: boolean;
-  aiAssetCustomEndpoints?: boolean;
-  mlflowPipelines?: boolean;
-  mcpCatalog?: boolean;
-  toolCalling?: boolean;
-  projectRBAC?: boolean;
-  observabilityDashboard?: boolean;
-  disableLLMd?: boolean;
-  deploymentWizardYAMLViewer?: boolean;
-  externalVectorStores?: boolean;
-  vLLMDeploymentOnMaaS?: boolean;
-  llmGatewayField?: boolean;
-  promptManagement?: boolean;
-  nimWizard?: boolean;
-  mySubscriptions?: boolean;
-  agentOps?: boolean;
-  roleManagement?: boolean;
-  agentProfileManagement?: boolean;
-};
-
-// [1] Intentionally disjointed fields from the CRD in this type definition
-// but still present in the CRD until we upgrade the CRD version.
-export type DashboardConfigKind = K8sResourceCommon & {
-  spec: {
-    dashboardConfig: DashboardCommonConfig;
-    // Intentionally disjointed from the CRD [1]
-    // groupsConfig?: {
-    notebookSizes?: NotebookSize[]; // deprecated
-    modelServerSizes?: ModelServingSize[]; // deprecated
-    notebookController?: {
-      enabled: boolean;
-      pvcSize?: string;
-      storageClassName?: string;
-      // Intentionally disjointed from the CRD [1]
-      // notebookNamespace?: string;
-      // Intentionally disjointed from the CRD [1]
-      // notebookTolerationSettings?: TolerationSettings;
-    };
-    templateOrder?: string[];
-    templateDisablement?: string[];
-    hardwareProfileOrder?: string[];
-    modelServing?: {
-      deploymentStrategy?: string;
-      isLLMdDefault?: boolean;
-    };
-    genAiStudioConfig?: {
-      aiAssetCustomEndpoints?: {
-        externalProviders?: boolean;
-        clusterDomains?: string[];
-      };
-    };
-  };
-};
 /**
  * @deprecated -- accelerator profiles are going away; only in deprecation paths
  * used by *both* modelmesh and finetuning
