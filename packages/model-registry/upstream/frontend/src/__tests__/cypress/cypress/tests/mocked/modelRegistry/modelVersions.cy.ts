@@ -186,7 +186,7 @@ describe('Model Versions', () => {
     modelRegistry.findModelBreadcrumbItem().contains('test');
 
     // Navigate to versions tab
-    cy.findByTestId('model-versions-tab').click();
+    cy.findByTestId('versions-tab').click();
     //modelRegistry.findModelVersionsTableKebab().findDropdownItem('View archived versions');
     //modelRegistry.findModelVersionsHeaderAction().findDropdownItem('Archive model');
     modelRegistry.findModelVersionsTable().should('be.visible');
@@ -267,7 +267,7 @@ describe('Model Versions', () => {
     const registeredModelRow = modelRegistry.getRow('Fraud detection model');
     registeredModelRow.findName().contains('Fraud detection model').click();
     // Navigate to versions tab
-    cy.findByTestId('model-versions-tab').click();
+    cy.findByTestId('versions-tab').click();
     const modelVersionRow = modelRegistry.getModelVersionRow('model version');
     modelVersionRow.findModelVersionName().contains('model version').click();
     verifyRelativeURL(`${modelVersionUrl('1', '1', 'modelregistry-sample')}/details`);
