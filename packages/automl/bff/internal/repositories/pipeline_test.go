@@ -513,6 +513,7 @@ func TestDiscoverPipelineForRun(t *testing.T) {
 		namespace := "test-ns-discover-3"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 		mockClient.PipelineNames = []string{"autogluon-tabular-training-pipeline"}
+		ids := psmocks.DeriveMockIDsFromName(mockClient.Namespace, "autogluon-tabular-training-pipeline")
 
 		def := PipelineDefinition{Name: "autogluon-tabular-training-pipeline"}
 
@@ -520,5 +521,7 @@ func TestDiscoverPipelineForRun(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
+		assert.Equal(t, ids.PipelineID, discovered.PipelineID)
+		assert.Equal(t, ids.LatestVersionID, discovered.PipelineVersionID)
 	})
 }
