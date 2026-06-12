@@ -171,6 +171,35 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		// New validation requirement - subscription is required
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+
+	t.Run("should return error when subscription is whitespace-only", func(t *testing.T) {
+		tokenRequest := models.MaaSTokenRequest{
+			Subscription: "   ",
+			Description:  "test key",
+		}
+		requestBody, err := json.Marshal(tokenRequest)
+		assert.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Simulate AttachBFFMaaSClient middleware
+		maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
+		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+		req = req.WithContext(ctx)
+
+		app.MaaSIssueTokenHandler(rr, req, nil)
+
+		// Whitespace-only subscription should be rejected after trimming
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		defer rr.Result().Body.Close()
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		assert.Contains(t, strings.ToLower(string(body)), "subscription is required")
+	})
 }
 
 // TestMaaSRevokeAllTokensHandler removed - DELETE /maas/tokens endpoint dropped per RHOAIENG-60574
