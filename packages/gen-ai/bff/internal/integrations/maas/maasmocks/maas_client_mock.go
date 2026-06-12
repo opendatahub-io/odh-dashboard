@@ -143,9 +143,3 @@ func (m *MockMaaSClient) IssueToken(ctx context.Context, request models.MaaSToke
 		ExpiresAt: time.Now().Add(ttl).UTC().Format(time.RFC3339),
 	}, nil
 }
-
-// RevokeAllTokens simulates revoking all tokens (always succeeds in mock)
-func (m *MockMaaSClient) RevokeAllTokens(ctx context.Context) error {
-	// Mock implementation always succeeds
-	return nil
-}

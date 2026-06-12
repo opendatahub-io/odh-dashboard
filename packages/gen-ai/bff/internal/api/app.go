@@ -426,8 +426,9 @@ func (app *App) Routes() http.Handler {
 
 	// Kubernetes routes
 
-	// AI Assets Models (Kubernetes)
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.ModelsAAHandler))
+	// AI Assets Models (Kubernetes + MaaS)
+	// AttachBFFMaaSClient middleware enables MaaS model fetching when sources=maas query param is used
+	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.ModelsAAHandler))))
 	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
 	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
 
@@ -467,16 +468,14 @@ func (app *App) Routes() http.Handler {
 
 	// MaaS API routes
 
-	// Models (MaaS)
-	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler))))
+	// Models (MaaS) - via inter-BFF communication with MaaS BFF
+	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSModelsHandler))))
 
-	// Tokens (MaaS) - direct calls to MaaS controller
-	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
-	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
-
-	// Inter-BFF Communication routes - calls to MaaS BFF service
-	apiRouter.POST(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSIssueTokenHandler))))
-	apiRouter.DELETE(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSRevokeAllTokensHandler))))
+	// Tokens (MaaS) - via inter-BFF communication with MaaS BFF
+	// Note: DELETE /maas/tokens was never implemented in Gen AI BFF - token lifecycle
+	// is managed through the MaaS BFF /api-keys endpoint directly by the MaaS frontend.
+	// The Gen AI BFF only provides POST for ephemeral token issuance for playground sessions.
+	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSIssueTokenHandler))))
 
 	// MLflow API routes
 	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))

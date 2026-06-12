@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
@@ -451,9 +452,9 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		}
 
 		// Check if MaaS BFF target is configured
-		if !app.bffClientFactory.IsTargetConfigured("maas") {
+		if !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			logger.Debug("MaaS BFF target not configured, attaching nil client")
-			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), nil)
 			next(w, r.WithContext(ctx), ps)
 			return
 		}
@@ -466,28 +467,54 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 
 		// Build headers based on MaaS BFF's auth method
 		forwardHeaders := make(map[string]string)
-		maasConfig := app.bffClientFactory.GetConfig("maas")
+		maasConfig := app.bffClientFactory.GetConfig(bffclient.BFFTargetMaaS)
 
 		if maasConfig != nil && maasConfig.AuthMethod == "internal" {
 			// For internal auth mode (Kubeflow only), forward kubeflow identity headers
-			if userID := r.Header.Get("kubeflow-userid"); userID != "" {
-				forwardHeaders["kubeflow-userid"] = userID
+			// SECURITY: Only forward kubeflow headers if Gen AI BFF also uses internal auth
+			// to prevent header injection attacks. In user_token mode, we cannot trust
+			// kubeflow headers from the raw request as they are not validated during authentication.
+			if app.config.AuthMethod == "internal" {
+				// Both BFFs use internal auth - safe to forward headers
+				if userID := r.Header.Get("kubeflow-userid"); userID != "" {
+					forwardHeaders["kubeflow-userid"] = userID
+				}
+				if groups := r.Header.Get("kubeflow-groups"); groups != "" {
+					forwardHeaders["kubeflow-groups"] = groups
+				}
+				logger.Debug("Using internal auth mode for MaaS BFF, forwarding kubeflow headers")
+			} else {
+				// Configuration mismatch: Gen AI BFF uses user_token but MaaS BFF uses internal
+				// This is a security risk - reject the request
+				logger.Error("Auth method mismatch: Gen AI BFF uses user_token but MaaS BFF requires internal auth",
+					"gen_ai_auth", app.config.AuthMethod,
+					"maas_bff_auth", maasConfig.AuthMethod)
+				app.errorResponse(w, r, &integrations.HTTPError{
+					StatusCode: http.StatusServiceUnavailable,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    "configuration_error",
+						Message: "BFF auth method configuration mismatch",
+					},
+				})
+				return
 			}
-			if groups := r.Header.Get("kubeflow-groups"); groups != "" {
-				forwardHeaders["kubeflow-groups"] = groups
-			}
-			logger.Debug("Using internal auth mode for MaaS BFF, forwarding kubeflow headers")
 		} else {
 			// For user_token auth mode (default for ODH), the token is sent via
 			// the configured auth header by the client itself
 			logger.Debug("Using user_token auth mode for MaaS BFF")
 		}
 
+		// Always forward X-MaaS-Return-All-Models header to get enriched model details
+		// This ensures MaaS BFF returns models with modelDetails, subscriptions, and kind fields
+		// Set unconditionally for middleware simplicity since we cannot determine requested sources
+		// at this point in the chain. The header is only used if the handler actually calls MaaS BFF.
+		forwardHeaders["X-MaaS-Return-All-Models"] = "true"
+
 		// Create BFF client for MaaS target with forwarded headers
-		client := app.bffClientFactory.CreateClientWithHeaders("maas", authToken, forwardHeaders)
+		client := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMaaS, authToken, forwardHeaders)
 		if client == nil {
 			logger.Warn("Failed to create MaaS BFF client")
-			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), nil)
 			next(w, r.WithContext(ctx), ps)
 			return
 		}
@@ -495,7 +522,7 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		logger.Debug("Created MaaS BFF client", "baseURL", client.GetBaseURL())
 
 		// Attach to context
-		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), client)
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), client)
 		next(w, r.WithContext(ctx), ps)
 	}
 }
