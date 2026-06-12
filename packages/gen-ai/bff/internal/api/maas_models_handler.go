@@ -13,14 +13,9 @@ import (
 // MaaSModelsHandler handles GET /v1/models.
 // Uses the user's OIDC token directly for authentication with the MaaS API,
 // bypassing the need to mint an ephemeral API key for model listing.
+// Does not require a namespace — MaaS model access is subscription-based.
 func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-
-	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context"))
-		return
-	}
 
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil || identity.Token == "" {

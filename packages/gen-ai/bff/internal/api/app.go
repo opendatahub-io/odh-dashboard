@@ -467,8 +467,9 @@ func (app *App) Routes() http.Handler {
 
 	// MaaS API routes
 
-	// Models (MaaS)
-	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler))))
+	// Models (MaaS) - no AttachNamespace: MaaS model listing is subscription-based
+	// and only needs the user's OIDC token, not a namespace.
+	apiRouter.GET(constants.MaaSModelsPath, app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler)))
 
 	// Tokens (MaaS) - direct calls to MaaS controller
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
