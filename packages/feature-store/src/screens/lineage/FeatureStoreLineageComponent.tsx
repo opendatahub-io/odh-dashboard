@@ -190,7 +190,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
       <Lineage
         key={lineageKey}
         data={visualizationData}
-        loading={!lineageDataLoaded}
+        loading={!lineageDataLoaded && !error}
         error={
           error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined
         }
