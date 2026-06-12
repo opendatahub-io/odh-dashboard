@@ -108,14 +108,14 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
           <ToolbarItem>
             <ToggleGroup aria-label="Sort by field" data-testid="subscriptions-sort-toggle">
               <ToggleGroupItem
-                text="Subscription"
+                text="Subscription view"
                 buttonId="sort-subscription"
                 isSelected={sortField === 'subscription'}
                 onChange={() => onSortFieldChange('subscription')}
                 data-testid="sort-by-subscription"
               />
               <ToggleGroupItem
-                text="Model"
+                text="Model view"
                 buttonId="sort-model"
                 isSelected={sortField === 'model'}
                 onChange={() => onSortFieldChange('model')}

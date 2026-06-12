@@ -1,4 +1,4 @@
-import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import { Bullseye, Content, ContentVariants, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { type UseApiKeysPageLoadReturn } from '~/app/hooks/useApiKeysPageLoad';
 import { APIKey } from '~/app/types/api-key';
@@ -96,6 +96,9 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions }) => 
         />
       )}
       <PageSection isFilled>
+        <Content component={ContentVariants.p}>
+          Manage API keys that can be used to authenticate with model endpoints.
+        </Content>
         <ApiKeysTable
           onRevokeApiKey={setRevokeApiKey}
           apiKeys={apiKeys}

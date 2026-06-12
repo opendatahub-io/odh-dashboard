@@ -108,7 +108,7 @@ const SubscriptionModelsTable: React.FC<SubscriptionModelsTableProps> = ({
   <Table aria-label={ariaLabel} data-testid={tableTestId} variant="compact" borders={false}>
     <Thead>
       <Tr>
-        <Th width={60}>Model</Th>
+        <Th width={60}>Name</Th>
         <Th width={40}>Token limits</Th>
       </Tr>
     </Thead>

@@ -44,10 +44,8 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={
-        <TitleWithIcon title="API keys and subscriptions" objectType={ProjectObjectType.apiKeys} />
-      }
-      description="Manage your API keys and view your subscription access."
+      title={<TitleWithIcon title="API keys" objectType={ProjectObjectType.apiKeys} />}
+      description="Manage API keys that can be used to authenticate with model endpoints."
       loaded={isPageLoaded}
       empty={false}
       loadError={pageLoadError}
