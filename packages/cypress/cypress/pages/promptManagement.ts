@@ -53,6 +53,18 @@ class PromptManagement {
     return cy.findByRole('menuitem', { name });
   }
 
+  findGlobalProjectIndicator() {
+    return cy.findByTestId('global-project-indicator');
+  }
+
+  findPinnedGroupLabel() {
+    return cy.findByText('Global project');
+  }
+
+  findProjectsGroupLabel() {
+    return cy.findByText('Projects');
+  }
+
   shouldHaveWorkspace(workspace: string) {
     cy.url().should('include', `workspace=${workspace}`);
   }
