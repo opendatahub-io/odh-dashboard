@@ -429,5 +429,41 @@ describe('DashboardNotificationContext', () => {
 
       expect(id2).toBe(id1 + 1);
     });
+
+    it('should seed counter past external mod-arch-core notification IDs', () => {
+      const react = require('react');
+      const { NotificationContext } = require('mod-arch-core');
+
+      const externalNotifications = [
+        { id: 5, status: 'info', title: 'External 1', timestamp: new Date() },
+        { id: 10, status: 'warning', title: 'External 2', timestamp: new Date() },
+      ];
+
+      const wrapperWithExternal: React.FC<React.PropsWithChildren> = ({ children }) => (
+        <NotificationContext.Provider
+          value={{
+            notifications: externalNotifications,
+            notificationCount: 2,
+            updateNotificationCount: jest.fn(),
+            dispatch: jest.fn(),
+          }}
+        >
+          <DashboardNotificationContextProvider>{children}</DashboardNotificationContextProvider>
+        </NotificationContext.Provider>
+      );
+
+      const renderResult = renderHook(() => useDashboardNotificationContext(), {
+        wrapper: wrapperWithExternal,
+      });
+
+      const { result } = renderResult;
+
+      let newId = 0;
+      react.act(() => {
+        newId = result.current.getNextId();
+      });
+      // After sync, getNextId should return an ID greater than the max external ID (10)
+      expect(newId).toBeGreaterThan(10);
+    });
   });
 });

@@ -87,6 +87,13 @@ export const DashboardNotificationContextProvider: React.FC<React.PropsWithChild
     const newNotifications = modArchNotifications.slice(lastSyncedIndexRef.current);
     lastSyncedIndexRef.current = modArchNotifications.length;
 
+    // Seed the local counter past any external IDs to prevent collisions
+    const maxExternalId = newNotifications.reduce(
+      (max, n) => Math.max(max, n.id ?? 0),
+      idCounterRef.current,
+    );
+    idCounterRef.current = maxExternalId;
+
     newNotifications.forEach((modArchNotification) => {
       const alreadyExists = notificationsRef.current.some((n) => n.id === modArchNotification.id);
       if (!alreadyExists) {
