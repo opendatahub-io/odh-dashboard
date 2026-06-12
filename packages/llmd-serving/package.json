@@ -20,8 +20,9 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/model-serving": "*",
-    "@odh-dashboard/kserve": "*"
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/kserve": "*",
+    "@odh-dashboard/model-serving": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",

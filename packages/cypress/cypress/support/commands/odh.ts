@@ -39,10 +39,10 @@ import type {
   RegisteredModel,
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
+import type { DashboardConfigKind, SecretKind, TemplateKind } from '@odh-dashboard/k8s-core';
 import type {
   ConfigMapKind,
   ConsoleLinkKind,
-  DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
   FeatureStoreKind,
@@ -52,9 +52,7 @@ import type {
   NotebookKind,
   OdhQuickStart,
   RoleBindingKind,
-  SecretKind,
   ServingRuntimeKind,
-  TemplateKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import type { StartNotebookData } from '@odh-dashboard/internal/pages/projects/types';
 import type { AllowedUser } from '@odh-dashboard/internal/pages/notebookController/screens/admin/types';

@@ -1,4 +1,4 @@
-import { MetadataAnnotation, type SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import { MetadataAnnotation, SecretKind } from '@odh-dashboard/k8s-core';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/index';
 import {
   getDisplayNameFromK8sResource,

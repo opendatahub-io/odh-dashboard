@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import useFetch, {
   NotReadyError,
   type FetchOptions,

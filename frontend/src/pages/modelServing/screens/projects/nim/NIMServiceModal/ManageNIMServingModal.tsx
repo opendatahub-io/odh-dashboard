@@ -10,6 +10,7 @@ import {
   ModalHeader,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import type { PersistentVolumeClaimKind, ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -22,9 +23,6 @@ import {
 import {
   AccessReviewResourceAttributes,
   InferenceServiceKind,
-  PersistentVolumeClaimKind,
-  ProjectKind,
-  SecretKind,
   ServingRuntimeKind,
 } from '#~/k8sTypes';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';

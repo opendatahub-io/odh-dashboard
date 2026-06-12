@@ -11,8 +11,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
-import { Toleration, NodeSelector } from '#~/types';
-import { HardwareProfileKind } from '#~/k8sTypes';
+import type { Toleration, NodeSelector, HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import {
   getClusterQueueNameFromLocalQueues,
   getHardwareProfileDescription,

@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { getServingRuntimeContext, listServingRuntimes, useAccessReview } from '#~/api';
-import { AccessReviewResourceAttributes, KnownLabels, ServingRuntimeKind } from '#~/k8sTypes';
+import { AccessReviewResourceAttributes, ServingRuntimeKind } from '#~/k8sTypes';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useFetch, {
   FetchOptions,

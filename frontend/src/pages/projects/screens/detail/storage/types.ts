@@ -1,4 +1,5 @@
-import { PersistentVolumeClaimKind, StorageClassKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { StorageClassKind } from '#~/k8sTypes';
 
 export type StorageTableData = {
   pvc: PersistentVolumeClaimKind;

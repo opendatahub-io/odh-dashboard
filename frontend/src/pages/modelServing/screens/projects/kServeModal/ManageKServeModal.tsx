@@ -9,6 +9,7 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import type { TemplateKind, ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -17,13 +18,7 @@ import {
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
-import {
-  TemplateKind,
-  ProjectKind,
-  InferenceServiceKind,
-  AccessReviewResourceAttributes,
-  SecretKind,
-} from '#~/k8sTypes';
+import { InferenceServiceKind, AccessReviewResourceAttributes } from '#~/k8sTypes';
 import { getKServeContainerArgs, getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '#~/pages/modelServing/customServingRuntimes/utils';

@@ -1,9 +1,8 @@
 import * as React from 'react';
-import { PodContainer } from '#~/types';
+import type { PodContainer, PodContainerStatus, PodKind } from '@odh-dashboard/k8s-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePod from '#~/concepts/k8s/pods/usePod';
 import { getPodContainers } from '#~/concepts/k8s/pods/utils';
-import { PodContainerStatus, PodKind } from '#~/k8sTypes';
 import {
   checkPodContainersStatus,
   PodStatus,

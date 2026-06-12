@@ -5,7 +5,7 @@ import TableRowTitleDescription from '@odh-dashboard/internal/components/table/T
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { Content, Label } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions';

@@ -1,6 +1,7 @@
 import * as React from 'react';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { getInferenceServiceContext, listInferenceService, useAccessReview } from '#~/api';
-import { AccessReviewResourceAttributes, InferenceServiceKind, KnownLabels } from '#~/k8sTypes';
+import { AccessReviewResourceAttributes, InferenceServiceKind } from '#~/k8sTypes';
 import { ListWithNonDashboardPresence } from '#~/types';
 import useFetch, {
   FetchOptions,
