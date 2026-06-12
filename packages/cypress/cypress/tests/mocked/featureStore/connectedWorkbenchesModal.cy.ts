@@ -239,7 +239,7 @@ describe('Connected Workbenches modal', () => {
     featureStoreGlobal.openConnectedWorkbenchesModal();
 
     cy.findByTestId('connected-workbenches-table').should('be.visible');
-    cy.findByRole('link', { name: new RegExp(workbenchName) }).should(
+    cy.findByRole('link', { name: workbenchName }).should(
       'have.attr',
       'href',
       `/notebook/${authorizedProject}/${workbenchName}`,

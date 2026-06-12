@@ -102,6 +102,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
       onSearchClear={() => setSearchText('')}
       isDisabled={isLoading}
       toggleContent={selectedFeastProjectName || 'All feature stores'}
+      appendTo={() => document.body}
     >
       <MenuItem
         key="__all__"
@@ -164,7 +165,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
             {isLoading && (
               <Bullseye aria-live="polite" aria-busy>
                 <Spinner
-                  size="xl"
+                  size="lg"
                   aria-label="Loading connected workbenches"
                   data-testid="connected-workbenches-loading-spinner"
                 />
