@@ -709,7 +709,9 @@ paths:
         Permanently deletes a completed, failed, or canceled AutoRAG pipeline run. The BFF validates
         that the run belongs to the discovered AutoRAG managed pipeline in the namespace and that it
         is in a deletable state (SUCCEEDED, FAILED, or CANCELED) before deleting it. This prevents
-        users from deleting runs from other pipelines in the same namespace.
+        users from deleting runs from other pipelines in the same namespace. Returns 404 if the run
+        doesn't exist, belongs to a different pipeline, or the discovered AutoRAG managed pipeline
+        is absent.
 
   /api/v1/pipeline-runs/{runId}/terminate:
     summary: Terminate an active pipeline run
@@ -717,8 +719,8 @@ paths:
       Terminates an active pipeline run, cancelling all running tasks and transitioning the run
       to CANCELING and then CANCELED state. The run must be in an active state (PENDING, RUNNING,
       PAUSED, or CANCELING) and belong to the discovered AutoRAG pipeline in the namespace.
-      Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist or
-      belongs to a different pipeline.
+      Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist,
+      belongs to a different pipeline, or the discovered AutoRAG managed pipeline is absent.
     post:
       tags:
         - PipelineOperation
@@ -755,7 +757,8 @@ paths:
         CANCELED state. The run must be in an active state (PENDING, RUNNING, PAUSED, or
         CANCELING). The BFF validates that the run belongs to the discovered AutoRAG managed
         pipeline in the namespace and that it is in a terminatable state before proceeding.
-        Returns 400 if the run is not in a terminatable state.
+        Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist,
+        belongs to a different pipeline, or the discovered AutoRAG managed pipeline is absent.
 
   /api/v1/pipeline-runs/{runId}/retry:
     summary: Retry a failed or canceled pipeline run
@@ -763,7 +766,8 @@ paths:
       Re-initiates a failed or canceled pipeline run from the point of failure. The run must
       belong to the discovered AutoRAG pipeline in the namespace and must be in FAILED or
       CANCELED state. Returns 400 if the run is not in a retryable state, or 404 if the run
-      doesn't exist or belongs to a different pipeline.
+      doesn't exist, belongs to a different pipeline, or the discovered AutoRAG managed pipeline
+      is absent.
     post:
       tags:
         - PipelineOperation
@@ -799,7 +803,9 @@ paths:
         Re-initiates a failed or canceled AutoRAG pipeline run. The BFF validates that the run
         belongs to the discovered AutoRAG managed pipeline in the namespace and that it is in a
         retryable state (FAILED or CANCELED) before retrying it. This prevents users from
-        retrying runs from other pipelines in the same namespace.
+        retrying runs from other pipelines in the same namespace. Returns 404 if the run doesn't
+        exist, belongs to a different pipeline, or the discovered AutoRAG managed pipeline is
+        absent.
 
 components:
   schemas:
