@@ -18,8 +18,8 @@ func NewMockOGXClient() ogx.OGXClientInterface {
 	return &MockOGXClient{}
 }
 
-// ListModels returns mock model data in Open GenAI Stack native format
-func (m *MockOGXClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, error) {
+// ListModels returns mock model data in Open GenAI Stack native format.
+func (m *MockOGXClient) ListModels(_ context.Context, _, _ string) ([]models.OGXNativeModel, error) {
 	return []models.OGXNativeModel{
 		// LLM Models
 		mockNativeModel("llama3.2:3b", "llm", "ollama", "ollama://models/llama3.2:3b"),
@@ -35,7 +35,7 @@ func (m *MockOGXClient) ListModels(ctx context.Context) ([]models.OGXNativeModel
 }
 
 // ListProviders returns mock provider data matching OGX's /v1/providers response format.
-func (m *MockOGXClient) ListProviders(ctx context.Context) ([]models.OGXProvider, error) {
+func (m *MockOGXClient) ListProviders(_ context.Context, _, _ string) ([]models.OGXProvider, error) {
 	return []models.OGXProvider{
 		{API: "vector_io", ProviderID: "milvus", ProviderType: "remote::milvus"},
 		{API: "vector_io", ProviderID: "faiss", ProviderType: "inline::faiss"},

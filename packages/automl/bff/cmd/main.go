@@ -24,13 +24,14 @@ func main() {
 	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 4003), "API server port")
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
-	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
+	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
-	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", false, "Use mock S3 client")
+	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
+	flag.BoolVar(&cfg.MockModelRegistryClient, "mock-model-registry-client", getEnvAsBool("MOCK_MODEL_REGISTRY_CLIENT", false), "Use mock Model Registry client")
 	flag.StringVar(&cfg.AutoMLTimeSeriesPipelineNamePrefix, "automl-timeseries-pipeline-name-prefix", getEnvAsString("AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX", "autogluon-timeseries-training-pipeline"), "Prefix for identifying AutoML time-series managed pipelines during discovery (default: autogluon-timeseries-training-pipeline)")
 	flag.StringVar(&cfg.AutoMLTabularPipelineNamePrefix, "automl-tabular-pipeline-name-prefix", getEnvAsString("AUTOML_TABULAR_PIPELINE_NAME_PREFIX", "autogluon-tabular-training-pipeline"), "Prefix for identifying AutoML tabular managed pipelines (classification + regression) during discovery (default: autogluon-tabular-training-pipeline)")
-	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
+	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
 	// New deployment mode flag
@@ -43,7 +44,7 @@ func main() {
 	// If not provided via flag, it can be set via BUNDLE_PATHS env var (comma-separated). Defaults to empty.
 	defaultBundlePaths := getEnvAsString("BUNDLE_PATHS", "")
 	flag.Func("bundle-paths", "Comma-separated list of PEM CA bundle file paths to trust for outbound TLS (optional)", newOriginParser(&cfg.BundlePaths, defaultBundlePaths))
-	flag.StringVar(&cfg.AuthMethod, "auth-method", "user_token", "Authentication method (disabled, internal, or user_token)")
+	flag.StringVar(&cfg.AuthMethod, "auth-method", getEnvAsString("AUTH_METHOD", config.AuthMethodUser), "Authentication method (disabled, internal, or user_token)")
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
 	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
 
@@ -60,9 +61,10 @@ func main() {
 	cfg.AutoMLTimeSeriesPipelineNamePrefix = strings.TrimSpace(cfg.AutoMLTimeSeriesPipelineNamePrefix)
 	cfg.AutoMLTabularPipelineNamePrefix = strings.TrimSpace(cfg.AutoMLTabularPipelineNamePrefix)
 
-	// Auto-detect mock mode: if mock clients are enabled and auth method is still default,
-	// automatically switch to disabled auth for testing convenience
-	if (cfg.MockK8Client || cfg.MockS3Client || cfg.MockPipelineServerClient) && cfg.AuthMethod == "user_token" {
+	// In dev mode, auto-disable auth when any mock client is active for testing convenience.
+	if cfg.DevMode &&
+		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockModelRegistryClient) &&
+		cfg.AuthMethod == config.AuthMethodUser {
 		cfg.AuthMethod = config.AuthMethodDisabled
 	}
 
@@ -81,23 +83,38 @@ func main() {
 		Level: cfg.LogLevel,
 	}))
 
+	// Warn operators when DevMode + ALLOW_UNRESOLVED_S3_ENDPOINTS weakens SSRF protections
+	if cfg.DevMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
+		logger.Warn("** SECURITY WARNING ** DevMode with ALLOW_UNRESOLVED_S3_ENDPOINTS=true is active. " +
+			"DNS resolution validation for S3 endpoints is bypassed, which weakens SSRF protection " +
+			"and introduces TOCTOU risk. This configuration must NEVER be used in production.")
+	}
+
 	//validate auth method
 	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
 		logger.Error("invalid auth method: (must be disabled, internal, or user_token)", "authMethod", cfg.AuthMethod)
 		os.Exit(1)
 	}
 
-	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
-	if cfg.MockS3Client && !cfg.DevMode {
-		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
+	// Prevent mock clients from being enabled in production — MockS3Client in particular
+	// bypasses SSRF protections (the mock skips endpoint validation entirely).
+	if !cfg.DevMode && (cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockModelRegistryClient) {
+		logger.Error("mock clients can only be enabled in development mode (set -dev-mode flag)")
 		os.Exit(1)
 	}
 
-	// MockS3Client depends on MockK8Client since GetS3Credentials needs
+	// Prevent disabling TLS verification in production — all authenticated outbound
+	// clients (pipelines, model registry, S3) send bearer or SA tokens over TLS.
+	if cfg.InsecureSkipVerify && !cfg.DevMode {
+		logger.Error("insecure-skip-verify can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
+
+	// MockS3Client depends on MockK8sClient since GetS3Credentials needs
 	// a mock Kubernetes client to fetch secrets
-	if cfg.MockS3Client && !cfg.MockK8Client {
+	if cfg.MockS3Client && !cfg.MockK8sClient {
 		logger.Error("mock-s3-client requires mock-k8s-client to be enabled (mock S3 depends on mock K8s for credential retrieval)",
-			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8Client)
+			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8sClient)
 		os.Exit(1)
 	}
 

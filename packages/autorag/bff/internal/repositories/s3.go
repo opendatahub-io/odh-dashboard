@@ -4,225 +4,355 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
-	"slices"
+	"mime"
 	"strings"
+	"time"
 
-	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	s3client "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
-	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 )
 
-// secretKeyEntry stores an original-case key and its value from secret data.
-type secretKeyEntry struct {
-	originalKey string
-	value       string
+// ErrS3Configuration is returned when S3 credentials or storage configuration is
+// missing or invalid (e.g., missing secret fields, missing bucket, bad DSPA spec).
+var ErrS3Configuration = errors.New("S3 configuration error")
+
+const defaultMaxCollisionAttempts = 10
+
+// S3RequestContext captures the S3 access parameters available from an HTTP request.
+// Handlers build this from query params and middleware-injected context, then pass
+// it to S3Repository operations — keeping handler bodies to a single repo call.
+//
+// Bucket resolution semantics:
+//   - SecretName path: Bucket overrides the secret's AWS_S3_BUCKET default.
+//   - DSPA path (SecretName=""): Bucket is IGNORED. The DSPA-configured bucket is
+//     always used to prevent caller-side bucket substitution attacks.
+type S3RequestContext struct {
+	Namespace  string
+	SecretName string // empty = auto-discover DSPA in Namespace
+	Bucket     string // caller-supplied override; DSPA path ignores this
 }
 
-// newSecretLookup builds a deterministic, case-insensitive lookup function from
-// Kubernetes secret data. The returned function:
-//  1. Prefers an exact-case match if present.
-//  2. Falls back to a single case-insensitive variant.
-//  3. Returns an error if multiple case-variants collide (non-deterministic).
-func newSecretLookup(secretData map[string][]byte) func(targetKeys ...string) (string, error) {
-	// Build a normalized map: lowercased key → all original-case entries.
-	normalized := make(map[string][]secretKeyEntry, len(secretData))
-	for k, v := range secretData {
-		lower := strings.ToLower(k)
-		normalized[lower] = append(normalized[lower], secretKeyEntry{originalKey: k, value: string(v)})
-	}
+// s3KeyResolutionTimeout caps the total time for key-existence checks during collision resolution.
+const s3KeyResolutionTimeout = 15 * time.Second
 
-	return func(targetKeys ...string) (string, error) {
-		for _, targetKey := range targetKeys {
-			// 1. Prefer exact-case match.
-			if val, ok := secretData[targetKey]; ok {
-				return string(val), nil
-			}
+// S3Repository handles S3 credential resolution (from K8s secrets or DSPA) and
+// delegates S3 operations to the autox-core S3 service.
+type S3Repository struct {
+	s3Service        s3.Service
+	k8sService       kubernetes.Service
+	pipelinesService pipelines.Service
+	logger           *slog.Logger
+}
 
-			// 2. Case-insensitive fallback.
-			lower := strings.ToLower(targetKey)
-			entries, ok := normalized[lower]
-			if !ok || len(entries) == 0 {
-				continue
-			}
-
-			// 3. Exactly one case-variant → return it.
-			if len(entries) == 1 {
-				return entries[0].value, nil
-			}
-
-			// 4. Multiple case-variants → ambiguous, return error.
-			keys := make([]string, len(entries))
-			for i, e := range entries {
-				keys[i] = e.originalKey
-			}
-			slices.Sort(keys)
-			return "", fmt.Errorf("%w %q: multiple case-variants found: %v", ErrAmbiguousSecretKey, targetKey, keys)
-		}
-		return "", nil
+func NewS3Repository(
+	logger *slog.Logger,
+	s3Service s3.Service,
+	k8sService kubernetes.Service,
+	pipelinesService pipelines.Service,
+) *S3Repository {
+	return &S3Repository{
+		s3Service:        s3Service,
+		k8sService:       k8sService,
+		pipelinesService: pipelinesService,
+		logger:           logger,
 	}
 }
 
-// S3Credentials is a type alias for the s3 client package's S3Credentials,
-// re-exported so the interface can reference it without a package qualifier.
-type S3Credentials = s3client.S3Credentials
-
-var ErrAmbiguousSecretKey = errors.New("ambiguous secret key")
-var ErrMissingRequiredField = errors.New("missing required field")
-
-type S3Repository struct{}
-
-func NewS3Repository() *S3Repository {
-	return &S3Repository{}
+func (r *S3Repository) resolveCredsAndBucket(ctx context.Context, req S3RequestContext) (s3.ConnectionOptions, string, error) {
+	if req.SecretName != "" {
+		return r.resolveFromSecret(ctx, req)
+	}
+	return r.resolveFromDSPA(ctx, req.Namespace)
 }
 
-// GetS3Credentials retrieves S3 credentials from a Kubernetes secret
-func (r *S3Repository) GetS3Credentials(
-	ctx context.Context,
-	client k8s.KubernetesClientInterface,
-	namespace string,
-	secretName string,
-	identity *k8s.RequestIdentity,
-) (*s3client.S3Credentials, error) {
-	// Fetch the specific secret
-	secret, err := client.GetSecret(ctx, namespace, secretName, identity)
+func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestContext) (s3.ConnectionOptions, string, error) {
+	secret, err := r.k8sService.GetSecret(ctx, req.Namespace, req.SecretName)
 	if err != nil {
-		return nil, err
+		return s3.ConnectionOptions{}, "", fmt.Errorf("error fetching secret %q from namespace %s: %w", req.SecretName, req.Namespace, err)
 	}
 
-	// Case-insensitive credential extraction with deterministic collision detection.
-	// More lenient than the case-sensitive classification in secret.go to maximize
-	// compatibility with existing secrets.
-	getValue := newSecretLookup(secret.Data)
-
-	accessKeyID, err := getValue("AWS_ACCESS_KEY_ID")
+	opts, defaultBucket, err := extractAWSS3ConnectionOptions(secret.Data)
 	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
-	}
-	secretAccessKey, err := getValue("AWS_SECRET_ACCESS_KEY")
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
-	}
-	region, err := getValue("AWS_DEFAULT_REGION")
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
-	}
-	endpointURL, err := getValue("AWS_S3_ENDPOINT")
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
-	}
-	bucket, err := getValue("AWS_S3_BUCKET") // Optional bucket name
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("secret %q: %w", req.SecretName, err)
 	}
 
-	creds := &s3client.S3Credentials{
-		AccessKeyID:     accessKeyID,
-		SecretAccessKey: secretAccessKey,
-		Region:          region,
-		EndpointURL:     endpointURL,
-		Bucket:          bucket,
+	bucket := strings.TrimSpace(req.Bucket)
+	if bucket == "" {
+		bucket = defaultBucket
+	}
+	if bucket == "" {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: bucket is required — supply ?bucket= or set AWS_S3_BUCKET in secret %q", ErrS3Configuration, req.SecretName)
 	}
 
-	// Validate that all required fields are present
-	if creds.AccessKeyID == "" {
-		return nil, fmt.Errorf("secret '%s' %w: AWS_ACCESS_KEY_ID", secretName, ErrMissingRequiredField)
-	}
-	if creds.SecretAccessKey == "" {
-		return nil, fmt.Errorf("secret '%s' %w: AWS_SECRET_ACCESS_KEY", secretName, ErrMissingRequiredField)
-	}
-	if creds.Region == "" {
-		return nil, fmt.Errorf("secret '%s' %w: AWS_DEFAULT_REGION", secretName, ErrMissingRequiredField)
-	}
-	if creds.EndpointURL == "" {
-		return nil, fmt.Errorf("secret '%s' %w: AWS_S3_ENDPOINT", secretName, ErrMissingRequiredField)
-	}
-
-	return creds, nil
+	return opts, bucket, nil
 }
 
-// GetS3CredentialsFromDSPA retrieves S3 credentials from the Kubernetes secret referenced by
-// a DSPAObjectStorage config, using the field names the DSPA spec specifies rather than the
-// conventional AWS_* names. The endpoint URL, bucket, and region come from the DSPA spec
-// and are carried in the dspaStorage struct — they are not expected to be in the secret.
-func (r *S3Repository) GetS3CredentialsFromDSPA(
-	ctx context.Context,
-	client k8s.KubernetesClientInterface,
-	namespace string,
-	dspaStorage *models.DSPAObjectStorage,
-	identity *k8s.RequestIdentity,
-) (*S3Credentials, error) {
-	if dspaStorage.SecretName == "" {
-		return nil, fmt.Errorf("DSPA spec missing secret name: SecretName is required")
-	}
-	if dspaStorage.EndpointURL == "" {
-		return nil, fmt.Errorf("DSPA spec missing a valid endpoint (scheme + host are required)")
-	}
-
-	secret, err := client.GetSecret(ctx, namespace, dspaStorage.SecretName, identity)
+func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s3.ConnectionOptions, string, error) {
+	dspa, err := r.pipelinesService.DiscoverReadyDSPA(ctx, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w",
-			dspaStorage.SecretName, namespace, err)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("failed to discover DSPA in namespace %s: %w", namespace, err)
 	}
 
-	// Case-insensitive credential extraction with deterministic collision detection.
-	// More lenient than the case-sensitive classification in secret.go to maximize
-	// compatibility with existing secrets.
-	getValue := newSecretLookup(secret.Data)
+	spec := dspa.ObjectStorage
+	if spec == nil {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q in namespace %s has no object storage configured", dspa.Name, namespace)
+	}
+	if spec.SecretName == "" {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing a secret name", ErrS3Configuration, dspa.Name)
+	}
+	if spec.EndpointURL == "" {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing an endpoint URL", ErrS3Configuration, dspa.Name)
+	}
+	if spec.Bucket == "" {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing a bucket — contact your administrator", ErrS3Configuration, dspa.Name)
+	}
 
-	accessKeyID, err := getValue(dspaStorage.AccessKeyField)
+	secret, err := r.k8sService.GetSecret(ctx, namespace, spec.SecretName)
 	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", dspaStorage.SecretName, err)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("error fetching DSPA secret %q from namespace %s: %w", spec.SecretName, namespace, err)
+	}
+
+	accessKeyID, err := kubernetes.LookupSecretValue(secret.Data, spec.AccessKeyField)
+	if err != nil {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
 	}
 	if accessKeyID == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: %s",
-			dspaStorage.SecretName, dspaStorage.AccessKeyField)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q missing required field: %s", ErrS3Configuration, spec.SecretName, spec.AccessKeyField)
 	}
 
-	secretAccessKey, err := getValue(dspaStorage.SecretKeyField)
+	secretAccessKey, err := kubernetes.LookupSecretValue(secret.Data, spec.SecretKeyField)
 	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", dspaStorage.SecretName, err)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
 	}
 	if secretAccessKey == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: %s",
-			dspaStorage.SecretName, dspaStorage.SecretKeyField)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q missing required field: %s", ErrS3Configuration, spec.SecretName, spec.SecretKeyField)
 	}
 
-	region := dspaStorage.Region
+	region := spec.Region
 	if region == "" {
-		region = "us-east-1" // MinIO and other compatible stores ignore region; SDK requires a value
+		region = "us-east-1"
 	}
 
-	// Try to read endpoint URL from the secret first (allows custom configurations).
-	// AWS_S3_ENDPOINT and AWS_S3_BUCKET are optional override keys that follow the
-	// DSPA operator convention for MinIO secrets. When present in the secret, they
-	// take precedence over the DSPA spec values.
-	// See: https://github.com/opendatahub-io/data-science-pipelines-operator
-	endpointURL := dspaStorage.EndpointURL
-	secretEndpoint, err := getValue("AWS_S3_ENDPOINT")
-	if err != nil {
-		// Log ambiguous key error but continue with DSPA-specified endpoint
-		slog.Warn("ignoring ambiguous AWS_S3_ENDPOINT in secret, using DSPA spec",
-			"secret", dspaStorage.SecretName, "error", err)
+	endpointURL := spec.EndpointURL
+	if secretEndpoint, lErr := kubernetes.LookupSecretValue(secret.Data, "AWS_S3_ENDPOINT"); lErr != nil {
+		r.logger.Warn("ignoring ambiguous AWS_S3_ENDPOINT in DSPA secret, using spec value",
+			"secret", spec.SecretName, "error", lErr)
 	} else if secretEndpoint != "" {
 		endpointURL = secretEndpoint
 	}
 
-	// Similarly, try to read bucket from the secret (optional override)
-	bucket := dspaStorage.Bucket
-	secretBucket, err := getValue("AWS_S3_BUCKET")
-	if err != nil {
-		slog.Warn("ignoring ambiguous AWS_S3_BUCKET in secret, using DSPA spec",
-			"secret", dspaStorage.SecretName, "error", err)
+	bucket := spec.Bucket
+	if secretBucket, lErr := kubernetes.LookupSecretValue(secret.Data, "AWS_S3_BUCKET"); lErr != nil {
+		r.logger.Warn("ignoring ambiguous AWS_S3_BUCKET in DSPA secret, using spec value",
+			"secret", spec.SecretName, "error", lErr)
 	} else if secretBucket != "" {
 		bucket = secretBucket
 	}
 
-	return &S3Credentials{
+	return s3.ConnectionOptions{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
-		EndpointURL:     endpointURL,
-		Bucket:          bucket,
 		Region:          region,
+		BaseEndpoint:    endpointURL,
+	}, bucket, nil
+}
+
+// GetObject resolves credentials from req, retrieves the object at key, and applies
+// content-type policy (sanitization + force-download classification).
+// The caller is responsible for closing Result.Body.
+func (r *S3Repository) GetObject(ctx context.Context, req S3RequestContext, key string) (*GetObjectResult, error) {
+	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	body, rawCT, err := r.s3Service.DownloadObject(ctx, opts, s3.DownloadObjectInput{Bucket: bucket, Key: key})
+	if err != nil {
+		return nil, err
+	}
+	sanitized := SanitizeContentType(rawCT)
+	return &GetObjectResult{
+		Body:          body,
+		ContentType:   sanitized,
+		ForceDownload: isForceDownloadType(rawCT) || sanitized == "application/octet-stream",
 	}, nil
+}
+
+// UploadFile resolves credentials from req, sanitizes the raw content type against the
+// upload allowlist, resolves a non-colliding key, and uploads body. Returns the resolved key.
+// maxAttempts of 0 uses the default (10).
+func (r *S3Repository) UploadFile(ctx context.Context, req S3RequestContext, key string, body io.Reader, rawContentType string, maxAttempts int) (string, error) {
+	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	if maxAttempts <= 0 {
+		maxAttempts = defaultMaxCollisionAttempts
+	}
+
+	keyCtx, cancel := context.WithTimeout(ctx, s3KeyResolutionTimeout)
+	defer cancel()
+
+	resolvedKey, err := r.s3Service.ResolveNonCollidingKey(keyCtx, opts, s3.ResolveNonCollidingKeyInput{
+		Bucket:      bucket,
+		Key:         key,
+		MaxAttempts: maxAttempts,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return resolvedKey, r.s3Service.UploadObject(ctx, opts, s3.UploadObjectInput{
+		Bucket:      bucket,
+		Key:         resolvedKey,
+		Body:        body,
+		ContentType: SanitizeContentType(rawContentType),
+	})
+}
+
+// ListObjects resolves credentials from req and lists objects using options.
+func (r *S3Repository) ListObjects(ctx context.Context, req S3RequestContext, options s3.ListObjectsOptions) (*s3.ListObjectsResponse, error) {
+	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return r.s3Service.ListObjects(ctx, opts, s3.ListObjectsQuery{
+		Bucket: bucket,
+		Path:   options.Path,
+		Search: options.Search,
+		Next:   options.Next,
+		Limit:  options.Limit,
+	})
+}
+
+// ObjectExists resolves credentials from req and checks whether key exists.
+func (r *S3Repository) ObjectExists(ctx context.Context, req S3RequestContext, key string) (bool, error) {
+	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
+	if err != nil {
+		return false, err
+	}
+	return r.s3Service.ObjectExists(ctx, opts, s3.ObjectExistsInput{Bucket: bucket, Key: key})
+}
+
+// extractAWSS3ConnectionOptions extracts S3 connection options from a Kubernetes secret's
+// raw data using the AWS_* key convention used by RHOAI/ODH data connection secrets.
+func extractAWSS3ConnectionOptions(data map[string][]byte) (s3.ConnectionOptions, string, error) {
+	get := func(key string) (string, error) {
+		v, err := kubernetes.LookupSecretValue(data, key)
+		if err != nil {
+			return "", fmt.Errorf("field %s: %w", key, err)
+		}
+		return v, nil
+	}
+
+	accessKeyID, err := get("AWS_ACCESS_KEY_ID")
+	if err != nil {
+		return s3.ConnectionOptions{}, "", err
+	}
+	secretAccessKey, err := get("AWS_SECRET_ACCESS_KEY")
+	if err != nil {
+		return s3.ConnectionOptions{}, "", err
+	}
+	region, err := get("AWS_DEFAULT_REGION")
+	if err != nil {
+		return s3.ConnectionOptions{}, "", err
+	}
+	endpoint, err := get("AWS_S3_ENDPOINT")
+	if err != nil {
+		return s3.ConnectionOptions{}, "", err
+	}
+	bucket, err := get("AWS_S3_BUCKET")
+	if err != nil {
+		return s3.ConnectionOptions{}, "", err
+	}
+
+	if accessKeyID == "" {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_ACCESS_KEY_ID", ErrS3Configuration)
+	}
+	if secretAccessKey == "" {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_SECRET_ACCESS_KEY", ErrS3Configuration)
+	}
+	if region == "" {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_DEFAULT_REGION", ErrS3Configuration)
+	}
+	if endpoint == "" {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_S3_ENDPOINT", ErrS3Configuration)
+	}
+
+	return s3.ConnectionOptions{
+		AccessKeyID:     accessKeyID,
+		SecretAccessKey: secretAccessKey,
+		Region:          region,
+		BaseEndpoint:    endpoint,
+	}, bucket, nil
+}
+
+// --- Content-type policy ---
+
+// allowedUploadMediaTypes lists the Content-Types that are stored as-is in S3.
+// Other types are normalized to application/octet-stream so GET cannot echo
+// arbitrary caller-controlled MIME types under the dashboard origin.
+// text/html is included so pipeline input can be stored correctly; the GET path
+// forces download for HTML via dangerousGetMediaTypes.
+var allowedUploadMediaTypes = map[string]struct{}{
+	"application/json":     {},
+	"application/markdown": {},
+	"application/pdf":      {},
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation": {},
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   {},
+	"text/html":           {},
+	"text/markdown":       {},
+	"text/plain":          {},
+	"text/x-web-markdown": {},
+	"text/x-markdown":     {},
+}
+
+// dangerousGetMediaTypes are types that must never be rendered inline under the
+// dashboard origin (XSS/SVG script vectors). The handler uses ForceDownload to
+// set Content-Disposition: attachment.
+var dangerousGetMediaTypes = map[string]struct{}{
+	"text/html":             {},
+	"application/xhtml+xml": {},
+	"image/svg+xml":         {},
+}
+
+// SanitizeContentType normalizes a raw Content-Type against the upload allowlist.
+// Returns "application/octet-stream" for empty, unparseable, or disallowed types.
+func SanitizeContentType(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "application/octet-stream"
+	}
+	mediaType, _, err := mime.ParseMediaType(raw)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	mediaType = strings.ToLower(mediaType)
+	if _, ok := allowedUploadMediaTypes[mediaType]; ok {
+		return mediaType
+	}
+	return "application/octet-stream"
+}
+
+// isForceDownloadType returns true for content types that must be served with
+// Content-Disposition: attachment to prevent inline rendering under the dashboard origin.
+func isForceDownloadType(contentType string) bool {
+	raw := strings.TrimSpace(contentType)
+	mediaType, _, err := mime.ParseMediaType(raw)
+	if err != nil {
+		return false
+	}
+	_, ok := dangerousGetMediaTypes[strings.ToLower(mediaType)]
+	return ok
+}
+
+// GetObjectResult holds the result of an S3 object retrieval with content-type
+// policy already applied by the repository.
+type GetObjectResult struct {
+	Body          io.ReadCloser
+	ContentType   string
+	ForceDownload bool
 }

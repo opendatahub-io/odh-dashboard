@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"crypto/x509"
 	"fmt"
 	"log/slog"
@@ -12,19 +11,17 @@ import (
 	"strings"
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
 	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
-	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
-	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
-	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
-	s3mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3/s3mocks"
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
+	k8sclient "k8s.io/client-go/kubernetes"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	"github.com/opendatahub-io/autorag-library/bff/internal/fake"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
@@ -68,21 +65,17 @@ func cacheControlForStaticFile(filePath string) string {
 }
 
 type App struct {
-	config                      config.EnvConfig
-	logger                      *slog.Logger
-	kubernetesClientFactory     k8s.KubernetesClientFactory
-	ogxClientFactory            ogx.OGXClientFactory
-	pipelineServerClientFactory ps.PipelineServerClientFactory
-	s3ClientFactory             s3int.S3ClientFactory
-	repositories                *repositories.Repositories
+	config       config.EnvConfig
+	logger       *slog.Logger
+	repositories *repositories.Repositories
+	// k8sService provides business logic for Kubernetes operations using autox-core
+	k8sService kubernetes.Service
 	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
 	s3PostMaxFilePartBytes int64
 	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
 	s3PostMaxRequestBodyBytes int64
 	// s3PostMaxCollisionAttempts limits HeadObject-based key suffix attempts in tests (0 = default cap).
 	s3PostMaxCollisionAttempts int
-	//used only on mocked k8s client
-	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
 	// portForwardManager manages on-demand port-forwards for local dev (nil in production)
@@ -91,10 +84,7 @@ type App struct {
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	logger.Debug("Initializing app with config", slog.Any("config", cfg))
-	var k8sFactory k8s.KubernetesClientFactory
 	var err error
-	// used only on mocked k8s client
-	var testEnv *envtest.Environment
 	var rootCAs *x509.CertPool
 
 	// Initialize CA pool if bundle paths are provided
@@ -131,30 +121,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	if cfg.MockK8Client {
-		//mock all k8s calls with 'env test'
-		var clientset kubernetes.Interface
-		ctx, cancel := context.WithCancel(context.Background())
-		testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to setup envtest: %w", err)
-		}
-		//create mocked kubernetes client factory
-		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
-
-	} else {
-		//create kubernetes client factory
-		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
-	}
-
 	// LOCAL DEVELOPMENT ONLY: Enable dynamic port-forwarding when DevMode is true
 	// and a real K8s client is in use. This rewrites in-cluster service URLs
 	// (*.svc.cluster.local) to localhost via SPDY tunnels, eliminating the need
@@ -164,12 +130,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// Uses the BFF's own kubeconfig credentials (not per-request user tokens)
 	// since port-forwards are long-lived and shared across requests.
 	var pfManager *k8s.PortForwardManager
-	if cfg.DevMode && !cfg.MockK8Client {
+	if cfg.DevMode && !cfg.MockK8sClient {
 		restCfg, pfErr := helper.GetKubeconfig()
 		if pfErr != nil {
 			logger.Warn("could not initialize dynamic port-forwarding", "error", pfErr)
 		} else {
-			clientset, csErr := kubernetes.NewForConfig(restCfg)
+			clientset, csErr := k8sclient.NewForConfig(restCfg)
 			if csErr != nil {
 				logger.Warn("could not initialize dynamic port-forwarding", "error", csErr)
 			} else {
@@ -179,58 +145,94 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	// Initialize Open GenAI Stack client factory
-	var ogxClientFactory ogx.OGXClientFactory
-	if cfg.MockOGXClient {
-		logger.Info("Using mock Open GenAI Stack client factory")
-		ogxClientFactory = ogxmocks.NewMockClientFactory()
+	// Create autox-core Kubernetes client and service.
+	var k8sClient kubernetes.Client
+	if cfg.MockK8sClient {
+		k8sClient = &fake.K8sClient{}
 	} else {
-		logger.Info("Using real Open GenAI Stack client factory")
-		ogxClientFactory = ogx.NewRealClientFactory()
+		if cfg.AuthMethod == config.AuthMethodUser {
+			k8sClient, err = kubernetes.NewDefaultTokenClient()
+		} else {
+			k8sClient, err = kubernetes.NewDefaultInternalClient()
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+		}
 	}
+	k8sService := kubernetes.NewService(kubernetes.ServiceConfig{Logger: logger}, k8sClient)
 
-	// Initialize Pipeline Server client factory
-	var pipelineServerClientFactory ps.PipelineServerClientFactory
+	// Create autox-core Pipelines client and service.
+	var pipelinesClient pipelines.Client
 	if cfg.MockPipelineServerClient {
-		logger.Info("Using mock Pipeline Server client factory")
-		pipelineServerClientFactory = psmocks.NewMockClientFactory()
+		pipelinesClient = &fake.PipelinesClient{}
 	} else {
-		logger.Info("Using real Pipeline Server client factory")
-		pipelineServerClientFactory = ps.NewRealClientFactory()
+		pipelinesCfg := pipelines.ClientConfig{
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			RootCAs:            rootCAs,
+		}
+		if pfManager != nil {
+			pipelinesCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+		}
+		pipelinesClient = pipelines.NewDefaultClient(pipelinesCfg)
 	}
+	pipelinesService := pipelines.NewService(pipelines.ServiceConfig{
+		Logger: logger,
+	}, pipelinesClient, k8sService)
 
-	// Initialize S3 client factory
-	var s3ClientFactory s3int.S3ClientFactory
+	// Initialize autox-core S3 client and service.
+	const envAllowUnresolvedS3Endpoints = "ALLOW_UNRESOLVED_S3_ENDPOINTS"
+	allowUnresolvedS3 := os.Getenv(envAllowUnresolvedS3Endpoints) == "true"
+	if !cfg.DevMode && allowUnresolvedS3 {
+		logger.Error("ALLOW_UNRESOLVED_S3_ENDPOINTS is set but DevMode is false — this weakens SSRF protection and must not be used in production")
+		os.Exit(1)
+	}
+	var s3Client s3.Client
 	if cfg.MockS3Client {
-		logger.Info("Using mock S3 client factory")
-		s3ClientFactory = s3mocks.NewMockClientFactory()
+		s3Client = &fake.S3Client{}
 	} else {
-		logger.Info("Using real S3 client factory")
-		// TLS verification uses the operator-mounted CA bundles (rootCAs) so that
-		// self-signed MinIO certificates are validated properly rather than skipped.
-		// The RHOAI operator passes --bundle-paths with cluster CA, service-ca, and
-		// odh-trusted-ca-bundle paths, which are loaded into rootCAs above.
-		// HTTPS is always required; plain HTTP is rejected to prevent credentials
-		// from being transmitted in cleartext.
-		// RFC-1918 private IPs are allowed (MinIO runs in-cluster); loopback,
-		// link-local, and reserved ranges are always blocked.
-		s3ClientFactory = s3int.NewRealClientFactory(s3int.S3ClientOptions{
-			DevMode: cfg.DevMode,
-			RootCAs: rootCAs,
-		})
+		s3ClientCfg := s3.ClientConfig{
+			RootCAs:                   rootCAs,
+			InsecureSkipVerify:        cfg.InsecureSkipVerify,
+			AllowUnresolvableEndpoint: cfg.DevMode && allowUnresolvedS3,
+		}
+		if pfManager != nil {
+			s3ClientCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+		}
+		s3Client = s3.NewDefaultClient(s3ClientCfg)
+	}
+	s3Service := s3.NewService(s3.ServiceConfig{Logger: logger}, s3Client)
+
+	// Initialize Open GenAI Stack client (single shared instance).
+	var ogxClient ogx.OGXClientInterface
+	if cfg.MockOGXClient {
+		ogxClient = &fake.OGXClient{}
+	} else {
+		ogxCfg := ogx.OGXClientConfig{
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			RootCAs:            rootCAs,
+		}
+		if pfManager != nil {
+			ogxCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+		}
+		ogxClient = ogx.NewDefaultOGXClient(ogxCfg)
 	}
 
 	app := &App{
-		config:                      cfg,
-		logger:                      logger,
-		kubernetesClientFactory:     k8sFactory,
-		ogxClientFactory:            ogxClientFactory,
-		pipelineServerClientFactory: pipelineServerClientFactory,
-		s3ClientFactory:             s3ClientFactory,
-		repositories:                repositories.NewRepositories(logger),
-		testEnv:                     testEnv,
-		rootCAs:                     rootCAs,
-		portForwardManager:          pfManager,
+		config: cfg,
+		logger: logger,
+		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
+			Logger:           logger,
+			K8sService:       k8sService,
+			PipelinesService: pipelinesService,
+			PipelinesCfg: repositories.PipelinesRepositoryConfig{
+				AutoRAGPipelineName: cfg.AutoRAGPipelineNamePrefix,
+			},
+			S3Service: s3Service,
+			OGXClient: ogxClient,
+		}),
+		k8sService:         k8sService,
+		rootCAs:            rootCAs,
+		portForwardManager: pfManager,
 	}
 	return app, nil
 }
@@ -240,27 +242,7 @@ func (app *App) Shutdown() error {
 	if app.portForwardManager != nil {
 		app.portForwardManager.Close()
 	}
-	if app.testEnv == nil {
-		return nil
-	}
-	//shutdown the envtest control plane when we are in the mock mode.
-	app.logger.Info("shutting env test...")
-	return app.testEnv.Stop()
-}
-
-// attachPipelineClientIfNeeded is a best-effort shim for the S3 file route.
-// When the caller supplies an explicit secretName query parameter the handler
-// can resolve S3 credentials directly, so DSPA discovery is skipped and next
-// is called immediately. Otherwise the full AttachPipelineServerClient
-// middleware runs as normal.
-func (app *App) attachPipelineClientIfNeeded(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if strings.TrimSpace(r.URL.Query().Get("secretName")) != "" {
-			next(w, r, ps)
-			return
-		}
-		app.AttachPipelineServerClient(next)(w, r, ps)
-	}
+	return nil
 }
 
 func (app *App) Routes() http.Handler {
@@ -277,37 +259,59 @@ func (app *App) Routes() http.Handler {
 	// Secrets
 	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
 
-	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
-	// secretName (the handler resolves credentials directly in that case).
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
-	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToService(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
-	// POST /s3/files/:key deliberately omits attachPipelineClientIfNeeded: secretName is required;
-	// there is no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
+	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
+	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.PipelineRunHandler)))
+	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.PipelineRunsHandler)))
+	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.CreatePipelineRunHandler)))
+	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToService(app.TerminatePipelineRunHandler)))
+	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToService(app.RetryPipelineRunHandler)))
+	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.DeletePipelineRunHandler)))
+
+	// S3 operations — credentials resolved from explicit secretName query parameter.
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
+	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FilesHandler)))
+	// POST /s3/files/:key: secretName is required; there is no DSPA fallback.
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToService(app.PostS3FileHandler))))
 
-	// Open GenAI Stack
-	apiRouter.GET(OGXModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.OGXModelsHandler))))
-	apiRouter.GET(OGXVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.OGXVectorStoresHandler))))
-
-	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
-	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
-	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunsHandler)))))
-	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
-	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.TerminatePipelineRunHandler)))))
-	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.RetryPipelineRunHandler)))))
-	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.DeletePipelineRunHandler)))))
+	// Open GenAI Stack — credentials are resolved by the repository from the secretName query param
+	apiRouter.GET(OGXModelsPath, app.AttachNamespace(app.RequireAccessToService(app.OGXModelsHandler)))
+	apiRouter.GET(OGXVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.OGXVectorStoresHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()
 
+	// Create identity extractor based on auth method
+	var identityExtractor kubernetes.IdentityExtractor
+	switch app.config.AuthMethod {
+	case config.AuthMethodDisabled:
+		identityExtractor = &fake.IdentityExtractor{}
+	case config.AuthMethodInternal:
+		identityExtractor = &kubernetes.KubeflowHeaderExtractor{
+			UserIDHeader:     constants.KubeflowUserIDHeader,
+			UserGroupsHeader: constants.KubeflowUserGroupsIdHeader,
+		}
+	case config.AuthMethodUser:
+		identityExtractor = &kubernetes.TokenHeaderExtractor{
+			Header: app.config.AuthTokenHeader,
+			Prefix: app.config.AuthTokenPrefix,
+		}
+	}
+
+	// Create identity middleware using autox-core — applied to API routes only
+	injectRequestIdentity := kubernetes.InjectRequestIdentity(kubernetes.InjectRequestIdentityConfig{
+		Extractor:  identityExtractor,
+		OnError:    app.badRequestResponse,
+		ContextKey: constants.RequestIdentityKey,
+	})
+
 	// handler for api calls — preserveRawPath ensures percent-encoded path parameters
 	// (e.g., S3 keys containing %2F) are forwarded to the router without decoding,
 	// so :key matches the full encoded segment rather than splitting on /.
-	rawPathRouter := preserveRawPath(apiRouter)
-	appMux.Handle(ApiPathPrefix+"/", rawPathRouter)
-	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, rawPathRouter))
+	authedAPI := injectRequestIdentity(preserveRawPath(apiRouter))
+	appMux.Handle(ApiPathPrefix+"/", authedAPI)
+	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, authedAPI))
 
-	// file server for the frontend file and SPA routes
+	// file server for the frontend files and SPA routes (no auth required)
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -316,7 +320,6 @@ func (app *App) Routes() http.Handler {
 		if f, err := staticDir.Open(r.URL.Path); err == nil {
 			f.Close()
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
-			// Serve the file if it exists
 			w.Header().Set("Cache-Control", cacheControlForStaticFile(r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return
@@ -335,10 +338,9 @@ func (app *App) Routes() http.Handler {
 	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
 
 	// Combines the healthcheck endpoint with the rest of the routes
-	// Apply middleware to appMux which contains the API routes
 	combinedMux := http.NewServeMux()
 	combinedMux.Handle(HealthCheckPath, healthcheckMux)
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
+	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(appMux))))
 
 	return combinedMux
 }
