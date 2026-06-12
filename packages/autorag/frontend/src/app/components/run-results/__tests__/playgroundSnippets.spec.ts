@@ -154,4 +154,34 @@ describe('credential injection', () => {
       expect(result).not.toContain('ogx.example.com');
     },
   );
+
+  it('should escape shell metacharacters in curl snippet', () => {
+    const adversarial: SnippetCredentials = {
+      hostname: 'host"$(whoami)`id`.com',
+      apiKey: 'key"$(cmd)`run`',
+    };
+    const result = generateCurlSnippet(mockTemplate, adversarial);
+    expect(result).not.toContain('<HOSTNAME>');
+    expect(result).not.toContain('<API_KEY>');
+    // $ and backticks must be backslash-escaped in the output
+    expect(result).toContain('\\$(whoami)');
+    expect(result).toContain('\\`id\\`');
+    expect(result).toContain('\\$(cmd)');
+    expect(result).toContain('\\`run\\`');
+  });
+
+  it.each(generators)(
+    'should escape double-quote characters in credentials for $name',
+    ({ fn }) => {
+      const adversarial: SnippetCredentials = {
+        hostname: 'host".evil.com',
+        apiKey: 'key"injection',
+      };
+      const result = fn(mockTemplate, adversarial);
+      expect(result).not.toContain('<HOSTNAME>');
+      expect(result).not.toContain('<API_KEY>');
+      expect(result).not.toMatch(/[^\\]"\.evil\.com/);
+      expect(result).not.toMatch(/[^\\]"injection/);
+    },
+  );
 });

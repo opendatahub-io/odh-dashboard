@@ -152,6 +152,7 @@ describe('useSecretCredentialsQuery', () => {
 
     expect(result.current.isFetching).toBe(false);
     expect(result.current.data).toBeUndefined();
+    expect(getSecretByNameMock).not.toHaveBeenCalled();
   });
 
   it('should be disabled when secretName is undefined', () => {
@@ -161,6 +162,7 @@ describe('useSecretCredentialsQuery', () => {
 
     expect(result.current.isFetching).toBe(false);
     expect(result.current.data).toBeUndefined();
+    expect(getSecretByNameMock).not.toHaveBeenCalled();
   });
 
   it('should be disabled when both params are undefined', () => {
@@ -170,6 +172,7 @@ describe('useSecretCredentialsQuery', () => {
 
     expect(result.current.isFetching).toBe(false);
     expect(result.current.data).toBeUndefined();
+    expect(getSecretByNameMock).not.toHaveBeenCalled();
   });
 
   it('should fetch when both namespace and secretName are provided', async () => {

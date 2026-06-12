@@ -5,13 +5,21 @@ export type SnippetCredentials = {
   apiKey: string;
 };
 
+const escapeShellDoubleQuote = (s: string): string =>
+  s.replace(/[\\"$`!\n]/g, (c) => (c === '\n' ? '\\n' : `\\${c}`));
+
+const escapeShellSingleQuote = (s: string): string => s.replace(/'/g, "'\\''");
+
+const escapeDoubleQuotedString = (s: string): string =>
+  s.replace(/[\\"]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
+
 export const generateCurlSnippet = (
   template: ResponsesTemplate,
   credentials?: SnippetCredentials,
 ): string => {
-  const hostname = credentials?.hostname ?? '<HOSTNAME>';
-  const apiKey = credentials?.apiKey ?? '<API_KEY>';
-  const body = JSON.stringify(template, null, 2);
+  const hostname = credentials ? escapeShellDoubleQuote(credentials.hostname) : '<HOSTNAME>';
+  const apiKey = credentials ? escapeShellDoubleQuote(credentials.apiKey) : '<API_KEY>';
+  const body = escapeShellSingleQuote(JSON.stringify(template, null, 2));
   return `curl -X POST https://${hostname}/v1/responses \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${apiKey}" \\
@@ -22,8 +30,8 @@ export const generateNodeSnippet = (
   template: ResponsesTemplate,
   credentials?: SnippetCredentials,
 ): string => {
-  const hostname = credentials?.hostname ?? '<HOSTNAME>';
-  const apiKey = credentials?.apiKey ?? '<API_KEY>';
+  const hostname = credentials ? escapeDoubleQuotedString(credentials.hostname) : '<HOSTNAME>';
+  const apiKey = credentials ? escapeDoubleQuotedString(credentials.apiKey) : '<API_KEY>';
   const body = JSON.stringify(template, null, 2)
     .split('\n')
     .map((line, i) => (i === 0 ? line : `  ${line}`))
@@ -44,8 +52,8 @@ export const generateGoSnippet = (
   template: ResponsesTemplate,
   credentials?: SnippetCredentials,
 ): string => {
-  const hostname = credentials?.hostname ?? '<HOSTNAME>';
-  const apiKey = credentials?.apiKey ?? '<API_KEY>';
+  const hostname = credentials ? escapeDoubleQuotedString(credentials.hostname) : '<HOSTNAME>';
+  const apiKey = credentials ? escapeDoubleQuotedString(credentials.apiKey) : '<API_KEY>';
   const body = JSON.stringify(template, null, 2)
     .split('\n')
     .map((line, i) =>
@@ -126,8 +134,8 @@ export const generatePythonSnippet = (
   template: ResponsesTemplate,
   credentials?: SnippetCredentials,
 ): string => {
-  const hostname = credentials?.hostname ?? '<HOSTNAME>';
-  const apiKey = credentials?.apiKey ?? '<API_KEY>';
+  const hostname = credentials ? escapeDoubleQuotedString(credentials.hostname) : '<HOSTNAME>';
+  const apiKey = credentials ? escapeDoubleQuotedString(credentials.apiKey) : '<API_KEY>';
   const params = jsonToPython(template, 0);
   return `from openai import OpenAI
 

@@ -224,6 +224,7 @@ export function useSecretCredentialsQuery(
       return getSecretByName('')(namespace, secretName)({ signal });
     },
     staleTime: 300_000,
+    retry: false,
   });
 }
 

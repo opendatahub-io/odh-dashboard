@@ -578,9 +578,11 @@ describe('AutoRAG API Contract Tests', () => {
           expect(Array.isArray(responseData.data)).toBe(false);
 
           if (responseData.data) {
+            const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
             Object.values(responseData.data).forEach((value) => {
               expect(typeof value).toBe('string');
               expect(value).not.toBe('[REDACTED]');
+              expect(value).toMatch(base64Regex);
             });
           }
         }
