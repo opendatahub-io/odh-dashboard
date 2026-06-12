@@ -431,7 +431,6 @@ describe('DashboardNotificationContext', () => {
     });
 
     it('should seed counter past external mod-arch-core notification IDs', () => {
-      const react = require('react');
       const { NotificationContext } = require('mod-arch-core');
 
       const externalNotifications = [
@@ -459,7 +458,7 @@ describe('DashboardNotificationContext', () => {
       const { result } = renderResult;
 
       let newId = 0;
-      react.act(() => {
+      act(() => {
         newId = result.current.getNextId();
       });
       // After sync, getNextId should return an ID greater than the max external ID (10)
