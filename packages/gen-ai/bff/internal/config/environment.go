@@ -127,4 +127,20 @@ type EnvConfig struct {
 	// BFFMaaSAuthTokenPrefix specifies the prefix MaaS BFF expects in the token header.
 	// Default: "" (empty for ODH's x-forwarded-access-token)
 	BFFMaaSAuthTokenPrefix string
+
+	// BFFMLflowServiceName is the Kubernetes service name for the MLflow BFF.
+	// Default: "odh-dashboard" (shared service in single-pod deployment)
+	BFFMLflowServiceName string
+
+	// BFFMLflowServicePort is the port for the MLflow BFF service.
+	// Default: 8343
+	BFFMLflowServicePort int
+
+	// BFFMLflowTLSEnabled enables HTTPS for MLflow BFF communication.
+	// Default: false (same pod, TLS not required)
+	BFFMLflowTLSEnabled bool
+
+	// BFFMLflowDevURL is a developer override URL for MLflow BFF (local development).
+	// When set, overrides service discovery. Example: "http://localhost:4010/api/v1"
+	BFFMLflowDevURL string
 }
