@@ -13,6 +13,7 @@ import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import PipelineTopology from '~/app/topology/PipelineTopology';
+import { TreeTopology, useTreeViewData } from '~/app/topology/tree-view';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
@@ -33,7 +34,7 @@ type NotebookDownloadError = {
 };
 
 function AutomlResults(): React.JSX.Element {
-  const { pipelineRun, models } = useAutomlResultsContext();
+  const { pipelineRun, models, modelsLoading } = useAutomlResultsContext();
   const { namespace } = useParams<{ namespace: string }>();
 
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
@@ -42,6 +43,14 @@ function AutomlResults(): React.JSX.Element {
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
   const nodes = useAutomlTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
+
+  // Transform models data for tree view visualization
+  const treeViewData = useTreeViewData(models, pipelineRun?.state);
+
+  // Determine if we should show loading state:
+  // Only show loading spinner when actively fetching, not when pipeline is running with no models yet
+  const hasModels = Object.keys(models).length > 0;
+  const showTreeLoading = modelsLoading && !hasModels;
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);
@@ -158,6 +167,22 @@ function AutomlResults(): React.JSX.Element {
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             className="automl-topology-container"
+          />
+        </StackItem>
+        <StackItem className="automl-topology-wrapper">
+          <Flex
+            className="automl-topology-overlay"
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Title headingLevel="h3">Pipeline Visualization (POC)</Title>
+            </FlexItem>
+          </Flex>
+          <TreeTopology
+            className="automl-tree-topology-container"
+            data={treeViewData}
+            loading={showTreeLoading}
           />
         </StackItem>
         <StackItem>
