@@ -466,35 +466,3 @@ func TestBuildPipelineNameFilter(t *testing.T) {
 		assert.JSONEq(t, `{"predicates":[{"key":"display_name","operation":"EQUALS","string_value":"autorag"}]}`, result)
 	})
 }
-
-func TestDiscoverPipelineForRun(t *testing.T) {
-	repo := NewPipelineRepository()
-	ctx := context.Background()
-
-	t.Run("should return existing pipeline when discovery succeeds", func(t *testing.T) {
-		namespace := "test-ns-discover-1"
-		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
-		ids := psmocks.DeriveMockIDs(mockClient.Namespace)
-
-		def := PipelineDefinition{Name: "documents-rag-optimization-pipeline"}
-
-		discovered, err := repo.DiscoverPipelineForRun(mockClient, ctx, namespace, def)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, discovered)
-		assert.Equal(t, ids.PipelineID, discovered.PipelineID)
-	})
-
-	t.Run("should return ErrManagedPipelineNotFound on soft miss", func(t *testing.T) {
-		namespace := "test-ns-discover-2"
-		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
-		mockClient.PipelineNames = []string{"unrelated-pipeline"}
-
-		def := PipelineDefinition{Name: "nonexistent"}
-
-		discovered, err := repo.DiscoverPipelineForRun(mockClient, ctx, namespace, def)
-
-		assert.ErrorIs(t, err, ErrManagedPipelineNotFound)
-		assert.Nil(t, discovered)
-	})
-}

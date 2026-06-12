@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -25,9 +24,6 @@ func getEnvOrDefault(key, fallback string) string {
 
 // ManagedPipelinesNotFoundMessage is returned when required managed pipelines are missing.
 const ManagedPipelinesNotFoundMessage = "no managed AutoML and AutoRAG pipelines found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
-
-// ErrManagedPipelineNotFound indicates a required managed pipeline was not found on the pipeline server.
-var ErrManagedPipelineNotFound = errors.New(ManagedPipelinesNotFoundMessage)
 
 // TODO: Confirm caching architecture for shared ODH deployments
 // This implementation uses in-memory caching which has the following considerations:
@@ -66,12 +62,6 @@ type DiscoveredPipeline struct {
 // DefaultPipelineVersion is the release version suffix appended to pipeline version names.
 // Override via PIPELINE_VERSION_SUFFIX env var, otherwise defaults to constants.DefaultPipelineVersionSuffix.
 var DefaultPipelineVersion = getEnvOrDefault("PIPELINE_VERSION_SUFFIX", constants.DefaultPipelineVersionSuffix)
-
-// PipelineDefinition describes a managed pipeline for discovery.
-type PipelineDefinition struct {
-	Name    string // Exact KFP display name for discovery
-	Version string // Release version suffix; defaults to DefaultPipelineVersion
-}
 
 // pipelineCacheEntry wraps a map of discovered pipelines with expiration and LRU tracking.
 // The map key is the pipeline type (e.g. "timeseries", "tabular").
@@ -284,42 +274,6 @@ func (r *PipelineRepository) DiscoverNamedPipelines(
 	}
 
 	return result, nil
-}
-
-// DiscoverPipelineForRun discovers a managed pipeline for run creation.
-// Prefers the configured version suffix, then falls back to the latest available version.
-func (r *PipelineRepository) DiscoverPipelineForRun(
-	client ps.PipelineServerClientInterface,
-	ctx context.Context,
-	namespace string,
-	def PipelineDefinition,
-) (*DiscoveredPipeline, error) {
-	pipelineName := def.Name
-	if pipelineName == "" {
-		pipelineName = defaultPipelineNamePrefix
-	}
-	version := def.Version
-	if version == "" {
-		version = DefaultPipelineVersion
-	}
-	versionName := fmt.Sprintf("%s-%s", pipelineName, version)
-
-	discovered, err := r.discoverOnePipeline(client, ctx, namespace, pipelineName, versionName)
-	if err != nil {
-		return nil, err
-	}
-	if discovered != nil {
-		return discovered, nil
-	}
-
-	discovered, err = r.discoverOnePipeline(client, ctx, namespace, pipelineName, "")
-	if err != nil {
-		return nil, err
-	}
-	if discovered == nil {
-		return nil, ErrManagedPipelineNotFound
-	}
-	return discovered, nil
 }
 
 // discoverOnePipeline finds a pipeline by exact display name and optionally by version name.
