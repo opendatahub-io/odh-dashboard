@@ -50,10 +50,10 @@ import { findKey } from 'es-toolkit';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
+import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
+import type { File as S3File } from '@odh-dashboard/internal/concepts/fileExplorer/FileExplorer/FileExplorer';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
-import type { File as S3ExplorerFile } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
@@ -167,17 +167,17 @@ function AutomlConfigure({
   const [trainingDataSourceMode, setTrainingDataSourceMode] = useState<'select' | 'upload'>(
     'select',
   );
-  const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<
-    S3ExplorerFile | undefined
-  >(() => {
-    if (!initialFileKey) {
-      return undefined;
-    }
-    const lastSegment = initialFileKey.split('/').pop();
-    const fileName = lastSegment || initialFileKey;
-    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
-    return { name: fileName, path: `/${initialFileKey}`, type: ext };
-  });
+  const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<S3File | undefined>(
+    () => {
+      if (!initialFileKey) {
+        return undefined;
+      }
+      const lastSegment = initialFileKey.split('/').pop();
+      const fileName = lastSegment || initialFileKey;
+      const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
+      return { name: fileName, path: `/${initialFileKey}`, type: ext };
+    },
+  );
   const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);
   const [isTrainingDataUploadDropdownOpen, setIsTrainingDataUploadDropdownOpen] = useState(false);
   const trainingDataUploadSeqRef = useRef(0);
@@ -1124,8 +1124,9 @@ function AutomlConfigure({
       )}
       <S3FileExplorer
         id="AutoMLConfigure-S3FileExplorer"
+        apiPath="/automl/api/v1/s3"
         namespace={namespace}
-        s3Secret={selectedSecret}
+        s3SecretName={selectedSecret?.name}
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelectFiles={(files) => {
