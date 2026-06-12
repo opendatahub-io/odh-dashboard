@@ -221,6 +221,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     display_name: 'Premium Team',
     priority: 10,
     // eslint-disable-next-line camelcase
+    key_count: 10,
+    // eslint-disable-next-line camelcase
     cost_center: 'engineering',
     // eslint-disable-next-line camelcase
     organization_id: 'org-123',
@@ -257,6 +259,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     // eslint-disable-next-line camelcase
     display_name: 'Basic Team',
     priority: 1,
+    // eslint-disable-next-line camelcase
+    key_count: 5,
     // eslint-disable-next-line camelcase
     model_refs: [
       {

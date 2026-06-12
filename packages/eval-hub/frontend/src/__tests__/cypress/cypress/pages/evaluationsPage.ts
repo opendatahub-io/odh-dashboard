@@ -86,6 +86,15 @@ class EvaluationsPage {
   findEvaluationLink(rowIndex: number) {
     return cy.findByTestId(`evaluation-link-${rowIndex}`);
   }
+
+  findCompareButton() {
+    return cy.findByTestId('compare-evaluations-button');
+  }
+
+  // PF v6 Checkbox spreads extra props onto <input>, so data-testid is on the <input> directly.
+  findEvaluationCheckbox(rowIndex: number) {
+    return cy.findByTestId(`evaluation-select-checkbox-${rowIndex}`);
+  }
 }
 
 export const evaluationsPage = new EvaluationsPage();

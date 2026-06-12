@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Core BFF replaces the Fastify backend for RHOAI sidecar deployments. It contains a Go backend (BFF) and a React frontend.
+The Core BFF is a Go backend that replaces Fastify across both RHOAI (sidecar) and RHAII (standalone) deployments. It contains a Go backend (BFF) and a React frontend.
 
 ## Contributing
 

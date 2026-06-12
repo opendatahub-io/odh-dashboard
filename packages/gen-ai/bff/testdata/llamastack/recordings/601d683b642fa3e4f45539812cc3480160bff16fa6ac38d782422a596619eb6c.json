@@ -42,7 +42,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.37.0"
+      "openai_sdk_version": "2.41.1"
     }
   },
   "response": {
@@ -61,7 +61,7 @@
                 "tool_calls": [
                   {
                     "index": null,
-                    "id": "function-call-15489403476799222780",
+                    "id": "function-call-7028328847705179176",
                     "function": {
                       "arguments": "{\"query\":\"machine learning\"}",
                       "name": "file_search"
@@ -78,12 +78,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
             "completion_tokens": 16,
             "prompt_tokens": 45,
-            "total_tokens": 126,
+            "total_tokens": 137,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

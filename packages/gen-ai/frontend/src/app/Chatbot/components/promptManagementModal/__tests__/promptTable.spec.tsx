@@ -69,6 +69,7 @@ describe('PromptTable', () => {
   it('should render loading spinner when fetching prompts', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: [],
+      totalCount: 0,
       isLoading: true,
       error: null,
     });
@@ -81,6 +82,7 @@ describe('PromptTable', () => {
   it('should render error state when API fails', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: [],
+      totalCount: 0,
       isLoading: false,
       error: new Error('Network error occurred'),
     });
@@ -94,6 +96,7 @@ describe('PromptTable', () => {
   it('should render empty state when no prompts exist', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: [],
+      totalCount: 0,
       isLoading: false,
       error: null,
     });
@@ -107,6 +110,7 @@ describe('PromptTable', () => {
   it('should render table with prompts when data is loaded', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: mockPrompts,
+      totalCount: mockPrompts.length,
       isLoading: false,
       error: null,
     });
@@ -121,6 +125,7 @@ describe('PromptTable', () => {
   it('should render table column headers', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: mockPrompts,
+      totalCount: mockPrompts.length,
       isLoading: false,
       error: null,
     });
@@ -136,6 +141,7 @@ describe('PromptTable', () => {
   it('should call onClose when Cancel button is clicked', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: mockPrompts,
+      totalCount: mockPrompts.length,
       isLoading: false,
       error: null,
     });
@@ -150,6 +156,7 @@ describe('PromptTable', () => {
   it('should select row when clicked', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: mockPrompts,
+      totalCount: mockPrompts.length,
       isLoading: false,
       error: null,
     });
@@ -165,6 +172,7 @@ describe('PromptTable', () => {
   it('should call onClickLoad when Load button is clicked with selected version', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: mockPrompts,
+      totalCount: mockPrompts.length,
       isLoading: false,
       error: null,
     });
@@ -187,6 +195,7 @@ describe('PromptTable', () => {
   it('should show loading state in Load button when fetching version details', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: mockPrompts,
+      totalCount: mockPrompts.length,
       isLoading: false,
       error: null,
     });
