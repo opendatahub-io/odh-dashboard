@@ -286,6 +286,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasConfig.AuthTokenPrefix = cfg.BFFMaaSAuthTokenPrefix
 	}
 
+	// Apply MLflow BFF configuration overrides
+	if mlflowBFFConfig := bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow); mlflowBFFConfig != nil {
+		if cfg.BFFMLflowServiceName != "" {
+			mlflowBFFConfig.ServiceName = cfg.BFFMLflowServiceName
+		}
+		if cfg.BFFMLflowServicePort > 0 {
+			mlflowBFFConfig.Port = cfg.BFFMLflowServicePort
+		}
+		mlflowBFFConfig.TLSEnabled = cfg.BFFMLflowTLSEnabled
+		mlflowBFFConfig.DevOverrideURL = cfg.BFFMLflowDevURL
+	}
+
 	if cfg.MockBFFClients {
 		logger.Info("Using mock BFF client factory")
 		bffFactory = bffmocks.NewMockClientFactory(logger)
@@ -293,7 +305,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger.Info("Using real BFF client factory",
 			"maasServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).ServiceName,
 			"maasServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).Port,
-			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL)
+			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL,
+			"mlflowServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).ServiceName,
+			"mlflowServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).Port,
+			"mlflowDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).DevOverrideURL)
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
@@ -478,13 +493,14 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSIssueTokenHandler))))
 	apiRouter.DELETE(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSRevokeAllTokensHandler))))
 
-	// MLflow API routes
-	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
-	apiRouter.POST(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowRegisterPromptHandler))))
-	apiRouter.GET(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowLoadPromptHandler))))
-	apiRouter.GET(constants.MLflowPromptVersionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptVersionsHandler))))
-	apiRouter.DELETE(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowDeletePromptHandler))))
-	apiRouter.DELETE(constants.MLflowPromptVersionPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowDeletePromptVersionHandler))))
+	// MLflow API routes — proxied via MLflow BFF for global namespace aggregation
+	attachMLflowBFF := bffclient.AttachBFFClient(app.bffClientFactory, bffclient.BFFTargetMLflow)
+	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(attachMLflowBFF(app.BFFMLflowListPromptsHandler))))
+	apiRouter.POST(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(attachMLflowBFF(app.BFFMLflowRegisterPromptHandler))))
+	apiRouter.GET(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(attachMLflowBFF(app.BFFMLflowGetPromptHandler))))
+	apiRouter.GET(constants.MLflowPromptVersionsPath, app.AttachNamespace(app.RequireAccessToService(attachMLflowBFF(app.BFFMLflowListPromptVersionsHandler))))
+	apiRouter.DELETE(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(attachMLflowBFF(app.BFFMLflowDeletePromptHandler))))
+	apiRouter.DELETE(constants.MLflowPromptVersionPath, app.AttachNamespace(app.RequireAccessToService(attachMLflowBFF(app.BFFMLflowDeletePromptVersionHandler))))
 
 	// Guardrails API route
 	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))

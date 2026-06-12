@@ -229,7 +229,7 @@ export default function PromptTable({
         headingLevel="h4"
         variant={EmptyStateVariant.sm}
       >
-        <EmptyStateBody>No saved prompts are available in this project.</EmptyStateBody>
+        <EmptyStateBody>No saved prompts are available.</EmptyStateBody>
       </EmptyState>
     );
   } else {
@@ -265,12 +265,23 @@ export default function PromptTable({
                     onClick={() => handleRowClick(row)}
                   >
                     <Td dataLabel={columns[0]}>
-                      <div
-                        className="pf-u-truncate pf-v6-u-text-color-link"
-                        style={{ textDecoration: 'underline' }}
-                      >
-                        {row.name}
-                      </div>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <div
+                          className="pf-u-truncate pf-v6-u-text-color-link"
+                          style={{ textDecoration: 'underline' }}
+                        >
+                          {row.name}
+                        </div>
+                        {row.scope?.type === 'global' && (
+                          <Label
+                            color="orange"
+                            isCompact
+                            data-testid={`global-prompt-label-${row.name}`}
+                          >
+                            Global
+                          </Label>
+                        )}
+                      </Flex>
                     </Td>
                     <Td dataLabel={columns[1]}>{row.latest_version}</Td>
                     {!isDrawerOpen && (

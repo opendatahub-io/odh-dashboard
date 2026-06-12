@@ -12,6 +12,7 @@ const (
 	BFFTargetMaaS          BFFTarget = "maas"
 	BFFTargetGenAI         BFFTarget = "gen-ai"
 	BFFTargetModelRegistry BFFTarget = "model-registry"
+	BFFTargetMLflow        BFFTarget = "mlflow"
 )
 
 // BFFServiceConfig holds configuration for connecting to a BFF service
@@ -96,6 +97,16 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				Target:          BFFTargetModelRegistry,
 				ServiceName:     "odh-dashboard",
 				Port:            8043,
+				PathPrefix:      "/api/v1",
+				TLSEnabled:      false,
+				AuthMethod:      "user_token",
+				AuthTokenHeader: "x-forwarded-access-token",
+				AuthTokenPrefix: "",
+			},
+			BFFTargetMLflow: {
+				Target:          BFFTargetMLflow,
+				ServiceName:     "odh-dashboard",
+				Port:            8343,
 				PathPrefix:      "/api/v1",
 				TLSEnabled:      false,
 				AuthMethod:      "user_token",

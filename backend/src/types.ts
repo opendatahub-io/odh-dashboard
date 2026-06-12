@@ -87,6 +87,7 @@ export type DashboardConfig = K8sResourceCommon & {
       deploymentStrategy?: string;
       isLLMdDefault?: boolean;
     };
+    globalMLflowNamespaces?: string[];
     genAiStudioConfig?: {
       aiAssetCustomEndpoints?: {
         externalProviders?: boolean;
@@ -128,6 +129,7 @@ export type ClusterSettings = {
   };
   isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
@@ -967,6 +969,7 @@ export enum KnownLabels {
   CONNECTION_TYPE = 'opendatahub.io/connection-type',
   LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
+  GLOBAL_MLFLOW_WORKSPACE = 'opendatahub.io/global-mlflow-workspace',
 }
 
 export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';

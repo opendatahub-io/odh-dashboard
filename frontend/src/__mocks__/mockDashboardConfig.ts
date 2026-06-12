@@ -63,6 +63,7 @@ export type MockDashboardConfigType = {
   mySubscriptions?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
+  globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -126,6 +127,7 @@ export const mockDashboardConfig = ({
   agentOps = false,
   roleManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
+  globalMLflowNamespaces = [],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
       externalProviders: false,
@@ -324,6 +326,7 @@ export const mockDashboardConfig = ({
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
     hardwareProfileOrder,
+    globalMLflowNamespaces,
     genAiStudioConfig,
   },
 });

@@ -47,6 +47,8 @@ func (m *MockBFFClient) Call(ctx context.Context, method, path string, body inte
 		return m.handleGenAICall(ctx, method, path, body, response)
 	case bffclient.BFFTargetModelRegistry:
 		return m.handleModelRegistryCall(ctx, method, path, body, response)
+	case bffclient.BFFTargetMLflow:
+		return m.handleMLflowCall(ctx, method, path, body, response)
 	default:
 		return bffclient.NewBFFClientErrorWithTarget(bffclient.ErrCodeNotFound, fmt.Sprintf("mock not implemented for target %s", m.target), m.target, 404)
 	}
@@ -101,6 +103,26 @@ func (m *MockBFFClient) handleGenAICall(ctx context.Context, method, path string
 func (m *MockBFFClient) handleModelRegistryCall(ctx context.Context, method, path string, body interface{}, response interface{}) error {
 	// Add Model Registry specific mock responses as needed
 	return bffclient.NewNotFoundError(m.target, fmt.Sprintf("mock not implemented for %s %s", method, path))
+}
+
+// handleMLflowCall handles mock calls to MLflow BFF
+func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+	switch {
+	case method == "GET" && (path == "/prompts" || len(path) > 8 && path[:9] == "/prompts?"):
+		promptsResp := map[string]interface{}{
+			"data": map[string]interface{}{
+				"prompts":    []interface{}{},
+				"page_token": "",
+			},
+		}
+		return marshalToResponse(promptsResp, response)
+
+	case method == "DELETE":
+		return nil
+
+	default:
+		return bffclient.NewNotFoundError(m.target, fmt.Sprintf("mock not implemented for %s %s", method, path))
+	}
 }
 
 // marshalToResponse marshals a map to the response interface
