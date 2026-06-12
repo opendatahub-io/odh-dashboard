@@ -97,8 +97,29 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
     setError(null);
 
     try {
+      // Register or update the prompt before serializing, then sync the store so
+      // the spec picks up the new version via config.activePrompt.
+      if (isPromptDirty || !activePrompt) {
+        const promptName = activePrompt ? activePrompt.name : autoPromptName.current;
+        // dirtyPrompt.template holds the latest edited text; systemInstruction is the fallback
+        const template = dirtyPrompt?.template ?? systemInstruction ?? '';
+        const registeredPrompt = await api.registerMLflowPrompt({
+          name: promptName,
+          template,
+        });
+        // The API response may omit template; preserve what we sent so the store
+        // doesn't reset the displayed instruction to an empty/old value.
+        useChatbotConfigStore
+          .getState()
+          .updateActivePrompt(DEFAULT_CONFIG_ID, { ...registeredPrompt, template });
+      }
+
+      // Read fresh config after the store update so activePrompt reflects the new version
+      const freshConfig =
+        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID] ?? config;
+
       const spec = serializeToAgentProfileSpec(
-        config,
+        freshConfig,
         name.trim(),
         description.trim() || undefined,
         { model: aiModel, mcpServers, mcpConfigMapName: MCP_CONFIG_MAP_NAME },

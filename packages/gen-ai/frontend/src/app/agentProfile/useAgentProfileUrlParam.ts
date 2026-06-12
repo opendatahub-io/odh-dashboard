@@ -39,6 +39,7 @@ const useAgentProfileUrlParam = ({
 
   const applyAgentProfile = useChatbotConfigStore((s) => s.applyAgentProfile);
   const updateActivePrompt = useChatbotConfigStore((s) => s.updateActivePrompt);
+  const updateSystemInstruction = useChatbotConfigStore((s) => s.updateSystemInstruction);
   const saveToolSelections = useChatbotConfigStore((s) => s.saveToolSelections);
 
   const [loading, setLoading] = React.useState(false);
@@ -89,6 +90,9 @@ const useAgentProfileUrlParam = ({
             .getMLflowPrompt({ name: promptRef.name, ...versionParam })
             .then((prompt) => {
               updateActivePrompt(DEFAULT_CONFIG_ID, prompt);
+              const instruction =
+                prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
+              updateSystemInstruction(DEFAULT_CONFIG_ID, instruction);
             })
             .catch((promptErr) => {
               // Prompt load failure is non-fatal — the rest of the profile is already applied
@@ -114,6 +118,7 @@ const useAgentProfileUrlParam = ({
     mcpServers,
     applyAgentProfile,
     updateActivePrompt,
+    updateSystemInstruction,
     saveToolSelections,
   ]);
 
