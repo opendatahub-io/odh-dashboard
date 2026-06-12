@@ -74,7 +74,7 @@ describe('usePipelineRuns', () => {
     expect(getPipelineRunsFromBFFMock).toHaveBeenCalledWith('', {
       namespace: 'my-namespace',
       pageSize: 20,
-      nextPageToken: undefined,
+      page: 1,
     });
   });
 
