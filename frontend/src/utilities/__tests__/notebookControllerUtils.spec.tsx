@@ -8,9 +8,11 @@ import {
   getNotebookControllerUserState,
   getNotebookEventStatus,
   useNotebookRedirectLink,
+  useNotebookStatus,
   usernameTranslate,
 } from '#~/utilities/notebookControllerUtils';
 import { EventKind } from '#~/k8sTypes';
+import { useWatchNotebookEvents } from '#~/api';
 
 const validUnameRegex = new RegExp('^[a-z]{1}[a-z0-9-]{1,62}$');
 
@@ -125,6 +127,12 @@ describe('usernameTranslate', () => {
     expect(uname).toBe('te-3ast-2e-2aus-3aer-2aodh-2eio');
   });
 });
+
+jest.mock('#~/api', () => ({
+  useWatchNotebookEvents: jest.fn(),
+}));
+
+const useWatchNotebookEventsMock = jest.mocked(useWatchNotebookEvents);
 
 jest.mock('#~/pages/notebookController/useNamespaces', () => () => ({
   workbenchNamespace: 'test-project',
@@ -326,5 +334,78 @@ describe('getNotebookEventStatus', () => {
     const result = getNotebookEventStatus(event);
     expect(result.status).toBe(EventStatus.ERROR);
     expect(result.step).toBe(ProgressionStep.POD_PROBLEM);
+  });
+});
+
+describe('useNotebookStatus', () => {
+  const lastActivity = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
+  const createNotebook = () =>
+    mockNotebookK8sResource({}) as Notebook & {
+      metadata: { annotations: Record<string, string> };
+    };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should resolve ERROR to SUCCESS when isNotebookRunning is true', () => {
+    const backOffEvent = createMockEvent({
+      reason: 'BackOff',
+      type: 'Warning',
+      message: 'Back-off pulling image',
+      eventTime: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    });
+    useWatchNotebookEventsMock.mockReturnValue([[backOffEvent], true, undefined] as ReturnType<
+      typeof useWatchNotebookEvents
+    >);
+
+    const notebook = createNotebook();
+    notebook.metadata.annotations['notebooks.kubeflow.org/last-activity'] = lastActivity;
+
+    const renderResult = renderHook(() => useNotebookStatus(false, notebook, true, 'pod-uid'));
+
+    const [status] = renderResult.result.current;
+    expect(status?.currentStatus).toBe(EventStatus.SUCCESS);
+  });
+
+  it('should keep ERROR when isNotebookRunning is false', () => {
+    const backOffEvent = createMockEvent({
+      reason: 'BackOff',
+      type: 'Warning',
+      message: 'Back-off pulling image',
+      eventTime: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    });
+    useWatchNotebookEventsMock.mockReturnValue([[backOffEvent], true, undefined] as ReturnType<
+      typeof useWatchNotebookEvents
+    >);
+
+    const notebook = createNotebook();
+    notebook.metadata.annotations['notebooks.kubeflow.org/last-activity'] = lastActivity;
+
+    const renderResult = renderHook(() => useNotebookStatus(true, notebook, false, 'pod-uid'));
+
+    const [status] = renderResult.result.current;
+    expect(status?.currentStatus).toBe(EventStatus.ERROR);
+  });
+
+  it('should keep WARNING unchanged when isNotebookRunning is true', () => {
+    const warningEvent = createMockEvent({
+      reason: 'UnexpectedWarning',
+      type: 'Warning',
+      message: 'Something unexpected',
+      eventTime: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    });
+    useWatchNotebookEventsMock.mockReturnValue([[warningEvent], true, undefined] as ReturnType<
+      typeof useWatchNotebookEvents
+    >);
+
+    const notebook = createNotebook();
+    notebook.metadata.annotations['notebooks.kubeflow.org/last-activity'] = lastActivity;
+
+    const renderResult = renderHook(() => useNotebookStatus(false, notebook, true, 'pod-uid'));
+
+    const [status] = renderResult.result.current;
+    expect(status?.currentStatus).toBe(EventStatus.WARNING);
   });
 });
