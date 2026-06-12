@@ -447,7 +447,15 @@ paths:
                 type: string
                 example: 'MaaS source unavailable'
               description: Explanation of which source failed in a partial response
-          $ref: '#/components/responses/AAModelsResponse'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AAModelsData'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':

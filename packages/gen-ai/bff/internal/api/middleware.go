@@ -471,13 +471,33 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 
 		if maasConfig != nil && maasConfig.AuthMethod == "internal" {
 			// For internal auth mode (Kubeflow only), forward kubeflow identity headers
-			if userID := r.Header.Get("kubeflow-userid"); userID != "" {
-				forwardHeaders["kubeflow-userid"] = userID
+			// SECURITY: Only forward kubeflow headers if Gen AI BFF also uses internal auth
+			// to prevent header injection attacks. In user_token mode, we cannot trust
+			// kubeflow headers from the raw request as they are not validated during authentication.
+			if app.config.AuthMethod == "internal" {
+				// Both BFFs use internal auth - safe to forward headers
+				if userID := r.Header.Get("kubeflow-userid"); userID != "" {
+					forwardHeaders["kubeflow-userid"] = userID
+				}
+				if groups := r.Header.Get("kubeflow-groups"); groups != "" {
+					forwardHeaders["kubeflow-groups"] = groups
+				}
+				logger.Debug("Using internal auth mode for MaaS BFF, forwarding kubeflow headers")
+			} else {
+				// Configuration mismatch: Gen AI BFF uses user_token but MaaS BFF uses internal
+				// This is a security risk - reject the request
+				logger.Error("Auth method mismatch: Gen AI BFF uses user_token but MaaS BFF requires internal auth",
+					"gen_ai_auth", app.config.AuthMethod,
+					"maas_bff_auth", maasConfig.AuthMethod)
+				app.errorResponse(w, r, &integrations.HTTPError{
+					StatusCode: http.StatusServiceUnavailable,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    "configuration_error",
+						Message: "BFF auth method configuration mismatch",
+					},
+				})
+				return
 			}
-			if groups := r.Header.Get("kubeflow-groups"); groups != "" {
-				forwardHeaders["kubeflow-groups"] = groups
-			}
-			logger.Debug("Using internal auth mode for MaaS BFF, forwarding kubeflow headers")
 		} else {
 			// For user_token auth mode (default for ODH), the token is sent via
 			// the configured auth header by the client itself
