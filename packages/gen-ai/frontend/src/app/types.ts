@@ -145,6 +145,21 @@ export type FileCitationAnnotation = {
 // Generic annotation type (could be file_citation or other types from API)
 export type ContentAnnotation = FileCitationAnnotation | { type: string; [key: string]: unknown };
 
+// File search result from RAG retrieval (file_search_call output)
+export type FileSearchResult = {
+  score: number;
+  text: string;
+  file_id?: string;
+  filename?: string;
+  attributes?: Record<string, unknown>;
+};
+
+// Extracted file search data from a file_search_call output item
+export type FileSearchCallData = {
+  queries: string[];
+  results: FileSearchResult[];
+};
+
 // Backend response types (matches the actual API structure)
 export type ContentItem = {
   type: string;
@@ -160,6 +175,8 @@ export type OutputItem = {
   status?: string;
   content?: ContentItem[];
   output?: string;
+  queries?: string[];
+  results?: FileSearchResult[];
 };
 
 export type BackendResponseData = {
@@ -197,8 +214,11 @@ export type SimplifiedResponseData = {
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
+  annotations?: FileCitationAnnotation[];
+  citationMap?: Map<string, number>;
   metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
   reasoningContent?: string; // Optional - accumulated reasoning/thinking text from thinking models
+  fileSearchData?: FileSearchCallData; // Optional - RAG retrieval context (queries, results with scores)
 };
 
 export type FileError = {
