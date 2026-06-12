@@ -46,21 +46,16 @@ export const useConnectedWorkbenches = (
     await refreshData();
   }, [refreshData]);
 
-  const connectedWorkbenches = React.useMemo(
-    () => data.connectedWorkbenches,
-    [data.connectedWorkbenches],
-  );
-
   const selectedProject = React.useMemo(
     () =>
       feastProjectName
-        ? connectedWorkbenches.find((p) => p.feastProjectName === feastProjectName)
+        ? data.connectedWorkbenches.find((p) => p.feastProjectName === feastProjectName)
         : undefined,
-    [connectedWorkbenches, feastProjectName],
+    [data.connectedWorkbenches, feastProjectName],
   );
 
   return {
-    projects: connectedWorkbenches,
+    projects: data.connectedWorkbenches,
     selectedProject,
     loaded,
     error,

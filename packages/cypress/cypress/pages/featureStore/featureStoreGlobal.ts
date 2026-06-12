@@ -321,6 +321,14 @@ class FeatureStoreGlobal {
     return cy.findByTestId('connected-workbenches-empty-state');
   }
 
+  findConnectedWorkbenchesTable() {
+    return cy.findByTestId('connected-workbenches-table');
+  }
+
+  findConnectedWorkbenchNone() {
+    return cy.findByTestId('connected-workbench-none');
+  }
+
   openConnectedWorkbenchesModal() {
     this.findConnectedWorkbenchesLink().click();
     this.findConnectedWorkbenchesModal().should('be.visible');

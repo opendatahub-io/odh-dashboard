@@ -177,46 +177,44 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
             )}
 
             {loaded && !error && (
-              <div className="connected-workbenches-modal-table">
-                <TableBase
-                  data-testid="connected-workbenches-table"
-                  id="connected-workbenches-table"
-                  variant="compact"
-                  enablePagination="compact"
-                  data={paginatedRows}
-                  columns={columns}
-                  itemCount={sortedRows.length}
-                  page={page}
-                  perPage={pageSize}
-                  onSetPage={(_e, newPage) => setPage(newPage)}
-                  onPerPageSelect={(_e, newSize, newPage) => {
-                    setPageSize(newSize);
-                    setPage(newPage);
-                  }}
-                  getColumnSort={sort.getColumnSort}
-                  emptyTableView={
-                    <EmptyStateFeatureStore
-                      testid="connected-workbenches-empty-state"
-                      title="No authorized projects found"
-                      description="No data science projects are authorized to access this feature store."
-                      headerIcon={SearchIcon}
+              <TableBase
+                data-testid="connected-workbenches-table"
+                id="connected-workbenches-table"
+                variant="compact"
+                enablePagination="compact"
+                data={paginatedRows}
+                columns={columns}
+                itemCount={sortedRows.length}
+                page={page}
+                perPage={pageSize}
+                onSetPage={(_e, newPage) => setPage(newPage)}
+                onPerPageSelect={(_e, newSize, newPage) => {
+                  setPageSize(newSize);
+                  setPage(newPage);
+                }}
+                getColumnSort={sort.getColumnSort}
+                emptyTableView={
+                  <EmptyStateFeatureStore
+                    testid="connected-workbenches-empty-state"
+                    title="No authorized projects found"
+                    description="No data science projects are authorized to access this feature store."
+                    headerIcon={SearchIcon}
+                  />
+                }
+                toolbarContent={
+                  <ToolbarItem alignSelf="center">
+                    <Switch
+                      id="hide-projects-with-connected-workbenches"
+                      label="Hide projects with connected workbenches"
+                      isChecked={hideProjectsWithConnectedWorkbenches}
+                      onChange={(_event, checked) =>
+                        setHideProjectsWithConnectedWorkbenches(checked)
+                      }
                     />
-                  }
-                  toolbarContent={
-                    <ToolbarItem alignSelf="center">
-                      <Switch
-                        id="hide-projects-with-connected-workbenches"
-                        label="Hide projects with connected workbenches"
-                        isChecked={hideProjectsWithConnectedWorkbenches}
-                        onChange={(_event, checked) =>
-                          setHideProjectsWithConnectedWorkbenches(checked)
-                        }
-                      />
-                    </ToolbarItem>
-                  }
-                  rowRenderer={(row) => <ConnectedWorkbenchTableRow key={row.id} row={row} />}
-                />
-              </div>
+                  </ToolbarItem>
+                }
+                rowRenderer={(row) => <ConnectedWorkbenchTableRow key={row.id} row={row} />}
+              />
             )}
           </StackItem>
         </Stack>

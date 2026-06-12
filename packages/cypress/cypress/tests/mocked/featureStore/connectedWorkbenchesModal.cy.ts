@@ -23,6 +23,19 @@ const fsProjectName = 'credit_scoring_local';
 const authorizedProject = 'my-ds-project';
 const workbenchName = 'feast-workbench';
 
+const noConnectedWorkbenchesResponse = [
+  {
+    feastProjectName: fsProjectName,
+    namespace: k8sNamespace,
+    permissionLevel: ['read'],
+    connectedWorkbenches: [] as Array<{
+      workbenchName: string;
+      workbenchNamespace: string;
+      projectName: string;
+    }>,
+  },
+];
+
 const initCommonIntercepts = () => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -134,7 +147,12 @@ const interceptConnectedWorkbenches = (
 ) => {
   cy.interceptOdh('GET /api/featurestores/projects-with-workbenches', {
     connectedWorkbenches,
-  });
+  }).as('getConnectedWorkbenches');
+};
+
+const openConnectedWorkbenchesModalAndWait = () => {
+  featureStoreGlobal.openConnectedWorkbenchesModal();
+  cy.wait('@getConnectedWorkbenches');
 };
 
 describe('Connected Workbenches modal', () => {
@@ -155,54 +173,26 @@ describe('Connected Workbenches modal', () => {
 
   it('should open the modal from the overview page link', () => {
     mockOverviewMetricsIntercepts();
-    interceptConnectedWorkbenches([
-      {
-        feastProjectName: fsProjectName,
-        namespace: k8sNamespace,
-        permissionLevel: ['read'],
-        connectedWorkbenches: [],
-      },
-    ]);
+    interceptConnectedWorkbenches(noConnectedWorkbenchesResponse);
 
     featureStoreGlobal.visitOverview(fsProjectName);
-    featureStoreGlobal.openConnectedWorkbenchesModal();
+    openConnectedWorkbenchesModalAndWait();
     cy.findByText(
       'View workbenches connected to the selected feature store. Rows with no workbench name represent authorized projects that do not yet contain a connected workbench.',
     ).should('be.visible');
   });
 
-  it('should pre-select the active feast project in the modal dropdown', () => {
-    interceptConnectedWorkbenches([
-      {
-        feastProjectName: fsProjectName,
-        namespace: k8sNamespace,
-        permissionLevel: ['read'],
-        connectedWorkbenches: [],
-      },
-    ]);
+  it('should pre-select the active feast project and show a no-workbench row', () => {
+    interceptConnectedWorkbenches(noConnectedWorkbenchesResponse);
 
     featureStoreGlobal.visitEntities(fsProjectName);
-    featureStoreGlobal.openConnectedWorkbenchesModal();
+    openConnectedWorkbenchesModalAndWait();
     featureStoreGlobal
       .findConnectedWorkbenchesModalProjectSelector()
       .should('contain.text', fsProjectName);
-  });
-
-  it('should show a no-workbench row when the feature store has no connected workbenches', () => {
-    interceptConnectedWorkbenches([
-      {
-        feastProjectName: fsProjectName,
-        namespace: k8sNamespace,
-        permissionLevel: ['read'],
-        connectedWorkbenches: [],
-      },
-    ]);
-
-    featureStoreGlobal.visitEntities(fsProjectName);
-    featureStoreGlobal.openConnectedWorkbenchesModal();
     featureStoreGlobal.findConnectedWorkbenchesEmptyState().should('not.exist');
-    cy.findByTestId('connected-workbench-none').should('be.visible');
-    cy.findByTestId('connected-workbench-none').trigger('mouseenter');
+    featureStoreGlobal.findConnectedWorkbenchNone().should('be.visible');
+    featureStoreGlobal.findConnectedWorkbenchNone().trigger('mouseenter');
     cy.findByText(
       'Go to the Authorized project page, edit a workbench or create a new one to connect with desired feature stores.',
     ).should('be.visible');
@@ -214,7 +204,7 @@ describe('Connected Workbenches modal', () => {
     interceptConnectedWorkbenches([]);
 
     featureStoreGlobal.visitEntities(fsProjectName);
-    featureStoreGlobal.openConnectedWorkbenchesModal();
+    openConnectedWorkbenchesModalAndWait();
     featureStoreGlobal.findConnectedWorkbenchesEmptyState().should('be.visible');
     cy.findByText('No authorized projects found').should('be.visible');
   });
@@ -236,9 +226,9 @@ describe('Connected Workbenches modal', () => {
     ]);
 
     featureStoreGlobal.visitEntities(fsProjectName);
-    featureStoreGlobal.openConnectedWorkbenchesModal();
+    openConnectedWorkbenchesModalAndWait();
 
-    cy.findByTestId('connected-workbenches-table').should('be.visible');
+    featureStoreGlobal.findConnectedWorkbenchesTable().should('be.visible');
     cy.findByRole('link', { name: workbenchName }).should(
       'have.attr',
       'href',
@@ -253,25 +243,18 @@ describe('Connected Workbenches modal', () => {
     cy.intercept('GET', '/api/featurestores/projects-with-workbenches', {
       statusCode: 500,
       body: { error: 'Failed to fetch projects with connected workbenches' },
-    });
+    }).as('getConnectedWorkbenches');
 
     featureStoreGlobal.visitEntities(fsProjectName);
-    featureStoreGlobal.openConnectedWorkbenchesModal();
+    openConnectedWorkbenchesModalAndWait();
     cy.findByText('Failed to load connected workbenches').should('be.visible');
   });
 
   it('should close the modal when the close button is clicked', () => {
-    interceptConnectedWorkbenches([
-      {
-        feastProjectName: fsProjectName,
-        namespace: k8sNamespace,
-        permissionLevel: ['read'],
-        connectedWorkbenches: [],
-      },
-    ]);
+    interceptConnectedWorkbenches(noConnectedWorkbenchesResponse);
 
     featureStoreGlobal.visitEntities(fsProjectName);
-    featureStoreGlobal.openConnectedWorkbenchesModal();
+    openConnectedWorkbenchesModalAndWait();
     cy.findByRole('button', { name: /Close/i }).click();
     featureStoreGlobal.findConnectedWorkbenchesModal().should('not.exist');
   });
