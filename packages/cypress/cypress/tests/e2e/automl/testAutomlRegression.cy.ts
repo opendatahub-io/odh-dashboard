@@ -44,7 +44,7 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit an AutoML regression run',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression'], retries: { runMode: 0, openMode: 0 } },
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
