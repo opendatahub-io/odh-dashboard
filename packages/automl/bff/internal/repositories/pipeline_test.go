@@ -475,5 +475,17 @@ func TestHasAllRequiredAutoMLPipelines(t *testing.T) {
 			"tabular":    {PipelineName: "autogluon-tabular-training-pipeline"},
 			"timeseries": {PipelineName: "autogluon-timeseries-training-pipeline"},
 		}))
+		assert.False(t, HasAllRequiredAutoMLPipelines(map[string]*DiscoveredPipeline{
+			"tabular":    nil,
+			"timeseries": nil,
+		}))
+		assert.False(t, HasAllRequiredAutoMLPipelines(map[string]*DiscoveredPipeline{
+			"tabular":    {PipelineName: "autogluon-tabular-training-pipeline"},
+			"timeseries": nil,
+		}))
+		assert.False(t, HasAllRequiredAutoMLPipelines(map[string]*DiscoveredPipeline{
+			"tabular":    nil,
+			"timeseries": {PipelineName: "autogluon-timeseries-training-pipeline"},
+		}))
 	})
 }

@@ -189,9 +189,7 @@ func HasAllRequiredAutoMLPipelines(discovered map[string]*DiscoveredPipeline) bo
 	if discovered == nil {
 		return false
 	}
-	_, hasTabular := discovered[constants.PipelineTypeTabular]
-	_, hasTimeseries := discovered[constants.PipelineTypeTimeSeries]
-	return hasTabular && hasTimeseries
+	return discovered[constants.PipelineTypeTabular] != nil && discovered[constants.PipelineTypeTimeSeries] != nil
 }
 
 // DiscoverNamedPipelines discovers multiple managed pipelines in the given namespace,
