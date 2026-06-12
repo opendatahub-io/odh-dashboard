@@ -687,6 +687,7 @@ export type ModelAsAServiceTestData = {
   modelLocationURI: string;
   connectionNameSuffix: string;
   subscriptionName: string;
+  subscriptionNamespace: string;
   subscriptionDescription: string;
   subscriptionPriority: number;
   subscriptionGroups: string[];

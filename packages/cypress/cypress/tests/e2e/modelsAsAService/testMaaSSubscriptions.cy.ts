@@ -6,7 +6,6 @@ import {
   checkMaaSSubscriptionState,
   cleanupAuthPolicy,
   cleanupSubscription,
-  modelsAsAServiceNamespace,
 } from '../../../utils/oc_commands/maas';
 import {
   stubClipboardWriteTextForApiKeyModal,

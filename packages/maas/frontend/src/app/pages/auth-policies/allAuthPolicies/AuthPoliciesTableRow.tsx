@@ -53,7 +53,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
     },
   };
   return (
-    <ResourceTr resource={policyResource}>
+    <ResourceTr resource={policyResource} data-testid="auth-policy-row">
       <Td dataLabel={columns[0].label}>
         <TableRowTitleDescription
           title={

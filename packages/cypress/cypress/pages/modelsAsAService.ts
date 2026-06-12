@@ -953,7 +953,7 @@ class AuthPoliciesPage {
   }
 
   findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().find('tbody tr');
+    return this.findTable().findAllByTestId('auth-policy-row');
   }
 
   findCreateAuthPolicyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -965,9 +965,7 @@ class AuthPoliciesPage {
   }
 
   getRow(name: string): AuthPolicyTableRow {
-    return new AuthPolicyTableRow(() =>
-      this.findTable().find('tbody tr').contains('td', name).parents('tr'),
-    );
+    return new AuthPolicyTableRow(() => this.findRows().contains('td', name).parents('tr'));
   }
 
   getFirstRowPolicyName(): Cypress.Chainable<string> {

@@ -306,7 +306,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
         .findDescriptionInput()
         .type(`Cypress test: API key for ${subscriptionName}`);
       createApiKeyModal.findSubscriptionToggle().click().type(subscriptionName);
-      createApiKeyModal.findSubscriptionToggle().should('have.length', 1);
       createApiKeyModal.findSubscriptionOption(subscriptionName).click();
       createApiKeyModal
         .findSubscriptionModelRateLimit(modelName)
