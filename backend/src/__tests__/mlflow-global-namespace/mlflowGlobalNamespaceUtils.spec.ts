@@ -2,7 +2,7 @@ import {
   updateGlobalMLflowNamespaces,
   GLOBAL_MLFLOW_LABEL_KEY,
   GLOBAL_MLFLOW_CR_NAME,
-} from '../../routes/api/mlflow-global-namespace/mlflowGlobalNamespaceUtils';
+} from '../../routes/api/cluster-settings/mlflowGlobalNamespaceUtils';
 
 jest.mock('../../utils/resourceUtils', () => ({
   getDashboardConfig: jest.fn(),
