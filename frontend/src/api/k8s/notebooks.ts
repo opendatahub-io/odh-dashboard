@@ -9,7 +9,8 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
-import { KnownLabels, NodeSelector, Volume, VolumeMount } from '@odh-dashboard/k8s-core';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
+import type { NodeSelector, Volume, VolumeMount } from '@odh-dashboard/k8s-core';
 import { NotebookModel } from '#~/api/models';
 import { ImageStreamKind, ImageStreamSpecTagType, K8sAPIOptions, NotebookKind } from '#~/k8sTypes';
 import { usernameTranslate } from '#~/utilities/notebookControllerUtils';

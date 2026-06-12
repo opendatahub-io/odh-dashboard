@@ -1,5 +1,6 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
-import { KnownLabels, Volume, VolumeMount } from '@odh-dashboard/k8s-core';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
+import type { Volume, VolumeMount } from '@odh-dashboard/k8s-core';
 import { ImageStreamSpecTagType, NotebookKind, RoleBindingKind } from '#~/k8sTypes';
 import { ELYRA_ROLE_NAME, ELYRA_SECRET_NAME } from '#~/concepts/pipelines/elyra/const';
 import { RUNTIME_MOUNT_PATH } from '#~/pages/projects/pvc/const';
