@@ -14,7 +14,7 @@
     "istanbul-lib-processinfo": {
       "rimraf": "^3.0.2"
     },
-    "axios": "^1.15.0",
+    "axios": "^1.16.0",
     "shell-quote": ">=1.8.4"
   },
   "engines": {
@@ -129,7 +129,7 @@
     "@patternfly/react-templates": "^6.4.0",
     "@patternfly/react-tokens": "^6.4.0",
     "@types/js-yaml": "^4.0.9",
-    "axios": "^1.15.0",
+    "axios": "^1.16.0",
     "classnames": "^2.2.6",
     "date-fns": "^4.1.0",
     "dompurify": "^3.2.4",
