@@ -8,6 +8,9 @@ import type {
 const CATALOG_SETTINGS_PAGE_TITLE = 'Model catalog settings';
 const CATALOG_SETTINGS_URL = '/settings/model-resources-operations/model-catalog';
 
+const REGISTRY_SETTINGS_PAGE_TITLE = 'Model registry settings';
+const REGISTRY_SETTINGS_URL = '/settings/model-resources-operations/model-registry';
+
 type ModelCatalogBannerExtension = Extension<
   'model-catalog.page/banner',
   {
@@ -24,12 +27,21 @@ type CatalogSettingsUrlExtension = Extension<
   }
 >;
 
+type RegistrySettingsUrlExtension = Extension<
+  'model-registry.settings/url',
+  {
+    url: string;
+    title: string;
+  }
+>;
+
 const extensions: (
   | AutofillConnectionButtonExtension
   | NamespaceSelectorExtension
   | ProjectsBridgeProviderExtension
   | ModelCatalogBannerExtension
   | CatalogSettingsUrlExtension
+  | RegistrySettingsUrlExtension
   | Extension
 )[] = [
   {
@@ -56,6 +68,13 @@ const extensions: (
     properties: {
       url: CATALOG_SETTINGS_URL,
       title: CATALOG_SETTINGS_PAGE_TITLE,
+    },
+  },
+  {
+    type: 'model-registry.settings/url',
+    properties: {
+      url: REGISTRY_SETTINGS_URL,
+      title: REGISTRY_SETTINGS_PAGE_TITLE,
     },
   },
   {
