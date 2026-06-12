@@ -17,10 +17,10 @@ export const FEATURE_STORE_CODE_DESCRIPTION =
 
 export const generateFeatureStoreCode = (): string => {
   return `from feast import FeatureStore
-fs_banking = FeatureStore(fs_yaml_file='/opt/app-root/config/feast_configs/fs_banking.yaml')
-fs_banking.list_feature_views()
-fs_banking.get_historical_features(.....)
-fs_banking.get_online_features(.....)`;
+fs = FeatureStore(fs_yaml_file='/opt/app-root/src/feature_store.yaml')
+fs.list_feature_views()
+fs.get_historical_features(.....)
+fs.get_online_features(.....)`;
 };
 
 export const getFeatureStoresFromNotebook = (
