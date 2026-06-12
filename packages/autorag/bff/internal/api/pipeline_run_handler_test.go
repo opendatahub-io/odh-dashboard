@@ -295,7 +295,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
-	t.Run("should fail without pipeline server base URL in context", func(t *testing.T) {
+	t.Run("should fail without discovered pipelines in context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req := newCreateRequest(t, validCreateRequest())
 		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-ns")
