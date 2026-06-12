@@ -86,13 +86,18 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
     try {
       return decodeCredentials(ogxCredentials);
     } catch {
+      return undefined;
+    }
+  }, [ogxCredentials]);
+
+  React.useEffect(() => {
+    if (ogxCredentials && !decodedCredentials) {
       notification.error(
         'Failed to decode credentials',
         'The secret data could not be decoded. Credential placeholders will be shown instead.',
       );
-      return undefined;
     }
-  }, [ogxCredentials, notification]);
+  }, [ogxCredentials, decodedCredentials, notification]);
 
   const hasCredentials = !!decodedCredentials;
   const displayCredentials = showCredentials ? decodedCredentials : undefined;
@@ -171,7 +176,7 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
                       {copiedTab === index
                         ? 'Copied'
                         : hasCredentials
-                          ? 'Copies with credentials included'
+                          ? 'Copy with credentials included'
                           : 'Copy'}
                     </ClipboardCopyButton>
                   </CodeBlockAction>
