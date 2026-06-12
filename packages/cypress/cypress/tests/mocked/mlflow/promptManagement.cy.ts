@@ -13,18 +13,28 @@ import { appChrome } from '../../../pages/appChrome';
 
 const PROJECT_A = 'test-project-a';
 const PROJECT_B = 'test-project-b';
+const GLOBAL_PROJECT = 'global-prompts';
 
 const initIntercepts = ({
   mlflowConfigured = true,
   genAiStudio = true,
-}: { mlflowConfigured?: boolean; genAiStudio?: boolean } = {}) => {
+  globalMLflowNamespaces = [] as string[],
+}: {
+  mlflowConfigured?: boolean;
+  genAiStudio?: boolean;
+  globalMLflowNamespaces?: string[];
+} = {}) => {
   asProductAdminUser();
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ genAiStudio }));
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ genAiStudio, globalMLflowNamespaces }));
   interceptMlflowStatus(mlflowConfigured);
 
   const projectA = mockProjectK8sResource({ k8sName: PROJECT_A, displayName: PROJECT_A });
   const projectB = mockProjectK8sResource({ k8sName: PROJECT_B, displayName: PROJECT_B });
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([projectA, projectB]));
+  const globalProject = mockProjectK8sResource({
+    k8sName: GLOBAL_PROJECT,
+    displayName: 'Global Prompts',
+  });
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([projectA, projectB, globalProject]));
   cy.interceptK8s(ProjectModel, projectA);
 };
 
@@ -69,6 +79,45 @@ describe('Prompt Management page wrapper', () => {
 
       appChrome.findLightThemeToggle().click();
       promptManagement.getMlflowDarkModeStorageValue().should('equal', 'false');
+    });
+  });
+
+  describe('Global project indicator', () => {
+    it('should show indicator when selected project is the global namespace', () => {
+      initIntercepts({ globalMLflowNamespaces: [GLOBAL_PROJECT] });
+      promptManagement.visit(GLOBAL_PROJECT);
+      promptManagement.findGlobalProjectIndicator().should('be.visible');
+    });
+
+    it('should not show indicator when selected project is not the global namespace', () => {
+      initIntercepts({ globalMLflowNamespaces: [GLOBAL_PROJECT] });
+      promptManagement.visit(PROJECT_A);
+      promptManagement.findGlobalProjectIndicator().should('not.exist');
+    });
+
+    it('should not show indicator when no global namespace is configured', () => {
+      initIntercepts({ globalMLflowNamespaces: [] });
+      promptManagement.visit(PROJECT_A);
+      promptManagement.findGlobalProjectIndicator().should('not.exist');
+    });
+  });
+
+  describe('Pinned namespace in project selector', () => {
+    it('should show global project in a separate group in the dropdown', () => {
+      initIntercepts({ globalMLflowNamespaces: [GLOBAL_PROJECT] });
+      promptManagement.visit(PROJECT_A);
+      promptManagement.findProjectSelector().click();
+      promptManagement.findPinnedGroupLabel().should('be.visible');
+      promptManagement.findProjectsGroupLabel().should('be.visible');
+      promptManagement.findProjectInDropdown('Global Prompts').should('be.visible');
+    });
+
+    it('should not show groups when no global namespace is configured', () => {
+      initIntercepts({ globalMLflowNamespaces: [] });
+      promptManagement.visit(PROJECT_A);
+      promptManagement.findProjectSelector().click();
+      promptManagement.findPinnedGroupLabel().should('not.exist');
+      promptManagement.findProjectsGroupLabel().should('not.exist');
     });
   });
 
