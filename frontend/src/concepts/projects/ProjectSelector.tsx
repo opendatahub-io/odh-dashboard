@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Divider,
+  Flex,
+  FlexItem,
+  MenuGroup,
+  MenuItem,
+  Truncate,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
@@ -14,7 +22,6 @@ type ProjectSelectorProps = {
   getSelectionHref?: (projectName: string) => string | undefined;
   invalidDropdownPlaceholder?: string;
   selectAllProjects?: boolean;
-  /** When set, shows a clear option at the top with this label (e.g. "None"). Selects empty string. */
   clearLabel?: string;
   primary?: boolean;
   showTitle?: boolean;
@@ -24,6 +31,7 @@ type ProjectSelectorProps = {
   isLoading?: boolean;
   namespacesOverride?: Namespace[];
   appendTo?: 'inline' | (() => HTMLElement) | HTMLElement;
+  pinnedNamespace?: { name: string; label: string };
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -41,6 +49,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   isLoading = false,
   namespacesOverride,
   appendTo,
+  pinnedNamespace,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const namespaces =
@@ -78,6 +87,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       searchValue={searchText}
       isLoading={isLoading}
       isDisabled={isLoading}
+      appendTo={appendTo}
       toggleContent={toggleLabel}
       toggleVariant={primary ? 'primary' : undefined}
       {...(appendTo && { appendTo })}
@@ -103,27 +113,60 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             <Divider component="li" />
           </>
         )}
-        {visibleNamespaces.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}
-        {visibleNamespaces.map((n) => {
-          const selectionHref = getSelectionHref?.(n.name);
+        {(() => {
+          const pinnedItem = pinnedNamespace
+            ? visibleNamespaces.find((n) => n.name === pinnedNamespace.name)
+            : undefined;
+          const otherItems = pinnedNamespace
+            ? visibleNamespaces.filter((n) => n.name !== pinnedNamespace.name)
+            : visibleNamespaces;
+
+          const renderItem = (n: Namespace) => {
+            const selectionHref = getSelectionHref?.(n.name);
+            return (
+              <MenuItem
+                key={n.name}
+                isSelected={n.name === selection?.name}
+                component={
+                  selectionHref
+                    ? (props: React.ComponentProps<'a'>) => <Link {...props} to={selectionHref} />
+                    : undefined
+                }
+                onClick={() => {
+                  setSearchText('');
+                  onSelection(n.name);
+                }}
+              >
+                <Truncate content={n.displayName ?? n.name}>{n.displayName ?? n.name}</Truncate>
+              </MenuItem>
+            );
+          };
+
+          if (!pinnedItem && otherItems.length === 0) {
+            return <MenuItem isDisabled>No matching results</MenuItem>;
+          }
+
           return (
-            <MenuItem
-              key={n.name}
-              isSelected={n.name === selection?.name}
-              component={
-                selectionHref
-                  ? (props: React.ComponentProps<'a'>) => <Link {...props} to={selectionHref} />
-                  : undefined
-              }
-              onClick={() => {
-                setSearchText('');
-                onSelection(n.name);
-              }}
-            >
-              <Truncate content={n.displayName ?? n.name}>{n.displayName ?? n.name}</Truncate>
-            </MenuItem>
+            <>
+              {pinnedItem && pinnedNamespace && (
+                <>
+                  <MenuGroup data-testid="pinned-project-group" label={pinnedNamespace.label}>
+                    {renderItem(pinnedItem)}
+                  </MenuGroup>
+                  {otherItems.length > 0 && <Divider component="li" />}
+                </>
+              )}
+              {otherItems.length > 0 &&
+                (pinnedItem ? (
+                  <MenuGroup data-testid="other-projects-group" label="Projects">
+                    {otherItems.map(renderItem)}
+                  </MenuGroup>
+                ) : (
+                  otherItems.map(renderItem)
+                ))}
+            </>
           );
-        })}
+        })()}
       </>
     </SearchSelector>
   );
