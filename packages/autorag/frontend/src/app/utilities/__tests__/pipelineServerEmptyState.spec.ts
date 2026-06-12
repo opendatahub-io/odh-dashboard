@@ -18,15 +18,26 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
     expect(shouldShowConfigurePipelineServerEmptyState(new Error('any'))).toBe(true);
   });
 
-  it('returns false when message indicates no AutoRAG pipeline (auto-creation handles this)', () => {
-    mockGetGenericErrorCode.mockReturnValue(500);
+  it('returns true for missing managed pipelines message with 404', () => {
+    mockGetGenericErrorCode.mockReturnValue(404);
     expect(
       shouldShowConfigurePipelineServerEmptyState(
         new Error(
-          'no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed',
+          'required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
         ),
       ),
-    ).toBe(false);
+    ).toBe(true);
+  });
+
+  it('returns true for missing managed pipelines message without status code (flattened Error)', () => {
+    mockGetGenericErrorCode.mockReturnValue(undefined);
+    expect(
+      shouldShowConfigurePipelineServerEmptyState(
+        new Error(
+          'required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
+        ),
+      ),
+    ).toBe(true);
   });
 
   it('returns false for unrelated 500 errors', () => {

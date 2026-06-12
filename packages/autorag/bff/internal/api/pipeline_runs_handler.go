@@ -31,7 +31,8 @@ type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 //
 // Error Responses:
 //   - 400: Invalid query parameters
-//   - 500: Missing pipeline server client (middleware misconfiguration) or no AutoRAG pipeline found
+//   - 404: Required managed AutoRAG pipeline not found on the pipeline server
+//   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -50,13 +51,7 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	}
 	discovered := pipelines[constants.PipelineTypeAutoRAG]
 	if discovered == nil {
-		// No pipeline discovered — return empty runs list.
-		// The pipeline will be auto-created when the user submits their first experiment.
-		if err := app.WriteJSON(w, http.StatusOK, PipelineRunsEnvelope{
-			Data: &models.PipelineRunsData{Runs: []models.PipelineRun{}},
-		}, nil); err != nil {
-			app.serverErrorResponse(w, r, err)
-		}
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return
 	}
 
@@ -158,16 +153,21 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 
+	runID := params.ByName("runId")
+	if runID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		return nil, nil, false
+	}
+
 	discoveredPipelines, dpOk := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
 	if !dpOk {
 		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
 		return nil, nil, false
 	}
-	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
 
-	runID := params.ByName("runId")
-	if runID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
+	if discovered == nil {
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return nil, nil, false
 	}
 
@@ -190,8 +190,7 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 
-	if discovered == nil ||
-		run.PipelineVersionReference.PipelineID != discovered.PipelineID {
+	if run.PipelineVersionReference.PipelineID != discovered.PipelineID {
 		app.notFoundResponse(w, r)
 		return nil, nil, false
 	}
