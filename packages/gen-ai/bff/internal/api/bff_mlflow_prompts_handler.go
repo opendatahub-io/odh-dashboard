@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 )
@@ -29,9 +30,10 @@ func (app *App) BFFMLflowListPromptsHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Forward query parameters to MLflow BFF
+	// The gen-ai frontend sends "namespace" (via mod-arch-core), but the MLflow BFF expects "workspace"
 	params := url.Values{}
-	if v := r.URL.Query().Get("workspace"); v != "" {
-		params.Set("workspace", v)
+	if ns, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && ns != "" {
+		params.Set("workspace", ns)
 	}
 	if v := r.URL.Query().Get("page_token"); v != "" {
 		params.Set("page_token", v)
@@ -84,8 +86,8 @@ func (app *App) BFFMLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	path := "/prompts"
-	if v := r.URL.Query().Get("workspace"); v != "" {
-		path += "?workspace=" + url.QueryEscape(v)
+	if ns, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && ns != "" {
+		path += "?workspace=" + url.QueryEscape(ns)
 	}
 
 	var response json.RawMessage
@@ -118,8 +120,8 @@ func (app *App) BFFMLflowGetPromptHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	params := url.Values{}
-	if v := r.URL.Query().Get("workspace"); v != "" {
-		params.Set("workspace", v)
+	if ns, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && ns != "" {
+		params.Set("workspace", ns)
 	}
 	if v := r.URL.Query().Get("version"); v != "" {
 		params.Set("version", v)
@@ -160,8 +162,8 @@ func (app *App) BFFMLflowDeletePromptHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	path := fmt.Sprintf("/prompts/%s", url.PathEscape(name))
-	if v := r.URL.Query().Get("workspace"); v != "" {
-		path += "?workspace=" + url.QueryEscape(v)
+	if ns, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && ns != "" {
+		path += "?workspace=" + url.QueryEscape(ns)
 	}
 
 	if err := mlflowClient.Call(ctx, "DELETE", path, nil, nil); err != nil {
@@ -191,8 +193,8 @@ func (app *App) BFFMLflowListPromptVersionsHandler(w http.ResponseWriter, r *htt
 	}
 
 	params := url.Values{}
-	if v := r.URL.Query().Get("workspace"); v != "" {
-		params.Set("workspace", v)
+	if ns, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && ns != "" {
+		params.Set("workspace", ns)
 	}
 	if v := r.URL.Query().Get("page_token"); v != "" {
 		params.Set("page_token", v)
@@ -237,8 +239,8 @@ func (app *App) BFFMLflowDeletePromptVersionHandler(w http.ResponseWriter, r *ht
 	}
 
 	path := fmt.Sprintf("/prompts/%s/versions/%s", url.PathEscape(name), url.PathEscape(version))
-	if v := r.URL.Query().Get("workspace"); v != "" {
-		path += "?workspace=" + url.QueryEscape(v)
+	if ns, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && ns != "" {
+		path += "?workspace=" + url.QueryEscape(ns)
 	}
 
 	if err := mlflowClient.Call(ctx, "DELETE", path, nil, nil); err != nil {
