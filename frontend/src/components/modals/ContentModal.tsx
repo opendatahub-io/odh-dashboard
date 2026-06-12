@@ -85,6 +85,7 @@ const ContentModal: React.FC<ContentModalProps> = ({
       aria-describedby={description ? descriptionId : undefined}
     >
       <ModalHeader
+        className="odh-content-modal__header"
         title={title}
         labelId={headingId}
         description={description ? <div id={descriptionId}>{description}</div> : undefined}
