@@ -110,6 +110,7 @@ export type ClusterSettingsType = {
   modelServingPlatformEnabled: ModelServingPlatformEnabled;
   isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
 };
 
 export type ModelServingPlatformEnabled = {
