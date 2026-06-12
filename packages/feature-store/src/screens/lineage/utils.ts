@@ -196,7 +196,9 @@ export const filterNodesBySearch = (
   data: LineageData,
   searchFilters: FeatureStoreLineageSearchFilters,
 ): LineageData => {
-  const hasActiveFilters = Object.values(searchFilters).some((filter) => filter && filter.trim());
+  const hasActiveFilters = Object.values(searchFilters).some(
+    (filter) => Array.isArray(filter) && filter.length > 0,
+  );
 
   if (!hasActiveFilters) {
     return data;
@@ -209,11 +211,10 @@ export const filterNodesBySearch = (
 
   const matchingNodes = new Set<string>();
 
-  // Helper function to check if node name matches any of the selected values
-  const matchesFilterValues = (nodeName: string, filterValue: string): boolean => {
-    const selectedValues = filterValue.split(', ').map((value) => value.trim().toLowerCase());
+  // Check whether nodeName matches any of the selected filter values
+  const matchesFilterValues = (nodeName: string, filterValues: string[]): boolean => {
     const lowerNodeName = nodeName.toLowerCase();
-    return selectedValues.some((selectedValue) => lowerNodeName.includes(selectedValue));
+    return filterValues.some((value) => lowerNodeName.includes(value.trim().toLowerCase()));
   };
 
   data.nodes.forEach((node) => {
@@ -221,6 +222,7 @@ export const filterNodesBySearch = (
 
     if (
       searchFilters.entity &&
+      searchFilters.entity.length > 0 &&
       fsObjectTypes === 'entity' &&
       matchesFilterValues(name, searchFilters.entity)
     ) {
@@ -229,6 +231,7 @@ export const filterNodesBySearch = (
 
     if (
       searchFilters.featureView &&
+      searchFilters.featureView.length > 0 &&
       fsObjectTypes === 'feature_view' &&
       matchesFilterValues(name, searchFilters.featureView)
     ) {
@@ -237,6 +240,7 @@ export const filterNodesBySearch = (
 
     if (
       searchFilters.dataSource &&
+      searchFilters.dataSource.length > 0 &&
       fsObjectTypes === 'data_source' &&
       matchesFilterValues(name, searchFilters.dataSource)
     ) {
@@ -245,6 +249,7 @@ export const filterNodesBySearch = (
 
     if (
       searchFilters.featureService &&
+      searchFilters.featureService.length > 0 &&
       fsObjectTypes === 'feature_service' &&
       matchesFilterValues(name, searchFilters.featureService)
     ) {

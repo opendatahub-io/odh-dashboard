@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import useFeatureStoreProjects from './useFeatureStoreProjects';
 import useGlobalSearch from './useGlobalSearch';
 import { GlobalSearchResponse } from '../types/search';
@@ -19,6 +19,7 @@ export const useFeatureStoreSearch = (): {
   isLoadingMore: boolean;
   hasMorePages: boolean;
   totalCount: number;
+  searchErrors: string[];
   handleSearchChange: (query: string) => Promise<void>;
   loadMoreResults: () => Promise<void>;
   clearSearch: () => void;
@@ -35,21 +36,18 @@ export const useFeatureStoreSearch = (): {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMorePages, setHasMorePages] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+  const [searchErrors, setSearchErrors] = useState<string[]>([]);
 
-  const [currentAbortController, setCurrentAbortController] = useState<AbortController | null>(
-    null,
-  );
+  // Use a ref so abort-controller identity is always current inside callbacks,
+  // avoiding stale-closure race conditions that `useState` would introduce.
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const convertedSearchData = useMemo(() => {
-    if (allResults.length === 0) {
+    if (allResults.length === 0 || !Array.isArray(allResults)) {
       return [];
     }
 
-    if (!Array.isArray(allResults)) {
-      return [];
-    }
-
-    const converted = allResults.map((result, index) => ({
+    return allResults.map((result, index) => ({
       id: `${result.project}-${result.type}-${result.name}-${index}`,
       title: result.name,
       description: result.description,
@@ -60,42 +58,47 @@ export const useFeatureStoreSearch = (): {
       // eslint-disable-next-line camelcase
       matched_tags: result.matched_tags,
     }));
-    return converted;
   }, [allResults]);
 
   const handleSearchChange = useCallback(
     async (query: string) => {
       if (!query || !query.trim() || !apiAvailable) {
+        // Abort any in-flight request before resetting state
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
+        }
         setAllResults([]);
         setCurrentSearchQuery('');
         setCurrentPage(1);
         setHasMorePages(false);
         setTotalCount(0);
-        return;
-      }
-
-      if (currentSearchQuery === query && isSearching) {
+        setSearchErrors([]);
         return;
       }
 
       // Cancel any existing search request
-      if (currentAbortController) {
-        currentAbortController.abort();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
 
-      // Create new AbortController for this search
-      const abortController = new AbortController();
-      setCurrentAbortController(abortController);
+      // Create a new controller for this search and capture it locally so
+      // the finally/catch blocks can check identity before mutating state.
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
       setCurrentSearchQuery(query);
       setCurrentPage(1);
       setAllResults([]);
       setIsSearching(true);
+      setSearchErrors([]);
 
       try {
         if (!hasAvailableProjects) {
-          setIsSearching(false);
-          setCurrentAbortController(null);
+          if (abortControllerRef.current === controller) {
+            abortControllerRef.current = null;
+            setIsSearching(false);
+          }
           return;
         }
 
@@ -106,35 +109,38 @@ export const useFeatureStoreSearch = (): {
           query,
           page: 1,
           limit: 50,
-          signal: abortController.signal,
+          signal: controller.signal,
         });
 
-        setAllResults(results.results);
-        setHasMorePages(results.pagination.hasNext);
-        setTotalCount(results.pagination.totalCount);
-        setCurrentAbortController(null);
+        // Only update state if this controller is still the active one
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+          setAllResults(results.results);
+          setHasMorePages(results.pagination.hasNext);
+          setTotalCount(results.pagination.totalCount);
+          if (results.errors.length > 0) {
+            setSearchErrors(results.errors);
+          }
+        }
       } catch (error) {
-        // Don't update state if the request was aborted
         if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
-        setAllResults([]);
-        setHasMorePages(false);
-        setTotalCount(0);
-        setCurrentAbortController(null);
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+          setAllResults([]);
+          setHasMorePages(false);
+          setTotalCount(0);
+        }
       } finally {
-        setIsSearching(false);
+        // The try/catch success paths null the ref when done; if it's still null
+        // here we know no newer request has taken over and it's safe to clear loading.
+        if (abortControllerRef.current === null) {
+          setIsSearching(false);
+        }
       }
     },
-    [
-      search,
-      apiAvailable,
-      hasAvailableProjects,
-      featureStoreProjects.projects,
-      currentSearchQuery,
-      isSearching,
-      currentAbortController,
-    ],
+    [search, apiAvailable, hasAvailableProjects, featureStoreProjects.projects],
   );
 
   const loadMoreResults = useCallback(async () => {
@@ -143,9 +149,13 @@ export const useFeatureStoreSearch = (): {
     }
 
     setIsLoadingMore(true);
+
+    // Give load-more its own controller so clear/unmount can cancel it
+    const loadMoreController = new AbortController();
+    abortControllerRef.current = loadMoreController;
+
     try {
       if (!hasAvailableProjects) {
-        setIsLoadingMore(false);
         return;
       }
 
@@ -157,18 +167,23 @@ export const useFeatureStoreSearch = (): {
         query: currentSearchQuery,
         page: nextPage,
         limit: 50,
-        signal: currentAbortController?.signal,
+        signal: loadMoreController.signal,
       });
 
-      setAllResults((prevResults) => [...prevResults, ...results.results]);
-      setCurrentPage(nextPage);
-      setHasMorePages(results.pagination.hasNext);
+      if (abortControllerRef.current === loadMoreController) {
+        abortControllerRef.current = null;
+        setAllResults((prevResults) => [...prevResults, ...results.results]);
+        setCurrentPage(nextPage);
+        setHasMorePages(results.pagination.hasNext);
+      }
     } catch (error) {
-      // Don't log error if the request was aborted
       if (!(error instanceof Error && error.name === 'AbortError')) {
         console.error('Load more search results failed:', error);
       }
     } finally {
+      if (abortControllerRef.current === loadMoreController) {
+        abortControllerRef.current = null;
+      }
       setIsLoadingMore(false);
     }
   }, [
@@ -180,14 +195,12 @@ export const useFeatureStoreSearch = (): {
     currentPage,
     search,
     featureStoreProjects.projects,
-    currentAbortController?.signal,
   ]);
 
   const clearSearch = useCallback(() => {
-    // Cancel any in-flight request
-    if (currentAbortController) {
-      currentAbortController.abort();
-      setCurrentAbortController(null);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
 
     setAllResults([]);
@@ -197,16 +210,18 @@ export const useFeatureStoreSearch = (): {
     setCurrentPage(1);
     setHasMorePages(false);
     setTotalCount(0);
-  }, [currentAbortController]);
+    setSearchErrors([]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (currentAbortController) {
-        currentAbortController.abort();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
     };
-  }, [currentAbortController]);
+  }, []);
 
   return {
     convertedSearchData,
@@ -214,6 +229,7 @@ export const useFeatureStoreSearch = (): {
     isLoadingMore,
     hasMorePages,
     totalCount,
+    searchErrors,
     handleSearchChange,
     loadMoreResults,
     clearSearch,
