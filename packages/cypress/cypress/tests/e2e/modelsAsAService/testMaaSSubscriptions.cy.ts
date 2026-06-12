@@ -41,8 +41,8 @@ import {
   viewSubscriptionPage,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import type { DataScienceProjectData } from '../../../types';
-import { loadDSPFixture } from '../../../utils/dataLoader';
+import type { ModelAsAServiceTestData } from '../../../types';
+import { loadMaaSFixture } from '../../../utils/dataLoader';
 import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
@@ -54,7 +54,7 @@ import {
 } from '../../../utils/oc_commands/llmInferenceServiceConfig';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 
-let testData: DataScienceProjectData;
+let testData: ModelAsAServiceTestData;
 let projectName: string;
 let resourceName: string;
 let modelName: string;
@@ -78,8 +78,8 @@ let llmInferenceServiceConfigContainerImage: string;
 describe('A model can be deployed and accessed with a MaaS subscription and API key', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadDSPFixture('e2e/dataScienceProjects/testMaaSSubscriptions.yaml')
-      .then((fixtureData: DataScienceProjectData) => {
+    return loadMaaSFixture('e2e/modelsAsService/testMaaSSubscriptions.yaml')
+      .then((fixtureData: ModelAsAServiceTestData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-maassubs-${uuid}`;

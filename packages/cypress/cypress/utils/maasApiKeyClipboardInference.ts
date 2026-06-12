@@ -1,11 +1,32 @@
 import {
   verifyMaaSModelInferencing,
   type VerifyMaaSModelInferencingOptions,
+  ListMaaSModels,
 } from './oc_commands/maas';
 
 const CLIPBOARD_WRITE_STUB_ALIAS = 'clipboardWrite';
 
 type MaaSModelInferencingResult = { url: string; response: Cypress.Response<unknown> };
+type MaaSModelsListResult = { url: string; response: Cypress.Response<unknown> };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const parseMaaSModelsListResponse = (body: unknown): { id: string }[] => {
+  if (!isRecord(body)) {
+    throw new Error('MaaS /v1/models response body is not an object');
+  }
+  const { data } = body;
+  if (!Array.isArray(data)) {
+    throw new Error('MaaS /v1/models response is missing a data array');
+  }
+  data.forEach((model, index) => {
+    if (!isRecord(model) || typeof model.id !== 'string') {
+      throw new Error(`MaaS /v1/models entry at index ${index} is missing id`);
+    }
+  });
+  return data as { id: string }[];
+};
 
 /**
  * Stubs `navigator.clipboard.writeText` with a stub aliased as `clipboardWrite`.
@@ -86,4 +107,34 @@ export const verifyMaaSModelInferenceUsingRevokedApiKey = (
         .log(`❌ Response body: ${JSON.stringify(response.body)}`)
         .then(() => result);
     });
+  });
+
+export const verifyMaasModelExistsForUser = (
+  modelName: string,
+  token: string,
+  expectExists = true,
+): Cypress.Chainable<MaaSModelsListResult> =>
+  ListMaaSModels(token).then((result) => {
+    const { response } = result;
+
+    expect(
+      response.status,
+      `MaaS /v1/models request failed (${response.status}): ${JSON.stringify(response.body)}`,
+    ).to.equal(200);
+
+    const models = parseMaaSModelsListResponse(response.body);
+    const modelFound = models.some((model) => model.id === modelName);
+
+    if (expectExists) {
+      expect(models, 'MaaS /v1/models should return at least one model').to.have.length.greaterThan(
+        0,
+      );
+      expect(modelFound, `Model ${modelName} should exist in models list`).to.equal(true);
+      cy.log(`✅ Model ${modelName} exists for user`);
+      return cy.wrap(result);
+    }
+
+    expect(modelFound, `Model ${modelName} should NOT exist in models list`).to.equal(false);
+    cy.log(`✅ Model ${modelName} does not exist for user`);
+    return cy.wrap(result);
   });

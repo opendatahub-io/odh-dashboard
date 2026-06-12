@@ -11,6 +11,7 @@ export type APIKey = {
   status: APIKeyStatus;
   lastUsedAt?: string;
   subscription?: string;
+  dataTestId?: string;
 };
 
 export type SubscriptionDetail = {

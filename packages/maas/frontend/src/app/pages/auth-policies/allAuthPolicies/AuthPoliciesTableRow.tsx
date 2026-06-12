@@ -53,7 +53,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
     },
   };
   return (
-    <ResourceTr resource={policyResource}>
+    <ResourceTr resource={policyResource} data-testid="auth-policy-row">
       <Td dataLabel={columns[0].label}>
         <TableRowTitleDescription
           title={
@@ -84,16 +84,16 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           isDisabled={!!authPolicy.deletionTimestamp}
           items={[
             {
-              title: 'View details',
+              title: <span data-testid="auth-policy-view-details-action">View details</span>,
               onClick: () => onViewDetailsAuthPolicy(authPolicy.name),
             },
             {
-              title: 'Edit',
+              title: <span data-testid="auth-policy-edit-action">Edit</span>,
               onClick: () => onEditAuthPolicy(authPolicy.name),
             },
             { isSeparator: true },
             {
-              title: 'Delete',
+              title: <span data-testid="auth-policy-delete-action">Delete</span>,
               onClick: () => onDeleteAuthPolicy(authPolicy),
             },
           ]}
