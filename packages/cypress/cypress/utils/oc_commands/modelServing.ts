@@ -1,5 +1,6 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
 import { createDataConnection } from './dataConnection';
+import { ensureAdminOcSession } from './baseCommands';
 import { AWS_BUCKETS } from '../s3Buckets';
 import type { DataConnectionReplacements } from '../../types';
 import { createCleanProject } from '../projectChecker';
@@ -18,6 +19,9 @@ export const provisionProjectForModelServing = (
   bucketKey: 'BUCKET_1' | 'BUCKET_3',
   customDataConnectionYamlPath?: string,
 ): void => {
+  // Project provisioning requires admin privileges (create project, label namespace, apply secrets).
+  // A previous test may have switched the oc session to a non-admin user via visitWithLogin.
+  ensureAdminOcSession();
   cy.log(`Provisioning project with bucket key: ${bucketKey}`);
 
   const bucketConfig = AWS_BUCKETS[bucketKey];
