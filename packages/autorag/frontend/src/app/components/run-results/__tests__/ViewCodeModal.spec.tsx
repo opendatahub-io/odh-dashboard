@@ -5,6 +5,17 @@ import '@testing-library/jest-dom';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 
+const mockNotification = {
+  success: jest.fn(),
+  error: jest.fn(),
+  warning: jest.fn(),
+  info: jest.fn(),
+  remove: jest.fn(),
+};
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => mockNotification,
+}));
+
 const mockTemplate: ResponsesTemplate = {
   model: 'vllm/llama-3',
   stream: false,
@@ -33,6 +44,11 @@ const mockTemplate: ResponsesTemplate = {
   ],
   tool_choice: { type: 'file_search' },
   include: ['file_search_call.results'],
+};
+
+const mockOgxCredentials = {
+  baseUrl: btoa('https://ogx.example.com'),
+  apiKey: btoa('sk-test-key-123'),
 };
 
 const defaultProps = {
@@ -112,5 +128,92 @@ describe('ViewCodeModal', () => {
     const closeButton = screen.getByLabelText('Close');
     fireEvent.click(closeButton);
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe('with credentials', () => {
+    const propsWithCredentials = {
+      ...defaultProps,
+      ogxCredentials: mockOgxCredentials,
+    };
+
+    it('should render the show credentials toggle button', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      expect(screen.getByTestId('toggle-credentials-button')).toBeInTheDocument();
+      expect(screen.getByTestId('toggle-credentials-button')).toHaveTextContent('Show credentials');
+    });
+
+    it('should not render the toggle button when credentials are not provided', () => {
+      render(<ViewCodeModal {...defaultProps} />);
+      expect(screen.queryByTestId('toggle-credentials-button')).not.toBeInTheDocument();
+    });
+
+    it('should show placeholders by default when credentials are available', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      const codeBlock = screen.getByText(/curl -X POST/);
+      expect(codeBlock.textContent).toContain('<HOSTNAME>');
+      expect(codeBlock.textContent).toContain('<API_KEY>');
+    });
+
+    it('should inject credentials when show credentials is toggled', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      fireEvent.click(screen.getByTestId('toggle-credentials-button'));
+      expect(screen.getByTestId('toggle-credentials-button')).toHaveTextContent('Hide credentials');
+      const codeBlock = screen.getByText(/curl -X POST/);
+      expect(codeBlock.textContent).toContain('ogx.example.com');
+      expect(codeBlock.textContent).not.toContain('<HOSTNAME>');
+    });
+
+    it('should display "Copy with credentials" button text when credentials are provided', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      const copyButton = screen.getByLabelText('Copy curl snippet');
+      expect(copyButton).toBeInTheDocument();
+    });
+
+    it('should display copy button when no credentials', () => {
+      render(<ViewCodeModal {...defaultProps} />);
+      const copyButton = screen.getByLabelText('Copy curl snippet');
+      expect(copyButton).toBeInTheDocument();
+    });
+
+    it('should show replacement instruction text when no credentials', () => {
+      render(<ViewCodeModal {...defaultProps} />);
+      expect(screen.getByText(/Replace/)).toBeInTheDocument();
+    });
+
+    it('should not show replacement instruction text when credentials are available', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      expect(screen.queryByText(/Replace/)).not.toBeInTheDocument();
+    });
+
+    it('should copy snippet with real credentials to clipboard regardless of toggle state', async () => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText } });
+
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      fireEvent.click(screen.getByLabelText('Copy curl snippet'));
+
+      expect(writeText).toHaveBeenCalledTimes(1);
+      const copiedText = writeText.mock.calls[0][0] as string;
+      expect(copiedText).toContain('ogx.example.com');
+      expect(copiedText).toContain('sk-test-key-123');
+      expect(copiedText).not.toContain('<HOSTNAME>');
+      expect(copiedText).not.toContain('<API_KEY>');
+    });
+
+    it('should show error notification and fall back to placeholders when credentials have invalid base64', () => {
+      const invalidCredentials = {
+        baseUrl: '%%%invalid-base64%%%',
+        apiKey: btoa('sk-test-key-123'),
+      };
+      render(<ViewCodeModal {...defaultProps} ogxCredentials={invalidCredentials} />);
+
+      expect(mockNotification.error).toHaveBeenCalledWith(
+        'Failed to decode credentials',
+        expect.any(String),
+      );
+      expect(screen.queryByTestId('toggle-credentials-button')).not.toBeInTheDocument();
+      const codeBlock = screen.getByText(/curl -X POST/);
+      expect(codeBlock.textContent).toContain('<HOSTNAME>');
+    });
   });
 });

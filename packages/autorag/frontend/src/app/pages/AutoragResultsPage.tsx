@@ -26,7 +26,7 @@ import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragR
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
-import { usePipelineRunQuery } from '~/app/hooks/queries';
+import { usePipelineRunQuery, useSecretCredentialsQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import {
@@ -152,6 +152,23 @@ function AutoragResultsPage(): React.JSX.Element {
     [namespace, runId],
   );
 
+  const ogxSecretName =
+    typeof pipelineRun?.runtime_config?.parameters?.ogx_secret_name === 'string'
+      ? pipelineRun.runtime_config.parameters.ogx_secret_name
+      : undefined;
+
+  const { data: secretData } = useSecretCredentialsQuery(namespace, ogxSecretName);
+
+  const ogxCredentials = React.useMemo(() => {
+    if (!secretData?.OGX_CLIENT_BASE_URL || !secretData.OGX_CLIENT_API_KEY) {
+      return undefined;
+    }
+    return {
+      baseUrl: secretData.OGX_CLIENT_BASE_URL,
+      apiKey: secretData.OGX_CLIENT_API_KEY,
+    };
+  }, [secretData]);
+
   const contextValue = React.useMemo(
     () =>
       getAutoragContext({
@@ -163,6 +180,7 @@ function AutoragResultsPage(): React.JSX.Element {
         patternsLoadError,
         onRetryPatterns: refetchPatterns,
         ragPatternsBasePath,
+        ogxCredentials,
       }),
     [
       pipelineRun,
@@ -174,6 +192,7 @@ function AutoragResultsPage(): React.JSX.Element {
       patternsLoadError,
       refetchPatterns,
       ragPatternsBasePath,
+      ogxCredentials,
     ],
   );
 
@@ -365,6 +384,7 @@ function AutoragResultsPage(): React.JSX.Element {
           onClose={() => setViewCodePattern(null)}
           patternName={viewCodePattern.patternName}
           responsesTemplate={viewCodePattern.responsesTemplate}
+          ogxCredentials={ogxCredentials}
         />
       )}
     </AutoragResultsContext.Provider>

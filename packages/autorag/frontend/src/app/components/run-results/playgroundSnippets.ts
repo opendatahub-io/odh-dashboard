@@ -1,14 +1,37 @@
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 
-export const generateCurlSnippet = (template: ResponsesTemplate): string => {
-  const body = JSON.stringify(template, null, 2);
-  return `curl -X POST https://<HOSTNAME>/v1/responses \\
+export type SnippetCredentials = {
+  hostname: string;
+  apiKey: string;
+};
+
+const escapeShellDoubleQuote = (s: string): string =>
+  s.replace(/[\\"$`!\n]/g, (c) => (c === '\n' ? '\\n' : `\\${c}`));
+
+const escapeShellSingleQuote = (s: string): string => s.replace(/'/g, "'\\''");
+
+const escapeDoubleQuotedString = (s: string): string =>
+  s.replace(/[\\"]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
+
+export const generateCurlSnippet = (
+  template: ResponsesTemplate,
+  credentials?: SnippetCredentials,
+): string => {
+  const hostname = credentials ? escapeShellDoubleQuote(credentials.hostname) : '<HOSTNAME>';
+  const apiKey = credentials ? escapeShellDoubleQuote(credentials.apiKey) : '<API_KEY>';
+  const body = escapeShellSingleQuote(JSON.stringify(template, null, 2));
+  return `curl -X POST https://${hostname}/v1/responses \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer <API_KEY>" \\
+  -H "Authorization: Bearer ${apiKey}" \\
   -d '${body}'`;
 };
 
-export const generateNodeSnippet = (template: ResponsesTemplate): string => {
+export const generateNodeSnippet = (
+  template: ResponsesTemplate,
+  credentials?: SnippetCredentials,
+): string => {
+  const hostname = credentials ? escapeDoubleQuotedString(credentials.hostname) : '<HOSTNAME>';
+  const apiKey = credentials ? escapeDoubleQuotedString(credentials.apiKey) : '<API_KEY>';
   const body = JSON.stringify(template, null, 2)
     .split('\n')
     .map((line, i) => (i === 0 ? line : `  ${line}`))
@@ -16,8 +39,8 @@ export const generateNodeSnippet = (template: ResponsesTemplate): string => {
   return `import OpenAI from "openai";
 
 const client = new OpenAI({
-  baseURL: "https://<HOSTNAME>/v1",
-  apiKey: "<API_KEY>",
+  baseURL: "https://${hostname}/v1",
+  apiKey: "${apiKey}",
 });
 
 const response = await client.responses.create(${body});
@@ -25,7 +48,12 @@ const response = await client.responses.create(${body});
 console.log(response.output);`;
 };
 
-export const generateGoSnippet = (template: ResponsesTemplate): string => {
+export const generateGoSnippet = (
+  template: ResponsesTemplate,
+  credentials?: SnippetCredentials,
+): string => {
+  const hostname = credentials ? escapeDoubleQuotedString(credentials.hostname) : '<HOSTNAME>';
+  const apiKey = credentials ? escapeDoubleQuotedString(credentials.apiKey) : '<API_KEY>';
   const body = JSON.stringify(template, null, 2)
     .split('\n')
     .map((line, i) =>
@@ -45,13 +73,13 @@ export const generateGoSnippet = (template: ResponsesTemplate): string => {
     'func main() {',
     `${body})`,
     '',
-    '\treq, err := http.NewRequest("POST", "https://<HOSTNAME>/v1/responses", bytes.NewBuffer(payload))',
+    `\treq, err := http.NewRequest("POST", "https://${hostname}/v1/responses", bytes.NewBuffer(payload))`,
     '\tif err != nil {',
     '\t\tpanic(err)',
     '\t}',
     '',
     '\treq.Header.Set("Content-Type", "application/json")',
-    '\treq.Header.Set("Authorization", "Bearer <API_KEY>")',
+    `\treq.Header.Set("Authorization", "Bearer ${apiKey}")`,
     '',
     '\tresp, err := http.DefaultClient.Do(req)',
     '\tif err != nil {',
@@ -102,13 +130,18 @@ const jsonToPython = (value: unknown, indent = 0): string => {
   return JSON.stringify(value);
 };
 
-export const generatePythonSnippet = (template: ResponsesTemplate): string => {
+export const generatePythonSnippet = (
+  template: ResponsesTemplate,
+  credentials?: SnippetCredentials,
+): string => {
+  const hostname = credentials ? escapeDoubleQuotedString(credentials.hostname) : '<HOSTNAME>';
+  const apiKey = credentials ? escapeDoubleQuotedString(credentials.apiKey) : '<API_KEY>';
   const params = jsonToPython(template, 0);
   return `from openai import OpenAI
 
 client = OpenAI(
-    base_url="https://<HOSTNAME>/v1",
-    api_key="<API_KEY>",
+    base_url="https://${hostname}/v1",
+    api_key="${apiKey}",
 )
 
 params = ${params}
