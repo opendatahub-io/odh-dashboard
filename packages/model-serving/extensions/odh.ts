@@ -60,6 +60,7 @@ const extensions: (
       pageId: 'models-tab-page',
       id: 'deployments',
       title: 'Deployments',
+      singleTabTitle: 'Model deployments',
       component: () => import('../src/GlobalModelsRoutes'),
       group: '3_deployments',
     },

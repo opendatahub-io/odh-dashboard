@@ -33,6 +33,7 @@ import {
   ExperimentIcon,
   ResourcesIcon,
   ModelCatalogIcon,
+  ModelRegistryIcon,
   ModelRegistrySelectIcon,
   ModelEvaluationIcon,
   LabTuningIcon,
@@ -115,6 +116,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
     case ProjectObjectType.registeredModels:
     case ProjectObjectType.modelRegistrySettings:
       Icon = RegisteredModelIcon;
+      break;
+    case ProjectObjectType.modelRegistry:
+      Icon = ModelRegistryIcon;
       break;
     case ProjectObjectType.modelRegistryContext:
       Icon = ModelRegistrySelectIcon;
