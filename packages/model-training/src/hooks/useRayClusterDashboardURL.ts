@@ -3,15 +3,35 @@ import useFetch, { NotReadyError } from '@odh-dashboard/internal/utilities/useFe
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { GatewayModel, HTTPRouteModel } from '@odh-dashboard/internal/api/models';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { GatewayResource, HTTPRouteResource } from '../k8sTypes';
 
 const GATEWAY_NAME = 'data-science-gateway';
 const GATEWAY_NAMESPACE = 'openshift-ingress';
+const GATEWAY_CONFIG_NAME = 'default-gateway';
+
+const GatewayConfigModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'services.platform.opendatahub.io',
+  kind: 'GatewayConfig',
+  plural: 'gatewayconfigs',
+};
+
+type GatewayConfigResource = K8sResourceCommon & {
+  spec?: { domain?: string };
+  status?: { domain?: string };
+};
 
 const getGateway = (): Promise<GatewayResource> =>
   k8sGetResource<GatewayResource>({
     model: GatewayModel,
     queryOptions: { name: GATEWAY_NAME, ns: GATEWAY_NAMESPACE },
+  });
+
+const getGatewayConfig = (): Promise<GatewayConfigResource> =>
+  k8sGetResource<GatewayConfigResource>({
+    model: GatewayConfigModel,
+    queryOptions: { name: GATEWAY_CONFIG_NAME },
   });
 
 const getHTTPRoute = (name: string, namespace: string): Promise<HTTPRouteResource> =>
@@ -22,26 +42,48 @@ const getHTTPRoute = (name: string, namespace: string): Promise<HTTPRouteResourc
 
 /**
  * Fetches the Gateway hostname from the cluster-wide `data-science-gateway`.
- * The result is shared across all consumers since the Gateway is a singleton.
+ * Falls back to GatewayConfig `status.domain` (or `spec.domain`) when the Gateway listener has
+ * no hostname (clusters using ingressMode: OcpRoute leave the hostname field unset).
  */
 export const useGatewayHostname = (): {
   hostname: string | null;
   loaded: boolean;
   error: Error | undefined;
 } => {
-  const { data, loaded, error } = useFetch<GatewayResource | null>(
+  const {
+    data: gateway,
+    loaded: gatewayLoaded,
+    error: gatewayError,
+  } = useFetch<GatewayResource | null>(
     React.useCallback(() => getGateway(), []),
     null,
     { initialPromisePurity: true },
   );
 
+  const {
+    data: gatewayConfig,
+    loaded: configLoaded,
+    error: configError,
+  } = useFetch<GatewayConfigResource | null>(
+    React.useCallback(() => getGatewayConfig(), []),
+    null,
+    { initialPromisePurity: true },
+  );
+
+  const hostname =
+    gateway?.spec?.listeners?.[0]?.hostname ?? // ← Gateway API mode
+    gatewayConfig?.status?.domain ?? // ← OcpRoute mode
+    gatewayConfig?.spec?.domain ?? // ← older/other clusters
+    null;
+
   return React.useMemo(
     () => ({
-      hostname: data?.spec?.listeners?.[0]?.hostname ?? null,
-      loaded,
-      error,
+      hostname,
+      loaded: (gatewayLoaded || !!gatewayError) && (configLoaded || !!configError),
+      // Only surface errors when no hostname could be resolved — avoid showing an error
+      error: hostname ? undefined : gatewayError ?? configError,
     }),
-    [data, loaded, error],
+    [hostname, gatewayLoaded, configLoaded, gatewayError, configError],
   );
 };
 

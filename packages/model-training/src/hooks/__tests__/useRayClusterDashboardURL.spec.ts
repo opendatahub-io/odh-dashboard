@@ -40,17 +40,29 @@ const mockHTTPRouteResource = (path?: string) => ({
   },
 });
 
+const mockGatewayConfigResource = (domain?: string, useStatus = true) => ({
+  ...(useStatus ? { status: { domain } } : { spec: { domain } }),
+});
+
+const loadedFetch = (data: unknown) => ({
+  data,
+  loaded: true,
+  error: undefined,
+  refresh: jest.fn(),
+});
+
 describe('useGatewayHostname', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should return hostname when Gateway is loaded', () => {
-    useFetchMock.mockReturnValue({
-      data: mockGatewayResource('rh-ai.apps.example.com'),
-      loaded: true,
-      error: undefined,
-      refresh: jest.fn(),
+    let callCount = 0;
+    useFetchMock.mockImplementation(() => {
+      callCount++;
+      return callCount === 1
+        ? loadedFetch(mockGatewayResource('rh-ai.apps.example.com'))
+        : loadedFetch(mockGatewayConfigResource('fallback.example.com'));
     });
 
     const renderResult = testHook(useGatewayHostname)();
@@ -60,26 +72,43 @@ describe('useGatewayHostname', () => {
     expect(renderResult.result.current.error).toBeUndefined();
   });
 
-  it('should return null hostname when Gateway has no listeners', () => {
-    useFetchMock.mockReturnValue({
-      data: mockGatewayResource(),
-      loaded: true,
-      error: undefined,
-      refresh: jest.fn(),
+  it('should fall back to GatewayConfig status.domain when Gateway has no hostname', () => {
+    let callCount = 0;
+    useFetchMock.mockImplementation(() => {
+      callCount++;
+      return callCount === 1
+        ? loadedFetch(mockGatewayResource())
+        : loadedFetch(mockGatewayConfigResource('rh-ai.apps.example.com'));
     });
 
     const renderResult = testHook(useGatewayHostname)();
 
-    expect(renderResult.result.current.hostname).toBeNull();
+    expect(renderResult.result.current.hostname).toBe('rh-ai.apps.example.com');
     expect(renderResult.result.current.loaded).toBe(true);
   });
 
-  it('should return null hostname when data is null', () => {
-    useFetchMock.mockReturnValue({
-      data: null,
-      loaded: true,
-      error: undefined,
-      refresh: jest.fn(),
+  it('should fall back to GatewayConfig spec.domain when status.domain is unset', () => {
+    let callCount = 0;
+    useFetchMock.mockImplementation(() => {
+      callCount++;
+      return callCount === 1
+        ? loadedFetch(mockGatewayResource())
+        : loadedFetch(mockGatewayConfigResource('rh-ai.apps.example.com', false));
+    });
+
+    const renderResult = testHook(useGatewayHostname)();
+
+    expect(renderResult.result.current.hostname).toBe('rh-ai.apps.example.com');
+    expect(renderResult.result.current.loaded).toBe(true);
+  });
+
+  it('should return null hostname when Gateway and GatewayConfig have no domain', () => {
+    let callCount = 0;
+    useFetchMock.mockImplementation(() => {
+      callCount++;
+      return callCount === 1
+        ? loadedFetch(mockGatewayResource())
+        : loadedFetch(mockGatewayConfigResource());
     });
 
     const renderResult = testHook(useGatewayHostname)();
@@ -103,6 +132,23 @@ describe('useGatewayHostname', () => {
     expect(renderResult.result.current.hostname).toBeNull();
     expect(renderResult.result.current.error).toBe(mockError);
   });
+
+  it('should prefer Gateway error over GatewayConfig error when both fail', () => {
+    const gatewayError = new Error('Gateway fetch failed');
+    const configError = new Error('GatewayConfig fetch failed');
+    let callCount = 0;
+    useFetchMock.mockImplementation(() => {
+      callCount++;
+      return callCount === 1
+        ? { data: null, loaded: true, error: gatewayError, refresh: jest.fn() }
+        : { data: null, loaded: true, error: configError, refresh: jest.fn() };
+    });
+
+    const renderResult = testHook(useGatewayHostname)();
+
+    expect(renderResult.result.current.error).toBe(gatewayError);
+    expect(renderResult.result.current.hostname).toBeNull();
+  });
 });
 
 describe('useRayClusterDashboardURL', () => {
@@ -116,21 +162,12 @@ describe('useRayClusterDashboardURL', () => {
     useFetchMock.mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
-        // useGatewayHostname call
-        return {
-          data: mockGatewayResource('rh-ai.apps.example.com'),
-          loaded: true,
-          error: undefined,
-          refresh: jest.fn(),
-        };
+        return loadedFetch(mockGatewayResource('rh-ai.apps.example.com'));
       }
-      // useRayClusterDashboardURL HTTPRoute call
-      return {
-        data: mockHTTPRouteResource('/ray/my-ns/my-cluster/#/'),
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      };
+      if (callCount === 2) {
+        return loadedFetch(mockGatewayConfigResource());
+      }
+      return loadedFetch(mockHTTPRouteResource('/ray/my-ns/my-cluster/#/'));
     });
 
     const renderResult = testHook(useRayClusterDashboardURL)('my-cluster', 'my-ns');
@@ -140,6 +177,27 @@ describe('useRayClusterDashboardURL', () => {
     );
     expect(renderResult.result.current.loaded).toBe(true);
     expect(renderResult.result.current.error).toBeUndefined();
+  });
+
+  it('should return full URL using GatewayConfig status.domain on OcpRoute clusters', () => {
+    let callCount = 0;
+    useFetchMock.mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return loadedFetch(mockGatewayResource());
+      }
+      if (callCount === 2) {
+        return loadedFetch(mockGatewayConfigResource('rh-ai.apps.example.com'));
+      }
+      return loadedFetch(mockHTTPRouteResource('/ray/my-ns/my-cluster/#/'));
+    });
+
+    const renderResult = testHook(useRayClusterDashboardURL)('my-cluster', 'my-ns');
+
+    expect(renderResult.result.current.url).toBe(
+      'https://rh-ai.apps.example.com/ray/my-ns/my-cluster/#/',
+    );
+    expect(renderResult.result.current.loaded).toBe(true);
   });
 
   it('should return null URL when rayClusterName is undefined', () => {
@@ -156,24 +214,17 @@ describe('useRayClusterDashboardURL', () => {
     expect(renderResult.result.current.loaded).toBe(true);
   });
 
-  it('should return null URL when Gateway has no hostname', () => {
+  it('should return null URL when neither Gateway nor GatewayConfig provides a domain', () => {
     let callCount = 0;
     useFetchMock.mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
-        return {
-          data: mockGatewayResource(),
-          loaded: true,
-          error: undefined,
-          refresh: jest.fn(),
-        };
+        return loadedFetch(mockGatewayResource());
       }
-      return {
-        data: mockHTTPRouteResource('/ray/my-ns/my-cluster/#/'),
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      };
+      if (callCount === 2) {
+        return loadedFetch(mockGatewayConfigResource());
+      }
+      return loadedFetch(mockHTTPRouteResource('/ray/my-ns/my-cluster/#/'));
     });
 
     const renderResult = testHook(useRayClusterDashboardURL)('my-cluster', 'my-ns');
@@ -187,19 +238,12 @@ describe('useRayClusterDashboardURL', () => {
     useFetchMock.mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
-        return {
-          data: mockGatewayResource('rh-ai.apps.example.com'),
-          loaded: true,
-          error: undefined,
-          refresh: jest.fn(),
-        };
+        return loadedFetch(mockGatewayResource('rh-ai.apps.example.com'));
       }
-      return {
-        data: mockHTTPRouteResource(),
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      };
+      if (callCount === 2) {
+        return loadedFetch(mockGatewayConfigResource());
+      }
+      return loadedFetch(mockHTTPRouteResource());
     });
 
     const renderResult = testHook(useRayClusterDashboardURL)('my-cluster', 'my-ns');
@@ -220,12 +264,10 @@ describe('useRayClusterDashboardURL', () => {
           refresh: jest.fn(),
         };
       }
-      return {
-        data: mockHTTPRouteResource('/ray/my-ns/my-cluster/#/'),
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      };
+      if (callCount === 2) {
+        return loadedFetch(mockGatewayConfigResource('rh-ai.apps.example.com'));
+      }
+      return loadedFetch(mockHTTPRouteResource('/ray/my-ns/my-cluster/#/'));
     });
 
     const renderResult = testHook(useRayClusterDashboardURL)('my-cluster', 'my-ns');
@@ -239,12 +281,10 @@ describe('useRayClusterDashboardURL', () => {
     useFetchMock.mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
-        return {
-          data: mockGatewayResource('rh-ai.apps.example.com'),
-          loaded: true,
-          error: undefined,
-          refresh: jest.fn(),
-        };
+        return loadedFetch(mockGatewayResource('rh-ai.apps.example.com'));
+      }
+      if (callCount === 2) {
+        return loadedFetch(mockGatewayConfigResource());
       }
       return {
         data: null,
@@ -260,7 +300,7 @@ describe('useRayClusterDashboardURL', () => {
     expect(renderResult.result.current.url).toBeNull();
   });
 
-  it('should propagate Gateway error and report loaded', () => {
+  it('should propagate Gateway error when GatewayConfig provides no domain', () => {
     const gatewayError = new Error('Gateway fetch failed');
     let callCount = 0;
     useFetchMock.mockImplementation(() => {
@@ -273,12 +313,12 @@ describe('useRayClusterDashboardURL', () => {
           refresh: jest.fn(),
         };
       }
-      return {
-        data: null,
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      };
+      if (callCount === 2) {
+        // GatewayConfig resolves but provides no domain — hostname remains null,
+        // so the Gateway error surfaces to the caller.
+        return loadedFetch(mockGatewayConfigResource());
+      }
+      return loadedFetch(null);
     });
 
     const renderResult = testHook(useRayClusterDashboardURL)('my-cluster', 'my-ns');
@@ -294,12 +334,10 @@ describe('useRayClusterDashboardURL', () => {
     useFetchMock.mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
-        return {
-          data: mockGatewayResource('rh-ai.apps.example.com'),
-          loaded: true,
-          error: undefined,
-          refresh: jest.fn(),
-        };
+        return loadedFetch(mockGatewayResource('rh-ai.apps.example.com'));
+      }
+      if (callCount === 2) {
+        return loadedFetch(mockGatewayConfigResource());
       }
       return {
         data: null,
@@ -316,30 +354,24 @@ describe('useRayClusterDashboardURL', () => {
     expect(renderResult.result.current.url).toBeNull();
   });
 
-  it('should prefer Gateway error when both have errors', () => {
-    const gatewayError = new Error('Gateway error');
-    const routeError = new Error('Route error');
+  it('should prefer Gateway hostname error over HTTPRoute error when both fail', () => {
+    const gatewayError = new Error('Gateway fetch failed');
+    const routeError = new Error('HTTPRoute fetch failed');
     let callCount = 0;
     useFetchMock.mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
-        return {
-          data: null,
-          loaded: true,
-          error: gatewayError,
-          refresh: jest.fn(),
-        };
+        return { data: null, loaded: true, error: gatewayError, refresh: jest.fn() };
       }
-      return {
-        data: null,
-        loaded: true,
-        error: routeError,
-        refresh: jest.fn(),
-      };
+      if (callCount === 2) {
+        return loadedFetch(mockGatewayConfigResource());
+      }
+      return { data: null, loaded: true, error: routeError, refresh: jest.fn() };
     });
 
     const renderResult = testHook(useRayClusterDashboardURL)('my-cluster', 'my-ns');
 
     expect(renderResult.result.current.error).toBe(gatewayError);
+    expect(renderResult.result.current.url).toBeNull();
   });
 });
