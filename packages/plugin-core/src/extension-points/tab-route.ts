@@ -11,8 +11,7 @@ import type { ComponentCodeRef } from '../core/types';
  *
  * Smart rendering based on tab count:
  * - 0 tabs: page is not rendered, nav item is hidden
- * - 1 tab: page renders the single tab's content without a tab bar
- * - 2+ tabs: page renders a full tab bar with all tabs
+ * - 1+ tabs: page renders a tab bar with all contributed tabs
  */
 export type TabRoutePageExtension = Extension<
   'app.tab-route/page',
@@ -53,6 +52,7 @@ export type TabRouteTabExtension = Extension<
     component: ComponentCodeRef;
     /** Group used to sort tabs lexicographically. Unspecified tabs will be sorted into the '5_default' group. */
     group?: string;
+    hidePageTitleOnNestedRoutes?: boolean;
   }
 >;
 

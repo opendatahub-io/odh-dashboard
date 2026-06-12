@@ -60,6 +60,22 @@ const getDefaultTab = (
 const isProjectObjectType = (value: string): value is ProjectObjectType =>
   Object.values<string>(ProjectObjectType).includes(value);
 
+export const shouldShowTabRoutePageTitle = (
+  pageHref: string,
+  tabId: string,
+  pathname: string,
+  hidePageTitleOnNestedRoutes?: boolean,
+): boolean => {
+  if (!hidePageTitleOnNestedRoutes) {
+    return true;
+  }
+  const basePath = `${pageHref}/${tabId}`;
+  const relativePath = pathname.startsWith(basePath)
+    ? pathname.slice(basePath.length).replace(/^\//, '')
+    : '';
+  return relativePath.split('/').filter(Boolean).length <= 1;
+};
+
 type MultiTabContentProps = {
   pageTitle: React.ReactNode;
   tabExtensions: LoadedExtension<TabRouteTabExtension>[];
@@ -77,6 +93,7 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
 }) => {
   const { tabId = '' } = useParams<{ tabId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const activeTab = tabExtensions.find((t) => t.properties.id === tabId);
 
@@ -84,9 +101,16 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
     return <Navigate to={`../${defaultTab}`} replace />;
   }
 
+  const showPageTitle = shouldShowTabRoutePageTitle(
+    extension.properties.href,
+    activeTab.properties.id,
+    location.pathname,
+    activeTab.properties.hidePageTitleOnNestedRoutes,
+  );
+
   return (
     <>
-      {pageTitle}
+      {showPageTitle && pageTitle}
       <PageSection type="tabs">
         <Tabs
           activeKey={tabId}
@@ -176,34 +200,6 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
 
   const defaultTab = getDefaultTab(pageId, tabExtensions);
 
-  // Single tab: render content directly without tab bar
-  if (tabExtensions.length === 1) {
-    const singleTab = tabExtensions[0];
-    return (
-      <Routes>
-        <Route
-          path={`${singleTab.properties.id}/*`}
-          element={
-            <>
-              {pageTitle}
-              <LazyCodeRefComponent
-                component={singleTab.properties.component}
-                fallback={tabContentFallback}
-              />
-            </>
-          }
-        />
-        <Route
-          path="*"
-          element={
-            <Navigate to={`${extension.properties.href}/${singleTab.properties.id}`} replace />
-          }
-        />
-      </Routes>
-    );
-  }
-
-  // Multiple tabs: single parametric route with tab ID from URL
   return (
     <Routes>
       <Route

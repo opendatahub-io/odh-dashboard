@@ -114,8 +114,8 @@ describe('TabRoutePage', () => {
     });
   });
 
-  describe('1 tab (single tab, no tab bar)', () => {
-    it('should render page title and tab content without a tab bar', () => {
+  describe('1 tab', () => {
+    it('should render page title, tab bar, and tab content', () => {
       const tab = createTabExtension({ id: 'only-tab', title: 'Only Tab' });
       mockUseExtensions.mockReturnValue([tab]);
       const extension = createPageExtension();
@@ -123,8 +123,9 @@ describe('TabRoutePage', () => {
       renderWithRouter(extension, '/test/only-tab');
 
       expect(screen.getByTestId('app-tab-page-title')).toHaveTextContent('Test Page');
+      expect(screen.getByTestId('tab-only-tab')).toBeInTheDocument();
       expect(screen.getByTestId('lazy-content')).toBeInTheDocument();
-      expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+      expect(screen.getByRole('tablist')).toBeInTheDocument();
     });
 
     it('should redirect root path to the single tab path', () => {
@@ -136,6 +137,38 @@ describe('TabRoutePage', () => {
 
       // After redirect, content should render
       expect(screen.getByTestId('lazy-content')).toBeInTheDocument();
+    });
+
+    it('should hide page title on nested routes when hidePageTitleOnNestedRoutes is set', () => {
+      const tab = createTabExtension({
+        id: 'deployments',
+        title: 'Deployments',
+        hidePageTitleOnNestedRoutes: true,
+      });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({ href: '/ai-hub/agents', path: '/ai-hub/agents/*' });
+
+      renderWithRouter(
+        extension,
+        '/ai-hub/agents/deployments/agent-ops-demo/sample-support-agent/overview',
+      );
+
+      expect(screen.queryByTestId('app-tab-page-title')).not.toBeInTheDocument();
+      expect(screen.getByTestId('lazy-content')).toBeInTheDocument();
+    });
+
+    it('should keep page title on list routes when hidePageTitleOnNestedRoutes is set', () => {
+      const tab = createTabExtension({
+        id: 'deployments',
+        title: 'Deployments',
+        hidePageTitleOnNestedRoutes: true,
+      });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({ href: '/ai-hub/agents', path: '/ai-hub/agents/*' });
+
+      renderWithRouter(extension, '/ai-hub/agents/deployments/agent-ops-demo');
+
+      expect(screen.getByTestId('app-tab-page-title')).toHaveTextContent('Test Page');
     });
   });
 
