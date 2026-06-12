@@ -24,24 +24,30 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
 });
 
 describe('isASRModel', () => {
-  it('should return true for model with modality audio-transcription', () => {
-    expect(isASRModel(makeModel({ modality: 'audio-transcription' }))).toBe(true);
+  it('should return true for model with audio-transcription capability', () => {
+    expect(isASRModel(makeModel({ capabilities: ['audio-transcription'] }))).toBe(true);
   });
 
-  it('should return false for model with undefined modality', () => {
+  it('should return true when audio-transcription is one of multiple capabilities', () => {
+    expect(
+      isASRModel(makeModel({ capabilities: ['text-generation', 'audio-transcription'] })),
+    ).toBe(true);
+  });
+
+  it('should return false for model with undefined capabilities', () => {
     expect(isASRModel(makeModel())).toBe(false);
   });
 
-  it('should return false for model with empty string modality', () => {
-    expect(isASRModel(makeModel({ modality: '' }))).toBe(false);
+  it('should return false for model with empty capabilities array', () => {
+    expect(isASRModel(makeModel({ capabilities: [] }))).toBe(false);
   });
 
-  it('should return false for model with different modality value', () => {
-    expect(isASRModel(makeModel({ modality: 'image-generation' }))).toBe(false);
+  it('should return false for model with different capabilities', () => {
+    expect(isASRModel(makeModel({ capabilities: ['vision'] }))).toBe(false);
   });
 
   it('should be case-sensitive', () => {
-    expect(isASRModel(makeModel({ modality: 'Audio-Transcription' }))).toBe(false);
+    expect(isASRModel(makeModel({ capabilities: ['Audio-Transcription'] }))).toBe(false);
   });
 });
 
@@ -112,6 +118,19 @@ describe('convertMaaSModelToAIModel', () => {
     };
     const result = convertMaaSModelToAIModel(maasModel);
     expect(result.model_source_type).toBe('maas');
+  });
+
+  it('should set capabilities to empty array for MaaS models', () => {
+    const maasModel: MaaSModel = {
+      id: 'test-model',
+      object: 'model',
+      created: 0,
+      owned_by: 'org',
+      ready: true,
+      url: 'https://maas.example.com/model',
+    };
+    const result = convertMaaSModelToAIModel(maasModel);
+    expect(result.capabilities).toEqual([]);
   });
 
   it('should use model_type from BFF when available', () => {

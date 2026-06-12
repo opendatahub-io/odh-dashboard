@@ -381,7 +381,7 @@ export interface AAModelResponse {
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
   model_type?: 'llm' | 'embedding';
   embedding_dimension?: number;
-  modality?: string;
+  capabilities?: string[];
 }
 
 export interface AIModel extends AAModelResponse {
