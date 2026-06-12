@@ -1,4 +1,9 @@
-import { DSPAMlflowIntegrationMode, DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
+import {
+  DSPAMlflowIntegrationMode,
+  DSPipelineAPIServerStore,
+  DSPipelineKind,
+  DSPipelineManagedPipelinesKind,
+} from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;
@@ -11,6 +16,7 @@ type MockResourceConfigType = {
   pipelineStore?: DSPipelineAPIServerStore;
   cacheEnabled?: boolean;
   mlflowIntegrationMode?: DSPAMlflowIntegrationMode;
+  managedPipelines?: DSPipelineManagedPipelinesKind;
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({
@@ -23,6 +29,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   pipelineStore,
   cacheEnabled = true,
   mlflowIntegrationMode,
+  managedPipelines,
 }: MockResourceConfigType): DSPipelineKind => ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1',
   kind: 'DataSciencePipelinesApplication',
@@ -37,6 +44,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
       enableSamplePipeline: false,
       pipelineStore,
       cacheEnabled,
+      managedPipelines,
     },
     database: {
       mariaDB: {
