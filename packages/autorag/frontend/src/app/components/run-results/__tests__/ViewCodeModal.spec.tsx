@@ -5,6 +5,17 @@ import '@testing-library/jest-dom';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 
+const mockNotification = {
+  success: jest.fn(),
+  error: jest.fn(),
+  warning: jest.fn(),
+  info: jest.fn(),
+  remove: jest.fn(),
+};
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => mockNotification,
+}));
+
 const mockTemplate: ResponsesTemplate = {
   model: 'vllm/llama-3',
   stream: false,
@@ -172,6 +183,22 @@ describe('ViewCodeModal', () => {
     it('should not show replacement instruction text when credentials are available', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
       expect(screen.queryByText(/Replace/)).not.toBeInTheDocument();
+    });
+
+    it('should show error notification and fall back to placeholders when credentials have invalid base64', () => {
+      const invalidCredentials = {
+        baseUrl: '%%%invalid-base64%%%',
+        apiKey: btoa('sk-test-key-123'),
+      };
+      render(<ViewCodeModal {...defaultProps} ogxCredentials={invalidCredentials} />);
+
+      expect(mockNotification.error).toHaveBeenCalledWith(
+        'Failed to decode credentials',
+        expect.any(String),
+      );
+      expect(screen.queryByTestId('toggle-credentials-button')).not.toBeInTheDocument();
+      const codeBlock = screen.getByText(/curl -X POST/);
+      expect(codeBlock.textContent).toContain('<HOSTNAME>');
     });
   });
 });

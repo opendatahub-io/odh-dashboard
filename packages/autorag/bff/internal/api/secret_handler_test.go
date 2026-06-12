@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -198,4 +199,53 @@ func TestGetSecretHandler_UnauthorizedError(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+}
+
+func TestGetSecretHandler_InvalidDNSNames(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	invalidNames := []string{
+		"UPPERCASE",
+		"-starts-with-dash",
+		"ends-with-dash-",
+		"has@special",
+		"has space",
+		"has_underscore",
+	}
+
+	for _, name := range invalidNames {
+		t.Run(name, func(t *testing.T) {
+			_, res, err := setupApiTest[ErrorEnvelope](
+				"GET",
+				"/api/v1/secret/"+name+"?namespace=test-namespace",
+				nil,
+				factory,
+				identity,
+			)
+
+			assert.NoError(t, err)
+			assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+		})
+	}
+}
+
+func TestGetSecretHandler_GenericError(t *testing.T) {
+	genericErr := fmt.Errorf("unexpected connection failure")
+
+	mockClient := &mockKubernetesClientForSecrets{err: genericErr}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[ErrorEnvelope](
+		"GET",
+		"/api/v1/secret/my-secret?namespace=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 }

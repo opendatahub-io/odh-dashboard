@@ -19,6 +19,7 @@ import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import React from 'react';
 import type { OgxCredentials } from '~/app/types';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import { useNotification } from '~/app/hooks/useNotification';
 import { formatPatternName } from '~/app/utilities/utils';
 import {
   generateCurlSnippet,
@@ -76,11 +77,25 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
   const [activeCodeTab, setActiveCodeTab] = React.useState(0);
   const [copiedTab, setCopiedTab] = React.useState<number | null>(null);
   const [showCredentials, setShowCredentials] = React.useState(false);
+  const notification = useNotification();
 
-  const hasCredentials = !!ogxCredentials;
-  const displayCredentials =
-    showCredentials && ogxCredentials ? decodeCredentials(ogxCredentials) : undefined;
-  const copyCredentials = ogxCredentials ? decodeCredentials(ogxCredentials) : undefined;
+  const decodedCredentials = React.useMemo(() => {
+    if (!ogxCredentials) {
+      return undefined;
+    }
+    try {
+      return decodeCredentials(ogxCredentials);
+    } catch {
+      notification.error(
+        'Failed to decode credentials',
+        'The secret data could not be decoded. Credential placeholders will be shown instead.',
+      );
+      return undefined;
+    }
+  }, [ogxCredentials, notification]);
+
+  const hasCredentials = !!decodedCredentials;
+  const displayCredentials = showCredentials ? decodedCredentials : undefined;
 
   const handleCopy = React.useCallback((text: string, tabIndex: number) => {
     navigator.clipboard.writeText(text).then(
@@ -149,14 +164,14 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
                       id={tab.id}
                       aria-label={tab.ariaLabel}
                       onClick={() =>
-                        handleCopy(tab.generator(responsesTemplate, copyCredentials), index)
+                        handleCopy(tab.generator(responsesTemplate, decodedCredentials), index)
                       }
                       variant="plain"
                     >
                       {copiedTab === index
                         ? 'Copied'
                         : hasCredentials
-                          ? 'Copy with credentials'
+                          ? 'Copies with credentials included'
                           : 'Copy'}
                     </ClipboardCopyButton>
                   </CodeBlockAction>
