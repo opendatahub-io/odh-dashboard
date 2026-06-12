@@ -35,6 +35,11 @@ describe('MCP Server Deploy from Catalog', () => {
         expectedDeploymentStatus = testData.expectedDeploymentStatus;
         mcpServerId = testData.mcpServerId;
       })
+      .then(() => {
+        // Clean up stale resources from previous runs or retries
+        cleanupMcpServerDeployResources(clusterRoleBindingName);
+        deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
+      })
       .then(() => createOpenShiftProject(projectName))
       .then(() =>
         setupMcpServerDeployResources(projectName, {
