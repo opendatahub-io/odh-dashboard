@@ -173,13 +173,13 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
           <ToolbarItem>
             <ColdStartLatencyFilter />
             <Popover
-              bodyContent="The estimated time required to provision hardware resources and initialize the container before the model can accept traffic."
+              bodyContent="Set the maximum acceptable time that it can take for vLLM to load the model. This does not include the time it takes to download the model."
               appendTo={() => document.body}
               position="top"
             >
               <Button
                 variant="plain"
-                aria-label="More info for cold start latency"
+                aria-label="More info for cold start load time"
                 className="pf-v6-u-p-xs"
                 icon={<HelpIcon />}
               />

@@ -521,14 +521,30 @@ jobs:
   e2e-tests:
     needs: [select-cluster, set-pending-status, get-test-tags]
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         tag: ${{ fromJson(needs.get-test-tags.outputs.matrix) }}
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
+      MATRIX_TAG: ${{ matrix.tag }}
     steps:
+      - name: Validate tag format
+        run: |
+          if [[ -z "$MATRIX_TAG" ]]; then
+            echo "❌ MATRIX_TAG is empty or unset"
+            exit 1
+          fi
+          for tag in $MATRIX_TAG; do
+            if [[ ! "$tag" =~ ^@[a-zA-Z0-9_.:-]+$ ]]; then
+              echo "❌ Invalid tag format: $tag"
+              echo "   Tags must match: ^@[a-zA-Z0-9_.:-]+$"
+              exit 1
+            fi
+          done
+          echo "✅ Tag format valid: $MATRIX_TAG"
+
       - name: Check Disk Space
         run: |
           echo "📊 Checking available disk space..."
@@ -765,9 +781,9 @@ jobs:
           BASE_PORT=$((4000 + (${{ github.run_id }} % 1000) * 5))
 
           # Add matrix offset to separate concurrent jobs within same PR
-          if [[ "${{ matrix.tag }}" == *"set-1"* ]]; then
+          if [[ "$MATRIX_TAG" == *"set-1"* ]]; then
             MATRIX_OFFSET=0
-          elif [[ "${{ matrix.tag }}" == *"set-2"* ]]; then
+          elif [[ "$MATRIX_TAG" == *"set-2"* ]]; then
             MATRIX_OFFSET=1
           else
             MATRIX_OFFSET=2
@@ -777,7 +793,7 @@ jobs:
           PORT_INFO_DIR="/tmp/gha-ports"
           mkdir -p "$PORT_INFO_DIR"
           
-          echo "📍 Calculated port ${WEBPACK_PORT} for ${{ matrix.tag }} (run_id: ${{ github.run_id }})"
+          echo "📍 Calculated port ${WEBPACK_PORT} for $MATRIX_TAG (run_id: ${{ github.run_id }})"
           
           # SAFE port conflict resolution - only clean orphaned processes
           if lsof -ti:${WEBPACK_PORT} > /dev/null 2>&1; then
@@ -907,7 +923,7 @@ jobs:
           TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
 
           # Extract credentials based on test type
-          if [[ "${{ matrix.tag }}" == "@NonAdmin" ]]; then
+          if [[ "$MATRIX_TAG" == "@NonAdmin" ]]; then
             echo "🔑 Using non-admin credentials (TEST_USER_3) for @NonAdmin tests"
             OC_USERNAME=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
             OC_PASSWORD=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
@@ -1257,11 +1273,20 @@ jobs:
         run: |
           cd frontend
 
-          echo "🧪 Running E2E tests for ${{ matrix.tag }}..."
+          TAG="$MATRIX_TAG"
+          if [ ${#TAG} -gt 200 ]; then
+            TAG_DIR=$(echo -n "$TAG" | sha256sum | cut -c1-12)
+            echo "📁 Tag too long for directory name (${#TAG} chars), using hash: ${TAG_DIR}"
+          else
+            TAG_DIR="$TAG"
+          fi
+          echo "TAG_DIR=${TAG_DIR}" >> $GITHUB_ENV
+
+          echo "🧪 Running E2E tests for $MATRIX_TAG..."
           echo "🚀 Running tests against live dashboard on port ${WEBPACK_PORT}"
           echo "📌 Tag source: ${{ needs.get-test-tags.outputs.source }}"
 
-          export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${{ matrix.tag }}"
+          export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${TAG_DIR}"
           mkdir -p "$CY_RESULTS_DIR"
 
           # Determine OC_SERVER based on cluster (for oc user switching in tests)
@@ -1276,20 +1301,20 @@ jobs:
 
           # Set IS_NON_ADMIN_RUN flag for non-admin tests to skip admin-only setup hooks
           EXTRA_CYPRESS_ENV="OC_SERVER=${OC_SERVER},"
-          if [[ "${{ matrix.tag }}" == "@NonAdmin" ]]; then
+          if [[ "$MATRIX_TAG" == "@NonAdmin" ]]; then
             EXTRA_CYPRESS_ENV="${EXTRA_CYPRESS_ENV}IS_NON_ADMIN_RUN=true,"
             echo "🔐 Running in non-admin mode - admin setup hooks will be skipped"
           fi
 
           BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:chrome -- \
-            --env ${EXTRA_CYPRESS_ENV}skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.tag }}",grepFilterSpecs=true \
+            --env ${EXTRA_CYPRESS_ENV}skipTags="@Bug @Maintain @NonConcurrent",grepTags="${MATRIX_TAG}",grepFilterSpecs=true \
             --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: e2e-results-${{ matrix.tag }}
+          name: e2e-results-${{ env.TAG_DIR }}
           path: |
             packages/cypress/results/
             packages/cypress/videos/
@@ -1301,7 +1326,7 @@ jobs:
         run: |
           echo "🏁 E2E Test completed!"
           echo "Status: ${{ job.status }}"
-          echo "Test Tag: ${{ matrix.tag }}"
+          echo "Test Tag: $MATRIX_TAG"
           echo "Cluster: $CLUSTER_NAME"
           echo "Run ID: ${{ github.run_id }}"
 

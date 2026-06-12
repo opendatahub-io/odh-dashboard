@@ -12,7 +12,9 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { CodeIcon, ColumnsIcon, CogIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { AGENT_PROFILES } from '~/odh/extensions';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
 type ChatbotHeaderActionsProps = {
@@ -26,9 +28,6 @@ type ChatbotHeaderActionsProps = {
   isSettingsOpen: boolean;
   isCompareMode: boolean;
 };
-
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-const RENDER_SAVE_AS_BUTTON = false;
 
 const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onViewCode,
@@ -47,6 +46,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configIds[0]));
   const isViewCodeDisabled = !lastInput || !selectedModel;
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
+  const [agentProfilesEnabled] = useFeatureFlag(AGENT_PROFILES);
 
   // Get disabled reason for popover
   const getDisabledReason = () => {
@@ -67,9 +67,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
       <ActionListGroup>
         {lsdStatus?.phase === 'Ready' && (
           <>
-            {/* Temp: serializer test button — remove before feature delivery */}
-            {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
-            {!isCompareMode && RENDER_SAVE_AS_BUTTON && (
+            {!isCompareMode && agentProfilesEnabled && (
               <ActionListItem>
                 <Button
                   variant="link"

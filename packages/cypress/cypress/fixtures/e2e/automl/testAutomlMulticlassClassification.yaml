@@ -6,5 +6,8 @@ runDescription: 'E2E test multiclass classification run'
 trainingDataFile: automl-multiclass-test-data.csv
 taskType: multiclass
 topN: 1
+defaultMetricLabel: Accuracy
+changedMetricKey: roc_auc
+changedMetricLabel: ROC AUC
 labelColumn: species
 awsBucket: BUCKET_2
