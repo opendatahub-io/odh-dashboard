@@ -79,7 +79,7 @@ COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
 
 # Build the Go application
-RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o /tmp/bff ./cmd
 
 # Final stage
 FROM ${DISTROLESS_BASE_IMAGE}
@@ -87,7 +87,7 @@ FROM ${DISTROLESS_BASE_IMAGE}
 ARG UI_SOURCE_CODE
 
 WORKDIR /
-COPY --from=bff-builder /usr/src/workspace/${BFF_SOURCE_CODE}/bff ./
+COPY --from=bff-builder /tmp/bff ./
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
 USER 65532:65532
 
