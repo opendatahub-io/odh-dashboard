@@ -728,3 +728,5 @@ export const getModelPathFromUri = (uri: string): string => {
     return '';
   }
 };
+
+export { translateModelServingError, createModelServingError } from '#~/api/errorUtils';
