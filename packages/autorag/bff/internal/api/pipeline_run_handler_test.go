@@ -411,5 +411,10 @@ func TestCreatePipelineRunHandler_ManagedPipelinesNotFound(t *testing.T) {
 		app.CreatePipelineRunHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var response ErrorEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "404", response.Error.Code)
+		assert.Equal(t, repositories.ManagedPipelinesNotFoundMessage, response.Error.Message)
 	})
 }
