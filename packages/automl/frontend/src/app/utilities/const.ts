@@ -62,6 +62,38 @@ export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, re
     s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
   };
 
+// Preset values (user-facing, stored in form state)
+export const PRESET_FASTER = 'faster';
+export const PRESET_BETTER_QUALITY = 'better_quality';
+export const PRESETS = [PRESET_FASTER, PRESET_BETTER_QUALITY] as const;
+
+type PresetKey = typeof PRESET_FASTER | typeof PRESET_BETTER_QUALITY;
+type TaskTypeKey =
+  | typeof TASK_TYPE_BINARY
+  | typeof TASK_TYPE_MULTICLASS
+  | typeof TASK_TYPE_REGRESSION
+  | typeof TASK_TYPE_TIMESERIES;
+
+export const PRESET_AUTOGLUON_VALUES: Record<PresetKey, Record<TaskTypeKey, string>> = {
+  [PRESET_FASTER]: {
+    [TASK_TYPE_BINARY]: 'medium_quality',
+    [TASK_TYPE_MULTICLASS]: 'medium_quality',
+    [TASK_TYPE_REGRESSION]: 'medium_quality',
+    [TASK_TYPE_TIMESERIES]: 'fast_training',
+  },
+  [PRESET_BETTER_QUALITY]: {
+    [TASK_TYPE_BINARY]: 'good_quality',
+    [TASK_TYPE_MULTICLASS]: 'good_quality',
+    [TASK_TYPE_REGRESSION]: 'good_quality',
+    [TASK_TYPE_TIMESERIES]: 'medium_quality',
+  },
+};
+
+export const PRESET_LABELS: Record<string, string> = {
+  [PRESET_FASTER]: 'Faster',
+  [PRESET_BETTER_QUALITY]: 'Better quality',
+};
+
 /* eslint-disable camelcase */
 // Timeseries metrics use uppercase API names (e.g. MASE) while model result data
 // uses snake_case keys (e.g. mean_absolute_scaled_error). This map bridges the two.

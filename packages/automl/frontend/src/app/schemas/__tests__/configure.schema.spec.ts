@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import {
+  PRESET_FASTER,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
@@ -18,6 +19,10 @@ describe('createConfigureSchema', () => {
     it('should not default to any valid prediction type', () => {
       const validTypes: string[] = [...TASK_TYPES];
       expect(validTypes).not.toContain(schema.defaults.task_type);
+    });
+
+    it('should default preset to faster', () => {
+      expect(schema.defaults.preset).toBe(PRESET_FASTER);
     });
   });
 
@@ -590,6 +595,76 @@ describe('createConfigureSchema', () => {
         expect(result.data.target).toBe('forecast_val');
         expect(result.data).not.toHaveProperty('target_column');
         expect(result.data).not.toHaveProperty('label_column');
+      }
+    });
+
+    it('should map preset to AutoGluon value for tabular task types', () => {
+      for (const taskType of [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION]) {
+        const fasterResult = schema.full.safeParse({
+          ...schema.defaults,
+          display_name: 'test',
+          train_data_secret_name: 'secret',
+          train_data_bucket_name: 'bucket',
+          train_data_file_key: 'file.csv',
+          task_type: taskType,
+          target_column: 'col1',
+          preset: 'faster',
+        });
+        expect(fasterResult.success).toBe(true);
+        if (fasterResult.success) {
+          expect(fasterResult.data.preset).toBe('medium_quality');
+        }
+
+        const betterResult = schema.full.safeParse({
+          ...schema.defaults,
+          display_name: 'test',
+          train_data_secret_name: 'secret',
+          train_data_bucket_name: 'bucket',
+          train_data_file_key: 'file.csv',
+          task_type: taskType,
+          target_column: 'col1',
+          preset: 'better_quality',
+        });
+        expect(betterResult.success).toBe(true);
+        if (betterResult.success) {
+          expect(betterResult.data.preset).toBe('good_quality');
+        }
+      }
+    });
+
+    it('should map preset to AutoGluon value for timeseries task type', () => {
+      const fasterResult = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'target_col',
+        id_column: 'id_col',
+        timestamp_column: 'ts_col',
+        preset: 'faster',
+      });
+      expect(fasterResult.success).toBe(true);
+      if (fasterResult.success) {
+        expect(fasterResult.data.preset).toBe('fast_training');
+      }
+
+      const betterResult = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'target_col',
+        id_column: 'id_col',
+        timestamp_column: 'ts_col',
+        preset: 'better_quality',
+      });
+      expect(betterResult.success).toBe(true);
+      if (betterResult.success) {
+        expect(betterResult.data.preset).toBe('medium_quality');
       }
     });
   });

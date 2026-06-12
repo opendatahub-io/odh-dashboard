@@ -105,6 +105,11 @@ class AutomlConfigurePage {
     return cy.findByTestId('id_column-select');
   }
 
+  // Preset
+  findPresetRadio(preset: string) {
+    return cy.findByTestId(`preset-radio-${preset}`);
+  }
+
   // Optimization metric
   findOptimizationMetricCard() {
     return cy.findByTestId('optimization-metric-card');
