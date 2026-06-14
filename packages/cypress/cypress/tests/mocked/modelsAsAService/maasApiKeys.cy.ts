@@ -1112,4 +1112,75 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
       expect(interception.response?.statusCode).to.eq(200);
     });
   });
+
+  it('should sort subscription details api keys by column', () => {
+    mySubscriptionsPage.visit('premium-team-sub');
+    cy.wait('@initialSearch');
+    mySubscriptionsPage.findApiKeysTable().should('exist');
+
+    const premiumKeys = mockAPIKeys().filter(
+      (k) => k.subscription === 'premium-team-sub' && k.status !== 'revoked',
+    );
+    const nameAsc = premiumKeys.toSorted((a, b) => a.name.localeCompare(b.name));
+    const expiresAsc = premiumKeys.toSorted(
+      (a, b) =>
+        new Date(a.expirationDate ?? 0).getTime() - new Date(b.expirationDate ?? 0).getTime(),
+    );
+
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      req.reply(mockSearchResponse(nameAsc));
+    }).as('sortNameAsc');
+    mySubscriptionsPage.findColumnSortButton('Name').click();
+
+    cy.wait('@sortNameAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.nested.property('sort.by', 'name');
+    });
+    mySubscriptionsPage
+      .findApiKeysTable()
+      .find('tbody tr')
+      .eq(0)
+      .should('contain.text', 'old-service-key');
+    mySubscriptionsPage
+      .findApiKeysTable()
+      .find('tbody tr')
+      .eq(1)
+      .should('contain.text', 'production-backend');
+
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      req.reply(mockSearchResponse(expiresAsc));
+    }).as('sortExpiresAsc');
+    mySubscriptionsPage.findColumnSortButton('Expires').click();
+
+    cy.wait('@sortExpiresAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.nested.property('sort.by', 'expires_at');
+    });
+    mySubscriptionsPage
+      .findApiKeysTable()
+      .find('tbody tr')
+      .eq(0)
+      .should('contain.text', 'old-service-key');
+    mySubscriptionsPage
+      .findApiKeysTable()
+      .find('tbody tr')
+      .eq(1)
+      .should('contain.text', 'production-backend');
+
+    const mockReply = () => mockSearchResponse(premiumKeys);
+
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      req.reply(mockReply());
+    }).as('sortCreated');
+    mySubscriptionsPage.findColumnSortButton('Created').click();
+    cy.wait('@sortCreated').then((interception) => {
+      expect(interception.request.body.data).to.have.nested.property('sort.by', 'created_at');
+    });
+
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      req.reply(mockReply());
+    }).as('sortLastUsed');
+    mySubscriptionsPage.findColumnSortButton('Last used').click();
+    cy.wait('@sortLastUsed').then((interception) => {
+      expect(interception.request.body.data).to.have.nested.property('sort.by', 'last_used_at');
+    });
+  });
 });

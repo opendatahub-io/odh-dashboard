@@ -24,11 +24,35 @@ import CreateApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/CreateApiKeyMod
 import RevokeApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/RevokeApiKeyModal';
 
 const subscriptionApiKeyColumns: ApiKeyColumn[] = [
-  { field: 'name', label: 'Name', width: 25, sortable: false },
+  {
+    field: 'name',
+    label: 'Name',
+    width: 25,
+    sortable: true,
+    serverSortField: 'name',
+  },
   { field: 'status', label: 'Status', width: 10, sortable: false },
-  { field: 'creationDate', label: 'Created', width: 15, sortable: false },
-  { field: 'expirationDate', label: 'Expires', width: 15, sortable: false },
-  { field: 'lastUsedAt', label: 'Last used', width: 15, sortable: false },
+  {
+    field: 'creationDate',
+    label: 'Created',
+    width: 15,
+    sortable: true,
+    serverSortField: 'created_at',
+  },
+  {
+    field: 'lastUsedAt',
+    label: 'Last used',
+    width: 15,
+    sortable: true,
+    serverSortField: 'last_used_at',
+  },
+  {
+    field: 'expirationDate',
+    label: 'Expires',
+    width: 15,
+    sortable: true,
+    serverSortField: 'expires_at',
+  },
 ];
 
 type MySubscriptionsApiKeyTableProps = {
@@ -77,13 +101,19 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
     refresh,
     page,
     perPage,
+    sortField,
+    sortDirection,
     isFetching,
     onSetPage,
     onPerPageSelect,
+    onSort,
   } = useSubscriptionApiKeysTableState(subscriptionId);
 
   const apiKeys = response.data;
   const showTableLoading = !loaded || isFetching;
+  const activeSortIndex = subscriptionApiKeyColumns.findIndex(
+    (c) => c.serverSortField === sortField,
+  );
 
   return (
     <>
@@ -143,8 +173,28 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
       <Table data-testid="subscription-api-keys-table" aria-label="Subscription API keys table">
         <Thead noWrap>
           <Tr>
-            {subscriptionApiKeyColumns.map((col) => (
-              <Th key={col.field} width={col.width}>
+            {subscriptionApiKeyColumns.map((col, i) => (
+              <Th
+                key={col.field}
+                width={col.width}
+                sort={
+                  col.serverSortField
+                    ? {
+                        sortBy: {
+                          index: activeSortIndex,
+                          direction: sortDirection,
+                          defaultDirection: 'asc',
+                        },
+                        onSort: (_e, _index, direction) => {
+                          if (col.serverSortField) {
+                            onSort(col.serverSortField, direction);
+                          }
+                        },
+                        columnIndex: i,
+                      }
+                    : undefined
+                }
+              >
                 {col.label}
               </Th>
             ))}

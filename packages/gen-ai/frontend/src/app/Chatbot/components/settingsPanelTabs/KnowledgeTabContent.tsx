@@ -320,6 +320,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             label={externalLabel}
             isChecked={knowledgeMode === 'external'}
             onChange={() => {
+              updateSelectedVectorStoreId(configId, null);
               updateKnowledgeMode(configId, 'external');
               fireMiscTrackingEvent('Playground Knowledge Source Switched', {
                 selectedSource: 'vectorstore',

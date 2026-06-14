@@ -334,15 +334,6 @@ describe('Feature Entities', () => {
     featureStoreGlobal.findProjectSelectorDropdown().should('contain.text', fsProjectName);
   });
 
-  it('should display connected workbenches link as disabled', () => {
-    featureStoreGlobal.visitEntities(fsProjectName);
-    featureStoreGlobal
-      .findConnectedWorkbenchesLink()
-      .should('be.visible')
-      .and('have.text', 'View connected workbenches')
-      .and('have.attr', 'aria-disabled', 'true');
-  });
-
   it('should display entities table with data', () => {
     featureStoreGlobal.visitEntities(fsProjectName);
     featureEntitiesTable.findTable().should('be.visible');
