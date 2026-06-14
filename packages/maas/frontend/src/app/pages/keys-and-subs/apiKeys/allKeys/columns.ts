@@ -15,7 +15,6 @@ export const apiKeyColumns: ApiKeyColumn[] = [
     width: 20,
     sortable: true,
     serverSortField: 'name',
-    dataTestId: 'api-key-name',
   },
   {
     field: 'status',
@@ -34,7 +33,6 @@ export const apiKeyColumns: ApiKeyColumn[] = [
     label: 'Owner',
     width: 10,
     sortable: false,
-    dataTestId: 'api-key-owner',
   },
   {
     field: 'creationDate',
@@ -42,7 +40,6 @@ export const apiKeyColumns: ApiKeyColumn[] = [
     width: 15,
     sortable: true,
     serverSortField: 'created_at',
-    dataTestId: 'api-key-created',
   },
   {
     field: 'lastUsedAt',
@@ -50,7 +47,6 @@ export const apiKeyColumns: ApiKeyColumn[] = [
     width: 15,
     sortable: true,
     serverSortField: 'last_used_at',
-    dataTestId: 'api-key-last-used',
   },
   {
     field: 'expirationDate',
@@ -58,7 +54,6 @@ export const apiKeyColumns: ApiKeyColumn[] = [
     width: 15,
     sortable: true,
     serverSortField: 'expires_at',
-    dataTestId: 'api-key-expires',
   },
 ];
 

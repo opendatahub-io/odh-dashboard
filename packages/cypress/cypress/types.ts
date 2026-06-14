@@ -701,6 +701,11 @@ export type ModelAsAServiceTestData = {
   apiKeyDescription: string;
   apiKeyExpirationTime: string;
   phase: string;
+  apiKeyStatus: {
+    active: string;
+    expired: string;
+    revoked: string;
+  };
 };
 
 export type TrainJobTestData = {

@@ -19,3 +19,7 @@ phase: 'Active'
 apiKeyName: 'a-test-maas-subscription-api-key'
 apiKeyDescription: 'Cypress test: API key for test-maas-policies-sub'
 apiKeyExpirationTime: '1'
+apiKeyStatus:
+  active: 'Active'
+  expired: 'Expired'
+  revoked: 'Revoked'

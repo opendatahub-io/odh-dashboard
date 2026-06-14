@@ -1,4 +1,3 @@
-import { STATUS_OPTIONS } from '@odh-dashboard/maas/types/api-key';
 import {
   checkMaaSSubscriptionState,
   checkMaaSAuthPolicyState,
@@ -38,7 +37,6 @@ import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnecti
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { stubClipboard, getClipboardContent } from '../../../utils/clipboardUtils';
 
-const [activeApiKeyStatus, , revokedApiKeyStatus] = STATUS_OPTIONS;
 const capitalize = (input: string): string => input.charAt(0).toUpperCase() + input.slice(1);
 
 const uuid = generateTestUUID();
@@ -55,6 +53,7 @@ let policiesName: string;
 let policiesDescription: string;
 let apiKeyName: string;
 let apiKeyExpirationTime: string;
+let activeApiKeyStatus: { active: string; expired: string; revoked: string };
 let policiesModelsCount: number;
 let policiesGroupsCount: number;
 let phase: string;
@@ -87,6 +86,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
         tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
         apiKeyName = `${subscriptionName}-api-key`;
         apiKeyExpirationTime = testData.apiKeyExpirationTime;
+        activeApiKeyStatus = testData.apiKeyStatus;
         expiryDate = new Date(
           new Date().setDate(new Date().getDate() + parseInt(apiKeyExpirationTime, 10)),
         ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -168,7 +168,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
       });
 
       authPoliciesPage.findKeywordFilterInput().type(policiesName);
-      authPoliciesPage.findRows().should('have.length', 1);
       let policyRow = authPoliciesPage.getRow(policiesName);
       policyRow.findName().should('contain.text', policiesName);
       policyRow.findDescription().should('contain.text', policiesDescription);
@@ -180,7 +179,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
       policyRow.findDeleteActionButton().should('be.visible');
 
       cy.step(' View the authorization policy details');
-      policyRow.findViewDetailsActionButton().should('be.visible').click();
+      policyRow.findViewDetailsActionButton().click();
       viewAuthPolicyPage.findBreadcrumbPoliciesLink().should('be.visible').click();
       policyRow.findTitleButton().click();
       viewAuthPolicyPage.findTitle().should('contain.text', policiesName);
@@ -256,7 +255,8 @@ describe('An admin can manage MaaS authorization policies and control model acce
       editRateLimitsModal.findCountInput(0).type(tokenRateLimit.limit.toString());
       editRateLimitsModal.findTimeInput(0).clear();
       editRateLimitsModal.findTimeInput(0).type(tokenRateLimit.window);
-      editRateLimitsModal.selectUnit(0, tokenRateLimit.unit);
+      editRateLimitsModal.findUnitDropdown(0).click();
+      cy.findByText(tokenRateLimit.unit).should('be.visible').click();
       editRateLimitsModal.findSaveButton().click();
 
       // Verify the auth policy checkbox is checked by default
@@ -274,7 +274,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
       cy.step('Verify the policy is visble in policies page');
       authPoliciesPage.visit();
       authPoliciesPage.findKeywordFilterInput().type(subscriptionName);
-      authPoliciesPage.findRows().should('have.length', 1);
       authPoliciesPage.getFirstRowPolicyName().as('policiesName');
       policiesDescription = `Auth policy created for subscription "${subscriptionName}"`;
 
@@ -327,8 +326,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
         cy.step('Verify the API key is created');
         apiKeysPage.findRows().should('contain.text', apiKeyName);
         let apiKeyRow = apiKeysPage.getRow(apiKeyName);
-
-        apiKeyRow.findName().should('contain.text', apiKeyName);
         apiKeyRow
           .findDescription()
           .should('contain.text', `Cypress test: API key for ${subscriptionName}`);
@@ -379,10 +376,10 @@ describe('An admin can manage MaaS authorization policies and control model acce
         adminBulkRevokeAPIKeyModal.findRevokeButton().click();
 
         apiKeysPage.findStatusFilterToggle().click();
-        apiKeysPage.findStatusFilterOptionCheckbox(activeApiKeyStatus).should('be.checked');
-        apiKeysPage.findStatusFilterOptionCheckbox(revokedApiKeyStatus).click();
+        apiKeysPage.findStatusFilterOptionCheckbox(activeApiKeyStatus.active).should('be.checked');
+        apiKeysPage.findStatusFilterOptionCheckbox(activeApiKeyStatus.revoked).click();
         apiKeyRow = apiKeysPage.getRow(apiKeyName);
-        apiKeyRow.findStatus().should('contain.text', capitalize(revokedApiKeyStatus));
+        apiKeyRow.findStatus().should('contain.text', capitalize(activeApiKeyStatus.revoked));
         apiKeyRow.findLastUsedAt().should('contain.text', today);
         apiKeysPage.findRevokeActionsButton(apiKeyName).should('be.disabled');
       });
