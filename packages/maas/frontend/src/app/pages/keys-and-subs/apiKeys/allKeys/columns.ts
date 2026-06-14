@@ -5,7 +5,6 @@ export type ApiKeySortField = NonNullable<NonNullable<APIKeySearchRequest['sort'
 
 export type ApiKeyColumn = SortableData<APIKey> & {
   serverSortField?: ApiKeySortField;
-  dataTestId?: string;
 };
 
 export const apiKeyColumns: ApiKeyColumn[] = [

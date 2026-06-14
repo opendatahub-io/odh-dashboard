@@ -98,7 +98,7 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
 }) => (
   <Tr>
     {columns.map((col) => (
-      <Td key={col.field} dataLabel={col.label} data-testid={col.dataTestId}>
+      <Td key={col.field} dataLabel={col.label}>
         {renderApiKeyCell(col, apiKey, subscriptionDetail)}
       </Td>
     ))}

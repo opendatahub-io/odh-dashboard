@@ -149,7 +149,6 @@ export const RateLimitRow: React.FC<RateLimitRowProps> = ({
                 {UNIT_OPTIONS.map((option) => (
                   <DropdownItem
                     key={option.value}
-                    data-testid={`${id}-unit-option-${option.value}`}
                     onClick={() => {
                       onChange({ ...rateLimit, unit: option.value });
                       setUnitDropdownOpen(false);
