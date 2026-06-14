@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { HardwareProfileKind, IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import {
   CPU_UNITS,
   isCpuLimitLarger,
