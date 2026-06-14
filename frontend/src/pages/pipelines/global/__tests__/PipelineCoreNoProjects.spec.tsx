@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAccessReview } from '#~/api';
 import PipelineCoreNoProjects from '#~/pages/pipelines/global/PipelineCoreNoProjects';
 
@@ -13,11 +14,27 @@ jest.mock('react-router-dom', () => ({
   useNavigate: jest.fn(),
 }));
 
+jest.mock('#~/pages/projects/screens/projects/NewProjectButton', () => {
+  const MockNewProjectButton: React.FC<{ onProjectCreated?: (name: string) => void }> = ({
+    onProjectCreated,
+  }) => (
+    <button data-testid="create-project" onClick={() => onProjectCreated?.('test-project')}>
+      Create project
+    </button>
+  );
+  return { __esModule: true, default: MockNewProjectButton };
+});
+
 const useAccessReviewMock = jest.mocked(useAccessReview);
+const useNavigateMock = jest.mocked(useNavigate);
 
 describe('PipelineCoreNoProjects', () => {
+  let navigateMock: jest.Mock;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    navigateMock = jest.fn();
+    useNavigateMock.mockReturnValue(navigateMock);
   });
 
   it('should show create project button when user has permission', () => {
@@ -26,6 +43,14 @@ describe('PipelineCoreNoProjects', () => {
 
     expect(screen.getByTestId('create-project')).toBeInTheDocument();
     expect(screen.queryByText("Who's my administrator?")).not.toBeInTheDocument();
+  });
+
+  it('should navigate to pipelines route when project is created', () => {
+    useAccessReviewMock.mockReturnValue([true, true]);
+    render(<PipelineCoreNoProjects />);
+
+    fireEvent.click(screen.getByTestId('create-project'));
+    expect(navigateMock).toHaveBeenCalledWith('/develop-train/pipelines/definitions/test-project');
   });
 
   it('should show administrator help when user lacks permission', () => {
