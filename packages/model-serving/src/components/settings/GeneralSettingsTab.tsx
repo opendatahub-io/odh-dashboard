@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  EmptyState,
-  EmptyStateBody,
-  PageSection,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, PageSection } from '@patternfly/react-core';
 
 const GeneralSettingsTab: React.FC = () => (
   <PageSection hasBodyWrapper={false}>
