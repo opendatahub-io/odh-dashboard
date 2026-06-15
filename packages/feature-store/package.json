@@ -53,5 +53,17 @@
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "@patternfly/react-styles": "^6",
+    "@patternfly/react-table": "^6",
+    "@patternfly/react-tokens": "^6",
+    "@patternfly/react-topology": "^6",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router": "^7",
+    "react-router-dom": "^7"
   }
 }

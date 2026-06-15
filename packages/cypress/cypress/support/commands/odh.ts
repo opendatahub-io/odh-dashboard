@@ -874,6 +874,22 @@ declare global {
           }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /api/featurestores/projects-with-workbenches',
+          response: OdhResponse<{
+            connectedWorkbenches: Array<{
+              feastProjectName: string;
+              namespace: string;
+              description?: string;
+              permissionLevel: string[];
+              connectedWorkbenches: Array<{
+                workbenchName: string;
+                workbenchNamespace: string;
+                projectName: string;
+              }>;
+            }>;
+          }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/k8s/apis/feast.dev/v1/namespaces/*/featurestores',
           options: {
             query?: { labelSelector: string };

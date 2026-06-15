@@ -232,7 +232,7 @@ describe('ChatbotMessageInput', () => {
       expect(screen.getByTestId('menu-item-upload-documents')).toBeInTheDocument();
     });
 
-    it('disables "Upload image" when isImageUploadDisabled is true', async () => {
+    it('disables "Upload image" when isImageUploadDisabled is true (no tooltip)', async () => {
       const user = userEvent.setup();
       render(<ChatbotMessageInput {...defaultProps} isImageUploadDisabled />);
 
@@ -240,6 +240,61 @@ describe('ChatbotMessageInput', () => {
 
       const imageItem = screen.getByTestId('menu-item-upload-image');
       expect(imageItem).toBeDisabled();
+    });
+
+    it('"Upload image" uses isAriaDisabled with tooltip when imageDisabledTooltip is provided', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isImageUploadDisabled
+          imageDisabledTooltip="Switch to a vision-capable model to upload images."
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      const imageItem = screen.getByTestId('menu-item-upload-image');
+      expect(imageItem).toHaveAttribute('aria-disabled', 'true');
+      expect(imageItem).not.toBeDisabled();
+      const tooltipWrapper = screen.getAllByTestId('tooltip-wrapper')[0];
+      expect(tooltipWrapper).toHaveAttribute(
+        'data-tooltip-content',
+        'Switch to a vision-capable model to upload images.',
+      );
+    });
+
+    it('hides "Upload image" when showImageUpload is false', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} showImageUpload={false} />);
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.queryByTestId('menu-item-upload-image')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('vision-file-input')).not.toBeInTheDocument();
+    });
+
+    it('hides "Upload audio" when showAudioUpload is false', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} showAudioUpload={false} />);
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.queryByTestId('menu-item-upload-audio')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('audio-file-input')).not.toBeInTheDocument();
+    });
+
+    it('shows only "Upload documents" when both image and audio are hidden', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput {...defaultProps} showImageUpload={false} showAudioUpload={false} />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.queryByTestId('menu-item-upload-image')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('menu-item-upload-audio')).not.toBeInTheDocument();
+      expect(screen.getByTestId('menu-item-upload-documents')).toBeInTheDocument();
     });
 
     it('"Upload audio" is disabled when isAudioUploadDisabled is true', async () => {

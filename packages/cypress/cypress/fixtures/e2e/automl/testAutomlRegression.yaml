@@ -6,5 +6,8 @@ runDescription: 'E2E test regression run'
 trainingDataFile: automl-regression-test-data.csv
 taskType: regression
 topN: 1
+defaultMetricLabel: 'R²'
+changedMetricKey: root_mean_squared_error
+changedMetricLabel: RMSE
 labelColumn: price
 awsBucket: BUCKET_2

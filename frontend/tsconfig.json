@@ -11,8 +11,6 @@
     "jest-coverage",
     "@mf-types",
     "public",
-    "public-cypress",
-    "**/packages/gen-ai",
-    "**/upstream"
+    "public-cypress"
   ]
 }
