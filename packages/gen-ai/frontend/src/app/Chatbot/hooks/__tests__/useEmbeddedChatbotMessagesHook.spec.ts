@@ -198,6 +198,10 @@ describe('useEmbeddedChatbotMessages', () => {
 
   it('should include annotations and citationMap from response', async () => {
     const citationMap = new Map([['doc1.pdf', 1]]);
+    const fileSearchData = {
+      queries: ['test query'],
+      results: [{ filename: 'doc1.pdf', score: 0.95, text: 'test content' }],
+    };
     const responseWithAnnotations: SimplifiedResponseData = {
       ...mockResponse,
       annotations: [
@@ -205,6 +209,7 @@ describe('useEmbeddedChatbotMessages', () => {
         { type: 'file_citation', file_id: 'f1', filename: 'doc1.pdf', index: 10 },
       ],
       citationMap,
+      fileSearchData,
     };
     createPassthroughResponseMock.mockResolvedValue(responseWithAnnotations);
 
@@ -218,5 +223,7 @@ describe('useEmbeddedChatbotMessages', () => {
     expect(botMessage.annotations).toBeDefined();
     expect(botMessage.citationMap).toBeDefined();
     expect(botMessage.citationMap?.get('doc1.pdf')).toBe(1);
+    expect(botMessage.fileSearchData).toBeDefined();
+    expect(botMessage.fileSearchData).toEqual(fileSearchData);
   });
 });
