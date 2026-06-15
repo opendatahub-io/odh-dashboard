@@ -20,9 +20,15 @@ dashboard-operator/
 ├── cmd/
 │   └── manager/
 │       └── main.go                     # Controller entry point
+├── charts/
+│   └── dashboard/                      # ODH Operator bootstrap chart (CRD, RBAC, Deployment, ConfigMap)
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       ├── crds/
+│       └── templates/
 ├── config/
 │   ├── crd/
-│   │   ├── bases/                      # Generated CRD YAML
+│   │   ├── bases/                      # Generated CRD YAML (source of truth; synced to charts/dashboard/crds)
 │   │   └── kustomization.yaml
 │   ├── default/
 │   │   └── kustomization.yaml
@@ -84,6 +90,8 @@ make run              # Run controller locally (requires --namespace and --manif
 # Code generation (run after modifying api/ types)
 make generate         # Generate DeepCopy methods
 make manifests        # Generate CRD YAML from kubebuilder markers
+make sync-chart-crds  # Copy CRD into charts/dashboard/crds
+make chart-validate   # helm lint + template smoke test
 
 # Container
 make docker-build     # Build container image (run from repo root)

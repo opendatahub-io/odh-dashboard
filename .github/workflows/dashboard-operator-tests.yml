@@ -44,6 +44,13 @@ jobs:
         working-directory: dashboard-operator
         run: make test
 
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Validate Helm chart
+        working-directory: dashboard-operator
+        run: make chart-validate
+
       - name: Check if there are uncommitted file changes
         working-directory: dashboard-operator
         run: |
