@@ -32,7 +32,7 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	// Call MaaS BFF to get models
 	// MaaS BFF returns response wrapped in envelope: {"data": {"object": "list", "data": [...]}}
-	// The X-MaaS-Return-All-Models: true header (set in middleware) ensures enriched model details
+	// The MaaSReturnAllModelsHeader: true header (set in middleware) ensures enriched model details
 	// Path is relative to BFF base URL (/api/v1) - do not include /api/v1 prefix here
 	var bffResponse models.MaaSBFFModelsResponse
 	err := maasClient.Call(ctx, "GET", "/models?namespace="+url.QueryEscape(namespace), nil, &bffResponse)

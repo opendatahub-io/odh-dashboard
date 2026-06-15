@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -62,7 +63,7 @@ func (c *HTTPMaaSClient) ListModels(ctx context.Context, authToken string) ([]mo
 	}
 
 	req.Header.Set("Authorization", "Bearer "+authToken)
-	req.Header.Set("X-MaaS-Return-All-Models", "true")
+	req.Header.Set(constants.MaaSReturnAllModelsHeader, "true")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
