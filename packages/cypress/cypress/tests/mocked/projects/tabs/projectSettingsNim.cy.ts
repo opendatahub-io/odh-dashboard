@@ -1,3 +1,4 @@
+import type { K8sCondition } from '@odh-dashboard/internal/k8sTypes';
 import {
   mockDashboardConfig,
   mockDscStatus,
@@ -30,8 +31,10 @@ const denyNIMAccess = () => {
 
 const initIntercepts = ({
   nimAccountExists = false,
+  nimAccountConditions,
 }: {
   nimAccountExists?: boolean;
+  nimAccountConditions?: K8sCondition[];
 } = {}) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -78,7 +81,16 @@ const initIntercepts = ({
 
   cy.interceptK8sList(
     { model: NIMAccountModel, ns: 'test-project' },
-    mockK8sResourceList(nimAccountExists ? [mockNimAccount({ namespace: 'test-project' })] : []),
+    mockK8sResourceList(
+      nimAccountExists
+        ? [
+            mockNimAccount({
+              namespace: 'test-project',
+              ...(nimAccountConditions !== undefined && { conditions: nimAccountConditions }),
+            }),
+          ]
+        : [],
+    ),
   );
 };
 
@@ -136,5 +148,64 @@ describe('NIM Settings Card RBAC', () => {
         .findNIMReplaceKeyButton()
         .should('have.attr', 'aria-disabled', 'true');
     });
+  });
+});
+
+describe('NIM Settings Card Status', () => {
+  beforeEach(() => {
+    asProjectEditUser();
+  });
+
+  it('should show enable button when no NIM account exists', () => {
+    initIntercepts({ nimAccountExists: false });
+    projectDetailsSettingsTab.visitSettings('test-project');
+    projectDetailsSettingsTab.findNIMEnableButton().should('be.visible');
+    projectDetailsSettingsTab.findNIMSettingsCard().should('not.contain.text', 'API key');
+  });
+
+  it('should show success state when NIM account is ready', () => {
+    initIntercepts({
+      nimAccountExists: true,
+      nimAccountConditions: [
+        { type: 'AccountStatus', status: 'True', reason: 'AccountSuccessful' },
+      ],
+    });
+    projectDetailsSettingsTab.visitSettings('test-project');
+    projectDetailsSettingsTab
+      .findNIMSettingsCard()
+      .should('contain.text', 'Your personal API key has been saved.');
+    projectDetailsSettingsTab.findNIMRemoveButton().should('be.visible');
+    projectDetailsSettingsTab.findNIMReplaceKeyButton().should('be.visible');
+  });
+
+  it('should show pending state when NIM account has no conditions', () => {
+    initIntercepts({
+      nimAccountExists: true,
+      nimAccountConditions: [],
+    });
+    projectDetailsSettingsTab.visitSettings('test-project');
+    projectDetailsSettingsTab
+      .findNIMSettingsCard()
+      .should('contain.text', 'Contacting NVIDIA to validate the license key.');
+  });
+
+  it('should show error state when API key validation fails', () => {
+    initIntercepts({
+      nimAccountExists: true,
+      nimAccountConditions: [
+        {
+          type: 'APIKeyValidation',
+          status: 'False',
+          reason: 'ValidationFailed',
+          message: 'Invalid API key provided.',
+        },
+      ],
+    });
+    projectDetailsSettingsTab.visitSettings('test-project');
+    projectDetailsSettingsTab
+      .findNIMSettingsCard()
+      .should('contain.text', 'Invalid API key provided.');
+    projectDetailsSettingsTab.findNIMRemoveButton().should('be.visible');
+    projectDetailsSettingsTab.findNIMReplaceKeyButton().should('be.visible');
   });
 });
