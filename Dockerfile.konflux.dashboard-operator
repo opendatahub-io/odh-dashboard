@@ -1,0 +1,33 @@
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25@sha256:90a36bc2013b3fcb28e2a4b082c9b895d7c2c679e58b95aed9721970f3339d0e AS builder
+
+USER root
+WORKDIR /usr/src/app
+
+COPY dashboard-operator/go.mod dashboard-operator/go.sum ./
+RUN go mod download
+
+COPY dashboard-operator/cmd/ cmd/
+COPY dashboard-operator/api/ api/
+COPY dashboard-operator/internal/ internal/
+
+RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags="-s -w" -tags strictfipsruntime -o /tmp/manager ./cmd/manager
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:1bc3c5c15720506a0cf48adfdf8b623dfe704377e007d7bbae8d14876392ca6a
+
+LABEL com.redhat.component="odh-dashboard-operator-container" \
+      name="managed-open-data-hub/odh-dashboard-operator-rhel9" \
+      summary="ODH Dashboard Operator" \
+      description="Dashboard Module Controller for Red Hat OpenShift AI" \
+      io.k8s.display-name="ODH Dashboard Operator" \
+      io.k8s.description="Dashboard Module Controller for Red Hat OpenShift AI" \
+      io.openshift.tags="rhods,rhoai,odh,dashboard-operator"
+
+WORKDIR /
+
+COPY --from=builder /tmp/manager .
+COPY manifests/ /opt/manifests/dashboard/
+RUN chmod -R g+w /opt/manifests/dashboard/
+
+USER 65532:65532
+
+ENTRYPOINT ["/manager"]
