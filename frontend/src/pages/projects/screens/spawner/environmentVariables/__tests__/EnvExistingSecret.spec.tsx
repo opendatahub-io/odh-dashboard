@@ -77,7 +77,7 @@ describe('EnvExistingSecret', () => {
     expect(screen.queryByText(/Environment variables are set/)).not.toBeInTheDocument();
   });
 
-  it('should render selected secrets with key checkboxes and badges', () => {
+  it('should render selected secrets collapsed with toggle showing name and badge', () => {
     renderComponent({
       existingSecretRefs: [
         { secretName: 'db-credentials', selectedKeys: ['DB_HOST', 'DB_PORT'], allKeys: false },
@@ -87,9 +87,41 @@ describe('EnvExistingSecret', () => {
     expect(screen.getByTestId('existing-secret-row-db-credentials')).toBeInTheDocument();
     expect(screen.getByText('db-credentials')).toBeInTheDocument();
     expect(screen.getByText('2 of 3 keys')).toBeInTheDocument();
-    expect(screen.getByTestId('existing-secret-0-db-credentials-key-DB_HOST')).toBeInTheDocument();
-    expect(screen.getByTestId('existing-secret-0-db-credentials-key-DB_PORT')).toBeInTheDocument();
     expect(screen.getByText(/Environment variables are set/)).toBeInTheDocument();
+  });
+
+  it('should show select all button and key checkboxes when expanded', () => {
+    renderComponent({
+      existingSecretRefs: [
+        { secretName: 'db-credentials', selectedKeys: ['DB_HOST', 'DB_PORT'], allKeys: false },
+      ],
+    });
+
+    fireEvent.click(screen.getByText('db-credentials'));
+
+    expect(screen.getByTestId('existing-secret-0-db-credentials-all-keys')).toHaveTextContent(
+      'Select all',
+    );
+    expect(screen.getByTestId('existing-secret-0-db-credentials-key-DB_HOST')).toBeVisible();
+    expect(screen.getByTestId('existing-secret-0-db-credentials-key-DB_PORT')).toBeVisible();
+  });
+
+  it('should show deselect all button when all keys are selected', () => {
+    renderComponent({
+      existingSecretRefs: [
+        {
+          secretName: 'db-credentials',
+          selectedKeys: ['DB_HOST', 'DB_PORT', 'DB_PASS'],
+          allKeys: true,
+        },
+      ],
+    });
+
+    fireEvent.click(screen.getByText('db-credentials'));
+
+    expect(screen.getByTestId('existing-secret-0-db-credentials-all-keys')).toHaveTextContent(
+      'Deselect all',
+    );
   });
 
   it('should call onUpdate when remove button is clicked', () => {

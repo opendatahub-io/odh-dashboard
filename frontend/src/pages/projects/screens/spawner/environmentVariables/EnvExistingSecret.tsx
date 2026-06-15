@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   Checkbox,
+  ExpandableSection,
   FormGroup,
   HelperText,
   HelperTextItem,
@@ -17,7 +18,6 @@ import { MinusCircleIcon } from '@patternfly/react-icons';
 import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
 import { getDashboardMainContainer } from '#~/utilities/utils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import IndentSection from '#~/pages/projects/components/IndentSection';
 import { ExistingSecretRef } from '#~/pages/projects/types';
 import { useExistingSecrets, useListSecretsAllowed } from './useExistingSecrets';
 
@@ -48,6 +48,7 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
   const namespace = currentProject.metadata.name;
   const [canListSecrets, rbacLoaded] = useListSecretsAllowed(namespace);
   const [secrets, secretsLoaded] = useExistingSecrets(canListSecrets ? namespace : undefined);
+  const [expandedSecrets, setExpandedSecrets] = React.useState<Set<string>>(new Set());
 
   const selectedNames = React.useMemo(
     () => new Set(existingSecretRefs.map((r) => r.secretName)),
@@ -68,6 +69,18 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
 
   const secretsByName = React.useMemo(() => new Map(secrets.map((s) => [s.name, s])), [secrets]);
 
+  const handleToggleExpanded = React.useCallback((secretName: string, isExpanded: boolean) => {
+    setExpandedSecrets((prev) => {
+      const next = new Set(prev);
+      if (isExpanded) {
+        next.add(secretName);
+      } else {
+        next.delete(secretName);
+      }
+      return next;
+    });
+  }, []);
+
   const handleAddSecret = React.useCallback(
     (
       _event: React.MouseEvent | React.KeyboardEvent<HTMLInputElement> | undefined,
@@ -76,6 +89,7 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
       const name = String(value);
       const secret = secretsByName.get(name);
       const keys = secret?.keys ?? [];
+      setExpandedSecrets((prev) => new Set(prev).add(name));
       onUpdate([
         ...existingSecretRefs,
         { secretName: name, selectedKeys: keys, allKeys: keys.length > 0 },
@@ -175,63 +189,66 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
         const secret = secretsByName.get(ref.secretName);
         const keys = secret?.keys ?? [];
         const allKeysId = `existing-secret-${instanceId}-${ref.secretName}-all-keys`;
+        const isExpanded = expandedSecrets.has(ref.secretName);
 
         return (
           <StackItem key={ref.secretName} data-testid={`existing-secret-row-${ref.secretName}`}>
-            <IndentSection>
-              <Stack hasGutter>
-                <StackItem>
-                  <Split hasGutter>
-                    <SplitItem isFilled>
+            <Split>
+              <SplitItem isFilled>
+                <ExpandableSection
+                  toggleContent={
+                    <>
                       <b>{ref.secretName}</b>{' '}
                       <Label isCompact>
-                        {ref.selectedKeys.length} of {keys.length} keys
+                        {ref.selectedKeys.length} of {keys.length} key
+                        {keys.length !== 1 ? 's' : ''}
                       </Label>
-                    </SplitItem>
-                    <SplitItem>
+                    </>
+                  }
+                  isExpanded={isExpanded}
+                  onToggle={(_e, expanded) => handleToggleExpanded(ref.secretName, expanded)}
+                  isIndented
+                >
+                  <Stack hasGutter>
+                    <StackItem>
                       <Button
-                        variant="plain"
-                        aria-label={`Remove secret ${ref.secretName}`}
-                        data-testid={`remove-existing-secret-${ref.secretName}`}
-                        icon={<MinusCircleIcon />}
-                        onClick={() => handleRemoveSecret(ref.secretName)}
-                      />
-                    </SplitItem>
-                  </Split>
-                </StackItem>
-                <StackItem>
-                  <IndentSection>
-                    <Stack>
-                      <StackItem>
-                        <Checkbox
-                          id={allKeysId}
-                          data-testid={allKeysId}
-                          label="All keys"
-                          isChecked={ref.allKeys}
-                          onChange={(_e, checked) => handleAllKeysToggle(ref.secretName, checked)}
-                        />
-                      </StackItem>
-                      {keys.map((key) => {
-                        const keyId = `existing-secret-${instanceId}-${ref.secretName}-key-${key}`;
-                        return (
-                          <StackItem key={key}>
-                            <Checkbox
-                              id={keyId}
-                              data-testid={keyId}
-                              label={key}
-                              isChecked={ref.selectedKeys.includes(key)}
-                              onChange={(_e, checked) =>
-                                handleKeyToggle(ref.secretName, key, checked)
-                              }
-                            />
-                          </StackItem>
-                        );
-                      })}
-                    </Stack>
-                  </IndentSection>
-                </StackItem>
-              </Stack>
-            </IndentSection>
+                        variant="link"
+                        isInline
+                        data-testid={allKeysId}
+                        onClick={() => handleAllKeysToggle(ref.secretName, !ref.allKeys)}
+                      >
+                        {ref.allKeys ? 'Deselect all' : 'Select all'}
+                      </Button>
+                    </StackItem>
+                    {keys.map((key) => {
+                      const keyId = `existing-secret-${instanceId}-${ref.secretName}-key-${key}`;
+                      return (
+                        <StackItem key={key}>
+                          <Checkbox
+                            id={keyId}
+                            data-testid={keyId}
+                            label={key}
+                            isChecked={ref.selectedKeys.includes(key)}
+                            onChange={(_e, checked) =>
+                              handleKeyToggle(ref.secretName, key, checked)
+                            }
+                          />
+                        </StackItem>
+                      );
+                    })}
+                  </Stack>
+                </ExpandableSection>
+              </SplitItem>
+              <SplitItem>
+                <Button
+                  variant="plain"
+                  aria-label={`Remove secret ${ref.secretName}`}
+                  data-testid={`remove-existing-secret-${ref.secretName}`}
+                  icon={<MinusCircleIcon />}
+                  onClick={() => handleRemoveSecret(ref.secretName)}
+                />
+              </SplitItem>
+            </Split>
           </StackItem>
         );
       })}
