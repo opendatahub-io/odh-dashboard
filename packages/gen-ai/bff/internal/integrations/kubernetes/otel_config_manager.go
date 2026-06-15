@@ -361,6 +361,9 @@ func addNamespaceRoute(cfg map[string]interface{}, namespace string) bool {
 		"tls": map[string]interface{}{
 			"ca_file": "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt",
 		},
+		"auth": map[string]interface{}{
+			"authenticator": "bearertokenauth",
+		},
 		"headers": map[string]interface{}{
 			"X-MLFLOW-WORKSPACE": namespace,
 		},
