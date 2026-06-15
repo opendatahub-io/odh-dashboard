@@ -1,11 +1,6 @@
 import React from 'react';
-import useFetch, {
-  FetchStateCallbackPromise,
-  NotReadyError,
-} from '@odh-dashboard/internal/utilities/useFetch';
-import { POLL_INTERVAL, FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
-import { listNIMAccounts } from './k8s';
+import { useWatchNIMAccounts } from './watch';
 import { NIMAccountStatus, deriveAccountStatus, getAccountStatusTransitionTime } from './utils';
 import { NIM_ACCOUNT_NAME, REVALIDATION_TIMEOUT_MS } from './constants';
 
@@ -16,34 +11,21 @@ type NIMAccountStatusResult = {
   nimAccount: NIMAccountKind | null;
   errorMessages: string[];
   loaded: boolean;
-  refresh: () => Promise<NIMAccountKind | null | undefined>;
   startRevalidation: () => void;
 };
 
 const useNIMAccountStatus = (namespace?: string): NIMAccountStatusResult => {
-  const fetchCallback = React.useCallback<
-    FetchStateCallbackPromise<NIMAccountKind | null>
-  >(async () => {
-    if (!namespace) {
-      throw new NotReadyError('No namespace provided');
-    }
-    const accounts = await listNIMAccounts(namespace);
-    return accounts.find((a) => a.metadata.name === NIM_ACCOUNT_NAME) ?? null;
-  }, [namespace]);
+  const [accounts, loaded] = useWatchNIMAccounts(namespace);
 
-  const [pollRate, setPollRate] = React.useState(POLL_INTERVAL);
+  const nimAccount = React.useMemo(
+    () => accounts.find((a) => a.metadata.name === NIM_ACCOUNT_NAME) ?? null,
+    [accounts],
+  );
+
   const [revalidationState, setRevalidationState] = React.useState<{
     transitionTimeAtStart: string | undefined;
     startedAt: number;
   } | null>(null);
-
-  const {
-    data: nimAccount,
-    loaded,
-    refresh,
-  } = useFetch(fetchCallback, null, {
-    refreshRate: pollRate,
-  });
 
   const derived = deriveAccountStatus(nimAccount, loaded);
 
@@ -73,10 +55,6 @@ const useNIMAccountStatus = (namespace?: string): NIMAccountStatusResult => {
   const effectiveStatus = isWaitingForRevalidation ? NIMAccountStatus.PENDING : derived.status;
   const effectiveErrors = isWaitingForRevalidation ? [] : derived.errorMessages;
 
-  React.useEffect(() => {
-    setPollRate(effectiveStatus === NIMAccountStatus.PENDING ? FAST_POLL_INTERVAL : POLL_INTERVAL);
-  }, [effectiveStatus]);
-
   const startRevalidation = React.useCallback(() => {
     setRevalidationState({
       transitionTimeAtStart: getAccountStatusTransitionTime(nimAccount),
@@ -89,7 +67,6 @@ const useNIMAccountStatus = (namespace?: string): NIMAccountStatusResult => {
     nimAccount,
     errorMessages: effectiveErrors,
     loaded,
-    refresh,
     startRevalidation,
   };
 };

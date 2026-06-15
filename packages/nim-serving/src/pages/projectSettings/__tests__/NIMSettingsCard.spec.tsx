@@ -42,7 +42,6 @@ const mockUseNIMAccountStatus = jest.mocked(useNIMAccountStatus);
 const defaultAccountStatus = {
   status: NIMAccountStatus.NOT_FOUND,
   errorMessages: [],
-  refresh: jest.fn().mockResolvedValue(undefined),
   startRevalidation: jest.fn(),
   nimAccount: null,
   loaded: true,

@@ -41,7 +41,7 @@ type NIMSettingsCardProps = {
 };
 
 const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
-  const { status, errorMessages, refresh, startRevalidation } = useNIMAccountStatus(namespace);
+  const { status, errorMessages, startRevalidation } = useNIMAccountStatus(namespace);
 
   const { loaded: accessReviewLoaded, allowed } = useNIMSettingsAccessAllowed(namespace);
 
@@ -50,23 +50,12 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error>();
 
-  const deleteStatusIntervalRef = React.useRef<ReturnType<typeof setInterval>>();
-  const stopPollingDeleteStatus = React.useCallback((error?: Error) => {
-    if (deleteStatusIntervalRef.current !== undefined) {
-      clearInterval(deleteStatusIntervalRef.current);
-      deleteStatusIntervalRef.current = undefined;
+  React.useEffect(() => {
+    if (isDeleting && status === NIMAccountStatus.NOT_FOUND) {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
     }
-    setDeleteError(error);
-    setIsDeleting(false);
-  }, []);
-  React.useEffect(
-    () => () => {
-      if (deleteStatusIntervalRef.current !== undefined) {
-        clearInterval(deleteStatusIntervalRef.current);
-      }
-    },
-    [],
-  );
+  }, [isDeleting, status]);
 
   const handleRemoveConfirm = React.useCallback(async () => {
     setIsDeleting(true);
@@ -74,25 +63,10 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
     try {
       await deleteNIMResources(namespace);
     } catch (e) {
-      stopPollingDeleteStatus(e instanceof Error ? e : new Error('Failed to remove NIM.'));
-      return;
+      setDeleteError(e instanceof Error ? e : new Error('Failed to remove NIM.'));
+      setIsDeleting(false);
     }
-    let retries = 10;
-    deleteStatusIntervalRef.current = setInterval(async () => {
-      try {
-        const result = await refresh();
-        if (!result) {
-          stopPollingDeleteStatus();
-          setIsDeleteModalOpen(false);
-        } else if (retries === 0) {
-          stopPollingDeleteStatus(new Error('NIM resources were not deleted in time.'));
-        }
-        retries -= 1;
-      } catch (e) {
-        stopPollingDeleteStatus(e instanceof Error ? e : new Error('Failed to remove NIM.'));
-      }
-    }, 1000);
-  }, [namespace, refresh, stopPollingDeleteStatus]);
+  }, [namespace]);
 
   const renderFooterContent = () => {
     if (!accessReviewLoaded || status === NIMAccountStatus.LOADING) {
@@ -202,7 +176,6 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
         <NIMApiKeyModal
           onClose={() => setIsApiKeyModalOpen(false)}
           namespace={namespace}
-          refresh={refresh}
           startRevalidation={startRevalidation}
           accountStatus={status}
         />
