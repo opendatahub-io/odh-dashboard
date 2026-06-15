@@ -44,8 +44,8 @@ export const ensureOperatorMemoryLimit = (deploymentName: string): Cypress.Chain
   // Check current memory limit
   const checkCommand = `oc get deployment ${deploymentName} -n ${operatorNamespace} -o jsonpath='{.spec.template.spec.containers[0].resources.limits.memory}'`;
 
-  return cy.exec(checkCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+  return cy.exec(checkCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Failed to check operator memory limit: ${maskedStderr}`);
       return cy.wrap(false);
@@ -160,7 +160,7 @@ export const waitForModelRegistryDatabase = (
   const command = `oc wait --for=condition=Available deployment/${databaseName} -n ${targetNamespace} --timeout=600s`;
 
   cy.log(`Waiting for model registry database '${databaseName}' to be ready...`);
-  return cy.exec(command, { failOnNonZeroExit: false, timeout: 600000 }).then((result) => {
+  return cy.exec(command, { failOnNonZeroExit: false, timeout: 600000 }).then((result: CommandLineResult) => {
     if (result.stdout) {
       cy.log(`Database wait result: ${result.stdout}`);
     }
@@ -168,8 +168,7 @@ export const waitForModelRegistryDatabase = (
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Database wait stderr: ${maskedStderr}`);
     }
-    cy.log(`exitcode is ${result.code}`);
-    return cy.wrap(result.code === 0);
+    return cy.wrap(result.exitCode === 0);
   });
 };
 
@@ -395,8 +394,8 @@ export const deleteModelRegistryDatabase = (
     .exec(`oc get deployment ${databaseName} -n ${targetNamespace}`, {
       failOnNonZeroExit: false,
     })
-    .then((existsResult) => {
-      if (existsResult.code !== 0) {
+    .then((existsResult: CommandLineResult) => {
+      if (existsResult.exitCode !== 0) {
         cy.log(`Model registry database '${databaseName}' does not exist, nothing to delete`);
         return cy.wrap(true);
       }
@@ -466,11 +465,11 @@ export const deleteModelRegistryDatabase = (
 export const checkModelRegistry = (registryName: string): Cypress.Chainable<boolean> => {
   const command = `oc get modelregistry.modelregistry.opendatahub.io --all-namespaces | grep ${registryName}`;
   cy.log(`Running command: ${command}`);
-  return cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
+  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.stdout) {
       cy.log(`Command output: ${result.stdout}`);
     }
-    return cy.wrap(result.code === 0);
+    return cy.wrap(result.exitCode === 0);
   });
 };
 
@@ -485,7 +484,7 @@ export const checkModelRegistryAvailable = (registryName: string): Cypress.Chain
   cy.log(`Waiting for model registry ${registryName} to be available...`);
   return cy
     .exec(command, { failOnNonZeroExit: false, timeout: 480000 })
-    .then((result) => {
+    .then((result: CommandLineResult) => {
       if (result.stdout) {
         cy.log(`Wait result: ${result.stdout}`);
       }
@@ -493,8 +492,7 @@ export const checkModelRegistryAvailable = (registryName: string): Cypress.Chain
         const maskedStderr = maskSensitiveInfo(result.stderr);
         cy.log(`Wait stderr: ${maskedStderr}`);
       }
-      cy.log(`exist code for last one is ${result.code}`);
-      return cy.wrap(result.code === 0);
+      return cy.wrap(result.exitCode === 0);
     })
     .then((isAvailable) => {
       if (isAvailable) {
@@ -528,18 +526,6 @@ export const createModelRegistryViaYAML = (
   cy.log(
     `Creating model registry ${registryName} in namespace ${targetNamespace} using database '${databaseName}'`,
   );
-  // let fixtureFile
-  // const arch = Cypress.env('ARCH_TYPE')
-  // switch(arch) {
-  //   case 'x86':
-  //     fixtureFile = 'resources/yaml/model_registry.yaml';
-  //     break
-  //   case 's390X':
-  //     fixtureFile = 'resources/yaml/model_registry_pg.yaml';
-  //     break;
-  //   default:
-  //     throw new Error(`Unsupported ARCH: ${arch}`);
-  // }
   return loadYamlFixture('resources/yaml/model_registry.yaml')
     .then((registryYamlContent) => {
       const modifiedRegistryYaml = replacePlaceholdersInYaml(
@@ -594,8 +580,8 @@ export const getModelRegistryDatabaseConfig = (
 }> => {
   const targetNamespace = namespace || getModelRegistryNamespace();
   const command = `oc get modelregistry.modelregistry.opendatahub.io ${registryName} -n ${targetNamespace} -o json`;
-  return cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Failed to get ModelRegistry CR: ${maskedStderr}`);
       return cy.wrap({

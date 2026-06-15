@@ -182,7 +182,7 @@ export default defineConfig({
         config.env.CY_RETRY !== undefined
           ? { runMode: Math.max(0, parseInt(config.env.CY_RETRY) || 0), openMode: 0 }
           : !config.env.CY_RECORD
-          ? { runMode: 1, openMode: 0 }
+          ? { runMode: 2, openMode: 0 }
           : config.retries;
 
       return {
