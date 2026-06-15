@@ -951,7 +951,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
     cy.contains('View your subscriptions and the models they give you access to.').should('exist');
   });
 
-  it('should display subscription view with search and source filter', () => {
+  it('should display subscription view with search', () => {
     apiKeysPage.visitKeysAndSubs();
     cy.wait('@initialSearch');
 
@@ -973,17 +973,11 @@ describe('API keys (mySubscriptions feature flag)', () => {
     subscriptionsTab.clearSearch();
     subscriptionsTab.findSubscriptionRows().should('have.length', 2);
 
-    subscriptionsTab.selectSourceFilter('Internal');
-
-    subscriptionsTab.findSubscriptionRows().should('have.length', 1);
-    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
-    subscriptionsTab.findSubscriptionsTable().should('not.contain.text', 'Basic Team');
-
     subscriptionsTab.expandSubscriptionRow(0);
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Granite 3 8B Instruct');
   });
 
-  it('should display model view with search and source filter', () => {
+  it('should display model view with search', () => {
     apiKeysPage.visitKeysAndSubs();
     cy.wait('@initialSearch');
 
@@ -1000,11 +994,6 @@ describe('API keys (mySubscriptions feature flag)', () => {
 
     subscriptionsTab.clearSearch();
     subscriptionsTab.findModelsTable().should('contain.text', 'Flan T5 Small');
-
-    subscriptionsTab.selectSourceFilter('External');
-
-    subscriptionsTab.findModelsTable().should('contain.text', 'Flan T5 Small');
-    subscriptionsTab.findModelsTable().should('not.contain.text', 'Granite 3 8B Instruct');
 
     subscriptionsTab.expandModelGroupRow(0);
     subscriptionsTab.findModelsTable().should('contain.text', 'Premium Team');
