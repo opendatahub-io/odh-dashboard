@@ -29,9 +29,13 @@ const (
 	// See: RHOAIENG-68253
 	EvalHubDiscoveryConfigMap = "evalhub-discovery"
 
-	// EvalHubDiscoveryURLKey is the data key within the discovery ConfigMap that holds
-	// the EvalHub service URL.
+	// EvalHubDiscoveryURLKey is the legacy data key within the discovery ConfigMap.
+	// Kept for backward compatibility with manually-created ConfigMaps.
 	EvalHubDiscoveryURLKey = "service-url"
+
+	// EvalHubDiscoveryURLSuffix is the key suffix used by the operator (PR trustyai-service-operator#760).
+	// The operator writes keys as "{instanceName}.url" (e.g. "evalhub.url").
+	EvalHubDiscoveryURLSuffix = ".url"
 )
 
 // EvalHubGVR is the GroupVersionResource for EvalHub custom resources, used with the dynamic client.

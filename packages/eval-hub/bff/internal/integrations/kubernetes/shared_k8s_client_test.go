@@ -7,6 +7,61 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestResolveDiscoveryURL(t *testing.T) {
+	tests := []struct {
+		name string
+		data map[string]string
+		want string
+	}{
+		{
+			name: "operator format single instance",
+			data: map[string]string{"evalhub.url": "https://evalhub.tenant.svc.cluster.local:8443"},
+			want: "https://evalhub.tenant.svc.cluster.local:8443",
+		},
+		{
+			name: "operator format multiple instances picks first found",
+			data: map[string]string{
+				"evalhub-a.url": "https://evalhub-a.ns.svc.cluster.local:8443",
+				"evalhub-b.url": "https://evalhub-b.ns.svc.cluster.local:8443",
+			},
+			want: "https://evalhub-", // prefix match since map iteration order is non-deterministic
+		},
+		{
+			name: "legacy service-url key",
+			data: map[string]string{"service-url": "https://evalhub.ns.svc.cluster.local:8443"},
+			want: "https://evalhub.ns.svc.cluster.local:8443",
+		},
+		{
+			name: "operator format preferred over legacy",
+			data: map[string]string{
+				"evalhub.url": "https://evalhub.new.svc.cluster.local:8443",
+				"service-url": "https://evalhub.old.svc.cluster.local:8443",
+			},
+			want: "https://evalhub.new.svc.cluster.local:8443",
+		},
+		{
+			name: "empty ConfigMap data",
+			data: map[string]string{},
+			want: "",
+		},
+		{
+			name: "whitespace-only values ignored",
+			data: map[string]string{"evalhub.url": "  ", "service-url": "  "},
+			want: "",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := resolveDiscoveryURL(tc.data)
+			if tc.name == "operator format multiple instances picks first found" {
+				assert.Contains(t, got, tc.want)
+			} else {
+				assert.Equal(t, tc.want, got)
+			}
+		})
+	}
+}
+
 func TestValidateServiceURL_Valid(t *testing.T) {
 	valid := []string{
 		"http://evalhub.ns.svc.cluster.local",

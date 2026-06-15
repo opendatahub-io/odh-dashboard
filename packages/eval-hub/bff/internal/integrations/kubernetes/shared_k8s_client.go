@@ -26,7 +26,8 @@ func (kc *SharedClientLogic) BearerToken() (string, error) { return kc.Token.Raw
 func (kc *SharedClientLogic) GetGroups(ctx context.Context) ([]string, error) { return []string{}, nil }
 
 // GetEvalHubDiscoveryURL reads the EvalHubDiscovery ConfigMap from the given namespace and
-// returns the service URL stored under the "service-url" key.
+// returns the service URL. Supports both the operator key format ("{instanceName}.url") and
+// the legacy "service-url" key.
 // Returns ("", nil) if the ConfigMap does not exist — callers should fall through to CR discovery.
 func (kc *SharedClientLogic) GetEvalHubDiscoveryURL(ctx context.Context, _ *RequestIdentity, namespace string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -48,9 +49,9 @@ func (kc *SharedClientLogic) GetEvalHubDiscoveryURL(ctx context.Context, _ *Requ
 			EvalHubDiscoveryConfigMap, namespace, err)
 	}
 
-	serviceURL := strings.TrimSpace(cm.Data[EvalHubDiscoveryURLKey])
+	serviceURL := resolveDiscoveryURL(cm.Data)
 	if serviceURL == "" {
-		kc.Logger.Warn("EvalHubDiscovery ConfigMap exists but has no service-url",
+		kc.Logger.Warn("EvalHubDiscovery ConfigMap exists but contains no usable service URL",
 			"namespace", namespace)
 		return "", nil
 	}
@@ -65,6 +66,23 @@ func (kc *SharedClientLogic) GetEvalHubDiscoveryURL(ctx context.Context, _ *Requ
 	kc.Logger.Debug("Resolved EvalHub service URL from discovery ConfigMap",
 		"namespace", namespace, "serviceURL", serviceURL)
 	return serviceURL, nil
+}
+
+// resolveDiscoveryURL extracts the service URL from the discovery ConfigMap data.
+// It supports two formats:
+//   - Operator format (PR trustyai-service-operator#760): keys ending in ".url" (e.g. "evalhub.url")
+//   - Legacy format: a single "service-url" key
+func resolveDiscoveryURL(data map[string]string) string {
+	// Prefer operator-managed keys ({instanceName}.url) — these are authoritative.
+	for key, value := range data {
+		if strings.HasSuffix(key, EvalHubDiscoveryURLSuffix) {
+			if u := strings.TrimSpace(value); u != "" {
+				return u
+			}
+		}
+	}
+	// Fall back to legacy "service-url" key for manually-created ConfigMaps.
+	return strings.TrimSpace(data[EvalHubDiscoveryURLKey])
 }
 
 // validateServiceURL ensures the URL is well-formed and pinned to a known EvalHub service
