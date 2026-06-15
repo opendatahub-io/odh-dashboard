@@ -203,13 +203,35 @@ describe('ModelTabContent', () => {
   it('clears ASR store state when capabilities are ready and no ASR models exist', () => {
     mockWorkspaceCapabilities.hasASRModel = false;
     mockWorkspaceCapabilities.capabilitiesReady = true;
+    mockWorkspaceCapabilities.capabilitiesError = false;
 
-    // Enable ASR in the store first
+    // Enable ASR and set a model in the store first
     useChatbotConfigStore.getState().updateAsrModelEnabled('default', true);
+    useChatbotConfigStore.getState().updateSelectedAsrModel('default', 'whisper-large-v3');
     expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(true);
+    expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe(
+      'whisper-large-v3',
+    );
 
     render(<ModelTabContent {...defaultProps} configId="default" />);
 
     expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(false);
+    expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe('');
+  });
+
+  it('does not clear ASR store state when capabilities errored', () => {
+    mockWorkspaceCapabilities.hasASRModel = false;
+    mockWorkspaceCapabilities.capabilitiesReady = true;
+    mockWorkspaceCapabilities.capabilitiesError = true;
+
+    useChatbotConfigStore.getState().updateAsrModelEnabled('default', true);
+    useChatbotConfigStore.getState().updateSelectedAsrModel('default', 'whisper-large-v3');
+
+    render(<ModelTabContent {...defaultProps} configId="default" />);
+
+    expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(true);
+    expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe(
+      'whisper-large-v3',
+    );
   });
 });

@@ -3099,6 +3099,7 @@ components:
         - endpoints
         - status
         - model_source_type
+        - capabilities
       properties:
         model_name:
           type: string

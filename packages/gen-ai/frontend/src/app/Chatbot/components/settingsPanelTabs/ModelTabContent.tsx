@@ -39,7 +39,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
   const { aiModels, aiModelsLoaded, aiModelsError, maasModelsLoaded } =
     React.useContext(ChatbotContext);
 
-  const { hasASRModel, capabilitiesReady } = useWorkspaceCapabilities(
+  const { hasASRModel, capabilitiesReady, capabilitiesError } = useWorkspaceCapabilities(
     aiModels,
     aiModelsLoaded,
     maasModelsLoaded,
@@ -47,10 +47,12 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
   );
 
   React.useEffect(() => {
-    if (capabilitiesReady && !hasASRModel) {
-      useChatbotConfigStore.getState().updateAsrModelEnabled(configId, false);
+    if (capabilitiesReady && !capabilitiesError && !hasASRModel) {
+      const store = useChatbotConfigStore.getState();
+      store.updateAsrModelEnabled(configId, false);
+      store.updateSelectedAsrModel(configId, '');
     }
-  }, [capabilitiesReady, hasASRModel, configId]);
+  }, [capabilitiesReady, capabilitiesError, hasASRModel, configId]);
 
   return (
     <TabContentWrapper title={title}>

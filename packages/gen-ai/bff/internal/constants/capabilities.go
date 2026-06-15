@@ -17,6 +17,10 @@ var AllowedCapabilities = map[string]bool{
 	CapabilityTextGeneration:     true,
 }
 
-// DefaultCapabilities is returned when an annotation is missing or empty.
-// Callers must copy before returning to avoid mutating the package-level slice.
-var DefaultCapabilities = []string{CapabilityTextGeneration}
+// defaultCapabilities is the internal default set.
+var defaultCapabilities = []string{CapabilityTextGeneration}
+
+// DefaultCapabilities returns a copy of the default capability set.
+func DefaultCapabilities() []string {
+	return append([]string{}, defaultCapabilities...)
+}

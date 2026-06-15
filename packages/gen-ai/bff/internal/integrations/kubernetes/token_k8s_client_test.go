@@ -1906,12 +1906,11 @@ func TestParseModelCapabilities(t *testing.T) {
 }
 
 func TestParseModelCapabilities_CopyOnReturn(t *testing.T) {
-	// Verify that mutating the returned slice does not affect DefaultCapabilities.
+	// Verify that mutating the returned slice does not affect DefaultCapabilities().
 	result := parseModelCapabilities("")
-	original := make([]string, len(constants.DefaultCapabilities))
-	copy(original, constants.DefaultCapabilities)
+	original := constants.DefaultCapabilities()
 	result[0] = "mutated"
-	assert.Equal(t, original, constants.DefaultCapabilities, "DefaultCapabilities must not be mutated")
+	assert.Equal(t, original, constants.DefaultCapabilities(), "DefaultCapabilities() must return independent copies")
 }
 
 func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {

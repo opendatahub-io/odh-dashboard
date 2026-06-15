@@ -73,7 +73,7 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		SAToken:         models.SAToken{},
 		ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 		ModelType:       req.ModelType,
-		Capabilities:    append([]string{}, constants.DefaultCapabilities...),
+		Capabilities:    constants.DefaultCapabilities(),
 	}, nil
 }
 

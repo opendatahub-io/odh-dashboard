@@ -5,6 +5,7 @@ import {
   getSourceLabel,
   hasCapability,
   isASRModel,
+  isASROnlyModel,
   isMaasLlamaModelId,
   isPlaygroundModelMatchForAIModel,
   isVisionModel,
@@ -52,6 +53,30 @@ describe('isASRModel', () => {
 
   it('should be case-sensitive', () => {
     expect(isASRModel(makeModel({ capabilities: ['Audio-Transcription'] }))).toBe(false);
+  });
+});
+
+describe('isASROnlyModel', () => {
+  it('should return true when audio-transcription is the only capability', () => {
+    expect(isASROnlyModel(makeModel({ capabilities: ['audio-transcription'] }))).toBe(true);
+  });
+
+  it('should return false when model has ASR plus other capabilities', () => {
+    expect(
+      isASROnlyModel(makeModel({ capabilities: ['text-generation', 'audio-transcription'] })),
+    ).toBe(false);
+  });
+
+  it('should return false for model with undefined capabilities', () => {
+    expect(isASROnlyModel(makeModel())).toBe(false);
+  });
+
+  it('should return false for model with empty capabilities array', () => {
+    expect(isASROnlyModel(makeModel({ capabilities: [] }))).toBe(false);
+  });
+
+  it('should return false for model with only non-ASR capabilities', () => {
+    expect(isASROnlyModel(makeModel({ capabilities: ['vision'] }))).toBe(false);
   });
 });
 

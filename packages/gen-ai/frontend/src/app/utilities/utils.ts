@@ -212,6 +212,9 @@ export const hasCapability = (model: { capabilities?: string[] }, cap: string): 
 export const isASRModel = (model: { capabilities?: string[] }): boolean =>
   hasCapability(model, CAPABILITY_AUDIO_TRANSCRIPTION);
 
+export const isASROnlyModel = (model: { capabilities?: string[] }): boolean =>
+  model.capabilities?.length === 1 && isASRModel(model);
+
 export const isVisionModel = (model: { capabilities?: string[] }): boolean =>
   hasCapability(model, CAPABILITY_VISION);
 

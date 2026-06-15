@@ -859,13 +859,13 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 // is empty, malformed, or yields no valid capabilities.
 func parseModelCapabilities(annotationValue string) []string {
 	if annotationValue == "" {
-		return append([]string{}, constants.DefaultCapabilities...)
+		return constants.DefaultCapabilities()
 	}
 	var raw []interface{}
 	if err := json.Unmarshal([]byte(annotationValue), &raw); err != nil {
 		slog.Warn("malformed model-capabilities annotation, defaulting",
 			"value", annotationValue, "error", err)
-		return append([]string{}, constants.DefaultCapabilities...)
+		return constants.DefaultCapabilities()
 	}
 	var caps []string
 	for _, v := range raw {
@@ -881,7 +881,7 @@ func parseModelCapabilities(annotationValue string) []string {
 		}
 	}
 	if len(caps) == 0 {
-		return append([]string{}, constants.DefaultCapabilities...)
+		return constants.DefaultCapabilities()
 	}
 	return caps
 }
@@ -1356,7 +1356,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 
 		caps := append([]string{}, model.Metadata.Capabilities...)
 		if len(caps) == 0 {
-			caps = append([]string{}, constants.DefaultCapabilities...)
+			caps = constants.DefaultCapabilities()
 		}
 		aaModel := models.AAModel{
 			ModelName:          model.ModelID,
