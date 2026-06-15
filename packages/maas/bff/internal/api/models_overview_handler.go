@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -13,24 +14,28 @@ import (
 // Kubernetes and returns each model enriched with its associated subscriptions and auth policies.
 func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
+	app.logger.Debug("Handling models overview request")
 
 	modelRefs, err := app.repositories.MaaSModelRefs.ListMaaSModelRefs(ctx)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to list MaaSModelRefs: %w", err))
 		return
 	}
+	app.logger.Debug("Fetched MaaSModelRefs", slog.Int("count", len(modelRefs)))
 
 	subscriptions, err := app.repositories.Subscriptions.ListSubscriptions(ctx)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to list MaaSSubscriptions: %w", err))
 		return
 	}
+	app.logger.Debug("Fetched MaaSSubscriptions", slog.Int("count", len(subscriptions)))
 
 	policies, err := app.repositories.Policies.ListPolicies(ctx)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to list MaaSAuthPolicies: %w", err))
 		return
 	}
+	app.logger.Debug("Fetched MaaSAuthPolicies", slog.Int("count", len(policies)))
 
 	// Build subscription lookup: model name → []ModelOverviewSubscription.
 	subsByModel := make(map[string][]models.ModelOverviewSubscription)
@@ -86,6 +91,8 @@ func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request,
 			AuthPolicies:  policies,
 		})
 	}
+
+	app.logger.Debug("Assembled models overview", slog.Int("models", len(items)))
 
 	response := Envelope[[]models.ModelOverviewItem, None]{
 		Data: items,
