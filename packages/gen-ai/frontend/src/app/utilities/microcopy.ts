@@ -116,6 +116,12 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
 };
 
 const partialFailureTemplates: Record<string, MicrocopyTemplate> = {
+  // RAG error codes (from OGXErr* constants in llamastack/errors.go)
+  'rag:vector_store_timeout': {
+    title: 'Vector store timed out',
+    description:
+      'The vector store did not respond in time. Contact your Platform Engineer to verify the connection.',
+  },
   // Guardrails error codes (from BFF constants in guardrails.go)
   'guardrails:guardrail_service_unavailable': {
     title: 'Guardrail check was not applied',

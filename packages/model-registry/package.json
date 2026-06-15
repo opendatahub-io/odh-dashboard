@@ -13,10 +13,10 @@
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd upstream/frontend && serve ./public-cypress -p 9100 -s -L",
     "cypress:server:dev": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 PROXY_PORT=4000 npm run start:dev",
-    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9100",
+    "cypress:server:wait": "wait-on -i 1000 http://localhost:9100",
     "start:dev": "cd upstream && cross-env PORT=9100 make dev-start-federated",
     "start:dev:ext": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
-    "start:dev:wait": "npx wait-on -i 1000 http://localhost:9100"
+    "start:dev:wait": "wait-on -i 1000 http://localhost:9100"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
@@ -70,15 +70,20 @@
     "./routeUtils": "./upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils.ts"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*"
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/tsconfig": "*",
     "@odh-dashboard/contract-tests": "*",
-    "@openshift/dynamic-plugin-sdk": "*",
-    "@patternfly/react-code-editor": "*",
-    "cross-env": "^10.1.0"
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk": "^5",
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "react": "^18",
+    "react-dom": "^18"
   }
 }
