@@ -39,7 +39,7 @@ export const buildRequestBody = (
   if (typeof responsesTemplate.input === 'string') {
     // String-format template: input is a plain placeholder string (e.g. "<user_query_placeholder>")
     substitutedText = responsesTemplate.input.includes(USER_QUERY_PLACEHOLDER)
-      ? responsesTemplate.input.replace(USER_QUERY_PLACEHOLDER, userMessage)
+      ? responsesTemplate.input.replaceAll(USER_QUERY_PLACEHOLDER, userMessage)
       : userMessage;
   } else {
     // Array-format template: input is an array of message objects
@@ -50,7 +50,7 @@ export const buildRequestBody = (
     }
     const templateText = responsesTemplate.input[0].content[0].text;
     substitutedText = templateText.includes(USER_QUERY_PLACEHOLDER)
-      ? templateText.replace(USER_QUERY_PLACEHOLDER, userMessage)
+      ? templateText.replaceAll(USER_QUERY_PLACEHOLDER, userMessage)
       : userMessage;
   }
 

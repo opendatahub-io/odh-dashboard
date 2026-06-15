@@ -27,6 +27,7 @@ import {
   ERROR_COMPONENTS,
   FileSearchCallData,
   FileCitationAnnotation,
+  FileSearchResult,
   FileUploadJobResponse,
   FileUploadStatusResponse,
   isApiError,
@@ -210,16 +211,17 @@ const extractFileSearchData = (output?: OutputItem[]): FileSearchCallData | unde
     return undefined;
   }
 
+  const queries: string[] = [];
+  const results: FileSearchResult[] = [];
+
   for (const item of output) {
     if (item.type === 'file_search_call' && item.results && item.results.length > 0) {
-      return {
-        queries: item.queries ?? [],
-        results: item.results,
-      };
+      queries.push(...(item.queries ?? []));
+      results.push(...item.results);
     }
   }
 
-  return undefined;
+  return results.length > 0 ? { queries, results } : undefined;
 };
 
 export const RAW_TOOL_CALL_WARNING =

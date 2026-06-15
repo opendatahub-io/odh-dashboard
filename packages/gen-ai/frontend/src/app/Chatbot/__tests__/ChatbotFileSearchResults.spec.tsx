@@ -55,7 +55,7 @@ describe('ChatbotFileSearchResults', () => {
     });
 
     it('should show cited vs retrieved counts when citationMap is provided', () => {
-      const citationMap = new Map([['report.pdf', 1]]);
+      const citationMap = new Map([['f1', 1]]);
 
       render(
         <ChatbotFileSearchResults
@@ -114,7 +114,7 @@ describe('ChatbotFileSearchResults', () => {
     });
 
     it('should show citation badge when citationMap has an entry', () => {
-      const citationMap = new Map([['report.pdf', 1]]);
+      const citationMap = new Map([['f1', 1]]);
 
       render(
         <ChatbotFileSearchResults
@@ -198,7 +198,7 @@ describe('ChatbotFileSearchResults', () => {
 
   describe('citation expansion', () => {
     it('should call onCitationExpanded and set expanded state when expandedCitation is set', () => {
-      const citationMap = new Map([['report.pdf', 1]]);
+      const citationMap = new Map([['f1', 1]]);
       const onCitationExpanded = jest.fn();
 
       render(

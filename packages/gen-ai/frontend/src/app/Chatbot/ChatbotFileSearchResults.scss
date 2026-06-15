@@ -53,6 +53,12 @@
     display: block;
     width: 100%;
     padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+
+    &:focus-visible {
+      outline: 2px solid var(--pf-t--global--border--color--clicked);
+      outline-offset: -2px;
+      border-radius: var(--pf-t--global--border--radius--small);
+    }
   }
 
   &__row-toggle-icon {
@@ -96,7 +102,7 @@
     font-size: var(--pf-t--global--font--size--xs);
     color: var(--pf-t--global--text--color--subtle);
     white-space: pre-wrap;
-    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   &__show-more {
@@ -110,6 +116,12 @@
 
     &:hover {
       color: var(--pf-t--global--text--color--link--hover);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--pf-t--global--border--color--clicked);
+      outline-offset: 1px;
+      border-radius: var(--pf-t--global--border--radius--tiny);
     }
   }
 }

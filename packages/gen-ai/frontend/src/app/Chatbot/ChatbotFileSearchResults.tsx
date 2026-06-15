@@ -80,12 +80,15 @@ const groupResultsByFile = (
     }
   }
 
-  return Array.from(groups.entries()).map(([filename, chunks]) => ({
-    filename,
-    chunks,
-    bestScore: Math.max(...chunks.map((c) => c.score)),
-    citationNumber: citationMap?.get(filename),
-  }));
+  return Array.from(groups.entries()).map(([filename, chunks]) => {
+    const fileId = chunks[0]?.file_id;
+    return {
+      filename,
+      chunks,
+      bestScore: Math.max(...chunks.map((c) => c.score)),
+      citationNumber: fileId ? citationMap?.get(fileId) : citationMap?.get(filename),
+    };
+  });
 };
 
 type ChunkRowProps = {
@@ -221,7 +224,7 @@ const FileGroupRow: React.FC<FileGroupRowProps> = ({
         <div className="chatbot-file-search__chunks">
           {group.chunks.map((chunk, chunkIndex) => (
             <ChunkRow
-              key={chunk.file_id ?? chunkIndex}
+              key={`${chunk.file_id ?? 'chunk'}-${chunkIndex}`}
               chunk={chunk}
               index={chunkIndex}
               groupIndex={index}
