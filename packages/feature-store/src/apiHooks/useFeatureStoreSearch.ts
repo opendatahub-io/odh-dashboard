@@ -90,6 +90,8 @@ export const useFeatureStoreSearch = (): {
       setCurrentSearchQuery(query);
       setCurrentPage(1);
       setAllResults([]);
+      setHasMorePages(false);
+      setTotalCount(0);
       setIsSearching(true);
       setSearchErrors([]);
 

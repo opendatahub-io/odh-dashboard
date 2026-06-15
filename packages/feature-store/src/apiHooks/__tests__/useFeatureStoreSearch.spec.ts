@@ -369,5 +369,58 @@ describe('useFeatureStoreSearch', () => {
 
       expect(mockSearch).not.toHaveBeenCalled();
     });
+
+    it('should not overwrite new search results when loadMore fires during the async gap', async () => {
+      // Step 1: complete a pageable search so hasMorePages is true
+      mockSearch.mockResolvedValueOnce(
+        mockGlobalSearchResponse({
+          results: [mockGlobalSearchResult({ name: 'page1_old' })],
+          pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: true }),
+        }),
+      );
+
+      const { result } = renderHook(() => useFeatureStoreSearch());
+
+      await act(async () => {
+        await result.current.handleSearchChange('old');
+      });
+      expect(result.current.hasMorePages).toBe(true);
+
+      // Step 2: start a new search — keep it pending so hasMorePages is still true
+      let resolveNewSearch!: (value: GlobalSearchResponse) => void;
+      const newSearchPromise = new Promise<GlobalSearchResponse>((resolve) => {
+        resolveNewSearch = resolve;
+      });
+      mockSearch.mockReturnValueOnce(newSearchPromise);
+
+      act(() => {
+        void result.current.handleSearchChange('new');
+      });
+
+      // hasMorePages is now false (reset at start of new search) so loadMore is a no-op
+      expect(result.current.hasMorePages).toBe(false);
+
+      // Step 3: attempt loadMoreResults — it must be blocked by hasMorePages = false
+      await act(async () => {
+        await result.current.loadMoreResults();
+      });
+
+      // Only 2 calls so far: old search + new search. loadMore must NOT have fired.
+      expect(mockSearch).toHaveBeenCalledTimes(2);
+
+      // Step 4: resolve the new search — results should land correctly
+      const newResponse = mockGlobalSearchResponse({
+        results: [mockGlobalSearchResult({ name: 'new_result' })],
+        pagination: mockGlobalSearchPagination({ totalCount: 1, hasNext: false }),
+      });
+
+      await act(async () => {
+        resolveNewSearch(newResponse);
+      });
+
+      expect(result.current.convertedSearchData).toHaveLength(1);
+      expect(result.current.convertedSearchData[0].title).toBe('new_result');
+      expect(result.current.isSearching).toBe(false);
+    });
   });
 });
