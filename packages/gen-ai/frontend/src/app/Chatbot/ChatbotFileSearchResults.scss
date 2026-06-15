@@ -1,4 +1,10 @@
+// Ensure the message response column stretches file search to full width
+.pf-chatbot__message-response:has(.chatbot-file-search) {
+  align-items: stretch;
+}
+
 .chatbot-file-search {
+
   &__content {
     margin-top: var(--pf-t--global--spacer--sm);
   }
@@ -20,7 +26,7 @@
   &__table {
     border: 1px solid var(--pf-t--global--border--color--default);
     border-radius: var(--pf-t--global--border--radius--small);
-    width: 750px;
+    width: 100%;
   }
 
   &__file-group {
