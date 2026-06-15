@@ -24,10 +24,18 @@ import CreateRoleForm from './CreateRoleForm';
 import CreateRoleFooter from './CreateRoleFooter';
 import CreateRoleConfirmModal from './CreateRoleConfirmModal';
 import CreateRoleYamlView from './CreateRoleYamlView';
+import DiscardChangesConfirmModal from './DiscardChangesConfirmModal';
+import SelectTemplateModal from './SelectTemplateModal';
+import type { RoleTemplate } from './roleTemplateCatalog';
 import assembleRole from './assembleRole';
 import type { LabelEntry, RuleEntry } from './types';
 
 type ViewMode = 'form' | 'yaml';
+
+type TemplateModalState =
+  | { type: 'none' }
+  | { type: 'discardConfirm'; nextMode: 'select' | 'addRules' }
+  | { type: 'selectTemplate'; mode: 'select' | 'addRules' };
 
 type CreateRolePageProps = {
   existingRole?: RoleKind;
@@ -76,6 +84,59 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
   const [viewMode, setViewMode] = React.useState<ViewMode>('form');
   const [submitError, setSubmitError] = React.useState<Error>();
   const [showNoRulesConfirm, setShowNoRulesConfirm] = React.useState(false);
+  const [templateModal, setTemplateModal] = React.useState<TemplateModalState>({ type: 'none' });
+
+  const isFormDirty = React.useMemo(
+    () =>
+      k8sNameDescriptionData.data.name !== '' ||
+      description !== '' ||
+      labels.length > 0 ||
+      rules.length > 0,
+    [k8sNameDescriptionData.data.name, description, labels.length, rules.length],
+  );
+
+  const handleSelectTemplateClick = React.useCallback(() => {
+    if (isFormDirty) {
+      setTemplateModal({ type: 'discardConfirm', nextMode: 'select' });
+    } else {
+      setTemplateModal({ type: 'selectTemplate', mode: 'select' });
+    }
+  }, [isFormDirty]);
+
+  const handleImportTemplateClick = React.useCallback(() => {
+    setTemplateModal({ type: 'selectTemplate', mode: 'addRules' });
+  }, []);
+
+  const handleDiscardConfirm = React.useCallback(() => {
+    if (templateModal.type === 'discardConfirm') {
+      k8sNameDescriptionData.onDataChange('name', '');
+      setDescription('');
+      setLabels([]);
+      setRules([]);
+      setTemplateModal({ type: 'selectTemplate', mode: templateModal.nextMode });
+    }
+  }, [templateModal, k8sNameDescriptionData]);
+
+  const handleTemplateSelected = React.useCallback(
+    (template: RoleTemplate) => {
+      const templateRules: RuleEntry[] = template.rules.map((rule) => ({
+        ...rule,
+        id: getUniqueId('rule'),
+      }));
+
+      if (templateModal.type === 'selectTemplate' && templateModal.mode === 'select') {
+        k8sNameDescriptionData.onDataChange('name', template.name);
+        setDescription(template.description);
+        setLabels([]);
+        setRules(templateRules);
+      } else {
+        setRules((prev) => [...prev, ...templateRules]);
+      }
+
+      setTemplateModal({ type: 'none' });
+    },
+    [templateModal, k8sNameDescriptionData],
+  );
 
   const handleDescriptionChange = React.useCallback((value: string) => {
     setDescription(value);
@@ -161,8 +222,11 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
         description="Create a custom role to control what users can see and do across your cluster resources. Define permissions, navigation access, and resource scopes to implement fine-grained access control."
         headerAction={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-            {/* TODO: Enable when template selection modal is implemented (RHOAIENG-63156) */}
-            <Button variant="secondary" data-testid="select-role-template-button" isDisabled>
+            <Button
+              variant="secondary"
+              data-testid="select-role-template-button"
+              onClick={handleSelectTemplateClick}
+            >
               Select role template
             </Button>
             <ToggleGroup aria-label="Form or YAML view toggle" data-testid="form-yaml-toggle">
@@ -196,6 +260,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
               onLabelsChange={handleLabelsChange}
               rules={rules}
               onRulesChange={handleRulesChange}
+              onImportTemplate={handleImportTemplateClick}
             />
           </div>
           {viewMode === 'yaml' && (
@@ -223,6 +288,19 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
       </ApplicationsPage>
       {showNoRulesConfirm && (
         <CreateRoleConfirmModal onConfirm={doSubmit} onClose={() => setShowNoRulesConfirm(false)} />
+      )}
+      {templateModal.type === 'discardConfirm' && (
+        <DiscardChangesConfirmModal
+          onDiscard={handleDiscardConfirm}
+          onClose={() => setTemplateModal({ type: 'none' })}
+        />
+      )}
+      {templateModal.type === 'selectTemplate' && (
+        <SelectTemplateModal
+          mode={templateModal.mode}
+          onSelectTemplate={handleTemplateSelected}
+          onClose={() => setTemplateModal({ type: 'none' })}
+        />
       )}
     </>
   );

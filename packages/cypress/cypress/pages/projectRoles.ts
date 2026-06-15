@@ -210,6 +210,34 @@ class ProjectRolesTab {
     return cy.findByTestId('modal-submit-button');
   }
 
+  findSelectTemplateModal() {
+    return cy.findByTestId('select-template-modal');
+  }
+
+  findTemplateSearchInput() {
+    return cy.findByTestId('select-template-modal').findByPlaceholderText('Find by name');
+  }
+
+  findDiscardChangesModal() {
+    return cy.findByTestId('discard-changes-confirm-modal');
+  }
+
+  findDiscardButton() {
+    return cy.findByTestId('discard-confirm-button');
+  }
+
+  findDiscardCancelButton() {
+    return cy.findByTestId('discard-cancel-button');
+  }
+
+  findTemplateItem(templateId: string) {
+    return cy.findByTestId(`template-item-${templateId}`);
+  }
+
+  findSelectTemplateButton(templateId: string) {
+    return cy.findByTestId(`select-template-${templateId}`);
+  }
+
   getRow(name: string) {
     return new RolesTableRow(() =>
       this.findRolesTable().findAllByTestId('role-name-link').contains(name).parents('tr'),

@@ -1,0 +1,178 @@
+/**
+ * Tests for the role template selection flow: Select role template (header button),
+ * Import rules from template (toolbar button), discard changes confirmation,
+ * search filtering, and form pre-population.
+ */
+import {
+  mockDashboardConfig,
+  mockK8sResourceList,
+  mockProjectK8sResource,
+} from '@odh-dashboard/internal/__mocks__';
+import {
+  ClusterRoleModel,
+  ProjectModel,
+  RoleBindingModel,
+  RoleModel,
+} from '../../../../utils/models';
+import { asProjectAdminUser } from '../../../../utils/mockUsers';
+import { projectRoles } from '../../../../pages/projectRoles';
+
+const NAMESPACE = 'test-project';
+
+const initIntercepts = () => {
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ roleManagement: true }));
+  cy.interceptK8s(ProjectModel, mockProjectK8sResource({ k8sName: NAMESPACE }));
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([mockProjectK8sResource({ k8sName: NAMESPACE })]),
+  );
+  cy.interceptK8sList({ model: RoleModel, ns: NAMESPACE }, mockK8sResourceList([]));
+  cy.interceptK8sList(ClusterRoleModel, mockK8sResourceList([]));
+  cy.interceptK8sList({ model: RoleBindingModel, ns: NAMESPACE }, mockK8sResourceList([]));
+};
+
+describe('Select role template (header button)', () => {
+  beforeEach(() => {
+    asProjectAdminUser();
+    initIntercepts();
+  });
+
+  it('should open template modal directly when form is clean', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findSelectTemplateModal().should('exist');
+    projectRoles.findSelectTemplateModal().contains('Select a role template').should('exist');
+  });
+
+  it('should show discard confirmation when form has changes', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+    projectRoles.findRoleNameInput().type('my-role');
+
+    projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findDiscardChangesModal().should('exist');
+    projectRoles.findDiscardChangesModal().contains('Discard unsaved changes?').should('exist');
+  });
+
+  it('should open template modal after confirming discard', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+    projectRoles.findRoleNameInput().type('my-role');
+
+    projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findDiscardChangesModal().should('exist');
+    projectRoles.findDiscardButton().click();
+
+    projectRoles.findDiscardChangesModal().should('not.exist');
+    projectRoles.findSelectTemplateModal().should('exist');
+  });
+
+  it('should close discard modal on cancel without opening template modal', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+    projectRoles.findRoleNameInput().type('my-role');
+
+    projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findDiscardChangesModal().should('exist');
+    projectRoles.findDiscardCancelButton().click();
+
+    projectRoles.findDiscardChangesModal().should('not.exist');
+    projectRoles.findSelectTemplateModal().should('not.exist');
+  });
+
+  it('should pre-populate form with template name and rules', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findSelectTemplateButton('workbench-maintainer').click();
+
+    projectRoles.findSelectTemplateModal().should('not.exist');
+    projectRoles.findRoleNameInput().should('have.value', 'Workbench maintainer');
+    cy.findByTestId('permission-rules-table').should('exist');
+  });
+
+  it('should display template categories and templates', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findSelectTemplateModal().should('exist');
+
+    cy.contains('Workbench management templates').should('exist');
+    cy.contains('Workbench maintainer').should('exist');
+    cy.contains('Workbench reader').should('exist');
+    cy.contains('Workbench updater').should('exist');
+  });
+
+  it('should filter templates by search', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findTemplateSearchInput().type('reader');
+
+    cy.contains('Workbench reader').should('exist');
+    cy.contains('Workbench maintainer').should('not.exist');
+    cy.contains('Workbench updater').should('not.exist');
+  });
+});
+
+describe('Import rules from template (toolbar button)', () => {
+  beforeEach(() => {
+    asProjectAdminUser();
+    initIntercepts();
+  });
+
+  it('should open template modal directly from empty state', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findImportTemplateButton().click();
+    projectRoles.findSelectTemplateModal().should('exist');
+    projectRoles.findSelectTemplateModal().contains('Add rules from template').should('exist');
+  });
+
+  it('should show "Add rules" buttons in addRules mode', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findImportTemplateButton().click();
+    projectRoles.findSelectTemplateModal().should('exist');
+
+    projectRoles.findSelectTemplateButton('workbench-reader').should('contain', 'Add rules');
+  });
+
+  it('should populate rules when template is selected from toolbar', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findImportTemplateButton().click();
+    projectRoles.findSelectTemplateButton('workbench-reader').click();
+
+    projectRoles.findSelectTemplateModal().should('not.exist');
+    cy.findByTestId('permission-rules-table').should('exist');
+  });
+
+  it('should open template modal directly even when rules already exist', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findAddRuleButton().click();
+    cy.findByTestId('add-rule-modal').should('exist');
+    cy.findByTestId('rule-api-groups-toggle').click();
+    cy.findByTestId('rule-api-groups-toggle').parent().find('input').type('apps{enter}');
+    cy.findByTestId('rule-resource-types-toggle').click();
+    cy.findByTestId('rule-resource-types-toggle').parent().find('input').type('deployments{enter}');
+    cy.findByTestId('add-rule-modal').findByTestId('verb-checkbox-get').click();
+    cy.findByTestId('modal-submit-button').click();
+
+    projectRoles.findImportTemplateButton().click();
+    projectRoles.findDiscardChangesModal().should('not.exist');
+    projectRoles.findSelectTemplateModal().should('exist');
+  });
+
+  it('should not change name/description when adding rules from template', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+    projectRoles.findRoleNameInput().type('my-custom-role');
+    projectRoles.findDescriptionTextarea().type('My description');
+
+    projectRoles.findImportTemplateButton().click();
+    projectRoles.findSelectTemplateButton('workbench-updater').click();
+
+    projectRoles.findRoleNameInput().should('have.value', 'my-custom-role');
+    projectRoles.findDescriptionTextarea().should('have.value', 'My description');
+    cy.findByTestId('permission-rules-table').should('exist');
+  });
+});
