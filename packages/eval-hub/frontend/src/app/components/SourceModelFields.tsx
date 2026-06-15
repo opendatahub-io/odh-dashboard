@@ -116,11 +116,11 @@ const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
                       padding: 'var(--pf-t--global--spacer--sm)',
                       borderRadius: 'var(--pf-t--global--border--radius--small)',
                       marginTop: 'var(--pf-t--global--spacer--sm)',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-all',
+                      whiteSpace: 'pre',
+                      overflowX: 'auto',
                     }}
                   >
-                    {`oc create secret generic my-api-secret \\\n  --from-file=api-key=./api-key.txt \\\n  -n your-namespace`}
+                    {`oc create secret generic my-api-secret\n  --from-file=api-key=./api-key.txt\n  -n your-namespace`}
                   </pre>
                 </>
               }
