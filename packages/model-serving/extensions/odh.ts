@@ -102,6 +102,33 @@ const extensions: (
       required: [SupportedArea.MODEL_SERVING],
     },
   },
+  // Redirect old serving runtimes URL to the new model deployment settings page
+  {
+    type: 'app.route',
+    properties: {
+      path: '/settings/model-resources-operations/serving-runtimes/*',
+      component: createRedirectComponent({
+        from: '/settings/model-resources-operations/serving-runtimes/*',
+        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/*',
+      }),
+    },
+    flags: {
+      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/servingRuntimes/*',
+      component: createRedirectComponent({
+        from: '/servingRuntimes/*',
+        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/*',
+      }),
+    },
+    flags: {
+      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
+    },
+  },
 ];
 
 export default extensions;

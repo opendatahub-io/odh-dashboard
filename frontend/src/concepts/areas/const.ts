@@ -19,6 +19,7 @@ export const techPreviewFlags = {
   llmGatewayField: false,
   promptManagement: false,
   mySubscriptions: true,
+  modelDeploymentSettings: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -143,6 +144,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
+  },
+  [SupportedArea.MODEL_DEPLOYMENT_SETTINGS]: {
+    featureFlags: ['modelDeploymentSettings'],
+    reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.USER_MANAGEMENT]: {
     featureFlags: ['disableUserManagement'],
