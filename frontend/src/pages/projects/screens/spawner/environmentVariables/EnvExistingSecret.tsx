@@ -1,10 +1,19 @@
 import * as React from 'react';
-import { Checkbox, FormGroup, Spinner, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Alert,
+  Checkbox,
+  FormGroup,
+  HelperText,
+  HelperTextItem,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
 import { getDashboardMainContainer } from '#~/utilities/utils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ExistingSecretRef } from '#~/pages/projects/types';
-import { SecretSummary, useExistingSecrets } from './useExistingSecrets';
+import { SecretSummary, useExistingSecrets, useListSecretsAllowed } from './useExistingSecrets';
 
 type EnvExistingSecretProps = {
   instanceId: number;
@@ -14,6 +23,16 @@ type EnvExistingSecretProps = {
 
 const popperProps = { appendTo: getDashboardMainContainer };
 
+const DESCRIPTION_TEXT =
+  'Attach an available secret from this project. Use existing secrets for credentials ' +
+  'managed by your platform team or provisioned through external tools (e.g., External ' +
+  'Secrets Operator, GitOps). For reusable credentials like S3 or database connections, ' +
+  'use the Connections section instead.';
+
+const RESTART_INFO =
+  'Environment variables are set at workbench start. If secret values change ' +
+  '(e.g., credential rotation), restart the workbench to pick up new values.';
+
 const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
   instanceId,
   existingSecretRef,
@@ -21,7 +40,8 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
-  const [secrets, secretsLoaded] = useExistingSecrets(namespace);
+  const [canListSecrets, rbacLoaded] = useListSecretsAllowed(namespace);
+  const [secrets, secretsLoaded] = useExistingSecrets(canListSecrets ? namespace : undefined);
 
   const secretName = existingSecretRef?.secretName;
 
@@ -98,12 +118,29 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
   const selectFieldId = `existing-secret-select-${instanceId}`;
   const allKeysId = `existing-secret-${instanceId}-all-keys`;
 
-  if (!secretsLoaded) {
+  if (!rbacLoaded || (!secretsLoaded && canListSecrets)) {
     return <Spinner size="md" aria-label="Loading secrets" data-testid="existing-secret-spinner" />;
+  }
+
+  if (!canListSecrets) {
+    return (
+      <Alert
+        variant="info"
+        isInline
+        isPlain
+        title="You do not have permission to list secrets in this project"
+        data-testid="existing-secret-no-permission"
+      />
+    );
   }
 
   return (
     <Stack hasGutter data-testid="env-existing-secret">
+      <StackItem>
+        <HelperText>
+          <HelperTextItem>{DESCRIPTION_TEXT}</HelperTextItem>
+        </HelperText>
+      </StackItem>
       <StackItem>
         <FormGroup label="Secret" fieldId={selectFieldId} isRequired>
           <TypeaheadSelect
@@ -152,6 +189,11 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
           </FormGroup>
         </StackItem>
       )}
+      <StackItem>
+        <HelperText>
+          <HelperTextItem variant="indeterminate">{RESTART_INFO}</HelperTextItem>
+        </HelperText>
+      </StackItem>
     </Stack>
   );
 };

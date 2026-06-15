@@ -1,5 +1,9 @@
 import { mockCustomSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
-import { isConnectionSecret } from '#~/pages/projects/screens/spawner/environmentVariables/useExistingSecrets';
+import { KnownLabels } from '#~/k8sTypes';
+import {
+  isConnectionSecret,
+  isDashboardSecret,
+} from '#~/pages/projects/screens/spawner/environmentVariables/useExistingSecrets';
 
 describe('isConnectionSecret', () => {
   it('should return true for secrets with connection-type-protocol annotation', () => {
@@ -72,5 +76,37 @@ describe('isConnectionSecret', () => {
     });
     delete (secret.metadata as Record<string, unknown>).annotations;
     expect(isConnectionSecret(secret)).toBe(false);
+  });
+});
+
+describe('isDashboardSecret', () => {
+  it('should return true for secrets with the dashboard label', () => {
+    const secret = mockCustomSecretK8sResource({
+      name: 'dashboard-secret',
+      namespace: 'ns',
+      data: { key: 'val' },
+      labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+    });
+    expect(isDashboardSecret(secret)).toBe(true);
+  });
+
+  it('should return false for secrets without the dashboard label', () => {
+    const secret = mockCustomSecretK8sResource({
+      name: 'external-secret',
+      namespace: 'ns',
+      data: { key: 'val' },
+    });
+    delete secret.metadata.labels;
+    expect(isDashboardSecret(secret)).toBe(false);
+  });
+
+  it('should return false when dashboard label is false', () => {
+    const secret = mockCustomSecretK8sResource({
+      name: 'disabled-secret',
+      namespace: 'ns',
+      data: { key: 'val' },
+    });
+    secret.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'false' };
+    expect(isDashboardSecret(secret)).toBe(false);
   });
 });

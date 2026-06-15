@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { SecretModel } from '#~/api/models';
-import { SecretKind } from '#~/k8sTypes';
+import { KnownLabels, SecretKind } from '#~/k8sTypes';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
 } from '#~/utilities/useFetchState';
+import { useAccessReview } from '#~/api/useAccessReview';
 
 const CONNECTION_ANNOTATION_KEYS = [
   'opendatahub.io/connection-type-protocol',
@@ -21,6 +22,20 @@ export type SecretSummary = {
 export const isConnectionSecret = (secret: SecretKind): boolean =>
   CONNECTION_ANNOTATION_KEYS.some((key) => key in (secret.metadata.annotations ?? {}));
 
+export const isDashboardSecret = (secret: SecretKind): boolean =>
+  secret.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true';
+
+export const useListSecretsAllowed = (namespace?: string): [allowed: boolean, loaded: boolean] =>
+  useAccessReview(
+    {
+      group: '',
+      resource: 'secrets',
+      verb: 'list',
+      namespace: namespace ?? '',
+    },
+    !!namespace,
+  );
+
 export const useExistingSecrets = (namespace?: string): FetchState<SecretSummary[]> => {
   const callback = React.useCallback<FetchStateCallbackPromise<SecretSummary[]>>(async () => {
     if (!namespace) {
@@ -33,7 +48,10 @@ export const useExistingSecrets = (namespace?: string): FetchState<SecretSummary
     });
 
     return result.items
-      .filter((secret) => secret.type === 'Opaque' && !isConnectionSecret(secret))
+      .filter(
+        (secret) =>
+          secret.type === 'Opaque' && !isConnectionSecret(secret) && !isDashboardSecret(secret),
+      )
       .map(
         (secret): SecretSummary => ({
           name: secret.metadata.name,
