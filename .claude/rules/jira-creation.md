@@ -27,6 +27,8 @@ User requests Jira creation (e.g., "create jira", "make jira tickets", "log a bu
   | Onyx | RHAI Onyx | `2c35865b-83c2-4931-911f-041d57c82532` | `dashboard-onyx-scrum` |
   | Zaffre | RHAI Zaffre | `c1466179-4c13-43a4-895d-c632789ded28` | `dashboard-zaffre-scrum` |
   | Green | RHAI Green | `cffa1fd0-e59a-4305-b39e-1d40ae31112e` | `dashboard-green-scrum` |
+  | Purple | RHAI Purple | `2cddc7b3-7a62-4be8-942d-1e160767cef1` | `dashboard-purple-scrum` |
+  | Monarch | RHAI Monarch | `6cb9996b-0281-4bee-b062-611b1d2d1baa` | `dashboard-monarch-scrum` |
   | *(fallback)* | RHOAI Dashboard | `ec74d716-af36-4b3c-950f-f79213d08f71-1809` | — |
 * **Component**: `'AI Core Dashboard'` (This string value should be used for the components field).
 * **Epic Link Custom Field ID** (for Stories/Tasks under an Epic): `customfield_12311140`.
@@ -465,5 +467,7 @@ Always include the scrum team label when creating an issue. These correspond to 
 * `dashboard-onyx-scrum`
 * `dashboard-zaffre-scrum`
 * `dashboard-green-scrum`
+* `dashboard-purple-scrum`
+* `dashboard-monarch-scrum`
 
 *(Always ask the user for the most appropriate labels if unsure, drawing from this list or others they provide.)*
