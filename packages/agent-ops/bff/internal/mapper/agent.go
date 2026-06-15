@@ -12,13 +12,18 @@ import (
 
 // AgentSummaryToRuntime maps an agent list item to a BFF AgentRuntime.
 func AgentSummaryToRuntime(item agents.AgentSummary) models.AgentRuntime {
+	lastSync := ParseTime(item.LastSyncAt)
+	if lastSync.IsZero() {
+		lastSync = ParseTime(item.CreatedAt)
+	}
+
 	return models.AgentRuntime{
 		Name:         item.Name,
 		Namespace:    item.Namespace,
 		Status:       strings.TrimSpace(item.Status),
 		Type:         strings.TrimSpace(item.ResourceType),
 		EndpointURL:  strings.TrimSpace(item.EndpointURL),
-		LastSyncTime: ParseTime(item.CreatedAt),
+		LastSyncTime: lastSync,
 	}
 }
 

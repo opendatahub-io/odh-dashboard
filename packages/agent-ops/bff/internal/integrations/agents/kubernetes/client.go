@@ -25,7 +25,9 @@ type Client struct {
 func (c *Client) ListNamespaces(ctx context.Context, enabledOnly bool) ([]string, error) {
 	namespaces, err := c.k8sClient.GetNamespaces(ctx, c.identity)
 	if err != nil {
-		return nil, err
+		c.logger.Warn("failed to list namespaces for agent discovery",
+			slog.Any("error", err))
+		return []string{}, nil
 	}
 
 	result := make([]string, 0, len(namespaces))
@@ -63,14 +65,7 @@ func (c *Client) ListAgents(ctx context.Context, namespace string) (*agents.Agen
 
 // GetAgent returns detailed workload information for one agent.
 func (c *Client) GetAgent(ctx context.Context, namespace, name string) (*agents.AgentDetail, error) {
-	detail, err := c.getAgentDetail(ctx, namespace, name)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, agents.ErrNotFound
-		}
-		return nil, err
-	}
-	return detail, nil
+	return c.getAgentDetail(ctx, namespace, name)
 }
 
 func (c *Client) listAgentSummaries(ctx context.Context, namespace string) ([]agents.AgentSummary, error) {
@@ -81,43 +76,61 @@ func (c *Client) listAgentSummaries(ctx context.Context, namespace string) ([]ag
 
 	deployments, err := clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list deployments in namespace %q: %w", namespace, err)
-	}
-	for _, deployment := range deployments.Items {
-		seen[deployment.Name] = struct{}{}
-		service := c.getServiceBestEffort(ctx, namespace, deployment.Name)
-		summaries = append(summaries, deploymentToSummary(deployment, service))
+		if apierrors.IsForbidden(err) {
+			c.logger.Debug("skipping deployments list due to forbidden access",
+				slog.String("namespace", namespace))
+		} else {
+			return nil, fmt.Errorf("failed to list deployments in namespace %q: %w", namespace, err)
+		}
+	} else {
+		for _, deployment := range deployments.Items {
+			seen[deployment.Name] = struct{}{}
+			service := c.getServiceBestEffort(ctx, namespace, deployment.Name)
+			summaries = append(summaries, deploymentToSummary(deployment, service))
+		}
 	}
 
 	statefulSets, err := clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list statefulsets in namespace %q: %w", namespace, err)
-	}
-	for _, statefulSet := range statefulSets.Items {
-		if _, exists := seen[statefulSet.Name]; exists {
-			c.logger.Warn("duplicate agent name detected; skipping statefulset",
-				slog.String("namespace", namespace),
-				slog.String("name", statefulSet.Name))
-			continue
+		if apierrors.IsForbidden(err) {
+			c.logger.Debug("skipping statefulsets list due to forbidden access",
+				slog.String("namespace", namespace))
+		} else {
+			return nil, fmt.Errorf("failed to list statefulsets in namespace %q: %w", namespace, err)
 		}
-		seen[statefulSet.Name] = struct{}{}
-		service := c.getServiceBestEffort(ctx, namespace, statefulSet.Name)
-		summaries = append(summaries, statefulSetToSummary(statefulSet, service))
+	} else {
+		for _, statefulSet := range statefulSets.Items {
+			if _, exists := seen[statefulSet.Name]; exists {
+				c.logger.Warn("duplicate agent name detected; skipping statefulset",
+					slog.String("namespace", namespace),
+					slog.String("name", statefulSet.Name))
+				continue
+			}
+			seen[statefulSet.Name] = struct{}{}
+			service := c.getServiceBestEffort(ctx, namespace, statefulSet.Name)
+			summaries = append(summaries, statefulSetToSummary(statefulSet, service))
+		}
 	}
 
 	jobs, err := clientset.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list jobs in namespace %q: %w", namespace, err)
-	}
-	for _, job := range jobs.Items {
-		if _, exists := seen[job.Name]; exists {
-			c.logger.Warn("duplicate agent name detected; skipping job",
-				slog.String("namespace", namespace),
-				slog.String("name", job.Name))
-			continue
+		if apierrors.IsForbidden(err) {
+			c.logger.Debug("skipping jobs list due to forbidden access",
+				slog.String("namespace", namespace))
+		} else {
+			return nil, fmt.Errorf("failed to list jobs in namespace %q: %w", namespace, err)
 		}
-		seen[job.Name] = struct{}{}
-		summaries = append(summaries, jobToSummary(job))
+	} else {
+		for _, job := range jobs.Items {
+			if _, exists := seen[job.Name]; exists {
+				c.logger.Warn("duplicate agent name detected; skipping job",
+					slog.String("namespace", namespace),
+					slog.String("name", job.Name))
+				continue
+			}
+			seen[job.Name] = struct{}{}
+			summaries = append(summaries, jobToSummary(job))
+		}
 	}
 
 	return summaries, nil

@@ -8,7 +8,7 @@ Minimal backend-for-frontend providing only core endpoints required by the start
 
 ## Scope
 
-This service exposes core dashboard endpoints plus agent runtime APIs backed by an in-memory mock for local development:
+This service exposes core dashboard endpoints plus agent runtime APIs backed by Kubernetes (or an in-memory mock when `MOCK_AGENT_CLIENT=true` for local development):
 
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated user
@@ -16,7 +16,7 @@ This service exposes core dashboard endpoints plus agent runtime APIs backed by 
 - GET `/api/v1/agents/runtimes` – list deployed agent and tool runtimes
 - GET `/api/v1/agents/runtimes/{ns}/{name}` – full runtime detail for one agent
 
-Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. Runtime data is served from the built-in mock agent data client (sample data for `agent-ops-demo` / `sample-support-agent`). A future change will load agents from Kubernetes via the same `agents` integration layer.
+Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. Runtime data is loaded from labeled Deployments, StatefulSets, and Jobs in namespaces where kagenti is enabled. Per-request RBAC checks filter namespaces and gate detail access. Set `MOCK_AGENT_CLIENT=true` to serve built-in demo data (`agent-ops-demo` / `sample-support-agent`) without cluster access.
 
 ## Development
 

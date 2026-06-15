@@ -46,16 +46,4 @@ describe('Agent Ops API Contract Tests', () => {
       });
     });
   });
-
-  describe('Agent Card Endpoint', () => {
-    it('should return agent discovery card', async () => {
-      const result = await apiClient.get(
-        '/api/v1/agents/cards/agent-ops-demo/sample-support-agent',
-      );
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/AgentCardResponse/content/application/json/schema',
-        status: 200,
-      });
-    });
-  });
 });

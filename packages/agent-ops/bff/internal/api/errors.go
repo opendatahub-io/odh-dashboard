@@ -8,6 +8,7 @@ import (
 const (
 	ErrCodeBadRequest          = "BAD_REQUEST"
 	ErrCodeForbidden           = "FORBIDDEN"
+	ErrCodeUnauthorized        = "UNAUTHORIZED"
 	ErrCodeNotFound            = "NOT_FOUND"
 	ErrCodeMethodNotAllowed    = "METHOD_NOT_ALLOWED"
 	ErrCodeInternalServerError = "INTERNAL_SERVER_ERROR"
@@ -43,6 +44,13 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 	app.logger.Warn("Access forbidden", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
 
 	httpError := &HTTPError{StatusCode: http.StatusForbidden, Error: ErrorPayload{Code: ErrCodeForbidden, Message: "Access forbidden"}}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.logger.Warn("Unauthorized request", "error", err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
+
+	httpError := &HTTPError{StatusCode: http.StatusUnauthorized, Error: ErrorPayload{Code: ErrCodeUnauthorized, Message: err.Error()}}
 	app.errorResponse(w, r, httpError)
 }
 

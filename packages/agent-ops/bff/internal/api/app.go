@@ -117,28 +117,30 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	if cfg.MockK8Client {
-		//mock all k8s calls with 'env test'
-		var clientset kubernetes.Interface
-		ctx, cancel := context.WithCancel(context.Background())
-		testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to setup envtest: %w", err)
+	if cfg.AuthMethod != config.AuthMethodDisabled || cfg.MockK8Client {
+		if cfg.MockK8Client {
+			//mock all k8s calls with 'env test'
+			var clientset kubernetes.Interface
+			ctx, cancel := context.WithCancel(context.Background())
+			testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+				Logger: logger,
+				Ctx:    ctx,
+				Cancel: cancel,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to setup envtest: %w", err)
+			}
+			//create mocked kubernetes client factory
+			k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+
+		} else {
+			//create kubernetes client factory
+			k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
 		}
-		//create mocked kubernetes client factory
-		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
 
-	} else {
-		//create kubernetes client factory
-		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+		}
 	}
 
 	// Initialize BFF client factory for inter-BFF communication

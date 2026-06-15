@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	bfferrors "github.com/opendatahub-io/mod-arch-library/bff/internal/errors"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
@@ -37,7 +38,10 @@ func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context) (*model
 	for _, namespace := range namespaces {
 		list, err := client.ListAgents(ctx, namespace)
 		if err != nil {
-			return nil, translateAgentError(err)
+			slog.Warn("failed to list agents in namespace, skipping",
+				slog.String("namespace", namespace),
+				slog.Any("error", err))
+			continue
 		}
 		if list == nil {
 			continue

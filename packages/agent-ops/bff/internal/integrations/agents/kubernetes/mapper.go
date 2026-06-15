@@ -33,6 +33,7 @@ func deploymentToSummary(deployment appsv1.Deployment, service *corev1.Service) 
 		WorkloadType: workloadTypeFromLabels(metadata.Labels, agents.WorkloadTypeDeployment),
 		EndpointURL:  endpointURL,
 		CreatedAt:    formatTimestamp(metadata.CreationTimestamp),
+		LastSyncAt:   lastSyncTimestamp(metadata.CreationTimestamp, deployment.Status),
 	}
 }
 
@@ -52,6 +53,7 @@ func statefulSetToSummary(statefulSet appsv1.StatefulSet, service *corev1.Servic
 		WorkloadType: workloadTypeFromLabels(metadata.Labels, agents.WorkloadTypeStatefulSet),
 		EndpointURL:  endpointURL,
 		CreatedAt:    formatTimestamp(metadata.CreationTimestamp),
+		LastSyncAt:   lastSyncTimestamp(metadata.CreationTimestamp, statefulSet.Status),
 	}
 }
 
@@ -66,6 +68,7 @@ func jobToSummary(job batchv1.Job) agents.AgentSummary {
 		WorkloadType: workloadTypeFromLabels(metadata.Labels, agents.WorkloadTypeJob),
 		EndpointURL:  "",
 		CreatedAt:    formatTimestamp(metadata.CreationTimestamp),
+		LastSyncAt:   lastSyncTimestamp(metadata.CreationTimestamp, job.Status),
 	}
 }
 
@@ -169,6 +172,18 @@ func formatTimestamp(timestamp metav1.Time) string {
 		return ""
 	}
 	return timestamp.UTC().Format(time.RFC3339Nano)
+}
+
+func lastSyncTimestamp(created metav1.Time, status any) string {
+	createdAt := formatTimestamp(created)
+	statusMap := toMap(status)
+	if statusMap == nil {
+		return createdAt
+	}
+	if latest := mapper.LatestConditionTime(statusMap); !latest.IsZero() {
+		return latest.UTC().Format(time.RFC3339Nano)
+	}
+	return createdAt
 }
 
 func copyStringMap(values map[string]string) map[string]string {

@@ -77,7 +77,12 @@ func newRBACTestApp(allowed bool) *App {
 }
 
 func newRBACTestAppWithGet(allowed bool, getAllowed bool) *App {
+	return newRBACTestAppWithConfig(allowed, getAllowed, config.EnvConfig{AuthMethod: config.AuthMethodInternal})
+}
+
+func newRBACTestAppWithConfig(allowed bool, getAllowed bool, cfg config.EnvConfig) *App {
 	return &App{
+		config: cfg,
 		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		kubernetesClientFactory: &rbacTestK8sFactory{
 			client: &rbacTestK8sClient{
@@ -180,6 +185,40 @@ func TestRequireAccessToAgent_Forbidden(t *testing.T) {
 	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
 
 	require.Equal(t, http.StatusForbidden, rr.Code)
+}
+
+func TestRequireAccessToAgent_AuthDisabled(t *testing.T) {
+	app := newRBACTestAppWithConfig(false, false, config.EnvConfig{AuthMethod: config.AuthMethodDisabled})
+	called := false
+
+	handler := app.RequireAccessToAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/demo-ns/demo-agent", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.True(t, called)
+}
+
+func TestRequireAccessToAgent_MissingNamespace(t *testing.T) {
+	app := newRBACTestApp(true)
+
+	handler := app.RequireAccessToAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called when namespace is missing")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/demo-ns/demo-agent", nil)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: "name", Value: "demo-agent"}})
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestAttachNamespace_InvalidNamespace(t *testing.T) {

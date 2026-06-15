@@ -9,28 +9,67 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var agentWorkloadResources = []string{"deployments", "statefulsets", "jobs"}
+
 func (kc *InternalKubernetesClient) CanListAgentsInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
-	return kc.subjectAccessReview(ctx, identity, namespace, "", "deployments", "list")
+	return kc.anySubjectAccessReview(ctx, identity, namespace, "", agentWorkloadResources, "list")
 }
 
 func (kc *InternalKubernetesClient) CanGetAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace, name string) (bool, error) {
-	allowedDeploy, err := kc.subjectAccessReview(ctx, identity, namespace, name, "deployments", "get")
-	if err != nil || !allowedDeploy {
-		return allowedDeploy, err
+	allowedWorkload, err := kc.anySubjectAccessReview(ctx, identity, namespace, name, agentWorkloadResources, "get")
+	if err != nil || !allowedWorkload {
+		return allowedWorkload, err
 	}
 	return kc.subjectAccessReview(ctx, identity, namespace, name, "services", "get")
 }
 
 func (kc *TokenKubernetesClient) CanListAgentsInNamespace(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
-	return kc.selfSubjectAccessReview(ctx, namespace, "", "deployments", "list")
+	return kc.anySelfSubjectAccessReview(ctx, namespace, "", agentWorkloadResources, "list")
 }
 
 func (kc *TokenKubernetesClient) CanGetAgentInNamespace(ctx context.Context, _ *RequestIdentity, namespace, name string) (bool, error) {
-	allowedDeploy, err := kc.selfSubjectAccessReview(ctx, namespace, name, "deployments", "get")
-	if err != nil || !allowedDeploy {
-		return allowedDeploy, err
+	allowedWorkload, err := kc.anySelfSubjectAccessReview(ctx, namespace, name, agentWorkloadResources, "get")
+	if err != nil || !allowedWorkload {
+		return allowedWorkload, err
 	}
 	return kc.selfSubjectAccessReview(ctx, namespace, name, "services", "get")
+}
+
+func (kc *InternalKubernetesClient) anySubjectAccessReview(
+	ctx context.Context,
+	identity *RequestIdentity,
+	namespace, name string,
+	resources []string,
+	verb string,
+) (bool, error) {
+	for _, resource := range resources {
+		allowed, err := kc.subjectAccessReview(ctx, identity, namespace, name, resource, verb)
+		if err != nil {
+			return false, err
+		}
+		if allowed {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (kc *TokenKubernetesClient) anySelfSubjectAccessReview(
+	ctx context.Context,
+	namespace, name string,
+	resources []string,
+	verb string,
+) (bool, error) {
+	for _, resource := range resources {
+		allowed, err := kc.selfSubjectAccessReview(ctx, namespace, name, resource, verb)
+		if err != nil {
+			return false, err
+		}
+		if allowed {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (kc *InternalKubernetesClient) subjectAccessReview(

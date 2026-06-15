@@ -64,7 +64,8 @@ func TestAgentSummaryToRuntime(t *testing.T) {
 		Description:  "desc",
 		Status:       "Ready",
 		ResourceType: "agent",
-		CreatedAt:    "2026-05-12T16:00:03.214610Z",
+		CreatedAt:    "2026-05-01T00:00:00Z",
+		LastSyncAt:   "2026-05-12T16:00:03.214610Z",
 	}
 
 	runtime := AgentSummaryToRuntime(item)
@@ -72,6 +73,7 @@ func TestAgentSummaryToRuntime(t *testing.T) {
 	assert.Equal(t, "agent", runtime.Type)
 	assert.Equal(t, "", runtime.EndpointURL)
 	assert.False(t, runtime.LastSyncTime.IsZero())
+	assert.Equal(t, 12, int(runtime.LastSyncTime.Day()))
 }
 
 func TestParseTime(t *testing.T) {

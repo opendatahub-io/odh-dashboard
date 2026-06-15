@@ -223,7 +223,7 @@ components:
         endpointUrl:
           type: string
           format: uri
-          example: https://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+          example: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
         lastSyncTime:
           type: string
           format: date-time
@@ -252,7 +252,7 @@ components:
         url:
           type: string
           format: uri
-          example: https://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+          example: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
         port:
           type: integer
           example: 8080
@@ -319,105 +319,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AgentRuntimeCondition"
-    AgentSkill:
-      description: Skill exposed by an agent.
-      required:
-        - id
-        - name
-        - description
-      type: object
-      properties:
-        id:
-          type: string
-          example: ticket-triage
-        name:
-          type: string
-          example: Ticket triage
-        description:
-          type: string
-          example: Classifies incoming support tickets by priority and topic.
-    AgentCapabilities:
-      description: Optional protocol features supported by the agent.
-      required:
-        - streaming
-        - pushNotifications
-      type: object
-      properties:
-        streaming:
-          type: boolean
-          example: true
-        pushNotifications:
-          type: boolean
-          example: true
-    AgentProvider:
-      description: Agent provider metadata.
-      required:
-        - name
-      type: object
-      properties:
-        name:
-          type: string
-          example: opendatahub
-        displayName:
-          type: string
-          example: Open Data Hub
-        url:
-          type: string
-          format: uri
-          example: https://opendatahub.io
-    AgentCard:
-      description: Agent discovery card for a single agent.
-      required:
-        - name
-        - namespace
-        - description
-        - version
-        - skills
-        - capabilities
-        - provider
-        - supportedInputModes
-        - supportedOutputModes
-      type: object
-      properties:
-        name:
-          type: string
-          example: sample-support-agent
-        namespace:
-          type: string
-          example: agent-ops-demo
-        description:
-          type: string
-          example: Customer support agent that triages tickets and drafts responses.
-        version:
-          type: string
-          example: 1.2.0
-        url:
-          type: string
-          format: uri
-          example: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
-        skills:
-          type: array
-          items:
-            $ref: "#/components/schemas/AgentSkill"
-        capabilities:
-          $ref: "#/components/schemas/AgentCapabilities"
-        provider:
-          $ref: "#/components/schemas/AgentProvider"
-        supportedInputModes:
-          type: array
-          items:
-            type: string
-          example:
-            - text
-            - application/json
-        supportedOutputModes:
-          type: array
-          items:
-            type: string
-          example:
-            - text
-            - application/json
-
   responses:
     HealthCheckResponse:
       description: BFF service health status
@@ -485,7 +386,7 @@ components:
                       namespace: agent-ops-demo
                       status: Ready
                       type: agent
-                      endpointUrl: https://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                      endpointUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
                       lastSyncTime: "2026-05-12T16:00:03.214610Z"
       description: A response containing deployed agent runtimes.
     AgentRuntimeDetailResponse:

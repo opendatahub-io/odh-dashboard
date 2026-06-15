@@ -47,7 +47,7 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 
 		identity, error := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
 		if error != nil {
-			app.badRequestResponse(w, r, error)
+			app.unauthorizedResponse(w, r, error)
 			return
 		}
 
@@ -137,22 +137,27 @@ func (app *App) AttachNamespaceFromParam(paramName string, next func(http.Respon
 // This middleware must be placed after InjectRequestIdentity and a namespace-attachment middleware.
 func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
 		ctx := r.Context()
 
 		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 		if !ok || identity == nil {
-			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			app.unauthorizedResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 			return
 		}
 
 		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
-			app.badRequestResponse(w, r, err)
+			app.unauthorizedResponse(w, r, err)
 			return
 		}
 
 		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 		if !ok || namespace == "" {
-			next(w, r, ps)
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context"))
 			return
 		}
 
@@ -184,22 +189,27 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 // workloads and services in the namespace injected by AttachNamespace or AttachNamespaceFromParam.
 func (app *App) RequireAccessToAgent(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
 		ctx := r.Context()
 
 		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 		if !ok || identity == nil {
-			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			app.unauthorizedResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 			return
 		}
 
 		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
-			app.badRequestResponse(w, r, err)
+			app.unauthorizedResponse(w, r, err)
 			return
 		}
 
 		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 		if !ok || namespace == "" {
-			next(w, r, ps)
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context"))
 			return
 		}
 
