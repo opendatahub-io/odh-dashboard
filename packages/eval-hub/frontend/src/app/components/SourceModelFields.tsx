@@ -120,8 +120,7 @@ const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
                       wordBreak: 'break-all',
                     }}
                   >
-                    oc create secret generic my-api-secret
-                    --from-literal=api-key=&apos;your-key-value&apos; -n your-namespace
+                    {`oc create secret generic my-api-secret \\\n  --from-file=api-key=./api-key.txt \\\n  -n your-namespace`}
                   </pre>
                 </>
               }

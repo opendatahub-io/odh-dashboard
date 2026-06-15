@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strings"
 	"time"
 
@@ -54,9 +55,40 @@ func (kc *SharedClientLogic) GetEvalHubDiscoveryURL(ctx context.Context, _ *Requ
 		return "", nil
 	}
 
+	if err := validateServiceURL(serviceURL); err != nil {
+		kc.Logger.Error("EvalHubDiscovery ConfigMap contains invalid service-url",
+			"namespace", namespace, "serviceURL", serviceURL, "error", err)
+		return "", fmt.Errorf("invalid service-url in %s ConfigMap (namespace %q): %w",
+			EvalHubDiscoveryConfigMap, namespace, err)
+	}
+
 	kc.Logger.Debug("Resolved EvalHub service URL from discovery ConfigMap",
 		"namespace", namespace, "serviceURL", serviceURL)
 	return serviceURL, nil
+}
+
+// validateServiceURL ensures the URL is well-formed and constrained to safe internal
+// destinations. This prevents SSRF if a malicious actor gains write access to the
+// discovery ConfigMap — the BFF will refuse to forward bearer tokens to external hosts.
+func validateServiceURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("malformed URL: %w", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("unsupported scheme %q (must be http or https)", u.Scheme)
+	}
+	if u.User != nil {
+		return fmt.Errorf("URL must not contain embedded credentials")
+	}
+	host := u.Hostname()
+	if host == "" {
+		return fmt.Errorf("URL must contain a hostname")
+	}
+	if !strings.HasSuffix(host, ".svc.cluster.local") && !strings.HasSuffix(host, ".svc") {
+		return fmt.Errorf("host %q is not a cluster-internal service (must end with .svc or .svc.cluster.local)", host)
+	}
+	return nil
 }
 
 func ParseEvalHubCRStatus(item *unstructured.Unstructured) (*models.EvalHubCRStatus, error) {
