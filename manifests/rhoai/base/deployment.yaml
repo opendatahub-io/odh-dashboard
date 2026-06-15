@@ -18,7 +18,6 @@
   path: /spec/template/spec/serviceAccount
   value: rhods-dashboard
 # Fix inter-BFF service discovery: gen-ai BFF calls MaaS via K8s DNS.
-# In RHOAI the service is "rhods-dashboard", not "odh-dashboard" (RHOAIENG-60050).
 # Guards: fail-fast if container or env ordering ever changes.
 - op: test
   path: /spec/template/spec/containers/3/name
