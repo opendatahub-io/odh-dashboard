@@ -11,9 +11,7 @@ help: ## Display this help.
 .PHONY: check-tilt
 check-tilt:
 	@if ! command -v tilt >/dev/null 2>&1; then \
-		echo "ERROR: tilt is not installed. Please install tilt first:"; \
-		echo "  curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash"; \
-		echo "  or visit: https://docs.tilt.dev/install.html"; \
+		echo "ERROR: tilt is not installed. Install instructions: https://docs.tilt.dev/install.html"; \
 		exit 1; \
 	fi
 
@@ -27,7 +25,7 @@ TILT_PORT ?= 10351
 .PHONY: tilt-up
 tilt-up: check-tilt setup-kind ## Start Tilt — builds, deploys, and port-forwards automatically
 	@echo "Starting Tilt..."
-	@tilt up --port $(TILT_PORT)
+	@tilt up --port "$(TILT_PORT)"
 
 .PHONY: tilt-down
 tilt-down: check-tilt ## Stop Tilt
@@ -36,4 +34,4 @@ tilt-down: check-tilt ## Stop Tilt
 
 .PHONY: api-token
 api-token: ## Generate a bearer token for the api-tester ServiceAccount (default 4h)
-	@kubectl create token api-tester -n opendatahub --duration=$(API_TOKEN_DURATION)
+	@kubectl create token api-tester -n opendatahub --duration="$(API_TOKEN_DURATION)"

@@ -17,6 +17,11 @@ if ! command -v kind >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v kubectl >/dev/null 2>&1; then
+  echo "ERROR: kubectl is not installed. Install instructions: https://kubernetes.io/docs/tasks/tools/"
+  exit 1
+fi
+
 # Create cluster if it doesn't exist
 if ! kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
   echo "Creating Kind cluster '${CLUSTER_NAME}' with config from ${KIND_CONFIG}..."

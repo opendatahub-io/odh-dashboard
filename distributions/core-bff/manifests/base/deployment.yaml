@@ -34,9 +34,9 @@ spec:
               protocol: TCP
           env:
             - name: AUTH_METHOD
-              value: disabled
+              value: user_token
             - name: DEV_MODE
-              value: "true"
+              value: "false"
             - name: DEPLOYMENT_MODE
               value: standalone
             - name: POD_NAMESPACE

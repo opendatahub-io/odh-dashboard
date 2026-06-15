@@ -12,6 +12,15 @@ patches:
     kind: Deployment
     name: rhaii-dashboard
   patch: |
-    - op: replace
-      path: /spec/template/spec/containers/0/env/0/value
-      value: user_token
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: rhaii-dashboard
+    spec:
+      template:
+        spec:
+          containers:
+            - name: rhaii-dashboard
+              env:
+                - name: DEV_MODE
+                  value: "true"

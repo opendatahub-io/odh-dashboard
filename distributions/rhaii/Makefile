@@ -31,8 +31,8 @@ build-frontend: ## Build the RHAII frontend
 
 .PHONY: docker-build
 docker-build: ## Build container image
-	cd ../.. && $(CONTAINER_TOOL) build -f distributions/rhaii/Dockerfile -t $(IMG) .
+	cd ../.. && "$(CONTAINER_TOOL)" build -f distributions/rhaii/Dockerfile -t "$(IMG)" .
 
 .PHONY: docker-push
 docker-push: ## Push container image to registry
-	$(CONTAINER_TOOL) push $(IMG)
+	"$(CONTAINER_TOOL)" push "$(IMG)"
