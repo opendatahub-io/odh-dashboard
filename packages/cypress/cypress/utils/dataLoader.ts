@@ -23,6 +23,7 @@ import type {
   KueueWorkbenchTestData,
   PromptManagementTestData,
   MlflowExperimentsTestData,
+  FileMapping,
 } from '../types';
 
 // Load fixture function that returns DataScienceProjectData
@@ -214,3 +215,25 @@ export const loadMlflowExperimentsFixture = (
 
     return data;
   });
+
+export const resolveFixture = (fixturePath: string): Cypress.Chainable<string> => {
+  const archType = Cypress.env('ARCH_TYPE');
+
+  cy.log(`Using ARCH=${archType}`);
+  cy.log(`Original fixture=${fixturePath}`);
+
+  if (archType === 'x86') {
+    return cy.wrap(fixturePath);
+  }
+
+  const fileMapping = Cypress.env('FILEMAPPING') as FileMapping;
+
+  const resolvedPath = fileMapping[fixturePath] ?? fixturePath;
+
+  cy.log(`Resolved fixture=${resolvedPath}`);
+
+  return cy.wrap(resolvedPath);
+};
+
+export const loadYamlFixture = (fixturePath: string): Cypress.Chainable<string> =>
+  resolveFixture(fixturePath).then((resolvedPath) => cy.fixture(resolvedPath, 'utf8'));
