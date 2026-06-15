@@ -127,6 +127,7 @@ export type ResponseMetrics = {
   latency_ms: number;
   time_to_first_token_ms?: number; // Only present for streaming responses
   usage?: SimplifiedUsage;
+  trace_id?: string; // OTel trace ID (when tracing is enabled)
 };
 
 // File citation annotation from RAG responses

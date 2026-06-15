@@ -40,6 +40,7 @@ interface ChatbotConfigInstanceProps {
   configIndex?: number;
   isCompareMode?: boolean;
   hasImagesInConversation?: boolean;
+  onViewTrace?: (traceId: string) => void;
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -57,6 +58,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   configIndex,
   isCompareMode,
   hasImagesInConversation,
+  onViewTrace,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
@@ -186,6 +188,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         modelDisplayName={messagesHook.modelDisplayName}
         placeholderContent={PLACEHOLDER_BOT_CONTENT}
         hasImagesInConversation={hasImagesInConversation}
+        onViewTrace={onViewTrace}
       />
     </MessageBox>
   );

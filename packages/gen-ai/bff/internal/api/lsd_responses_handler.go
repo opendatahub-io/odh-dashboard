@@ -20,6 +20,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Supported streaming event types that we want to process for the Gen AI API
@@ -126,6 +127,7 @@ type ResponseMetrics struct {
 	LatencyMs          int64      `json:"latency_ms"`                       // Total response time in milliseconds
 	TimeToFirstTokenMs *int64     `json:"time_to_first_token_ms,omitempty"` // TTFT for streaming (nil for non-streaming)
 	Usage              *UsageData `json:"usage,omitempty"`                  // Token usage data
+	TraceID            string     `json:"trace_id,omitempty"`               // OTel trace ID for MLflow trace lookup (when tracing is enabled)
 }
 
 // UsageData contains token usage information from LlamaStack
@@ -349,6 +351,16 @@ func extractUsageFromEvent(event interface{}) *UsageData {
 		OutputTokens: raw.Response.Usage.OutputTokens,
 		TotalTokens:  raw.Response.Usage.TotalTokens,
 	}
+}
+
+// otelTraceID returns the OTel trace ID from the span in the context,
+// or empty string if no active span exists (tracing disabled).
+func otelTraceID(ctx context.Context) string {
+	sc := trace.SpanFromContext(ctx).SpanContext()
+	if sc.HasTraceID() {
+		return sc.TraceID().String()
+	}
+	return ""
 }
 
 // calculateTTFT calculates Time to First Token in milliseconds
@@ -728,6 +740,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			LatencyMs:          latencyMs,
 			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
 			Usage:              usage,
+			TraceID:            otelTraceID(ctx),
 		},
 	}
 	eventData, err := json.Marshal(metricsEvent)
@@ -789,6 +802,7 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	responseData.Metrics = &ResponseMetrics{
 		LatencyMs: latencyMs,
 		Usage:     extractUsage(llamaResponse),
+		TraceID:   otelTraceID(ctx),
 	}
 
 	apiResponse := llamastack.APIResponse{

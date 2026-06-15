@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -15,6 +16,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 )
 
 const (
@@ -45,6 +47,7 @@ type otelConfigManager struct {
 	logger             *slog.Logger
 	collectorNamespace string
 	collectorName      string
+	mlflowOTLPEndpoint string
 }
 
 // newOTelConfigManager creates a manager using the in-cluster service account
@@ -87,13 +90,31 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 		}
 	}
 
-	logger.Info("OTel config manager initialized", "collectorNamespace", collectorNS, "collectorName", collectorName)
+	mlflowURL, err := mlflow.DiscoverMLflowURL()
+	if err != nil {
+		logger.Warn("MLflow CR not found, trace route management disabled", "error", err)
+		return nil, nil
+	}
+	// The OTLP HTTP exporter appends /v1/traces automatically.
+	// MLflow's OTLP ingestion endpoint is at the server root (/v1/traces),
+	// not under the /mlflow path prefix, so we use the service base URL.
+	// status.address.url is like "https://mlflow.opendatahub.svc:8443/mlflow"
+	// but OTLP lives at "https://mlflow.opendatahub.svc:8443".
+	mlflowOTLP := strings.TrimSuffix(mlflowURL, "/mlflow")
+	mlflowOTLP = strings.TrimSuffix(mlflowOTLP, "/")
+
+	logger.Info("OTel config manager initialized",
+		"collectorNamespace", collectorNS,
+		"collectorName", collectorName,
+		"mlflowOTLPEndpoint", mlflowOTLP,
+	)
 
 	return &otelConfigManager{
 		dynClient:          dynClient,
 		logger:             logger,
 		collectorNamespace: collectorNS,
 		collectorName:      collectorName,
+		mlflowOTLPEndpoint: mlflowOTLP,
 	}, nil
 }
 
@@ -140,7 +161,7 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string) {
 	}
 
 	changed := ensureRoutingConnector(collectorCfg)
-	changed = addNamespaceRoute(collectorCfg, namespace) || changed
+	changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowOTLPEndpoint) || changed
 
 	if !changed {
 		m.logger.Info("collector config already has route for namespace, no update needed", "namespace", namespace)
@@ -347,7 +368,7 @@ func ensureRoutingConnector(cfg map[string]interface{}) bool {
 
 // addNamespaceRoute adds a routing table entry, exporter, and pipeline for the
 // given namespace. Returns true if entries were added (false if already present).
-func addNamespaceRoute(cfg map[string]interface{}, namespace string) bool {
+func addNamespaceRoute(cfg map[string]interface{}, namespace string, mlflowEndpoint string) bool {
 	exporterName := collectorExporterName(namespace)
 	pipelineName := collectorPipelineName(namespace)
 
@@ -357,7 +378,7 @@ func addNamespaceRoute(cfg map[string]interface{}, namespace string) bool {
 	}
 
 	exporters[exporterName] = map[string]interface{}{
-		"endpoint": fmt.Sprintf("https://mlflow-%s.redhat-ods-applications.svc:8443/api/v1/traces", namespace),
+		"endpoint": mlflowEndpoint,
 		"tls": map[string]interface{}{
 			"ca_file": "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt",
 		},
@@ -365,7 +386,8 @@ func addNamespaceRoute(cfg map[string]interface{}, namespace string) bool {
 			"authenticator": "bearertokenauth",
 		},
 		"headers": map[string]interface{}{
-			"X-MLFLOW-WORKSPACE": namespace,
+			"X-MLFLOW-WORKSPACE":     namespace,
+			"x-mlflow-experiment-id": "1",
 		},
 	}
 

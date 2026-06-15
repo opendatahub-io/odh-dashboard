@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@patternfly/react-core';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
@@ -15,6 +16,8 @@ type ChatbotMessagesListProps = {
   placeholderContent?: string;
   /** Whether the conversation contains images in user messages (disables image stripping) */
   hasImagesInConversation?: boolean;
+  /** Called when the user clicks "View trace" on a bot message with a traceId */
+  onViewTrace?: (traceId: string) => void;
 };
 
 const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
@@ -24,6 +27,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   modelDisplayName = 'Bot',
   placeholderContent,
   hasImagesInConversation = false,
+  onViewTrace,
 }) => (
   <>
     {messageList.length === 0 && !isLoading && placeholderContent && (
@@ -65,9 +69,23 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         );
       }
 
-      // Add metrics to endContent (if present and no error)
+      // Add metrics and trace link to endContent (if present and no error)
       if (message.role === 'bot' && metrics && !errorClassification) {
-        extraContent.endContent = <ChatbotMessagesMetrics metrics={metrics} />;
+        extraContent.endContent = (
+          <>
+            <ChatbotMessagesMetrics metrics={metrics} />
+            {metrics.trace_id && onViewTrace && (
+              <Button
+                variant="link"
+                isInline
+                onClick={() => onViewTrace(metrics.trace_id!)}
+                data-testid="view-trace-link"
+              >
+                View trace
+              </Button>
+            )}
+          </>
+        );
       }
 
       // Partial-failure errors: render as beforeMainContent (warning alert above response)
