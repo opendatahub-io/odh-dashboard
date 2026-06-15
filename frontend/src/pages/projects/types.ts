@@ -1,4 +1,10 @@
-import { ImageStreamAndVersion, KeyValuePair, Volume, VolumeMount } from '#~/types';
+import {
+  EnvironmentVariable,
+  ImageStreamAndVersion,
+  KeyValuePair,
+  Volume,
+  VolumeMount,
+} from '#~/types';
 import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
@@ -86,6 +92,7 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
+  existingSecretKeyRefs?: EnvironmentVariable[];
   dashboardNamespace?: string;
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
@@ -115,15 +122,23 @@ export type EnvVariableData = {
   data: EnvVariableDataEntry[];
 };
 
+export type ExistingSecretRef = {
+  secretName: string;
+  selectedKeys: string[];
+  allKeys: boolean;
+};
+
 export type EnvVariable = {
   type: EnvironmentVariableType | null;
   existingName?: string;
   values?: EnvVariableData;
+  existingSecretRef?: ExistingSecretRef;
 };
 
 export enum EnvironmentVariableType {
   CONFIG_MAP = 'Config Map',
   SECRET = 'Secret',
+  EXISTING_SECRET = 'Existing secret',
 }
 export enum SecretCategory {
   GENERIC = 'secret key-value',

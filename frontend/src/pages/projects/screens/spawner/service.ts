@@ -12,10 +12,10 @@ import {
   replaceSecret,
   updatePvc,
 } from '#~/api';
-import { Volume, VolumeMount } from '#~/types';
 import {
   ConfigMapCategory,
   EnvironmentFromVariable,
+  EnvironmentVariableType,
   EnvVariable,
   SecretCategory,
   StorageData,
@@ -24,6 +24,7 @@ import {
 import { ROOT_MOUNT_PATH } from '#~/pages/projects/pvc/const';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { ConfigMapKind, NotebookKind, PersistentVolumeClaimKind, SecretKind } from '#~/k8sTypes';
+import { EnvironmentVariable, Volume, VolumeMount } from '#~/types';
 import { isPvcUpdateRequired } from '#~/pages/projects/screens/detail/storage/utils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';
@@ -238,3 +239,26 @@ export const updateConfigMapsAndSecretsForNotebook = async (
       !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef.name)),
   );
 };
+
+export const getExistingSecretKeyRefEnvVars = (
+  envVariables: EnvVariable[],
+): EnvironmentVariable[] =>
+  envVariables.reduce<EnvironmentVariable[]>((acc, v) => {
+    if (
+      v.type !== EnvironmentVariableType.EXISTING_SECRET ||
+      !v.existingSecretRef?.secretName ||
+      v.existingSecretRef.selectedKeys.length === 0
+    ) {
+      return acc;
+    }
+    const { secretName, selectedKeys } = v.existingSecretRef;
+    return [
+      ...acc,
+      ...selectedKeys.map(
+        (key): EnvironmentVariable => ({
+          name: key,
+          valueFrom: { secretKeyRef: { name: secretName, key } },
+        }),
+      ),
+    ];
+  }, []);
