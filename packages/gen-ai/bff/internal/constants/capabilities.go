@@ -9,12 +9,16 @@ const (
 	CapabilityTextGeneration     = "text-generation"
 )
 
-// AllowedCapabilities is the set of capability values the BFF recognises.
-// Values not in this set are dropped with a structured log warning.
-var AllowedCapabilities = map[string]bool{
+// allowedCapabilities is the set of capability values the BFF recognises.
+var allowedCapabilities = map[string]bool{
 	CapabilityVision:             true,
 	CapabilityAudioTranscription: true,
 	CapabilityTextGeneration:     true,
+}
+
+// IsAllowedCapability reports whether the given capability string is recognised.
+func IsAllowedCapability(capability string) bool {
+	return allowedCapabilities[capability]
 }
 
 // defaultCapabilities is the internal default set.

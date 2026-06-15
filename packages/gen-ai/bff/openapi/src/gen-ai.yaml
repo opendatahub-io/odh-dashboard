@@ -1648,7 +1648,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/FrontendErrorResponse'
         '404':
-          description: 'ASR model not found or lacks audio-transcription capability (code: model_not_found)'
+          description: 'ASR model not found (code: model_not_found) or lacks audio-transcription capability (code: model_invalid)'
           content:
             application/json:
               schema:
@@ -5661,6 +5661,8 @@ components:
                 - 'https://api.openai.com/v1'
               status: 'Running'
               display_name: 'GPT-4 Optimized'
+              capabilities:
+                - text-generation
               sa_token:
                 name: ''
                 token_name: ''
