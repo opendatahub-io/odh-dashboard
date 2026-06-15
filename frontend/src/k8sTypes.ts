@@ -22,6 +22,9 @@ import { AwsKeys } from '#~/pages/projects/dataConnections/const';
 import type { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { ImageStreamStatusTagCondition, ImageStreamStatusTagItem } from './types';
+import type { AccessReviewResourceAttributes } from './types-core';
+
+export type { AccessReviewResourceAttributes } from './types-core';
 
 export type ModelRegistry = {
   name: string;
