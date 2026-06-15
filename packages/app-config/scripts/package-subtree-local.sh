@@ -6,7 +6,8 @@ set -euo pipefail
 # This is the local variant of package-subtree.sh — reads from a local repository path instead of cloning.
 # Usage: ./package-subtree-local.sh --package=<package-name> --local-repo=<path> --branch=<branch> [--commit=<sha>] [--up-to=<sha>] [--continue]
 
-source "$(dirname "${BASH_SOURCE[0]}")/package-subtree-common.sh"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
+source "$SCRIPT_DIR/package-subtree-common.sh"
 
 TEMP_REMOTE_NAME="_subtree_local_temp"
 
