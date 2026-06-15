@@ -62,6 +62,7 @@ const renderModal = (mode: 'save-as' | 'save' = 'save-as') =>
         <SaveAgentProfileModal
           mode={mode}
           mcpServers={[]}
+          mcpConfigMapName={null}
           onClose={mockOnClose}
           onSaved={mockOnSaved}
         />
