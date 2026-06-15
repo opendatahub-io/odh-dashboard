@@ -82,19 +82,37 @@ describe('assembleRole', () => {
     });
   });
 
-  it('should preserve resourceNames on rules', () => {
+  it('should omit optional fields when undefined', () => {
     const rules: RuleEntry[] = [
       {
         id: 'rule-1',
         verbs: ['get'],
-        apiGroups: ['serving.kserve.io'],
-        resources: ['inferenceservices'],
-        resourceNames: ['my-model'],
       },
     ];
 
     const result = assembleRole('ns', 'r', 'R', '', rules);
 
-    expect(result.rules[0].resourceNames).toStrictEqual(['my-model']);
+    expect(result.rules[0]).toStrictEqual({ verbs: ['get'] });
+    expect(result.rules[0]).not.toHaveProperty('apiGroups');
+    expect(result.rules[0]).not.toHaveProperty('resources');
+    expect(result.rules[0]).not.toHaveProperty('resourceNames');
+  });
+
+  it('should merge user labels with dashboard resource label', () => {
+    const userLabels = { 'app.kubernetes.io/name': 'my-app', team: 'platform' };
+    const result = assembleRole('ns', 'r', 'R', '', [], userLabels);
+
+    expect(result.metadata.labels).toStrictEqual({
+      'app.kubernetes.io/name': 'my-app',
+      team: 'platform',
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+    });
+  });
+
+  it('should ensure dashboard resource label overrides user label', () => {
+    const userLabels = { [KnownLabels.DASHBOARD_RESOURCE]: 'false' };
+    const result = assembleRole('ns', 'r', 'R', '', [], userLabels);
+
+    expect(result.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]).toBe('true');
   });
 });

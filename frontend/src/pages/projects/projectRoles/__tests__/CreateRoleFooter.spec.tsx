@@ -93,4 +93,15 @@ describe('CreateRoleFooter', () => {
       expect(screen.getByTestId('create-role-submit')).not.toBeDisabled();
     });
   });
+
+  it('should re-enable submit button after onSubmit rejects', async () => {
+    const onSubmit = jest.fn().mockRejectedValue(new Error('API error'));
+    renderFooter({ onSubmit });
+
+    fireEvent.click(screen.getByTestId('create-role-submit'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('create-role-submit')).not.toBeDisabled();
+    });
+  });
 });

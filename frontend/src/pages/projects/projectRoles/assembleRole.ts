@@ -9,6 +9,7 @@ const assembleRole = (
   displayName: string,
   description: string,
   rules: RuleEntry[],
+  labels: Record<string, string> = {},
 ): AssembledRole => ({
   apiVersion: 'rbac.authorization.k8s.io/v1',
   kind: 'Role',
@@ -16,6 +17,7 @@ const assembleRole = (
     name: k8sName,
     namespace,
     labels: {
+      ...labels,
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
     },
     annotations: {

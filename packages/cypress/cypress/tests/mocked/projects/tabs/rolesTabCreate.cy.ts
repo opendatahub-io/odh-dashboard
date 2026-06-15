@@ -20,6 +20,19 @@ import { projectRoles } from '../../../../pages/projectRoles';
 
 const NAMESPACE = 'test-project';
 
+const addRule = (apiGroup: string, resource: string, verb: string) => {
+  projectRoles.findAddRuleButton().click();
+  projectRoles.findAddRuleModal().should('exist');
+  projectRoles.findRuleApiGroupsToggle().click();
+  projectRoles.findRuleApiGroupsToggle().parent().find('input').type(apiGroup);
+  cy.contains(`Use custom API group "${apiGroup}"`).click();
+  projectRoles.findRuleResourceTypesToggle().click();
+  projectRoles.findRuleResourceTypesToggle().parent().find('input').type(resource);
+  cy.contains(`Use custom resource type "${resource}"`).click();
+  projectRoles.findVerbCheckbox(verb).click();
+  projectRoles.findRuleSaveButton().click();
+};
+
 const initIntercepts = () => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ roleManagement: true }));
   cy.interceptK8s(ProjectModel, mockProjectK8sResource({ k8sName: NAMESPACE }));
@@ -95,16 +108,7 @@ describe('Create Role submit', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-role');
 
-    projectRoles.findAddRuleButton().click();
-    cy.findByTestId('add-rule-modal').should('exist');
-    cy.findByTestId('rule-api-groups-toggle').click();
-    cy.findByTestId('rule-api-groups-toggle').parent().find('input').type('apps');
-    cy.contains('Use custom API group "apps"').click();
-    cy.findByTestId('rule-resource-types-toggle').click();
-    cy.findByTestId('rule-resource-types-toggle').parent().find('input').type('deployments');
-    cy.contains('Use custom resource type "deployments"').click();
-    cy.findByTestId('add-rule-modal').findByTestId('verb-checkbox-get').click();
-    cy.findByTestId('modal-submit-button').click();
+    addRule('apps', 'deployments', 'get');
 
     projectRoles.findSubmitButton().click();
 
@@ -133,22 +137,36 @@ describe('Create Role submit', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-role');
 
-    projectRoles.findAddRuleButton().click();
-    cy.findByTestId('add-rule-modal').should('exist');
-    cy.findByTestId('rule-api-groups-toggle').click();
-    cy.findByTestId('rule-api-groups-toggle').parent().find('input').type('apps');
-    cy.contains('Use custom API group "apps"').click();
-    cy.findByTestId('rule-resource-types-toggle').click();
-    cy.findByTestId('rule-resource-types-toggle').parent().find('input').type('deployments');
-    cy.contains('Use custom resource type "deployments"').click();
-    cy.findByTestId('add-rule-modal').findByTestId('verb-checkbox-get').click();
-    cy.findByTestId('modal-submit-button').click();
+    addRule('apps', 'deployments', 'get');
 
     projectRoles.findSubmitButton().click();
 
     cy.wait('@createRole');
     projectRoles.findSubmitErrorAlert().should('exist');
     projectRoles.findSubmitButton().should('be.enabled');
+  });
+
+  it('should show error in confirmation modal when API fails', () => {
+    cy.interceptK8s(
+      'POST',
+      { model: RoleModel, ns: NAMESPACE },
+      {
+        statusCode: 409,
+        body: mock409Error({ message: 'Role already exists' }),
+      },
+    ).as('createRole');
+
+    projectRoles.visitCreateRole(NAMESPACE);
+    projectRoles.findRoleNameInput().type('empty-role');
+    projectRoles.findSubmitButton().click();
+
+    projectRoles.findConfirmModal().should('exist');
+    projectRoles.findConfirmCreateButton().click();
+
+    cy.wait('@createRole');
+    projectRoles.findConfirmModal().should('exist');
+    projectRoles.findConfirmModalErrorAlert().should('exist');
+    projectRoles.findConfirmCreateButton().should('be.enabled');
   });
 
   it('should include display name and description annotations in payload', () => {

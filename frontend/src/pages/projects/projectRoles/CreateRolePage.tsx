@@ -101,7 +101,8 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
     setSubmitError(undefined);
     const k8sName = k8sNameDescriptionData.data.k8sName.value;
     const roleDisplayName = k8sNameDescriptionData.data.name || k8sName;
-    const role = assembleRole(namespace, k8sName, roleDisplayName, description, rules);
+    const labelRecord = Object.fromEntries(labels.map((l) => [l.key, l.value]));
+    const role = assembleRole(namespace, k8sName, roleDisplayName, description, rules, labelRecord);
     try {
       await createRole(role);
       navigate(`/projects/${namespace}?section=roles`);
@@ -110,7 +111,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
       setSubmitError(error);
       throw error;
     }
-  }, [namespace, k8sNameDescriptionData.data, description, rules, navigate]);
+  }, [namespace, k8sNameDescriptionData.data, description, rules, labels, navigate]);
 
   const handleSubmit = React.useCallback(async () => {
     if (rules.length === 0) {

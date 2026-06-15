@@ -37,7 +37,19 @@ describe('CreateRoleConfirmModal', () => {
     fireEvent.click(screen.getByTestId('confirm-create-button'));
 
     await waitFor(() => {
+      expect(screen.getByTestId('error-message-alert')).toBeInTheDocument();
       expect(screen.getByText('API failure')).toBeInTheDocument();
+    });
+  });
+
+  it('should show fallback error when onConfirm rejects with non-Error', async () => {
+    const onConfirm = jest.fn().mockRejectedValue('string error');
+    render(<CreateRoleConfirmModal onConfirm={onConfirm} onClose={jest.fn()} />);
+
+    fireEvent.click(screen.getByTestId('confirm-create-button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to create role')).toBeInTheDocument();
     });
   });
 
@@ -59,5 +71,10 @@ describe('CreateRoleConfirmModal', () => {
     });
 
     resolvePromise();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-create-button')).not.toBeDisabled();
+      expect(screen.getByTestId('confirm-cancel-button')).not.toBeDisabled();
+    });
   });
 });
