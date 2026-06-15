@@ -614,14 +614,14 @@ export type RoleKind = K8sResourceCommon & {
     name: string;
     namespace: string;
   };
-  rules: ResourceRule[];
+  rules?: ResourceRule[];
 };
 
 export type ClusterRoleKind = K8sResourceCommon & {
   metadata: {
     name: string;
   };
-  rules: ResourceRule[];
+  rules?: ResourceRule[];
 };
 
 export type RoleBindingKind = K8sResourceCommon & {

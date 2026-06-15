@@ -132,6 +132,22 @@ class ProjectRolesTab {
     return cy.findByTestId('preview-yaml-close-button');
   }
 
+  findSubmitErrorAlert() {
+    return cy.findByTestId('create-role-error-alert');
+  }
+
+  findConfirmModal() {
+    return cy.findByTestId('create-role-confirm-modal');
+  }
+
+  findConfirmCreateButton() {
+    return cy.findByTestId('confirm-create-button');
+  }
+
+  findConfirmCancelButton() {
+    return cy.findByTestId('confirm-cancel-button');
+  }
+
   getRow(name: string) {
     return new RolesTableRow(() =>
       this.findRolesTable().findAllByTestId('role-name-link').contains(name).parents('tr'),
