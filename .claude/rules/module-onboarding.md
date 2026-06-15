@@ -228,6 +228,38 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 - Unit tests in `__tests__/`
 - E2E tests in `packages/cypress/cypress/tests/e2e/<name>/`
 
+### 12. E2E CI: Local module serving
+
+The E2E CI workflow (`.github/workflows/cypress-e2e-test.yml`) automatically detects changed MF packages and serves them locally so that E2E tests exercise PR code instead of the remote cluster's version.
+
+**How it works:**
+
+1. CI detects changed packages with a `module-federation` config AND `cypress:server:build`/`cypress:server` scripts
+2. For each detected package, CI runs `cypress:server:build` (production webpack build) then `cypress:server` (static file server)
+3. The webpack dev server is started with `LOCAL_MODULES=<names>`, which inserts per-module proxy entries that route `/_mf/{name}/*` and BFF API traffic to the local servers — before the catch-all cluster proxy
+
+**What your package needs (automatic — no allowlisting required):**
+
+- `module-federation` config in `package.json` with a `name` and `backend.localService.port` (or `local.port`)
+- `cypress:server:build` script — typically `cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build`
+- `cypress:server` script — typically `cd frontend && serve ./public-cypress -p <port> -s -L`
+- `bffConfig.port` in `package.json` (if the module has a BFF)
+
+**Security:** The CI step validates package directories against an allowlist (`ALLOWED_DIRS` in the workflow). When onboarding a new module, add its directory name to this allowlist in the "Build & Start Module Frontend Servers" step.
+
+**Local testing with `LOCAL_MODULES`:**
+
+```bash
+# 1. Build and serve the module frontend
+cd packages/<name> && npm run cypress:server:build && npm run cypress:server &
+
+# 2. Start the BFF (if applicable)
+cd packages/<name> && make dev-bff-e2e-cluster &
+
+# 3. Start webpack with LOCAL_MODULES pointing to your module
+cd frontend && LOCAL_MODULES=<mfName> ODH_DASHBOARD_HOST=<cluster> npm run start:dev:ci
+```
+
 ## Checklist
 
 - [ ] `package.json` with `name`, `exports["./extensions"]`
@@ -237,6 +269,8 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 - [ ] `SupportedArea` enum entry + area config
 - [ ] Webpack config with correct shared singletons (if federated)
 - [ ] BFF with `/healthcheck` and OpenAPI spec (if applicable)
+- [ ] `cypress:server:build` and `cypress:server` scripts for E2E CI (if federated)
+- [ ] Package directory added to `ALLOWED_DIRS` in CI workflow's "Build & Start Module Frontend Servers" step
 - [ ] Unit tests in `__tests__/`
 - [ ] E2E tests in `packages/cypress/cypress/tests/e2e/<name>/`
 - [ ] Contract tests (if BFF)
