@@ -15,7 +15,7 @@ import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
 const RESERVED_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE']);
 
-const getSecretKeyRef = (
+export const getSecretKeyRef = (
   valueFrom: Record<string, unknown> | undefined,
 ): { name: string; key: string } | undefined => {
   if (!valueFrom || typeof valueFrom !== 'object') {
@@ -32,7 +32,7 @@ const getSecretKeyRef = (
   return undefined;
 };
 
-const parseExistingSecretKeyRefs = (notebook: NotebookKind): EnvVariable[] => {
+export const parseExistingSecretKeyRefs = (notebook: NotebookKind): EnvVariable[] => {
   const envList = notebook.spec.template.spec.containers[0]?.env ?? [];
   const grouped = new Map<string, string[]>();
 
