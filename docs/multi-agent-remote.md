@@ -204,7 +204,7 @@ The agent can then query Jira for ticket details, read PR comments from GitHub, 
 
 ```bash
 # Install AgentReady
-npm install -g @ambient-code/agentready
+npm install -g agentready
 
 # Run assessment on the current repository
 agentready assess
