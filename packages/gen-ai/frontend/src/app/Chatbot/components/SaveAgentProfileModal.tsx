@@ -179,7 +179,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
         setNextPromptVersion(maxVersion + 1);
       })
       .catch(() => {
-        setNextPromptVersion(activePrompt?.version ?? 0 + 1);
+        setNextPromptVersion((activePrompt?.version ?? 0) + 1);
       });
   }, [isPromptDirty, activePrompt, apiAvailable, api]);
 
