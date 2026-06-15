@@ -54,12 +54,14 @@ When compiling findings for the checks table and inline comments:
 3. **Exclude dismissed findings** (author replied with disagreement) from the active findings count in the Review check row.
 4. Findings with no prior match are net-new — post as inline comments and count normally.
 
-## Prior Thread Resolution
+## Prior Thread Resolution (CI only)
 
-After classification, resolve `no_reply` preflight threads that have been addressed by new commits. For each thread, check if the file+line was modified after `created_at` using `git log`. If addressed:
+When `--ci` is passed, resolve `no_reply` preflight threads that have been addressed by new commits. For each thread, check if the file+line was modified after `created_at` using `git log`. If addressed:
 
 1. Post a reply: "Resolved — addressed in `<short SHA>`."
 2. Call `resolveReviewThread` GraphQL mutation to collapse the thread.
+
+Without `--ci`, report which threads would be resolved but do not post comments or call the API.
 
 **Resolve** when: file was deleted, or the thread's line was modified in a commit after the thread was posted.
 
