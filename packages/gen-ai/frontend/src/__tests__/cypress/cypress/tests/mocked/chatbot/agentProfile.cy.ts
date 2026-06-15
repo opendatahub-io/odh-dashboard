@@ -8,6 +8,14 @@ const NEW_PROFILE_ID = 'new-profile-uuid-1';
 const AGENT_NAME = 'My Coding Agent';
 
 describe('Agent Profile - Playground (Mocked)', () => {
+  beforeEach(() => {
+    Cypress.env('_featureFlagParams', 'agentProfileManagement=true');
+  });
+
+  afterEach(() => {
+    Cypress.env('_featureFlagParams', '');
+  });
+
   it(
     'should save a new profile and verify the same profile is active',
     { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
@@ -15,7 +23,6 @@ describe('Agent Profile - Playground (Mocked)', () => {
       interceptNewAgentProfile(NEW_PROFILE_ID, AGENT_NAME, TEST_NAMESPACE);
 
       cy.step('Visit playground with agentProfileManagement flag');
-      Cypress.env('_featureFlagParams', 'agentProfileManagement=true');
       chatbotPage.visit(TEST_NAMESPACE);
 
       cy.step('Open Save As modal — no profile loaded yet, name is empty');
@@ -39,8 +46,6 @@ describe('Agent Profile - Playground (Mocked)', () => {
       cy.findByTestId('save-agent-profile-button').click();
       cy.findByTestId('save-agent-profile-name-input').should('have.value', AGENT_NAME);
       cy.findByRole('button', { name: 'Cancel' }).click();
-
-      Cypress.env('_featureFlagParams', '');
     },
   );
 });
