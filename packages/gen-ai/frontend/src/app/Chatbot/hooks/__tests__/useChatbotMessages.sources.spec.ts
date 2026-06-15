@@ -217,4 +217,86 @@ describe('useChatbotMessages - citations handling', () => {
     // Empty sources array should not create sources prop
     expect(botMessage.sources).toBeUndefined();
   });
+
+  it('should include fileSearchData in bot message when present in response', async () => {
+    const fileSearchData = {
+      queries: ['test query'],
+      results: [
+        // eslint-disable-next-line camelcase
+        { score: 0.9, text: 'chunk text', file_id: 'f1', filename: 'doc.pdf' },
+      ],
+    };
+    const mockResponseWithFileSearch: SimplifiedResponseData = {
+      ...mockSuccessResponse,
+      content: 'Response with file search.',
+      fileSearchData,
+    };
+
+    mockCreateResponse.mockResolvedValueOnce(mockResponseWithFileSearch);
+
+    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+    await act(async () => {
+      await result.current.handleMessageSend('Search query');
+    });
+
+    const botMessage = result.current.messages[1];
+
+    expect(botMessage.fileSearchData).toBeDefined();
+    expect(botMessage.fileSearchData!.queries).toEqual(['test query']);
+    expect(botMessage.fileSearchData!.results).toHaveLength(1);
+    expect(botMessage.fileSearchData!.results[0].filename).toBe('doc.pdf');
+  });
+
+  it('should not include fileSearchData when response has none', async () => {
+    mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+    await act(async () => {
+      await result.current.handleMessageSend('Plain query');
+    });
+
+    const botMessage = result.current.messages[1];
+
+    expect(botMessage.fileSearchData).toBeUndefined();
+  });
+
+  it('should include fileSearchData in streaming response', async () => {
+    const fileSearchData = {
+      queries: ['streaming query'],
+      results: [
+        // eslint-disable-next-line camelcase
+        { score: 0.85, text: 'streamed chunk', file_id: 'sf1', filename: 'stream.pdf' },
+      ],
+    };
+    const mockStreamingResponseWithSearch: SimplifiedResponseData = {
+      ...mockSuccessResponse,
+      content: 'Streamed content with search.',
+      fileSearchData,
+    };
+
+    mockCreateResponse.mockImplementation(
+      (_request: CreateResponseRequest, opts?: { onStreamData?: (data: string) => void }) => {
+        if (opts?.onStreamData) {
+          opts.onStreamData('Streamed content with search.');
+        }
+        return Promise.resolve(mockStreamingResponseWithSearch);
+      },
+    );
+
+    const { result } = renderHook(() =>
+      useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+    );
+
+    await act(async () => {
+      await result.current.handleMessageSend('Stream search');
+    });
+
+    const botMessage = result.current.messages[1];
+
+    expect(botMessage.fileSearchData).toBeDefined();
+    expect(botMessage.fileSearchData!.queries).toEqual(['streaming query']);
+    expect(botMessage.fileSearchData!.results[0].filename).toBe('stream.pdf');
+  });
 });

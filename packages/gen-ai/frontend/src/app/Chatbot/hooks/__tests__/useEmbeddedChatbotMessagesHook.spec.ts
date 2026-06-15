@@ -196,12 +196,17 @@ describe('useEmbeddedChatbotMessages', () => {
     expect(result.current.lastResponseMetrics).toBeNull();
   });
 
-  it('should include sources from response', async () => {
-    const responseWithSources: SimplifiedResponseData = {
+  it('should include annotations and citationMap from response', async () => {
+    const citationMap = new Map([['doc1.pdf', 1]]);
+    const responseWithAnnotations: SimplifiedResponseData = {
       ...mockResponse,
-      sources: [{ title: 'Doc 1', link: 'https://example.com/1' }],
+      annotations: [
+        // eslint-disable-next-line camelcase
+        { type: 'file_citation', file_id: 'f1', filename: 'doc1.pdf', index: 10 },
+      ],
+      citationMap,
     };
-    createPassthroughResponseMock.mockResolvedValue(responseWithSources);
+    createPassthroughResponseMock.mockResolvedValue(responseWithAnnotations);
 
     const { result } = renderHook(() => useEmbeddedChatbotMessages(defaultProps));
 
@@ -210,6 +215,8 @@ describe('useEmbeddedChatbotMessages', () => {
     });
 
     const botMessage = result.current.messages[1];
-    expect(botMessage.sources).toBeDefined();
+    expect(botMessage.annotations).toBeDefined();
+    expect(botMessage.citationMap).toBeDefined();
+    expect(botMessage.citationMap?.get('doc1.pdf')).toBe(1);
   });
 });
