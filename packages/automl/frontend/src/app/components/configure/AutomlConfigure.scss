@@ -11,6 +11,22 @@
   margin-right: var(--pf-t--global--spacer--sm);
 }
 
+.automl-optimization-metric-modal {
+  height: 50vh;
+
+  &__radio-list {
+    overflow-y: auto;
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .pf-v6-c-modal-box__body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+}
+
 .automl-configure__toggle-group-full-width {
   .pf-v6-c-toggle-group__item {
     flex: 1 0 0;

@@ -1,30 +1,28 @@
 package constants
 
-const PythonCodeTemplate = `# Llama Stack Quickstart Script
+const PythonCodeTemplate = `# OGX Quickstart Script
 #
 # README:
-# This example shows how to configure an assistant using the Llama Stack client.
+# This example shows how to configure an assistant using the OpenAI Python SDK.
 # Before using this code, make sure of the following:
 #
 # Required Packages:
 #    - Install the required dependencies using pip:
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
-#      pip install llama-stack-client requests
+#      pip install openai requests
 {{- else }}
-#      pip install llama-stack-client
+#      pip install openai
 {{- end }}
-#    - NOTE: Verify the correct llama-stack-client version for your Llama Stack server instance,
-#      then install that version as needed.
 #
-# Llama Stack Server:
-#    - Your Llama Stack instance must be running and accessible
-#    - Set the LLAMA_STACK_URL variable to the base URL of your Llama Stack server
+# OGX Server:
+#    - Your OGX instance must be running and accessible
+#    - Set the OGX_URL variable to the base URL of your OGX server
 #
 # Model Configuration:
-#    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment with the correct API key.
+#    - The selected model (e.g., "llama3.2:3b") must be available in your OGX deployment with the correct API key.
 #
 # Tools (MCP Integration):
-#    - Any tools used must be properly pre-configured in your Llama Stack setup.
+#    - Any tools used must be properly pre-configured in your OGX setup.
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 #
 # NeMo Guardrails:
@@ -33,15 +31,27 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 #    - Set GUARDRAIL_MODEL_ENDPOINT to your guardrail model's inference endpoint URL
 #    - Set GUARDRAIL_API_KEY if your guardrail model endpoint requires authentication
 {{- end }}
+{{- if .ASRModel }}
+#
+# Audio Transcription (ASR):
+#    - Set ASR_MODEL_URL to the URL of your ASR model
+#    - The model "{{.ASRModel}}" will be used for transcription
+{{- end }}
+{{- if .VisionImage }}
+#
+# Vision (Image Input):
+#    - Set IMAGE_FILE_PATH to the path of your local image file (.jpg or .png)
+#    - The image will be uploaded to the OGX Files API and passed to the model
+{{- end }}
 {{- if and .VectorStore .VectorStore.ID }}
 #
 # External Vector Store:
-#    - This script uses an existing vector store (ID: {{.VectorStore.ID}}), which must be registered in your Llama Stack instance.
-#    - The vector store provider "{{.VectorStore.ProviderID}}" must be installed in your Llama Stack instance.
+#    - This script uses an existing vector store (ID: {{.VectorStore.ID}}), which must be registered in your OGX instance.
+#    - The vector store provider "{{.VectorStore.ProviderID}}" must be installed in your OGX instance.
 {{- if .VectorStore.EmbeddingModel }}
-#    - The embedding model "{{.VectorStore.EmbeddingModel}}" must be registered in your Llama Stack instance.
+#    - The embedding model "{{.VectorStore.EmbeddingModel}}" must be registered in your OGX instance.
 {{- else }}
-#    - The embedding model used by this vector store must be registered in your Llama Stack instance.
+#    - The embedding model used by this vector store must be registered in your OGX instance.
 {{- end }}
 {{- end }}
 {{- if .Prompt }}
@@ -54,7 +64,15 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 {{- end }}
 
 # Configuration adjust as needed:
-LLAMA_STACK_URL = ""
+OGX_URL = ""
+{{- if .ASRModel }}
+ASR_MODEL_URL = ""
+ASR_MODEL_NAME = "{{.ASRModel}}"
+AUDIO_FILE_PATH = ""  # Path to your audio file (.wav or .mp3)
+{{- end }}
+{{- if .VisionImage }}
+IMAGE_FILE_PATH = ""  # Path to your image file (.jpg or .png)
+{{- end }}
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 NEMO_GUARDRAILS_URL = "{{if .NemoGuardrailsURL}}{{.NemoGuardrailsURL}}{{end}}"
 NEMO_GUARDRAILS_OC_TOKEN = ""  # Set to your OpenShift user token (oc whoami -t)
@@ -101,9 +119,28 @@ import os
 import requests
 {{- end }}
 
-from llama_stack_client import LlamaStackClient
+from openai import OpenAI
 
-client = LlamaStackClient(base_url=LLAMA_STACK_URL)
+client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused")
+{{- if .ASRModel }}
+
+# --- Audio Transcription ---
+asr_client = OpenAI(base_url=f"{ASR_MODEL_URL}/v1", api_key="unused")
+with open(AUDIO_FILE_PATH, "rb") as audio_file:
+    transcription = asr_client.audio.transcriptions.create(
+        model=ASR_MODEL_NAME,
+        file=audio_file,
+    )
+input_text = transcription.text
+# ---
+{{- end }}
+{{- if .VisionImage }}
+
+# --- Vision Image Upload ---
+with open(IMAGE_FILE_PATH, "rb") as image_file:
+    vision_file = client.files.create(file=image_file, purpose="vision")
+# ---
+{{- end }}
 {{- if .Prompt }}
 
 import mlflow
@@ -123,7 +160,16 @@ mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 _request_header_provider_registry.register(_make_workspace_header_provider(MLFLOW_WORKSPACE))
 
 prompt = mlflow.genai.load_prompt(f"prompts:/{prompt_name}/{prompt_version}")
+{{- if .PromptVariableValues }}
+prompt_variable_values = {
+  {{- range $key, $value := .PromptVariableValues }}
+    "{{$key}}": "{{$value}}",
+  {{- end }}
+}
+system_instructions = next(m["content"] for m in prompt.format(**prompt_variable_values) if m["role"] == "system")
+{{- else }}
 system_instructions = next(m["content"] for m in prompt.format() if m["role"] == "system")
+{{- end }}
 {{- end }}
 {{- if and .VectorStore .VectorStore.ID }}
 
@@ -195,7 +241,14 @@ for file_info in files_to_upload:
 {{- end }}
 
 config = {
+{{- if .VisionImage }}
+    "input": [
+        {"type": "input_text", "text": input_text},
+        {"type": "input_image", "file_id": vision_file.id},
+    ],
+{{- else }}
     "input": input_text,
+{{- end }}
     "model": model_name{{- if .Temperature }},
     "temperature": temperature{{- end }}{{- if or .Instructions .Prompt }},
     "instructions": system_instructions{{- end }}{{- if .Stream }},

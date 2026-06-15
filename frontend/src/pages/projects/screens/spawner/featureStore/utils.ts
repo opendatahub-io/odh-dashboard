@@ -1,6 +1,7 @@
 import { NotebookKind } from '#~/k8sTypes';
 import { SelectionOptions } from '#~/components/MultiSelection';
 import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
+import { FEAST_CONFIG_ANNOTATION, FEAST_INTEGRATION_LABEL } from './const';
 
 export type NotebookFeatureStore = {
   namespace: string;
@@ -26,7 +27,7 @@ export const getFeatureStoresFromNotebook = (
   notebook: NotebookKind,
   availableFeatureStores: WorkbenchFeatureStoreConfig[],
 ): WorkbenchFeatureStoreConfig[] => {
-  const feastConfigAnnotation = notebook.metadata.annotations?.['opendatahub.io/feast-config'];
+  const feastConfigAnnotation = notebook.metadata.annotations?.[FEAST_CONFIG_ANNOTATION];
   if (!feastConfigAnnotation) {
     return [];
   }
@@ -115,17 +116,16 @@ export const generateFeastMetadata = (
   const annotations: Record<string, string> = {};
 
   if (hasFeatureStores) {
-    labels['opendatahub.io/feast-integration'] = 'true';
+    labels[FEAST_INTEGRATION_LABEL] = 'true';
     if (feastConfigAnnotation) {
-      annotations['opendatahub.io/feast-config'] = feastConfigAnnotation;
+      annotations[FEAST_CONFIG_ANNOTATION] = feastConfigAnnotation;
     }
   } else if (isUpdate && existingNotebook) {
-    // Keep the label as 'true' if it exists, even when no feature stores are selected
-    if (existingNotebook.metadata.labels?.['opendatahub.io/feast-integration']) {
-      labels['opendatahub.io/feast-integration'] = 'true';
+    if (existingNotebook.metadata.labels?.[FEAST_INTEGRATION_LABEL]) {
+      labels[FEAST_INTEGRATION_LABEL] = 'true';
     }
-    if (existingNotebook.metadata.annotations?.['opendatahub.io/feast-config']) {
-      annotations['opendatahub.io/feast-config'] = '';
+    if (existingNotebook.metadata.annotations?.[FEAST_CONFIG_ANNOTATION]) {
+      annotations[FEAST_CONFIG_ANNOTATION] = '';
     }
   }
 

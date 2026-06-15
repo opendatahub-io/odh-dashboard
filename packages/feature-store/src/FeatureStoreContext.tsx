@@ -82,9 +82,12 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
   );
 
   const activeFeatureStore = React.useMemo(() => {
-    // Use the selected feature store, or fall back to the first one
     if (selectedFeatureStoreName) {
-      return registryFeatureStores.find((fs) => fs.name === selectedFeatureStoreName) || null;
+      const featureStore = registryFeatureStores.find((fs) => fs.name === selectedFeatureStoreName);
+
+      if (featureStore) {
+        return featureStore;
+      }
     }
     // NOTE: Currently limited to one FeatureStore. Selecting the first enabled available one.
     return registryFeatureStores.length > 0 ? registryFeatureStores[0] : null;

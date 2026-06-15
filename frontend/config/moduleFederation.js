@@ -82,7 +82,7 @@ const getWorkspacePackages = () => {
 const workspacePackages = getWorkspacePackages();
 
 const odhDashboardShared = Object.fromEntries(
-  [...getRuntimeOdhPackages(workspacePackages, require('../src/package.json'))].map((name) => [
+  [...getRuntimeOdhPackages(workspacePackages)].map((name) => [
     name,
     { singleton: true, requiredVersion: '*', eager: true },
   ]),
@@ -179,6 +179,11 @@ module.exports = {
                 singleton: true,
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
                 eager: true,
+              },
+              'use-query-params': { singleton: true, requiredVersion: deps['use-query-params'] },
+              '@tanstack/react-query': {
+                singleton: true,
+                requiredVersion: deps['@tanstack/react-query'],
               },
               ...odhDashboardShared,
             },

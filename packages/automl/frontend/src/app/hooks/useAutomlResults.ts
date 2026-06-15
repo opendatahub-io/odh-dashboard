@@ -9,23 +9,7 @@ import {
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
-import { isTabularRun } from '~/app/utilities/utils';
-
-/* eslint-disable camelcase */
-const METRIC_ALIASES: Record<string, string> = {
-  MAE: 'mean_absolute_error',
-  MSE: 'mean_squared_error',
-  RMSE: 'root_mean_squared_error',
-  RMSLE: 'root_mean_squared_logarithmic_error',
-  MAPE: 'mean_absolute_percentage_error',
-  SMAPE: 'symmetric_mean_absolute_percentage_error',
-  MASE: 'mean_absolute_scaled_error',
-  RMSSE: 'root_mean_squared_scaled_error',
-  WAPE: 'weighted_absolute_percentage_error',
-  WQL: 'weighted_quantile_loss',
-  SQL: 'scaled_quantile_loss',
-};
-/* eslint-enable camelcase */
+import { isTabularRun, normalizeMetricKey } from '~/app/utilities/utils';
 
 // Timeseries runs return acronym metric keys (e.g. "MAE") while tabular runs
 // return snake_case keys (e.g. "mean_absolute_error"). normalizeMetricsToSnakeCase
@@ -33,8 +17,7 @@ const METRIC_ALIASES: Record<string, string> = {
 function normalizeMetricsToSnakeCase(testData: Record<string, number>): Record<string, number> {
   const result: Record<string, number> = {};
   for (const [key, value] of Object.entries(testData)) {
-    const normalized = METRIC_ALIASES[key.toUpperCase()] ?? key;
-    result[normalized] = value;
+    result[normalizeMetricKey(key)] = value;
   }
   return result;
 }
@@ -53,7 +36,7 @@ type UseAutomlResultsReturn = {
  * Custom hook to fetch and process AutoML model results from S3.
  * Models are outputted into the following directory structure
  *      Tabular:     autogluon-tabular-training-pipeline/xxx/autogluon-models-training/yyy/models_artifact/WeightedEnsemble_L5_FULL
- *      Time series: autogluon-timeseries-training-pipeline/xxx/autogluon-timeseries-models-full-refit/yyy/model_artifact/TemporalFusionTransformer_FULL
+ *      Time series: autogluon-timeseries-training-pipeline/xxx/autogluon-timeseries-models-training/yyy/models_artifact/RecursiveTabular_FULL
  * where xxx is the kubeflow pipeline run_id and yyy is a nondeterministic ID.
  * The directory variables used to generate these paths in this file are as follows:
  *      ${rootDir}/xxx/${modelGenerationDir}/yyy/${modelArtifactsDirectory}/${modelName}
@@ -101,7 +84,7 @@ export function useAutomlResults(
     : 'autogluon-timeseries-training-pipeline';
   const modelGenerationDir = isTabular
     ? 'autogluon-models-training'
-    : 'autogluon-timeseries-models-full-refit';
+    : 'autogluon-timeseries-models-training';
   const candidateModelsPrefix = shouldFetchS3Files
     ? `${rootDir}/${runId}/${modelGenerationDir}`
     : undefined;
@@ -121,7 +104,7 @@ export function useAutomlResults(
       : candidateModelsPrefix;
 
   // Step 2: Fetch model artifact directories from each common prefix
-  const modelArtifactsDirectory = isTabular ? 'models_artifact' : 'model_artifact';
+  const modelArtifactsDirectory = 'models_artifact';
   const modelArtifactQueries = useQueries({
     queries: (s3Files?.common_prefixes ?? [])
       .filter((prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0)

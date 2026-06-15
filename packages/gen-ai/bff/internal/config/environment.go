@@ -36,6 +36,12 @@ type EnvConfig struct {
 	// Llama Stack Configuration
 	LlamaStackURL string
 
+	// ASR Model Configuration
+	// AsrModelURL is a developer override for the ASR model endpoint.
+	// When set, the BFF uses this URL instead of the internal endpoint from KServe.
+	// Useful for local development with port-forwarding or a local Whisper container.
+	AsrModelURL string
+
 	// NeMo Guardrails Configuration
 	NemoGuardrailsURL string
 	MockNemoClient    bool

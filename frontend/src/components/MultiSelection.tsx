@@ -61,6 +61,8 @@ type MultiSelectionProps = {
   createOptionMessage?: string | ((newValue: string) => string);
   filterFunction?: (filterText: string, options: SelectionOptions[]) => SelectionOptions[];
   popperProps?: SelectPopperProps;
+  /** Flag to show checkboxes next to each option */
+  hasCheckbox?: boolean;
 };
 
 const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
@@ -91,6 +93,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   createOptionMessage = defaultCreateOptionMessage,
   filterFunction = defaultFilterFunction,
   popperProps,
+  hasCheckbox = false,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>('');
@@ -318,6 +321,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     <SelectOption
       key={String(option.id)}
       id={createOptionElementId(option.id)}
+      hasCheckbox={hasCheckbox}
       isFocused={focusedItemIndex === visibleIndexById.get(option.id)}
       data-testid={getOptionTestId(option.name)}
       value={option.id}

@@ -417,6 +417,106 @@ describe('createConfigureSchema', () => {
     });
   });
 
+  describe('eval_metric validation', () => {
+    const baseData = {
+      ...schema.defaults,
+      display_name: 'test',
+      train_data_secret_name: 'secret',
+      train_data_bucket_name: 'bucket',
+      train_data_file_key: 'file.csv',
+      target_column: 'col1',
+    };
+
+    it('should accept eval_metric as undefined', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_BINARY,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept valid classification metric for binary task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_BINARY,
+        eval_metric: 'f1',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept valid classification metric for multiclass task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_MULTICLASS,
+        eval_metric: 'roc_auc',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept valid regression metric for regression task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_REGRESSION,
+        eval_metric: 'r2',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept valid timeseries metric for timeseries task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_TIMESERIES,
+        eval_metric: 'MASE',
+        target_column: 'target_col',
+        id_column: 'id_col',
+        timestamp_column: 'ts_col',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject regression metric for binary task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_BINARY,
+        eval_metric: 'r2',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('eval_metric');
+      }
+    });
+
+    it('should reject classification metric for regression task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_REGRESSION,
+        eval_metric: 'accuracy',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('eval_metric');
+      }
+    });
+
+    it('should reject tabular metric for timeseries task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_TIMESERIES,
+        eval_metric: 'accuracy',
+        target_column: 'target_col',
+        id_column: 'id_col',
+        timestamp_column: 'ts_col',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('eval_metric');
+      }
+    });
+  });
+
   describe('transformers', () => {
     it('should map target_column to label_column for tabular task types', () => {
       const result = schema.full.safeParse({
@@ -437,6 +537,39 @@ describe('createConfigureSchema', () => {
         expect(result.data).not.toHaveProperty('timestamp_column');
         expect(result.data).not.toHaveProperty('prediction_length');
         expect(result.data).not.toHaveProperty('known_covariates_names');
+      }
+    });
+
+    it('should set eval_metric to task-type default when undefined', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_REGRESSION,
+        target_column: 'col1',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.eval_metric).toBe('r2');
+      }
+    });
+
+    it('should preserve explicit eval_metric on submit', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'col1',
+        eval_metric: 'f1',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.eval_metric).toBe('f1');
       }
     });
 

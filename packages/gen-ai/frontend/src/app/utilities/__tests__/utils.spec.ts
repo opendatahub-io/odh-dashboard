@@ -1,8 +1,14 @@
 /* eslint-disable camelcase */
-import type { AIModel, MaaSModel } from '~/app/types';
+import type { AIModel, LlamaModel, MaaSModel } from '~/app/types';
 import {
   convertMaaSModelToAIModel,
   getSourceLabel,
+  hasCapability,
+  isASRModel,
+  isASROnlyModel,
+  isMaasLlamaModelId,
+  isPlaygroundModelMatchForAIModel,
+  isVisionModel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
 
@@ -20,6 +26,110 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
   sa_token: { name: '', token_name: '', token: '' },
   model_source_type: 'namespace',
   ...overrides,
+});
+
+describe('isASRModel', () => {
+  it('should return true for model with audio-transcription capability', () => {
+    expect(isASRModel(makeModel({ capabilities: ['audio-transcription'] }))).toBe(true);
+  });
+
+  it('should return true when audio-transcription is one of multiple capabilities', () => {
+    expect(
+      isASRModel(makeModel({ capabilities: ['text-generation', 'audio-transcription'] })),
+    ).toBe(true);
+  });
+
+  it('should return false for model with undefined capabilities', () => {
+    expect(isASRModel(makeModel())).toBe(false);
+  });
+
+  it('should return false for model with empty capabilities array', () => {
+    expect(isASRModel(makeModel({ capabilities: [] }))).toBe(false);
+  });
+
+  it('should return false for model with different capabilities', () => {
+    expect(isASRModel(makeModel({ capabilities: ['vision'] }))).toBe(false);
+  });
+
+  it('should be case-sensitive', () => {
+    expect(isASRModel(makeModel({ capabilities: ['Audio-Transcription'] }))).toBe(false);
+  });
+});
+
+describe('isASROnlyModel', () => {
+  it('should return true when audio-transcription is the only capability', () => {
+    expect(isASROnlyModel(makeModel({ capabilities: ['audio-transcription'] }))).toBe(true);
+  });
+
+  it('should return false when model has ASR plus other capabilities', () => {
+    expect(
+      isASROnlyModel(makeModel({ capabilities: ['text-generation', 'audio-transcription'] })),
+    ).toBe(false);
+  });
+
+  it('should return false for model with undefined capabilities', () => {
+    expect(isASROnlyModel(makeModel())).toBe(false);
+  });
+
+  it('should return false for model with empty capabilities array', () => {
+    expect(isASROnlyModel(makeModel({ capabilities: [] }))).toBe(false);
+  });
+
+  it('should return false for model with only non-ASR capabilities', () => {
+    expect(isASROnlyModel(makeModel({ capabilities: ['vision'] }))).toBe(false);
+  });
+});
+
+describe('hasCapability', () => {
+  it('should return true when model has the specified capability', () => {
+    expect(hasCapability(makeModel({ capabilities: ['vision'] }), 'vision')).toBe(true);
+  });
+
+  it('should return false when model does not have the specified capability', () => {
+    expect(hasCapability(makeModel({ capabilities: ['text-generation'] }), 'vision')).toBe(false);
+  });
+
+  it('should return false when capabilities is undefined', () => {
+    expect(hasCapability(makeModel(), 'vision')).toBe(false);
+  });
+
+  it('should return false when capabilities is empty', () => {
+    expect(hasCapability(makeModel({ capabilities: [] }), 'vision')).toBe(false);
+  });
+
+  it('should be case-sensitive', () => {
+    expect(hasCapability(makeModel({ capabilities: ['Vision'] }), 'vision')).toBe(false);
+  });
+});
+
+describe('isVisionModel', () => {
+  it('should return true for model with vision capability', () => {
+    expect(isVisionModel(makeModel({ capabilities: ['vision'] }))).toBe(true);
+  });
+
+  it('should return true when vision is one of multiple capabilities', () => {
+    expect(isVisionModel(makeModel({ capabilities: ['text-generation', 'vision'] }))).toBe(true);
+  });
+
+  it('should return false for model with undefined capabilities', () => {
+    expect(isVisionModel(makeModel())).toBe(false);
+  });
+
+  it('should return false for model with empty capabilities array', () => {
+    expect(isVisionModel(makeModel({ capabilities: [] }))).toBe(false);
+  });
+
+  it('should return false for model with only text-generation capability', () => {
+    expect(isVisionModel(makeModel({ capabilities: ['text-generation'] }))).toBe(false);
+  });
+
+  it('should return false for model with audio-transcription but not vision', () => {
+    expect(isVisionModel(makeModel({ capabilities: ['audio-transcription'] }))).toBe(false);
+  });
+
+  it('should be case-sensitive', () => {
+    expect(isVisionModel(makeModel({ capabilities: ['Vision'] }))).toBe(false);
+  });
 });
 
 describe('getSourceLabel', () => {
@@ -89,6 +199,19 @@ describe('convertMaaSModelToAIModel', () => {
     };
     const result = convertMaaSModelToAIModel(maasModel);
     expect(result.model_source_type).toBe('maas');
+  });
+
+  it('should set capabilities to empty array for MaaS models', () => {
+    const maasModel: MaaSModel = {
+      id: 'test-model',
+      object: 'model',
+      created: 0,
+      owned_by: 'org',
+      ready: true,
+      url: 'https://maas.example.com/model',
+    };
+    const result = convertMaaSModelToAIModel(maasModel);
+    expect(result.capabilities).toEqual([]);
   });
 
   it('should use model_type from BFF when available', () => {
@@ -235,5 +358,70 @@ describe('splitLlamaModelId', () => {
       providerId: 'provider-123',
       id: 'model_name-v2.0',
     });
+  });
+});
+
+describe('isMaasLlamaModelId', () => {
+  it('returns true for ids with maas- provider prefix', () => {
+    expect(isMaasLlamaModelId('maas-openai/gpt-4')).toBe(true);
+  });
+
+  it('returns false for namespace model ids', () => {
+    expect(isMaasLlamaModelId('vllm-inference/llama-7b')).toBe(false);
+  });
+
+  it('returns false for id without slash', () => {
+    expect(isMaasLlamaModelId('llama-7b')).toBe(false);
+  });
+
+  it('returns false for empty string', () => {
+    expect(isMaasLlamaModelId('')).toBe(false);
+  });
+});
+
+describe('isPlaygroundModelMatchForAIModel', () => {
+  const makeLlamaModel = (overrides: Partial<LlamaModel> = {}): LlamaModel => ({
+    id: 'vllm-inference/llama-7b',
+    modelId: 'llama-7b',
+    object: 'model',
+    created: 0,
+    owned_by: '',
+    ...overrides,
+  });
+
+  it('matches namespace playground model to namespace AIModel with same model_id', () => {
+    const playground = makeLlamaModel({ id: 'vllm-inference/llama-7b', modelId: 'llama-7b' });
+    const aiModel = makeModel({ model_id: 'llama-7b', model_source_type: 'namespace' });
+    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(true);
+  });
+
+  it('matches maas playground model to maas AIModel with same model_id', () => {
+    const playground = makeLlamaModel({ id: 'maas-openai/gpt-4', modelId: 'gpt-4' });
+    const aiModel = makeModel({ model_id: 'gpt-4', model_source_type: 'maas' });
+    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(true);
+  });
+
+  it('does not match when model_id differs', () => {
+    const playground = makeLlamaModel({ id: 'vllm-inference/llama-7b', modelId: 'llama-7b' });
+    const aiModel = makeModel({ model_id: 'llama-13b', model_source_type: 'namespace' });
+    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(false);
+  });
+
+  it('does not match namespace playground model to maas AIModel with same model_id', () => {
+    const playground = makeLlamaModel({ id: 'vllm-inference/gpt-4', modelId: 'gpt-4' });
+    const aiModel = makeModel({ model_id: 'gpt-4', model_source_type: 'maas' });
+    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(false);
+  });
+
+  it('does not match maas playground model to namespace AIModel with same model_id', () => {
+    const playground = makeLlamaModel({ id: 'maas-openai/llama-7b', modelId: 'llama-7b' });
+    const aiModel = makeModel({ model_id: 'llama-7b', model_source_type: 'namespace' });
+    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(false);
+  });
+
+  it('matches custom_endpoint playground model to custom_endpoint AIModel', () => {
+    const playground = makeLlamaModel({ id: 'custom-ep/my-model', modelId: 'my-model' });
+    const aiModel = makeModel({ model_id: 'my-model', model_source_type: 'custom_endpoint' });
+    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(true);
   });
 });

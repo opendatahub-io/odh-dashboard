@@ -17,15 +17,15 @@ export const useCatalogStringFilterState = <K extends ModelCatalogStringFilterKe
   isSelected: (value: ModelCatalogStringFilterValueType[K]) => boolean;
   setSelected: (value: string, selected: boolean) => void;
 } => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const currentValues: string[] = filterData[filterKey];
+  const { filters, setFilters } = React.useContext(ModelCatalogContext);
+  const currentValues: string[] = filters[filterKey];
 
   const onChange = React.useCallback(
     (values: string[]) => {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- all string filter keys map to string[] subtypes at runtime
-      setFilterData(filterKey, values as ModelCatalogFilterStates[K]);
+      setFilters((prev) => ({ ...prev, [filterKey]: values as ModelCatalogFilterStates[K] }));
     },
-    [filterKey, setFilterData],
+    [filterKey, setFilters],
   );
 
   const shared = useStringFilterState(currentValues, onChange);
@@ -49,13 +49,13 @@ export const useCatalogNumberFilterState = (
   value: number | undefined;
   setValue: (value: number | undefined) => void;
 } => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const value = filterData[filterKey];
+  const { filters, setFilters } = React.useContext(ModelCatalogContext);
+  const value = filters[filterKey];
   const setValue = React.useCallback(
     (newValue: number | undefined) => {
-      setFilterData(filterKey, newValue);
+      setFilters((prev) => ({ ...prev, [filterKey]: newValue }));
     },
-    [filterKey, setFilterData],
+    [filterKey, setFilters],
   );
   return { value, setValue };
 };
