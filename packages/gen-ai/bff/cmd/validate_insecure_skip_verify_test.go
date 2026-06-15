@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,6 +12,7 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		insecureSkipVerify    bool
 		allowInsecureTLS      string
 		env                   string
+		ci                    string
 		expectedError         bool
 		expectedErrorContains string
 	}{
@@ -97,7 +97,7 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 			allowInsecureTLS:      "true",
 			env:                   "PRODUCTION",
 			expectedError:         true,
-			expectedErrorContains: "cannot be used in PRODUCTION environment",
+			expectedErrorContains: "cannot be used in production environment",
 		},
 		{
 			name:                  "InsecureSkipVerify enabled with ENV=' production ' (whitespace) - should fail",
@@ -105,23 +105,73 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 			allowInsecureTLS:      "true",
 			env:                   " production ",
 			expectedError:         true,
-			expectedErrorContains: "cannot be used in  production  environment",
+			expectedErrorContains: "cannot be used in production environment",
+		},
+		{
+			name:                  "InsecureSkipVerify enabled with CI=true and ENV=dev - should fail",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "true",
+			env:                   "dev",
+			ci:                    "true",
+			expectedError:         true,
+			expectedErrorContains: "cannot be used in dev (CI) environment",
+		},
+		{
+			name:                  "InsecureSkipVerify enabled with CI=true and empty ENV - should fail",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "true",
+			env:                   "",
+			ci:                    "true",
+			expectedError:         true,
+			expectedErrorContains: "cannot be used in CI environment",
+		},
+		{
+			name:                  "InsecureSkipVerify enabled with CI=1 - should fail",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "true",
+			env:                   "",
+			ci:                    "1",
+			expectedError:         true,
+			expectedErrorContains: "cannot be used in CI environment",
+		},
+		{
+			name:                  "InsecureSkipVerify enabled with CI=true and ENV=production - should fail with production (CI)",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "true",
+			env:                   "production",
+			ci:                    "true",
+			expectedError:         true,
+			expectedErrorContains: "cannot be used in production (CI) environment",
+		},
+		{
+			name:                  "InsecureSkipVerify enabled with CI=false - should pass",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "true",
+			env:                   "",
+			ci:                    "false",
+			expectedError:         false,
+		},
+		{
+			name:                  "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=True (case variant) - should pass",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "True",
+			env:                   "",
+			expectedError:         false,
+		},
+		{
+			name:                  "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=TRUE (uppercase) - should pass",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "TRUE",
+			env:                   "",
+			expectedError:         false,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			os.Unsetenv("ALLOW_INSECURE_TLS")
-			os.Unsetenv("ENV")
-			defer os.Unsetenv("ALLOW_INSECURE_TLS")
-			defer os.Unsetenv("ENV")
-
-			if tc.allowInsecureTLS != "" {
-				os.Setenv("ALLOW_INSECURE_TLS", tc.allowInsecureTLS)
-			}
-			if tc.env != "" {
-				os.Setenv("ENV", tc.env)
-			}
+			t.Setenv("ALLOW_INSECURE_TLS", tc.allowInsecureTLS)
+			t.Setenv("ENV", tc.env)
+			t.Setenv("CI", tc.ci)
 
 			err := validateInsecureSkipVerify(tc.insecureSkipVerify)
 
