@@ -307,8 +307,9 @@ export const updateNotebook = (
   const oldNotebook = structuredClone(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
 
-  // clean the envFrom array in case of merging the old value again
+  // clean env arrays to prevent lodash merge from merging by array index
   container.envFrom = [];
+  container.env = [];
   // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};

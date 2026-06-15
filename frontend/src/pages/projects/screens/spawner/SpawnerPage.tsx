@@ -63,6 +63,7 @@ import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
 import AlertWarningText from './environmentVariables/AlertWarningText';
+import EnvVarConflictWarning from './environmentVariables/EnvVarConflictWarning';
 import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
 import { defaultClusterStorage } from './storage/constants';
@@ -350,6 +351,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   deletedSecrets={deletedSecrets}
                 />
               )}
+              <EnvVarConflictWarning
+                envVariables={envVariables}
+                connections={notebookConnections}
+              />
               <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
             </FormSection>
             <FormSection

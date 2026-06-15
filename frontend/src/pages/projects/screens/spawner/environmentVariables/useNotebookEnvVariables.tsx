@@ -12,6 +12,50 @@ import useFetchState, { NotReadyError } from '#~/utilities/useFetchState';
 import { isConnection } from '#~/concepts/connectionTypes/utils';
 import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
+const RESERVED_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE']);
+
+const getSecretKeyRef = (
+  valueFrom: Record<string, unknown> | undefined,
+): { name: string; key: string } | undefined => {
+  if (!valueFrom || typeof valueFrom !== 'object') {
+    return undefined;
+  }
+  const skr = valueFrom.secretKeyRef;
+  if (!skr || typeof skr !== 'object') {
+    return undefined;
+  }
+  const record: Record<string, unknown> = Object.assign({}, skr);
+  if (typeof record.name === 'string' && typeof record.key === 'string') {
+    return { name: record.name, key: record.key };
+  }
+  return undefined;
+};
+
+const parseExistingSecretKeyRefs = (notebook: NotebookKind): EnvVariable[] => {
+  const envList = notebook.spec.template.spec.containers[0].env;
+  const grouped = new Map<string, string[]>();
+
+  for (const entry of envList) {
+    const ref = getSecretKeyRef(entry.valueFrom);
+    if (ref && !RESERVED_ENV_NAMES.has(entry.name)) {
+      const keys = grouped.get(ref.name) ?? [];
+      keys.push(ref.key);
+      grouped.set(ref.name, keys);
+    }
+  }
+
+  return [...grouped.entries()].map(
+    ([secretName, keys]): EnvVariable => ({
+      type: EnvironmentVariableType.EXISTING_SECRET,
+      existingSecretRef: {
+        secretName,
+        selectedKeys: keys,
+        allKeys: true,
+      },
+    }),
+  );
+};
+
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
   return Promise.all(
@@ -40,8 +84,8 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
           v: Promise<ConfigMapKind | null> | Promise<undefined> | undefined,
         ): v is Promise<SecretKind | ConfigMapKind | null> => !!v,
       ),
-  ).then((results) =>
-    results.reduce<EnvVariable[]>((acc, resource) => {
+  ).then((results) => {
+    const envFromVars = results.reduce<EnvVariable[]>((acc, resource) => {
       if (!resource) {
         return acc;
       }
@@ -69,8 +113,11 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
         return acc;
       }
       return [...acc, envVar];
-    }, []),
-  );
+    }, []);
+
+    const secretKeyRefVars = parseExistingSecretKeyRefs(notebook);
+    return [...envFromVars, ...secretKeyRefVars];
+  });
 };
 
 export const useNotebookEnvVariables = (
