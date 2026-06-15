@@ -41,6 +41,8 @@ const useAgentProfileUrlParam = ({
   const updateActivePrompt = useChatbotConfigStore((s) => s.updateActivePrompt);
   const updateSystemInstruction = useChatbotConfigStore((s) => s.updateSystemInstruction);
   const saveToolSelections = useChatbotConfigStore((s) => s.saveToolSelections);
+  // Skip re-fetching when handleProfileSaved already applied this profile (e.g. after Save/Save As)
+  const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -54,7 +56,8 @@ const useAgentProfileUrlParam = ({
       !namespace?.name ||
       !apiAvailable ||
       !mcpServersLoaded ||
-      appliedProfileId.current === agentProfileId
+      appliedProfileId.current === agentProfileId ||
+      loadedProfileId === agentProfileId
     ) {
       return;
     }
@@ -113,6 +116,7 @@ const useAgentProfileUrlParam = ({
     namespace?.name,
     apiAvailable,
     mcpServersLoaded,
+    loadedProfileId,
     api,
     playgroundModels,
     mcpServers,
