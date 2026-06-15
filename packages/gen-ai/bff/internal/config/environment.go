@@ -121,4 +121,14 @@ type EnvConfig struct {
 	// BFFMaaSAuthTokenPrefix specifies the prefix MaaS BFF expects in the token header.
 	// Default: "" (empty for ODH's x-forwarded-access-token)
 	BFFMaaSAuthTokenPrefix string
+
+	// ─── OTEL COLLECTOR ─────────────────────────────────────────
+	// OTelCollectorNamespace is the namespace where the platform OpenTelemetryCollector CR lives.
+	// RHOAI: "redhat-ods-monitoring", ODH: "opendatahub".
+	// When empty, collector routing is skipped (OGX OTel instrumentation still works).
+	OTelCollectorNamespace string
+
+	// OTelCollectorName is the name of the OpenTelemetryCollector CR.
+	// Default: "data-science-collector".
+	OTelCollectorName string
 }

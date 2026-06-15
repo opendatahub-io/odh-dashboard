@@ -97,11 +97,12 @@ type externalModelDetailsResult struct {
 
 type TokenKubernetesClient struct {
 	// Move this to a common struct, when we decide to support multiple clients.
-	Client    client.Client
-	Logger    *slog.Logger
-	Token     integrations.BearerToken
-	Config    *rest.Config
-	EnvConfig config.EnvConfig
+	Client            client.Client
+	Logger            *slog.Logger
+	Token             integrations.BearerToken
+	Config            *rest.Config
+	EnvConfig         config.EnvConfig
+	otelConfigManager *otelConfigManager
 }
 
 func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
@@ -195,7 +196,7 @@ func GetClusterDomainUsingServiceAccount(ctx context.Context, logger *slog.Logge
 	return domain, nil
 }
 
-func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig) (*TokenKubernetesClient, error) {
+func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig, ocm *otelConfigManager) (*TokenKubernetesClient, error) {
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
 		logger.Error("failed to get kube config", "error", err)
@@ -231,9 +232,10 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 		Client: ctrlClient,
 		Logger: logger,
 		// Token is retained for follow-up calls; do not log it.
-		Token:     integrations.NewBearerToken(token),
-		Config:    cfg,
-		EnvConfig: envConfig,
+		Token:             integrations.NewBearerToken(token),
+		Config:            cfg,
+		EnvConfig:         envConfig,
+		otelConfigManager: ocm,
 	}, nil
 }
 
@@ -1684,6 +1686,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
 	}
 
+	if enableTracing && kc.otelConfigManager != nil {
+		kc.otelConfigManager.EnsureRoute(ctx, namespace)
+	}
+
 	return ogxServer, nil
 }
 
@@ -2417,6 +2423,11 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	}
 
 	kc.Logger.Info("successfully deleted OGXServer", "namespace", namespace, "name", targetServer.Name, "displayName", name)
+
+	if kc.otelConfigManager != nil {
+		kc.otelConfigManager.RemoveRoute(ctx, namespace)
+	}
+
 	return targetServer, nil
 }
 

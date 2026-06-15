@@ -67,6 +67,10 @@ func main() {
 	// RBAC configuration
 	flag.BoolVar(&cfg.EnableLlamaStackRBAC, "enable-llamastack-rbac", getEnvAsBool("ENABLE_LLAMASTACK_RBAC", false), "Enable RBAC endpoint filtering on LlamaStack configurations")
 
+	// OTel Collector configuration
+	flag.StringVar(&cfg.OTelCollectorNamespace, "otel-collector-namespace", getEnvAsString("OTEL_COLLECTOR_NAMESPACE", ""), "Namespace of the platform OpenTelemetryCollector CR (e.g., redhat-ods-monitoring or opendatahub)")
+	flag.StringVar(&cfg.OTelCollectorName, "otel-collector-name", getEnvAsString("OTEL_COLLECTOR_NAME", "data-science-collector"), "Name of the platform OpenTelemetryCollector CR")
+
 	// BFF inter-communication configuration
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
 	flag.StringVar(&cfg.BFFMaaSServiceName, "bff-maas-service-name", getEnvAsString("BFF_MAAS_SERVICE_NAME", "odh-dashboard"), "Kubernetes service name for MaaS BFF")
