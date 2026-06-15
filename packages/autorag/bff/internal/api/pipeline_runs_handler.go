@@ -118,8 +118,8 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 //
 // Error Responses:
 //   - 400: Missing runId
-//   - 404: Run not found, run belongs to a different pipeline, or missing pipeline reference
-//   - 500: Missing pipeline server client (middleware misconfiguration), Pipeline Server error, or no AutoRAG pipeline discovered
+//   - 404: Run not found, run belongs to a different pipeline, missing pipeline reference, or no AutoRAG pipeline discovered
+//   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
 func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	_, run, ok := app.resolveOwnedRun(w, r, params)
 	if !ok {
