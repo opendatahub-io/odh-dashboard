@@ -156,7 +156,7 @@ describe('serialize → deserialize round-trip', () => {
     const server = makeMcpServer();
     const config: ChatbotConfiguration = {
       ...DEFAULT_CONFIGURATION,
-      selectedMcpServerIds: ['weather-server'],
+      selectedMcpServerIds: ['http://weather-mcp.svc/sse'],
       mcpToolSelections: {
         'default-ns': { 'http://weather-mcp.svc/sse': ['get_forecast', 'get_alerts'] },
       },
@@ -167,6 +167,7 @@ describe('serialize → deserialize round-trip', () => {
       mcpConfigMapName: 'mcp-servers-config',
     });
 
+    // deserialize restores by serverRef.key (= server name); serialize looked up by URL
     expect(restored.selectedMcpServerIds).toEqual(['weather-server']);
     expect(mcpToolsPending).toEqual({ 'weather-server': ['get_forecast', 'get_alerts'] });
   });
