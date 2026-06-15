@@ -56,39 +56,11 @@ When compiling findings for the checks table and inline comments:
 
 ## Prior Thread Resolution
 
-After classification, resolve prior preflight threads whose findings have been addressed by new commits. This runs automatically before compiling new findings:
+After classification, resolve `no_reply` preflight threads that have been addressed by new commits. For each thread, check if the file+line was modified after `created_at` using `git log`. If addressed:
 
-```bash
-echo "$classified_threads" \
-  | ${CLAUDE_SKILL_DIR}/scripts/resolve-prior-threads.sh "$owner" "$repo" "$pr_number"
-```
-
-### What gets resolved
-
-Only threads meeting **all** of these criteria:
-- Identified as a preflight thread (severity badge pattern)
-- `disposition: "no_reply"` — no human has engaged
-- The thread's `line` is non-null (line-specific finding)
-- The file+line was modified in commits after the thread was posted
-
-### What does NOT get resolved
-
-- Threads where a human replied (`author_replied`, `reviewer_replied`) — human conversations are never auto-collapsed
-- File-level comments (no line anchor) — cannot determine if addressed
-- Threads on lines that were not modified — the finding may still apply
-
-### Resolution actions
-
-For each resolved thread:
 1. Post a reply: "Resolved — addressed in `<short SHA>`."
-2. Call `resolveReviewThread` GraphQL mutation to collapse the thread
+2. Call `resolveReviewThread` GraphQL mutation to collapse the thread.
 
-### Edge cases
+**Resolve** when: file was deleted, or the thread's line was modified in a commit after the thread was posted.
 
-| Scenario | Behavior |
-|---|---|
-| File deleted | Resolve — finding is moot |
-| File renamed | Old path no longer exists → resolve |
-| Line moved but content unchanged | If the original line number is in a diff hunk, resolve |
-| Force-pushed branch | Uses `createdAt` timestamp, not commit ancestry |
-| Thread on null line | Skip — cannot verify |
+**Skip** when: a human replied (`author_replied`, `reviewer_replied`), thread has no `line` (file-level comment), or the line was not modified.

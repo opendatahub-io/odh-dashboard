@@ -161,20 +161,22 @@ Use the classified threads throughout the rest of the run — see [references/re
 
 ### Prior thread resolution
 
-After classifying prior threads, resolve threads whose findings have been addressed by subsequent commits:
+After classifying prior threads, resolve any `no_reply` threads whose findings have been addressed by new commits. For each `no_reply` preflight thread, check if the file+line was modified since the thread was posted (use `git log` and the thread's `created_at` timestamp). If addressed:
 
-```bash
-echo "$classified_threads" \
-  | ${CLAUDE_SKILL_DIR}/scripts/resolve-prior-threads.sh "$owner" "$repo" "$pr_number"
-```
+1. Post a reply on the thread: "Resolved — addressed in `<short SHA>`."
+   ```bash
+   gh api "repos/$owner/$repo/pulls/$pr_number/comments/$database_id/replies" \
+     -f body="Resolved — addressed in \`$sha\`."
+   ```
+2. Collapse the thread:
+   ```bash
+   gh api graphql -f query='mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{isResolved}}}' \
+     -f id="$thread_id"
+   ```
 
-The script checks each `no_reply` preflight thread against the current diff. If the specific line was modified in commits after the thread was posted, the script:
-1. Posts a reply: "Resolved — addressed in `<commit SHA>`."
-2. Calls the GitHub GraphQL `resolveReviewThread` mutation to collapse the thread.
+Skip threads where a human replied (`author_replied`, `reviewer_replied`) — never auto-resolve those. Skip threads with no `line` (file-level comments). If the file was deleted, resolve the thread (finding is moot).
 
-Threads with human replies (`author_replied`, `reviewer_replied`) are never auto-resolved. See [references/reviews.md](references/reviews.md) § Prior Thread Resolution for full details and edge cases.
-
-Report the resolution count in the terminal output (e.g., "Resolved 3 prior preflight threads").
+Report the count (e.g., "Resolved 3 prior preflight threads").
 
 If no PR exists, or PR exists but is not synced, or `--local`: no reviews have been done on this code yet. Ask the user what reviewer to run:
 
