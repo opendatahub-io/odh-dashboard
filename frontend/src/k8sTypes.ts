@@ -1339,6 +1339,7 @@ export type DashboardCommonConfig = {
   mySubscriptions?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
+  agentProfileManagement?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

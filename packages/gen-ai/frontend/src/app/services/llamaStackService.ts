@@ -6,8 +6,17 @@ import {
   restCREATE,
   restDELETE,
   restGET,
+  restUPDATE,
 } from 'mod-arch-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  AgentProfile,
+  AgentProfileCreateRequest,
+  AgentProfileCreateResponse,
+  AgentProfileListResponse,
+  AgentProfileUpdateRequest,
+  AgentProfileUpdateResponse,
+} from '~/app/agentProfile/types';
 import {
   ApiErrorClass,
   BackendResponseData,
@@ -1101,6 +1110,86 @@ export const listMLflowPromptVersions =
       ),
     ).then((response) => {
       if (isModArchResponse<MLflowPromptVersionsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const listAgentProfiles = modArchRestGET<AgentProfileListResponse>('/agent-profiles');
+
+export const createAgentProfile = modArchRestCREATE<
+  AgentProfileCreateResponse,
+  AgentProfileCreateRequest
+>('/agent-profiles');
+
+export const deleteAgentProfile =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestDELETE<void, { id: string }> =>
+  ({ id }: { id: string }, queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    // BFF returns 204 No Content — parseJSON: false prevents JSON.parse('') from throwing
+    return handleRestFailures(
+      restDELETE<void>(
+        hostPath,
+        path,
+        {},
+        { ...baseQueryParams, ...queryParams },
+        {
+          ...opts,
+          parseJSON: false,
+        },
+      ),
+    ).then(() => undefined);
+  };
+
+export const updateAgentProfile =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ((
+    data: AgentProfileUpdateRequest & { id: string },
+    opts?: APIOptions,
+  ) => Promise<AgentProfileUpdateResponse>) =>
+  (data: AgentProfileUpdateRequest & { id: string }, opts: APIOptions = {}) => {
+    const { id, spec, resourceVersion } = data;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restUPDATE<AgentProfileUpdateResponse>(
+        hostPath,
+        path,
+        { spec, resourceVersion },
+        baseQueryParams,
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<AgentProfileUpdateResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const getAgentProfile =
+  (hostPath: string, baseQueryParams: Record<string, unknown> = {}): ModArchRestGET<AgentProfile> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { id, ...restParams } = queryParams;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restGET<AgentProfile>(hostPath, path, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<AgentProfile>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');
