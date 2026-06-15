@@ -132,7 +132,7 @@ export type EnvVariable = {
   type: EnvironmentVariableType | null;
   existingName?: string;
   values?: EnvVariableData;
-  existingSecretRef?: ExistingSecretRef;
+  existingSecretRefs?: ExistingSecretRef[];
 };
 
 export enum EnvironmentVariableType {

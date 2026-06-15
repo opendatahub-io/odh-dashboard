@@ -31,9 +31,9 @@ const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({
       return (
         <EnvExistingSecret
           instanceId={instanceId}
-          existingSecretRef={env.existingSecretRef}
-          onUpdate={(ref: ExistingSecretRef) =>
-            onUpdateVariable({ ...env, existingSecretRef: ref })
+          existingSecretRefs={env.existingSecretRefs}
+          onUpdate={(refs: ExistingSecretRef[]) =>
+            onUpdateVariable({ ...env, existingSecretRefs: refs })
           }
         />
       );

@@ -243,22 +243,15 @@ export const updateConfigMapsAndSecretsForNotebook = async (
 export const getExistingSecretKeyRefEnvVars = (
   envVariables: EnvVariable[],
 ): EnvironmentVariable[] =>
-  envVariables.reduce<EnvironmentVariable[]>((acc, v) => {
-    if (
-      v.type !== EnvironmentVariableType.EXISTING_SECRET ||
-      !v.existingSecretRef?.secretName ||
-      v.existingSecretRef.selectedKeys.length === 0
-    ) {
-      return acc;
-    }
-    const { secretName, selectedKeys } = v.existingSecretRef;
-    return [
-      ...acc,
-      ...selectedKeys.map(
+  envVariables
+    .filter((v) => v.type === EnvironmentVariableType.EXISTING_SECRET)
+    .flatMap((v) => v.existingSecretRefs ?? [])
+    .filter((ref) => ref.secretName && ref.selectedKeys.length > 0)
+    .flatMap((ref) =>
+      ref.selectedKeys.map(
         (key): EnvironmentVariable => ({
           name: key,
-          valueFrom: { secretKeyRef: { name: secretName, key } },
+          valueFrom: { secretKeyRef: { name: ref.secretName, key } },
         }),
       ),
-    ];
-  }, []);
+    );

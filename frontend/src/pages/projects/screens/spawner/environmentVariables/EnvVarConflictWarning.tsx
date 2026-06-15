@@ -15,23 +15,23 @@ type EnvVarSource = {
 
 const getSourcesFromEnvVariables = (envVariables: EnvVariable[]): EnvVarSource[] =>
   envVariables.reduce<EnvVarSource[]>((acc, envVar) => {
-    if (
-      envVar.type === EnvironmentVariableType.EXISTING_SECRET &&
-      envVar.existingSecretRef?.secretName &&
-      envVar.existingSecretRef.selectedKeys.length > 0
-    ) {
+    if (envVar.type === EnvironmentVariableType.EXISTING_SECRET) {
+      const refs = (envVar.existingSecretRefs ?? []).filter(
+        (r) => r.secretName && r.selectedKeys.length > 0,
+      );
       return [
         ...acc,
-        {
-          name: `Secret "${envVar.existingSecretRef.secretName}"`,
-          keys: envVar.existingSecretRef.selectedKeys,
-        },
+        ...refs.map((r) => ({
+          name: `Secret "${r.secretName}"`,
+          keys: r.selectedKeys,
+        })),
       ];
     }
     if (
       envVar.values?.data &&
       envVar.values.data.length > 0 &&
       (envVar.values.category === SecretCategory.GENERIC ||
+        envVar.values.category === SecretCategory.AWS ||
         envVar.values.category === SecretCategory.UPLOAD ||
         envVar.values.category === ConfigMapCategory.GENERIC ||
         envVar.values.category === ConfigMapCategory.UPLOAD)

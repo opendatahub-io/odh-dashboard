@@ -6,6 +6,7 @@ import {
   ConfigMapCategory,
   EnvironmentVariableType,
   EnvVariable,
+  ExistingSecretRef,
   SecretCategory,
 } from '#~/pages/projects/types';
 import useFetchState, { NotReadyError } from '#~/utilities/useFetchState';
@@ -24,7 +25,7 @@ const getSecretKeyRef = (
   if (!skr || typeof skr !== 'object') {
     return undefined;
   }
-  const record: Record<string, unknown> = Object.assign({}, skr);
+  const record = Object.assign<Record<string, unknown>, typeof skr>({}, skr);
   if (typeof record.name === 'string' && typeof record.key === 'string') {
     return { name: record.name, key: record.key };
   }
@@ -32,7 +33,7 @@ const getSecretKeyRef = (
 };
 
 const parseExistingSecretKeyRefs = (notebook: NotebookKind): EnvVariable[] => {
-  const envList = notebook.spec.template.spec.containers[0].env;
+  const envList = notebook.spec.template.spec.containers[0]?.env ?? [];
   const grouped = new Map<string, string[]>();
 
   for (const entry of envList) {
@@ -44,16 +45,24 @@ const parseExistingSecretKeyRefs = (notebook: NotebookKind): EnvVariable[] => {
     }
   }
 
-  return [...grouped.entries()].map(
-    ([secretName, keys]): EnvVariable => ({
-      type: EnvironmentVariableType.EXISTING_SECRET,
-      existingSecretRef: {
-        secretName,
-        selectedKeys: keys,
-        allKeys: true,
-      },
+  const refs = [...grouped.entries()].map(
+    ([secretName, keys]): ExistingSecretRef => ({
+      secretName,
+      selectedKeys: keys,
+      allKeys: true,
     }),
   );
+
+  if (refs.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      type: EnvironmentVariableType.EXISTING_SECRET,
+      existingSecretRefs: refs,
+    },
+  ];
 };
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {

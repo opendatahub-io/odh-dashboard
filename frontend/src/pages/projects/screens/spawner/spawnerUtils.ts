@@ -350,10 +350,9 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
       return false;
     }
     if (envVar.type === EnvironmentVariableType.EXISTING_SECRET) {
+      const refs = envVar.existingSecretRefs ?? [];
       return (
-        !!envVar.existingSecretRef &&
-        !!envVar.existingSecretRef.secretName &&
-        envVar.existingSecretRef.selectedKeys.length > 0
+        refs.length > 0 && refs.every((ref) => !!ref.secretName && ref.selectedKeys.length > 0)
       );
     }
     return (

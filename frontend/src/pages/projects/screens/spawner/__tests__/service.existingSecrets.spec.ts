@@ -8,33 +8,27 @@ describe('getExistingSecretKeyRefEnvVars', () => {
 
   it('should skip non-EXISTING_SECRET types', () => {
     const envVars: EnvVariable[] = [
+      { type: EnvironmentVariableType.SECRET, values: { category: null, data: [] } },
+      { type: EnvironmentVariableType.CONFIG_MAP, values: { category: null, data: [] } },
+    ];
+    expect(getExistingSecretKeyRefEnvVars(envVars)).toEqual([]);
+  });
+
+  it('should skip refs with no secretName', () => {
+    const envVars: EnvVariable[] = [
       {
-        type: EnvironmentVariableType.SECRET,
-        values: { category: null, data: [] },
-      },
-      {
-        type: EnvironmentVariableType.CONFIG_MAP,
-        values: { category: null, data: [] },
+        type: EnvironmentVariableType.EXISTING_SECRET,
+        existingSecretRefs: [{ secretName: '', selectedKeys: ['k1'], allKeys: false }],
       },
     ];
     expect(getExistingSecretKeyRefEnvVars(envVars)).toEqual([]);
   });
 
-  it('should skip EXISTING_SECRET with no secretName', () => {
+  it('should skip refs with no selected keys', () => {
     const envVars: EnvVariable[] = [
       {
         type: EnvironmentVariableType.EXISTING_SECRET,
-        existingSecretRef: { secretName: '', selectedKeys: ['k1'], allKeys: false },
-      },
-    ];
-    expect(getExistingSecretKeyRefEnvVars(envVars)).toEqual([]);
-  });
-
-  it('should skip EXISTING_SECRET with no selected keys', () => {
-    const envVars: EnvVariable[] = [
-      {
-        type: EnvironmentVariableType.EXISTING_SECRET,
-        existingSecretRef: { secretName: 'my-secret', selectedKeys: [], allKeys: false },
+        existingSecretRefs: [{ secretName: 'my-secret', selectedKeys: [], allKeys: false }],
       },
     ];
     expect(getExistingSecretKeyRefEnvVars(envVars)).toEqual([]);
@@ -44,11 +38,9 @@ describe('getExistingSecretKeyRefEnvVars', () => {
     const envVars: EnvVariable[] = [
       {
         type: EnvironmentVariableType.EXISTING_SECRET,
-        existingSecretRef: {
-          secretName: 'my-secret',
-          selectedKeys: ['DB_HOST', 'DB_PORT'],
-          allKeys: false,
-        },
+        existingSecretRefs: [
+          { secretName: 'my-secret', selectedKeys: ['DB_HOST', 'DB_PORT'], allKeys: false },
+        ],
       },
     ];
     expect(getExistingSecretKeyRefEnvVars(envVars)).toEqual([
@@ -57,48 +49,17 @@ describe('getExistingSecretKeyRefEnvVars', () => {
     ]);
   });
 
-  it('should generate entries for all keys when allKeys is true', () => {
+  it('should handle multiple refs in one EXISTING_SECRET entry', () => {
     const envVars: EnvVariable[] = [
       {
         type: EnvironmentVariableType.EXISTING_SECRET,
-        existingSecretRef: {
-          secretName: 'my-secret',
-          selectedKeys: ['A', 'B', 'C'],
-          allKeys: true,
-        },
+        existingSecretRefs: [
+          { secretName: 'secret-a', selectedKeys: ['KEY1'], allKeys: false },
+          { secretName: 'secret-b', selectedKeys: ['KEY2', 'KEY3'], allKeys: true },
+        ],
       },
     ];
-    const result = getExistingSecretKeyRefEnvVars(envVars);
-    expect(result).toHaveLength(3);
-    expect(
-      result.every(
-        (e) =>
-          (e.valueFrom as Record<string, Record<string, string>>).secretKeyRef.name === 'my-secret',
-      ),
-    ).toBe(true);
-  });
-
-  it('should handle multiple EXISTING_SECRET entries', () => {
-    const envVars: EnvVariable[] = [
-      {
-        type: EnvironmentVariableType.EXISTING_SECRET,
-        existingSecretRef: {
-          secretName: 'secret-a',
-          selectedKeys: ['KEY1'],
-          allKeys: false,
-        },
-      },
-      {
-        type: EnvironmentVariableType.EXISTING_SECRET,
-        existingSecretRef: {
-          secretName: 'secret-b',
-          selectedKeys: ['KEY2', 'KEY3'],
-          allKeys: true,
-        },
-      },
-    ];
-    const result = getExistingSecretKeyRefEnvVars(envVars);
-    expect(result).toEqual([
+    expect(getExistingSecretKeyRefEnvVars(envVars)).toEqual([
       { name: 'KEY1', valueFrom: { secretKeyRef: { name: 'secret-a', key: 'KEY1' } } },
       { name: 'KEY2', valueFrom: { secretKeyRef: { name: 'secret-b', key: 'KEY2' } } },
       { name: 'KEY3', valueFrom: { secretKeyRef: { name: 'secret-b', key: 'KEY3' } } },
@@ -107,27 +68,36 @@ describe('getExistingSecretKeyRefEnvVars', () => {
 
   it('should interleave with non-EXISTING_SECRET types correctly', () => {
     const envVars: EnvVariable[] = [
-      {
-        type: EnvironmentVariableType.SECRET,
-        values: { category: null, data: [{ key: 'k', value: 'v' }] },
-      },
+      { type: EnvironmentVariableType.SECRET, values: { category: null, data: [] } },
       {
         type: EnvironmentVariableType.EXISTING_SECRET,
-        existingSecretRef: {
-          secretName: 'ext',
-          selectedKeys: ['FOO'],
-          allKeys: false,
-        },
+        existingSecretRefs: [{ secretName: 'ext', selectedKeys: ['FOO'], allKeys: false }],
       },
     ];
-    const result = getExistingSecretKeyRefEnvVars(envVars);
-    expect(result).toEqual([
+    expect(getExistingSecretKeyRefEnvVars(envVars)).toEqual([
       { name: 'FOO', valueFrom: { secretKeyRef: { name: 'ext', key: 'FOO' } } },
     ]);
   });
 
-  it('should skip EXISTING_SECRET with undefined existingSecretRef', () => {
+  it('should skip EXISTING_SECRET with undefined existingSecretRefs', () => {
     const envVars: EnvVariable[] = [{ type: EnvironmentVariableType.EXISTING_SECRET }];
     expect(getExistingSecretKeyRefEnvVars(envVars)).toEqual([]);
+  });
+
+  it('should skip valid and invalid refs within the same entry', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.EXISTING_SECRET,
+        existingSecretRefs: [
+          { secretName: 'good', selectedKeys: ['A'], allKeys: false },
+          { secretName: '', selectedKeys: ['B'], allKeys: false },
+          { secretName: 'also-good', selectedKeys: ['C'], allKeys: true },
+        ],
+      },
+    ];
+    expect(getExistingSecretKeyRefEnvVars(envVars)).toEqual([
+      { name: 'A', valueFrom: { secretKeyRef: { name: 'good', key: 'A' } } },
+      { name: 'C', valueFrom: { secretKeyRef: { name: 'also-good', key: 'C' } } },
+    ]);
   });
 });
