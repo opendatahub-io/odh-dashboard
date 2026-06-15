@@ -67,6 +67,6 @@ COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 COPY --from=ui-builder /usr/src/workspace/distributions/rhaii/public ./static/
 USER 65532:65532
 
-EXPOSE 8080
+EXPOSE 4000
 
 ENTRYPOINT ["/bff"]
