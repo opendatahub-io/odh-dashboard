@@ -21,10 +21,10 @@ import (
 // namespaceAwareCRClient returns different CR statuses depending on the namespace queried.
 type namespaceAwareCRClient struct {
 	testK8sClient
-	crByNamespace      map[string]*models.EvalHubCRStatus
-	errByNS            map[string]error
-	discoveryByNS      map[string]string
-	discoveryErrByNS   map[string]error
+	crByNamespace    map[string]*models.EvalHubCRStatus
+	errByNS          map[string]error
+	discoveryByNS    map[string]string
+	discoveryErrByNS map[string]error
 }
 
 func (c *namespaceAwareCRClient) GetEvalHubCRStatus(_ context.Context, _ *kubernetes.RequestIdentity, namespace string) (*models.EvalHubCRStatus, error) {
