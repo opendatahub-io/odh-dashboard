@@ -317,11 +317,15 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   const getOptionTestId = (name: string) => `select-multi-typeahead-${name.replace(/\s+/g, '-')}`;
 
-  const renderSelectOption = (option: SelectionOptions, children?: React.ReactNode) => (
+  const renderSelectOption = (
+    option: SelectionOptions,
+    children?: React.ReactNode,
+    showCheckbox = true,
+  ) => (
     <SelectOption
       key={String(option.id)}
       id={createOptionElementId(option.id)}
-      hasCheckbox={hasCheckbox}
+      {...(showCheckbox && hasCheckbox ? { hasCheckbox: true } : {})}
       isFocused={focusedItemIndex === visibleIndexById.get(option.id)}
       data-testid={getOptionTestId(option.name)}
       value={option.id}
@@ -419,10 +423,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         toggle={toggle}
         variant="typeahead"
         popperProps={{
+          ...popperProps,
           // Portal into the modal dialog (not document.body) so VoiceOver can reach options
           // inside aria-modal; overflow unlock above lets the menu extend past the dialog edge.
-          appendTo: () => getModalDialog() ?? document.body,
-          ...popperProps,
+          appendTo: popperProps?.appendTo ?? (() => getModalDialog() ?? document.body),
         }}
       >
         <SelectList
@@ -431,7 +435,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           {...(listTestId ? { 'data-testid': listTestId } : {})}
         >
           {createOption && isCreateOptionOnTop && groupOptions.length > 0
-            ? renderSelectOption(createOption, createOptionDisplayName)
+            ? renderSelectOption(createOption, createOptionDisplayName, false)
             : null}
           {!createOption && visibleOptions.length === 0 && inputValue ? (
             <SelectOption isDisabled>No results found</SelectOption>
@@ -448,11 +452,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           (createOption && (!isCreateOptionOnTop || groupOptions.length === 0)) ? (
             <>
               {createOption && isCreateOptionOnTop && groupOptions.length === 0
-                ? renderSelectOption(createOption, createOptionDisplayName)
+                ? renderSelectOption(createOption, createOptionDisplayName, false)
                 : null}
               {selectOptions.map((option) => renderSelectOption(option))}
               {createOption && !isCreateOptionOnTop
-                ? renderSelectOption(createOption, createOptionDisplayName)
+                ? renderSelectOption(createOption, createOptionDisplayName, false)
                 : null}
             </>
           ) : null}

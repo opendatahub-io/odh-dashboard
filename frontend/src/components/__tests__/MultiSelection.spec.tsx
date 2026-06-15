@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 
@@ -104,5 +104,73 @@ describe('MultiSelection', () => {
     });
 
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('should pass hasCheckbox to regular options when enabled (upstream RHOAIENG-63155)', async () => {
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Resources"
+        value={defaultOptions}
+        setValue={jest.fn()}
+        hasCheckbox
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('combobox', { name: 'Resources' }));
+    });
+
+    screen.getAllByRole('menuitem').forEach((option) => {
+      expect(within(option).getByRole('checkbox')).toBeInTheDocument();
+    });
+  });
+
+  it('should not pass hasCheckbox to creatable options (upstream behavior)', async () => {
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="API groups"
+        value={[{ id: 'apps', name: 'apps', selected: false }]}
+        setValue={jest.fn()}
+        isCreatable
+        hasCheckbox
+        createOptionMessage={(val) => `Use custom API group "${val}"`}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'API groups' });
+
+    await act(async () => {
+      fireEvent.change(combobox, { target: { value: 'custom.io' } });
+    });
+
+    const createOption = screen.getByRole('option', { name: /Use custom API group "custom.io"/ });
+    expect(within(createOption).queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('should key options by id when duplicate names exist (upstream RHOAIENG-63155)', async () => {
+    const duplicateNameOptions: SelectionOptions[] = [
+      { id: 'core/pods', name: 'pods', selected: false },
+      { id: '/pods', name: 'pods', selected: false },
+    ];
+
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Resource types"
+        value={duplicateNameOptions}
+        setValue={jest.fn()}
+        hasCheckbox
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('combobox', { name: 'Resource types' }));
+    });
+
+    expect(screen.getAllByRole('menuitem')).toHaveLength(2);
+    expect(document.getElementById('test-select-option-coreu47upods')).toBeInTheDocument();
+    expect(document.getElementById('test-select-option-u47upods')).toBeInTheDocument();
   });
 });
