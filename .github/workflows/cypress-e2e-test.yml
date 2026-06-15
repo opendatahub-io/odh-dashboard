@@ -244,6 +244,7 @@ jobs:
       matrix: ${{ steps.build.outputs.matrix }}
       source: ${{ steps.build.outputs.source }}
       bff_packages: ${{ steps.detect.outputs.bff_packages }}
+      mf_packages: ${{ steps.detect.outputs.mf_packages }}
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -425,6 +426,42 @@ jobs:
           fi
 
           echo "bff_packages=$BFF_PACKAGES" >> $GITHUB_OUTPUT
+
+          # --- MF Frontend Package Detection ---
+          # Detect changed packages that have module-federation config and cypress:server scripts
+          echo ""
+          echo "🔍 Detecting MF frontend packages to build and serve locally..."
+          MF_PACKAGES="[]"
+
+          if [[ -n "$CHANGED_PACKAGES" ]]; then
+            for pkg_dir in packages/*/; do
+              pkg_name=$(jq -r '.name // empty' "$pkg_dir/package.json" 2>/dev/null)
+
+              # Check if this package changed
+              if echo "$CHANGED_PACKAGES" | grep -qx "$pkg_name"; then
+                # Check if package has module-federation config AND cypress:server scripts
+                mf_name=$(jq -r '.["module-federation"].name // empty' "$pkg_dir/package.json" 2>/dev/null)
+                has_cy_server_build=$(jq -r '.scripts["cypress:server:build"] // empty' "$pkg_dir/package.json" 2>/dev/null)
+                has_cy_server=$(jq -r '.scripts["cypress:server"] // empty' "$pkg_dir/package.json" 2>/dev/null)
+
+                if [[ -n "$mf_name" && -n "$has_cy_server_build" && -n "$has_cy_server" ]]; then
+                  fe_port=$(jq -r '.["module-federation"].local.port // .["module-federation"].backend.localService.port // 0' "$pkg_dir/package.json" 2>/dev/null)
+                  pkg_dir_name=$(basename "$pkg_dir")
+
+                  echo "  ✅ $pkg_name (mf: $mf_name, port: $fe_port)"
+
+                  MF_PACKAGES=$(echo "$MF_PACKAGES" | jq -c --arg name "$pkg_name" --arg dir "$pkg_dir_name" --arg mfName "$mf_name" --arg port "$fe_port" \
+                    '. + [{"name": $name, "dir": $dir, "mfName": $mfName, "port": ($port | tonumber)}]')
+                fi
+              fi
+            done
+          fi
+
+          if [[ "$MF_PACKAGES" == "[]" ]]; then
+            echo "  ℹ️  No MF frontend packages detected for this change"
+          fi
+
+          echo "mf_packages=$MF_PACKAGES" >> $GITHUB_OUTPUT
 
       - name: Build test matrix
         id: build
@@ -1027,99 +1064,6 @@ jobs:
         run: |
           echo "CY_TEST_CONFIG=${{ github.workspace }}/packages/cypress/test-variables.yml" >> $GITHUB_ENV
 
-      - name: Start Cypress Server
-        run: |
-          echo "🧹 Cleaning up port ${WEBPACK_PORT}..."
-
-          PORT_INFO_DIR="/tmp/gha-ports"
-          PORT_INFO_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
-          CURRENT_RUN_ID="${{ github.run_id }}"
-
-          # Check if port is in use
-          if lsof -i:${WEBPACK_PORT} > /dev/null 2>&1; then
-            # Check if there's a run_id file for this port
-            if [ -f "$PORT_INFO_FILE" ]; then
-              PORT_OWNER_RUN_ID=$(cat "$PORT_INFO_FILE")
-              if [ "$PORT_OWNER_RUN_ID" != "$CURRENT_RUN_ID" ]; then
-                echo "⚠️  Port ${WEBPACK_PORT} is owned by different run_id: $PORT_OWNER_RUN_ID"
-                echo "⚠️  This port is in use by another workflow run - will not kill it"
-                # Try to find an alternative port
-                for alt_port in $(seq $((WEBPACK_PORT + 5)) $((WEBPACK_PORT + 50)) 5); do
-                  if ! lsof -i:${alt_port} > /dev/null 2>&1; then
-                    WEBPACK_PORT=$alt_port
-                    PORT_INFO_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
-                    echo "✅ Found alternative port: ${WEBPACK_PORT}"
-                    break
-                  fi
-                done
-              else
-                echo "✅ Port ${WEBPACK_PORT} is owned by this run - safe to clean up"
-              fi
-            else
-              # No run_id file - check if process is from a recent GitHub Actions run
-              PORT_PID=$(lsof -ti:${WEBPACK_PORT} 2>/dev/null | head -1)
-              if [ -n "$PORT_PID" ]; then
-                # Check if process is from a GitHub Actions workflow
-                if ps -p "$PORT_PID" -o command= 2>/dev/null | grep -q "webpack.*serve\|node.*40[0-9][0-9]"; then
-                  echo "⚠️  Port ${WEBPACK_PORT} in use by potential GHA process (PID: $PORT_PID)"
-                  echo "⚠️  Being cautious - will not kill without run_id confirmation"
-                  # Find alternative port
-                  for alt_port in $(seq $((WEBPACK_PORT + 5)) $((WEBPACK_PORT + 50)) 5); do
-                    if ! lsof -i:${alt_port} > /dev/null 2>&1; then
-                      WEBPACK_PORT=$alt_port
-                      PORT_INFO_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
-                      echo "✅ Found alternative port: ${WEBPACK_PORT}"
-                      break
-                    fi
-                  done
-                else
-                  echo "⚠️  Port ${WEBPACK_PORT} in use by non-GHA process - cleaning up"
-                  kill -9 "$PORT_PID" 2>/dev/null || true
-                fi
-              fi
-            fi
-          fi
-
-          # Verify port is free with retry logic
-          RETRY_COUNT=0
-          while lsof -i:${WEBPACK_PORT} > /dev/null 2>&1; do
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            if [ $RETRY_COUNT -gt 10 ]; then
-              echo "❌ Port ${WEBPACK_PORT} still in use after cleanup!"
-              lsof -i:${WEBPACK_PORT}
-              exit 1
-            fi
-            echo "⏳ Retrying cleanup... (attempt $RETRY_COUNT/10)"
-            sleep 2
-          done
-
-          # Claim the port with our run_id
-          mkdir -p "$PORT_INFO_DIR"
-          echo "$CURRENT_RUN_ID" > "$PORT_INFO_FILE"
-          echo "WEBPACK_PORT=$WEBPACK_PORT" >> $GITHUB_ENV
-          echo "PORT_INFO_FILE=$PORT_INFO_FILE" >> $GITHUB_ENV
-
-          echo "✅ Port ${WEBPACK_PORT} is free and claimed by run_id: $CURRENT_RUN_ID"
-          echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} ($CLUSTER_NAME)..."
-
-          # Start webpack with explicit dashboard host (ensures correct proxy target for all tests)
-          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} ODH_TOKEN_REFRESH=true npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
-          SERVER_PID=$!
-          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
-          echo "$SERVER_PID" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.pid"
-
-          # Give server time to initialize
-          sleep 20
-
-          # Show filtered webpack status (hide sensitive cluster URLs)
-          if [ -f /tmp/webpack_${WEBPACK_PORT}.log ]; then
-            tail -20 /tmp/webpack_${WEBPACK_PORT}.log | \
-              grep -v "Dashboard host:" | \
-              grep -v "Proxy created:" | \
-              grep -v "Logged in as user:" | \
-              grep -v "Using project:" || true
-          fi
-
       - name: Install make for BFF builds
         if: needs.get-test-tags.outputs.bff_packages != '[]'
         run: |
@@ -1244,6 +1188,205 @@ jobs:
 
           echo ""
           echo "✅ All BFF services started successfully"
+
+      - name: Build & Start Module Frontend Servers
+        if: needs.get-test-tags.outputs.mf_packages != '[]'
+        env:
+          MF_PACKAGES: ${{ needs.get-test-tags.outputs.mf_packages }}
+        run: |
+          echo "🏗️  Building and serving module frontends locally..."
+
+          MF_INFO_DIR="/tmp/gha-mf/${{ github.run_id }}"
+          mkdir -p "$MF_INFO_DIR"
+
+          # Allowlist of valid package directories (prevent path traversal)
+          ALLOWED_DIRS=("agent-ops" "automl" "autorag" "eval-hub" "gen-ai" "maas" "mlflow" "model-registry")
+
+          MF_COUNT=$(echo "$MF_PACKAGES" | jq 'length')
+          for idx in $(seq 0 $((MF_COUNT - 1))); do
+            MF_NAME=$(echo "$MF_PACKAGES" | jq -r ".[$idx].mfName")
+            MF_DIR=$(echo "$MF_PACKAGES" | jq -r ".[$idx].dir")
+            MF_PORT=$(echo "$MF_PACKAGES" | jq -r ".[$idx].port")
+            PKG_NAME=$(echo "$MF_PACKAGES" | jq -r ".[$idx].name")
+
+            echo ""
+            echo "📦 Building module frontend: $MF_NAME ($PKG_NAME) on port $MF_PORT..."
+
+            # Validate directory against allowlist
+            DIR_VALID=false
+            for allowed in "${ALLOWED_DIRS[@]}"; do
+              if [ "$MF_DIR" = "$allowed" ]; then
+                DIR_VALID=true
+                break
+              fi
+            done
+            if [ "$DIR_VALID" = "false" ]; then
+              echo "  ❌ Rejected untrusted package directory: '$MF_DIR'"
+              echo "  Allowed directories: ${ALLOWED_DIRS[*]}"
+              exit 1
+            fi
+
+            # Validate port is numeric
+            if ! echo "$MF_PORT" | grep -qE '^[0-9]+$'; then
+              echo "  ❌ Invalid frontend port: '$MF_PORT' (must be numeric)"
+              exit 1
+            fi
+
+            # Skip if port is already in use (e.g., from a previous run)
+            if lsof -ti:"$MF_PORT" > /dev/null 2>&1; then
+              if curl -sf "http://localhost:$MF_PORT/remoteEntry.js" > /dev/null 2>&1; then
+                echo "  ♻️ Module $MF_NAME already serving on port $MF_PORT, reusing"
+                echo "$MF_NAME" >> "$MF_INFO_DIR/modules.txt"
+                continue
+              else
+                echo "  ❌ Port $MF_PORT already in use but not serving remoteEntry.js"
+                lsof -i:"$MF_PORT" || true
+                exit 1
+              fi
+            fi
+
+            # Build the module frontend (production webpack build for static serving)
+            echo "  🔨 Running cypress:server:build..."
+            cd "packages/$MF_DIR"
+            npm run cypress:server:build 2>&1 | tail -5
+
+            # Serve the built frontend in background
+            echo "  🚀 Starting cypress:server on port $MF_PORT..."
+            npm run cypress:server > "/tmp/mf_${MF_DIR}.log" 2>&1 &
+            MF_PID=$!
+            cd - > /dev/null
+
+            # Save PID and port for cleanup
+            echo "$MF_PID" >> "$MF_INFO_DIR/pids.txt"
+            echo "$MF_PORT" >> "$MF_INFO_DIR/ports.txt"
+
+            echo "  📍 PID: $MF_PID"
+
+            # Wait for the server to be ready (max 30 seconds)
+            echo "  ⏳ Waiting for module frontend at localhost:$MF_PORT..."
+            for i in {1..15}; do
+              if curl -sf "http://localhost:$MF_PORT/remoteEntry.js" > /dev/null 2>&1; then
+                echo "  ✅ Module $MF_NAME is serving on port $MF_PORT"
+                break
+              fi
+              if [ $i -eq 15 ]; then
+                echo "  ❌ Module $MF_NAME failed to start after 30 seconds"
+                echo "  📋 Module server logs:"
+                tail -30 "/tmp/mf_${MF_DIR}.log" || true
+                exit 1
+              fi
+              sleep 2
+            done
+
+            echo "$MF_NAME" >> "$MF_INFO_DIR/modules.txt"
+          done
+
+          # Build LOCAL_MODULES from the accumulated module names
+          if [ -f "$MF_INFO_DIR/modules.txt" ]; then
+            LOCAL_MODULES_LIST=$(paste -sd',' "$MF_INFO_DIR/modules.txt")
+            echo "LOCAL_MODULES=$LOCAL_MODULES_LIST" >> $GITHUB_ENV
+            echo ""
+            echo "✅ LOCAL_MODULES=$LOCAL_MODULES_LIST"
+          fi
+
+          echo ""
+          echo "✅ All module frontend servers started successfully"
+
+      - name: Start Cypress Server
+        run: |
+          echo "🧹 Cleaning up port ${WEBPACK_PORT}..."
+
+          PORT_INFO_DIR="/tmp/gha-ports"
+          PORT_INFO_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
+          CURRENT_RUN_ID="${{ github.run_id }}"
+
+          # Check if port is in use
+          if lsof -i:${WEBPACK_PORT} > /dev/null 2>&1; then
+            # Check if there's a run_id file for this port
+            if [ -f "$PORT_INFO_FILE" ]; then
+              PORT_OWNER_RUN_ID=$(cat "$PORT_INFO_FILE")
+              if [ "$PORT_OWNER_RUN_ID" != "$CURRENT_RUN_ID" ]; then
+                echo "⚠️  Port ${WEBPACK_PORT} is owned by different run_id: $PORT_OWNER_RUN_ID"
+                echo "⚠️  This port is in use by another workflow run - will not kill it"
+                # Try to find an alternative port
+                for alt_port in $(seq $((WEBPACK_PORT + 5)) $((WEBPACK_PORT + 50)) 5); do
+                  if ! lsof -i:${alt_port} > /dev/null 2>&1; then
+                    WEBPACK_PORT=$alt_port
+                    PORT_INFO_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
+                    echo "✅ Found alternative port: ${WEBPACK_PORT}"
+                    break
+                  fi
+                done
+              else
+                echo "✅ Port ${WEBPACK_PORT} is owned by this run - safe to clean up"
+              fi
+            else
+              # No run_id file - check if process is from a recent GitHub Actions run
+              PORT_PID=$(lsof -ti:${WEBPACK_PORT} 2>/dev/null | head -1)
+              if [ -n "$PORT_PID" ]; then
+                # Check if process is from a GitHub Actions workflow
+                if ps -p "$PORT_PID" -o command= 2>/dev/null | grep -q "webpack.*serve\|node.*40[0-9][0-9]"; then
+                  echo "⚠️  Port ${WEBPACK_PORT} in use by potential GHA process (PID: $PORT_PID)"
+                  echo "⚠️  Being cautious - will not kill without run_id confirmation"
+                  # Find alternative port
+                  for alt_port in $(seq $((WEBPACK_PORT + 5)) $((WEBPACK_PORT + 50)) 5); do
+                    if ! lsof -i:${alt_port} > /dev/null 2>&1; then
+                      WEBPACK_PORT=$alt_port
+                      PORT_INFO_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
+                      echo "✅ Found alternative port: ${WEBPACK_PORT}"
+                      break
+                    fi
+                  done
+                else
+                  echo "⚠️  Port ${WEBPACK_PORT} in use by non-GHA process - cleaning up"
+                  kill -9 "$PORT_PID" 2>/dev/null || true
+                fi
+              fi
+            fi
+          fi
+
+          # Verify port is free with retry logic
+          RETRY_COUNT=0
+          while lsof -i:${WEBPACK_PORT} > /dev/null 2>&1; do
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -gt 10 ]; then
+              echo "❌ Port ${WEBPACK_PORT} still in use after cleanup!"
+              lsof -i:${WEBPACK_PORT}
+              exit 1
+            fi
+            echo "⏳ Retrying cleanup... (attempt $RETRY_COUNT/10)"
+            sleep 2
+          done
+
+          # Claim the port with our run_id
+          mkdir -p "$PORT_INFO_DIR"
+          echo "$CURRENT_RUN_ID" > "$PORT_INFO_FILE"
+          echo "WEBPACK_PORT=$WEBPACK_PORT" >> $GITHUB_ENV
+          echo "PORT_INFO_FILE=$PORT_INFO_FILE" >> $GITHUB_ENV
+
+          echo "✅ Port ${WEBPACK_PORT} is free and claimed by run_id: $CURRENT_RUN_ID"
+          echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} ($CLUSTER_NAME)..."
+
+          # Use start:dev:ci which reads LOCAL_MODULES for per-module proxy routing
+          if [ -n "$LOCAL_MODULES" ]; then
+            echo "📡 LOCAL_MODULES=$LOCAL_MODULES — module traffic will be routed to local servers"
+          fi
+          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} ODH_TOKEN_REFRESH=true npm run start:dev:ci > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          echo "$SERVER_PID" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.pid"
+
+          # Give server time to initialize
+          sleep 20
+
+          # Show filtered webpack status (hide sensitive cluster URLs)
+          if [ -f /tmp/webpack_${WEBPACK_PORT}.log ]; then
+            tail -20 /tmp/webpack_${WEBPACK_PORT}.log | \
+              grep -v "Dashboard host:" | \
+              grep -v "Proxy created:" | \
+              grep -v "Logged in as user:" | \
+              grep -v "Using project:" || true
+          fi
 
       - name: Wait for Server Ready
         run: |
@@ -1435,6 +1578,45 @@ jobs:
 
           # Fix read-only envtest binaries and directories so next checkout can clean the workspace
           chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true
+
+      - name: Stop Module Frontend Servers
+        run: |
+          echo "🛑 Stopping module frontend servers for run_id: ${{ github.run_id }}..."
+
+          MF_INFO_DIR="/tmp/gha-mf/${{ github.run_id }}"
+          MF_KILLED_COUNT=0
+
+          if [ -d "$MF_INFO_DIR" ]; then
+            if [ -f "$MF_INFO_DIR/pids.txt" ]; then
+              while read -r pid; do
+                if ps -p "$pid" > /dev/null 2>&1; then
+                  echo "  🛑 Killing module frontend process $pid"
+                  pkill -P "$pid" 2>/dev/null || true
+                  kill "$pid" 2>/dev/null || true
+                  MF_KILLED_COUNT=$((MF_KILLED_COUNT + 1))
+                fi
+              done < "$MF_INFO_DIR/pids.txt"
+            fi
+
+            if [ -f "$MF_INFO_DIR/ports.txt" ]; then
+              while read -r port; do
+                MF_PID=$(lsof -ti:${port} 2>/dev/null | head -1)
+                if [ -n "$MF_PID" ]; then
+                  echo "  🛑 Killing process on module frontend port $port (PID: $MF_PID)"
+                  pkill -P "$MF_PID" 2>/dev/null || true
+                  kill "$MF_PID" 2>/dev/null || true
+                fi
+              done < "$MF_INFO_DIR/ports.txt"
+            fi
+
+            rm -rf "$MF_INFO_DIR"
+          fi
+
+          if [ $MF_KILLED_COUNT -eq 0 ]; then
+            echo "✅ No module frontend processes found for run_id: ${{ github.run_id }}"
+          else
+            echo "✅ Cleaned up $MF_KILLED_COUNT module frontend process(es) for run_id: ${{ github.run_id }}"
+          fi
 
       - name: Stop Cypress Servers
         run: |

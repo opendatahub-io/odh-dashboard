@@ -11,7 +11,7 @@ const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
 
 setupDotenvFilesForEnv({ env: 'development' });
 const webpackCommon = require('./webpack.common.js');
-const { moduleFederationConfig } = require('./moduleFederation');
+const { moduleFederationConfig, moduleBffPorts } = require('./moduleFederation');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -223,7 +223,54 @@ module.exports = smp.wrap(
               headers['x-forwarded-access-token'] = token;
             }
 
+            // Per-module local proxies for CI: intercept before the catch-all cluster proxy
+            const localModuleProxies = [];
+            const localModulesEnv = process.env.LOCAL_MODULES;
+            if (localModulesEnv) {
+              const localModuleNames = localModulesEnv
+                .split(',')
+                .map((n) => n.trim())
+                .filter(Boolean);
+              console.info('LOCAL_MODULES: routing locally →', localModuleNames);
+
+              for (const moduleName of localModuleNames) {
+                const mfCfg = moduleFederationConfig.find((c) => c.name === moduleName);
+                if (!mfCfg) {
+                  console.warn(`  ⚠ Module "${moduleName}" not found in MF config — skipping`);
+                  continue;
+                }
+
+                const fePort = mfCfg.backend?.localService?.port;
+                if (fePort) {
+                  console.info(`  /_mf/${moduleName}/* → localhost:${fePort}`);
+                  localModuleProxies.push({
+                    context: [`/_mf/${moduleName}`],
+                    target: `http://localhost:${fePort}`,
+                    secure: false,
+                    changeOrigin: true,
+                  });
+                }
+
+                const bffInfo = moduleBffPorts[moduleName];
+                if (bffInfo && mfCfg.proxyService) {
+                  for (const proxy of mfCfg.proxyService) {
+                    console.info(`  ${proxy.path} → localhost:${bffInfo.bffPort}`);
+                    localModuleProxies.push({
+                      context: [proxy.path],
+                      target: `http://localhost:${bffInfo.bffPort}`,
+                      secure: false,
+                      changeOrigin: true,
+                      ...(proxy.pathRewrite && {
+                        pathRewrite: { [`^${proxy.path}`]: proxy.pathRewrite },
+                      }),
+                    });
+                  }
+                }
+              }
+            }
+
             return [
+              ...localModuleProxies,
               {
                 context: ['/api', '/_mf', '/mlflow', ...mfProxies],
                 target: `https://${dashboardHost}`,

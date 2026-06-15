@@ -28,6 +28,7 @@
     "start:dev:wait": "npx wait-on -i 1000 http://localhost:4010",
     "start:dev:mf": "cross-env MF_UPDATE_TYPES=true npm run start:dev",
     "start:dev:ext": "cross-env EXT_CLUSTER=true npm run start:dev",
+    "start:dev:ci": "cross-env EXT_CLUSTER=true npm run start:dev",
     "test": "run-s test:lint test:type-check test:unit test:cypress-ci",
     "test:coverage": "run-s test:lint test:type-check test:jest:coverage test:cypress-ci:coverage coverage:merge",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix",

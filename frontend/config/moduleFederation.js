@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const { execSync } = require('child_process');
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
 const { getRuntimeOdhPackages } = require('./getRuntimeOdhPackages');
@@ -88,6 +90,80 @@ const odhDashboardShared = Object.fromEntries(
   ]),
 );
 
+/**
+ * Scan packages/* directories for module-federation configs.
+ * This catches packages not in the root npm workspace (standalone frontends).
+ * @returns {Array} Array of normalized MF config objects
+ */
+const readModuleFederationConfigFromFilesystem = () => {
+  const configs = [];
+  const packagesDir = path.resolve(__dirname, '../../packages');
+
+  try {
+    const dirs = fs.readdirSync(packagesDir, { withFileTypes: true });
+    for (const dir of dirs) {
+      if (!dir.isDirectory()) {
+        continue;
+      }
+      const pkgJsonPath = path.join(packagesDir, dir.name, 'package.json');
+      if (!fs.existsSync(pkgJsonPath)) {
+        continue;
+      }
+      try {
+        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+        if (pkgJson['module-federation']) {
+          configs.push(normalizeConfig(pkgJson['module-federation']));
+        }
+      } catch {
+        // skip unreadable package.json
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to scan packages/ for module federation configs:', e.message);
+  }
+
+  return configs;
+};
+
+/**
+ * Read BFF port configuration from packages/* directories.
+ * @returns {Object} Map of { [mfName]: { bffPort, dir } }
+ */
+const readBffPortsFromPackages = () => {
+  const ports = {};
+  const packagesDir = path.resolve(__dirname, '../../packages');
+
+  try {
+    const dirs = fs.readdirSync(packagesDir, { withFileTypes: true });
+    for (const dir of dirs) {
+      if (!dir.isDirectory()) {
+        continue;
+      }
+      const pkgJsonPath = path.join(packagesDir, dir.name, 'package.json');
+      if (!fs.existsSync(pkgJsonPath)) {
+        continue;
+      }
+      try {
+        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+        const mfConfig = pkgJson['module-federation'];
+        const { bffConfig } = pkgJson;
+        if (mfConfig && bffConfig?.port) {
+          const name = mfConfig.name || mfConfig.backend?.name;
+          if (name) {
+            ports[name] = { bffPort: bffConfig.port, dir: dir.name };
+          }
+        }
+      } catch {
+        // skip
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to scan packages/ for BFF ports:', e.message);
+  }
+
+  return ports;
+};
+
 // Function to read module federation config from workspace packages
 const readModuleFederationConfigFromPackages = () => {
   const configs = [];
@@ -101,6 +177,15 @@ const readModuleFederationConfigFromPackages = () => {
     }
   } catch (e) {
     console.error('Failed to process workspace packages for module federation.', e);
+  }
+
+  // Also scan filesystem for packages not in the root npm workspace
+  const fsConfigs = readModuleFederationConfigFromFilesystem();
+  const existingNames = new Set(configs.map((c) => c.name));
+  for (const config of fsConfigs) {
+    if (!existingNames.has(config.name)) {
+      configs.push(config);
+    }
   }
 
   return configs;
@@ -129,8 +214,11 @@ if (mfConfig.length > 0) {
   );
 }
 
+const moduleBffPorts = readBffPortsFromPackages();
+
 module.exports = {
   moduleFederationConfig: mfConfig,
+  moduleBffPorts,
   moduleFederationPlugins:
     mfConfig.length > 0
       ? [
