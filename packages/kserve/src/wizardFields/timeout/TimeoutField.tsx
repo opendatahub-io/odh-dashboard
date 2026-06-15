@@ -47,16 +47,16 @@ const isK8sResourceCommon = (resource: unknown): resource is K8sResourceCommon =
 export const isKServeInferenceServiceActive = (
   wizardState: RecursivePartial<WizardFormData['state']>,
 ): boolean => {
-  const selection = wizardState.modelServer?.data?.selection;
-  if (!selection) {
+  const modelServerData = wizardState.modelServer?.data;
+  if (!modelServerData) {
     return false;
   }
 
-  const { template } = selection;
+  const { template } = modelServerData;
 
   if (!template || !isK8sResourceCommon(template)) {
     // Edit mode: has name and namespace but no template
-    return !!(selection.name && selection.namespace);
+    return !!(modelServerData.name && modelServerData.namespace);
   }
 
   // Check if it's a Template containing a ServingRuntime
@@ -78,14 +78,14 @@ export const isKServeInferenceServiceActive = (
 
 type TimeoutFieldProps = {
   id: string;
-  value?: TimeoutFieldValue;
+  value: TimeoutFieldValue;
   onChange: (value: TimeoutFieldValue) => void;
   isDisabled?: boolean;
 };
 
 const TimeoutFieldComponent: React.FC<TimeoutFieldProps> = ({
   id,
-  value = { timeout: DEFAULT_TIMEOUT, return401: false },
+  value,
   onChange,
   isDisabled,
 }) => (
@@ -136,7 +136,7 @@ const TimeoutFieldComponent: React.FC<TimeoutFieldProps> = ({
   </StackItem>
 );
 
-type TimeoutFieldType = WizardField<TimeoutFieldValue, undefined>;
+type TimeoutFieldType = WizardField<TimeoutFieldValue>;
 
 export const TIMEOUT_FIELD_ID = 'kserve/timeout';
 
@@ -151,16 +151,4 @@ export const TimeoutFieldWizardField: TimeoutFieldType = {
     validationSchema: timeoutFieldSchema,
   },
   component: TimeoutFieldComponent,
-  getReviewSections: (value) => [
-    {
-      title: 'Advanced settings',
-      items: [
-        {
-          key: 'timeout',
-          label: 'Model route timeout',
-          value: () => `${value.timeout} seconds`,
-        },
-      ],
-    },
-  ],
 };

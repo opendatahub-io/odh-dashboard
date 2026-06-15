@@ -207,7 +207,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </FormGroup>
               </StackItem>
             )}
-            {/* Timeout field rendered via extension system */}
             <GenericFieldRenderer fieldId="kserve/timeout" wizardState={wizardState} />
           </Stack>
         </FormSection>

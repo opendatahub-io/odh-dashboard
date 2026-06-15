@@ -19,6 +19,7 @@ import type { CreateConnectionData } from '@odh-dashboard/model-serving/componen
 import * as _ from 'lodash-es';
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -38,6 +39,8 @@ import {
   updateInferenceService,
 } from './api/inferenceService';
 import { applyModelRuntime } from './deployServer';
+import type { KServeDeployment } from './deployments';
+import { KSERVE_ID } from '../extensions';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -168,18 +171,27 @@ export const deployInferenceService = (
   existingInferenceService?: InferenceServiceKind,
   connectionSecretName?: string,
   transformData?: { metadata?: { labels?: Record<string, string> } },
+  applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
   opts?: {
     dryRun?: boolean;
     overwrite?: boolean;
   },
 ): Promise<InferenceServiceKind> => {
-  const newInferenceService = assembleInferenceService(
+  let newInferenceService = assembleInferenceService(
     data,
     existingInferenceService,
     opts?.dryRun,
     connectionSecretName,
     transformData,
   );
+
+  if (applyFieldData) {
+    const assembledDeployment = applyFieldData({
+      modelServingPlatformId: KSERVE_ID,
+      model: newInferenceService,
+    });
+    newInferenceService = assembledDeployment.model;
+  }
 
   if (!existingInferenceService) {
     return createInferenceService(newInferenceService, opts);
