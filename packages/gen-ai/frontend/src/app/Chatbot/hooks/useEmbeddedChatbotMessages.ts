@@ -34,16 +34,25 @@ export const buildRequestBody = (
   userMessage: string,
   previousMessages: ChatbotMessageProps[],
 ): PassthroughRequestBody => {
-  if (!responsesTemplate.input[0]?.content[0]?.text) {
-    throw new Error(
-      'The responses template for this pattern is invalid. Expected input[0].content[0].text to exist.',
-    );
-  }
+  let substitutedText: string;
 
-  const templateText = responsesTemplate.input[0].content[0].text;
-  const substitutedText = templateText.includes(USER_QUERY_PLACEHOLDER)
-    ? templateText.replace(USER_QUERY_PLACEHOLDER, userMessage)
-    : userMessage;
+  if (typeof responsesTemplate.input === 'string') {
+    // String-format template: input is a plain placeholder string (e.g. "<user_query_placeholder>")
+    substitutedText = responsesTemplate.input.includes(USER_QUERY_PLACEHOLDER)
+      ? responsesTemplate.input.replace(USER_QUERY_PLACEHOLDER, userMessage)
+      : userMessage;
+  } else {
+    // Array-format template: input is an array of message objects
+    if (!responsesTemplate.input[0]?.content[0]?.text) {
+      throw new Error(
+        'The responses template for this pattern is invalid. Expected input[0].content[0].text to exist.',
+      );
+    }
+    const templateText = responsesTemplate.input[0].content[0].text;
+    substitutedText = templateText.includes(USER_QUERY_PLACEHOLDER)
+      ? templateText.replace(USER_QUERY_PLACEHOLDER, userMessage)
+      : userMessage;
+  }
 
   const inputMessages: ResponsesInputMessage[] = previousMessages
     .filter((msg) => msg.content)
