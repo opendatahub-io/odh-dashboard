@@ -340,6 +340,58 @@ export const responseWithEmptyFileSearchResults: BackendResponseData = {
   ],
 };
 
+// Response with multiple file_search_call outputs to test aggregation
+export const responseWithMultipleFileSearchCalls: BackendResponseData = {
+  id: 'response-multi-file-search',
+  model: 'test-model',
+  status: 'completed',
+  created_at: 1755721063,
+  output: [
+    {
+      id: 'search-1',
+      type: 'file_search_call',
+      queries: ['What is RAG?'],
+      results: [
+        {
+          score: 0.95,
+          text: 'RAG overview content.',
+          file_id: 'f1',
+          filename: 'rag-overview.pdf',
+        },
+      ],
+    },
+    {
+      id: 'search-2',
+      type: 'file_search_call',
+      queries: ['How do embeddings work?'],
+      results: [
+        {
+          score: 0.88,
+          text: 'Embeddings explanation.',
+          file_id: 'f2',
+          filename: 'embeddings-guide.pdf',
+        },
+        {
+          score: 0.65,
+          text: 'Vector databases overview.',
+          file_id: 'f3',
+          filename: 'vector-db.pdf',
+        },
+      ],
+    },
+    {
+      id: 'msg-1',
+      type: 'message',
+      content: [
+        {
+          type: 'output_text',
+          text: 'Here is information about RAG and embeddings.',
+        },
+      ],
+    },
+  ],
+};
+
 // Streaming completed event with file_search_call results
 export const streamingCompletedEventWithFileSearchResults = JSON.stringify({
   type: 'response.completed',

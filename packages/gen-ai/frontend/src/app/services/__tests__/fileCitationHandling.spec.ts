@@ -12,6 +12,7 @@ import {
   responseWithIndexedAnnotations,
   responseWithFileSearchResults,
   responseWithEmptyFileSearchResults,
+  responseWithMultipleFileSearchCalls,
   streamingCompletedEventWithAnnotations,
   streamingCompletedEventWithMultipleTokens,
   streamingCompletedEventWithFileSearchCall,
@@ -289,6 +290,19 @@ describe('file citation handling', () => {
       const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
 
       expect(result.fileSearchData).toBeUndefined();
+    });
+
+    it('should aggregate fileSearchData from multiple file_search_call outputs', async () => {
+      mockedRestCREATE.mockResolvedValueOnce({ data: responseWithMultipleFileSearchCalls });
+
+      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+
+      expect(result.fileSearchData).toBeDefined();
+      expect(result.fileSearchData!.queries).toEqual(['What is RAG?', 'How do embeddings work?']);
+      expect(result.fileSearchData!.results).toHaveLength(3);
+      expect(result.fileSearchData!.results[0].filename).toBe('rag-overview.pdf');
+      expect(result.fileSearchData!.results[1].filename).toBe('embeddings-guide.pdf');
+      expect(result.fileSearchData!.results[2].filename).toBe('vector-db.pdf');
     });
 
     it('should not include fileSearchData when file_search_call results are empty', async () => {
