@@ -22,14 +22,14 @@ type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 // CreatePipelineRunHandler handles POST /api/v1/pipeline-runs
 //
 // Creates a new AutoML pipeline run using the auto-discovered pipeline for the
-// requested pipeline type. The pipelineType query parameter selects which discovered
-// pipeline to use; when omitted it defaults to "timeseries".
+// pipeline type derived from the request body's task_type field (tabular for
+// binary/multiclass/regression, timeseries for timeseries forecasting).
 //
-// Both the Pipeline Server (DSPipelineApplication) and the managed AutoML pipeline are
+// Both the Pipeline Server (DSPipelineApplication) and the managed AutoML pipelines are
 // automatically discovered — no explicit pipeline ID or version ID is required.
 //
 // Error Responses:
-//   - 400: Invalid or missing required fields, unknown JSON fields, unsupported pipelineType
+//   - 400: Invalid or missing required fields, unknown JSON fields, invalid task_type
 //   - 404: Required managed AutoML pipelines not found on the pipeline server
 //   - 500: Pipeline Server error
 func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
