@@ -16,6 +16,7 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
     {envVariables.map((envVariable, i) => (
       <React.Fragment key={i}>
         <EnvTypeSelectField
+          instanceId={i}
           envVariable={envVariable}
           onUpdate={(updatedVariable) => {
             setEnvVariables(

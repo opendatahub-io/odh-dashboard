@@ -8,12 +8,14 @@ import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import EnvTypeSwitch from './EnvTypeSwitch';
 
 type EnvTypeSelectFieldProps = {
+  instanceId: number;
   envVariable: EnvVariable;
   onUpdate: (envVariable: EnvVariable) => void;
   onRemove: () => void;
 };
 
 const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
+  instanceId,
   envVariable,
   onUpdate,
   onRemove,
@@ -49,6 +51,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
             <StackItem>
               <IndentSection>
                 <EnvTypeSwitch
+                  instanceId={instanceId}
                   env={envVariable}
                   onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
                   onUpdateVariable={onUpdate}

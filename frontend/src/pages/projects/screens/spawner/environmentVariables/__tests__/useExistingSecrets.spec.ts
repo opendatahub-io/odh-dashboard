@@ -63,4 +63,14 @@ describe('isConnectionSecret', () => {
     });
     expect(isConnectionSecret(secret)).toBe(false);
   });
+
+  it('should return false when metadata.annotations is undefined', () => {
+    const secret = mockCustomSecretK8sResource({
+      name: 'no-annotations',
+      namespace: 'ns',
+      data: { key: 'val' },
+    });
+    delete (secret.metadata as Record<string, unknown>).annotations;
+    expect(isConnectionSecret(secret)).toBe(false);
+  });
 });

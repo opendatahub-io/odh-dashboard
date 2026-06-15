@@ -70,7 +70,12 @@ describe('getExistingSecretKeyRefEnvVars', () => {
     ];
     const result = getExistingSecretKeyRefEnvVars(envVars);
     expect(result).toHaveLength(3);
-    expect(result.every((e) => e.valueFrom?.secretKeyRef?.name === 'my-secret')).toBe(true);
+    expect(
+      result.every(
+        (e) =>
+          (e.valueFrom as Record<string, Record<string, string>>).secretKeyRef.name === 'my-secret',
+      ),
+    ).toBe(true);
   });
 
   it('should handle multiple EXISTING_SECRET entries', () => {
@@ -119,5 +124,10 @@ describe('getExistingSecretKeyRefEnvVars', () => {
     expect(result).toEqual([
       { name: 'FOO', valueFrom: { secretKeyRef: { name: 'ext', key: 'FOO' } } },
     ]);
+  });
+
+  it('should skip EXISTING_SECRET with undefined existingSecretRef', () => {
+    const envVars: EnvVariable[] = [{ type: EnvironmentVariableType.EXISTING_SECRET }];
+    expect(getExistingSecretKeyRefEnvVars(envVars)).toEqual([]);
   });
 });

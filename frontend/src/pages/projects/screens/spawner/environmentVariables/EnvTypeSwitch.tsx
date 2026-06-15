@@ -10,19 +10,18 @@ import EnvSecret from './EnvSecret';
 import EnvExistingSecret from './EnvExistingSecret';
 
 type EnvTypeSwitchProps = {
+  instanceId: number;
   env: EnvVariable;
   onUpdate: (envVariableData: EnvVariableData) => void;
   onUpdateVariable: (envVariable: EnvVariable) => void;
 };
 
-const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({ env, onUpdate, onUpdateVariable }) => {
-  const handleExistingSecretUpdate = React.useCallback(
-    (ref: ExistingSecretRef) => {
-      onUpdateVariable({ ...env, existingSecretRef: ref });
-    },
-    [env, onUpdateVariable],
-  );
-
+const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({
+  instanceId,
+  env,
+  onUpdate,
+  onUpdateVariable,
+}) => {
   switch (env.type) {
     case EnvironmentVariableType.CONFIG_MAP:
       return <EnvConfigMap env={env.values} onUpdate={onUpdate} />;
@@ -31,8 +30,11 @@ const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({ env, onUpdate, onUpdateVa
     case EnvironmentVariableType.EXISTING_SECRET:
       return (
         <EnvExistingSecret
+          instanceId={instanceId}
           existingSecretRef={env.existingSecretRef}
-          onUpdate={handleExistingSecretUpdate}
+          onUpdate={(ref: ExistingSecretRef) =>
+            onUpdateVariable({ ...env, existingSecretRef: ref })
+          }
         />
       );
     default:

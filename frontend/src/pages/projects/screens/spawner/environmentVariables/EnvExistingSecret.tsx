@@ -3,58 +3,66 @@ import { Checkbox, FormGroup, Spinner, Stack, StackItem } from '@patternfly/reac
 import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
 import { getDashboardMainContainer } from '#~/utilities/utils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { SecretKind } from '#~/k8sTypes';
 import { ExistingSecretRef } from '#~/pages/projects/types';
-import { useExistingSecrets } from './useExistingSecrets';
+import { SecretSummary, useExistingSecrets } from './useExistingSecrets';
 
 type EnvExistingSecretProps = {
+  instanceId: number;
   existingSecretRef?: ExistingSecretRef;
   onUpdate: (ref: ExistingSecretRef) => void;
 };
 
-const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ existingSecretRef, onUpdate }) => {
+const popperProps = { appendTo: getDashboardMainContainer };
+
+const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
+  instanceId,
+  existingSecretRef,
+  onUpdate,
+}) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
   const [secrets, secretsLoaded] = useExistingSecrets(namespace);
 
-  const selectedSecret = React.useMemo<SecretKind | undefined>(
-    () =>
-      existingSecretRef
-        ? secrets.find((s) => s.metadata.name === existingSecretRef.secretName)
-        : undefined,
-    [secrets, existingSecretRef],
+  const secretName = existingSecretRef?.secretName;
+
+  const selectedSecret = React.useMemo<SecretSummary | undefined>(
+    () => (secretName ? secrets.find((s) => s.name === secretName) : undefined),
+    [secrets, secretName],
   );
 
-  const secretKeyNames = React.useMemo<string[]>(
-    () => (selectedSecret?.data ? Object.keys(selectedSecret.data) : []),
-    [selectedSecret],
-  );
+  const secretKeyNames = React.useMemo(() => selectedSecret?.keys ?? [], [selectedSecret]);
 
   const secretOptions = React.useMemo<TypeaheadSelectOption[]>(
-    () =>
-      secrets.map((secret) => ({
-        value: secret.metadata.name,
-        content: secret.metadata.name,
-      })),
+    () => secrets.map((s) => ({ value: s.name, content: s.name })),
     [secrets],
   );
+
+  React.useEffect(() => {
+    if (secretsLoaded && secretName && !selectedSecret) {
+      onUpdate({ secretName: '', selectedKeys: [], allKeys: false });
+    }
+  }, [secretsLoaded, secretName, selectedSecret, onUpdate]);
 
   const handleSecretSelect = React.useCallback(
     (
       _event: React.MouseEvent | React.KeyboardEvent<HTMLInputElement> | undefined,
       value: string | number,
     ) => {
-      const secretName = String(value);
-      const secret = secrets.find((s) => s.metadata.name === secretName);
-      const allKeys = secret?.data ? Object.keys(secret.data) : [];
+      const name = String(value);
+      const secret = secrets.find((s) => s.name === name);
+      const keys = secret?.keys ?? [];
       onUpdate({
-        secretName,
-        selectedKeys: allKeys,
-        allKeys: true,
+        secretName: name,
+        selectedKeys: keys,
+        allKeys: keys.length > 0,
       });
     },
     [secrets, onUpdate],
   );
+
+  const handleClearSelection = React.useCallback(() => {
+    onUpdate({ secretName: '', selectedKeys: [], allKeys: false });
+  }, [onUpdate]);
 
   const handleAllKeysToggle = React.useCallback(
     (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
@@ -81,59 +89,65 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ existingSecretRef
       onUpdate({
         ...existingSecretRef,
         selectedKeys: newKeys,
-        allKeys: newKeys.length === secretKeyNames.length,
+        allKeys: newKeys.length === secretKeyNames.length && newKeys.length > 0,
       });
     },
     [existingSecretRef, secretKeyNames, onUpdate],
   );
 
+  const selectFieldId = `existing-secret-select-${instanceId}`;
+  const allKeysId = `existing-secret-${instanceId}-all-keys`;
+
   if (!secretsLoaded) {
-    return <Spinner size="md" aria-label="Loading secrets" />;
+    return <Spinner size="md" aria-label="Loading secrets" data-testid="existing-secret-spinner" />;
   }
 
   return (
-    <Stack hasGutter>
+    <Stack hasGutter data-testid="env-existing-secret">
       <StackItem>
-        <FormGroup label="Secret" fieldId="existing-secret-select" isRequired>
+        <FormGroup label="Secret" fieldId={selectFieldId} isRequired>
           <TypeaheadSelect
             selectOptions={secretOptions}
-            selected={existingSecretRef?.secretName}
+            selected={secretName}
             onSelect={handleSecretSelect}
             placeholder="Select a secret"
             noOptionsAvailableMessage="No secrets available in this project"
             noOptionsFoundMessage={(filter) => `No secrets found for "${filter}"`}
-            popperProps={{ appendTo: getDashboardMainContainer() }}
-            dataTestId="existing-secret-select"
+            popperProps={popperProps}
+            dataTestId={selectFieldId}
             isRequired
             allowClear
-            onClearSelection={() => onUpdate({ secretName: '', selectedKeys: [], allKeys: false })}
+            onClearSelection={handleClearSelection}
           />
         </FormGroup>
       </StackItem>
-      {existingSecretRef?.secretName && selectedSecret && secretKeyNames.length > 0 && (
+      {secretName && selectedSecret && secretKeyNames.length > 0 && (
         <StackItem>
-          <FormGroup label="Keys" fieldId="existing-secret-keys">
+          <FormGroup label="Keys" fieldId={allKeysId}>
             <Stack hasGutter>
               <StackItem>
                 <Checkbox
-                  id="existing-secret-all-keys"
-                  data-testid="existing-secret-all-keys"
+                  id={allKeysId}
+                  data-testid={allKeysId}
                   label="All keys"
                   isChecked={existingSecretRef.allKeys}
                   onChange={handleAllKeysToggle}
                 />
               </StackItem>
-              {secretKeyNames.map((key) => (
-                <StackItem key={key}>
-                  <Checkbox
-                    id={`existing-secret-key-${key}`}
-                    data-testid={`existing-secret-key-${key}`}
-                    label={key}
-                    isChecked={existingSecretRef.selectedKeys.includes(key)}
-                    onChange={(_event, checked) => handleKeyToggle(key, checked)}
-                  />
-                </StackItem>
-              ))}
+              {secretKeyNames.map((key) => {
+                const keyId = `existing-secret-${instanceId}-key-${key}`;
+                return (
+                  <StackItem key={key}>
+                    <Checkbox
+                      id={keyId}
+                      data-testid={keyId}
+                      label={key}
+                      isChecked={existingSecretRef.selectedKeys.includes(key)}
+                      onChange={(_event, checked) => handleKeyToggle(key, checked)}
+                    />
+                  </StackItem>
+                );
+              })}
             </Stack>
           </FormGroup>
         </StackItem>

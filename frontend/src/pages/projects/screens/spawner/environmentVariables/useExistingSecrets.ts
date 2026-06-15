@@ -13,11 +13,16 @@ const CONNECTION_ANNOTATION_KEYS = [
   'opendatahub.io/connection-type-ref',
 ];
 
+export type SecretSummary = {
+  name: string;
+  keys: string[];
+};
+
 export const isConnectionSecret = (secret: SecretKind): boolean =>
   CONNECTION_ANNOTATION_KEYS.some((key) => key in (secret.metadata.annotations ?? {}));
 
-export const useExistingSecrets = (namespace?: string): FetchState<SecretKind[]> => {
-  const callback = React.useCallback<FetchStateCallbackPromise<SecretKind[]>>(async () => {
+export const useExistingSecrets = (namespace?: string): FetchState<SecretSummary[]> => {
+  const callback = React.useCallback<FetchStateCallbackPromise<SecretSummary[]>>(async () => {
     if (!namespace) {
       return Promise.reject(new NotReadyError('No namespace'));
     }
@@ -27,7 +32,14 @@ export const useExistingSecrets = (namespace?: string): FetchState<SecretKind[]>
       queryOptions: { ns: namespace },
     });
 
-    return result.items.filter((secret) => secret.type === 'Opaque' && !isConnectionSecret(secret));
+    return result.items
+      .filter((secret) => secret.type === 'Opaque' && !isConnectionSecret(secret))
+      .map(
+        (secret): SecretSummary => ({
+          name: secret.metadata.name,
+          keys: secret.data ? Object.keys(secret.data) : [],
+        }),
+      );
   }, [namespace]);
 
   return useFetchState(callback, []);
