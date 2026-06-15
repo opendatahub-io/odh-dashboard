@@ -70,20 +70,20 @@ func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request,
 		if subs == nil {
 			subs = []models.ModelOverviewSubscription{}
 		}
-		polics := policiesByModel[ref.Name]
-		if polics == nil {
-			polics = []models.ModelOverviewPolicy{}
+		policies := policiesByModel[ref.Name]
+		if policies == nil {
+			policies = []models.ModelOverviewPolicy{}
 		}
 
 		items = append(items, models.ModelOverviewItem{
 			ID: ref.Name,
-			ModelDetails: &models.ModelOverviewDetails{
+			ModelDetails: models.ModelOverviewDetails{
 				DisplayName: ref.DisplayName,
 				Description: ref.Description,
 				Phase:       ref.Phase,
 			},
 			Subscriptions: subs,
-			AuthPolicies:  polics,
+			AuthPolicies:  policies,
 		})
 	}
 

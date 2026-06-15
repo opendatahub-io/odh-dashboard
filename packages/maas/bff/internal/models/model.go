@@ -59,7 +59,7 @@ type ModelOverviewPolicy struct {
 // ModelOverviewItem represents a model with its associated subscriptions and auth policies.
 type ModelOverviewItem struct {
 	ID            string                      `json:"id"`
-	ModelDetails  *ModelOverviewDetails       `json:"modelDetails,omitempty"`
+	ModelDetails  ModelOverviewDetails        `json:"modelDetails"`
 	Subscriptions []ModelOverviewSubscription `json:"subscriptions"`
 	AuthPolicies  []ModelOverviewPolicy       `json:"authPolicies"`
 }
