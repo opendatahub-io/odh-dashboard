@@ -113,19 +113,6 @@ export type PipelineRun = {
   run_details?: PipelineRunDetails;
 };
 
-export type LlamaStackModelType = 'llm' | 'embedding';
-
-export type LlamaStackModel = {
-  id: string;
-  type: LlamaStackModelType;
-  provider: string;
-  resource_path: string;
-};
-
-export type LlamaStackModelsResponse = {
-  models: LlamaStackModel[];
-};
-
 export type SecretListItem = {
   uuid: string;
   name: string;

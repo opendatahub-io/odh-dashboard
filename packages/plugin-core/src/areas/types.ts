@@ -95,9 +95,6 @@ export enum SupportedArea {
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
   PLUGIN_GEN_AI = 'plugin-gen-ai',
 
-  /* RAG & Agentic */
-  LLAMA_STACK_CHAT_BOT = 'llama-stack-chat-bot',
-
   /* LM Eval */
   LM_EVAL = 'lm-eval',
 

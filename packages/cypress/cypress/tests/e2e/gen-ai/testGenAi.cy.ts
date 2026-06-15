@@ -4,7 +4,7 @@ import {
   deleteOpenShiftProject,
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
-import { checkLlamaStackDistributionReady } from '../../../utils/oc_commands/llamaStackDistribution';
+import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
 import { waitForResource } from '../../../utils/oc_commands/baseCommands';
 import { cleanupServingRuntimeTemplate, deployGenAiModel } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -110,7 +110,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       waitForResource('configmap', testData.configMapName, projectName);
 
       cy.step('Wait for OGXServer to be ready');
-      checkLlamaStackDistributionReady(projectName);
+      waitForOGXServerReady(projectName);
 
       cy.step('Wait for playground service to be created');
       waitForResource('service', testData.playgroundServiceName, projectName);
