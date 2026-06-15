@@ -30,8 +30,8 @@ jobs:
       - name: Run AgentReady Assessment
         id: assessment
         run: |
-          # Exclusions configured in .github/agentready-config.yaml
-          agentready assess . --config .github/agentready-config.yaml > assessment-output.txt
+          # Exclusions configured in .github/workflows/agentready-config.yaml
+          agentready assess . --config .github/workflows/agentready-config.yaml > assessment-output.txt
           cat assessment-output.txt
           SCORE=$(grep "Overall Score:" assessment-output.txt | grep -oE '[0-9]+\.[0-9]+' | head -1)
           echo "score=$SCORE" >> $GITHUB_OUTPUT
