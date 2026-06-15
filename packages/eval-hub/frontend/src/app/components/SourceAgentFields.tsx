@@ -92,7 +92,29 @@ const SourceAgentFields: React.FC<SourceAgentFieldsProps> = ({
           labelHelp={
             <LabelHelpPopover
               ariaLabel="More info for API key secret name"
-              content="The name of the Kubernetes Secret that contains your API key. The secret is stored securely in your cluster and referenced by name — the actual key value is never exposed in the evaluation configuration."
+              title="API key secret name"
+              content={
+                <>
+                  Enter the <strong>name</strong> of the Kubernetes Secret that stores the API key
+                  (api-key).
+                  <br />
+                  <br />
+                  If it hasn&apos;t been created yet, run:
+                  <pre
+                    style={{
+                      background: 'var(--pf-t--global--background--color--secondary--default)',
+                      padding: 'var(--pf-t--global--spacer--sm)',
+                      borderRadius: 'var(--pf-t--global--border--radius--small)',
+                      marginTop: 'var(--pf-t--global--spacer--sm)',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-all',
+                    }}
+                  >
+                    oc create secret generic my-api-secret
+                    --from-literal=api-key=&apos;your-key-value&apos; -n your-namespace
+                  </pre>
+                </>
+              }
             />
           }
         >
