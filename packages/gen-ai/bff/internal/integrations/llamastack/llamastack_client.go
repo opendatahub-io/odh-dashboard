@@ -707,6 +707,21 @@ func (c *LlamaStackClient) GetFile(ctx context.Context, fileID string) (*openai.
 	return file, nil
 }
 
+// GetFileContent retrieves the raw content of a file by ID.
+// Returns the body as an io.ReadCloser (caller must close), the Content-Type header, and any error.
+func (c *LlamaStackClient) GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error) {
+	if fileID == "" {
+		return nil, "", NewInvalidRequestError("fileID is required")
+	}
+
+	resp, err := c.client.Files.Content(ctx, fileID)
+	if err != nil {
+		return nil, "", wrapClientError(err, "GetFileContent")
+	}
+
+	return resp.Body, resp.Header.Get("Content-Type"), nil
+}
+
 // DeleteFile deletes a file by ID.
 func (c *LlamaStackClient) DeleteFile(ctx context.Context, fileID string) error {
 	if fileID == "" {

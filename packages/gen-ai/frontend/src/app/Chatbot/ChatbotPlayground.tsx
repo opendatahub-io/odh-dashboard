@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Button,
   Divider,
   Drawer,
   DrawerContent,
@@ -20,11 +21,13 @@ import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
-import { uploadVisionFile } from '~/app/services/llamaStackService';
+import { uploadMediaFile } from '~/app/services/llamaStackService';
+import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
 import { getId } from '~/app/utilities/utils';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -49,6 +52,8 @@ import CloseChatCompareModal from './components/CloseChatCompareModal';
 import {
   useChatbotConfigStore,
   selectSelectedModel,
+  selectSelectedAsrModel,
+  selectIsAsrModelEnabled,
   selectConfigIds,
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
@@ -147,6 +152,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
   const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
+  const primarySelectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(primaryConfigId));
+  const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
+
+  const isAudioUploadDisabled = !primaryIsAsrEnabled || !primarySelectedAsrModel;
 
   // Router state
   const location = useLocation();
@@ -190,6 +199,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isFilesLoading: fileManagement.isLoading,
   });
 
+  // Load AgentProfile from URL query param (?agentProfileId=<uuid>)
+  useAgentProfileUrlParam({ mcpServers, mcpServersLoaded });
+
   // Message hooks tracking
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
   const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
@@ -214,6 +226,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const uploadGenRef = React.useRef(0);
   const previewUrlRef = React.useRef<string | null>(null);
   previewUrlRef.current = imageUploadState.previewUrl;
+
+  // Audio transcription state
+  const audioTranscription = useAudioTranscription();
+  const [hasAudioInCurrentMessage, setHasAudioInCurrentMessage] = React.useState(false);
+  const audioUploadLatchRef = React.useRef(false);
+  const [showAudioPerMessageModal, setShowAudioPerMessageModal] = React.useState(false);
+  const [messageBarValue, setMessageBarValue] = React.useState<string>('');
 
   // Revoke unsent image preview blob URL on unmount
   React.useEffect(
@@ -329,6 +348,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       }
 
       setPendingDocChips([]);
+      audioUploadLatchRef.current = false;
+      setHasAudioInCurrentMessage(false);
+      setMessageBarValue('');
     },
     [
       setLastInput,
@@ -436,8 +458,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         fileName: normalizedName,
       });
 
-      const url = `${URL_PREFIX}/api/v1/lsd/files/vision?namespace=${encodeURIComponent(namespace?.name || '')}`;
-      const { promise, xhr } = uploadVisionFile(url, file, (percent) => {
+      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(namespace?.name || '')}`;
+      const { promise, xhr } = uploadMediaFile(url, file, 'vision', (percent) => {
         setImageUploadState((prev) => ({ ...prev, progress: percent }));
       });
       visionXhrRef.current = xhr;
@@ -452,6 +474,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             uploading: false,
             fileId: response.data.id,
           }));
+          const { configIds: allConfigIds, configurations } = useChatbotConfigStore.getState();
+          allConfigIds.forEach((cId) => {
+            if (configurations[cId]) {
+              useChatbotConfigStore.getState().updateHasVisionImage(cId, true);
+            }
+          });
         })
         .catch((error) => {
           if (uploadGenRef.current !== gen) {
@@ -527,7 +555,73 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       previewUrl: null,
       fileName: null,
     });
-  }, [imageUploadState.uploading, imageUploadState.previewUrl]);
+    if (!hasImageInConversation) {
+      const { configIds: ids, configurations: configs } = useChatbotConfigStore.getState();
+      ids.forEach((cId) => {
+        if (configs[cId]) {
+          useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+        }
+      });
+    }
+  }, [imageUploadState.uploading, imageUploadState.previewUrl, hasImageInConversation]);
+
+  // Audio upload handler
+  const handleAudioUpload = React.useCallback(
+    (file: File) => {
+      if (hasAudioInCurrentMessage || audioUploadLatchRef.current) {
+        setShowAudioPerMessageModal(true);
+        return;
+      }
+      if (!primarySelectedAsrModel) {
+        return;
+      }
+      audioUploadLatchRef.current = true;
+      setHasAudioInCurrentMessage(true);
+      audioTranscription.startUpload(file, primarySelectedAsrModel, namespace?.name || '');
+    },
+    [hasAudioInCurrentMessage, primarySelectedAsrModel, namespace?.name, audioTranscription],
+  );
+
+  const handleAudioCancel = React.useCallback(() => {
+    audioTranscription.abort();
+    audioUploadLatchRef.current = false;
+    setHasAudioInCurrentMessage(false);
+  }, [audioTranscription]);
+
+  // Append transcribed text to message bar on completion
+  const { phase, transcribedText } = audioTranscription.state;
+  React.useEffect(() => {
+    if (phase === 'complete' && transcribedText) {
+      setMessageBarValue((prev) => {
+        const trimmed = prev.trim();
+        if (trimmed) {
+          return `${trimmed}\n${transcribedText}`;
+        }
+        return transcribedText;
+      });
+      audioUploadLatchRef.current = false;
+      audioTranscription.reset();
+    }
+  }, [phase, transcribedText, audioTranscription]);
+
+  // Reset audio state on error
+  React.useEffect(() => {
+    if (audioTranscription.state.phase === 'error') {
+      audioUploadLatchRef.current = false;
+      setHasAudioInCurrentMessage(false);
+    }
+  }, [audioTranscription.state.phase]);
+
+  // Allow re-upload when user clears transcribed text from input
+  React.useEffect(() => {
+    if (
+      hasAudioInCurrentMessage &&
+      !messageBarValue.trim() &&
+      audioTranscription.state.phase === 'idle'
+    ) {
+      setHasAudioInCurrentMessage(false);
+    }
+  }, [messageBarValue, hasAudioInCurrentMessage, audioTranscription.state.phase]);
 
   const openSettingsToTab = location.state?.openSettingsToTab;
 
@@ -618,6 +712,16 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         setHasImageInConversation(false);
         handleRemoveImage();
         setPendingDocChips([]);
+        audioTranscription.abort();
+        const { configIds: allCIds, configurations: allConfigs } = useChatbotConfigStore.getState();
+        allCIds.forEach((cId) => {
+          if (allConfigs[cId]) {
+            useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+          }
+        });
+        audioUploadLatchRef.current = false;
+        setHasAudioInCurrentMessage(false);
+        setMessageBarValue('');
       };
     }
     return () => {
@@ -625,7 +729,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         ref.current = null;
       }
     };
-  }, [clearAllMessagesRef, handleRemoveImage]);
+  }, [clearAllMessagesRef, handleRemoveImage, audioTranscription]);
 
   // Expose hasConversationMessages to parent (beyond the initial welcome message)
   React.useEffect(() => {
@@ -735,6 +839,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             setHasImageInConversation(false);
             handleRemoveImage();
             setPendingDocChips([]);
+            audioTranscription.abort();
+            setHasAudioInCurrentMessage(false);
+            const { configIds: cIds, configurations: cfgs } = useChatbotConfigStore.getState();
+            cIds.forEach((cId) => {
+              if (cfgs[cId]) {
+                useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+              }
+            });
+            setMessageBarValue('');
             if (isCompareMode) {
               fireMiscTrackingEvent('Playground Compare Chat Cleared', { success: true });
             }
@@ -828,7 +941,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   !primarySelectedModel ||
                   Array.from(disabledStates.values()).some(Boolean) ||
                   imageUploadState.uploading ||
-                  pendingDocChips.some((c) => c.status === 'uploading')
+                  pendingDocChips.some((c) => c.status === 'uploading') ||
+                  audioTranscription.state.phase === 'uploading' ||
+                  audioTranscription.state.phase === 'transcribing' ||
+                  audioTranscription.state.phase === 'complete'
                 }
                 showAttachButton={!isCompareMode && !isEmbedded}
                 onDocumentAttach={handleAttach}
@@ -837,10 +953,20 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 imageUploadState={imageUploadState}
                 onRemoveImage={handleRemoveImage}
                 isImageUploadDisabled={hasImageInConversation}
-                isAudioUploadDisabled
+                isAudioUploadDisabled={isAudioUploadDisabled}
+                audioDisabledTooltip={
+                  isAudioUploadDisabled
+                    ? 'Select a transcription model in settings to enable audio upload'
+                    : undefined
+                }
+                onAudioUpload={handleAudioUpload}
+                audioTranscriptionState={audioTranscription.state}
+                onAudioCancel={handleAudioCancel}
                 pendingDocChips={pendingDocChips}
                 onRemoveDocChip={handleRemoveDocChip}
                 alwaysShowSendButton={hasReadyAttachments}
+                messageBarValue={messageBarValue}
+                onMessageBarValueChange={setMessageBarValue}
               />
             </div>
           </DrawerContentBody>
@@ -882,6 +1008,30 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               onSubmit={handleReplaceMediaConfirm}
               onCancel={handleReplaceMediaCancel}
             />
+          </ModalFooter>
+        </Modal>
+      )}
+
+      {showAudioPerMessageModal && (
+        <Modal
+          isOpen
+          onClose={() => setShowAudioPerMessageModal(false)}
+          variant="small"
+          data-testid="audio-per-message-modal"
+        >
+          <ModalHeader title="Audio already attached" />
+          <ModalBody>
+            Only one audio file can be transcribed per message. Send the current message or clear
+            the transcription to attach another audio file.
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="primary"
+              onClick={() => setShowAudioPerMessageModal(false)}
+              data-testid="audio-per-message-modal-ok"
+            >
+              OK
+            </Button>
           </ModalFooter>
         </Modal>
       )}

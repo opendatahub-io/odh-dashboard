@@ -113,12 +113,60 @@ paths:
     description: >-
       Lists all benchmark collections from the EvalHub control plane.
       Returns collections with their benchmarks, tags, and metadata.
-      When the upstream EvalHub API is unavailable, mock data is returned in mock mode.
     get:
       tags:
         - Collections
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to scope the collections request (tenant)
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of collections to return (1-100, default 50)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Number of collections to skip for pagination (default 0)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: name
+          in: query
+          description: Filter collections by name (case-insensitive substring match)
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter collections by category (exact match)
+          required: false
+          schema:
+            type: string
+        - name: tags
+          in: query
+          description: Filter collections by tags (comma-separated)
+          required: false
+          schema:
+            type: string
+        - name: scope
+          in: query
+          description: Limit to system-defined or tenant-defined collections
+          required: false
+          schema:
+            type: string
+            enum: [system, tenant]
       responses:
         '200':
           $ref: '#/components/responses/CollectionsResponse'
@@ -130,7 +178,47 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       operationId: listCollections
       summary: List Collections
-      description: Gets a list of all benchmark collections from the EvalHub server.
+      description: Gets a paginated, filterable list of benchmark collections from the EvalHub server.
+
+  /eval-hub/api/v1/evaluations/providers:
+    summary: List evaluation providers
+    description: >-
+      Lists all evaluation providers from the EvalHub control plane.
+      Each provider exposes a catalogue of benchmarks available for evaluation.
+    get:
+      tags:
+        - Providers
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of providers to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Offset for pagination
+      responses:
+        '200':
+          $ref: '#/components/responses/ProvidersResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listProviders
+      summary: List Providers
+      description: Gets a list of all evaluation providers with their benchmark catalogues.
 
   /eval-hub/api/v1/evaluations/jobs:
     summary: List evaluation jobs
@@ -162,6 +250,49 @@ paths:
       operationId: listEvaluationJobs
       summary: List Evaluation Jobs
       description: Gets a list of all evaluation jobs from the EvalHub server.
+    post:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - in: query
+          name: namespace
+          schema:
+            type: string
+          required: true
+          description: Kubernetes namespace to scope the evaluation job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvaluationJobRequest'
+            example:
+              name: 'test-eval-02-03'
+              description: 'A test evaluation'
+              model:
+                url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+                name: 'llama-32-1b-instruct'
+              benchmarks:
+                - id: 'arc_easy'
+                  provider_id: 'lm_evaluation_harness'
+                  parameters:
+                    num_examples: 10
+                    limit: 5
+                    tokenizer: 'google/flan-t5-small'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreateEvaluationJobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: createEvaluationJob
+      summary: Create Evaluation Job
+      description: Creates and starts a new evaluation run against the EvalHub control plane.
 
   /eval-hub/api/v1/evaluations/jobs/{id}:
     summary: Cancel or delete an evaluation job
@@ -195,6 +326,116 @@ paths:
       description: >-
         Cancels a running evaluation job (soft cancel) or permanently
         deletes it (hard delete) depending on the hard_delete parameter.
+
+  # =============================================================================
+  # INFERENCE SERVICES
+  # =============================================================================
+
+  /eval-hub/api/v1/inferenceservices:
+    summary: List InferenceService resources
+    description: >-
+      Lists InferenceService resources (serving.kserve.io/v1beta1) in the
+      user's namespace. Uses the caller's bearer token for RBAC enforcement.
+      Degrades gracefully if the CRD is not installed or the user lacks access.
+    get:
+      tags:
+        - InferenceServices
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          description: List of InferenceService resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InferenceServicesResponse'
+              example:
+                items:
+                  - name: 'llama-32-1b-instruct'
+                    url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+                    ready: true
+                  - name: 'mistral-7b'
+                    url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
+                    ready: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listInferenceServices
+      summary: List InferenceServices
+      description: >-
+        Returns deployed InferenceService models in the namespace. Returns
+        an empty list with a warning field if the CRD is not installed or
+        the user lacks access.
+
+  # =============================================================================
+  # CONNECTION VERIFICATION
+  # =============================================================================
+
+  /eval-hub/api/v1/evaluations/verify-connection:
+    summary: Verify endpoint connectivity
+    description: >-
+      Validates that an endpoint URL is reachable and responds correctly
+      before committing to a full evaluation run. Supports model, agent,
+      and pre-recorded data source types.
+    post:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyConnectionRequest'
+            example:
+              source_type: 'model'
+              base_url: 'https://api.example.com/v1'
+              model_id: 'llama-3.2-1b-instruct'
+      responses:
+        '200':
+          description: Connection verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VerifyConnectionResponse'
+              example:
+                data:
+                  success: true
+                  message: 'Connection successful'
+                  response_time_ms: 120
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '408':
+          description: Connection timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Endpoint unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      operationId: verifyConnection
+      summary: Verify Endpoint Connection
+      description: >-
+        Probes the given endpoint to verify connectivity. For model/agent
+        sources, sends a test request to /chat/completions. For pre-recorded
+        sources, performs a HEAD request to the dataset URL.
 
 components:
   # =============================================================================
@@ -389,6 +630,13 @@ components:
           items:
             $ref: '#/components/schemas/BenchmarkResult'
 
+    ModelAuth:
+      type: object
+      properties:
+        secret_ref:
+          type: string
+          description: Reference to a Kubernetes secret containing the API key or token
+
     JobModel:
       type: object
       required:
@@ -396,10 +644,59 @@ components:
       properties:
         url:
           type: string
+          description: Inference endpoint URL for the model
+          example: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
         name:
           type: string
-          example: 'meta-llama/Llama-3.1-8B-Instruct'
-          description: Model being evaluated
+          example: 'llama-32-1b-instruct'
+          description: Name of the model or agent being evaluated
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Additional model-level parameters
+        auth:
+          $ref: '#/components/schemas/ModelAuth'
+
+    S3DataRef:
+      type: object
+      properties:
+        bucket:
+          type: string
+          description: S3 bucket name
+        key:
+          type: string
+          description: S3 object key or dataset URL
+        secret_ref:
+          type: string
+          description: Reference to a secret for S3 access credentials
+
+    TestDataRef:
+      type: object
+      properties:
+        s3:
+          $ref: '#/components/schemas/S3DataRef'
+
+    JobPrimaryScore:
+      type: object
+      required:
+        - metric
+        - lower_is_better
+      properties:
+        metric:
+          type: string
+          description: Name of the primary scoring metric
+        lower_is_better:
+          type: boolean
+          description: Whether a lower score indicates better performance
+
+    JobPassCriteria:
+      type: object
+      required:
+        - threshold
+      properties:
+        threshold:
+          type: number
+          description: Minimum score threshold to pass
 
     JobBenchmark:
       type: object
@@ -413,9 +710,20 @@ components:
         provider_id:
           type: string
           example: 'lm_evaluation_harness'
+          description: ID of the evaluation provider that runs this benchmark
+        weight:
+          type: number
+          description: Relative weight of this benchmark in a collection (default 1)
+        primary_score:
+          $ref: '#/components/schemas/JobPrimaryScore'
+        pass_criteria:
+          $ref: '#/components/schemas/JobPassCriteria'
         parameters:
           type: object
           additionalProperties: true
+          description: Runtime parameters passed to the benchmark (e.g. num_examples, limit, tokenizer)
+        test_data_ref:
+          $ref: '#/components/schemas/TestDataRef'
 
     EvaluationJob:
       type: object
@@ -432,12 +740,251 @@ components:
           $ref: '#/components/schemas/JobStatus'
         results:
           $ref: '#/components/schemas/JobResults'
+        name:
+          type: string
+          description: User-provided name for the evaluation run
+        description:
+          type: string
+          description: User-provided description
+        tags:
+          type: array
+          items:
+            type: string
         model:
           $ref: '#/components/schemas/JobModel'
+        pass_criteria:
+          $ref: '#/components/schemas/JobPassCriteria'
         benchmarks:
           type: array
           items:
             $ref: '#/components/schemas/JobBenchmark'
+        collection:
+          $ref: '#/components/schemas/JobCollection'
+        experiment:
+          $ref: '#/components/schemas/JobExperiment'
+        custom:
+          type: object
+          additionalProperties: true
+        exports:
+          $ref: '#/components/schemas/JobExports'
+
+    ExperimentTag:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+
+    JobExperiment:
+      type: object
+      properties:
+        name:
+          type: string
+          description: MLflow experiment name
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExperimentTag'
+        artifact_location:
+          type: string
+          description: Storage location for experiment artifacts
+
+    JobCollection:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: ID of the benchmark collection to run
+
+    OciCoordinates:
+      type: object
+      properties:
+        oci_host:
+          type: string
+        oci_repository:
+          type: string
+        oci_tag:
+          type: string
+        oci_subject:
+          type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+
+    OciK8s:
+      type: object
+      properties:
+        connection:
+          type: string
+
+    OciExport:
+      type: object
+      properties:
+        coordinates:
+          $ref: '#/components/schemas/OciCoordinates'
+        k8s:
+          $ref: '#/components/schemas/OciK8s'
+
+    JobExports:
+      type: object
+      properties:
+        oci:
+          $ref: '#/components/schemas/OciExport'
+
+    # -------------------------------------------------------------------------
+    # InferenceService schemas
+    # -------------------------------------------------------------------------
+
+    InferenceServiceItem:
+      type: object
+      required:
+        - name
+        - ready
+      properties:
+        name:
+          type: string
+          description: Name of the InferenceService resource
+          example: 'llama-32-1b-instruct'
+        url:
+          type: string
+          description: Serving URL if the service is ready
+          example: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+        ready:
+          type: boolean
+          description: Whether the InferenceService is in a Ready state
+          example: true
+
+    InferenceServicesResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InferenceServiceItem'
+        warning:
+          type: string
+          description: >-
+            Warning message when the listing degrades gracefully (e.g. CRD
+            not installed, user lacks access). Present only when the BFF
+            could not list resources but did not hard-fail.
+      example:
+        items:
+          - name: 'llama-32-1b-instruct'
+            url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+            ready: true
+          - name: 'mistral-7b'
+            url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
+            ready: true
+
+    # -------------------------------------------------------------------------
+    # Connection verification schemas
+    # -------------------------------------------------------------------------
+
+    VerifyConnectionRequest:
+      type: object
+      required:
+        - source_type
+        - base_url
+      properties:
+        source_type:
+          type: string
+          enum:
+            - model
+            - agent
+            - prerecorded
+          description: Type of evaluation source being verified
+          example: 'model'
+        base_url:
+          type: string
+          format: uri
+          description: Endpoint URL to verify
+          example: 'https://api.example.com/v1'
+        secret_name:
+          type: string
+          description: >-
+            Name of a Kubernetes Secret (in the request namespace) whose "api-key"
+            data field contains the authentication credential. Mutually exclusive
+            with secret_value; secret_name takes precedence when both are provided.
+          example: 'my-api-key-secret'
+        secret_value:
+          type: string
+          description: >-
+            Literal API key or bearer token for authentication (used for pre-recorded
+            sources or when the key is not stored in a Kubernetes Secret).
+        model_id:
+          type: string
+          description: Model identifier to include in the test request (model/agent sources)
+          example: 'llama-3.2-1b-instruct'
+
+    VerifyConnectionResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Whether the connection probe succeeded
+          example: true
+        message:
+          type: string
+          description: Human-readable result summary
+          example: 'Connection successful'
+        response_time_ms:
+          type: integer
+          description: Round-trip time in milliseconds (present on success)
+          example: 142
+
+    # -------------------------------------------------------------------------
+    # Evaluation job schemas
+    # -------------------------------------------------------------------------
+
+    CreateEvaluationJobRequest:
+      type: object
+      required:
+        - name
+        - model
+        - benchmarks
+      properties:
+        name:
+          type: string
+          description: Name for the evaluation run
+          example: 'test-eval-02-03'
+        description:
+          type: string
+          description: Optional description
+          example: 'A test evaluation'
+        tags:
+          type: array
+          items:
+            type: string
+        model:
+          $ref: '#/components/schemas/JobModel'
+        pass_criteria:
+          $ref: '#/components/schemas/JobPassCriteria'
+        benchmarks:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/JobBenchmark'
+        collection:
+          $ref: '#/components/schemas/JobCollection'
+        experiment:
+          $ref: '#/components/schemas/JobExperiment'
+        custom:
+          type: object
+          additionalProperties: true
+        exports:
+          $ref: '#/components/schemas/JobExports'
 
     EvaluationJobsData:
       type: object
@@ -538,6 +1085,10 @@ components:
         name:
           type: string
           example: 'Open LLM Leaderboard v2'
+        category:
+          type: string
+          example: 'General'
+          nullable: true
         description:
           type: string
           nullable: true
@@ -559,10 +1110,209 @@ components:
           nullable: true
 
     CollectionsData:
-      type: array
-      items:
-        $ref: '#/components/schemas/Collection'
-      description: Array of benchmark collections
+      type: object
+      description: Paginated list of benchmark collections
+      properties:
+        total_count:
+          type: integer
+          example: 20
+          description: Total number of collections matching the query
+        limit:
+          type: integer
+          example: 6
+          description: Maximum number of items returned
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collection'
+
+    ProviderResource:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'lm_evaluation_harness'
+        tenant:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        read_only:
+          type: boolean
+          nullable: true
+        owner:
+          type: string
+          nullable: true
+
+    ProviderBenchmarkPrimaryScore:
+      type: object
+      required:
+        - metric
+        - lower_is_better
+      properties:
+        metric:
+          type: string
+        lower_is_better:
+          type: boolean
+
+    ProviderBenchmarkPassCriteria:
+      type: object
+      required:
+        - threshold
+      properties:
+        threshold:
+          type: number
+
+    ProviderBenchmark:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          example: 'truthfulqa_mc1'
+        name:
+          type: string
+          example: 'Truthfulness Testing'
+        description:
+          type: string
+          nullable: true
+          example: 'Tests whether models give truthful answers to questions where humans often answer incorrectly.'
+        category:
+          type: string
+          nullable: true
+          example: 'Safety'
+        metrics:
+          type: array
+          items:
+            type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        num_few_shot:
+          type: integer
+          nullable: true
+        dataset_size:
+          type: integer
+          nullable: true
+        primary_score:
+          $ref: '#/components/schemas/ProviderBenchmarkPrimaryScore'
+        pass_criteria:
+          $ref: '#/components/schemas/ProviderBenchmarkPassCriteria'
+
+    ProviderEnvVar:
+      type: object
+      required:
+        - name
+        - value
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+
+    ProviderK8sRuntime:
+      type: object
+      description: Kubernetes-specific runtime configuration for a provider.
+      properties:
+        image:
+          type: string
+          nullable: true
+        entrypoint:
+          type: array
+          items:
+            type: string
+          nullable: true
+        cpu_request:
+          type: string
+          nullable: true
+        memory_request:
+          type: string
+          nullable: true
+        cpu_limit:
+          type: string
+          nullable: true
+        memory_limit:
+          type: string
+          nullable: true
+        env:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderEnvVar'
+          nullable: true
+
+    ProviderLocalRuntime:
+      type: object
+      description: Local execution runtime configuration for a provider.
+      properties:
+        command:
+          type: string
+          nullable: true
+        env:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderEnvVar'
+          nullable: true
+
+    ProviderRuntime:
+      type: object
+      description: Describes how a provider executes benchmarks (Kubernetes or local).
+      properties:
+        k8s:
+          $ref: '#/components/schemas/ProviderK8sRuntime'
+        local:
+          $ref: '#/components/schemas/ProviderLocalRuntime'
+
+    Provider:
+      type: object
+      properties:
+        resource:
+          $ref: '#/components/schemas/ProviderResource'
+        name:
+          type: string
+          example: 'lm_evaluation_harness'
+        title:
+          type: string
+          nullable: true
+          example: 'LM Evaluation Harness'
+        description:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        runtime:
+          $ref: '#/components/schemas/ProviderRuntime'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderBenchmark'
+          nullable: true
+
+    ProvidersData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Provider'
+        total_count:
+          type: integer
+          nullable: true
 
     Error:
       type: object
@@ -712,17 +1462,83 @@ components:
                 $ref: '#/components/schemas/CollectionsData'
           example:
             data:
-              - resource:
-                  id: 'collection-001'
-                name: 'Open LLM Leaderboard v2'
-                description: 'Comprehensive evaluation suite for general-purpose language models.'
-                tags:
-                  - 'Comprehensive'
-                  - 'Industry Standard'
-                benchmarks:
-                  - id: 'arc_challenge'
-                    provider_id: 'lm_evaluation_harness'
-                    weight: 1
+              total_count: 1
+              limit: 50
+              items:
+                - resource:
+                    id: 'collection-001'
+                  name: 'Open LLM Leaderboard v2'
+                  description: 'Comprehensive evaluation suite for general-purpose language models.'
+                  tags:
+                    - 'Comprehensive'
+                    - 'Industry Standard'
+                  benchmarks:
+                    - id: 'arc_challenge'
+                      provider_id: 'lm_evaluation_harness'
+                      weight: 1
+
+    ProvidersResponse:
+      description: List of evaluation providers with their benchmark catalogues
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/ProvidersData'
+          example:
+            data:
+              items:
+                - resource:
+                    id: 'lm_evaluation_harness'
+                  name: 'lm_evaluation_harness'
+                  title: 'LM Evaluation Harness'
+                  runtime:
+                    k8s:
+                      image: 'quay.io/opendatahub/lm-eval:latest'
+                  benchmarks:
+                    - id: 'truthfulqa_mc1'
+                      name: 'Truthfulness Testing'
+                      category: 'Safety'
+                      metrics:
+                        - 'Instruction adherence'
+                        - 'Format compliance'
+              total_count: 20
+
+    CreateEvaluationJobResponse:
+      description: Evaluation job created successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/EvaluationJob'
+          example:
+            data:
+              resource:
+                id: 'eval-job-new-001'
+                created_at: '2026-03-09T12:00:00Z'
+                updated_at: '2026-03-09T12:00:00Z'
+              status:
+                state: 'pending'
+              results: {}
+              model:
+                url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+                name: 'llama-32-1b-instruct'
+              name: 'test-eval-02-03'
+              description: 'A test evaluation'
+              benchmarks:
+                - id: 'arc_easy'
+                  provider_id: 'lm_evaluation_harness'
+                  parameters:
+                    num_examples: 10
+                    limit: 5
+                    tokenizer: 'google/flan-t5-small'
 
     CancelEvaluationJobResponse:
       description: Evaluation job cancelled or deleted successfully
@@ -869,3 +1685,5 @@ tags:
     description: LLM evaluation job management via EvalHub
   - name: Collections
     description: Benchmark collection management via EvalHub
+  - name: Providers
+    description: Evaluation provider and benchmark catalogue management via EvalHub

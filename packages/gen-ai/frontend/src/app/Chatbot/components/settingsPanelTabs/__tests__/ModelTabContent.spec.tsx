@@ -57,6 +57,13 @@ jest.mock('../../SubscriptionDropdown', () => ({
   default: () => <div data-testid="subscription-dropdown" />,
 }));
 
+jest.mock('../TranscriptionModelSection', () => ({
+  __esModule: true,
+  default: ({ configId }: { configId: string }) => (
+    <div data-testid="transcription-model-section" data-config-id={configId} />
+  ),
+}));
+
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 describe('ModelTabContent', () => {
@@ -69,6 +76,7 @@ describe('ModelTabContent', () => {
     onModelChange: jest.fn(),
     selectedSubscription: '',
     onSubscriptionChange: jest.fn(),
+    configId: 'default',
   };
 
   beforeEach(() => {
@@ -144,5 +152,13 @@ describe('ModelTabContent', () => {
     await user.click(streamingSwitch);
 
     expect(mockOnStreamingToggle).toHaveBeenCalledWith(true);
+  });
+
+  it('renders TranscriptionModelSection with configId', () => {
+    render(<ModelTabContent {...defaultProps} configId="custom-config" />);
+
+    const section = screen.getByTestId('transcription-model-section');
+    expect(section).toBeInTheDocument();
+    expect(section).toHaveAttribute('data-config-id', 'custom-config');
   });
 });

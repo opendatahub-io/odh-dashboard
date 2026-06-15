@@ -15,6 +15,7 @@ type MLflowPrompt struct {
 type MLflowPromptsResponse struct {
 	Prompts       []MLflowPrompt `json:"prompts"`
 	NextPageToken string         `json:"next_page_token,omitempty"`
+	TotalCount    int            `json:"total_count"`
 }
 
 // MLflowMessage represents a single message in a chat prompt.

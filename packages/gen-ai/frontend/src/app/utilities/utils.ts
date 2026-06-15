@@ -203,6 +203,11 @@ const MODEL_TYPE_LABELS: Record<string, string> = {
 export const getModelTypeLabel = (modelType?: string): string =>
   MODEL_TYPE_LABELS[modelType || 'llm'] || 'Inferencing';
 
+export const MODALITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
+
+export const isASRModel = (model: { modality?: string }): boolean =>
+  model.modality === MODALITY_AUDIO_TRANSCRIPTION;
+
 export const getSourceLabel = (model: AIModel): string => {
   const source = model.model_source_type;
   const label = SOURCE_LABELS[source];

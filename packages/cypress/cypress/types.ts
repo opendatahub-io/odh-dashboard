@@ -233,6 +233,12 @@ export type CommandLineResult = {
   stderr: string;
 };
 
+// export type FileMapping = {
+//   "resources/yaml/model_registry_database.yaml": string;
+// }
+
+export type FileMapping = Record<string, string>;
+
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
   TEST_USER: UserAuthConfig;
@@ -250,6 +256,8 @@ export type TestConfig = {
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
+  //File mappings for s390X
+  FILEMAPPING: FileMapping;
 };
 
 export type DataScienceProjectData = {
@@ -302,6 +310,7 @@ export type DataScienceProjectData = {
   legacyHardwareProfileName?: string;
   subscriptionDisplayName: string;
   subscriptionName: string;
+  subscriptionNamespace: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
@@ -754,6 +763,10 @@ export type AutomlTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   // Number of top models to train (min 1, default 3)
   topN?: number;
+  // Optimization metric
+  defaultMetricLabel?: string;
+  changedMetricKey?: string;
+  changedMetricLabel?: string;
   // Tabular task types (binary, multiclass, regression)
   labelColumn?: string;
   // Timeseries task type

@@ -341,7 +341,10 @@ export type CodeExportRequest = {
     name: string;
     version: number;
   };
+  prompt_variable_values?: Record<string, string>;
   guardrail_config?: CodeExportGuardrailConfig;
+  asr_model?: string;
+  vision_image?: boolean;
 };
 
 export type CodeExportData = {
@@ -398,6 +401,7 @@ export interface AAModelResponse {
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
   model_type?: 'llm' | 'embedding';
   embedding_dimension?: number;
+  modality?: string;
 }
 
 export interface AIModel extends AAModelResponse {
@@ -499,6 +503,7 @@ export type MLflowPrompt = {
 export type MLflowPromptsResponse = {
   prompts: MLflowPrompt[];
   next_page_token?: string;
+  total_count: number;
 };
 
 export type MLflowMessage = {
@@ -585,6 +590,11 @@ export type GenAiAPIs = {
   createExternalModel: CreateExternalModel;
   verifyExternalModel: VerifyExternalModel;
   deleteExternalModel: DeleteExternalModel;
+  listAgentProfiles: ListAgentProfiles;
+  getAgentProfile: GetAgentProfile;
+  updateAgentProfile: UpdateAgentProfile;
+  deleteAgentProfile: DeleteAgentProfile;
+  createAgentProfile: CreateAgentProfile;
 };
 
 export interface SubscriptionInfo {
@@ -675,6 +685,17 @@ type VerifyExternalModel = ModArchRestCREATE<
   VerifyExternalModelRequest
 >;
 type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
+type ListAgentProfiles = ModArchRestGET<import('./agentProfile/types').AgentProfileListResponse>;
+type GetAgentProfile = ModArchRestGET<import('./agentProfile/types').AgentProfile>;
+type DeleteAgentProfile = ModArchRestDELETE<void, { id: string }>;
+type UpdateAgentProfile = (
+  data: import('./agentProfile/types').AgentProfileUpdateRequest & { id: string },
+  opts?: APIOptions,
+) => Promise<import('./agentProfile/types').AgentProfileUpdateResponse>;
+type CreateAgentProfile = ModArchRestCREATE<
+  import('./agentProfile/types').AgentProfileCreateResponse,
+  import('./agentProfile/types').AgentProfileCreateRequest
+>;
 
 export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
 export type ErrorVariant = 'danger' | 'warning';
@@ -690,6 +711,7 @@ export const ERROR_COMPONENTS = {
   MODEL: 'model',
   OGX: 'ogx',
   BFF: 'bff',
+  ASR: 'asr',
 } as const;
 
 export type ErrorComponent = (typeof ERROR_COMPONENTS)[keyof typeof ERROR_COMPONENTS];
@@ -714,6 +736,7 @@ export const ERROR_COMPONENT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   [ERROR_COMPONENTS.MODEL]: 'Model',
   [ERROR_COMPONENTS.OGX]: 'OGX',
   [ERROR_COMPONENTS.BFF]: 'BFF',
+  [ERROR_COMPONENTS.ASR]: 'Audio Transcription',
 };
 
 export interface ErrorDetails {

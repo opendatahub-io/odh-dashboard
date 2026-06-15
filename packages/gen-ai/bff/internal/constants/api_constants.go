@@ -31,7 +31,8 @@ const (
 	FilesUploadPath            = ApiPathPrefix + "/lsd/files/upload"
 	FilesUploadStatusPath      = ApiPathPrefix + "/lsd/files/upload/status"
 	FilesDeletePath            = ApiPathPrefix + "/lsd/files/delete"
-	VisionFilesUploadPath      = ApiPathPrefix + "/lsd/files/vision"
+	MediaFilesUploadPath       = ApiPathPrefix + "/lsd/files/media"
+	AudioTranscriptionsPath    = ApiPathPrefix + "/lsd/audio/transcriptions"
 	VectorStoreFilesListPath   = ApiPathPrefix + "/lsd/vectorstores/files"
 	VectorStoreFilesUploadPath = ApiPathPrefix + "/lsd/vectorstores/files/upload"
 	VectorStoreFilesDeletePath = ApiPathPrefix + "/lsd/vectorstores/files/delete"
@@ -80,5 +81,6 @@ const (
 	NemoGuardrailsStatusPath = ApiPathPrefix + "/nemo-guardrails/status"
 
 	// Agent Profiles endpoints
-	AgentProfilesPath = ApiPathPrefix + "/agent-profiles"
+	AgentProfilesPath  = ApiPathPrefix + "/agent-profiles"
+	AgentProfileIDPath = ApiPathPrefix + "/agent-profiles/:id"
 )

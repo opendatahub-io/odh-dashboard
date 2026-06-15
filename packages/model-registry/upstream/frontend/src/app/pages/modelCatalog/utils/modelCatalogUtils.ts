@@ -19,6 +19,7 @@ import {
   ToolCallingConfig,
 } from '~/app/modelCatalogTypes';
 import { getLabels, getCustomPropString } from '~/app/pages/modelRegistry/screens/utils';
+import { getDoubleValue } from '~/app/utils';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -226,7 +227,9 @@ const isArrayOfSelections = (
 const KNOWN_NUMERIC_FILTER_IDS: string[] = [
   ...ALL_LATENCY_FILTER_KEYS,
   ModelCatalogNumberFilterKey.MAX_RPS,
-  ModelCatalogNumberFilterKey.COLD_START_LATENCY,
+  ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
+  ModelCatalogNumberFilterKey.MIN_VRAM,
+  ModelCatalogNumberFilterKey.IMAGE_SIZE,
 ];
 
 /**
@@ -253,8 +256,8 @@ const getNumericFilterOperator = (options: CatalogFilterOptionsList, filterId: s
     // Return the operator from the namedQuery (e.g., '<=', '<', '>')
     return fieldFilter.operator;
   }
-  // Fall back to '<' if this filter isn't in the namedQuery
-  return '<';
+  // Fall back to '<=' if this filter isn't in the namedQuery
+  return '<=';
 };
 
 const isFilterIdInMap = (
@@ -313,7 +316,7 @@ export const getSortParams = (
 
   if (effectiveSortBy === ModelCatalogSortOption.LOWEST_COLD_START) {
     return {
-      orderBy: ModelCatalogNumberFilterKey.COLD_START_LATENCY,
+      orderBy: ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
       sortOrder: SortOrder.ASC,
     };
   }
@@ -369,8 +372,14 @@ const shouldIncludeFilter = (filterId: string, target: FilterQueryTarget): boole
     return false;
   }
 
+  // Cold-start filter is excluded from the performance artifacts endpoint
+  // (performance-metrics artifacts don't have this field — it's on cold-start-metrics artifacts).
+  if (filterId === ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME && target === 'artifacts') {
+    return false;
+  }
+
   if (target === 'models') {
-    // For models, include all filters (except RPS which is already excluded)
+    // For models, include all filters (except RPS and cold-start which are already excluded)
     return true;
   }
 
@@ -794,17 +803,29 @@ export const getCatalogModelTypePropertyForRegistration = (
 
 export const getModelSizeFromCustomProperties = (
   customProperties?: ModelRegistryCustomProperties,
-): string =>
-  customProperties
-    ? getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MODEL_SIZE)
-    : '';
+): string => {
+  if (!customProperties) {
+    return '';
+  }
+  const doubleVal = getDoubleValue(customProperties, 'modelcar_image_size');
+  if (doubleVal > 0) {
+    return `${doubleVal.toFixed(2)} GB`;
+  }
+  return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MODEL_SIZE);
+};
 
 export const getMinimumVramFromCustomProperties = (
   customProperties?: ModelRegistryCustomProperties,
-): string =>
-  customProperties
-    ? getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM)
-    : '';
+): string => {
+  if (!customProperties) {
+    return '';
+  }
+  const doubleVal = getDoubleValue(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
+  if (doubleVal > 0) {
+    return `${doubleVal.toFixed(2)} GB`;
+  }
+  return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
+};
 
 export const getHardwareConfigurationsFromCustomProperties = (
   customProperties?: ModelRegistryCustomProperties,

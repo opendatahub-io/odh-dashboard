@@ -5,7 +5,7 @@ import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 const baseParams = {
   evaluationName: ' My Eval ',
   description: '',
-  inputMode: 'inference' as const,
+  sourceMode: 'model' as const,
   benchmark: undefined as FlatBenchmark | undefined,
   collection: undefined as Collection | undefined,
   modelName: 'llama-7b',
@@ -96,13 +96,48 @@ describe('buildEvaluationRequest', () => {
     });
   });
 
+  describe('agent mode', () => {
+    const agentBase = {
+      ...baseParams,
+      sourceMode: 'agent' as const,
+      modelName: 'my-agent',
+      endpointUrl: 'https://agent.example.com/v1',
+      apiKeySecretRef: 'agent-key',
+    };
+
+    it('should use modelName as model.name and endpointUrl as model.url', () => {
+      const result = buildEvaluationRequest({
+        ...agentBase,
+        benchmark: makeBenchmark(),
+      });
+      expect(result.model.name).toBe('my-agent');
+      expect(result.model.url).toBe('https://agent.example.com/v1');
+    });
+
+    it('should include auth when apiKeySecretRef is provided', () => {
+      const result = buildEvaluationRequest({
+        ...agentBase,
+        benchmark: makeBenchmark(),
+      });
+      expect(result.model.auth).toEqual({ secret_ref: 'agent-key' });
+    });
+
+    it('should not include test_data_ref on benchmarks', () => {
+      const result = buildEvaluationRequest({
+        ...agentBase,
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
+    });
+  });
+
   describe('prerecorded mode', () => {
     const prerecordedBase = {
       ...baseParams,
-      inputMode: 'prerecorded' as const,
-      sourceName: ' gpt-4o ',
-      datasetUrl: ' s3://bucket/data.jsonl ',
-      accessToken: ' tok-123 ',
+      sourceMode: 'prerecorded' as const,
+      sourceName: 'gpt-4o',
+      datasetUrl: 's3://bucket/data.jsonl',
+      accessToken: 'tok-123',
     };
 
     it('should use sourceName as model.name and set url to empty', () => {
@@ -154,6 +189,32 @@ describe('buildEvaluationRequest', () => {
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
+    });
+
+    it('should trim whitespace from datasetUrl and accessToken', () => {
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        datasetUrl: '  s3://bucket/data.jsonl  ',
+        accessToken: '  tok-123  ',
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        s3: {
+          key: 's3://bucket/data.jsonl',
+          secret_ref: 'tok-123',
+        },
+      });
+    });
+
+    it('should omit secret_ref when accessToken is only whitespace', () => {
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        accessToken: '   ',
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        s3: { key: 's3://bucket/data.jsonl' },
+      });
     });
   });
 

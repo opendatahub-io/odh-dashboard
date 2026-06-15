@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/openai/openai-go/v2"
@@ -106,6 +107,10 @@ func (c *TestLlamaStackClient) ListFiles(ctx context.Context, params llamastack.
 
 func (c *TestLlamaStackClient) GetFile(ctx context.Context, fileID string) (*openai.FileObject, error) {
 	return c.inner.GetFile(ctx, fileID)
+}
+
+func (c *TestLlamaStackClient) GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error) {
+	return c.inner.GetFileContent(ctx, fileID)
 }
 
 func (c *TestLlamaStackClient) DeleteFile(ctx context.Context, fileID string) error {
