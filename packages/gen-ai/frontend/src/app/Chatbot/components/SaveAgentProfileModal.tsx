@@ -28,12 +28,15 @@ import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 import { MCPServerFromAPI } from '~/app/types/mcp';
 
-const MCP_CONFIG_MAP_NAME = 'gen-ai-aa-mcp-servers';
+/** Fallback ConfigMap name used only when the BFF does not return one. */
+const MCP_CONFIG_MAP_NAME_FALLBACK = 'gen-ai-aa-mcp-servers';
 
 type SaveAgentProfileModalProps = {
   /** 'save-as' calls POST (new profile); 'save' calls PUT (overwrite loaded profile). */
   mode: 'save-as' | 'save';
   mcpServers: MCPServerFromAPI[];
+  /** ConfigMap name from the BFF response (config_map_info.name). Falls back to a default when null. */
+  mcpConfigMapName: string | null;
   onClose: () => void;
   /** Called after a successful save with the resulting profileId and displayName. */
   onSaved: (profileId: string, displayName: string) => void;
@@ -42,6 +45,7 @@ type SaveAgentProfileModalProps = {
 const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   mode,
   mcpServers,
+  mcpConfigMapName,
   onClose,
   onSaved,
 }) => {
@@ -122,7 +126,11 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
         freshConfig,
         name.trim(),
         description.trim() || undefined,
-        { model: aiModel, mcpServers, mcpConfigMapName: MCP_CONFIG_MAP_NAME },
+        {
+          model: aiModel,
+          mcpServers,
+          mcpConfigMapName: mcpConfigMapName ?? MCP_CONFIG_MAP_NAME_FALLBACK,
+        },
       );
 
       if (mode === 'save-as' || !loadedProfileId) {

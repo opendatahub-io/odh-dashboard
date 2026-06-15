@@ -48,7 +48,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     modelsError,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
-  const { data: mcpServers = [] } = useFetchMCPServers();
+  const { data: mcpServers = [], configMapName: mcpConfigMapName } = useFetchMCPServers();
   const { data: bffConfig } = useFetchBFFConfig();
   const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
   const [existingCollections] = useFetchVectorStores();
@@ -319,6 +319,7 @@ const ChatbotMain: React.FunctionComponent = () => {
         <SaveAgentProfileModal
           mode={saveModalMode}
           mcpServers={mcpServers}
+          mcpConfigMapName={mcpConfigMapName}
           onClose={handleCloseSaveModal}
           onSaved={handleProfileSaved}
         />

@@ -44,8 +44,8 @@ export type MCPServersResponse = {
   servers: MCPServerFromAPI[] | null;
   /** Total number of servers */
   total_count: number;
-  /** Metadata about the source ConfigMap */
-  config_map_info: MCPConfigMapInfo;
+  /** Metadata about the source ConfigMap — null when no ConfigMap exists */
+  config_map_info: MCPConfigMapInfo | null;
 };
 
 /**
