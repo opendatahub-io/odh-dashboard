@@ -71,17 +71,17 @@ const useAgentProfileUrlParam = ({
       .then((profile) => {
         const { config, promptRef, mcpToolsPending } = deserializeAgentProfile(profile, {
           playgroundModels,
+          mcpServers,
         });
 
         applyAgentProfile(config, agentProfileId, profile.spec.displayName);
 
-        // Restore MCP tool selections — mcpServers is guaranteed loaded at this point
+        // Restore MCP tool selections — mcpServers is guaranteed loaded at this point.
+        // mcpToolsPending is now keyed by server URL (same canonical format as
+        // selectedMcpServerIds), so no secondary name→URL lookup is needed here.
         if (mcpToolsPending) {
-          for (const [serverName, tools] of Object.entries(mcpToolsPending)) {
-            const server = mcpServers.find((s) => s.name === serverName);
-            if (server) {
-              saveToolSelections(DEFAULT_CONFIG_ID, namespace.name, server.url, tools);
-            }
+          for (const [serverUrl, tools] of Object.entries(mcpToolsPending)) {
+            saveToolSelections(DEFAULT_CONFIG_ID, namespace.name, serverUrl, tools);
           }
         }
 
