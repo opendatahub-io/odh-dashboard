@@ -23,8 +23,10 @@ jobs:
         id: upstream
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          upstream_files=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+          upstream_files=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" \
             --paginate -q '.[].filename | select(contains("/upstream/"))' || true)
 
           if [ -n "$upstream_files" ]; then
