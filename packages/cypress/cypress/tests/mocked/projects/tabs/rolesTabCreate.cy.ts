@@ -168,6 +168,7 @@ describe('Create Role submit', () => {
       );
       expect(interception.request.body.metadata.annotations).to.have.property(
         'openshift.io/display-name',
+        'annotated-role',
       );
     });
   });

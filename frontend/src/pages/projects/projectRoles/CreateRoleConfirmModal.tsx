@@ -17,6 +17,7 @@ const CreateRoleConfirmModal: React.FC<CreateRoleConfirmModalProps> = ({ onConfi
       await onConfirm();
     } catch (e) {
       setError(e instanceof Error ? e : new Error('Failed to create role'));
+    } finally {
       setIsSubmitting(false);
     }
   }, [onConfirm]);

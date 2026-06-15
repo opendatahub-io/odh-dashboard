@@ -31,6 +31,8 @@ const CreateRoleFooter: React.FC<CreateRoleFooterProps> = ({
     setIsSubmitting(true);
     try {
       await onSubmit();
+    } catch {
+      // error is surfaced via submitError prop
     } finally {
       setIsSubmitting(false);
     }
