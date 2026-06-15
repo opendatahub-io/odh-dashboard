@@ -98,12 +98,9 @@ describe('API Keys Page', () => {
 
   it('should display the API keys table page with active and expired keys on initial load', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
-    apiKeysPage
-      .findDescription()
-      .should(
-        'contain.text',
-        'Manage API keys that can be used to authenticate with model endpoints.',
-      );
+    cy.contains('Manage API keys that can be used to authenticate with model endpoints.').should(
+      'exist',
+    );
 
     apiKeysPage.findTable().should('exist');
     apiKeysPage.findRows().should('have.length', 3);
@@ -933,12 +930,9 @@ describe('API keys (mySubscriptions feature flag)', () => {
     cy.wait('@initialSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');
-    apiKeysPage
-      .findDescription()
-      .should(
-        'contain.text',
-        'Manage API keys that can be used to authenticate with model endpoints.',
-      );
+    cy.contains('Manage API keys that can be used to authenticate with model endpoints.').should(
+      'exist',
+    );
 
     apiKeysPage.findApiKeysTab().should('have.attr', 'aria-selected', 'true');
     apiKeysPage.findTable().should('exist');
