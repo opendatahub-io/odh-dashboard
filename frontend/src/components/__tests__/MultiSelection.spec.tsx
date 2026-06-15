@@ -27,21 +27,15 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(combobox).toHaveAttribute(
-      'aria-activedescendant',
-      'select-multi-typeahead-connection-1',
-    );
-    expect(document.getElementById('select-multi-typeahead-connection-1')).toBeInTheDocument();
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
+    expect(document.getElementById('test-select-option-connection-1')).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(combobox).toHaveAttribute(
-      'aria-activedescendant',
-      'select-multi-typeahead-connection-2',
-    );
-    expect(document.getElementById('select-multi-typeahead-connection-2')).toBeInTheDocument();
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-2');
+    expect(document.getElementById('test-select-option-connection-2')).toBeInTheDocument();
   });
 
   it('should expose a listbox id linked from aria-controls', async () => {
@@ -80,10 +74,7 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(combobox).toHaveAttribute(
-      'aria-activedescendant',
-      'select-multi-typeahead-connection-2',
-    );
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-2');
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'Enter' });
@@ -91,5 +82,27 @@ describe('MultiSelection', () => {
 
     expect(combobox).not.toHaveAttribute('aria-activedescendant');
     expect(combobox).toHaveValue('');
+  });
+
+  it('should prevent default Enter behavior to avoid submitting parent forms', async () => {
+    const onSubmit = jest.fn((event) => event.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <MultiSelection
+          id="test-select"
+          ariaLabel="Connections"
+          value={defaultOptions}
+          setValue={jest.fn()}
+        />
+      </form>,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'Enter' });
+    });
+
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });

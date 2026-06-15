@@ -67,11 +67,9 @@ const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterText: string, options: SelectionOptions[]) =>
   options.filter((o) => !filterText || o.name.toLowerCase().includes(filterText.toLowerCase()));
 
-const DEFAULT_LISTBOX_ID = 'select-multi-typeahead-listbox';
-
-/** Matches PatternFly's multiple typeahead example: stable option ids for aria-activedescendant. */
-const createOptionElementId = (optionId: number | string) =>
-  `select-multi-typeahead-${String(optionId).replace(/\s+/g, '-')}`;
+/** Encode option ids for stable, non-colliding DOM id segments (e.g. 'a b' vs 'a-b'). */
+const encodeOptionIdForDom = (optionId: number | string): string =>
+  String(optionId).replace(/[^a-zA-Z0-9_-]/g, (ch) => `u${ch.charCodeAt(0)}u`);
 
 export const MultiSelection: React.FC<MultiSelectionProps> = ({
   value = [],
@@ -99,10 +97,13 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const [focusedItemIndex, setFocusedItemIndex] = React.useState<number | null>(null);
   const [activeItemId, setActiveItemId] = React.useState<string | null>(null);
   const textInputRef = React.useRef<HTMLInputElement>();
+  const generatedInstanceId = React.useId().replace(/:/g, '');
+  const instanceId = id ?? `multi-select-${generatedInstanceId}`;
+  const listboxId = `${instanceId}-listbox`;
+  const createOptionElementId = (optionId: number | string) =>
+    `${instanceId}-option-${encodeOptionIdForDom(optionId)}`;
 
   const getModalDialog = () => textInputRef.current?.closest<HTMLElement>('[role="dialog"]');
-
-  const listboxId = id ? `${id}-listbox` : DEFAULT_LISTBOX_ID;
 
   const selectGroups = React.useMemo(
     () =>
@@ -260,6 +261,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     const focusedItem = focusedItemIndex !== null ? visibleOptions[focusedItemIndex] : null;
     switch (event.key) {
       case 'Enter':
+        event.preventDefault();
         if (isOpen && focusedItem) {
           onSelect(focusedItem);
         }
