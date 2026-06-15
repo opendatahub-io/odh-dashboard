@@ -98,9 +98,11 @@ describe('Create Role submit', () => {
     projectRoles.findAddRuleButton().click();
     cy.findByTestId('add-rule-modal').should('exist');
     cy.findByTestId('rule-api-groups-toggle').click();
-    cy.findByTestId('rule-api-groups-toggle').parent().find('input').type('apps{enter}');
+    cy.findByTestId('rule-api-groups-toggle').parent().find('input').type('apps');
+    cy.contains('Use custom API group "apps"').click();
     cy.findByTestId('rule-resource-types-toggle').click();
-    cy.findByTestId('rule-resource-types-toggle').parent().find('input').type('deployments{enter}');
+    cy.findByTestId('rule-resource-types-toggle').parent().find('input').type('deployments');
+    cy.contains('Use custom resource type "deployments"').click();
     cy.findByTestId('add-rule-modal').findByTestId('verb-checkbox-get').click();
     cy.findByTestId('modal-submit-button').click();
 
@@ -134,9 +136,11 @@ describe('Create Role submit', () => {
     projectRoles.findAddRuleButton().click();
     cy.findByTestId('add-rule-modal').should('exist');
     cy.findByTestId('rule-api-groups-toggle').click();
-    cy.findByTestId('rule-api-groups-toggle').parent().find('input').type('apps{enter}');
+    cy.findByTestId('rule-api-groups-toggle').parent().find('input').type('apps');
+    cy.contains('Use custom API group "apps"').click();
     cy.findByTestId('rule-resource-types-toggle').click();
-    cy.findByTestId('rule-resource-types-toggle').parent().find('input').type('deployments{enter}');
+    cy.findByTestId('rule-resource-types-toggle').parent().find('input').type('deployments');
+    cy.contains('Use custom resource type "deployments"').click();
     cy.findByTestId('add-rule-modal').findByTestId('verb-checkbox-get').click();
     cy.findByTestId('modal-submit-button').click();
 
