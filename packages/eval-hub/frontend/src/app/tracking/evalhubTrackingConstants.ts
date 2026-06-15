@@ -8,6 +8,9 @@ export const EVAL_HUB_EVENTS = {
   MLFLOW_EXPERIMENT_SELECTED: 'Evaluations MLFlow Experiment Selected',
   RESULT_BENCHMARK_CARD_SELECTED: 'Evaluations Result Benchmark Card Selected',
   BENCHMARK_RUN_SELECTED: 'Evaluations Benchmark Run Selected',
+  COMPARE_RUN_SELECTED: 'Evaluations Compare Run Selected',
+  COMPARE_INITIATED: 'Evaluations Compare Initiated',
+  COMPARE_BENCHMARK_CHOSEN: 'Evaluations Compare Benchmark Chosen',
 } as const;
 
 /**
@@ -69,4 +72,23 @@ export type BenchmarkRunSelectedProperties = {
   benchmarkTypes: string[];
   runType: 'single' | 'collection';
   countOfBenchmarks: number;
+};
+
+export type CompareRunSelectedProperties = {
+  evaluationName: string;
+  evaluationType: 'Benchmark' | 'Benchmark suite';
+  isSelected: boolean;
+  countOfRuns: number;
+};
+
+export type CompareInitiatedProperties = {
+  countOfRuns: number;
+  runTypes: 'all_benchmarks' | 'all_suites' | 'mixed';
+  hasCollections: boolean;
+};
+
+export type CompareBenchmarkChosenProperties = {
+  countOfBenchmarks: number;
+  totalAvailable: number;
+  benchmarkNames: string;
 };
