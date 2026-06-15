@@ -9,7 +9,8 @@ Templates for container images in `odh-dashboard`. Each component needs up to 2 
 | Aspect | Upstream (ODH) | Downstream (RHOAI) |
 |--------|----------------|---------------------|
 | Image tags | Tag-based (e.g., `ubi9/nodejs-22:latest`) | **SHA-pinned** (e.g., `ubi9/nodejs-22@sha256:...`) |
-| Go build flags | `CGO_ENABLED=0` (static) | `CGO_ENABLED=1 -tags strictfipsruntime` (FIPS) |
+| Go build flags (Type A) | `CGO_ENABLED=1 -tags strictfipsruntime` (FIPS) | Same as upstream |
+| Go build flags (Type B) | `CGO_ENABLED=0` (static, no FIPS) | `CGO_ENABLED=1 -tags strictfipsruntime` (FIPS) |
 | Labels | Minimal | Full Red Hat labels required |
 | Location | Component directory or `packages/<name>/` | Repo root as `Dockerfile.konflux.<component>` |
 | Registry | `registry.access.redhat.com` | `registry.access.redhat.com` or `registry.redhat.io` |
@@ -136,7 +137,7 @@ COPY <name>/cmd/ cmd/
 COPY <name>/api/ api/
 COPY <name>/internal/ internal/
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/<binary-name> ./cmd/manager
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/<binary-name> ./cmd/<entry-dir>
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
 WORKDIR /
@@ -167,7 +168,7 @@ COPY <name>/api/ api/
 COPY <name>/internal/ internal/
 
 # FIPS-compliant build: CGO_ENABLED=1 + strictfipsruntime
-RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags="-s -w" -tags strictfipsruntime -o /tmp/<binary-name> ./cmd/manager
+RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags="-s -w" -tags strictfipsruntime -o /tmp/<binary-name> ./cmd/<entry-dir>
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:<digest>
 
@@ -190,8 +191,9 @@ ENTRYPOINT ["/<binary-name>"]
 
 ## Go Toolset Notes
 
-- **Upstream**: Docker Hub `golang:<version>` with `CGO_ENABLED=0` (static binary, no FIPS)
-- **Downstream**: `registry.redhat.io/ubi9/go-toolset` with `CGO_ENABLED=1 -tags strictfipsruntime`
+- **Type A upstream (BFF)**: Uses `ubi9/go-toolset` with `CGO_ENABLED=1 -tags strictfipsruntime` (FIPS-enabled, matching downstream)
+- **Type B upstream (standalone)**: Uses Docker Hub `golang:<version>` with `CGO_ENABLED=0` (static binary, no FIPS)
+- **All downstream**: Uses `registry.redhat.io/ubi9/go-toolset` with `CGO_ENABLED=1 -tags strictfipsruntime`
 - `go-toolset` requires `USER root` before writing files (runs as non-root by default)
 - The FIPS runtime tag enables BoringCrypto for FIPS 140-2 compliance
 - Check `go.mod` for the required Go toolchain version

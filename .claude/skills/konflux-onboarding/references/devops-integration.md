@@ -37,8 +37,9 @@ The DevOps skill handles these items (roughly mapping to RHOAIENG-37060 subtasks
 ### Installation
 
 The skill is a Claude Code plugin from `opendatahub-io/aiops-infra`:
-```
-/plugin install aiops-skills@opendatahub-skills
+
+```text
+/plugin install aiops-skills@opendatahub-skills:0.1.0
 ```
 
 Verify installation:
@@ -170,7 +171,7 @@ After the YAML is attached to a Jira ticket:
 
 | Issue | Resolution |
 |-------|------------|
-| DevOps skill not found | `Plugin install aiops-skills@opendatahub-skills` |
+| DevOps skill not found | `/plugin install aiops-skills@opendatahub-skills:0.1.0` |
 | `JIRA_USER_EMAIL`/`JIRA_API_TOKEN` not set | Use MCP fallback (generate YAML + mcp-atlassian tools) |
 | GitLab CI didn't process YAML | Check GitLab CI pipeline status; may need manual trigger |
 | PRs not appearing | Wait up to 4 hours; check GitLab CI logs for errors |

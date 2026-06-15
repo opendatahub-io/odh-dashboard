@@ -27,10 +27,16 @@ Parse from `$ARGUMENTS`:
    - **Type A — Modular-arch package**: `packages/<name>/` exists. These are Node.js + optional Go BFF packages that use `Dockerfile.workspace` and deploy as Module Federation remotes.
    - **Type B — Standalone Go component**: `<name>/` exists at repo root with a `go.mod`. These are Go services/operators with their own Dockerfile.
 
+   Validate the component name first, then use quoted path checks:
    ```bash
-   if [ -d "packages/$COMPONENT_NAME" ]; then
+   # Validate component name (lowercase alphanumeric + hyphens only)
+   if ! echo "$COMPONENT_NAME" | grep -qE '^[a-z0-9]+(-[a-z0-9]+)*$'; then
+     echo "Invalid component name"; exit 1
+   fi
+
+   if [ -d "packages/${COMPONENT_NAME}" ]; then
      TYPE="A"
-   elif [ -d "$COMPONENT_NAME" ] && [ -f "$COMPONENT_NAME/go.mod" ]; then
+   elif [ -d "${COMPONENT_NAME}" ] && [ -f "${COMPONENT_NAME}/go.mod" ]; then
      TYPE="B"
    else
      # Ask user to clarify
@@ -41,13 +47,13 @@ Parse from `$ARGUMENTS`:
    ```bash
    # Check for existing ODH Dockerfile
    # Type A:
-   ls packages/$COMPONENT_NAME/Dockerfile.workspace 2>/dev/null
+   [ -f "packages/${COMPONENT_NAME}/Dockerfile.workspace" ] && echo "exists"
    # Type B:
-   ls $COMPONENT_NAME/Dockerfile 2>/dev/null
+   [ -f "${COMPONENT_NAME}/Dockerfile" ] && echo "exists"
 
    # Check for existing Tekton pipelines
-   ls .tekton/*${COMPONENT_NAME}*push*.yaml 2>/dev/null
-   ls .tekton/*${COMPONENT_NAME}*pull-request*.yaml 2>/dev/null
+   find .tekton -maxdepth 1 -name "*${COMPONENT_NAME}*push*.yaml" -print -quit 2>/dev/null
+   find .tekton -maxdepth 1 -name "*${COMPONENT_NAME}*pull-request*.yaml" -print -quit 2>/dev/null
    ```
 
 4. Report classification and state to user:
