@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -14,22 +15,33 @@ import (
 var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 
-	// Seed a MaaSModelRef, a subscription referencing it, and an auth policy referencing it
-	// before running the overview assertions.
+	// Use seed-based unique names so resources don't collide with other test suites
+	// running against the same envtest instance.
+	var (
+		modelName  string
+		subName    string
+		policyName string
+	)
+
 	BeforeAll(func() {
+		seed := GinkgoRandomSeed()
+		modelName = fmt.Sprintf("overview-model-%d", seed)
+		subName = fmt.Sprintf("overview-sub-%d", seed)
+		policyName = fmt.Sprintf("overview-policy-%d", seed)
+
 		// Create MaaSModelRef
 		_, rs, err := setupApiTest[Envelope[*models.MaaSModelRefSummary, None]](
 			http.MethodPost,
 			constants.MaaSModelRefCreatePath,
 			Envelope[models.CreateMaaSModelRefRequest, None]{
 				Data: models.CreateMaaSModelRefRequest{
-					Name:        "granite-3-8b-instruct",
+					Name:        modelName,
 					Namespace:   "maas-models",
 					DisplayName: "Granite 3 8B Instruct",
 					Description: "IBM Granite 3 8B instruction-tuned language model.",
 					ModelRef: models.ModelReference{
 						Kind: "LLMInferenceService",
-						Name: "granite-3-8b-instruct",
+						Name: modelName,
 					},
 				},
 			},
@@ -45,7 +57,7 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 			constants.SubscriptionCreatePath,
 			Envelope[models.CreateSubscriptionRequest, None]{
 				Data: models.CreateSubscriptionRequest{
-					Name:        "premium-team-sub",
+					Name:        subName,
 					DisplayName: "Premium Team Subscription",
 					Owner: models.OwnerSpec{
 						Groups: []models.GroupReference{
@@ -54,7 +66,7 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 					},
 					ModelRefs: []models.ModelSubscriptionRef{
 						{
-							Name:      "granite-3-8b-instruct",
+							Name:      modelName,
 							Namespace: "maas-models",
 							TokenRateLimits: []models.TokenRateLimit{
 								{Limit: 100000, Window: "24h"},
@@ -76,10 +88,10 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 			constants.PolicyCreatePath,
 			Envelope[models.CreatePolicyRequest, None]{
 				Data: models.CreatePolicyRequest{
-					Name:        "premium-team-policy",
+					Name:        policyName,
 					DisplayName: "Premium Team Policy",
 					ModelRefs: []models.ModelRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+						{Name: modelName, Namespace: "maas-models"},
 					},
 					Subjects: models.SubjectSpec{
 						Groups: []models.GroupReference{
@@ -94,6 +106,16 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rs.StatusCode).To(Equal(http.StatusCreated))
 	})
+
+	// findModel locates a specific item in the overview response by model ID.
+	findModel := func(items []models.ModelOverviewItem, id string) *models.ModelOverviewItem {
+		for i := range items {
+			if items[i].ID == id {
+				return &items[i]
+			}
+		}
+		return nil
+	}
 
 	It("returns 200 with a list of model overview items", func() {
 		actual, rs, err := setupApiTest[Envelope[[]models.ModelOverviewItem, None]](
@@ -121,17 +143,10 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
-		var granite *models.ModelOverviewItem
-		for i := range actual.Data {
-			if actual.Data[i].ID == "granite-3-8b-instruct" {
-				granite = &actual.Data[i]
-				break
-			}
-		}
-
-		Expect(granite).NotTo(BeNil())
-		Expect(granite.ModelDetails.DisplayName).To(Equal("Granite 3 8B Instruct"))
-		Expect(granite.ModelDetails.Description).To(Equal("IBM Granite 3 8B instruction-tuned language model."))
+		item := findModel(actual.Data, modelName)
+		Expect(item).NotTo(BeNil())
+		Expect(item.ModelDetails.DisplayName).To(Equal("Granite 3 8B Instruct"))
+		Expect(item.ModelDetails.Description).To(Equal("IBM Granite 3 8B instruction-tuned language model."))
 	})
 
 	It("includes the subscription with groups and rate limits", func() {
@@ -146,18 +161,11 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
-		var granite *models.ModelOverviewItem
-		for i := range actual.Data {
-			if actual.Data[i].ID == "granite-3-8b-instruct" {
-				granite = &actual.Data[i]
-				break
-			}
-		}
-
-		Expect(granite).NotTo(BeNil())
-		Expect(granite.Subscriptions).To(HaveLen(1))
-		sub := granite.Subscriptions[0]
-		Expect(sub.Name).To(Equal("premium-team-sub"))
+		item := findModel(actual.Data, modelName)
+		Expect(item).NotTo(BeNil())
+		Expect(item.Subscriptions).To(HaveLen(1))
+		sub := item.Subscriptions[0]
+		Expect(sub.Name).To(Equal(subName))
 		Expect(sub.DisplayName).To(Equal("Premium Team Subscription"))
 		Expect(sub.Groups).To(ConsistOf("premium-users"))
 		Expect(sub.TokenRateLimits).To(HaveLen(1))
@@ -177,35 +185,29 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
-		var granite *models.ModelOverviewItem
-		for i := range actual.Data {
-			if actual.Data[i].ID == "granite-3-8b-instruct" {
-				granite = &actual.Data[i]
-				break
-			}
-		}
-
-		Expect(granite).NotTo(BeNil())
-		Expect(granite.AuthPolicies).To(HaveLen(1))
-		policy := granite.AuthPolicies[0]
-		Expect(policy.Name).To(Equal("premium-team-policy"))
+		item := findModel(actual.Data, modelName)
+		Expect(item).NotTo(BeNil())
+		Expect(item.AuthPolicies).To(HaveLen(1))
+		policy := item.AuthPolicies[0]
+		Expect(policy.Name).To(Equal(policyName))
 		Expect(policy.DisplayName).To(Equal("Premium Team Policy"))
 		Expect(policy.Groups).To(ConsistOf("premium-users"))
 	})
 
 	It("returns empty subscriptions and policies for a model with none", func() {
-		// Create a model ref with no subscription or policy
+		standaloneModel := fmt.Sprintf("standalone-model-%d", GinkgoRandomSeed())
+
 		_, rs, err := setupApiTest[Envelope[*models.MaaSModelRefSummary, None]](
 			http.MethodPost,
 			constants.MaaSModelRefCreatePath,
 			Envelope[models.CreateMaaSModelRefRequest, None]{
 				Data: models.CreateMaaSModelRefRequest{
-					Name:        "standalone-model",
+					Name:        standaloneModel,
 					Namespace:   "maas-models",
 					DisplayName: "Standalone Model",
 					ModelRef: models.ModelReference{
 						Kind: "LLMInferenceService",
-						Name: "standalone-model",
+						Name: standaloneModel,
 					},
 				},
 			},
@@ -226,16 +228,9 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
-		var standalone *models.ModelOverviewItem
-		for i := range actual.Data {
-			if actual.Data[i].ID == "standalone-model" {
-				standalone = &actual.Data[i]
-				break
-			}
-		}
-
-		Expect(standalone).NotTo(BeNil())
-		Expect(standalone.Subscriptions).To(BeEmpty())
-		Expect(standalone.AuthPolicies).To(BeEmpty())
+		item := findModel(actual.Data, standaloneModel)
+		Expect(item).NotTo(BeNil())
+		Expect(item.Subscriptions).To(BeEmpty())
+		Expect(item.AuthPolicies).To(BeEmpty())
 	})
 })
