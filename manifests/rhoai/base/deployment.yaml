@@ -17,3 +17,7 @@
 - op: replace
   path: /spec/template/spec/serviceAccount
   value: rhods-dashboard
+# Fix inter-BFF service discovery: gen-ai BFF calls MaaS via K8s DNS..
+- op: replace
+  path: /spec/template/spec/containers/3/env/2/value
+  value: "rhods-dashboard"
