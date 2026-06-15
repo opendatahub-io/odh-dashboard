@@ -101,7 +101,7 @@ describe('Create Role submit', () => {
     cy.findByTestId('rule-api-groups-toggle').parent().find('input').type('apps{enter}');
     cy.findByTestId('rule-resource-types-toggle').click();
     cy.findByTestId('rule-resource-types-toggle').parent().find('input').type('deployments{enter}');
-    cy.findByTestId('add-rule-modal').findByTestId('verb-checkbox-get').click();
+    cy.findByTestId('add-rule-modal').find('[role="treeitem"]#get input[type="checkbox"]').click();
     cy.findByTestId('modal-submit-button').click();
 
     projectRoles.findSubmitButton().click();
@@ -137,7 +137,7 @@ describe('Create Role submit', () => {
     cy.findByTestId('rule-api-groups-toggle').parent().find('input').type('apps{enter}');
     cy.findByTestId('rule-resource-types-toggle').click();
     cy.findByTestId('rule-resource-types-toggle').parent().find('input').type('deployments{enter}');
-    cy.findByTestId('add-rule-modal').findByTestId('verb-checkbox-get').click();
+    cy.findByTestId('add-rule-modal').find('[role="treeitem"]#get input[type="checkbox"]').click();
     cy.findByTestId('modal-submit-button').click();
 
     projectRoles.findSubmitButton().click();
