@@ -121,7 +121,7 @@ describe('ConnectionsFormSection', () => {
     expect(attachModal).toBeTruthy();
     expect(within(attachModal).getByRole('button', { name: 'Attach' })).toBeDisabled();
     expect(within(attachModal).getByRole('button', { name: 'Cancel' })).toBeEnabled();
-    expect(within(attachModal).getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
+    expect(within(attachModal).getByRole('combobox', { name: 'Connections' })).toHaveValue('');
 
     await act(async () => result.getByRole('button', { name: 'Connections' }).click());
     expect(result.queryByRole('option', { name: 's3 connection 1' })).toBeFalsy(); // don't show attached connections

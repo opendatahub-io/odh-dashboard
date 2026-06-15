@@ -67,6 +67,12 @@ const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterText: string, options: SelectionOptions[]) =>
   options.filter((o) => !filterText || o.name.toLowerCase().includes(filterText.toLowerCase()));
 
+const DEFAULT_LISTBOX_ID = 'select-multi-typeahead-listbox';
+
+/** Matches PatternFly's multiple typeahead example: stable option ids for aria-activedescendant. */
+const createOptionElementId = (optionId: number | string) =>
+  `select-multi-typeahead-${String(optionId).replace(/\s+/g, '-')}`;
+
 export const MultiSelection: React.FC<MultiSelectionProps> = ({
   value = [],
   groupedValues = [],
@@ -91,44 +97,36 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>('');
   const [focusedItemIndex, setFocusedItemIndex] = React.useState<number | null>(null);
-  const [activeItem, setActiveItem] = React.useState<string | null>(null);
+  const [activeItemId, setActiveItemId] = React.useState<string | null>(null);
   const textInputRef = React.useRef<HTMLInputElement>();
 
-  const selectGroups = React.useMemo(() => {
-    let counter = 0;
-    return groupedValues
-      .map((g) => {
-        const values = filterFunction(inputValue, g.values);
-        return {
-          ...g,
-          values: values.map((v) => ({ ...v, index: counter++ })),
-        };
-      })
-      .filter((g) => g.values.length);
-  }, [filterFunction, groupedValues, inputValue]);
+  const getModalDialog = () => textInputRef.current?.closest<HTMLElement>('[role="dialog"]');
 
-  const setOpen = (open: boolean) => {
-    setIsOpen(open);
-    if (!open) {
-      setInputValue('');
-    }
-  };
-  const groupOptions = selectGroups.reduce<SelectionOptions[]>((acc, g) => {
-    acc.push(...g.values);
-    return acc;
-  }, []);
+  const listboxId = id ? `${id}-listbox` : DEFAULT_LISTBOX_ID;
+
+  const selectGroups = React.useMemo(
+    () =>
+      groupedValues
+        .map((g) => ({
+          ...g,
+          values: filterFunction(inputValue, g.values),
+        }))
+        .filter((g) => g.values.length),
+    [filterFunction, groupedValues, inputValue],
+  );
+
+  const groupOptions = React.useMemo(
+    () => selectGroups.reduce<SelectionOptions[]>((acc, g) => acc.concat(g.values), []),
+    [selectGroups],
+  );
 
   const selectOptions = React.useMemo(
-    () =>
-      filterFunction(inputValue, value).map((v, index) => ({
-        ...v,
-        index: groupOptions.length + index,
-      })),
-    [filterFunction, groupOptions, inputValue, value],
+    () => filterFunction(inputValue, value),
+    [filterFunction, inputValue, value],
   );
 
   const allValues = React.useMemo(() => {
-    const options = [];
+    const options: SelectionOptions[] = [];
     groupedValues.forEach((group) => options.push(...group.values));
     options.push(...value);
     return options;
@@ -173,25 +171,71 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     return options;
   }, [groupOptions, selectOptions, createOption, isCreateOptionOnTop]);
 
+  const visibleIndexById = React.useMemo(() => {
+    const map = new Map<string | number, number>();
+    visibleOptions.forEach((option, index) => map.set(option.id, index));
+    return map;
+  }, [visibleOptions]);
+
   const selected = React.useMemo(() => allOptions.filter((v) => v.selected), [allOptions]);
+
+  const resetActiveAndFocusedItem = () => {
+    setFocusedItemIndex(null);
+    setActiveItemId(null);
+  };
+
+  const setActiveAndFocusedItem = (itemIndex: number) => {
+    const focusedItem = visibleOptions[itemIndex];
+    setFocusedItemIndex(itemIndex);
+    setActiveItemId(createOptionElementId(focusedItem.id));
+  };
+
+  const openMenu = (focusFirstOption = false) => {
+    setIsOpen(true);
+    if (focusFirstOption && visibleOptions.length > 0) {
+      setActiveAndFocusedItem(0);
+    }
+  };
+
+  const closeMenu = () => {
+    setIsOpen(false);
+    setInputValue('');
+    resetActiveAndFocusedItem();
+  };
 
   React.useEffect(() => {
     if (inputValue) {
-      setOpen(true);
+      setIsOpen(true);
     }
-    setFocusedItemIndex(null);
-    setActiveItem(null);
   }, [inputValue]);
 
-  const handleMenuArrowKeys = (key: string) => {
-    let indexToFocus;
+  // Modal boxes use overflow:auto; unlock while open so the portaled menu is not clipped.
+  React.useLayoutEffect(() => {
     if (!isOpen) {
-      setOpen(true);
-      setFocusedItemIndex(0);
       return;
+    }
+    const dialog = getModalDialog();
+    if (!dialog) {
+      return;
+    }
+    const previousOverflow = dialog.style.overflow;
+    dialog.style.overflow = 'visible';
+    return () => {
+      dialog.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  const handleMenuArrowKeys = (key: string) => {
+    if (!isOpen) {
+      setIsOpen(true);
     }
 
     const optionsLength = visibleOptions.length;
+    if (optionsLength === 0) {
+      return;
+    }
+
+    let indexToFocus = 0;
 
     if (key === 'ArrowUp') {
       if (focusedItemIndex === null || focusedItemIndex === 0) {
@@ -209,11 +253,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       }
     }
 
-    if (indexToFocus != null) {
-      setFocusedItemIndex(indexToFocus);
-      const focusedItem = visibleOptions[indexToFocus];
-      setActiveItem(`select-multi-typeahead-${focusedItem.name.replace(' ', '-')}`);
-    }
+    setActiveAndFocusedItem(indexToFocus);
   };
 
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -222,32 +262,39 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       case 'Enter':
         if (isOpen && focusedItem) {
           onSelect(focusedItem);
-          setInputValue('');
         }
         if (!isOpen) {
-          setIsOpen(true);
+          openMenu(true);
         }
         break;
       case 'Tab':
       case 'Escape':
-        setOpen(false);
-        setActiveItem(null);
+        closeMenu();
         break;
       case 'ArrowUp':
       case 'ArrowDown':
         event.preventDefault();
         handleMenuArrowKeys(event.key);
         break;
+      default:
+        break;
     }
   };
 
   const onToggleClick = () => {
-    setOpen(!isOpen);
+    if (!isOpen) {
+      openMenu(true);
+    } else {
+      closeMenu();
+    }
     setTimeout(() => textInputRef.current?.focus(), 100);
   };
+
   const onTextInputChange = (_event: React.FormEvent<HTMLInputElement>, valueOfInput: string) => {
     setInputValue(valueOfInput);
+    resetActiveAndFocusedItem();
   };
+
   const onSelect = (menuItem?: SelectionOptions) => {
     if (menuItem) {
       setValue(
@@ -256,11 +303,30 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         ),
       );
       setInputValue('');
+      resetActiveAndFocusedItem();
     }
     textInputRef.current?.focus();
   };
 
   const noSelectedItems = allOptions.filter((option) => option.selected).length === 0;
+
+  const getOptionTestId = (name: string) => `select-multi-typeahead-${name.replace(/\s+/g, '-')}`;
+
+  const renderSelectOption = (option: SelectionOptions, children?: React.ReactNode) => (
+    <SelectOption
+      key={String(option.id)}
+      id={createOptionElementId(option.id)}
+      isFocused={focusedItemIndex === visibleIndexById.get(option.id)}
+      data-testid={getOptionTestId(option.name)}
+      value={option.id}
+      isSelected={option.selected}
+      description={option.description}
+      isAriaDisabled={option.isAriaDisabled}
+      ref={null}
+    >
+      {children ?? option.name}
+    </SelectOption>
+  );
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle
@@ -284,11 +350,12 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           onKeyDown={onInputKeyDown}
           autoComplete="off"
           innerRef={textInputRef}
-          {...(activeItem && { 'aria-activedescendant': activeItem })}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          {...(activeItemId && { 'aria-activedescendant': activeItemId })}
           role="combobox"
           isExpanded={isOpen}
-          aria-controls="select-multi-typeahead-listbox"
-          placeholder={placeholder}
+          aria-controls={listboxId}
         >
           <LabelGroup aria-label="Current selections">
             {selected.map((selection, index) => (
@@ -315,6 +382,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
               variant="plain"
               onClick={() => {
                 setInputValue('');
+                resetActiveAndFocusedItem();
                 setValue(allOptions.map((option) => ({ ...option, selected: false })));
                 textInputRef.current?.focus();
               }}
@@ -337,76 +405,52 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           const selectedOption = allOptions.find((option) => option.id === selection);
           onSelect(selectedOption);
         }}
-        onOpenChange={() => setOpen(false)}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeMenu();
+          }
+        }}
         toggle={toggle}
-        popperProps={popperProps}
+        variant="typeahead"
+        popperProps={{
+          // Portal into the modal dialog (not document.body) so VoiceOver can reach options
+          // inside aria-modal; overflow unlock above lets the menu extend past the dialog edge.
+          appendTo: () => getModalDialog() ?? document.body,
+          ...popperProps,
+        }}
       >
-        {createOption && isCreateOptionOnTop && groupOptions.length > 0 ? (
-          <SelectList isAriaMultiselectable>
-            <SelectOption value={createOption.id} isFocused={focusedItemIndex === 0}>
-              {createOptionDisplayName}
-            </SelectOption>
-          </SelectList>
-        ) : null}
-        {!createOption && visibleOptions.length === 0 && inputValue ? (
-          <SelectList isAriaMultiselectable>
+        <SelectList
+          isAriaMultiselectable
+          id={listboxId}
+          {...(listTestId ? { 'data-testid': listTestId } : {})}
+        >
+          {createOption && isCreateOptionOnTop && groupOptions.length > 0
+            ? renderSelectOption(createOption, createOptionDisplayName)
+            : null}
+          {!createOption && visibleOptions.length === 0 && inputValue ? (
             <SelectOption isDisabled>No results found</SelectOption>
-          </SelectList>
-        ) : null}
-        {selectGroups.map((g, index) => (
-          <React.Fragment key={g.id}>
-            <SelectGroup label={g.name} key={g.id}>
-              <SelectList isAriaMultiselectable>
-                {g.values.map((option) => (
-                  <SelectOption
-                    key={option.name}
-                    isFocused={focusedItemIndex === option.index + (isCreateOptionOnTop ? 1 : 0)}
-                    data-testid={`select-multi-typeahead-${option.name.replace(' ', '-')}`}
-                    value={option.id}
-                    ref={null}
-                    isSelected={option.selected}
-                    description={option.description}
-                    isAriaDisabled={option.isAriaDisabled}
-                  >
-                    {option.name}
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </SelectGroup>
-            {index < selectGroups.length - 1 || selectOptions.length ? <Divider /> : null}
-          </React.Fragment>
-        ))}
-        {selectOptions.length ||
-        (createOption && (!isCreateOptionOnTop || groupOptions.length === 0)) ? (
-          <SelectList isAriaMultiselectable data-testid={listTestId}>
-            {createOption && isCreateOptionOnTop && groupOptions.length === 0 ? (
-              <SelectOption value={createOption.id}>{createOptionDisplayName}</SelectOption>
-            ) : null}
-            {selectOptions.map((option) => (
-              <SelectOption
-                key={option.name}
-                isFocused={focusedItemIndex === option.index + (isCreateOptionOnTop ? 1 : 0)}
-                data-testid={`select-multi-typeahead-${option.name.replace(' ', '-')}`}
-                value={option.id}
-                ref={null}
-                isSelected={option.selected}
-                description={option.description}
-                isAriaDisabled={option.isAriaDisabled}
-              >
-                {option.name}
-              </SelectOption>
-            ))}
-            {createOption && !isCreateOptionOnTop ? (
-              <SelectOption
-                data-testid={`select-multi-typeahead-${createOption.name.replace(' ', '-')}`}
-                value={createOption.id}
-                isFocused={focusedItemIndex === visibleOptions.length - 1}
-              >
-                {createOptionDisplayName}
-              </SelectOption>
-            ) : null}
-          </SelectList>
-        ) : null}
+          ) : null}
+          {selectGroups.map((g, index) => (
+            <React.Fragment key={g.id}>
+              <SelectGroup label={g.name}>
+                {g.values.map((option) => renderSelectOption(option))}
+              </SelectGroup>
+              {index < selectGroups.length - 1 || selectOptions.length > 0 ? <Divider /> : null}
+            </React.Fragment>
+          ))}
+          {selectOptions.length > 0 ||
+          (createOption && (!isCreateOptionOnTop || groupOptions.length === 0)) ? (
+            <>
+              {createOption && isCreateOptionOnTop && groupOptions.length === 0
+                ? renderSelectOption(createOption, createOptionDisplayName)
+                : null}
+              {selectOptions.map((option) => renderSelectOption(option))}
+              {createOption && !isCreateOptionOnTop
+                ? renderSelectOption(createOption, createOptionDisplayName)
+                : null}
+            </>
+          ) : null}
+        </SelectList>
       </Select>
       {noSelectedItems && selectionRequired && (
         <HelperText isLiveRegion>
