@@ -116,7 +116,10 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
   // leaderboard, pattern details, tabs, and notebook download.
   it(
     'Verify optimization run completes and results are interactive',
-    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
+    {
+      tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'],
+      retries: { runMode: 0, openMode: 0 },
+    },
     () => {
       cy.step('Navigate to the run results page');
       autoragResultsPage.findRunsTable().contains(testData.runName).click();

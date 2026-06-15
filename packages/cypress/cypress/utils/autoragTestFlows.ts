@@ -111,10 +111,10 @@ export const submitAutoragRun = (): void => {
 };
 
 /**
- * Waits up to `timeoutMs` (default 30 min) for the run to complete.
+ * Waits up to `timeoutMs` (default 45 min) for the run to complete.
  * Asserts that the leaderboard table appears.
  */
-export const waitForAutoragRunCompletion = (timeoutMs = 1800000): void => {
+export const waitForAutoragRunCompletion = (timeoutMs = 2700000): void => {
   cy.step('Wait for run in-progress indicator to appear');
   autoragResultsPage.findRunInProgressMessage(60000).should('exist');
 
