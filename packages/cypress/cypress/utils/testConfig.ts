@@ -23,7 +23,6 @@ const testConfig: TestConfig | undefined = env.CY_TEST_CONFIG
   : undefined;
 
 export const BASE_URL = testConfig?.ODH_DASHBOARD_URL || env.BASE_URL || '';
-console.log('base url is', BASE_URL);
 
 const LDAP_CONTRIBUTOR_USER: UserAuthConfig = testConfig?.TEST_USER_3 ?? {
   AUTH_TYPE: env.TEST_USER_3_AUTH_TYPE || '',
@@ -94,8 +93,6 @@ const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
 
-const { FILEMAPPING } = testConfig ?? {};
-
 // spread the cypressEnv variables into the cypress config
 export const cypressEnv = {
   LDAP_CONTRIBUTOR_USER,
@@ -112,7 +109,6 @@ export const cypressEnv = {
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
   CLUSTER_AUTH,
-  FILEMAPPING,
 };
 
 // re-export the updated process env

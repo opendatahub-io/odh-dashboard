@@ -1,5 +1,3 @@
-import { isEnumMember } from '#~/utilities/utils';
-
 /**
  * The type `{}` doesn't mean "any empty object", it means "any non-nullish value".
  *
@@ -160,11 +158,6 @@ type AtLeastOne<T, U = { [K in keyof T]: Pick<T, K> }> = Partial<T> & U[keyof U]
  * ```
  */
 export type ExactlyOne<T> = AtMostOne<T> & AtLeastOne<T>;
-
-export const isInEnum =
-  <T extends { [s: string]: unknown }>(e: T) =>
-  (token: unknown): token is T[keyof T] =>
-    isEnumMember(token, e);
 
 /**
  * Pick keys from enum types
