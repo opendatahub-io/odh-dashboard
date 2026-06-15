@@ -156,9 +156,8 @@ export const findTemplateByName = (
 ): TemplateKind | undefined =>
   templates.find((t) => getServingRuntimeNameFromTemplate(t) === templateName);
 
-export const isTemplateKind = (
-  resource: ServingRuntimeKind | TemplateKind,
-): resource is TemplateKind => resource.kind === 'Template';
+export const isTemplateKind = (resource: K8sResourceCommon): resource is TemplateKind =>
+  resource.kind === 'Template';
 
 export const getEnabledPlatformsFromTemplate = (
   template: TemplateKind,
