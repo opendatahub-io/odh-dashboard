@@ -18,14 +18,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Setup Python
-        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          python-version: '3.11'
+          node-version: '22'
 
       - name: Install AgentReady
         run: |
-          pip install agentready
+          npm install -g agentready@0.4.21
 
       - name: Run AgentReady Assessment
         id: assessment
