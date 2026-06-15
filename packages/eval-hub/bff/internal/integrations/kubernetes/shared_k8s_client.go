@@ -2,10 +2,15 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"strings"
+	"time"
 
 	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -18,6 +23,41 @@ type SharedClientLogic struct {
 func (kc *SharedClientLogic) BearerToken() (string, error) { return kc.Token.Raw(), nil }
 
 func (kc *SharedClientLogic) GetGroups(ctx context.Context) ([]string, error) { return []string{}, nil }
+
+// GetEvalHubDiscoveryURL reads the EvalHubDiscovery ConfigMap from the given namespace and
+// returns the service URL stored under the "service-url" key.
+// Returns ("", nil) if the ConfigMap does not exist — callers should fall through to CR discovery.
+func (kc *SharedClientLogic) GetEvalHubDiscoveryURL(ctx context.Context, _ *RequestIdentity, namespace string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	cm, err := kc.Client.CoreV1().ConfigMaps(namespace).Get(ctx, EvalHubDiscoveryConfigMap, metav1.GetOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			kc.Logger.Debug("EvalHubDiscovery ConfigMap not found in namespace, will fall through to CR discovery",
+				"namespace", namespace)
+			return "", nil
+		}
+		if k8serrors.IsForbidden(err) {
+			kc.Logger.Debug("Access denied reading EvalHubDiscovery ConfigMap",
+				"namespace", namespace)
+			return "", nil
+		}
+		return "", fmt.Errorf("failed to read %s ConfigMap in namespace %q: %w",
+			EvalHubDiscoveryConfigMap, namespace, err)
+	}
+
+	serviceURL := strings.TrimSpace(cm.Data[EvalHubDiscoveryURLKey])
+	if serviceURL == "" {
+		kc.Logger.Warn("EvalHubDiscovery ConfigMap exists but has no service-url",
+			"namespace", namespace)
+		return "", nil
+	}
+
+	kc.Logger.Debug("Resolved EvalHub service URL from discovery ConfigMap",
+		"namespace", namespace, "serviceURL", serviceURL)
+	return serviceURL, nil
+}
 
 func ParseEvalHubCRStatus(item *unstructured.Unstructured) (*models.EvalHubCRStatus, error) {
 	status, ok := item.Object["status"].(map[string]interface{})

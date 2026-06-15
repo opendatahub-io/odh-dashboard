@@ -22,6 +22,16 @@ const (
 	// in each namespace labelled with evalhub.trustyai.opendatahub.io/tenant.
 	// Using this (not EvalHubCRDResource) ensures the SAR reflects actual tenant-level permissions.
 	EvalHubVirtualResource = "evaluations"
+
+	// EvalHubDiscoveryConfigMap is the name of the ConfigMap injected by the EvalHub operator
+	// into each tenant namespace. It contains the EvalHub service URL, allowing the BFF to
+	// resolve the service without needing access to the EvalHub CR in the operator namespace.
+	// See: RHOAIENG-68253
+	EvalHubDiscoveryConfigMap = "evalhub-discovery"
+
+	// EvalHubDiscoveryURLKey is the data key within the discovery ConfigMap that holds
+	// the EvalHub service URL.
+	EvalHubDiscoveryURLKey = "service-url"
 )
 
 // EvalHubGVR is the GroupVersionResource for EvalHub custom resources, used with the dynamic client.
