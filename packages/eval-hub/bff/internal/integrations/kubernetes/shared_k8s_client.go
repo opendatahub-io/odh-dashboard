@@ -72,14 +72,23 @@ func (kc *SharedClientLogic) GetEvalHubDiscoveryURL(ctx context.Context, _ *Requ
 // It supports two formats:
 //   - Operator format (PR trustyai-service-operator#760): keys ending in ".url" (e.g. "evalhub.url")
 //   - Legacy format: a single "service-url" key
+//
+// When multiple ".url" keys exist, the lexicographically smallest key is chosen
+// to ensure deterministic routing across calls.
 func resolveDiscoveryURL(data map[string]string) string {
-	// Prefer operator-managed keys ({instanceName}.url) — these are authoritative.
+	var bestKey, bestURL string
 	for key, value := range data {
 		if strings.HasSuffix(key, EvalHubDiscoveryURLSuffix) {
 			if u := strings.TrimSpace(value); u != "" {
-				return u
+				if bestKey == "" || key < bestKey {
+					bestKey = key
+					bestURL = u
+				}
 			}
 		}
+	}
+	if bestURL != "" {
+		return bestURL
 	}
 	// Fall back to legacy "service-url" key for manually-created ConfigMaps.
 	return strings.TrimSpace(data[EvalHubDiscoveryURLKey])

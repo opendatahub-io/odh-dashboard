@@ -19,12 +19,12 @@ func TestResolveDiscoveryURL(t *testing.T) {
 			want: "https://evalhub.tenant.svc.cluster.local:8443",
 		},
 		{
-			name: "operator format multiple instances picks first found",
+			name: "operator format multiple instances picks lexicographically first key",
 			data: map[string]string{
-				"evalhub-a.url": "https://evalhub-a.ns.svc.cluster.local:8443",
 				"evalhub-b.url": "https://evalhub-b.ns.svc.cluster.local:8443",
+				"evalhub-a.url": "https://evalhub-a.ns.svc.cluster.local:8443",
 			},
-			want: "https://evalhub-", // prefix match since map iteration order is non-deterministic
+			want: "https://evalhub-a.ns.svc.cluster.local:8443",
 		},
 		{
 			name: "legacy service-url key",
@@ -53,11 +53,7 @@ func TestResolveDiscoveryURL(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			got := resolveDiscoveryURL(tc.data)
-			if tc.name == "operator format multiple instances picks first found" {
-				assert.Contains(t, got, tc.want)
-			} else {
-				assert.Equal(t, tc.want, got)
-			}
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
