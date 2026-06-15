@@ -7,7 +7,7 @@ trainingDataFile: automl-multiclass-test-data.csv
 taskType: multiclass
 topN: 1
 defaultMetricLabel: Accuracy
-changedMetricKey: roc_auc
-changedMetricLabel: ROC AUC
+changedMetricKey: f1_macro
+changedMetricLabel: F₁ Macro
 labelColumn: species
 awsBucket: BUCKET_2
