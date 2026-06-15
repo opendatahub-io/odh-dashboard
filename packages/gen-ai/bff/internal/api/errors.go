@@ -182,9 +182,10 @@ func (app *App) handleBFFClientError(w http.ResponseWriter, r *http.Request, err
 			statusCode = http.StatusBadGateway
 		}
 
-		// For server errors (5xx), use generic message for client and log sanitized details
-		// For client errors (4xx), include the original message
+		// For server errors (5xx), use generic message and code for client and log sanitized details
+		// For client errors (4xx), include the original message and code
 		message := bffErr.Message
+		code := bffErr.Code
 		if statusCode >= 500 {
 			// Log error with sanitized content to avoid leaking sensitive upstream data
 			logger := helper.GetContextLoggerFromReq(r)
@@ -194,17 +195,18 @@ func (app *App) handleBFFClientError(w http.ResponseWriter, r *http.Request, err
 				// Don't log bffErr.Message - may contain sensitive upstream response bodies
 				// Don't log bffErr.Target - may expose internal service topology
 			)
-			// Use generic message for client
+			// Use generic message and code for client to avoid leaking inter-service topology
 			message = http.StatusText(statusCode)
 			if message == "" {
 				message = "internal server error"
 			}
+			code = "internal_error"
 		}
 
 		httpError := &integrations.HTTPError{
 			StatusCode: statusCode,
 			ErrorResponse: integrations.ErrorResponse{
-				Code:    bffErr.Code,
+				Code:    code,
 				Message: message,
 			},
 		}
@@ -216,6 +218,8 @@ func (app *App) handleBFFClientError(w http.ResponseWriter, r *http.Request, err
 
 // maasBFFUnavailableResponse returns a service unavailable error when MaaS BFF client is not available
 func (app *App) maasBFFUnavailableResponse(w http.ResponseWriter, r *http.Request) {
+	app.LogError(r, fmt.Errorf("MaaS BFF client not available"))
+
 	app.errorResponse(w, r, &integrations.HTTPError{
 		StatusCode: http.StatusServiceUnavailable,
 		ErrorResponse: integrations.ErrorResponse{
