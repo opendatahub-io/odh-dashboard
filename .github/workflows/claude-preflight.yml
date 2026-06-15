@@ -258,6 +258,8 @@ jobs:
             --allowedTools "Bash(npm *)"
             --allowedTools "Bash(npx *)"
             --allowedTools "Bash(bash *)"
+            --allowedTools "mcp__jira__*"
+            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
           prompt: "/preflight ${{ env.PR_NUMBER }} --skip-review coderabbit --ci"
 
       # ── Fix (iterative) ──
@@ -290,6 +292,8 @@ jobs:
             --allowedTools "Bash(npm *)"
             --allowedTools "Bash(npx *)"
             --allowedTools "Bash(bash *)"
+            --allowedTools "mcp__jira__*"
+            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
           prompt: "/preflight ${{ env.PR_NUMBER }} --fix --skip-review coderabbit --ci"
 
       # ── Tag trace with PR context ──
