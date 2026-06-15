@@ -6,7 +6,7 @@
   &__query {
     display: block;
     padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
-    background-color: var(--pf-t--global--background--color--secondary--default);
+    background-color: #f9fafc;
     border: 1px solid var(--pf-t--global--border--color--default);
     border-radius: var(--pf-t--global--border--radius--small);
     margin-bottom: var(--pf-t--global--spacer--sm);
@@ -24,8 +24,6 @@
   }
 
   &__file-group {
-    padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
-
     & + & {
       border-top: 1px solid var(--pf-t--global--border--color--default);
     }
@@ -39,14 +37,16 @@
     font-weight: var(--pf-t--global--font--weight--body--bold);
     font-size: var(--pf-t--global--font--size--xs);
     color: var(--pf-t--global--text--color--link--default);
-    margin-right: var(--pf-t--global--spacer--xs);
+    margin-left: var(--pf-t--global--spacer--xs);
   }
 
   &__row-toggle {
     all: unset;
+    box-sizing: border-box;
     cursor: pointer;
     display: block;
     width: 100%;
+    padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
   }
 
   &__row-toggle-icon {
@@ -58,7 +58,7 @@
   &__filename {
     font-weight: var(--pf-t--global--font--weight--body--bold);
     font-size: var(--pf-t--global--font--size--sm);
-    color: var(--pf-t--global--text--color--link--default);
+    color: var(--pf-t--global--text--color--regular);
   }
 
   &__chunk-count {
@@ -67,25 +67,22 @@
   }
 
   &__chunks {
-    margin-top: var(--pf-t--global--spacer--xs);
-    padding-left: var(--pf-t--global--spacer--lg);
+    padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md)
+      var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--lg);
+    background-color: #f9fafc;
   }
 
   &__chunk {
-    padding: var(--pf-t--global--spacer--xs) 0;
-
-    & + & {
-      border-top: 1px solid var(--pf-t--global--border--color--default);
-    }
+    padding: var(--pf-t--global--spacer--sm) 0;
+    border-top: 1px solid var(--pf-t--global--border--color--default);
+    margin-left: calc(-1 * var(--pf-t--global--spacer--lg));
+    margin-right: calc(-1 * var(--pf-t--global--spacer--md));
+    padding-left: var(--pf-t--global--spacer--lg);
+    padding-right: var(--pf-t--global--spacer--md);
   }
 
   &__chunk-label {
     font-weight: var(--pf-t--global--font--weight--body--bold);
-  }
-
-  &__score {
-    font-weight: var(--pf-t--global--font--weight--body--bold);
-    font-size: var(--pf-t--global--font--size--sm);
   }
 
   &__snippet {
@@ -98,10 +95,12 @@
 
   &__show-more {
     all: unset;
+    display: block;
     cursor: pointer;
     color: var(--pf-t--global--text--color--link--default);
     font-size: var(--pf-t--global--font--size--xs);
     font-weight: var(--pf-t--global--font--weight--body--bold);
+    margin-top: var(--pf-t--global--spacer--xs);
 
     &:hover {
       color: var(--pf-t--global--text--color--link--hover);

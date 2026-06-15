@@ -5,6 +5,7 @@ import {
   ExpandableSectionToggle,
   Flex,
   FlexItem,
+  Label,
 } from '@patternfly/react-core';
 import { AngleRightIcon, AngleDownIcon } from '@patternfly/react-icons';
 import { FileSearchCallData, FileSearchResult } from '~/app/types';
@@ -36,14 +37,29 @@ const truncateText = (
   return { truncated: `${text.slice(0, maxLength)}...`, isTruncated: true };
 };
 
-const getScoreColor = (score: number): string => {
+type RelevanceTier = {
+  label: string;
+  color: 'green' | 'orange' | 'red';
+};
+
+const getRelevanceTier = (score: number): RelevanceTier => {
   if (score >= 0.8) {
-    return 'var(--pf-t--global--color--status--success--default)';
+    return { label: 'High relevance', color: 'green' };
   }
   if (score >= 0.5) {
-    return 'var(--pf-t--global--color--status--warning--default)';
+    return { label: 'Medium relevance', color: 'orange' };
   }
-  return 'var(--pf-t--global--color--status--danger--default)';
+  return { label: 'Low relevance', color: 'red' };
+};
+
+const getChunkCountColor = (score: number): string | undefined => {
+  if (score >= 0.8) {
+    return 'var(--pf-t--color--green--50)';
+  }
+  if (score >= 0.5) {
+    return 'var(--pf-t--color--orange--50)';
+  }
+  return 'var(--pf-t--color--red--50)';
 };
 
 const formatScore = (score: number): string => score.toFixed(2);
@@ -97,13 +113,13 @@ const ChunkRow: React.FC<ChunkRowProps> = ({ chunk, index, groupIndex }) => {
           </Content>
         </FlexItem>
         <FlexItem>
-          <span
-            className="chatbot-file-search__score"
-            style={{ color: getScoreColor(chunk.score) }}
+          <Label
+            color={getRelevanceTier(chunk.score).color}
+            isCompact
             data-testid={`file-search-group-${groupIndex}-chunk-${index}-score`}
           >
-            {formatScore(chunk.score)}
-          </span>
+            {getRelevanceTier(chunk.score).label} &mdash; {formatScore(chunk.score)}
+          </Label>
         </FlexItem>
       </Flex>
       {chunk.text && (
@@ -135,9 +151,15 @@ type FileGroupRowProps = {
   group: FileGroup;
   index: number;
   isForceExpanded?: boolean;
+  collapseKey: number;
 };
 
-const FileGroupRow: React.FC<FileGroupRowProps> = ({ group, index, isForceExpanded }) => {
+const FileGroupRow: React.FC<FileGroupRowProps> = ({
+  group,
+  index,
+  isForceExpanded,
+  collapseKey,
+}) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const expanded = isForceExpanded || isExpanded;
   const ToggleIcon = expanded ? AngleDownIcon : AngleRightIcon;
@@ -150,6 +172,10 @@ const FileGroupRow: React.FC<FileGroupRowProps> = ({ group, index, isForceExpand
       groupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [isForceExpanded]);
+
+  React.useEffect(() => {
+    setIsExpanded(false);
+  }, [collapseKey]);
 
   return (
     <div
@@ -170,6 +196,7 @@ const FileGroupRow: React.FC<FileGroupRowProps> = ({ group, index, isForceExpand
         >
           <FlexItem>
             <ToggleIcon className="chatbot-file-search__row-toggle-icon" />
+            <span className="chatbot-file-search__filename">{group.filename}</span>
             {group.citationNumber != null && (
               <span
                 className="chatbot-file-search__citation-badge"
@@ -178,12 +205,11 @@ const FileGroupRow: React.FC<FileGroupRowProps> = ({ group, index, isForceExpand
                 [{group.citationNumber}]
               </span>
             )}
-            <span className="chatbot-file-search__filename">{group.filename}</span>
           </FlexItem>
           <FlexItem>
             <span
               className="chatbot-file-search__chunk-count"
-              style={{ color: getScoreColor(group.bestScore) }}
+              style={{ color: getChunkCountColor(group.bestScore) }}
               data-testid={`file-search-group-${index}-chunk-count`}
             >
               {chunkCount} chunk{chunkCount !== 1 ? 's' : ''}
@@ -214,6 +240,7 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
   onCitationExpanded,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const [collapseKey, setCollapseKey] = React.useState(0);
   const toggleId = React.useId();
   const contentId = React.useId();
 
@@ -225,7 +252,7 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
   );
 
   const totalSources = fileGroups.length;
-  const totalChunks = results.length;
+  const citedSources = citationMap ? fileGroups.filter((g) => g.citationNumber != null).length : 0;
 
   // Auto-expand when a citation is clicked
   React.useEffect(() => {
@@ -239,13 +266,21 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
     <div className="chatbot-file-search" data-testid="file-search-results">
       <ExpandableSectionToggle
         isExpanded={isExpanded}
-        onToggle={() => setIsExpanded((prev) => !prev)}
+        onToggle={() => {
+          setIsExpanded((prev) => {
+            if (prev) {
+              setCollapseKey((k) => k + 1);
+            }
+            return !prev;
+          });
+        }}
         contentId={contentId}
         toggleId={toggleId}
         data-testid="file-search-results-toggle"
       >
-        {totalSources} source{totalSources !== 1 ? 's' : ''}, {totalChunks} chunk
-        {totalChunks !== 1 ? 's' : ''} retrieved
+        {citedSources > 0
+          ? `${citedSources} cited, ${totalSources} retrieved`
+          : `${totalSources} source${totalSources !== 1 ? 's' : ''} retrieved`}
       </ExpandableSectionToggle>
       <ExpandableSection
         isExpanded={isExpanded}
@@ -270,6 +305,7 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
                 key={group.filename}
                 group={group}
                 index={index}
+                collapseKey={collapseKey}
                 isForceExpanded={
                   expandedCitation != null && group.citationNumber === expandedCitation
                 }
