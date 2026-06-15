@@ -701,7 +701,7 @@ This endpoint enforces the same ownership validation as the Terminate Run endpoi
 - Fetches the run and validates it belongs to one of the discovered AutoML pipelines before deleting
 - Validates the run is in SUCCEEDED, FAILED, or CANCELED state before deleting
 - Returns `404 Not Found` if the run does not exist, belongs to a different pipeline, or required managed AutoML pipelines are unavailable in the namespace
-- Returns `400 Bad Request` if the run is not in an deletable state
+- Returns `400 Bad Request` if the run is not in a deletable state
 - Prevents users from deleting runs from other pipelines in the same namespace
 
 ### Request Example
