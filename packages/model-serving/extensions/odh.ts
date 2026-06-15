@@ -9,6 +9,8 @@ import type {
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
+const ADMIN_USER = 'ADMIN_USER';
+
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/internal/utilities/v2Redirect').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
@@ -102,6 +104,20 @@ const extensions: (
       required: [SupportedArea.MODEL_SERVING],
     },
   },
+  // General settings tab in the Model deployment settings page
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'general-settings',
+      title: 'General settings',
+      component: () => import('../src/components/settings/GeneralSettingsTab'),
+      group: '1_general',
+    },
+  },
   // Redirect old serving runtimes URL to the new model deployment settings page
   {
     type: 'app.route',
@@ -113,7 +129,7 @@ const extensions: (
       }),
     },
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
+      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
     },
   },
   {
@@ -126,7 +142,7 @@ const extensions: (
       }),
     },
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
+      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
     },
   },
 ];
