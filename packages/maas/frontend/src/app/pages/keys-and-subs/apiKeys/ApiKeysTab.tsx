@@ -12,9 +12,10 @@ import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
 type ApiKeysTabProps = {
   pageState: UseApiKeysPageLoadReturn;
   subscriptions: UserSubscription[];
+  showDescription?: boolean;
 };
 
-const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions }) => {
+const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showDescription }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
@@ -96,9 +97,11 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions }) => 
         />
       )}
       <PageSection isFilled>
-        <Content component={ContentVariants.p}>
-          Manage API keys that can be used to authenticate with model endpoints.
-        </Content>
+        {showDescription && (
+          <Content component={ContentVariants.p}>
+            Manage API keys that can be used to authenticate with model endpoints.
+          </Content>
+        )}
         <ApiKeysTable
           onRevokeApiKey={setRevokeApiKey}
           apiKeys={apiKeys}
