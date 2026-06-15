@@ -18,7 +18,7 @@ import { FilterIcon } from '@patternfly/react-icons';
 import ApiKeysActions from '~/app/pages/keys-and-subs/apiKeys/ApiKeysActions';
 import {
   APIKey,
-  APIKeyStatus,
+  APIKeyDisplayStatus,
   ApiKeyFilterDataType,
   STATUS_OPTIONS,
   SubscriptionOption,
@@ -26,7 +26,7 @@ import {
 
 const STATUS_SET: ReadonlySet<string> = new Set(STATUS_OPTIONS);
 
-const isAPIKeyStatus = (value: unknown): value is APIKeyStatus =>
+const isAPIKeyDisplayStatus = (value: unknown): value is APIKeyDisplayStatus =>
   typeof value === 'string' && STATUS_SET.has(value);
 
 type ApiKeysToolbarProps = {
@@ -35,8 +35,8 @@ type ApiKeysToolbarProps = {
   localUsername: string;
   setLocalUsername: (value: string) => void;
   onUsernameChange: (value: string) => void;
-  onStatusToggle: (status: APIKeyStatus) => void;
-  onStatusClear: (status: APIKeyStatus) => void;
+  onStatusToggle: (status: APIKeyDisplayStatus) => void;
+  onStatusClear: (status: APIKeyDisplayStatus) => void;
   subscriptions: SubscriptionOption[];
   onSubscriptionChange: (subscription: string) => void;
   activeApiKeys: APIKey[];
@@ -94,7 +94,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
               }))}
               deleteLabel={(_category, label) => {
                 const key = typeof label === 'string' ? label : label.key;
-                if (isAPIKeyStatus(key)) {
+                if (isAPIKeyDisplayStatus(key)) {
                   onStatusClear(key);
                 }
               }}
@@ -105,7 +105,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
                 isOpen={isStatusSelectOpen}
                 selected={filterData.statuses}
                 onSelect={(_event, value) => {
-                  if (isAPIKeyStatus(value)) {
+                  if (isAPIKeyDisplayStatus(value)) {
                     onStatusToggle(value);
                   }
                 }}

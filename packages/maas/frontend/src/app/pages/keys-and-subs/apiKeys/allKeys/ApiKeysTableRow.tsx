@@ -10,12 +10,12 @@ import {
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { APIKey, APIKeyStatus, SubscriptionDetail } from '~/app/types/api-key';
+import { APIKey, APIKeyDisplayStatus, SubscriptionDetail } from '~/app/types/api-key';
 import { ApiKeyColumn } from './columns';
 import SubscriptionCell from './SubscriptionCell';
 
 const getApiKeyStatusProps = (
-  status: APIKeyStatus,
+  status: APIKeyDisplayStatus,
 ): { icon: React.ReactNode; status?: LabelProps['status']; variant?: LabelProps['variant'] } => {
   switch (status) {
     case 'active':
@@ -46,14 +46,14 @@ const formatDate = (dateString?: string, fallback = '—'): string => {
   });
 };
 
-const getDisplayStatus = (apiKey: APIKey, isSubscriptionUnavailable: boolean): APIKeyStatus =>
-  apiKey.status === 'active' && isSubscriptionUnavailable ? 'inactive' : apiKey.status;
+const getDisplayStatus = (apiKey: APIKey, isInactive: boolean): APIKeyDisplayStatus =>
+  isInactive ? 'inactive' : apiKey.status;
 
 const renderApiKeyCell = (
   col: ApiKeyColumn,
   apiKey: APIKey,
   subscriptionDetail: SubscriptionDetail | undefined,
-  isSubscriptionUnavailable: boolean,
+  isInactive: boolean,
 ): React.ReactNode => {
   switch (col.field) {
     case 'name':
@@ -65,7 +65,7 @@ const renderApiKeyCell = (
         />
       );
     case 'status': {
-      const displayStatus = getDisplayStatus(apiKey, isSubscriptionUnavailable);
+      const displayStatus = getDisplayStatus(apiKey, isInactive);
       const { variant, ...labelProps } = getApiKeyStatusProps(displayStatus);
       const label = (
         <Label variant={variant ?? 'outline'} {...labelProps}>
@@ -110,7 +110,7 @@ type ApiKeysTableRowProps = {
   apiKey: APIKey;
   columns: ApiKeyColumn[];
   subscriptionDetail?: SubscriptionDetail;
-  isSubscriptionUnavailable: boolean;
+  isInactive: boolean;
   onRevokeApiKey: (apiKey: APIKey) => void;
 };
 
@@ -118,13 +118,13 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
   apiKey,
   columns,
   subscriptionDetail,
-  isSubscriptionUnavailable,
+  isInactive,
   onRevokeApiKey,
 }) => (
   <Tr>
     {columns.map((col) => (
       <Td key={col.field} dataLabel={col.label}>
-        {renderApiKeyCell(col, apiKey, subscriptionDetail, isSubscriptionUnavailable)}
+        {renderApiKeyCell(col, apiKey, subscriptionDetail, isInactive)}
       </Td>
     ))}
     <Td isActionCell>
