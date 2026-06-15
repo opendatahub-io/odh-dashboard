@@ -31,11 +31,25 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/plugin-core": "*",
-    "yaml": "^2.8.2"
+    "lodash-es": "^4.18.1",
+    "yaml": "^2.9.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk": "^5",
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-code-editor": "^6",
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "@patternfly/react-table": "^6",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router": "^7",
+    "react-router-dom": "^7"
   }
 }
