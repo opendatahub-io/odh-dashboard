@@ -57,7 +57,7 @@ func (kc *SharedClientLogic) GetEvalHubDiscoveryURL(ctx context.Context, _ *Requ
 
 	if err := validateServiceURL(serviceURL); err != nil {
 		kc.Logger.Error("EvalHubDiscovery ConfigMap contains invalid service-url",
-			"namespace", namespace, "serviceURL", serviceURL, "error", err)
+			"namespace", namespace, "error", err)
 		return "", fmt.Errorf("invalid service-url in %s ConfigMap (namespace %q): %w",
 			EvalHubDiscoveryConfigMap, namespace, err)
 	}
@@ -67,9 +67,9 @@ func (kc *SharedClientLogic) GetEvalHubDiscoveryURL(ctx context.Context, _ *Requ
 	return serviceURL, nil
 }
 
-// validateServiceURL ensures the URL is well-formed and constrained to safe internal
-// destinations. This prevents SSRF if a malicious actor gains write access to the
-// discovery ConfigMap — the BFF will refuse to forward bearer tokens to external hosts.
+// validateServiceURL ensures the URL is well-formed and pinned to a known EvalHub service
+// inside the cluster. This prevents SSRF if a malicious actor gains write access to the
+// discovery ConfigMap — the BFF will refuse to forward bearer tokens to arbitrary endpoints.
 func validateServiceURL(raw string) error {
 	u, err := url.Parse(raw)
 	if err != nil {
@@ -87,6 +87,10 @@ func validateServiceURL(raw string) error {
 	}
 	if !strings.HasSuffix(host, ".svc.cluster.local") && !strings.HasSuffix(host, ".svc") {
 		return fmt.Errorf("host %q is not a cluster-internal service (must end with .svc or .svc.cluster.local)", host)
+	}
+	serviceName := strings.SplitN(host, ".", 2)[0]
+	if !strings.HasPrefix(serviceName, "evalhub") {
+		return fmt.Errorf("service name %q does not match expected EvalHub service prefix", serviceName)
 	}
 	return nil
 }

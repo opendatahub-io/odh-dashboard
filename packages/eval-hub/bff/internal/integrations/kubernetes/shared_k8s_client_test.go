@@ -15,6 +15,7 @@ func TestValidateServiceURL_Valid(t *testing.T) {
 		"https://evalhub.my-tenant.svc.cluster.local:8443/api",
 		"http://evalhub.ns.svc",
 		"https://evalhub.ns.svc:9090",
+		"http://evalhub-v2.ns.svc.cluster.local:8080",
 	}
 	for _, u := range valid {
 		t.Run(u, func(t *testing.T) {
@@ -38,6 +39,8 @@ func TestValidateServiceURL_Invalid(t *testing.T) {
 		{"embedded credentials", "http://admin:pass@evalhub.ns.svc.cluster.local", "embedded credentials"},
 		{"empty host", "http://", "must contain a hostname"},
 		{"javascript", "javascript:alert(1)", "unsupported scheme"},
+		{"arbitrary svc SSRF", "http://token-sink.attacker-ns.svc:8080", "does not match expected EvalHub service prefix"},
+		{"non-evalhub prefix", "http://my-evalhub.ns.svc.cluster.local", "does not match expected EvalHub service prefix"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
