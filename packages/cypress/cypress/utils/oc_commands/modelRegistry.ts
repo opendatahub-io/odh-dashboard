@@ -160,16 +160,18 @@ export const waitForModelRegistryDatabase = (
   const command = `oc wait --for=condition=Available deployment/${databaseName} -n ${targetNamespace} --timeout=600s`;
 
   cy.log(`Waiting for model registry database '${databaseName}' to be ready...`);
-  return cy.exec(command, { failOnNonZeroExit: false, timeout: 600000 }).then((result: CommandLineResult) => {
-    if (result.stdout) {
-      cy.log(`Database wait result: ${result.stdout}`);
-    }
-    if (result.stderr) {
-      const maskedStderr = maskSensitiveInfo(result.stderr);
-      cy.log(`Database wait stderr: ${maskedStderr}`);
-    }
-    return cy.wrap(result.exitCode === 0);
-  });
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: 600000 })
+    .then((result: CommandLineResult) => {
+      if (result.stdout) {
+        cy.log(`Database wait result: ${result.stdout}`);
+      }
+      if (result.stderr) {
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        cy.log(`Database wait stderr: ${maskedStderr}`);
+      }
+      return cy.wrap(result.exitCode === 0);
+    });
 };
 
 /**
