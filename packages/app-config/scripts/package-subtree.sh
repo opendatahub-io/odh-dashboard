@@ -5,7 +5,8 @@ set -e
 # Script to sync upstream repository content into monorepo using patch-based incremental updates
 # Usage: ./package-subtree.sh --package=<package-name> [--commit=<commit-sha>] [--continue]
 
-source "$(dirname "${BASH_SOURCE[0]}")/package-subtree-common.sh"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
+source "$SCRIPT_DIR/package-subtree-common.sh"
 
 show_usage() {
   echo "Usage: $0 --package=<package-name> [--commit=<commit-sha>] [--continue] [--pr=<pr-url>]"
