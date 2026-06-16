@@ -11,10 +11,6 @@ export function shouldShowConfigurePipelineServerEmptyState(error: unknown): boo
   if (!(error instanceof Error)) {
     return false;
   }
-  const status = getGenericErrorCode(error) ?? parseErrorStatus(error);
-  if (status === 404) {
-    return true;
-  }
   const msg = error.message;
   if (/required\s+managed\s+pipelines\s+not\s+found/i.test(msg)) {
     return true;

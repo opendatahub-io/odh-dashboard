@@ -195,7 +195,7 @@ describe('AutoragExperiments', () => {
     expect(screen.getByText('Fetch failed')).toBeInTheDocument();
   });
 
-  it('should show NoPipelineServer for 404 error (no DSPA)', () => {
+  it('should show generic error for unrelated 404', () => {
     mockGetGenericErrorCode.mockReturnValue(404);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -204,9 +204,8 @@ describe('AutoragExperiments', () => {
 
     renderAutorag(<AutoragExperiments />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Failed to load experiments')).toBeInTheDocument();
+    expect(screen.getByText('Not found')).toBeInTheDocument();
   });
 
   it('should show NoPipelineServer when BFF reports no managed AutoRAG pipeline', () => {
