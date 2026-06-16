@@ -3,6 +3,19 @@ import { ConnectedWorkbenchTableRow } from '../../types/connectedWorkbenches';
 
 export const CONNECTED_WORKBENCH_PERMISSION_LABEL_THRESHOLD = 4;
 
+export const PERMISSION_OPTIONS = [
+  'Create',
+  'Describe',
+  'Update',
+  'Delete',
+  'Read',
+  'Read_online',
+  'Read_offline',
+  'Write',
+  'Write_online',
+  'Write_offline',
+] as const;
+
 export const NO_CONNECTED_WORKBENCH_TOOLTIP =
   'Go to the Authorized project page, edit a workbench or create a new one to connect with desired feature stores.';
 
