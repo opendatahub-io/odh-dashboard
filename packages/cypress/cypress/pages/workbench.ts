@@ -551,10 +551,6 @@ class CreateSpawnerPage {
 
   visitSpawner(projectName: string) {
     cy.visitWithLogin(`/projects/${projectName}/spawner`);
-    this.wait();
-  }
-
-  private wait() {
     cy.findByTestId('app-page-title');
     cy.testA11y();
   }

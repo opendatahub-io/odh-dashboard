@@ -5,6 +5,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
+import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__/mockNotebookK8sResource';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockCustomSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
@@ -91,7 +92,7 @@ describe('Existing Secret Environment Variables — RHOAIENG-69120/69121/69122',
       ]),
     );
 
-    cy.interceptK8s('POST', NotebookModel, { statusCode: 200, body: {} }).as('createNotebook');
+    cy.interceptK8s('POST', NotebookModel, mockNotebookK8sResource({})).as('createNotebook');
   });
 
   it('should show "Existing secret" as a third option in the env var type dropdown', () => {
