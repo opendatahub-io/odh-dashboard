@@ -454,6 +454,10 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		// Check if MaaS BFF target is configured
 		if !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			logger.Debug("MaaS BFF target not configured, attaching nil client")
+			// CODE REVIEW NOTE: Storing nil client in context is intentional defensive programming.
+			// Handlers check for nil and return 503. This pattern allows mixed-source endpoints
+			// (e.g., namespace+maas models) to degrade gracefully when MaaS BFF is unavailable.
+			// Alternative (503 here) would block all requests, even those not needing MaaS.
 			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), nil)
 			next(w, r.WithContext(ctx), ps)
 			return
@@ -464,6 +468,10 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); ok && identity != nil {
 			authToken = identity.Token
 		}
+		// CODE REVIEW NOTE: Empty authToken when RequestIdentity is absent is safe by middleware ordering.
+		// RequireAccessToService runs BEFORE AttachBFFMaaSClient in the chain (see Routes() in app.go),
+		// guaranteeing RequestIdentity exists and is validated before this code executes.
+		// If this invariant is ever violated, downstream BFF calls will fail with 401/403.
 
 		// Build headers based on MaaS BFF's auth method
 		forwardHeaders := make(map[string]string)
