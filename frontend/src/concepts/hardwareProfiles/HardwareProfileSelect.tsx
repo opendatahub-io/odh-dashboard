@@ -84,7 +84,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     currentProjectHardwareProfilesError,
   ] = projectScopedHardwareProfiles;
 
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject, localQueues } = React.useContext(ProjectDetailsContext);
   const { projects } = React.useContext(ProjectsContext);
   const { dashboardConfig } = useApplicationSettings();
   const hardwareProfileOrder = React.useMemo(
@@ -105,9 +105,24 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const { kueueFilteringState } = useKueueConfiguration(projectForKueue);
 
+  const availableLocalQueueNames = React.useMemo<Set<string> | undefined>(() => {
+    if (!localQueues.loaded) {
+      return undefined;
+    }
+    return new Set(
+      localQueues.data
+        .map((lq) => lq.metadata?.name)
+        .filter((name): name is string => name != null),
+    );
+  }, [localQueues.loaded, localQueues.data]);
+
   const options = React.useMemo(() => {
     const enabledProfiles = orderHardwareProfiles(
-      filterProfilesByKueue(hardwareProfiles.filter(isHardwareProfileEnabled), kueueFilteringState),
+      filterProfilesByKueue(
+        hardwareProfiles.filter(isHardwareProfileEnabled),
+        kueueFilteringState,
+        availableLocalQueueNames,
+      ),
       hardwareProfileOrder,
     );
 
@@ -200,6 +215,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     isHardwareProfileSupported,
     kueueFilteringState,
     hardwareProfileOrder,
+    availableLocalQueueNames,
   ]);
 
   const renderMenuItem = (
@@ -277,7 +293,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       enabledProfiles.push(initialHardwareProfile);
     }
     const orderedProfiles = orderHardwareProfiles(enabledProfiles, hardwareProfileOrder);
-    return filterProfilesByKueue(orderedProfiles, kueueFilteringState).filter((profile) =>
+    return filterProfilesByKueue(
+      orderedProfiles,
+      kueueFilteringState,
+      availableLocalQueueNames,
+    ).filter((profile) =>
       getHardwareProfileDisplayName(profile)
         .toLocaleLowerCase()
         .includes(searchHardwareProfile.toLocaleLowerCase()),

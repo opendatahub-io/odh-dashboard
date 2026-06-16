@@ -64,6 +64,7 @@ export const useKueueConfiguration = (
 export const filterProfilesByKueue = (
   profiles: HardwareProfileKind[],
   kueueFilteringState: KueueFilteringState,
+  availableLocalQueueNames?: Set<string>,
 ): HardwareProfileKind[] => {
   if (kueueFilteringState === KueueFilteringState.NO_PROFILES) {
     return [];
@@ -72,8 +73,16 @@ export const filterProfilesByKueue = (
   return profiles.filter((profile) => {
     const isKueueProfile = profile.spec.scheduling?.type === SchedulingType.QUEUE;
     switch (kueueFilteringState) {
-      case KueueFilteringState.ONLY_KUEUE_PROFILES:
-        return isKueueProfile;
+      case KueueFilteringState.ONLY_KUEUE_PROFILES: {
+        if (!isKueueProfile) {
+          return false;
+        }
+        const localQueueName = profile.spec.scheduling?.kueue?.localQueueName;
+        if (localQueueName && availableLocalQueueNames) {
+          return availableLocalQueueNames.has(localQueueName);
+        }
+        return true;
+      }
       case KueueFilteringState.ONLY_NON_KUEUE_PROFILES:
         return !isKueueProfile;
       default:
