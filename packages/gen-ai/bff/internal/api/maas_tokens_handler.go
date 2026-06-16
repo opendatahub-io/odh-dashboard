@@ -68,7 +68,8 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 	}
 
 	// Call MaaS BFF to create API key
-	// MaaS BFF returns response wrapped in envelope: {"data": {"key": "...", "expiresAt": "...", ...}}
+	// Per MaaS BFF OpenAPI spec, POST /api/v1/api-keys returns a flat object:
+	// {"key": "...", "keyPrefix": "...", "id": "...", "expiresAt": "...", ...}
 	var bffResponse models.MaaSBFFAPIKeyResponse
 	err := maasClient.Call(ctx, "POST", "/api-keys", bffRequest, &bffResponse)
 	if err != nil {
@@ -78,12 +79,12 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 
 	// Map MaaS BFF response to Gen AI format
 	genAIResponse := models.MaaSTokenResponse{
-		Key: bffResponse.Data.Key,
+		Key: bffResponse.Key,
 	}
 
 	// Map expiresAt from pointer to string
-	if bffResponse.Data.ExpiresAt != nil {
-		genAIResponse.ExpiresAt = *bffResponse.Data.ExpiresAt
+	if bffResponse.ExpiresAt != nil {
+		genAIResponse.ExpiresAt = *bffResponse.ExpiresAt
 	}
 
 	// Return response in Gen AI envelope format

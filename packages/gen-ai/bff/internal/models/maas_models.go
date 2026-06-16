@@ -93,17 +93,14 @@ type MaaSBFFAPIKeyRequest struct {
 	Data MaaSBFFAPIKeyRequestData `json:"data"`
 }
 
-// MaaSBFFAPIKeyResponseData represents the data field in MaaS BFF API key response
-type MaaSBFFAPIKeyResponseData struct {
+// MaaSBFFAPIKeyResponse represents the MaaS BFF API key response.
+// Per MaaS BFF OpenAPI spec (packages/maas/bff/openapi.yaml lines 367-388),
+// POST /api/v1/api-keys returns a flat object, not an envelope wrapper.
+type MaaSBFFAPIKeyResponse struct {
 	Key       string  `json:"key"`
 	KeyPrefix string  `json:"keyPrefix,omitempty"`
 	ID        string  `json:"id,omitempty"`
 	Name      string  `json:"name,omitempty"`
 	CreatedAt *string `json:"createdAt,omitempty"`
 	ExpiresAt *string `json:"expiresAt,omitempty"`
-}
-
-// MaaSBFFAPIKeyResponse represents the full MaaS BFF API key response envelope
-type MaaSBFFAPIKeyResponse struct {
-	Data MaaSBFFAPIKeyResponseData `json:"data"`
 }

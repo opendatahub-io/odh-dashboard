@@ -58,16 +58,14 @@ func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string,
 	switch {
 	case path == "/api-keys" && method == "POST":
 		// Mock API key creation response.
-		// MaaS BFF wraps responses in {"data": ...} envelope.
+		// Per MaaS BFF OpenAPI spec, POST /api/v1/api-keys returns a flat object (not envelope).
 		keyResp := map[string]interface{}{
-			"data": map[string]interface{}{
-				"key":       "sk-oai-mock-" + fmt.Sprintf("%d", time.Now().Unix()),
-				"keyPrefix": "sk-oai-mock",
-				"id":        "mock-id-" + fmt.Sprintf("%d", time.Now().Unix()),
-				"name":      "gen-ai-mock",
-				"createdAt": time.Now().Format(time.RFC3339),
-				"expiresAt": time.Now().Add(time.Hour).Format(time.RFC3339),
-			},
+			"key":       "sk-oai-mock-" + fmt.Sprintf("%d", time.Now().Unix()),
+			"keyPrefix": "sk-oai-mock",
+			"id":        "mock-id-" + fmt.Sprintf("%d", time.Now().Unix()),
+			"name":      "gen-ai-mock",
+			"createdAt": time.Now().Format(time.RFC3339),
+			"expiresAt": time.Now().Add(time.Hour).Format(time.RFC3339),
 		}
 		return marshalToResponse(keyResp, response)
 
