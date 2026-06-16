@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import {
   Deployment,

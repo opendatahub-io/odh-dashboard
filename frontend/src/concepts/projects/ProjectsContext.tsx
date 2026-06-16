@@ -1,7 +1,7 @@
 import * as React from 'react';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useProjects } from '#~/api';
 import { FetchState } from '#~/utilities/useFetchState';
-import { ProjectKind } from '#~/k8sTypes';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { isAvailableProject } from './utils';

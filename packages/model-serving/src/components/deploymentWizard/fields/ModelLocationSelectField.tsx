@@ -22,7 +22,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
-import type { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';

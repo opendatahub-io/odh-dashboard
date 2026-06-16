@@ -1,11 +1,11 @@
 import * as React from 'react';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   CreatingStorageObjectForNotebook,
   ExistingStorageObjectForNotebook,
   StorageData,
   UpdateObjectAtPropAndValue,
 } from '#~/pages/projects/types';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import {
   useRelatedNotebooks,
   ConnectedNotebookContext,

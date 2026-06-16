@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
+import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { ClusterState, UserState } from '#~/redux/selectors/types';
 import { useUser, useClusterInfo } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
@@ -10,7 +11,6 @@ import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { mockDashboardConfig } from '#~/__mocks__';
 import { BuildStatus, SubscriptionStatusData } from '#~/types';
 import {
-  DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
   StorageClassKind,

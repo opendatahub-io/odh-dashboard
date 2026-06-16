@@ -1,4 +1,4 @@
-import { KnownLabels, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { KnownLabels, type PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { genUID } from '#~/__mocks__/mockUtils';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 

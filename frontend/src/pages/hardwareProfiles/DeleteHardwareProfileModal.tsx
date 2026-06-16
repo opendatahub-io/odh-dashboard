@@ -1,7 +1,7 @@
 import React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { deleteHardwareProfile } from '#~/api';
-import { HardwareProfileKind } from '#~/k8sTypes';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { getHardwareProfileDisplayName } from './utils';
 
