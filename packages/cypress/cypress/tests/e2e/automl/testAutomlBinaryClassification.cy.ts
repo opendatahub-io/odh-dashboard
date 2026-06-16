@@ -70,7 +70,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
   it(
     'Verify binary classification run completes with leaderboard',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression'], retries: { runMode: 0, openMode: 0 } },
     () => {
       cy.step('Wait for run to complete and verify leaderboard');
       automlResultsPage.waitForRunCompletion();

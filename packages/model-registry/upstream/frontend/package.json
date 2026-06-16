@@ -156,6 +156,7 @@
     "ts-jest": "^29.4.0"
   },
   "overrides": {
+    "csstype": "3.2.3",
     "shell-quote": ">=1.8.4"
   }
 }
