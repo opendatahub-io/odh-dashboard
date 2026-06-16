@@ -194,6 +194,11 @@ export const isEnumMember = <T extends object>(
   return false;
 };
 
+export const isInEnum =
+  <T extends { [s: string]: unknown }>(e: T) =>
+  (token: unknown): token is T[keyof T] =>
+    isEnumMember(token, e);
+
 export const isInternalRouteIntegrationsApp = (internalRoute?: string): internalRoute is string =>
   internalRoute?.startsWith('/api/') ?? false;
 

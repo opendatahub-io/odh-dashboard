@@ -41,6 +41,19 @@ runs:
       shell: bash
       run: npx --no-install cypress install
 
+    - name: agent-ops node_modules cache
+      id: agent-ops-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: packages/agent-ops/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-agent-ops-${{ hashFiles('packages/agent-ops/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-agent-ops-
+    - name: Install agent-ops dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.agent-ops-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/agent-ops/frontend
+
     - name: automl node_modules cache
       id: automl-cache
       if: inputs.include-modules == 'true'

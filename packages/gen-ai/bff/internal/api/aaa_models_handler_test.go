@@ -84,6 +84,11 @@ var _ = Describe("ModelsAAHandler", func() {
 		assert.Equal(t, "IBM Granite 7B model specialized for code generation tasks", firstModel["description"])
 		assert.Equal(t, "Running", firstModel["status"])
 
+		capabilities, ok := firstModel["capabilities"].([]interface{})
+		assert.True(t, ok, "capabilities should be an array")
+		assert.Equal(t, []interface{}{"text-generation"}, capabilities,
+			"namespace models default to text-generation capability")
+
 		endpoints, ok := firstModel["endpoints"].([]interface{})
 		assert.True(t, ok, "Endpoints should be an array")
 		assert.Len(t, endpoints, 2, "Should have 2 endpoints")

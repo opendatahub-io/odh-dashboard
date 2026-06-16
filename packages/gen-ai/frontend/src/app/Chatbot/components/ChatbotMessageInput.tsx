@@ -49,6 +49,9 @@ interface ChatbotMessageInputProps {
   imageUploadState: ImageUploadState;
   onRemoveImage: () => void;
   isImageUploadDisabled: boolean;
+  imageDisabledTooltip?: string;
+  showImageUpload?: boolean;
+  showAudioUpload?: boolean;
   isAudioUploadDisabled: boolean;
   audioDisabledTooltip?: string;
   onAudioUpload?: (file: File) => void;
@@ -73,6 +76,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   imageUploadState,
   onRemoveImage,
   isImageUploadDisabled,
+  imageDisabledTooltip,
+  showImageUpload = true,
+  showAudioUpload = true,
   isAudioUploadDisabled,
   audioDisabledTooltip,
   onAudioUpload,
@@ -247,29 +253,44 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   const attachMenuItems = React.useMemo(
     () => (
       <MenuList>
-        <MenuItem
-          icon={<OutlinedFileImageIcon />}
-          isDisabled={isImageUploadDisabled}
-          onClick={() => handleMenuSelect('upload-image')}
-        >
-          Upload image
-        </MenuItem>
-        {isAudioUploadDisabled && audioDisabledTooltip ? (
-          <Tooltip content={audioDisabledTooltip} position="left">
-            <MenuItem icon={<VolumeUpIcon />} isAriaDisabled data-testid="upload-audio-menu-item">
+        {showImageUpload &&
+          (isImageUploadDisabled && imageDisabledTooltip ? (
+            <Tooltip content={imageDisabledTooltip} position="left" enableFlip>
+              <MenuItem
+                icon={<OutlinedFileImageIcon />}
+                isAriaDisabled
+                data-testid="upload-image-menu-item"
+              >
+                Upload image
+              </MenuItem>
+            </Tooltip>
+          ) : (
+            <MenuItem
+              icon={<OutlinedFileImageIcon />}
+              isDisabled={isImageUploadDisabled}
+              onClick={() => handleMenuSelect('upload-image')}
+              data-testid="upload-image-menu-item"
+            >
+              Upload image
+            </MenuItem>
+          ))}
+        {showAudioUpload &&
+          (isAudioUploadDisabled && audioDisabledTooltip ? (
+            <Tooltip content={audioDisabledTooltip} position="left" enableFlip>
+              <MenuItem icon={<VolumeUpIcon />} isAriaDisabled data-testid="upload-audio-menu-item">
+                Upload audio
+              </MenuItem>
+            </Tooltip>
+          ) : (
+            <MenuItem
+              icon={<VolumeUpIcon />}
+              isDisabled={isAudioUploadDisabled}
+              onClick={() => handleMenuSelect('upload-audio')}
+              data-testid="upload-audio-menu-item"
+            >
               Upload audio
             </MenuItem>
-          </Tooltip>
-        ) : (
-          <MenuItem
-            icon={<VolumeUpIcon />}
-            isDisabled={isAudioUploadDisabled}
-            onClick={() => handleMenuSelect('upload-audio')}
-            data-testid="upload-audio-menu-item"
-          >
-            Upload audio
-          </MenuItem>
-        )}
+          ))}
         <MenuItem
           icon={<OutlinedFileAltIcon />}
           onClick={() => handleMenuSelect('upload-documents')}
@@ -278,7 +299,15 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         </MenuItem>
       </MenuList>
     ),
-    [isImageUploadDisabled, isAudioUploadDisabled, audioDisabledTooltip, handleMenuSelect],
+    [
+      showImageUpload,
+      isImageUploadDisabled,
+      imageDisabledTooltip,
+      showAudioUpload,
+      isAudioUploadDisabled,
+      audioDisabledTooltip,
+      handleMenuSelect,
+    ],
   );
 
   return (
@@ -435,22 +464,26 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           }}
         />
       </div>
-      <input
-        ref={imageInputRef}
-        type="file"
-        accept={VISION_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
-        style={{ display: 'none' }}
-        onChange={handleImageFileSelect}
-        data-testid="vision-file-input"
-      />
-      <input
-        ref={audioInputRef}
-        type="file"
-        accept={AUDIO_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
-        style={{ display: 'none' }}
-        onChange={handleAudioFileSelect}
-        data-testid="audio-file-input"
-      />
+      {showImageUpload && (
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept={VISION_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
+          style={{ display: 'none' }}
+          onChange={handleImageFileSelect}
+          data-testid="vision-file-input"
+        />
+      )}
+      {showAudioUpload && (
+        <input
+          ref={audioInputRef}
+          type="file"
+          accept={AUDIO_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
+          style={{ display: 'none' }}
+          onChange={handleAudioFileSelect}
+          data-testid="audio-file-input"
+        />
+      )}
       <input
         ref={documentInputRef}
         type="file"
