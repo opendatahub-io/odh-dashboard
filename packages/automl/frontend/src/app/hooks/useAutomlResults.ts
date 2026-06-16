@@ -9,7 +9,7 @@ import {
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
-import { isTabularRun, normalizeMetricKey } from '~/app/utilities/utils';
+import { findTrainingTaskPrefix, isTabularRun, normalizeMetricKey } from '~/app/utilities/utils';
 
 // Timeseries runs return acronym metric keys (e.g. "MAE") while tabular runs
 // return snake_case keys (e.g. "mean_absolute_error"). normalizeMetricsToSnakeCase
@@ -103,17 +103,13 @@ export function useAutomlResults(
   } = useS3ListFilesQuery(namespace, runLevelPrefix);
 
   // Find the training task directory whose name starts with the expected pattern
-  const candidateModelsPrefix = React.useMemo(() => {
-    if (!runLevelFiles?.common_prefixes.length) {
-      return undefined;
-    }
-    const match = runLevelFiles.common_prefixes.find((p) => {
-      const segments = p.prefix.split('/').filter(Boolean);
-      const dirName = segments[segments.length - 1] ?? '';
-      return dirName.startsWith(modelGenerationDirPattern);
-    });
-    return match ? match.prefix.replace(/\/$/, '') : undefined;
-  }, [runLevelFiles, modelGenerationDirPattern]);
+  const candidateModelsPrefix = React.useMemo(
+    () =>
+      runLevelFiles?.common_prefixes.length
+        ? findTrainingTaskPrefix(runLevelFiles.common_prefixes, modelGenerationDirPattern)
+        : undefined,
+    [runLevelFiles, modelGenerationDirPattern],
+  );
 
   // Step 1: Fetch execution-ID directories under the discovered training task directory
   const {
