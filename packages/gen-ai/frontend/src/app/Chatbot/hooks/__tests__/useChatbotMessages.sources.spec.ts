@@ -197,14 +197,21 @@ describe('useChatbotMessages - citations handling', () => {
     expect(botMessage.citationMap).toBeUndefined();
   });
 
-  it('should handle empty sources array (no sources in response)', async () => {
-    const mockResponseWithEmptySources: SimplifiedResponseData = {
+  it('should not pass sources prop to message even when response contains sources', async () => {
+    const mockResponseWithSources: SimplifiedResponseData = {
       ...mockSuccessResponse,
-      content: 'Response with no actual sources.',
-      sources: [],
+      content: 'Response with sources.',
+      sources: [{ title: 'doc.pdf', link: '' }],
+      fileSearchData: {
+        queries: ['test'],
+        results: [
+          // eslint-disable-next-line camelcase
+          { score: 0.9, text: 'chunk', file_id: 'f1', filename: 'doc.pdf' },
+        ],
+      },
     };
 
-    mockCreateResponse.mockResolvedValueOnce(mockResponseWithEmptySources);
+    mockCreateResponse.mockResolvedValueOnce(mockResponseWithSources);
 
     const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -214,8 +221,10 @@ describe('useChatbotMessages - citations handling', () => {
 
     const botMessage = result.current.messages[1];
 
-    // Empty sources array should not create sources prop
+    // Sources prop should not be set — file search results are shown via fileSearchData instead
     expect(botMessage.sources).toBeUndefined();
+    expect(botMessage.fileSearchData).toBeDefined();
+    expect(botMessage.fileSearchData!.results).toHaveLength(1);
   });
 
   it('should include fileSearchData in bot message when present in response', async () => {

@@ -646,19 +646,6 @@ const useChatbotMessages = ({
           clearTimeout(timeoutRef.current);
         }
 
-        // Build sources prop for PatternFly SourcesCard if sources exist
-        // Add onClick to prevent link navigation (display only)
-        const sourcesProps = streamingResponse.sources?.length
-          ? {
-              sources: {
-                sources: streamingResponse.sources.map((source) => ({
-                  ...source,
-                  onClick: (e: React.MouseEvent) => e.preventDefault(),
-                })),
-              },
-            }
-          : {};
-
         // Finalize message in a single update to avoid flicker
         const toolResponse = streamingResponse.toolCallData
           ? createToolResponse(streamingResponse.toolCallData)
@@ -676,7 +663,6 @@ const useChatbotMessages = ({
                   ...msg,
                   content: streamingResponse.content,
                   isLoading: false,
-                  ...sourcesProps,
                   ...(toolResponse && { toolResponse }),
                   ...(thinkingCollapsible && {
                     extraContent: { ...msg.extraContent, beforeMainContent: thinkingCollapsible },
@@ -709,19 +695,6 @@ const useChatbotMessages = ({
           ? createToolResponse(response.toolCallData)
           : undefined;
 
-        // Build sources prop for PatternFly SourcesCard if sources exist
-        // Add onClick to prevent link navigation (display only)
-        const sourcesProps = response.sources?.length
-          ? {
-              sources: {
-                sources: response.sources.map((source) => ({
-                  ...source,
-                  onClick: (e: React.MouseEvent) => e.preventDefault(),
-                })),
-              },
-            }
-          : {};
-
         const thinkingCollapsible =
           typeof response.reasoningContent === 'string' && response.reasoningContent
             ? createThinkingCollapsible(response.reasoningContent)
@@ -742,7 +715,6 @@ const useChatbotMessages = ({
                   ...(thinkingCollapsible && {
                     extraContent: { beforeMainContent: thinkingCollapsible },
                   }),
-                  ...sourcesProps,
                   ...(response.annotations && { annotations: response.annotations }),
                   ...(response.citationMap && { citationMap: response.citationMap }),
                   ...(response.metrics && { metrics: response.metrics }),
