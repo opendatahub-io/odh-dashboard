@@ -150,14 +150,18 @@ jobs:
             
             # Get DSC status with full output for debugging
             echo "  🔍 Fetching DataScienceCluster status..."
-            DSC_JSON=$(oc get datasciencecluster -o json 2>&1)
+            DSC_ERR_FILE="$(mktemp)"
+            DSC_JSON=$(oc get datasciencecluster -o json 2>"$DSC_ERR_FILE")
             DSC_EXIT_CODE=$?
             
             if [[ $DSC_EXIT_CODE -ne 0 ]]; then
               echo "  ❌ Failed to get DSC (exit code: $DSC_EXIT_CODE)"
-              echo "  📝 Output: $DSC_JSON" | head -5
+              echo "  📝 Output:"
+              head -5 "$DSC_ERR_FILE"
+              rm -f "$DSC_ERR_FILE"
               return 1
             fi
+            rm -f "$DSC_ERR_FILE"
             
             if [[ -z "$DSC_JSON" || "$DSC_JSON" == "null" || "$DSC_JSON" == '{"apiVersion":"datasciencecluster.opendatahub.io/v1","items":[],"kind":"List","metadata":{"resourceVersion":""}}' ]]; then
               echo "  ❌ No DataScienceCluster found on $cluster_name"
@@ -180,14 +184,18 @@ jobs:
             # that would otherwise fail deep inside Cypress setup hooks.
             run_cluster_preflight() {
               echo "  🔍 Checking OdhDashboardConfig..."
-              ODC_JSON=$(oc get OdhDashboardConfig -A -o json 2>&1)
+              ODC_ERR_FILE="$(mktemp)"
+              ODC_JSON=$(oc get OdhDashboardConfig -A -o json 2>"$ODC_ERR_FILE")
               ODC_EXIT_CODE=$?
               if [[ $ODC_EXIT_CODE -ne 0 ]]; then
                 echo "  ❌ Failed to get OdhDashboardConfig on $cluster_name (exit code: $ODC_EXIT_CODE)"
-                echo "  📝 Output: $ODC_JSON" | head -5
+                echo "  📝 Output:"
+                head -5 "$ODC_ERR_FILE"
+                rm -f "$ODC_ERR_FILE"
                 return 1
               fi
               ODC_COUNT=$(echo "$ODC_JSON" | jq '.items | length' 2>/dev/null || echo "0")
+              rm -f "$ODC_ERR_FILE"
               if [[ "$ODC_COUNT" == "0" || -z "$ODC_COUNT" ]]; then
                 echo "  ❌ OdhDashboardConfig missing or empty on $cluster_name (got count=$ODC_COUNT)"
                 echo "  📝 This would cause SyntaxError: Unexpected end of JSON input in test hooks"
