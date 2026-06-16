@@ -342,7 +342,9 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               {previewDescription &&
               hardwareProfileConfig.selectedProfile &&
               (getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
-                hardwareProfileConfig.selectedProfile.spec.identifiers) ? (
+                hardwareProfileConfig.selectedProfile.spec.identifiers ||
+                hardwareProfileConfig.selectedProfile.spec.scheduling?.kueue
+                  ?.localQueueName) ? (
                 <FormHelperText>
                   <HelperText>
                     <HelperTextItem>
@@ -350,41 +352,63 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                         maxLines={2}
                         tooltipMaxLines={TOOLTIP_MAX_LINES}
                         content={
-                          getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
-                          (hardwareProfileConfig.selectedProfile.spec.identifiers &&
-                            hardwareProfileConfig.selectedProfile.spec.identifiers
-                              .map((identifier) => {
-                                const defaultVal = formatResourceValue(
-                                  identifier.defaultCount,
-                                  identifier.resourceType,
-                                ).toString();
-                                const maxVal =
-                                  identifier.maxCount === undefined
-                                    ? 'unrestricted'
-                                    : formatResourceValue(
-                                        identifier.maxCount,
+                          <Stack>
+                            {getHardwareProfileDescription(
+                              hardwareProfileConfig.selectedProfile,
+                            ) && (
+                              <StackItem>
+                                <TruncatedText
+                                  maxLines={1}
+                                  tooltipMaxLines={TOOLTIP_MAX_LINES}
+                                  content={getHardwareProfileDescription(
+                                    hardwareProfileConfig.selectedProfile,
+                                  )}
+                                />
+                              </StackItem>
+                            )}
+                            {hardwareProfileConfig.selectedProfile.spec.identifiers && (
+                              <StackItem>
+                                <Truncate
+                                  content={hardwareProfileConfig.selectedProfile.spec.identifiers
+                                    .map((identifier) => {
+                                      const defaultVal = formatResourceValue(
+                                        identifier.defaultCount,
                                         identifier.resourceType,
                                       ).toString();
-                                return formatResource(identifier.displayName, defaultVal, maxVal);
-                              })
-                              .join('; '))
+                                      const maxVal =
+                                        identifier.maxCount === undefined
+                                          ? 'unrestricted'
+                                          : formatResourceValue(
+                                              identifier.maxCount,
+                                              identifier.resourceType,
+                                            ).toString();
+                                      return formatResource(
+                                        identifier.displayName,
+                                        defaultVal,
+                                        maxVal,
+                                      );
+                                    })
+                                    .join('; ')}
+                                />
+                              </StackItem>
+                            )}
+                            {hardwareProfileConfig.selectedProfile.spec.scheduling?.kueue
+                              ?.localQueueName && (
+                              <StackItem>
+                                <Truncate
+                                  content={`Local queue: ${hardwareProfileConfig.selectedProfile.spec.scheduling.kueue.localQueueName}${
+                                    hardwareProfileConfig.selectedProfile.spec.scheduling.kueue
+                                      .priorityClass
+                                      ? `; Priority: ${hardwareProfileConfig.selectedProfile.spec.scheduling.kueue.priorityClass}`
+                                      : ''
+                                  }`}
+                                />
+                              </StackItem>
+                            )}
+                          </Stack>
                         }
                       />
                     </HelperTextItem>
-                    {!getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) &&
-                      (() => {
-                        const kueue = hardwareProfileConfig.selectedProfile.spec.scheduling?.kueue;
-                        if (!kueue?.localQueueName) {
-                          return null;
-                        }
-                        return (
-                          <HelperTextItem>
-                            {`Local queue: ${kueue.localQueueName}${
-                              kueue.priorityClass ? `; Priority: ${kueue.priorityClass}` : ''
-                            }`}
-                          </HelperTextItem>
-                        );
-                      })()}
                   </HelperText>
                 </FormHelperText>
               ) : hardwareProfileConfig.useExistingSettings ? (
