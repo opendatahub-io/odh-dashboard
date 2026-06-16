@@ -102,7 +102,7 @@ describe('transformPopularTagsResponse', () => {
 });
 
 describe('transformRecentlyVisitedResponse', () => {
-  it('should transform object_name to objectName', () => {
+  it('should transform object_name and pagination from snake_case', () => {
     const raw = {
       visits: [
         {
@@ -115,17 +115,18 @@ describe('transformRecentlyVisitedResponse', () => {
           method: 'GET',
         },
       ],
-      pagination: { totalCount: 1 },
+      pagination: { total_count: 1 },
     };
 
     const result = transformRecentlyVisitedResponse(raw);
     expect(result.visits[0].objectName).toBe('driver');
     expect(result.visits).toHaveLength(1);
+    expect(result.pagination.totalCount).toBe(1);
   });
 });
 
 describe('transformSearchResponse', () => {
-  it('should transform search results and top-level fields', () => {
+  it('should transform search results, pagination, and top-level fields', () => {
     const raw = {
       query: 'driver',
       projects_searched: ['taxi', 'retail'],
@@ -136,16 +137,16 @@ describe('transformSearchResponse', () => {
           description: 'Driver entity',
           project: 'taxi',
           match_score: 0.95,
-          featureView: undefined,
+          feature_view: 'driver_fv',
           matched_tags: { env: 'prod' },
         },
       ],
       pagination: {
         page: 1,
         limit: 50,
-        totalCount: 1,
-        totalPages: 1,
-        hasNext: false,
+        total_count: 1,
+        total_pages: 1,
+        has_next: false,
       },
       errors: [],
     };
@@ -153,7 +154,10 @@ describe('transformSearchResponse', () => {
     const result = transformSearchResponse(raw);
     expect(result.projectsSearched).toStrictEqual(['taxi', 'retail']);
     expect(result.results[0].matchScore).toBe(0.95);
+    expect(result.results[0].featureView).toBe('driver_fv');
     expect(result.results[0].matchedTags).toStrictEqual({ env: 'prod' });
+    expect(result.pagination.totalCount).toBe(1);
+    expect(result.pagination.hasNext).toBe(false);
   });
 });
 

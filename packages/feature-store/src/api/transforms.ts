@@ -6,7 +6,7 @@ import {
   RecentlyVisitedResource,
   RecentlyVisitedResponse,
 } from '../types/metrics';
-import { GlobalSearchResult, GlobalSearchResponse } from '../types/search';
+import { GlobalSearchPagination, GlobalSearchResult, GlobalSearchResponse } from '../types/search';
 
 // Raw API types mirror the Feast REST API's snake_case field names.
 // They are intentionally scoped to this module and never exported.
@@ -36,19 +36,36 @@ type RawRecentlyVisitedResource = Omit<RecentlyVisitedResource, 'objectName'> & 
   object_name: string;
 };
 
+type RawRecentlyVisitedPagination = {
+  total_count: number;
+};
+
 type RawRecentlyVisitedResponse = {
   visits: RawRecentlyVisitedResource[];
-  pagination: RecentlyVisitedResponse['pagination'];
+  pagination: RawRecentlyVisitedPagination;
 };
 
-type RawSearchResult = Omit<GlobalSearchResult, 'matchScore' | 'matchedTags'> & {
+type RawSearchResult = Omit<GlobalSearchResult, 'matchScore' | 'matchedTags' | 'featureView'> & {
   match_score: number;
   matched_tags?: Record<string, string>;
+  feature_view?: string;
 };
 
-type RawSearchResponse = Omit<GlobalSearchResponse, 'results' | 'projectsSearched'> & {
+type RawSearchPagination = {
+  page: number;
+  limit: number;
+  total_count: number;
+  total_pages: number;
+  has_next: boolean;
+};
+
+type RawSearchResponse = Omit<
+  GlobalSearchResponse,
+  'results' | 'projectsSearched' | 'pagination'
+> & {
   projects_searched: string[];
   results: RawSearchResult[];
+  pagination: RawSearchPagination;
 };
 
 export const transformPagination = (raw: RawPagination): FeatureStorePagination => ({
@@ -99,9 +116,17 @@ export const transformRecentlyVisitedResponse = (data: unknown): RecentlyVisited
   const raw = data as RawRecentlyVisitedResponse;
   return {
     visits: raw.visits.map(transformRecentlyVisitedResource),
-    pagination: raw.pagination,
+    pagination: { totalCount: raw.pagination.total_count },
   };
 };
+
+const transformSearchPagination = (raw: RawSearchPagination): GlobalSearchPagination => ({
+  page: raw.page,
+  limit: raw.limit,
+  totalCount: raw.total_count,
+  totalPages: raw.total_pages,
+  hasNext: raw.has_next,
+});
 
 const transformSearchResult = (raw: RawSearchResult): GlobalSearchResult => ({
   type: raw.type,
@@ -109,7 +134,7 @@ const transformSearchResult = (raw: RawSearchResult): GlobalSearchResult => ({
   description: raw.description,
   project: raw.project,
   matchScore: raw.match_score,
-  featureView: raw.featureView,
+  featureView: raw.feature_view,
   matchedTags: raw.matched_tags,
 });
 
@@ -119,7 +144,7 @@ export const transformSearchResponse = (data: unknown): GlobalSearchResponse => 
     query: raw.query,
     projectsSearched: raw.projects_searched,
     results: raw.results.map(transformSearchResult),
-    pagination: raw.pagination,
+    pagination: transformSearchPagination(raw.pagination),
     errors: raw.errors,
   };
 };
