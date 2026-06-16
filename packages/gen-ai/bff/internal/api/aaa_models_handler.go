@@ -97,7 +97,7 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 		maasModels, err := app.fetchMaaSModels(ctx, namespace)
 		if err != nil {
 			// If only MaaS was requested, return the BFF error (preserves original status code)
-			isMaasOnly := !requestedSources[models.ModelSourceTypeNamespace] && !requestedSources[models.ModelSourceTypeCustomEndpoint]
+			isMaasOnly := len(requestedSources) == 1 && requestedSources[models.ModelSourceTypeMaaS]
 			if isMaasOnly {
 				app.handleBFFClientError(w, r, err)
 				return
@@ -198,7 +198,8 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 	var bffResponse models.MaaSBFFModelsResponse
 	err := maasClient.Call(ctx, "GET", "/models?namespace="+url.QueryEscape(namespace), nil, &bffResponse)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call MaaS BFF: %w", err)
+		// Return unwrapped error - handleBFFClientError uses errors.As and preserves error details
+		return nil, err
 	}
 
 	// Convert MaaS models to AAModel format

@@ -55,16 +55,13 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 		keyName = fmt.Sprintf("genai-ephemeral-%d", time.Now().Unix())
 	}
 
-	// Build MaaS BFF API key request envelope
-	// MaaS BFF expects: {"data": {"name": "...", "subscription": "...", "ephemeral": true}}
+	// Build MaaS BFF API key request (flat object per OpenAPI spec)
 	bffRequest := models.MaaSBFFAPIKeyRequest{
-		Data: models.MaaSBFFAPIKeyRequestData{
-			Name:         keyName,
-			Description:  tokenRequest.Description,
-			ExpiresIn:    tokenRequest.ExpiresIn, // Forward TTL if provided
-			Subscription: subscription,           // Use trimmed value
-			Ephemeral:    true,                   // Always ephemeral for playground sessions
-		},
+		Name:         keyName,
+		Description:  tokenRequest.Description,
+		ExpiresIn:    tokenRequest.ExpiresIn, // Forward TTL if provided
+		Subscription: subscription,           // Use trimmed value
+		Ephemeral:    true,                   // Always ephemeral for playground sessions
 	}
 
 	// Call MaaS BFF to create API key
