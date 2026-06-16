@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  DataList,
   DataListItem,
   DataListItemRow,
   DataListItemCells,
@@ -46,7 +47,7 @@ const TemplateCategoryGroup: React.FC<TemplateCategoryGroupProps> = ({
           dataListCells={[
             <DataListCell key="name">
               <Content component="p" id={`category-${category.id}`}>
-                <strong>{category.name}</strong>
+                {category.name}
               </Content>
             </DataListCell>,
           ]}
@@ -58,40 +59,44 @@ const TemplateCategoryGroup: React.FC<TemplateCategoryGroupProps> = ({
         isHidden={!isExpanded}
         hasNoPadding
       >
-        {category.templates.map((template) => (
-          <Split
-            key={template.id}
-            hasGutter
-            data-testid={`template-item-${template.id}`}
-            style={{
-              padding:
-                'var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--2xl)',
-              borderTop: '1px solid var(--pf-t--global--border--color--default)',
-            }}
-          >
-            <SplitItem isFilled>
-              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXs' }}>
-                <FlexItem>
-                  <Content component="p">
-                    <strong>{template.name}</strong>
-                  </Content>
-                </FlexItem>
-                <FlexItem>
-                  <Content component="small">{template.description}</Content>
-                </FlexItem>
-              </Flex>
-            </SplitItem>
-            <SplitItem>
-              <Button
-                variant="secondary"
-                onClick={() => onSelectTemplate(template)}
-                data-testid={`select-template-${template.id}`}
-              >
-                {actionLabel}
-              </Button>
-            </SplitItem>
-          </Split>
-        ))}
+        <DataList aria-label={`${category.name} template list`} isCompact>
+          {category.templates.map((template) => (
+            <DataListItem key={template.id} data-testid={`template-item-${template.id}`}>
+              <DataListItemRow>
+                <DataListItemCells
+                  dataListCells={[
+                    <DataListCell key="info" isFilled>
+                      <Split hasGutter>
+                        <SplitItem isFilled>
+                          <Flex
+                            direction={{ default: 'column' }}
+                            spaceItems={{ default: 'spaceItemsXs' }}
+                          >
+                            <FlexItem>
+                              <Content component="p">{template.name}</Content>
+                            </FlexItem>
+                            <FlexItem>
+                              <Content component="small">{template.description}</Content>
+                            </FlexItem>
+                          </Flex>
+                        </SplitItem>
+                        <SplitItem>
+                          <Button
+                            variant="secondary"
+                            onClick={() => onSelectTemplate(template)}
+                            data-testid={`select-template-${template.id}`}
+                          >
+                            {actionLabel}
+                          </Button>
+                        </SplitItem>
+                      </Split>
+                    </DataListCell>,
+                  ]}
+                />
+              </DataListItemRow>
+            </DataListItem>
+          ))}
+        </DataList>
       </DataListContent>
     </DataListItem>
   );

@@ -55,9 +55,7 @@ const SelectTemplateModal: React.FC<SelectTemplateModalProps> = ({
       bodyClassName=""
       contents={
         <>
-          <div
-            style={{ padding: 'var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg)' }}
-          >
+          <div className="pf-v6-u-py-md pf-v6-u-px-lg">
             <SearchInput
               placeholder="Find by name"
               value={searchValue}
