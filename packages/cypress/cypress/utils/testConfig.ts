@@ -23,7 +23,6 @@ const testConfig: TestConfig | undefined = env.CY_TEST_CONFIG
   : undefined;
 
 export const BASE_URL = testConfig?.ODH_DASHBOARD_URL || env.BASE_URL || '';
-console.log('base url is', BASE_URL);
 
 const LDAP_CONTRIBUTOR_USER: UserAuthConfig = testConfig?.TEST_USER_3 ?? {
   AUTH_TYPE: env.TEST_USER_3_AUTH_TYPE || '',

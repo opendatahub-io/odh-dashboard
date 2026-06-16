@@ -233,10 +233,6 @@ export type CommandLineResult = {
   stderr: string;
 };
 
-// export type FileMapping = {
-//   "resources/yaml/model_registry_database.yaml": string;
-// }
-
 export type FileMapping = Record<string, string>;
 
 export type TestConfig = {
