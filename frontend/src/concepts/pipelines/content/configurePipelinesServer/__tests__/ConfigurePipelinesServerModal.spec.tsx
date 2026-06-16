@@ -11,6 +11,7 @@ import { createPipelinesCR, deleteSecret } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { configureDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
 import { useAppContext } from '#~/app/AppContext';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -128,15 +129,11 @@ describe('ConfigurePipelinesServerModal', () => {
     } as ReturnType<typeof useIsAreaAvailable>);
 
     mockUseAppContext.mockReturnValue({
-      dashboardConfig: {
-        spec: {
-          dashboardConfig: {
-            automl: false,
-            autorag: false,
-          },
-        },
-      },
-    } as ReturnType<typeof useAppContext>);
+      buildStatuses: [],
+      dashboardConfig: mockDashboardConfig({ automl: false, autorag: false }),
+      storageClasses: [],
+      isRHOAI: false,
+    });
 
     mockConfigureDSPipelineResourceSpec.mockResolvedValue(
       {} as Awaited<ReturnType<typeof configureDSPipelineResourceSpec>>,

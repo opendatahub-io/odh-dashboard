@@ -5,9 +5,13 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   Title,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- TODO: migrate to ContentModal
   Modal,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalBody,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalHeader,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalFooter,
   Button,
   ActionGroup,
@@ -71,16 +75,6 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled);
 
   const [isUpdating, setIsUpdating] = React.useState(false);
-
-  React.useEffect(() => {
-    const cachingValue = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false;
-    const managedPipelinesValue =
-      !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
-      !('instructLab' in pipelineNamespaceCR.spec.apiServer.managedPipelines);
-
-    setEnableCaching(cachingValue);
-    setEnableManagedPipelines(managedPipelinesValue);
-  }, [pipelineNamespaceCR]);
 
   const updateSettings = () => {
     setIsUpdating(true);
