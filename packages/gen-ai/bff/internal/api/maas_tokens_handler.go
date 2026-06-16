@@ -77,6 +77,12 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
+	// Validate that MaaS BFF returned a non-empty key
+	if bffResponse.Key == "" {
+		app.serverErrorResponse(w, r, fmt.Errorf("MaaS BFF returned empty key in response"))
+		return
+	}
+
 	// Map MaaS BFF response to Gen AI format
 	genAIResponse := models.MaaSTokenResponse{
 		Key: bffResponse.Key,

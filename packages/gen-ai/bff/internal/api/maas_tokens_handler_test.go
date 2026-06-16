@@ -225,6 +225,89 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Contains(t, strings.ToLower(string(body)), "not available")
 	})
+
+	t.Run("should return 500 when MaaS BFF returns empty key", func(t *testing.T) {
+		// Create a mock BFF client that returns empty key
+		mockClient := &mockBFFClientForEmptyKey{}
+
+		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		mockFactory := &mockFactoryForEmptyKey{client: mockClient, logger: logger}
+
+		app := App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			bffClientFactory: mockFactory,
+		}
+
+		tokenRequest := models.MaaSTokenRequest{Subscription: "test-subscription"}
+		requestBody, err := json.Marshal(tokenRequest)
+		assert.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockClient)
+		req = req.WithContext(ctx)
+
+		app.MaaSIssueTokenHandler(rr, req, nil)
+
+		// Should return 500 when MaaS BFF returns empty key (contract violation)
+		// Error details are sanitized in 500 responses for security
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+}
+
+// mockBFFClientForEmptyKey returns empty key to test validation
+type mockBFFClientForEmptyKey struct{}
+
+func (m *mockBFFClientForEmptyKey) Call(ctx context.Context, method, path string, body, response interface{}) error {
+	// Return response with empty key
+	emptyKeyResponse := map[string]interface{}{
+		"key":       "",
+		"keyPrefix": "sk-oai-",
+		"id":        "test-id",
+	}
+	jsonBytes, _ := json.Marshal(emptyKeyResponse)
+	return json.Unmarshal(jsonBytes, response)
+}
+
+func (m *mockBFFClientForEmptyKey) IsAvailable(ctx context.Context) bool {
+	return true
+}
+
+func (m *mockBFFClientForEmptyKey) GetBaseURL() string {
+	return "http://mock-maas-bff:8081"
+}
+
+func (m *mockBFFClientForEmptyKey) GetTarget() bffclient.BFFTarget {
+	return bffclient.BFFTargetMaaS
+}
+
+type mockFactoryForEmptyKey struct {
+	client *mockBFFClientForEmptyKey
+	logger *slog.Logger
+}
+
+func (m *mockFactoryForEmptyKey) CreateClient(target bffclient.BFFTarget, authToken string) bffclient.BFFClientInterface {
+	return m.client
+}
+
+func (m *mockFactoryForEmptyKey) CreateClientWithHeaders(target bffclient.BFFTarget, authToken string, headers map[string]string) bffclient.BFFClientInterface {
+	return m.client
+}
+
+func (m *mockFactoryForEmptyKey) GetConfig(target bffclient.BFFTarget) *bffclient.BFFServiceConfig {
+	return &bffclient.BFFServiceConfig{
+		Target:     bffclient.BFFTargetMaaS,
+		AuthMethod: "user_token",
+	}
+}
+
+func (m *mockFactoryForEmptyKey) IsTargetConfigured(target bffclient.BFFTarget) bool {
+	return true
 }
 
 // TestMaaSBFFAPIKeyResponseContract verifies that Gen AI BFF correctly unmarshals
