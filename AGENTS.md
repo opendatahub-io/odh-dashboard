@@ -133,5 +133,6 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Validate Area Label**      | `skills/jira-validate-area-label/`     | Validating or assigning `dashboard-area-*` labels based on multi-signal content analysis |
 | **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
 | **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
+| **Module Onboarding**              | `skills/module-onboarding/`            | Scaffolding a new federated module under `packages/` — handles installer, port allocation, host registration, and build verification (pass module name as argument) |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.

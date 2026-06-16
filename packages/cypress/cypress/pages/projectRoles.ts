@@ -37,6 +37,8 @@ class ProjectRolesTab {
 
   visitCreateRole(namespace: string) {
     cy.visitWithLogin(`/projects/${namespace}/roles/create`);
+    cy.findByTestId('create-role-page');
+    cy.testA11y();
   }
 
   private wait() {
@@ -130,6 +132,46 @@ class ProjectRolesTab {
 
   findPreviewYAMLCloseButton() {
     return cy.findByTestId('preview-yaml-close-button');
+  }
+
+  findSubmitErrorAlert() {
+    return cy.findByTestId('create-role-error-alert');
+  }
+
+  findConfirmModal() {
+    return cy.findByTestId('create-role-confirm-modal');
+  }
+
+  findConfirmCreateButton() {
+    return cy.findByTestId('confirm-create-button');
+  }
+
+  findConfirmCancelButton() {
+    return cy.findByTestId('confirm-cancel-button');
+  }
+
+  findConfirmModalErrorAlert() {
+    return cy.findByTestId('error-message-alert');
+  }
+
+  findAddRuleModal() {
+    return cy.findByTestId('add-rule-modal');
+  }
+
+  findRuleApiGroupsToggle() {
+    return cy.findByTestId('rule-api-groups-toggle');
+  }
+
+  findRuleResourceTypesToggle() {
+    return cy.findByTestId('rule-resource-types-toggle');
+  }
+
+  findVerbCheckbox(verb: string) {
+    return cy.findByTestId('add-rule-modal').findByTestId(`verb-checkbox-${verb}`);
+  }
+
+  findRuleSaveButton() {
+    return cy.findByTestId('modal-submit-button');
   }
 
   getRow(name: string) {

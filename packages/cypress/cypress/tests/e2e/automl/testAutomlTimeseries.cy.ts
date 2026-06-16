@@ -7,6 +7,7 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
 import { automlConfigurePage, automlResultsPage } from '../../../pages/automl';
 import { isAutomlEnabled, setAutomlEnabled } from '../../../utils/oc_commands/autoX';
+import { verifyAndChangeOptimizationMetric } from '../../../utils/automlTestFlows';
 
 const uuid = generateTestUUID();
 
@@ -43,7 +44,7 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit an AutoML time series forecasting run',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression'], retries: { runMode: 0, openMode: 0 } },
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
@@ -64,6 +65,12 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
 
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
+
+      verifyAndChangeOptimizationMetric(
+        testData.defaultMetricLabel as string,
+        testData.changedMetricKey as string,
+        testData.changedMetricLabel as string,
+      );
 
       automlConfigurePage.submitRun();
 

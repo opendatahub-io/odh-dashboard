@@ -5,6 +5,10 @@ import ChatbotHeaderActions from '~/app/Chatbot/ChatbotHeaderActions';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
+jest.mock('@openshift/dynamic-plugin-sdk', () => ({
+  useFeatureFlag: jest.fn(() => [false]),
+}));
+
 // Mock the store
 jest.mock('~/app/Chatbot/store', () => ({
   useChatbotConfigStore: jest.fn(),

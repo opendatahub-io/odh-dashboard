@@ -20,9 +20,9 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
 });
 
 describe('useASRModels', () => {
-  it('should return only models with modality audio-transcription and source_type namespace', () => {
+  it('should return only models with audio-transcription capability and source_type namespace', () => {
     const models: AIModel[] = [
-      makeModel({ model_id: 'whisper', modality: 'audio-transcription' }),
+      makeModel({ model_id: 'whisper', capabilities: ['audio-transcription'] }),
       makeModel({ model_id: 'llama', model_type: 'llm' }),
       makeModel({ model_id: 'embed', model_type: 'embedding' }),
     ];
@@ -42,21 +42,21 @@ describe('useASRModels', () => {
     expect(result.current).toHaveLength(0);
   });
 
-  it('should exclude custom_endpoint and maas models even with ASR modality', () => {
+  it('should exclude custom_endpoint and maas models even with ASR capability', () => {
     const models: AIModel[] = [
       makeModel({
         model_id: 'whisper-ns',
-        modality: 'audio-transcription',
+        capabilities: ['audio-transcription'],
         model_source_type: 'namespace',
       }),
       makeModel({
         model_id: 'whisper-ext',
-        modality: 'audio-transcription',
+        capabilities: ['audio-transcription'],
         model_source_type: 'custom_endpoint',
       }),
       makeModel({
         model_id: 'whisper-maas',
-        modality: 'audio-transcription',
+        capabilities: ['audio-transcription'],
         model_source_type: 'maas',
       }),
     ];
@@ -66,10 +66,10 @@ describe('useASRModels', () => {
     expect(result.current[0].model_id).toBe('whisper-ns');
   });
 
-  it('should exclude models with empty string modality', () => {
+  it('should exclude models with empty capabilities array', () => {
     const models: AIModel[] = [
-      makeModel({ model_id: 'empty-mod', modality: '' }),
-      makeModel({ model_id: 'whisper', modality: 'audio-transcription' }),
+      makeModel({ model_id: 'empty-caps', capabilities: [] }),
+      makeModel({ model_id: 'whisper', capabilities: ['audio-transcription'] }),
     ];
 
     const { result } = renderHook(() => useASRModels(models));
