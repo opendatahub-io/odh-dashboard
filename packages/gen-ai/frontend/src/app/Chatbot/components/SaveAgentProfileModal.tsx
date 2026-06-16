@@ -38,8 +38,8 @@ type SaveAgentProfileModalProps = {
   /** ConfigMap name from the BFF response (config_map_info.name). Falls back to a default when null. */
   mcpConfigMapName: string | null;
   onClose: () => void;
-  /** Called after a successful save with the resulting profileId and displayName. */
-  onSaved: (profileId: string, displayName: string) => void;
+  /** Called after a successful save with the resulting profileId, displayName, and description. */
+  onSaved: (profileId: string, displayName: string, description: string) => void;
 };
 
 const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
@@ -138,7 +138,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
 
       if (mode === 'save-as' || !loadedProfileId) {
         const response = await api.createAgentProfile({ spec });
-        onSaved(response.profileId, response.displayName);
+        onSaved(response.profileId, response.displayName, description.trim());
       } else {
         const currentProfile = await api.getAgentProfile({ id: loadedProfileId });
         const response = await api.updateAgentProfile({
@@ -146,7 +146,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
           spec,
           resourceVersion: currentProfile.metadata.resourceVersion,
         });
-        onSaved(loadedProfileId, response.displayName);
+        onSaved(loadedProfileId, response.displayName, description.trim());
       }
       onClose();
     } catch (err) {

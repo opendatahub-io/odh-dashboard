@@ -95,12 +95,14 @@ const ChatbotMain: React.FunctionComponent = () => {
   const handleCloseSaveModal = React.useCallback(() => setSaveModalMode(null), []);
 
   const handleProfileSaved = React.useCallback(
-    (profileId: string, displayName: string) => {
+    (profileId: string, displayName: string, description: string) => {
       const currentConfig = useChatbotConfigStore.getState().configurations[primaryConfigId];
       if (!currentConfig) {
         return;
       }
-      useChatbotConfigStore.getState().applyAgentProfile(currentConfig, profileId, displayName);
+      useChatbotConfigStore
+        .getState()
+        .applyAgentProfile(currentConfig, profileId, displayName, description);
       // Keep the URL in sync so a page refresh reloads the saved profile
       setSearchParams(
         (prev) => {

@@ -141,7 +141,7 @@ describe('SaveAgentProfileModal', () => {
             spec: expect.objectContaining({ displayName: 'Test Agent' }),
           }),
         );
-        expect(mockOnSaved).toHaveBeenCalledWith('new-uuid', 'Test Agent');
+        expect(mockOnSaved).toHaveBeenCalledWith('new-uuid', 'Test Agent', '');
         expect(mockOnClose).toHaveBeenCalledTimes(1);
       });
     });
@@ -224,7 +224,7 @@ describe('SaveAgentProfileModal', () => {
             resourceVersion: 'rv-1',
           }),
         );
-        expect(mockOnSaved).toHaveBeenCalledWith('existing-uuid', 'My Agent');
+        expect(mockOnSaved).toHaveBeenCalledWith('existing-uuid', 'My Agent', '');
       });
     });
 
