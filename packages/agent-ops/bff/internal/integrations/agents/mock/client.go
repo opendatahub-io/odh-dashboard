@@ -90,7 +90,40 @@ func cloneAgentDetail(detail agents.AgentDetail) agents.AgentDetail {
 		}
 		copy.Service = &service
 	}
+	if detail.AgentCard != nil {
+		copy.AgentCard = cloneAgentCardObserved(detail.AgentCard)
+	}
+	copy.ServiceAccountName = detail.ServiceAccountName
 	return copy
+}
+
+func cloneAgentCardObserved(card *agents.AgentCardObserved) *agents.AgentCardObserved {
+	if card == nil {
+		return nil
+	}
+	clone := *card
+	clone.DefaultInputModes = append([]string(nil), card.DefaultInputModes...)
+	clone.DefaultOutputModes = append([]string(nil), card.DefaultOutputModes...)
+	clone.LinkedSkills = append([]string(nil), card.LinkedSkills...)
+	clone.ToolConnections = append([]string(nil), card.ToolConnections...)
+	if len(card.Extensions) > 0 {
+		clone.Extensions = append([]agents.AgentCardExtensionObserved(nil), card.Extensions...)
+	}
+	if len(card.Skills) > 0 {
+		clone.Skills = make([]agents.AgentCardSkillObserved, 0, len(card.Skills))
+		for _, skill := range card.Skills {
+			skillCopy := skill
+			skillCopy.Tags = append([]string(nil), skill.Tags...)
+			skillCopy.Examples = append([]string(nil), skill.Examples...)
+			skillCopy.InputModes = append([]string(nil), skill.InputModes...)
+			skillCopy.OutputModes = append([]string(nil), skill.OutputModes...)
+			if len(skill.Parameters) > 0 {
+				skillCopy.Parameters = append([]agents.AgentCardSkillParameterObserved(nil), skill.Parameters...)
+			}
+			clone.Skills = append(clone.Skills, skillCopy)
+		}
+	}
+	return &clone
 }
 
 func cloneAgentMetadata(metadata agents.AgentMetadata) agents.AgentMetadata {

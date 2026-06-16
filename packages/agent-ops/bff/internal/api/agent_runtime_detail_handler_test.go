@@ -8,6 +8,10 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
+	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,6 +49,15 @@ func TestGetAgentRuntimeDetailHandler(t *testing.T) {
 	assert.Equal(t, "Ready", runtime.Status)
 	assert.Equal(t, "agent", runtime.Type)
 	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", runtime.EndpointURL)
+
+	require.NotNil(t, detail.AgentCard)
+	assert.Equal(t, "Sample Support Agent", detail.AgentCard.Name)
+	assert.Equal(t, "1.0.0", detail.AgentCard.Version)
+	assert.Contains(t, detail.AgentCard.AgentCardURL, "/.well-known/agent-card.json")
+	assert.Equal(t, "https://sample-support-agent.apps.example.com/.well-known/agent-card.json", detail.AgentCard.ExternalAgentCardURL)
+	assert.Equal(t, []string{"Bearer"}, detail.AgentCard.AuthenticationMethods)
+	assert.Equal(t, []string{"summarizer"}, detail.AgentCard.LinkedSkills)
+	assert.Equal(t, []string{"weather_"}, detail.AgentCard.ToolConnections)
 }
 
 func TestGetAgentRuntimeDetailHandler_NotFound(t *testing.T) {
@@ -77,4 +90,20 @@ func TestGetAgentRuntimeDetailHandler_InvalidParams(t *testing.T) {
 	})
 
 	require.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestGetAgentRuntimeDetailHandler_Forbidden(t *testing.T) {
+	mockClient := agentsmock.NewDemoClient()
+	mockClient.GetAgentErr = agents.ErrForbidden
+	app := NewTestApp(config.EnvConfig{}, nil, nil, repositories.NewRepositories(&agentsmock.Factory{Client: mockClient}))
+
+	req := httptest.NewRequest(http.MethodGet, ApiPathPrefix+"/agents/runtimes/agent-ops-demo/sample-support-agent", nil)
+	rr := httptest.NewRecorder()
+
+	app.GetAgentRuntimeDetailHandler(rr, req, httprouter.Params{
+		{Key: "ns", Value: "agent-ops-demo"},
+		{Key: "name", Value: "sample-support-agent"},
+	})
+
+	require.Equal(t, http.StatusForbidden, rr.Code)
 }

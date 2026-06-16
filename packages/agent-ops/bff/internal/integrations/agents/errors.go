@@ -8,6 +8,8 @@ import (
 var (
 	// ErrNotFound indicates the requested agent does not exist.
 	ErrNotFound = errors.New("agent not found")
+	// ErrForbidden indicates the caller cannot read the agent workload.
+	ErrForbidden = errors.New("agent access forbidden")
 	// ErrUnavailable indicates agent data could not be loaded (e.g. workload unreachable).
 	ErrUnavailable = errors.New("agent data unavailable")
 )

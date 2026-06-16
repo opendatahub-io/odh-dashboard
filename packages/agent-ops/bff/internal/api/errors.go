@@ -50,7 +50,7 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.logger.Warn("Unauthorized request", "error", err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
 
-	httpError := &HTTPError{StatusCode: http.StatusUnauthorized, Error: ErrorPayload{Code: ErrCodeUnauthorized, Message: err.Error()}}
+	httpError := &HTTPError{StatusCode: http.StatusUnauthorized, Error: ErrorPayload{Code: ErrCodeUnauthorized, Message: "Authentication required"}}
 	app.errorResponse(w, r, httpError)
 }
 

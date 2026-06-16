@@ -78,6 +78,10 @@ func translateAgentError(err error) error {
 		return bfferrors.ErrNotFound
 	}
 
+	if errors.Is(err, agents.ErrForbidden) {
+		return bfferrors.ErrForbidden
+	}
+
 	if errors.Is(err, agents.ErrUnavailable) {
 		var unavailable *agents.UnavailableError
 		if errors.As(err, &unavailable) && unavailable.Message != "" {

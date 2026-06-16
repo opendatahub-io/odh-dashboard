@@ -16,6 +16,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -49,6 +52,24 @@ func (c *permissiveK8sClient) CanListAgentsInNamespace(context.Context, *k8s.Req
 
 func (c *permissiveK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
 	return true, nil
+}
+
+func (c *permissiveK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string, string) (k8s.AgentCardEnrichmentAccess, error) {
+	return k8s.AgentCardEnrichmentAccess{
+		AgentRuntime: true,
+		Routes:       true,
+		MCPServers:   true,
+	}, nil
+}
+
+func (c *permissiveK8sClient) DynamicClient() (dynamic.Interface, error) {
+	gvrToListKind := map[schema.GroupVersionResource]string{
+		agentRuntimeGVR:              "AgentRuntimeList",
+		openshiftRouteGVR:            "RouteList",
+		mcpServerRegistrationGVRs[0]: "MCPServerRegistrationList",
+		mcpServerRegistrationGVRs[1]: "MCPServerRegistrationList",
+	}
+	return fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), gvrToListKind), nil
 }
 
 func newTestAgentClient(t *testing.T, objects ...runtime.Object) *Client {

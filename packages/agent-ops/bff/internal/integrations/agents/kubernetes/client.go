@@ -139,32 +139,86 @@ func (c *Client) listAgentSummaries(ctx context.Context, namespace string) ([]ag
 func (c *Client) getAgentDetail(ctx context.Context, namespace, name string) (*agents.AgentDetail, error) {
 	clientset := c.k8sClient.KubernetesClientset()
 
-	deployment, err := clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err == nil {
-		service := c.getServiceBestEffort(ctx, namespace, name)
-		return deploymentToDetail(*deployment, service), nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return nil, fmt.Errorf("failed to get deployment %q in namespace %q: %w", name, namespace, err)
+	var (
+		notFoundAttempts  int
+		forbiddenAttempts int
+		lastErr           error
+	)
+
+	tryWorkload := func(fetch func() (*agents.AgentDetail, error)) (*agents.AgentDetail, bool) {
+		detail, err := fetch()
+		if err == nil {
+			return detail, true
+		}
+		switch {
+		case apierrors.IsNotFound(err):
+			notFoundAttempts++
+		case apierrors.IsForbidden(err):
+			forbiddenAttempts++
+		default:
+			lastErr = err
+		}
+		return nil, false
 	}
 
-	statefulSet, err := clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err == nil {
-		service := c.getServiceBestEffort(ctx, namespace, name)
-		return statefulSetToDetail(*statefulSet, service), nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return nil, fmt.Errorf("failed to get statefulset %q in namespace %q: %w", name, namespace, err)
+	if detail, ok := tryWorkload(func() (*agents.AgentDetail, error) {
+		deployment, err := clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return deploymentToDetail(*deployment, nil), nil
+	}); ok {
+		return c.finalizeAgentDetail(ctx, namespace, name, detail), nil
 	}
 
-	job, err := clientset.BatchV1().Jobs(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err == nil {
+	if detail, ok := tryWorkload(func() (*agents.AgentDetail, error) {
+		statefulSet, err := clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return statefulSetToDetail(*statefulSet, nil), nil
+	}); ok {
+		return c.finalizeAgentDetail(ctx, namespace, name, detail), nil
+	}
+
+	if detail, ok := tryWorkload(func() (*agents.AgentDetail, error) {
+		job, err := clientset.BatchV1().Jobs(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
 		return jobToDetail(*job), nil
+	}); ok {
+		return c.finalizeAgentDetail(ctx, namespace, name, detail), nil
 	}
-	if apierrors.IsNotFound(err) {
-		return nil, agents.ErrNotFound
+
+	return nil, workloadLookupError(notFoundAttempts, forbiddenAttempts, lastErr)
+}
+
+// finalizeAgentDetail attaches optional Service and AgentRuntime card data.
+// Failures in those enrichments are logged and omitted from the response rather
+// than failing the entire detail request.
+func (c *Client) finalizeAgentDetail(ctx context.Context, namespace, name string, detail *agents.AgentDetail) *agents.AgentDetail {
+	if detail == nil {
+		return nil
 	}
-	return nil, fmt.Errorf("failed to get job %q in namespace %q: %w", name, namespace, err)
+	detail.Service = mapService(c.getServiceBestEffort(ctx, namespace, name))
+	c.enrichAgentCard(ctx, namespace, name, detail)
+	return detail
+}
+
+func workloadLookupError(notFoundAttempts, forbiddenAttempts int, lastErr error) error {
+	const workloadKinds = 3
+
+	if notFoundAttempts == workloadKinds {
+		return agents.ErrNotFound
+	}
+	if forbiddenAttempts > 0 && lastErr == nil {
+		return agents.ErrForbidden
+	}
+	if lastErr != nil {
+		return lastErr
+	}
+	return agents.ErrNotFound
 }
 
 func (c *Client) getServiceBestEffort(ctx context.Context, namespace, name string) *corev1.Service {

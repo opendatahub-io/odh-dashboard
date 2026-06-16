@@ -4,6 +4,7 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -23,6 +24,10 @@ type KubernetesClientInterface interface {
 	// CanGetAgentInNamespace checks whether the user can get an agent workload
 	// (deployment, statefulset, or job) and its service in the namespace.
 	CanGetAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace, name string) (bool, error)
+	// CanAccessAgentCardEnrichment checks SAR/SSAR for optional card enrichment sources.
+	CanAccessAgentCardEnrichment(ctx context.Context, identity *RequestIdentity, namespace, workloadName string) (AgentCardEnrichmentAccess, error)
 	// KubernetesClientset exposes the underlying clientset for workload reads.
 	KubernetesClientset() kubernetes.Interface
+	// DynamicClient exposes a dynamic client for CRD reads (e.g. AgentRuntime).
+	DynamicClient() (dynamic.Interface, error)
 }

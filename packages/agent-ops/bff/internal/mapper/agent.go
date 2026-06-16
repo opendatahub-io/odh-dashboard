@@ -58,6 +58,14 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 		}
 	}
 
+	var agentCard *models.AgentCardDetail
+	if card := MapAgentCardDetail(detail, serviceEndpoints); card != nil {
+		if strings.TrimSpace(card.Description) != "" {
+			description = card.Description
+		}
+		agentCard = card
+	}
+
 	return &models.AgentRuntimeDetail{
 		Name:        name,
 		Namespace:   namespace,
@@ -74,6 +82,7 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 		ServiceEndpoints: serviceEndpoints,
 		PodCount:         ReadyReplicaCount(detail.Status),
 		Conditions:       conditions,
+		AgentCard:        agentCard,
 	}
 }
 

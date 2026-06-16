@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -49,8 +50,23 @@ func (c *rbacTestK8sClient) CanGetAgentInNamespace(context.Context, *k8s.Request
 	return c.getAllowed, c.err
 }
 
+func (c *rbacTestK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string, string) (k8s.AgentCardEnrichmentAccess, error) {
+	if c.err != nil {
+		return k8s.AgentCardEnrichmentAccess{}, c.err
+	}
+	return k8s.AgentCardEnrichmentAccess{
+		AgentRuntime: c.getAllowed,
+		Routes:       c.getAllowed,
+		MCPServers:   c.getAllowed,
+	}, nil
+}
+
 func (c *rbacTestK8sClient) KubernetesClientset() kubernetes.Interface {
 	return nil
+}
+
+func (c *rbacTestK8sClient) DynamicClient() (dynamic.Interface, error) {
+	return nil, errors.New("dynamic client unavailable in rbac test")
 }
 
 type rbacTestK8sFactory struct {

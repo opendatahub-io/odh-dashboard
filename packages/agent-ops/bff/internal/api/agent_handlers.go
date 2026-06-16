@@ -33,6 +33,10 @@ func (app *App) handleAgentRepositoryError(w http.ResponseWriter, r *http.Reques
 		app.notFoundResponse(w, r)
 		return
 	}
+	if errors.Is(err, bfferrors.ErrForbidden) {
+		app.forbiddenResponse(w, r, err.Error())
+		return
+	}
 	if errors.Is(err, bfferrors.ErrUpstreamUnavailable) {
 		app.serviceUnavailableResponse(w, r, err)
 		return

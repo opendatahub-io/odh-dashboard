@@ -45,5 +45,25 @@ describe('Agent Ops API Contract Tests', () => {
         status: 200,
       });
     });
+
+    describe('Error Cases', () => {
+      it('should return 404 for a missing agent', async () => {
+        const result = await apiClient.get('/api/v1/agents/runtimes/agent-ops-demo/missing-agent');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 400 for an invalid namespace', async () => {
+        const result = await apiClient.get(
+          '/api/v1/agents/runtimes/INVALID_NS/sample-support-agent',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
   });
 });

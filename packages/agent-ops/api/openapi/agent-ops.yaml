@@ -108,8 +108,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
       operationId: getAgentRuntimeDetail
       summary: Get agent runtime detail
       description: Returns full runtime detail for a single deployed agent.
@@ -319,6 +323,204 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AgentRuntimeCondition"
+        agentCard:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/AgentCardDetail"
+    AgentCardProvider:
+      type: object
+      properties:
+        organization:
+          type: string
+          example: Red Hat OpenShift AI
+        url:
+          type: string
+          format: uri
+          example: https://www.redhat.com/en/technologies/cloud-computing/openshift/ai
+    AgentCardSkillParameter:
+      type: object
+      required:
+        - name
+        - required
+      properties:
+        name:
+          type: string
+          example: city
+        type:
+          type: string
+          example: string
+        description:
+          type: string
+          example: City name to get weather for
+        required:
+          type: boolean
+          example: true
+        default:
+          type: string
+    AgentCardSkill:
+      type: object
+      required:
+        - id
+        - name
+        - tags
+        - examples
+        - inputModes
+        - outputModes
+        - parameters
+      properties:
+        id:
+          type: string
+          example: code-generation
+        name:
+          type: string
+          example: Code generation
+        description:
+          type: string
+          example: Generate or refactor code from natural language prompts with repository context.
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["development", "code"]
+        examples:
+          type: array
+          items:
+            type: string
+          example: ["Add unit tests for the auth module"]
+        inputModes:
+          type: array
+          items:
+            type: string
+          example: ["text/plain"]
+        outputModes:
+          type: array
+          items:
+            type: string
+          example: ["text/plain"]
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentCardSkillParameter"
+    AgentCardCapabilities:
+      type: object
+      required:
+        - streaming
+        - pushNotifications
+        - optional
+      properties:
+        streaming:
+          type: boolean
+          example: true
+        pushNotifications:
+          type: boolean
+          example: false
+        optional:
+          type: array
+          items:
+            type: string
+          example: ["Streaming"]
+    AgentCardDetail:
+      description: A2A agent card metadata for the agent detail UI.
+      type: object
+      required:
+        - name
+        - defaultInputModes
+        - defaultOutputModes
+        - capabilities
+      properties:
+        name:
+          type: string
+          example: Claude Code Development Agent
+        description:
+          type: string
+          example: Assists developers with code generation, repository analysis, and test authoring.
+        version:
+          type: string
+          example: "1.2.0"
+        provider:
+          $ref: "#/components/schemas/AgentCardProvider"
+        agentCardUrl:
+          type: string
+          format: uri
+          example: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json
+        externalAgentCardUrl:
+          description: >-
+            Optional public agent card URL from an OpenShift Route targeting the agent Service.
+            Omitted when no matching Route exists or Route lookup is unavailable.
+          type: string
+          format: uri
+          example: https://sample-support-agent.apps.example.com/.well-known/agent-card.json
+        documentationUrl:
+          type: string
+          format: uri
+          example: https://docs.example.com/agents/claude-code
+        iconUrl:
+          type: string
+          format: uri
+        defaultInputModes:
+          type: array
+          items:
+            type: string
+          example: ["text/plain", "application/json"]
+        defaultOutputModes:
+          type: array
+          items:
+            type: string
+          example: ["text/plain", "application/json"]
+        authenticationMethods:
+          type: array
+          default: []
+          items:
+            type: string
+          example: []
+        protocols:
+          type: array
+          default: []
+          items:
+            type: string
+          example: ["A2A", "HTTP"]
+        labels:
+          type: array
+          default: []
+          items:
+            type: string
+          example: ["Anthropic", "Claude Code"]
+        skills:
+          type: array
+          default: []
+          items:
+            $ref: "#/components/schemas/AgentCardSkill"
+        capabilities:
+          $ref: "#/components/schemas/AgentCardCapabilities"
+        toolConnections:
+          type: array
+          default: []
+          items:
+            type: string
+          example: []
+        uuid:
+          type: string
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        spiffeId:
+          type: string
+          example: spiffe://cluster.local/ns/team1/sa/claude-code-development-agent
+        lastFetchTime:
+          type: string
+          format: date-time
+          example: "2026-05-26T14:30:00Z"
+        transportSecurity:
+          type: string
+          enum: [mtls, http]
+          example: http
+        validSignature:
+          type: boolean
+          example: true
+        linkedSkills:
+          type: array
+          default: []
+          items:
+            type: string
+          example: []
   responses:
     HealthCheckResponse:
       description: BFF service health status
@@ -344,6 +546,18 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
       description: Unauthorized
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: The caller does not have permission to access the requested agent
+    ServiceUnavailable:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Upstream Kubernetes or agent data source is unavailable
     InternalServerError:
       content:
         application/json:
@@ -430,6 +644,41 @@ components:
                       reason: MinimumReplicasAvailable
                       message: Deployment has minimum availability.
                       lastTransitionTime: "2026-05-12T16:00:03.214610Z"
+                  agentCard:
+                    name: Sample Support Agent
+                    description: Customer support agent that triages tickets and drafts responses.
+                    version: "1.0.0"
+                    provider:
+                      organization: Red Hat OpenShift AI
+                      url: https://www.redhat.com/en/technologies/cloud-computing/openshift/ai
+                    agentCardUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json
+                    externalAgentCardUrl: https://sample-support-agent.apps.example.com/.well-known/agent-card.json
+                    documentationUrl: https://docs.example.com/agents/sample-support-agent
+                    defaultInputModes: ["text/plain"]
+                    defaultOutputModes: ["text/plain"]
+                    authenticationMethods: ["Bearer"]
+                    protocols: ["A2A", "HTTP"]
+                    labels: ["Red Hat OpenShift AI", "Sample Support Agent"]
+                    skills:
+                      - id: triage-ticket
+                        name: Triage ticket
+                        description: Classify and prioritize incoming support tickets.
+                        tags: ["support"]
+                        examples: ["Triage this customer issue"]
+                        inputModes: ["text/plain"]
+                        outputModes: ["text/plain"]
+                        parameters: []
+                    capabilities:
+                      streaming: true
+                      pushNotifications: false
+                      optional: ["Streaming"]
+                    toolConnections: []
+                    uuid: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                    spiffeId: spiffe://cluster.local/ns/agent-ops-demo/sa/default
+                    lastFetchTime: "2026-05-12T16:00:03.214610Z"
+                    transportSecurity: http
+                    validSignature: true
+                    linkedSkills: ["summarizer"]
       description: A response containing full agent runtime detail.
     AgentCardResponse:
       content:
