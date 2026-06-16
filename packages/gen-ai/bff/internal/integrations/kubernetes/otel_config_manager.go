@@ -51,10 +51,11 @@ type otelConfigManager struct {
 	dynClient          dynamic.Interface
 	logger             *slog.Logger
 	collectorNamespace string
-	collectorName  string
-	mlflowBaseURL  string // e.g. "https://mlflow.opendatahub.svc:8443" — used for both OTLP export and REST API
-	httpClient     *http.Client
-	bearerToken    string // from kubeconfig (local dev) or SA token (in-cluster)
+	collectorName    string
+	mlflowK8sServiceURL string // in-cluster K8s service URL for collector exporter, e.g. "https://mlflow.opendatahub.svc:8443"
+	mlflowURL           string // URL reachable from BFF for API calls, e.g. "https://localhost:5001" or same as K8s service URL
+	httpClient       *http.Client
+	bearerToken      string // from kubeconfig (local dev) or SA token (in-cluster)
 }
 
 // newOTelConfigManager creates a manager using the in-cluster service account
@@ -103,28 +104,28 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 		return nil, nil
 	}
 
-	// Resolve the MLflow base URL (scheme + host, no path).
-	// Discovered URL is like "https://mlflow.opendatahub.svc:8443/mlflow".
-	// For local dev, prefer cfg.MLflowURL (reachable via port-forward).
-	// Both the OTLP exporter and the REST API are served on the same host.
-	mlflowBase := strings.TrimSuffix(cfg.MLflowURL, "/")
-	if mlflowBase == "" {
-		mlflowBase = strings.TrimSuffix(mlflowURL, "/mlflow")
+	// The collector exporter always uses the in-cluster service URL.
+	mlflowK8sSvc := strings.TrimSuffix(strings.TrimSuffix(mlflowURL, "/mlflow"), "/")
+
+	mlflowBFFURL := strings.TrimSuffix(cfg.MLflowURL, "/")
+	if mlflowBFFURL == "" {
+		mlflowBFFURL = mlflowK8sSvc
 	}
-	mlflowBase = strings.TrimSuffix(mlflowBase, "/")
 
 	logger.Info("OTel config manager initialized",
 		"collectorNamespace", collectorNS,
 		"collectorName", collectorName,
-		"mlflowBaseURL", mlflowBase,
+		"mlflowK8sServiceURL", mlflowK8sSvc,
+		"mlflowURL", mlflowBFFURL,
 	)
 
 	return &otelConfigManager{
-		dynClient:          dynClient,
-		logger:             logger,
-		collectorNamespace: collectorNS,
-		collectorName:      collectorName,
-		mlflowBaseURL:      mlflowBase,
+		dynClient:           dynClient,
+		logger:              logger,
+		collectorNamespace:  collectorNS,
+		collectorName:       collectorName,
+		mlflowK8sServiceURL: mlflowK8sSvc,
+		mlflowURL:           mlflowBFFURL,
 		bearerToken:        restCfg.BearerToken,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
@@ -184,7 +185,7 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string) {
 	}
 
 	changed := ensureRoutingConnector(collectorCfg)
-	changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowBaseURL, experimentID) || changed
+	changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowK8sServiceURL, experimentID) || changed
 
 	if !changed {
 		m.logger.Info("collector config already has route for namespace, no update needed", "namespace", namespace)
@@ -332,7 +333,7 @@ func (m *otelConfigManager) getAuthToken() string {
 }
 
 func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace string, token string) (string, error) {
-	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1", m.mlflowBaseURL, mlflowExperimentsAPI)
+	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1", m.mlflowURL, mlflowExperimentsAPI)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -367,7 +368,7 @@ func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace stri
 }
 
 func (m *otelConfigManager) createExperiment(ctx context.Context, workspace string, token string) (string, error) {
-	url := fmt.Sprintf("%s/mlflow%s/create", m.mlflowBaseURL, mlflowExperimentsAPI)
+	url := fmt.Sprintf("%s/mlflow%s/create", m.mlflowURL, mlflowExperimentsAPI)
 
 	body := strings.NewReader(`{"name":"Default"}`)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
