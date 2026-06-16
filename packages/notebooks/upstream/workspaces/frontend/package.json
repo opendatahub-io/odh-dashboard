@@ -140,8 +140,8 @@
     "mod-arch-shared": "^1.10.2",
     "react": "^18",
     "react-dom": "^18",
-    "react-router": "^7.16.0",
-    "react-router-dom": "^7.16.0",
+    "react-router": "^7.5.2",
+    "react-router-dom": "^7.6.1",
     "sass": "^1.83.0",
     "showdown": "^2.1.0"
   },

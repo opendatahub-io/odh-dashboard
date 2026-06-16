@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -134,7 +135,7 @@ func (app *App) LlamaStackAudioTranscriptionHandler(w http.ResponseWriter, r *ht
 }
 
 // resolveASRModel looks up the ASR model in the namespace, validates it has the
-// correct modality label and source type, and returns the internal endpoint URL.
+// audio-transcription capability and correct source type, and returns the internal endpoint URL.
 func (app *App) resolveASRModel(ctx context.Context, identity *integrations.RequestIdentity, namespace, modelID string) (endpoint string, modelName string, err error) {
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
@@ -163,8 +164,8 @@ func (app *App) resolveASRModel(ctx context.Context, identity *integrations.Requ
 		return "", "", &asrResolutionError{code: http.StatusBadRequest, errorCode: constants.ASRCodeModelInvalid, msg: fmt.Sprintf("ASR model %q must be a namespace-deployed model (InferenceService), got %q", modelID, found.ModelSourceType)}
 	}
 
-	if found.Modality != constants.ModalityAudioTranscription {
-		return "", "", &asrResolutionError{code: http.StatusNotFound, errorCode: constants.ASRCodeModelInvalid, msg: fmt.Sprintf("model %q is not an ASR model (missing label %s=%s)", modelID, constants.ModalityLabelKey, constants.ModalityAudioTranscription)}
+	if !slices.Contains(found.Capabilities, constants.CapabilityAudioTranscription) {
+		return "", "", &asrResolutionError{code: http.StatusNotFound, errorCode: constants.ASRCodeModelInvalid, msg: fmt.Sprintf("model %q does not have audio-transcription capability", modelID)}
 	}
 
 	if found.Status != models.ModelStatusRunning {
