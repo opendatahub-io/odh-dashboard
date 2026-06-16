@@ -263,7 +263,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                       <DescriptionListDescription>{tensorType || 'N/A'}</DescriptionListDescription>
                     </DescriptionListGroup>
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Size</DescriptionListTerm>
+                      <DescriptionListTerm>Parameter size</DescriptionListTerm>
                       <DescriptionListDescription>{size || 'N/A'}</DescriptionListDescription>
                     </DescriptionListGroup>
                     {minimumVram && (
@@ -320,7 +320,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                     )}
                     {modelSize && (
                       <DescriptionListGroup>
-                        <DescriptionListTerm>Image size</DescriptionListTerm>
+                        <DescriptionListTerm>Container size</DescriptionListTerm>
                         <DescriptionListDescription data-testid="image-size">
                           {modelSize}
                         </DescriptionListDescription>

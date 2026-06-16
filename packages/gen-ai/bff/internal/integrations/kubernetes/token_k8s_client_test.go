@@ -1073,6 +1073,88 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 	})
 }
 
+func TestGetAAModelsFromExternalModelsCapabilities(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	identity := &integrations.RequestIdentity{Token: "test-token"}
+
+	makeConfigMap := func(configYAML string) *corev1.ConfigMap {
+		return &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: "test-ns",
+			},
+			Data: map[string]string{"config.yaml": configYAML},
+		}
+	}
+
+	t.Run("no capabilities in YAML defaults to text-generation", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: my-provider
+      provider_type: remote::openai
+      config:
+        base_url: https://api.example.com
+registered_resources:
+  models:
+    - provider_id: my-provider
+      model_id: my-model
+      model_type: llm
+      metadata:
+        display_name: My Model`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
+	})
+
+	t.Run("explicit capabilities in YAML are passed through", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: my-provider
+      provider_type: remote::openai
+      config:
+        base_url: https://api.example.com
+registered_resources:
+  models:
+    - provider_id: my-provider
+      model_id: my-model
+      model_type: llm
+      metadata:
+        display_name: My Model
+        capabilities:
+          - audio-transcription
+          - vision`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{"audio-transcription", "vision"}, result[0].Capabilities)
+	})
+}
+
 func TestValidateExternalModelsConfig(t *testing.T) {
 	client := &TokenKubernetesClient{
 		Logger: slog.Default(),
@@ -1536,6 +1618,37 @@ func TestGetAAModelsFromLLMInferenceServiceNilName(t *testing.T) {
 		require.Len(t, result, 1)
 		assert.Equal(t, "my-llm-service", result[0].ModelID)
 		assert.Equal(t, "my-llm-service", result[0].ModelName)
+		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities,
+			"missing annotation should default to text-generation")
+	})
+
+	t.Run("annotation populates Capabilities", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "whisper-llm",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					constants.ModelCapabilitiesAnnotationKey: `["audio-transcription","vision"]`,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(llmSvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromLLMInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription, constants.CapabilityVision}, result[0].Capabilities)
 	})
 
 	t.Run("empty Spec.Model.Name falls back to metadata name", func(t *testing.T) {
@@ -1729,4 +1842,134 @@ func TestGetModelDetailsFromServingRuntimeNilName(t *testing.T) {
 // strPtr is a helper that returns a pointer to the given string.
 func strPtr(s string) *string {
 	return &s
+}
+
+func TestParseModelCapabilities(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "empty string returns defaults",
+			input:    "",
+			expected: []string{constants.CapabilityTextGeneration},
+		},
+		{
+			name:     "single valid capability",
+			input:    `["vision"]`,
+			expected: []string{constants.CapabilityVision},
+		},
+		{
+			name:     "multiple valid capabilities",
+			input:    `["vision", "audio-transcription"]`,
+			expected: []string{constants.CapabilityVision, constants.CapabilityAudioTranscription},
+		},
+		{
+			name:     "unknown value dropped, valid subset kept",
+			input:    `["vision", "smell"]`,
+			expected: []string{constants.CapabilityVision},
+		},
+		{
+			name:     "all unknown values returns defaults",
+			input:    `["smell", "taste"]`,
+			expected: []string{constants.CapabilityTextGeneration},
+		},
+		{
+			name:     "malformed JSON returns defaults",
+			input:    `not-json`,
+			expected: []string{constants.CapabilityTextGeneration},
+		},
+		{
+			name:     "non-array JSON returns defaults",
+			input:    `"vision"`,
+			expected: []string{constants.CapabilityTextGeneration},
+		},
+		{
+			name:     "mixed types keeps only strings",
+			input:    `["vision", 42]`,
+			expected: []string{constants.CapabilityVision},
+		},
+		{
+			name:     "empty array returns defaults",
+			input:    `[]`,
+			expected: []string{constants.CapabilityTextGeneration},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseModelCapabilities(tt.input)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func TestParseModelCapabilities_CopyOnReturn(t *testing.T) {
+	// Verify that mutating the returned slice does not affect DefaultCapabilities().
+	result := parseModelCapabilities("")
+	original := constants.DefaultCapabilities()
+	result[0] = "mutated"
+	assert.Equal(t, original, constants.DefaultCapabilities(), "DefaultCapabilities() must return independent copies")
+}
+
+func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, kservev1alpha1.AddToScheme(scheme))
+	require.NoError(t, kservev1beta1.AddToScheme(scheme))
+
+	t.Run("missing annotation defaults to text-generation", func(t *testing.T) {
+		isvc := &kservev1beta1.InferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "llama-isvc",
+				Namespace: "test-ns",
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(isvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
+	})
+
+	t.Run("annotation populates Capabilities", func(t *testing.T) {
+		isvc := &kservev1beta1.InferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "whisper-isvc",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					constants.ModelCapabilitiesAnnotationKey: `["audio-transcription"]`,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(isvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
+	})
 }

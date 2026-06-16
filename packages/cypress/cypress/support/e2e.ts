@@ -123,8 +123,12 @@ Cypress.on('uncaught:exception', (err) => {
     return false;
   }
 
-  // Ignore 'Unexpected token :' / 'expected expression' parser errors from cross-origin scripts
-  if (err.message.includes("Unexpected token ':'") || err.message.includes('expected expression')) {
+  // Ignore 'Unexpected token :' / '?' / 'expected expression' parser errors from cross-origin scripts
+  if (
+    err.message.includes("Unexpected token ':'") ||
+    err.message.includes("Unexpected token '?'") ||
+    err.message.includes('expected expression')
+  ) {
     return false;
   }
 

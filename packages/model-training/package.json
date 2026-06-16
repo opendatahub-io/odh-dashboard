@@ -24,6 +24,20 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*",
+    "@types/lodash-es": "^4.17.12",
+    "lodash-es": "^4.18.1"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "@patternfly/react-log-viewer": "^6",
+    "@patternfly/react-table": "^6",
+    "@patternfly/react-tokens": "^6",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router-dom": "^7"
   }
 }
