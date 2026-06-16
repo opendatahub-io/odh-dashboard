@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -7,6 +8,7 @@ import SaveAgentProfileModal from '~/app/Chatbot/components/SaveAgentProfileModa
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
+import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   useFeatureFlag: jest.fn(() => [false]),
@@ -79,6 +81,7 @@ describe('SaveAgentProfileModal', () => {
       profileApplied: false,
       loadedProfileId: null,
       loadedProfileDisplayName: null,
+      loadedProfileDescription: null,
     });
     jest.mocked(mockGenAiContextValue.apiState.api.createAgentProfile).mockResolvedValue({
       profileId: 'new-uuid',
@@ -175,10 +178,26 @@ describe('SaveAgentProfileModal', () => {
         profileApplied: true,
         loadedProfileId: 'existing-uuid',
         loadedProfileDisplayName: 'My Agent',
+        loadedProfileDescription: null,
       });
       renderModal('save');
       expect(screen.getByText('Save agent profile')).toBeInTheDocument();
       expect(screen.getByTestId('save-agent-profile-name-input')).toHaveValue('My Agent');
+    });
+
+    it('should pre-fill the description from loadedProfileDescription', () => {
+      useChatbotConfigStore.setState({
+        configurations: { [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION } },
+        configIds: [DEFAULT_CONFIG_ID],
+        profileApplied: true,
+        loadedProfileId: 'existing-uuid',
+        loadedProfileDisplayName: 'My Agent',
+        loadedProfileDescription: 'Helpful code reviewer',
+      });
+      renderModal('save');
+      expect(screen.getByTestId('save-agent-profile-description-input')).toHaveValue(
+        'Helpful code reviewer',
+      );
     });
 
     it('should call getAgentProfile then updateAgentProfile on submit', async () => {
@@ -188,6 +207,7 @@ describe('SaveAgentProfileModal', () => {
         profileApplied: true,
         loadedProfileId: 'existing-uuid',
         loadedProfileDisplayName: 'My Agent',
+        loadedProfileDescription: null,
       });
       const user = userEvent.setup();
       renderModal('save');
@@ -205,6 +225,82 @@ describe('SaveAgentProfileModal', () => {
           }),
         );
         expect(mockOnSaved).toHaveBeenCalledWith('existing-uuid', 'My Agent');
+      });
+    });
+
+    it('should show error when getAgentProfile rejects', async () => {
+      jest
+        .mocked(mockGenAiContextValue.apiState.api.getAgentProfile)
+        .mockRejectedValue(new Error('Profile not found'));
+      useChatbotConfigStore.setState({
+        configurations: { [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION } },
+        configIds: [DEFAULT_CONFIG_ID],
+        profileApplied: true,
+        loadedProfileId: 'existing-uuid',
+        loadedProfileDisplayName: 'My Agent',
+        loadedProfileDescription: null,
+      });
+      const user = userEvent.setup();
+      renderModal('save');
+
+      await user.click(screen.getByTestId('save-agent-profile-submit-button'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Profile not found')).toBeInTheDocument();
+      });
+      expect(mockOnClose).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('isPromptDirty path', () => {
+    it('should register prompt before saving when prompt has unsaved edits', async () => {
+      jest.mocked(usePromptEdited).mockReturnValue(true);
+      jest
+        .mocked(mockGenAiContextValue.apiState.api.listMLflowPromptVersions)
+        .mockResolvedValue({ versions: [{ version: 2 }] } as never);
+      jest.mocked(mockGenAiContextValue.apiState.api.registerMLflowPrompt).mockResolvedValue({
+        name: 'my-prompt',
+        version: 3,
+        template: 'You are a helpful assistant.',
+        created_at: '',
+        updated_at: '',
+      } as never);
+
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: {
+            ...DEFAULT_CONFIGURATION,
+            activePrompt: {
+              name: 'my-prompt',
+              version: 2,
+              template: 'Old text',
+              created_at: '',
+              updated_at: '',
+            },
+            systemInstruction: 'You are a helpful assistant.',
+          },
+        },
+        configIds: [DEFAULT_CONFIG_ID],
+        profileApplied: false,
+        loadedProfileId: null,
+        loadedProfileDisplayName: null,
+        loadedProfileDescription: null,
+      });
+
+      const user = userEvent.setup();
+      renderModal('save-as');
+
+      await user.type(screen.getByTestId('save-agent-profile-name-input'), 'Test Agent');
+      await user.click(screen.getByTestId('save-agent-profile-submit-button'));
+
+      await waitFor(() => {
+        expect(mockGenAiContextValue.apiState.api.registerMLflowPrompt).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'my-prompt',
+            template: 'You are a helpful assistant.',
+          }),
+        );
+        expect(mockGenAiContextValue.apiState.api.createAgentProfile).toHaveBeenCalled();
       });
     });
   });

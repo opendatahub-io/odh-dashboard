@@ -58,7 +58,11 @@ export const makeProfileResponse = (
     spec: {
       displayName,
       description: overrides.description ?? '',
-      model: { id: 'llama-3b', uri: 'http://llama.svc/v1', sourceType: 'namespace' },
+      model: {
+        id: 'llama-3.1-8b-instruct',
+        uri: `http://llama-3.1-8b-instruct.mock-test-namespace-2.svc.cluster.local:8080`,
+        sourceType: 'namespace',
+      },
       temperature: 0.7,
       stream: true,
       ...(overrides.promptName && {

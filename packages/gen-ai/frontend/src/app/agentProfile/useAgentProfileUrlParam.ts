@@ -74,7 +74,12 @@ const useAgentProfileUrlParam = ({
           mcpServers,
         });
 
-        applyAgentProfile(config, agentProfileId, profile.spec.displayName);
+        applyAgentProfile(
+          config,
+          agentProfileId,
+          profile.spec.displayName,
+          profile.spec.description,
+        );
 
         // Restore MCP tool selections — mcpServers is guaranteed loaded at this point.
         // mcpToolsPending is now keyed by server URL (same canonical format as

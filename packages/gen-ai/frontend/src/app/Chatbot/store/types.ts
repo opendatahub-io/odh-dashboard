@@ -88,6 +88,8 @@ export interface ChatbotConfigStoreState {
   loadedProfileId: string | null;
   /** displayName of the currently loaded AgentProfile, for pre-filling the Save modal. */
   loadedProfileDisplayName: string | null;
+  /** description of the currently loaded AgentProfile, for pre-filling the Save modal. */
+  loadedProfileDescription: string | null;
 }
 
 /**
@@ -154,6 +156,7 @@ export interface ChatbotConfigStoreActions {
     config: Partial<ChatbotConfiguration>,
     profileId?: string,
     displayName?: string,
+    description?: string,
   ) => void;
 
   // Utility

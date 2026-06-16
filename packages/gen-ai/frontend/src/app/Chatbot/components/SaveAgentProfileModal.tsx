@@ -56,12 +56,15 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   const config = useChatbotConfigStore((s) => s.configurations[DEFAULT_CONFIG_ID]);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
+  const loadedProfileDescription = useChatbotConfigStore((s) => s.loadedProfileDescription);
 
   const { data: externalVectorStores = [] } = useFetchAAEVectorStores();
 
   const [name, setName] = React.useState(mode === 'save' ? (loadedProfileDisplayName ?? '') : '');
   const [nameTouched, setNameTouched] = React.useState(false);
-  const [description, setDescription] = React.useState('');
+  const [description, setDescription] = React.useState(
+    mode === 'save' ? (loadedProfileDescription ?? '') : '',
+  );
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 

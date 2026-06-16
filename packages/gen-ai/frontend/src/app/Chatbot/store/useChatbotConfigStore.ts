@@ -154,6 +154,7 @@ export const createChatbotConfigStore = (
     profileApplied: false,
     loadedProfileId: null,
     loadedProfileDisplayName: null,
+    loadedProfileDescription: null,
   };
 
   return create<ChatbotConfigStore>()(
@@ -637,6 +638,7 @@ const createStoreActions = (
     config: Partial<ChatbotConfiguration>,
     profileId?: string,
     displayName?: string,
+    description?: string,
   ) => {
     set(
       () => ({
@@ -644,6 +646,7 @@ const createStoreActions = (
         profileApplied: true,
         loadedProfileId: profileId ?? null,
         loadedProfileDisplayName: displayName ?? null,
+        loadedProfileDescription: description ?? null,
         configurations: {
           default: {
             ...DEFAULT_CONFIGURATION,
