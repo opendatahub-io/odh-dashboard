@@ -96,17 +96,28 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
   const waitForProject = React.useCallback<ProjectsContextType['waitForProject']>(
     (projectName) =>
       new Promise((resolve) => {
+        const POLL_INTERVAL = 200;
+        const TIMEOUT = 10_000;
+        let elapsed = 0;
+
         // Projects take a moment to appear in K8s due to their shell version of Namespaces
         const doCheckAgain = () => {
           setTimeout(() => {
+            elapsed += POLL_INTERVAL;
             if (projectsRef.current.find(byName(projectName))) {
+              resolve();
+              return;
+            }
+            if (elapsed >= TIMEOUT) {
+              // The project creation API call already succeeded; resolve so the modal
+              // closes gracefully even if the watch-based list hasn't updated yet.
               resolve();
               return;
             }
             if (isMounted.current) {
               doCheckAgain();
             }
-          }, 200);
+          }, POLL_INTERVAL);
         };
         doCheckAgain();
       }),
