@@ -48,14 +48,14 @@ const defaultCollectorName = "data-science-collector"
 // otelConfigManager handles idempotent patching of the platform OpenTelemetryCollector CR
 // to add/remove per-namespace routing connector configuration.
 type otelConfigManager struct {
-	dynClient          dynamic.Interface
-	logger             *slog.Logger
-	collectorNamespace string
-	collectorName    string
+	dynClient           dynamic.Interface
+	logger              *slog.Logger
+	collectorNamespace  string
+	collectorName       string
 	mlflowK8sServiceURL string // in-cluster K8s service URL for collector exporter, e.g. "https://mlflow.opendatahub.svc:8443"
 	mlflowURL           string // URL reachable from BFF for API calls, e.g. "https://localhost:5001" or same as K8s service URL
-	httpClient       *http.Client
-	bearerToken      string // from kubeconfig (local dev) or SA token (in-cluster)
+	httpClient          *http.Client
+	bearerToken         string // from kubeconfig (local dev) or SA token (in-cluster)
 }
 
 // newOTelConfigManager creates a manager using the in-cluster service account
@@ -126,7 +126,7 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 		collectorName:       collectorName,
 		mlflowK8sServiceURL: mlflowK8sSvc,
 		mlflowURL:           mlflowBFFURL,
-		bearerToken:        restCfg.BearerToken,
+		bearerToken:         restCfg.BearerToken,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
