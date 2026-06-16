@@ -1,6 +1,6 @@
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
-import './app.css';
+import './app.scss';
 import {
   Alert,
   Bullseye,
@@ -88,11 +88,13 @@ const App: React.FC = () => {
       <Spinner />
     </Bullseye>
   ) : (
-    <AppContext.Provider value={contextValue}>
-      <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
-        <AppRoutes />
-      </Page>
-    </AppContext.Provider>
+    <div className="odh-automl pf-v6-u-h-100">
+      <AppContext.Provider value={contextValue}>
+        <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
+          <AppRoutes />
+        </Page>
+      </AppContext.Provider>
+    </div>
   );
 };
 

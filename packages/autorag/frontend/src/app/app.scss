@@ -1,0 +1,12 @@
+@import './styles/link-decoration';
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+// Scoped to the AutoRAG app shell (standalone #root and federated AppWrapper).
+.odh-autorag {
+  @include autorag-solid-link-decoration;
+}

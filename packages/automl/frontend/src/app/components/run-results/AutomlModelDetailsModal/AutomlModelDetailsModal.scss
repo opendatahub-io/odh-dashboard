@@ -1,4 +1,8 @@
+@import '../../../styles/link-decoration';
+
 .automl-model-details-modal {
+  @include automl-solid-link-decoration;
+
   --pf-v6-c-modal-box--MaxWidth: 1200px;
   --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1200px;
   height: 80vh;

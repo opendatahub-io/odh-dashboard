@@ -7,6 +7,7 @@ import {
   ModularArchContextProvider,
 } from 'mod-arch-core';
 import React from 'react';
+import '~/app/app.scss';
 import AppRoutes from '~/app/AppRoutes';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { URL_PREFIX } from '~/app/utilities/const';
@@ -38,6 +39,7 @@ function AppWrapper(): React.JSX.Element {
         <QueryClientProvider client={queryClient}>
           <div
             className={classNames(
+              'odh-autorag',
               'pf-v6-u-h-100',
               'pf-v6-u-display-flex',
               'pf-v6-u-flex-direction-column',

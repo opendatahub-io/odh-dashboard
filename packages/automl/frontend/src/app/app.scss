@@ -1,0 +1,12 @@
+@import './styles/link-decoration';
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+// Scoped to the AutoML app shell (standalone #root and federated AppWrapper).
+.odh-automl {
+  @include automl-solid-link-decoration;
+}

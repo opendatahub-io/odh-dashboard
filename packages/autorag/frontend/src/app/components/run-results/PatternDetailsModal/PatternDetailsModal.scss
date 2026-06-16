@@ -1,4 +1,8 @@
+@import '../../../styles/link-decoration';
+
 .autorag-pattern-details-modal {
+  @include autorag-solid-link-decoration;
+
   --pf-v6-c-modal-box--MaxWidth: 1300px;
   --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1300px;
   height: 80vh;

@@ -962,6 +962,7 @@ function AutoragLeaderboard({
                 <Td
                   dataLabel="Model name"
                   data-testid={`model-name-${entry.rank}`}
+                  className="autorag-leaderboard__model-cell"
                   isStickyColumn
                   stickyMinWidth="200px"
                   stickyLeftOffset="290px"

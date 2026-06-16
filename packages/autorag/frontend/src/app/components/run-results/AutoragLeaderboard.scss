@@ -59,6 +59,11 @@
     font-size: var(--pf-t--global--font--size--xs);
   }
 
+  // Model IDs use Tooltip for full name on hover; plain text (no help-text underline).
+  &__model-cell span {
+    text-decoration: none;
+  }
+
   // Reset sticky offsets in responsive grid layout to prevent indentation
   &.pf-v6-c-table.pf-m-grid-md {
     .pf-v6-c-table__sticky-cell {

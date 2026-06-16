@@ -1,0 +1,22 @@
+// PF v6 uses dashed underlines on links and inline link buttons by default. Use solid instead.
+@mixin automl-solid-link-decoration {
+  .pf-v6-c-button.pf-m-link.pf-m-inline,
+  a.pf-v6-c-button.pf-m-link.pf-m-inline {
+    --pf-v6-c-button--TextDecorationStyle: solid;
+    --pf-v6-c-button--hover--TextDecorationStyle: solid;
+    --pf-v6-c-button--m-link--m-inline--TextDecorationStyle: solid;
+    --pf-v6-c-button--m-link--m-inline--hover--TextDecorationStyle: solid;
+    text-decoration-style: solid;
+  }
+
+  a:not(.pf-v6-c-button) {
+    --pf-t--global--text-decoration--link--style--default: solid;
+    --pf-t--global--text-decoration--link--style--hover: solid;
+    text-decoration-style: solid;
+
+    &:hover,
+    &:focus {
+      text-decoration-style: solid;
+    }
+  }
+}
