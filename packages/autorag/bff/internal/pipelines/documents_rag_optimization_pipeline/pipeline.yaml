@@ -79,22 +79,6 @@ components:
           artifactType:
             schemaTitle: system.HTML
             schemaVersion: 0.0.1
-  comp-prepare-responses-api-requests:
-    executorLabel: exec-prepare-responses-api-requests
-    inputDefinitions:
-      artifacts:
-        rag_patterns:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
-          description: Local path to the ``rag_patterns`` directory (same layout as
-            ``leaderboard_evaluation``).
-    outputDefinitions:
-      artifacts:
-        responses_api_artifacts:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
   comp-rag-templates-optimization:
     executorLabel: exec-rag-templates-optimization
     inputDefinitions:
@@ -656,341 +640,6 @@ deploymentSpec:
           resourceCpuRequest: '1'
           resourceMemoryLimit: 64Gi
           resourceMemoryRequest: 4Gi
-    exec-prepare-responses-api-requests:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - prepare_responses_api_requests
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef prepare_responses_api_requests(\n    rag_patterns: dsl.InputPath(dsl.Artifact),\n\
-          \    responses_api_artifacts: dsl.Output[dsl.Artifact],\n):\n    \"\"\"\
-          Emit one OGX ``POST /v1/responses`` JSON body per RAG pattern directory.\n\
-          \n    Expects the ``rag_patterns`` layout from ``rag_templates_optimization``:\
-          \ each subdirectory\n    contains ``pattern.json``. For each pattern, writes\
-          \ ``v1_responses_body.json``,\n    ``create_model_response.py``, and ``README.md``\
-          \ (how to run the script) under a matching\n    output subdirectory.\n \
-          \   The helper script embeds the OGX base URL from environment variable\n\
-          \    ``OGX_CLIENT_BASE_URL`` at pipeline run time (default ``http://localhost:8321``\
-          \ if unset);\n    each per-pattern ``README.md`` documents how to run the\
-          \ script and override that URL if needed.\n    The generated ``create_model_response.py``\
-          \ resolves the API key from ``OGX_CLIENT_API_KEY``\n    or ``OGX_API_KEY``\
-          \ (or a one-time prompt), sets ``os.environ`` for the process when you\n\
-          \    type a key at the prompt, then loops on questions until an empty line.\
-          \ No secret file is written.\n    For TLS, the script honors ``REQUESTS_CA_BUNDLE``\
-          \ / ``SSL_CERT_FILE`` for custom CA bundles\n    (e.g. corporate/private\
-          \ PKI), and ``OGX_TLS_INSECURE=1`` as a dev-only opt-out that\n    disables\
-          \ certificate verification with a stderr warning.\n\n    Request-body construction\
-          \ is defined inside this function so Kubeflow embeds it in\n    ``ephemeral_component.py``\
-          \ (module-level helpers in this file are not shipped to the executor).\n\
-          \n    The generated body matches OpenAI-compatible ``POST /v1/responses``\
-          \ (see OpenAI's\n    `Migrate to the Responses API <https://developers.openai.com/api/docs/guides/migrate-to-responses>`__\n\
-          \    and OGX's ``POST /v1/responses``): ``model``, ``input``, ``stream``,\
-          \ ``store``,\n    ``metadata`` (string values only), optional ``instructions``,\
-          \ and optional ``tools`` /\n    ``file_search`` when a collection name is\
-          \ set, plus ``tool_choice`` forcing file search\n    and ``include: [\"\
-          file_search_call.results\"]`` to return file-search hits in the response.\n\
-          \    Replace\n    ``vector_store_ids`` with OGX-registered vector store\
-          \ identifiers if your deployment\n    does not use the collection name as\
-          \ the store id.\n\n    Args:\n        rag_patterns: Local path to the ``rag_patterns``\
-          \ directory (same layout as ``leaderboard_evaluation``).\n        responses_api_artifacts:\
-          \ Output directory artifact; mirrors pattern folder names (JSON body,\n\
-          \            helper script, and README per pattern).\n            Request\
-          \ bodies use ``RESPONSES_BODY_DEFAULT_QUESTION`` as the placeholder user\
-          \ message;\n            the interactive script replaces it when you run\
-          \ it locally.\n    \"\"\"\n    import json\n    import os\n    from pathlib\
-          \ import Path\n\n    # Fixed placeholder question embedded in generated\
-          \ ``POST /v1/responses`` bodies (overridden at\n    # runtime by ``create_model_response.py``\
-          \ when the user enters a question).\n    RESPONSES_BODY_DEFAULT_QUESTION\
-          \ = \"What information is available in the indexed knowledge base?\"\n\n\
-          \    output_filename = \"v1_responses_body.json\"\n    script_filename =\
-          \ \"create_model_response.py\"\n    readme_filename = \"README.md\"\n  \
-          \  ogx_base_url = (os.environ.get(\"OGX_CLIENT_BASE_URL\") or \"http://localhost:8321\"\
-          ).strip().rstrip(\"/\")\n    grounding_instruction = (\n        \"Use only\
-          \ information found in file_search results. \"\n        'If file_search\
-          \ results are insufficient, reply exactly: \"I cannot answer based on the\
-          \ provided context.\"'\n    )\n    default_language_instruction = \"Respond\
-          \ in the same language as the user question.\"\n    default_instructions\
-          \ = f\"{grounding_instruction} {default_language_instruction}\"\n\n    def\
-          \ _metadata_string_values(pattern: dict) -> dict[str, str]:\n        \"\"\
-          \"Build compact metadata dict with string values only (OGX API constraint).\"\
-          \"\"\n        settings = pattern.get(\"settings\") or {}\n        vs = settings.get(\"\
-          vector_store\") or {}\n        emb = settings.get(\"embedding\") or {}\n\
-          \        return {\n            \"rag_pattern_name\": str(pattern.get(\"\
-          name\") or \"\"),\n            \"rag_pattern_iteration\": str(pattern.get(\"\
-          iteration\", \"\")),\n            \"vector_datasource_type\": str(vs.get(\"\
-          datasource_type\") or \"\"),\n            \"embedding_model_id\": str(emb.get(\"\
-          model_id\") or \"\"),\n        }\n\n    def _ranking_options_from_retrieval(retrieval:\
-          \ dict) -> dict | None:\n        \"\"\"Map hybrid retrieval settings to\
-          \ file_search ranking_options when possible.\"\"\"\n        search_mode\
-          \ = str(retrieval.get(\"search_mode\") or \"\").strip().lower()\n      \
-          \  if search_mode and search_mode != \"hybrid\":\n            return None\n\
-          \        ranker = retrieval.get(\"ranker_strategy\")\n        if ranker\
-          \ is None and retrieval.get(\"ranker_alpha\") is None and retrieval.get(\"\
-          ranker_k\") is None:\n            return None\n        out: dict = {}\n\
-          \        if ranker is not None:\n            out[\"ranker\"] = str(ranker)\n\
-          \        if retrieval.get(\"ranker_alpha\") is not None:\n            out[\"\
-          alpha\"] = float(retrieval[\"ranker_alpha\"])\n        if retrieval.get(\"\
-          ranker_k\") is not None:\n            out[\"impact_factor\"] = float(retrieval[\"\
-          ranker_k\"])\n        return out or None\n\n    def _tools_from_pattern(pattern:\
-          \ dict) -> list[dict]:\n        \"\"\"Build Responses API `tools` list;\
-          \ file_search uses vector_store_ids from the pattern collection.\"\"\"\n\
-          \        settings = pattern.get(\"settings\") or {}\n        vs = settings.get(\"\
-          vector_store\") or {}\n        collection = (vs.get(\"collection_name\"\
-          ) or \"\").strip()\n        if not collection:\n            return []\n\
-          \        retrieval = settings.get(\"retrieval\") or {}\n        try:\n \
-          \           max_results = int(retrieval.get(\"number_of_chunks\") or 5)\n\
-          \        except (TypeError, ValueError):\n            max_results = 5\n\
-          \        tool: dict = {\n            \"type\": \"file_search\",\n      \
-          \      \"vector_store_ids\": [collection],\n            \"max_num_results\"\
-          : max_results,\n        }\n        ro = _ranking_options_from_retrieval(retrieval)\
-          \ if isinstance(retrieval, dict) else None\n        if ro:\n           \
-          \ tool[\"ranking_options\"] = ro\n        return [tool]\n\n    def _user_message_placeholder_text()\
-          \ -> str:\n        \"\"\"Placeholder user message in the JSON; interactive\
-          \ script overwrites at runtime.\"\"\"\n        return RESPONSES_BODY_DEFAULT_QUESTION\n\
-          \n    def _explicit_language_instruction(detected_language: object) -> str:\n\
-          \        \"\"\"Build explicit language instruction from detected_language\
-          \ metadata.\"\"\"\n        if not isinstance(detected_language, dict):\n\
-          \            return \"\"\n        if detected_language.get(\"code\") ==\
-          \ \"en\":\n            return \"\"\n        name = detected_language.get(\"\
-          name\", \"\")\n        if not name:\n            return \"\"\n        return\
-          \ f\"You MUST respond in {name}.\"\n\n    def _language_instruction_from_user_message(user_message_text:\
-          \ object) -> str:\n        \"\"\"Extract language guidance from generation.user_message_text\
-          \ when present.\"\"\"\n        if not isinstance(user_message_text, str):\n\
-          \            return \"\"\n        text = user_message_text.strip()\n   \
-          \     if not text:\n            return \"\"\n        lowered = text.lower()\n\
-          \        if \"language of the question\" in lowered:\n            return\
-          \ default_language_instruction\n        if \"same language\" in lowered\
-          \ and \"question\" in lowered:\n            return default_language_instruction\n\
-          \        return \"\"\n\n    def _normalize_system_message_for_file_search(system_message_text:\
-          \ object) -> str:\n        \"\"\"Rewrite legacy context-section wording\
-          \ into file_search-grounded Responses wording.\"\"\"\n        if not isinstance(system_message_text,\
-          \ str):\n            return \"\"\n        text = system_message_text.strip()\n\
-          \        if not text:\n            return \"\"\n        replacements = {\n\
-          \            \"based solely on the information i provide in the context\
-          \ section\": (\n                \"using only information found in file_search\
-          \ results\"\n            ),\n            \"based on the context provided\
-          \ only\": \"using only information found in file_search results\",\n   \
-          \         \"context section\": \"file_search results\",\n            \"\
-          question section\": \"user question\",\n        }\n        normalized =\
-          \ text\n        lowered = normalized.lower()\n        for source, target\
-          \ in replacements.items():\n            idx = lowered.find(source)\n   \
-          \         if idx >= 0:\n                normalized = normalized[:idx] +\
-          \ target + normalized[idx + len(source) :]\n                lowered = normalized.lower()\n\
-          \        return normalized.strip()\n\n    def _compose_instructions(generation:\
-          \ dict) -> str:\n        \"\"\"Compose Responses API instructions from system/user\
-          \ generation fields.\"\"\"\n        system_text = _normalize_system_message_for_file_search(generation.get(\"\
-          system_message_text\"))\n        explicit_lang = _explicit_language_instruction(generation.get(\"\
-          detected_language\"))\n        language_hint = explicit_lang or _language_instruction_from_user_message(generation.get(\"\
-          user_message_text\"))\n        if not system_text:\n            if explicit_lang:\n\
-          \                return f\"{grounding_instruction} {explicit_lang}\"\n \
-          \           return default_instructions\n\n        parts = [system_text]\n\
-          \        lowered = system_text.lower()\n        if \"file_search\" not in\
-          \ lowered and \"retriev\" not in lowered:\n            parts.append(grounding_instruction)\n\
-          \        if \"you must respond in\" in lowered:\n            pass\n    \
-          \    elif language_hint:\n            if \"same language as the user question\"\
-          \ not in lowered and \"language of the question\" not in lowered:\n    \
-          \            parts.append(language_hint)\n        elif \"same language as\
-          \ the user question\" not in lowered and \"language of the question\" not\
-          \ in lowered:\n            parts.append(default_language_instruction)\n\
-          \        return \" \".join(p.strip() for p in parts if p and p.strip())\n\
-          \n    def _build_ogx_v1_responses_body(pattern: dict) -> dict:\n       \
-          \ \"\"\"Build the JSON object sent as the HTTP body for OGX ``POST /v1/responses``.\"\
-          \"\"\n        settings = pattern.get(\"settings\") or {}\n        generation\
-          \ = settings.get(\"generation\") or {}\n        model_id = str(generation.get(\"\
-          model_id\") or \"\").strip()\n        instructions = _compose_instructions(generation)\n\
-          \n        tools = _tools_from_pattern(pattern)\n        body: dict = {\n\
-          \            \"model\": model_id,\n            \"stream\": False,\n    \
-          \        \"store\": True,\n            \"input\": [\n                {\n\
-          \                    \"type\": \"message\",\n                    \"role\"\
-          : \"user\",\n                    \"content\": [\n                      \
-          \  {\n                            \"type\": \"input_text\",\n          \
-          \                  \"text\": _user_message_placeholder_text(),\n       \
-          \                 }\n                    ],\n                }\n       \
-          \     ],\n            \"metadata\": _metadata_string_values(pattern),\n\
-          \        }\n        body[\"instructions\"] = instructions.strip()\n    \
-          \    if tools:\n            body[\"tools\"] = tools\n            body[\"\
-          tool_choice\"] = {\"type\": \"file_search\"}\n            body[\"include\"\
-          ] = [\"file_search_call.results\"]\n        return body\n\n    def _request_script_contents(base_url:\
-          \ str) -> str:\n        \"\"\"Build a runnable script that loads local JSON\
-          \ and posts to ``/v1/responses``.\"\"\"\n        return f'''#!/usr/bin/env\
-          \ python3\n\"\"\"Interactive helper: load v1_responses_body.json and call\
-          \ POST /v1/responses.\"\"\"\n\nimport copy\nimport json\nimport os\nfrom\
-          \ getpass import getpass\nfrom pathlib import Path\nfrom urllib import request\n\
-          from urllib.error import HTTPError, URLError\nimport ssl\nimport sys\n\n\
-          \nOGX_BASE_URL = \"{base_url.rstrip(\"/\")}\"\nBODY_PATH = Path(__file__).with_name(\"\
-          {output_filename}\")\n\n\ndef _set_question(body: dict, question: str) ->\
-          \ None:\n    \"\"\"Replace first user input_text payload with an interactive\
-          \ question.\"\"\"\n    try:\n        body[\"input\"][0][\"content\"][0][\"\
-          text\"] = question\n    except (KeyError, IndexError, TypeError):\n    \
-          \    pass\n\n\ndef _api_key_from_env() -> str:\n    return (\n        os.environ.get(\"\
-          OGX_CLIENT_API_KEY\", \"\").strip()\n        or os.environ.get(\"OGX_API_KEY\"\
-          , \"\").strip()\n    )\n\n\ndef _apply_api_key_to_env(key: str) -> None:\n\
-          \    \"\"\"Store key only in this process environment (for the rest of this\
-          \ run).\"\"\"\n    if not key:\n        return\n    os.environ[\"OGX_CLIENT_API_KEY\"\
-          ] = key\n    os.environ[\"OGX_API_KEY\"] = key\n\n\ndef _resolve_api_key_once()\
-          \ -> str:\n    \"\"\"Use ``OGX_CLIENT_API_KEY`` / ``OGX_API_KEY``, else\
-          \ one interactive prompt.\"\"\"\n    key = _api_key_from_env()\n    if key:\n\
-          \        return key\n    key = getpass(\"OGX API key (press Enter if not\
-          \ required): \").strip()\n    if key:\n        _apply_api_key_to_env(key)\n\
-          \    return key\n\n\ndef _build_ssl_context():\n    \"\"\"Build an SSLContext\
-          \ honoring corporate CA bundles or a dev-only insecure flag.\n\n    Precedence:\n\
-          \      1. OGX_TLS_INSECURE=1  -> verification disabled (dev only, prints\
-          \ warning)\n      2. REQUESTS_CA_BUNDLE          -> custom CA bundle path\n\
-          \      3. SSL_CERT_FILE               -> custom CA bundle path\n      4.\
-          \ None                        -> stdlib default (system trust store)\n \
-          \   \"\"\"\n    insecure = os.environ.get(\"OGX_TLS_INSECURE\", \"\").strip().lower()\
-          \ in (\"1\", \"true\", \"yes\", \"on\")\n    if insecure:\n        print(\n\
-          \            \"WARNING: TLS verification is DISABLED (OGX_TLS_INSECURE=1).\
-          \ \"\n            \"Do not use this against production OGX deployments.\"\
-          ,\n            file=sys.stderr,\n        )\n        ctx = ssl.create_default_context()\n\
-          \        ctx.check_hostname = False\n        ctx.verify_mode = ssl.CERT_NONE\n\
-          \        return ctx\n    cafile = (\n        os.environ.get(\"REQUESTS_CA_BUNDLE\"\
-          , \"\").strip()\n        or os.environ.get(\"SSL_CERT_FILE\", \"\").strip()\n\
-          \    )\n    if cafile:\n        return ssl.create_default_context(cafile=cafile)\n\
-          \    return None\n\n\ndef _post_responses(body: dict, api_key: str, ssl_context)\
-          \ -> int:\n    url = f\"{{OGX_BASE_URL}}/v1/responses\"\n    headers = {{\n\
-          \        \"Content-Type\": \"application/json\",\n        \"Accept\": \"\
-          application/json\",\n    }}\n    if api_key:\n        headers[\"Authorization\"\
-          ] = f\"Bearer {{api_key}}\"\n\n    req = request.Request(\n        url=url,\n\
-          \        data=json.dumps(body).encode(\"utf-8\"),\n        headers=headers,\n\
-          \        method=\"POST\",\n    )\n\n    try:\n        with request.urlopen(req,\
-          \ timeout=120, context=ssl_context) as resp:\n            payload = resp.read().decode(\"\
-          utf-8\")\n            print(payload)\n            return 0\n    except HTTPError\
-          \ as e:\n        print(f\"HTTP {{e.code}}: {{e.reason}}\")\n        detail\
-          \ = e.read().decode(\"utf-8\", errors=\"replace\")\n        if detail:\n\
-          \            print(detail)\n        return 2\n    except URLError as e:\n\
-          \        print(f\"Connection error: {{e}}\")\n        return 3\n\n\ndef\
-          \ main() -> int:\n    if not BODY_PATH.is_file():\n        print(f\"Missing\
-          \ JSON body file: {{BODY_PATH}}\")\n        return 1\n\n    api_key = _resolve_api_key_once()\n\
-          \    ssl_context = _build_ssl_context()\n\n    with BODY_PATH.open(encoding=\"\
-          utf-8\") as f:\n        template = json.load(f)\n\n    print(\"Enter questions;\
-          \ an empty line exits.\")\n    while True:\n        question = input(\"\
-          Question (empty line to exit): \").strip()\n        if not question:\n \
-          \           return 0\n        body = copy.deepcopy(template)\n        _set_question(body,\
-          \ question)\n        rc = _post_responses(body, api_key, ssl_context)\n\
-          \        if rc != 0:\n            return rc\n\n\nif __name__ == \"__main__\"\
-          :\n    raise SystemExit(main())\n'''\n\n    def _pattern_readme_contents(base_url:\
-          \ str) -> str:\n        \"\"\"Short README next to each pattern's JSON and\
-          \ script.\"\"\"\n        url = base_url.rstrip(\"/\")\n        ofn = output_filename\n\
-          \        sfn = script_filename\n        return (\n            f\"# Call\
-          \ OGX ``POST /v1/responses`` for this RAG pattern\\n\\n\"\n            f\"\
-          This folder contains:\\n\\n\"\n            f\"- ``{ofn}`` \u2014 request\
-          \ body for the OpenAI-compatible Responses API \"\n            f\"(OGX ``/v1/responses``).\\\
-          n\"\n            f\"- ``{sfn}`` \u2014 interactive helper that loads the\
-          \ JSON, resolves the API key from \"\n            f\"environment variables\
-          \ or one prompt (then sets ``os.environ`` for this run only), \"\n     \
-          \       f\"then loops: ask a question, POST, repeat until you enter an empty\
-          \ question.\\n\\n\"\n            \"## Prerequisites\\n\\n\"\n          \
-          \  \"- Python 3 available on your PATH as ``python3`` \"\n            \"\
-          (or run with your Python interpreter).\\n\"\n            \"- Network reachability\
-          \ to OGX.\\n\"\n            f\"- Keep ``{ofn}`` in the **same directory**\
-          \ as ``{sfn}`` \"\n            \"(the script loads the JSON from alongside\
-          \ itself).\\n\\n\"\n            \"## Server URL\\n\\n\"\n            \"\
-          The script was generated with:\\n\\n\"\n            \"```text\\n\"\n   \
-          \         f'OGX_BASE_URL = \"{url}\"\\n'\n            \"```\\n\\n\"\n  \
-          \          \"That value came from the pipeline run (environment variable\
-          \ \"\n            \"``OGX_CLIENT_BASE_URL``, or ``http://localhost:8321``\
-          \ if unset). \"\n            f\"To use a different URL, edit ``OGX_BASE_URL``\
-          \ inside ``{sfn}``, or re-run \"\n            \"the pipeline step with ``OGX_CLIENT_BASE_URL``\
-          \ set as needed.\\n\\n\"\n            \"## Run\\n\\n\"\n            \"From\
-          \ this directory:\\n\\n\"\n            \"```bash\\n\"\n            f\"python3\
-          \ {sfn}\\n\"\n            \"```\\n\\n\"\n            \"Optional:\\n\\n\"\
-          \n            \"```bash\\n\"\n            f\"chmod +x {sfn}\\n\"\n     \
-          \       f\"./{sfn}\\n\"\n            \"```\\n\\n\"\n            \"Flow:\\\
-          n\\n\"\n            \"1. **API key** \u2014 use ``OGX_CLIENT_API_KEY`` or\
-          \ ``OGX_API_KEY`` \"\n            \"(recommended: export in your shell before\
-          \ running). If unset, you are prompted \"\n            \"**once**; a typed\
-          \ key is applied only to this process (``os.environ`` for the rest \"\n\
-          \            \"of this run). Press Enter if your server needs no bearer\
-          \ token.\\n\"\n            \"2. **Questions** \u2014 repeatedly enter a\
-          \ question; each request uses a fresh copy of \"\n            \"the JSON\
-          \ body. An **empty line** exits.\\n\\n\"\n            \"Each response body\
-          \ is printed to stdout (JSON).\\n\\n\"\n            \"To reuse the same\
-          \ key in a **new** shell session, export \"\n            \"``OGX_CLIENT_API_KEY``\
-          \ (or ``OGX_API_KEY``) again; nothing is \"\n            \"written to disk\
-          \ by this script.\\n\\n\"\n            \"## TLS / certificates\\n\\n\"\n\
-          \            \"The script uses Python's standard library (``urllib`` + ``ssl``).\
-          \ It honors these \"\n            \"environment variables, in order of precedence:\\\
-          n\\n\"\n            \"1. **``OGX_TLS_INSECURE=1``** \u2014 **dev only.**\
-          \ Disables TLS verification \"\n            \"entirely (``check_hostname=False``,\
-          \ ``verify_mode=CERT_NONE``) and prints a warning \"\n            \"to stderr.\
-          \ **Never** use this against a production OGX deployment; it \"\n      \
-          \      \"exposes you to man-in-the-middle attacks.\\n\"\n            \"\
-          2. **``REQUESTS_CA_BUNDLE=/path/to/ca-bundle.pem``** \u2014 path to a PEM\
-          \ file containing \"\n            \"the CA(s) that signed your OGX server\
-          \ certificate. Use this when your \"\n            \"deployment is fronted\
-          \ by a private/corporate CA that is not in the OS default trust \"\n   \
-          \         \"store.\\n\"\n            \"3. **``SSL_CERT_FILE=/path/to/ca-bundle.pem``**\
-          \ \u2014 same effect as \"\n            \"``REQUESTS_CA_BUNDLE``; honored\
-          \ for compatibility with the Python stdlib \"\n            \"convention.\\\
-          n\"\n            \"4. If none of the above are set, the script uses the\
-          \ system trust store.\\n\\n\"\n            \"Example (private/corporate\
-          \ CA):\\n\\n\"\n            \"```bash\\n\"\n            \"export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/corporate-ca.pem\\\
-          n\"\n            f\"python3 {sfn}\\n\"\n            \"```\\n\\n\"\n    \
-          \        \"Example (dev cluster with self-signed cert, **non-production**):\\\
-          n\\n\"\n            \"```bash\\n\"\n            \"export OGX_TLS_INSECURE=1\\\
-          n\"\n            f\"python3 {sfn}\\n\"\n            \"```\\n\\n\"\n    \
-          \        \"## Troubleshooting\\n\\n\"\n            f\"- **Missing JSON body\
-          \ file** \u2014 restore ``{ofn}`` next to the script or \"\n           \
-          \ \"re-download the artifact folder.\\n\"\n            \"- **TLS / certificate\
-          \ errors** (e.g. ``CERTIFICATE_VERIFY_FAILED``) \u2014 your OGX \"\n   \
-          \         \"server certificate is signed by a CA not in the OS trust store.\
-          \ See the \"\n            \"**TLS / certificates** section above for ``REQUESTS_CA_BUNDLE``\
-          \ / ``SSL_CERT_FILE`` \"\n            \"and the dev-only ``OGX_TLS_INSECURE``\
-          \ opt-out.\\n\"\n            \"- **Connection or HTTP errors** \u2014 confirm\
-          \ the base URL, firewall, and that \"\n            \"the model and ``file_search``\
-          \ / vector store identifiers in the JSON match your \"\n            \"deployment.\\\
-          n\"\n        )\n\n    root = Path(rag_patterns)\n    out_root = Path(responses_api_artifacts.path)\n\
-          \    out_root.mkdir(parents=True, exist_ok=True)\n\n    written: list[dict]\
-          \ = []\n    if not root.is_dir():\n        raise FileNotFoundError(f\"rag_patterns\
-          \ path is not a directory: {root}\")\n\n    for sub in sorted(p for p in\
-          \ root.iterdir() if p.is_dir()):\n        pattern_path = sub / \"pattern.json\"\
-          \n        if not pattern_path.is_file():\n            continue\n       \
-          \ with pattern_path.open(encoding=\"utf-8\") as f:\n            pattern\
-          \ = json.load(f)\n        body = _build_ogx_v1_responses_body(pattern)\n\
-          \        dest_dir = out_root / sub.name\n        dest_dir.mkdir(parents=True,\
-          \ exist_ok=True)\n        out_file = dest_dir / output_filename\n      \
-          \  with out_file.open(\"w\", encoding=\"utf-8\") as out_f:\n           \
-          \ json.dump(body, out_f, indent=2, ensure_ascii=False)\n        script_file\
-          \ = dest_dir / script_filename\n        script_file.write_text(_request_script_contents(ogx_base_url),\
-          \ encoding=\"utf-8\")\n        readme_file = dest_dir / readme_filename\n\
-          \        readme_file.write_text(_pattern_readme_contents(ogx_base_url),\
-          \ encoding=\"utf-8\")\n        written.append(\n            {\n        \
-          \        \"pattern_dir\": sub.name,\n                \"body_path\": str(out_file),\n\
-          \                \"script_path\": str(script_file),\n                \"\
-          readme_path\": str(readme_file),\n            }\n        )\n\n    responses_api_artifacts.metadata[\"\
-          name\"] = \"responses_api_artifacts\"\n    responses_api_artifacts.metadata[\"\
-          metadata\"] = {\"patterns\": written}\n\n"
-        image: quay.io/opendatahub/odh-autorag:odh-stable
-        resources:
-          cpuLimit: 32.0
-          cpuRequest: 0.5
-          memoryLimit: 68.719476736
-          memoryRequest: 2.147483648
-          resourceCpuLimit: '32'
-          resourceCpuRequest: 500m
-          resourceMemoryLimit: 64Gi
-          resourceMemoryRequest: 2Gi
     exec-rag-templates-optimization:
       container:
         args:
@@ -1000,13 +649,6 @@ deploymentSpec:
         - rag_templates_optimization
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -1017,7 +659,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\n__KFP_EMBEDDED_ARCHIVE_B64 = 'H4sIAAAAAAAC/+1963oax7Jofucp5ijf2UZeAnORbMs57G8jQBIyIAmQZBTnw8PMACOGmVlzEZfE59sPsZ/wPMmpqu6eG4OkOJbjtYLWcoC+VldXVVdXV1fnXuVe/deFvDjVZFVzfniWvzz72/SZz5f2w++YXsgXC8UfpMUP3+DPdz3Zge5/+Hv+Fd9KM0+faeXCm7f5g0K+dJDP5QsH+ULpzY8/bP/+7f9yr56/D2TqNwcH7PM1+8wX4zxfOCgW8vnXb4qF18j/b968+UE6+Jb8b87k1Ur3tE3loNho9O84/1v5v5X/Sfm/f1h683or//8W8t8aLwa6qWoL3RwPPG1mG7Kn5XR7aQ6/Iv+/3t/fIP8Piq/fJOX/6/1S4Qcp/y35/28q/3/7UdpRNMNwd95Jv/woSfBbYikDb2lrkLozk52pas3NnT3Km2merMqeDFm/fWZJruU7isZbgN//R5+NJddRyi+w4Dt9Jo+1V+79+B+LmfHzUHa11/t7F7XD/eHNfKzOrpdK0bgf3uX1Vnd/3tCPjOGsfX97Yvi3q7yufujMmr2xfrHaf39x2i7eLo+Ktx/OVvLNoX/RbSyad3W9cTrxhicHq4vumaWedubn+tt7taSWmqayas4Ol7fLt8tWrTJvlrB+Y6ydFNyh2XqtnSzs4cw9bMwmefW08rq5PIRaiq+uWv6wdGY2V/WD8970npeDfsaHjbujuVaFNnoA7+nRfmNsnTVOb+3bD2p1WML8yrhVrSzaq2mxUavPW1BWKXUOhidX0M+13785c2+7Bb1/03ZuS2f36s3B9Hx2YKjLyrxRg7o95aCtVxYA7xvABeLotVI6mvSLUN88Wt5+aBuKeWs07ggfee1mYTROOwcKtm92DO308r5faq8wv9o9WKm1oze3M8MdVgtLFcqez66LtzcHgN/LN/3iwlZS0ql8zS4os7nVKLRvOnmj/mF1PHrf8w6r46mvlC4XWvHWHp7MXw9nh/5tz1upp2f3cvHqdSN/e9KZwr+7IM1Ti8ZUPRm/bkXShjdGHubRlW8KtlqzYLxB28svaru7XzgvtfPK7NAB/Hryh46hzGDeoJ/zu/r8vJTn+Gjz8Vl31Bb8C/M6kHfoq9XCrA9wDU+nr8/yE2N4emuoJ8Zdv3t0fvvh2jhbzseXH87s/s3cbZy2J0BLnlK8Xso3/TejS+usabbz7Q/ebFg8yDc/tG1tdvW6tTqba+EYi2KMjVW73spfrjphXinMm67Oe1cH52HevlY8nAPt2CrA1qruL895WRVw+b7a7l1P1bPO8dvlh+X0DcznpD9bGM2bM6AfzwTcFIazS8DrdSkcsyHGXLq9MUz59PJ1u1chfF1UDwHPhnvbQ1o7M/qlyzHHN9B5vXTe6+uNk4kh36iWWgN+gHpAszP5ZuECb961ev1F+65ebOhv/1G9W8BcHxj9D2enyux4Kt9cQ59H9i3UuyrcnnavOqPW9VtoT132bzo2wJ6/vjmAcbaArq9XQCs95eT47vbq0L8GHkDeaAEPtmsN/7wGcJxOF9BnAflNqzUAPuWgeacsoNxBC2QLjEm/AF5FnhmWKuNh8XYGc5aHOggzH2deB169B564GxYX98od0ki/eHl3W6UxjKdvWf7R/e3sFmC6RH73WySDGC+CDFqpJ4fz5k37fnhyuDzX28cdwAvws94EGVbtLSi/cXI4uzXbBuGtul9qdyNywiQYvX7x0B2WGkD37RrKLxjb/YYxLB4aw+VVHfufs3mYA1wgW2+Ol53S2QTkrDE0LzF90uzmga6v88PC2VFneXQG/fvN/OL+tvh2rJwsgIauLWhzevuhMW52j0AGF+bQFsz39RTmzRgWCwbwpd1fQt7J8fy2W/GaRDtHE6CZMcibiVJq0fhwnnDue72rZfPu0m3Xrvzzm9a82Wv4reUc5PrYa1f3F83apd/q5vPNu+MV+133z6tz+F138ffV6mofyrowv/Cv77e780LrZD5v1o7uqC0dvt/Voa08tKmwNnst/xz49HIl+u5D3YbfhnbbOtTX9/PQb6F5Z7xu1POl9nK/0Kxh2WtoswL9Y1t1D2ROnsGLv6deC8r1V3XoE+G9cnFeYe3y23qextPq1XGMHrR/QDBU8wB7w8N8gKvQBPhbAFd/SfW9FsE6xvES7K1eA8e8D/mrZq2FYyk2a0rYH7TfxvYJT8AXXRz71G139/fxd3s5h/6O7yAffld4uy0XxnGAeIXxr9S7S9EGlWl3EfZLLLNq9qgM4KH1vopzddfA9ALV7WJ634W5g8/OHaQvEVeA/yWOEX4TTDAPLB9x2BPtT0Nclvo4LsBjBfCUp7kS+MXx9un7lUcw0/zi2BuI0wXir434w7pLDlc1X0QcwO/9Zm/qt09aS8KlDnNT62PbREsgu4g2+qsrHAvQz5TjB+piP0BX/RWMV+e47M6LHHd5LNueEc7y2Cejub7L+iB6Blrqc5z1kS4OeDnWfhfnscFog/IAL0vAE5WBuUb4AM8w9jmnqzzhbknzy+cKxnrdL7axD6xfxbJ1l/KwLI3lmOi3RfUaHtFnrcLxS2VX1bFxR/OsY/0W4pH3lS+IeVQJ55O7oO0utn3J5pDhHHDcZnPM5mqJc0Vj4rhX2Hc3zEM6UaEOtFUTbU45fokucJ4Qh54YP8iFObVHfFLnv9sA/yWnq7rH+KqB42E8BeMB+PcJviWj0TbNzyWnGZx/pBn1jvexIt5dIv33cQwlalcnWlzx+WS0B/xDnzrSBp/vWovzQMtF2YLzB3VL6t3YbxUxv8HkBMg5Xg/zgQ5bbO5ANjEemyINwpgMxDvwfwXzizR/xOdjggPkj9tidOuxcjT2Bc4r0VZP8P2lF/I9juO4SHi7aS15mTzJOJ1/LvdLlytaU0FWXqFsKcG/ApdBJRoX4vmDRevcxUnbVmZt0HWP7oYnxytlhevSJa5Td1oN12OU1Y1xvzSFNRRl7RTWUFy3Af9snXvbLxpLWDOMxknb7X9or2htrTVAR2jvw5qXP4fxUXuoB9xd8fpIu0+qX0RZGtQHOdvSYQ1m+xChs4COOsmDfg06ycEK9KTlEMoOb45BzzT239fqqOuD3g6fvQrgtLJs1K4AR63VexxbdL2DNVGtXcIaf1lo3B0cwb7m/mp6fAo6FvWB8Cqz6zvQiRC2ZRvhPEXctPIIYwSHANtRSQatXEbdAfqRT67t2+IE9YBVi49dPbneh7YAzmNfKd7eK7M87D8KE1yftep4QXsN2Kc0aqDh66BHdiuFcxh3W5/qcXwpCHMe9RuYr39cnRwvVdR/9KPu7c3luHtynG/UD+egr/Vk0AUg76jbm99T/zWkA9w7XU+UaajXNU6MKbQd0VVBFwh0kc71cGbkFdr7wV7HaKO+a/SKB9dKEed4jHoe7HBw/cR9WB1pZk76IM4d7Z8wvcHS7zbpXA/oW6t6kXRXfaO+hXJ4+Wf1xvZd48/qjfvn1b9ab1wsb2/aebY3BmpfMp6K0Ot+jF57lSXIf8SdxfcbyLMCxj9At/V86248buOaXuvbiT5XRK9V5LkrpN8D4Lnu5ZUyBvrNQx/LoX50Pix1jP7s8F5eRegV9zwzBeasXH4hvfrPHTRp/Ar/IVvHVzGP/PSTdCF7nuaY0m8XlV6v3mkP2pVW/bPUQDucdOTrhqqbY6lqmZ5meh9529JO+K030V3JtDxtaFlTSdVmlul6juxprjSx5pJnSbZjKZrrSqql+DNoxZVkU5WG2LYkS/ea4lmO5MJ/NInMf9IIfncqJ5Js24auyJ4OTeakhicp1r3mhA1Jqu5S0nJP8rSFJ8E/R1aw/J6kTHxzCrDvUW++bVgyDUWbDTUVv7kIW9A/YgoNQpLvYqnzkw+5tNH+BCj7j58WheP96tHPAi2utAkdChSQdRO6mmgwLMOw5ti6qxGQ7ru0LrLSy5e/dDXPt3/N/ESfuy9fhtmSlJV+aQCOZcOQbFmZymPNhZI8KSuSdpNVZrbleJKj/dPXHU2VDH3oyI7O6lJeVuRlg7xkIzDgkT72Yaa6JUmBojB6XTawjSAr2y1lI1nJJi4czZZ5A4YOhaAuT6OalLabQMcFJyHdtH0vJCSqSjlZyskGOesoqwXUF1ANVA9Ss0FqEuBenLKgEqZkw5QksFdEaxFyVxiZAPRAcVF6h7ZY4RDwLC+cxcJZVjhLhdeHJFAJxCpVk7iExGw1icxYNeIQzYnU4SlrpGPqOJX6SktCH+bEQU00wDFCzRPbpSOB5WeT40401tE8IM17TTSH0sKVZ7ahSf/0NZfPkSglGh1hc1QqK0ol563rz0CEIlXwb4DxZxC62Ww2XbJIxOwbZSwXGvAJJOXbJFICQaOZ97pjmSQVh0ugNBIGKGsChheCYU/Sid0xM2B0JiUVzsOYJSvEcTBZwKk4EVB3o0hMyqO0cqIM/guAulh6ExiTqEeTGYh3vnAQNAAdLgmWrTlyUnbi7A0tzyq9fPlOqtx0pW7tPbXEW4cxADdpyK7SXPcmkRHFG7F1WwOkaciFgCMTGRLb7ACkp7L3wpVECSkswGCGOY/AG28WBoRTgS3VNowtsXzxiVnG25H1fYAZm+nB3Fd8z0KUjBx5ps0tZ0qADMWSnVxAH6VkxVI1TsXaQlN8rDVQLN/0INf0DWMjhVu+B8KXDm5+Taf5/w14E0Qp0VRJv0uwMhpS1pQK4Shj5bJXUjZrWllFViYayGdHGuvePyaeZ7vvXr2C7xN/mIN5eIVL1kQG6Q9gZV3NudcBta/SJjMHtf7LmViyni3lDrKanCs8ARA+f08o+YJN0f8t53Ovc6UX0RrPor4B521a1lNZkBVGSE0NyQ9ITDDJzFJ9Q3NjckCTDGs8xqEDC7m+bTsoEmCRHFqgKbFpB/qzZiE7UA1Q0nJ/Kb0xCSeNNc+W3QgqePqda5lriXyoa+nWev257JioQYYZhARb9iaAfy5fUbWeJErg2F2R39VxOWoD97og/7S0CRMd5Ua6AQJM/Mx83NHHJqyNH3d206rxDojREhAYsjlWJqCTAqodLRcqKbyOEFBpzaJ8YdM7MAFqoHopE12cJenjDrLn4uPOXjI9EHxNC/171ggmpQopXvVQJj5YZfddvDqfzRyQQJNKZyKQ7+ZA/NryGHYpUlk6Bi1Veyb23KQwp67ylpRQHGnGUCmGkYMUH4KKYw3vQA8Qy9eetLR84GVgfLbRutdVLdoPbJtGWOaFE+xsbM3sTvSRJ1Uae6hEACcrsikNtZDtYV/msiUNkky+WUld/PleqPozLE8VKofL0wUHBFWUCDC0QAEwDiKDRKapABWNsNxSQpUU9BmQTo4mq0vUc5DCNqk5D4BTKSA4Pd1GWBqsCcANIm4PNQgTcqvhwF6+JKEnq/APs3CmNiE8ghCoRhvIoa9MAVSciLkOktV3tZga4/IF3vUIpTmaAejmBpbsoWbC2gYQ7EmaqnsMOXORwZQy2KDDAkiDIMhE/9QjYBeIWJVcK44onFFEIyMhzGJg5qSuDKoztguy3JOB4zEz6BJnA1A1s6HRv1aEixVtcC/Dlr8s/fJxB1S7QaVarXe7g/f1/qBRAwkgseRuvdqp9yK5kazSoN6uXZw32r0wsVY/rlw1e4NO/aRx3o4VPrqqvq9D0V9DsprpTFMDKAAaml381E0pDiUgDynYcnOcUFH8ZCBrN9IYFOLtJUSWI+tAOtey4Wt1x7GczOjjTov3HKzvUUUfGtZloFEX8Pobb/PzZ1gTnkmYrW3d01iwShSJRB+WA14G4IBkmQji/IgiQo0LK9ro8DrETEMUW0y6iQ06ES8CnyYssWnX1hR9pEMtAICT/fegjaxrDWnfVG0kDXR34LrGQCMy0BbKO+lIdrX6QtFs2rlK2f+E1d0y3iXXTPxfdaIpU2k+0QAZiC3YV/B6UgYoV0eLhIxSivSAXUlnk9VtomYHiGMbBmkEmiusBTnWaLwjVwMRVkYRndmN5yi+4+DslbHXeNZ8ooM8FQWYmUxqw4pOM6qrGZ61Sxm6Sb0kRig6z4G0zkSq7K4Xm7nIsK7nBIVyoMGCIpBSFngS8Fbv9BrHjWqlVx9c1zuN4/7guNJo1kHMIDTYHqDv4w5gKkhJAY9YGXbyjin1HF9bLxCiiH/LDQY0IYMBdhBJRFPQwhsMEnKCNU5qyxNoiS0RA7c0YIyVoVlelhG4pNYk+LTMdMcc/53rss/M+mDkuTtgpoLBVFsOdLUcSr90kf3rXnorrgaQepHG1ltKkfLJ1nZTcSXGwTGQRlO0ayTtsPxxxy2t6aP4p5mqbemmN/AdIwW66EKTNkqOePaxGe60b56zTE6VmE+YrPU53t1QODcBpWDAhGLmiD5SBxIsgpGGmBiRAimESiLKpnhXeor42k1hk2Brg18yxFXr8gdkOC62IMf/33//D06ms8QFhIw4HJvEBrnYRiiY1AdRFK2fqKxBUgrItEB/U4vgBrv3ozbCCUhU3Myvn5SkWZtyUmgcx/V9pDtuWAXmQDcjJjPaNJBSrTuhadsV7eHmgZkQoK7Hlm6BEpzMmezRnI58h9an0BCWewbUoqEsYZsLbXg202eiJ1MIGeoQaD1zl66nzUjQ+4ano4EZEmxQU+qokON3yfFNF/lAlnA3o8qGFbUNMkLlCgKzdquSb+L+9xNWH/CsV59yUtqc/i51sZPfYRspWvxduvAdG80vv0fKZemPfyS+R8tJaO56+TLlLAR2M79LTd2NUJnYfTFpsQfo0i1H9/AYgPYKOBtZRxsBicA+jlQxtCPbtrFEfGA5RbbZJmYOFWGdl866520gB1Mf4X4oY1oBBQmNbjcXG5lUJIgThzAEbU3ogAikAaBrKXtn6p1XZHQP9NgS9Mj00Rqz70HHf6maSBBPR/YgYq+MfMX2BhFukX3ix9CEMwgmM6wmzDophRKGoT/eMekmESmy1mmiQBqFR7hggBbeMlnNYDnIvYoySEy8kzAcEFSMNJk1qiw9uJCl1gctA+p93Pmt0b646g1qlV4F1YrPHzeDmJtN4b8ZFByAHNKiYPO+APIbWFOmVD3T9iuFa9NQikzscrNFwMNkcME1RDAzMyi6eFiEhl2LRDXMlWaiouRKGS03zu1Jn3K2OvqEn0BBC/pi2x77MlPpY+LNDPriLbxPu3vh4T5KxWABctH2EI4gIjaElBEihZagUNaofL2xcLVg6xPo/iRHPd2Q5MBqhTthJnUMfaaDcClIJ0c4PtCCZRDgtNEBJUCZaCrfaZIIVy2NbUXW9pRCNgGWAHMkwtx1GfYpwluaqzi6DeyRQxPzp13hACB2vaEo1Ub6guEKJZdkjQBDhkbLJ7c4AW0y0xGOKVyZTJRhCPhfu6cNtYNBOH6oBuyUsGtn0Cxexn1YktlfAeeltQPcnqoOp0k6m04vBiPfVBJqfbqYKKcn722sS9DHRUaicNoQypvwEzVZp2/ZBAlRz7SDfSrWWNYmaozKNKaX2JqZSfS3i8rMKKH7hmUAHGwqh2ySGaUOADgXlGsqpfoz2430sEf+PaZX3geJabq+ow1kV9F1roM/l9xM6A5pQHdgV8ScdB7gZtQhVR9FFggVLBsq1ThHe4EAAV0YFcSEShJoJOQGIkt4w9HCQ15oxyF/hyUTCKRTkpLGTo1RY4lqMDnpnJ28gQRDdTPQZkZoX7G1yAm6kOIiYZDnUjtIKGDCLgk3T6OjchyZ7Hj6CPvjZ3xIGigz8bAAeyFxxKxtI92UDaZZKZZj+2k69F8sqkIS182vL5+Cfc+A9J0vkIHxFjZJv6S6tVnypZFwOYaFhASLA1BeH1FUan3TDfDTfake3RMHp1uM0aN19wLXJMgI97FBr1EfQjfhQejxHSY5D5Ivkga6gacr8EV2lEnumY3xofNXOgZYCW4H4VZ3NlDyiQEu18QwgoGhM4BmMO0j4R8pNCeOVD1wAGNt8n7Yvqpy0Ygf/6EATD3AQLsnO3ZKP2Z8+RKGS2cgLiph76KucFnpE4xwUG026u3eAPpEDf7TO6mPZ2mwV5lg99ymhPq+EE+IFii9qaGjSrc+uOo0PzFvG5pe+ImaGp3SYfXgDDMDCl0WBCMZrMQ5hLYAWazTQEGk/yyhGHHwWPRel1PRQOdHGuBL3X364Wb0PFe6CY8O6XRQNulYk53yorluE/KTh710tHlv6XjgBFTC9dcZqr2+bMAGn1Y4jNfwXRytMK+D+IYWwwlwcuSlzseLzZySMvVsSznWQODcw5Y0pQQ7OPwtJedzbMu6TqCb2+YFoD5ODHdhyfFPKHphaEiLNC/Si/WKL95JG9xCBoiS6Vx2xnigqupK0hIu2zoZ3tcbTSwYyA1kBE8Z+WMaLgKB1mFmfwVACH3dbpMfunyOHZXSeWqsRkI5jQzqF+Z+wmcd9vzQOFFGrvqgyTf8FpiLA1LJvHwZ6eG5T1a5A+4mSc6zJdc28BQvZaVi66I7Ax5FJ5vQQ3aG7vXaaIT8fa+RKV3X7mUjF7ioyFygK4YPK0TCvbLKvemllgZahyp8EGVjjNv0ySw4pSXQmDrIlU/QbX3H1clhVyZ4+QDQA3U3pRtQnlYa9tCSF/rMn4GMgIXJQckbtOCSnkvjS2vhHGbakElEtoPKFku0cRiRhoaaN8fjTJB+Lkmn0LWYfGo0PBvSJH4YlzY1F44VQENXDGhvgwui7AlMa6poAdX2oQX7Lwc2/PegKtAyO8IJxW0ZN4fQCvzCDSrNYetkzXN/vYGSeTjm8F8wYC5fm7I5ruKZcnUzGYs6gxkRErO+VU+v2u8b7ZNBq947Pa/FzG9UYUB2HRAVVHLQbdzWPyeL8OkNS52DPGlWLj5vBEPD/WwS6AwDrJwAlKuIBEg5/CqSeefl2K/nkhYb/PE3SY3YDRtYwMnROtgiRrRZMpWbTCdIarHSBl06ISfqgQrZQgJGBqyykyCX7xEZZ0XVd5B9yGSmxxyV4w1eszI1oWFz1zJHSKChrEw1NJJx/yx+aMNlT0s37n03IWRqOtfaWsiaCrZ0as0lV5/pBuhE3hI5VJENxTfItyqjWKDOopXXh/VB1WQTvnpKLim7LMPg6MF9H/miS2hbQs4PsuYTzdFiSHc0fjL0pPnT3YjOrXJHLnSXA3yCpNVQeoX2S0L29yU0gqHnYFkNNLOTDwHlEOHsxZIuQFjPkt62kTYZhgaEoUSzjH66m/gjgGZAAnegc4lUbx3VazUSSee1enPQiAslmwBCPWENSlAYIrUvKp1Kq/t59wl9J1ojNGSYQlJmH3uSALK8DveexIAqs48NtjnGPMEwLzrn141avZMcn8pZBIUfsAgrXGt0e5V2tY5SutOoxqV0QOHiMAbF+nmzWa/2Guf8VuHHnU36YHQCGR4i85ZQUhNDT6IioanGERjPi6CjHPm+bt6N4qKc+L2XdDhBR54EOsqJ389sTvkpNJykX7l61FbCT/s0bskMFc1ZzNY4XMbEf5NfsSSTSOIMhR2FC+CjtbpCF5R0btbhQIfOghHH5DUNOSudaCZdCopf7ozf+qTNKzdzPIaJc1wb8DDTgN3ZnsRvgEQlKgltuqsaE8Ep1h+8koa3Mf5aGYzWR5RWaJHO8APWmP/BmgUyNzasIZR6mZupmwySOFyb/PTo9JBsnG7S1SfAXDk4/Utxv7Jh6R5wSinbOUQnQZLRTMALTGD5447vjbJvccNNbkUupIDiYODFiZ3dFGcrgajyb7+FhyLA3R8BLXYOlYTPn5/ig0VChIguYgFG3z1GiDnayoQ5mV/E118TTkVJOYcujJF6a308l2R4wv3JR+VD6jVvzaFDATmVB5aSPMab0Mzf3LZsrlxFmTGHNjsyWpG3fLBHpUNqagpZeUQqI9868TGgaqhK6JKWHMp3oPzYdCQmdBL2K9UXgiAfCMiBxujYMZNKlqAx+wYR4hpdMVRlCOvlRKN70rR8sBvnYdYU82anRtc9+nRXmDozrMye5IFw1dIc+9gAeblf8r/mmIaCh4EZ/AqMy44ukG+DE8EU9z2UB7qZ9KCNNf/Etr/tLV52efjxWAmuT66uIx/tqWLFTXNhChzvwnWYed/xUze2wMZ8mfaEzCJ2Y2YHkzzxcPtHxmZbxyuA0aMNXnpDhATOor1JuPSpMbdBE+TA5oWQLZOCo4HY1iI8hLP0o4T8FJsGSN4BcWtqBrr38xRSVGENWJJWhRMJWwHzns8iXnXzYbSYzqiCZ4jCLLG0IwgjqDHQzZEV9IECYqbjokMapkgP29GjrUs7GKMCBgQ5JUzgBIQK0yBwsCFY7aWgNx2GykkR5+rVIvsAwCJxyH0soVXy33HWitjLMTsHNGC6nAioJV4gBHWnlCvA/+maKuAfgYYemL8mZO9Hfw9mumlhc/s/fv7x68X/3cb/3sb/Xn//oXS4ff/h7xT/m/sFPksA8Efif5cK+4Vk/O+Dg/1t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9t/O9/t/jfwSHxfwTuFZb558KA040ocgUI4qHJoh/ZyFZ8OqvQ1GiHmU7lZBdvnxGMYWhuDAY+9ukmC95z8CaO5Y8neMmY3EBEdNwgxmV4m31PClxCREQ2ds7G4lWJC7oIIh2gCheUSEAIGMuYgYh+1K6NfsORI+g1h99NkeqKryv5n+HzuJ4/xjsdLDqnbHroOnikjdAXyvFNfnk4gl52uWPmA/wsVAeU4n4yDgOIBvjypXhNkdlQX74MJwjP6/kZ/JpPDHPVSXEQjRz+URwNHpwkCKOBDU1Na25o6pjfmCEX6BjwgUfM9xlenYcb53erxC2AaFxtkbZeLeKXi+QSBO1w45GyIS8b5iXCeifibeMto2PLN1XGD+QUGG8N43yHJbJUYveBFrlDLXnWhVHDIw2yAlkqkBZBPNGekBROYpAiea3uJXmDIIK47IGKlEaI4WnJ2NxtcesdcYk/svQjBXnohCb1kLfRZxhKY0IWE7KYsAZOLEJndXNI++qGkPYJdGAjKUjFBtJRSfAeBcEPokAHqemQ0+sMUh2Ep8+og9el9GyYnl6b5+MEMhEGNUVaVqT9i4ZI5+GYXfLdQ9nwYLzxUMYyvg3v7f0LxRiPxwafydzBIh4cXIQMD0e4DQv+5WHBv22w74eChCVWqydcBNZdoTBE7wEjjQgqDuKsRe7KPu3yb8IrmK8EX3ohWLj8oQdvtNk6TMLQ0F3yCYzeXRVuvgizCNi3vVP8r3+nOIVHNgmqdcnzkOj6g8Hj/1Sc+LUiX+Hm8h8KEr8eFz2I2Z4SFX17UXp7Ufq7uSi9eQXcuPF68mM6QlGMqFxMasai2XBDxDtIDLZk7NJRIpyIsAE4zJKQqI8hmDVjlHv+66Fp28dN2kFyTDEdQXjG8iza1gsjiBtaQZ56TZQAkRo1oa/ykN0KAcy7sIJI+uPAIBRvpcvsMS008ow1tna5nuOL5QaBVLURqtLRK9VDbSLf6xYLJO5YRkJBvwJVUbQJG0nmhSYAjQQw9bEcN2Ykb4KyO9vRyqfkHJ1yFVw3MWyS5dBtCPLR5oFQNswTGlV4u+x2OIyAmdjiViqGCLqHzhsUilF8Lr+v26EhEbLbfG7iOmdIzBtpWZmgh3L0Nif+77fjVuwqZyykOUPZYMYmnW4ehRW7/W6vDpXr3W7lpL5WF8lgQ82rbr2zsZ4I7i0mM1G3et7u1T/0BviftbrxNSKJM3aBMoGpzNOvRQaXTGOYTBRKQVk5JS1Raw1Z5bWU5P3NNDSVU1O/wa3Kh+1oT73AzcUlPS8y4hniITAn3C1tsMCur15/9A7+A5fv065uPHghH1snHMTiYtHGMRaYU9yalditWfeP36p/8EJ9gCs2rOi1ehaOmr1wQ7dzn3bRfj0QQhgfgF9pASzC4qJGbqNxsZ5cHrY38L+nG/jf6t799rb93+a2fdp5yCYpE+wNSHi4XDWl+65cjCRvm6M4kaWxfq+Z7FDyiUGbgsPVR6M2xcVYeK2Ph1FZE3170mQ5dICu2c+EzA5DLlFMHVfovyBIl2uDo7gl/LCZ3oFhYxFhoR8IuxRHpozRrmWGTgQNTyB5ZCchil22xIkdWfyo8vuS0WF8rnCEXKQ+SGDRqEodFBz160ozLawSi6k1sEYDPg9l6bf2FUjNzuD8eEABlLoRAwObZ+J51ni3XulUT0k2x9p1ZLwVP2Bn/2MeXb1Tab+Hhru9TqVXP+mnVZgiALzc+89r2bJhT+RIkUrz4rSSGtnpJ/ZqeYQymEViT7JMY8nJC5Uj0zKz9PpQjJSZNNcwMlj0sjVv60GjUCbzcScqWtHmlRS3yUgFUIVNGRZm31KKJCcLCyfTojEadmOWoejcRV5derf2Uk5sjL98jE46sxFFE6I9JCf9f+GsYx8fdx7vJVGZ9ZRMTOlt+scGI2rF2p+mNcxo7Usap5qxDlhK6v19QZ7lkKNBc0k2/k0NaT9Ja4fzj1rQmCjkJ0BYEU8bRwaIe3paYDjjwV3I3SYUwtwWwY0VKJLHYRiXJ3nVfFfyOrit6JKb0wDSgs1p/L1XQFEqPUAFYR4sh0Uzyc19OW3HHzE4loNvu/86kS8eCnkhaIF4KsBRThgfM6JuOeVZ9zBWBDURjT8/11VvUj7If1tDdejGstkKm/RiCp51tejVLdkIn4BgquGaQ9te4NLA95/MCq1xj5CIqwPH5gtXRG9BVVsEemc9yPRyrDbyDWYbIIaVcUOM/QmzRfB6B8WewOcy+I7bneq2jZZNOuKkhy9A5q15SySMlywiPizXkQcjOXNEH6kdWvda7tsKyLh70RMCaUV842iCosel9PwHxRQPXz8JRWQi/Afzvgu9FnU3UN814csTR2NiWp8BUZ8+feLxVp5wGhp/dfuZXsxOf/r6ofPPF8Fsbnqb+sWDJ6OAg2/xeHT1aY9HJ7xat49Hbx+P/k4fj/4q0mb7SvSXvxL9LURYmmfss74aHVkVg/e8EjLxi9+I/ioU+8ee2P3zz+t+nad1I8QSfVX1wXd1Y2/qvnBLL5KvznzZa7rfhG5TvLLTyLYWvPgUqnLxx+zW1mOmxoUFKJCqO7F8A7Vo8bwcpYaPxyUMu0JHFAbd2N6aFhZ3mtAF4w3QRREFKMJ055rjinbQu5C/4ErpJMO0wJH8oTYGkRCb1F6j5qIFOFzIyB2DDym8raLgOs28Kh4KPJnUeGeajDH21xVeoHEfthXLRLy5f/oghLzlN+LxL35Q0+WPzFE0PiftRc14iYcfjf6SxzX/+GuX6W9VuY+90PkitpC++DWtcvA8Z6/e3fA6Z1j4Cx7eCirzB/J2HxkMn5bNL2+ljrucmrq3qSZBHMPBpqLl2OAfdSdkY+evChIlxOrn6P2/5BuBYaUcvRf4ccehGLxrcXlTXw4MOviShwODyo+9G/jcC0LaLjeIUxbaKkHv+3VTnOQQ0zp/UzpIWbMuP9HeFW8SVs0geu9OMvRwCrQ52YbpVAPb2DdZVVNvLD1qQ/EcWGJwiXDXxX0wsojNmL+vGDjAqVGvvXA1o0ukIGGHeBkkscDGV36xPFqOPuavHcZs2eyJ6fjSGW+vEYApblYFa64MMEKTIfhipoNnJtMW8eQpKAbDpQDoIW6J7QIkoIerNXeTNjzaqzo6MF1wWhoZiSqg4yvFHvOKoRfimKuCeCYDO6Rjatflr6x/B6YobmIyVTmwIOF0HuMBXyqjRoz66PWaC29b5HxPN4JW6HnjQYjrQTym/UPtBIofE4u8wYDeNjFE+C3RQDleN7EeBcNNibkeX0E2RkJPf7oiPnTczKShJNFrHPRy/Oee9JjMKqeIsW+8LVi7NPn48RivwWQXV0NRMV7jj8ih11LwpbgiE42dvq6kB1aaQGoxW1FE0Aqvu5m8DDwshKq8Jzw/FG0voTbboKDr7pPCqH89juWcwzFnOTnf1D18+1QkCK65ovS6SH6sGbqLsdYIewSoB6N4gNDp5eNEd9FDqrATMd/cX8nNJFiinPi9J6amnAkhyVXa3Zt6Z1A973Tq1V4btuR7EUBzx5VG7/T4qrmWIbyGIxWfXz362qHQY8Ej5OAljvgNChFMgpF3EBlij3FDcDNRrERrlxsiT5syPzjQGWIBH/hJFDudCu2vtE0O+Sq8X8vXVwpHEd+fRpg+XNtDbhe8HXKvYGw2qhku7fikgeDh0IWFFRQbaVBjYIUeyQAxIJL9It9X7pUaKfZVYq3zm8+lrxxuPTXY+XcUqHz7t/3b/m3/tn/bv+3f9m/791X+/j9UCgAJAMgAAA=='\n\
+          \ *\n\n__KFP_EMBEDDED_ARCHIVE_B64 = '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'\n\
           \nimport base64 as __kfp_b64\nimport io as __kfp_io\nimport os as __kfp_os\n\
           import sys as __kfp_sys\nimport tarfile as __kfp_tarfile\nimport tempfile\
           \ as __kfp_tempfile\n\n# Extract embedded archive at import time to ensure\
@@ -1056,60 +698,54 @@ deploymentSpec:
           \ base image has older sqlite.\n    # Patch stdlib sqlite3 with pysqlite3-binary\
           \ before any ai4rag import.\n    import sys\n\n    try:\n        import\
           \ pysqlite3\n\n        sys.modules[\"sqlite3\"] = pysqlite3\n    except\
-          \ ImportError:\n        pass\n\n    import logging\n    import os\n    import\
-          \ ssl\n    from json import dump as json_dump\n    from json import load\
-          \ as json_load\n    from pathlib import Path\n    from string import Formatter\n\
-          \    from typing import Any, Literal, Self\n\n    import httpx\n    import\
-          \ pandas as pd\n    import yaml as yml\n    from ai4rag.core.experiment.experiment\
-          \ import AI4RAGExperiment\n    from ai4rag.core.experiment.results import\
-          \ ExperimentResults\n    from ai4rag.core.hpo.gam_opt import GAMOptSettings\n\
-          \    from ai4rag.rag.embedding.base_model import BaseEmbeddingModel\n  \
-          \  from ai4rag.rag.embedding.ogx import OGXEmbeddingModel\n    from ai4rag.rag.foundation_models.base_model\
-          \ import BaseFoundationModel\n    from ai4rag.rag.foundation_models.ogx\
-          \ import OGXFoundationModel\n    from ai4rag.search_space.src.parameter\
-          \ import Parameter\n    from ai4rag.search_space.src.search_space import\
-          \ AI4RAGSearchSpace\n    from ai4rag.utils.event_handler.event_handler import\
-          \ BaseEventHandler, LogLevel\n    from langchain_core.documents import Document\n\
-          \    from ogx_client import APIConnectionError as OGXAPIConnectionError\n\
-          \    from ogx_client import OgxClient\n\n    DEFAULT_MAX_NUMBER_OF_RAG_PATTERNS\
+          \ ImportError:\n        pass\n\n    import logging\n    import os\n    from\
+          \ json import dump as json_dump\n    from json import load as json_load\n\
+          \    from pathlib import Path\n    from re import search\n    from string\
+          \ import Formatter, Template\n    from typing import Any, Literal, Self\n\
+          \n    import httpx\n    import pandas as pd\n    import yaml as yml\n  \
+          \  from ai4rag.core.experiment.experiment import AI4RAGExperiment\n    from\
+          \ ai4rag.core.experiment.results import ExperimentResults\n    from ai4rag.core.hpo.gam_opt\
+          \ import GAMOptSettings\n    from ai4rag.rag.embedding.base_model import\
+          \ BaseEmbeddingModel\n    from ai4rag.rag.embedding.ogx import OGXEmbeddingModel\n\
+          \    from ai4rag.rag.foundation_models.base_model import BaseFoundationModel\n\
+          \    from ai4rag.rag.foundation_models.ogx import OGXFoundationModel\n \
+          \   from ai4rag.search_space.src.parameter import Parameter\n    from ai4rag.search_space.src.search_space\
+          \ import AI4RAGSearchSpace\n    from ai4rag.utils.event_handler.event_handler\
+          \ import BaseEventHandler, LogLevel\n    from langchain_core.documents import\
+          \ Document\n    from ogx_client import OgxClient\n\n    DEFAULT_MAX_NUMBER_OF_RAG_PATTERNS\
           \ = 8\n    MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE = (4, 20)\n    METRIC\
           \ = \"faithfulness\"\n    SUPPORTED_OPTIMIZATION_METRICS = frozenset({\"\
           faithfulness\", \"answer_correctness\", \"context_correctness\"})\n    _ssl_logger\
-          \ = logging.getLogger(__name__)\n\n    def _is_ssl_error(exc: BaseException)\
-          \ -> bool:\n        \"\"\"Check whether an exception (or its cause/context\
-          \ chain) is an SSL verification failure.\"\"\"\n        seen = set()\n \
-          \       current: BaseException | None = exc\n        while current is not\
-          \ None and id(current) not in seen:\n            seen.add(id(current))\n\
-          \            msg = str(current).upper()\n            if \"CERTIFICATE_VERIFY_FAILED\"\
-          \ in msg or \"SSL\" in msg:\n                return True\n            current\
-          \ = current.__cause__ or current.__context__\n        return False\n\n \
-          \   # Mutable container so the nested _create_ogx_client can update the\
-          \ flag\n    # without requiring `nonlocal` or returning the flag.\n    _ogx_ssl_verify\
-          \ = [True]\n\n    def _create_ogx_client(**kwargs) -> OgxClient:\n     \
-          \   \"\"\"Create OgxClient, falling back to SSL-unverified if self-signed\
-          \ cert detected.\"\"\"\n        client = OgxClient(**kwargs)\n        try:\n\
-          \            client.models.list()\n        except (ssl.SSLCertVerificationError,\
-          \ httpx.ConnectError, OGXAPIConnectionError) as exc:\n            if _is_ssl_error(exc):\n\
-          \                _ssl_logger.warning(\"SSL verification failed for OgxClient\
-          \ \u2014 retrying with verify=False. \")\n                client = OgxClient(\n\
-          \                    **kwargs,\n                    http_client=httpx.Client(verify=False),\n\
-          \                )\n                _ogx_ssl_verify[0] = False\n       \
-          \     else:\n                raise\n        return client\n\n    if not\
-          \ isinstance(test_data_key, str) or not test_data_key.strip() or not test_data_key.lower().endswith(\"\
-          .json\"):\n        raise ValueError(\"test_data_path must point to a JSON\
-          \ file\")\n\n    if optimization_settings is not None:\n        if not isinstance(optimization_settings,\
-          \ dict):\n            raise TypeError(\"optimization_settings must be a\
-          \ dictionary.\")\n        max_rag_patterns = optimization_settings.get(\"\
-          max_number_of_rag_patterns\", DEFAULT_MAX_NUMBER_OF_RAG_PATTERNS)\n    \
-          \    if isinstance(max_rag_patterns, str):\n            try:\n         \
-          \       max_rag_patterns = int(max_rag_patterns.strip())\n            except\
-          \ ValueError as exc:\n                raise ValueError(\n              \
-          \      \"optimization_settings.max_number_of_rag_patterns must be a valid\
-          \ integer \"\n                    f\"(e.g. from the pipeline UI); got {max_rag_patterns!r}.\"\
-          \n                ) from exc\n        if not isinstance(max_rag_patterns,\
-          \ int):\n            raise TypeError(\"optimization_settings.max_number_of_rag_patterns\
-          \ must be an integer.\")\n\n        _ssl_logger.info(\"max_number_of_rag_patterns\
-          \ %s\", max_rag_patterns)\n        if not (\n            MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE[0]\n\
+          \ = logging.getLogger(__name__)\n\n    def _create_ogx_client(base_url,\
+          \ api_key) -> OgxClient:\n        \"\"\"Creates OgxClient.\n\n        If\
+          \ self-signed certificate is detected in the certificates chain, then\n\
+          \        OGXClient is created with `verify=False` option making it (insecurely)\
+          \ NOT validate the server-side certificate.\n\n        Args:\n         \
+          \   base_url: URL pointing to OGX server.\n            api_key: API Key\
+          \ to initialise the OGXClient instance with.\n        \"\"\"\n        try:\n\
+          \            httpx.get(base_url)\n        except httpx.ConnectError as e:\n\
+          \            if search(r\"\\bself.*signed.*certificate\\b\", str(e)):\n\
+          \                _ssl_logger.info(\"OGX server presents a self-signed certificate\"\
+          )\n                _ssl_logger.info(\"Initialising OGXClient without server-side\
+          \ certificate verification.\")\n                return OgxClient(base_url=base_url,\
+          \ api_key=api_key, http_client=httpx.Client(verify=False))\n           \
+          \ raise e\n        return OgxClient(base_url=base_url, api_key=api_key)\n\
+          \n    if not isinstance(test_data_key, str) or not test_data_key.strip()\
+          \ or not test_data_key.lower().endswith(\".json\"):\n        raise ValueError(\"\
+          test_data_path must point to a JSON file\")\n\n    if optimization_settings\
+          \ is not None:\n        if not isinstance(optimization_settings, dict):\n\
+          \            raise TypeError(\"optimization_settings must be a dictionary.\"\
+          )\n        max_rag_patterns = optimization_settings.get(\"max_number_of_rag_patterns\"\
+          , DEFAULT_MAX_NUMBER_OF_RAG_PATTERNS)\n        if isinstance(max_rag_patterns,\
+          \ str):\n            try:\n                max_rag_patterns = int(max_rag_patterns.strip())\n\
+          \            except ValueError as exc:\n                raise ValueError(\n\
+          \                    \"optimization_settings.max_number_of_rag_patterns\
+          \ must be a valid integer \"\n                    f\"(e.g. from the pipeline\
+          \ UI); got {max_rag_patterns!r}.\"\n                ) from exc\n       \
+          \ if not isinstance(max_rag_patterns, int):\n            raise TypeError(\"\
+          optimization_settings.max_number_of_rag_patterns must be an integer.\")\n\
+          \n        _ssl_logger.info(\"max_number_of_rag_patterns %s\", max_rag_patterns)\n\
+          \        if not (\n            MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE[0]\n\
           \            <= max_rag_patterns\n            <= MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE[1]\n\
           \        ):\n            raise ValueError(\n                f\"optimization_settings.max_number_of_rag_patterns\
           \ must be in a range\"\n                f\"{MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE[0]}\
@@ -1198,93 +834,87 @@ deploymentSpec:
           \            A new Notebook instance populated with the loaded cells and\
           \ metadata.\n\n            Examples:\n            --------\n           \
           \ >>> nb = Notebook.load(\"existing_notebook.ipynb\")\n            \"\"\"\
-          \n            with open(Path(embedded_artifact.path) / notebook_name, \"\
-          r\") as f:\n                nb_dict = json_load(f)\n\n            loaded_cells\
-          \ = []\n            for cell_data in nb_dict.get(\"cells\", []):\n     \
-          \           cell = NotebookCell(\n                    cell_type=cell_data.get(\"\
-          cell_type\", \"code\"),\n                    source=cell_data.get(\"source\"\
-          , \"\"),\n                    metadata=cell_data.get(\"metadata\", {}),\n\
-          \                )\n\n                # Restore code-specific attributes\
-          \ not handled in __init__\n                if cell.cell_type == \"code\"\
-          :\n                    cell.execution_count = cell_data.get(\"execution_count\"\
-          )\n                    cell.outputs = cell_data.get(\"outputs\", [])\n\n\
-          \                loaded_cells.append(cell)\n\n            # Safely extract\
-          \ metadata to initialize the Notebook properly\n            metadata = nb_dict.get(\"\
-          metadata\", {})\n            kernelspec = metadata.get(\"kernelspec\", {})\n\
-          \            language_info = metadata.get(\"language_info\", {})\n\n   \
-          \         # Instantiate the new Notebook with the parsed cells\n       \
-          \     notebook = cls(\n                kernel_name=kernelspec.get(\"name\"\
-          , \"python3\"),\n                kernel_display_name=kernelspec.get(\"display_name\"\
-          , \"Python 3\"),\n                language=language_info.get(\"name\", \"\
-          python\"),\n                language_version=language_info.get(\"version\"\
-          , \"3.13.11\"),\n                cells=loaded_cells,\n            )\n\n\
-          \            # Preserve the exact original metadata and notebook formatting\
-          \ versions\n            notebook.metadata = metadata\n            notebook.nbformat\
-          \ = nb_dict.get(\"nbformat\", 4)\n            notebook.nbformat_minor =\
-          \ nb_dict.get(\"nbformat_minor\", 4)\n\n            return notebook\n\n\
+          \n            with open(Path(embedded_artifact.path) / \"notebook_templates\"\
+          \ / notebook_name, \"r\") as f:\n                nb_dict = json_load(f)\n\
+          \n            loaded_cells = []\n            for cell_data in nb_dict.get(\"\
+          cells\", []):\n                cell = NotebookCell(\n                  \
+          \  cell_type=cell_data.get(\"cell_type\", \"code\"),\n                 \
+          \   source=cell_data.get(\"source\", \"\"),\n                    metadata=cell_data.get(\"\
+          metadata\", {}),\n                )\n\n                # Restore code-specific\
+          \ attributes not handled in __init__\n                if cell.cell_type\
+          \ == \"code\":\n                    cell.execution_count = cell_data.get(\"\
+          execution_count\")\n                    cell.outputs = cell_data.get(\"\
+          outputs\", [])\n\n                loaded_cells.append(cell)\n\n        \
+          \    # Safely extract metadata to initialize the Notebook properly\n   \
+          \         metadata = nb_dict.get(\"metadata\", {})\n            kernelspec\
+          \ = metadata.get(\"kernelspec\", {})\n            language_info = metadata.get(\"\
+          language_info\", {})\n\n            # Instantiate the new Notebook with\
+          \ the parsed cells\n            notebook = cls(\n                kernel_name=kernelspec.get(\"\
+          name\", \"python3\"),\n                kernel_display_name=kernelspec.get(\"\
+          display_name\", \"Python 3\"),\n                language=language_info.get(\"\
+          name\", \"python\"),\n                language_version=language_info.get(\"\
+          version\", \"3.13.11\"),\n                cells=loaded_cells,\n        \
+          \    )\n\n            # Preserve the exact original metadata and notebook\
+          \ formatting versions\n            notebook.metadata = metadata\n      \
+          \      notebook.nbformat = nb_dict.get(\"nbformat\", 4)\n            notebook.nbformat_minor\
+          \ = nb_dict.get(\"nbformat_minor\", 4)\n\n            return notebook\n\n\
           \    def create_placeholder_mapping(\n        output_data: dict[str, Any],\n\
           \        test_data_key: str = \"\",\n        input_data_key: str = \"\"\
-          ,\n        ogx_ssl_verify: bool = True,\n    ) -> dict[str, Any]:\n    \
-          \    \"\"\"Create a mapping from placeholder names to their values from\
-          \ output.json.\n\n        This function extracts values from the output.json\
-          \ structure and creates\n        a flat dictionary suitable for use with\
-          \ NotebookCell.format_source().\n\n        Expected output.json structure:\n\
-          \        {\n            \"config\": {\n                \"pattern_name\"\
-          : \"...\",\n                \"autorag_version\": \"...\",\n            \
-          \    \"ogx\": {\n                    \"foundation_model\": {...},\n    \
-          \                \"embedding_model\": {...},\n                    \"vector_store\"\
-          : {...},\n                    \"retriever\": {...},\n                  \
-          \  \"chunker\": {...}\n                },\n                \"data\": {...}\n\
-          \            }\n        }\n\n        Args:\n            output_data: The\
-          \ parsed pattern.json data\n            test_data_key: Test data key.\n\
-          \            input_data_key: Input data key.\n            ogx_ssl_verify:\
-          \ Whether OGX SSL verification succeeded.\n\n        Returns:\n        \
-          \    Dictionary mapping placeholder names to their values.\n        \"\"\
-          \"\n        mapping = {}\n\n        mapping[\"PATTERN_NAME\"] = output_data.get(\"\
-          name\", \"\")\n        settings = output_data.get(\"settings\", {})\n  \
-          \      fm = settings.get(\"generation\", {})\n        mapping[\"FM_MODEL_ID\"\
-          ] = fm.get(\"model_id\", \"\")\n        mapping[\"SYSTEM_MESSAGE\"] = fm.get(\"\
-          system_message_text\", \"\")\n        mapping[\"USER_MESSAGE\"] = fm.get(\"\
-          user_message_text\", \"\")\n        mapping[\"CONTEXT_TEXT\"] = fm.get(\"\
-          context_template_text\", \"\")\n\n        em = settings.get(\"embedding\"\
-          , {})\n        mapping[\"EMBEDDING_MODEL_ID\"] = em.get(\"model_id\", \"\
-          \")\n        mapping[\"EMBEDDING_PARAMS\"] = em.get(\"embedding_params\"\
-          , {\"embedding_dimension\": 768})\n        mapping[\"DISTANCE_METRIC\"]\
-          \ = em.get(\"distance_metric\", \"\")\n\n        vs = settings.get(\"vector_store\"\
-          , {})\n        mapping[\"PROVIDER_ID\"] = vs.get(\"datasource_type\", \"\
-          \")\n        mapping[\"COLLECTION_NAME\"] = vs.get(\"collection_name\",\
-          \ \"\")\n\n        ret = settings.get(\"retrieval\", {})\n        mapping[\"\
-          RETRIEVAL_METHOD\"] = ret.get(\"method\", \"\")\n        mapping[\"NUMBER_OF_CHUNKS\"\
-          ] = ret.get(\"number_of_chunks\", 5)\n        # Hybrid search parameters\
-          \ (optional, None if not present)\n        mapping[\"SEARCH_MODE\"] = ret.get(\"\
-          search_mode\")\n        mapping[\"RANKER_STRATEGY\"] = ret.get(\"ranker_strategy\"\
-          )\n        mapping[\"RANKER_K\"] = ret.get(\"ranker_k\")\n        mapping[\"\
-          RANKER_ALPHA\"] = ret.get(\"ranker_alpha\")\n\n        ch = settings.get(\"\
-          chunking\", {})\n        mapping[\"CHUNKING_METHOD\"] = ch.get(\"method\"\
-          , \"\")\n        mapping[\"CHUNK_SIZE\"] = ch.get(\"chunk_size\", 512)\n\
-          \        mapping[\"CHUNK_OVERLAP\"] = ch.get(\"chunk_overlap\", 50)\n\n\
-          \        mapping[\"TEST_DATA_KEY\"] = test_data_key\n        mapping[\"\
-          INPUT_DATA_KEY\"] = input_data_key\n\n        mapping[\"OGX_SSL_VERIFY\"\
-          ] = ogx_ssl_verify\n        mapping[\"OGX_CLIENT_BASE_URL\"] = (os.environ.get(\"\
-          OGX_CLIENT_BASE_URL\") or \"\").strip()\n\n        return mapping\n\n  \
-          \  def generate_notebook_from_templates(\n        notebook_template: Literal[\n\
-          \            \"ogx_inference\",\n            \"ogx_indexing\",\n       \
-          \ ],\n        output_data: dict[str, Any],\n        output_notebook_path:\
-          \ Path,\n        test_data_key: str = \"\",\n        input_data_key: str\
-          \ = \"\",\n        ogx_ssl_verify: bool = True,\n    ) -> None:\n      \
-          \  \"\"\"Generate a filled notebook from templates and output.json.\n\n\
-          \        Args:\n            notebook_template: One of the allowed template\
+          ,\n    ) -> dict[str, Any]:\n        \"\"\"Create a mapping from placeholder\
+          \ names to their values from output.json.\n\n        This function extracts\
+          \ values from the output.json structure and creates\n        a flat dictionary\
+          \ suitable for use with NotebookCell.format_source().\n\n        Expected\
+          \ output.json structure:\n        {\n            \"config\": {\n       \
+          \         \"pattern_name\": \"...\",\n                \"autorag_version\"\
+          : \"...\",\n                \"ogx\": {\n                    \"foundation_model\"\
+          : {...},\n                    \"embedding_model\": {...},\n            \
+          \        \"vector_store\": {...},\n                    \"retriever\": {...},\n\
+          \                    \"chunker\": {...}\n                },\n          \
+          \      \"data\": {...}\n            }\n        }\n\n        Args:\n    \
+          \        output_data: The parsed pattern.json data\n            test_data_key:\
+          \ Test data key.\n            input_data_key: Input data key.\n\n      \
+          \  Returns:\n            Dictionary mapping placeholder names to their values.\n\
+          \        \"\"\"\n        mapping = {}\n\n        mapping[\"PATTERN_NAME\"\
+          ] = output_data.get(\"name\", \"\")\n        settings = output_data.get(\"\
+          settings\", {})\n        fm = settings.get(\"generation\", {})\n       \
+          \ mapping[\"FM_MODEL_ID\"] = fm.get(\"model_id\", \"\")\n        mapping[\"\
+          SYSTEM_MESSAGE\"] = fm.get(\"system_message_text\", \"\")\n        mapping[\"\
+          USER_MESSAGE\"] = fm.get(\"user_message_text\", \"\")\n        mapping[\"\
+          CONTEXT_TEXT\"] = fm.get(\"context_template_text\", \"\")\n\n        em\
+          \ = settings.get(\"embedding\", {})\n        mapping[\"EMBEDDING_MODEL_ID\"\
+          ] = em.get(\"model_id\", \"\")\n        mapping[\"EMBEDDING_PARAMS\"] =\
+          \ em.get(\"embedding_params\", {\"embedding_dimension\": 768})\n       \
+          \ mapping[\"DISTANCE_METRIC\"] = em.get(\"distance_metric\", \"\")\n\n \
+          \       vs = settings.get(\"vector_store\", {})\n        mapping[\"PROVIDER_ID\"\
+          ] = vs.get(\"datasource_type\", \"\")\n        mapping[\"COLLECTION_NAME\"\
+          ] = vs.get(\"collection_name\", \"\")\n\n        ret = settings.get(\"retrieval\"\
+          , {})\n        mapping[\"RETRIEVAL_METHOD\"] = ret.get(\"method\", \"\"\
+          )\n        mapping[\"NUMBER_OF_CHUNKS\"] = ret.get(\"number_of_chunks\"\
+          , 5)\n        # Hybrid search parameters (optional, None if not present)\n\
+          \        mapping[\"SEARCH_MODE\"] = ret.get(\"search_mode\")\n        mapping[\"\
+          RANKER_STRATEGY\"] = ret.get(\"ranker_strategy\")\n        mapping[\"RANKER_K\"\
+          ] = ret.get(\"ranker_k\")\n        mapping[\"RANKER_ALPHA\"] = ret.get(\"\
+          ranker_alpha\")\n\n        ch = settings.get(\"chunking\", {})\n       \
+          \ mapping[\"CHUNKING_METHOD\"] = ch.get(\"method\", \"\")\n        mapping[\"\
+          CHUNK_SIZE\"] = ch.get(\"chunk_size\", 512)\n        mapping[\"CHUNK_OVERLAP\"\
+          ] = ch.get(\"chunk_overlap\", 50)\n\n        mapping[\"TEST_DATA_KEY\"]\
+          \ = test_data_key\n        mapping[\"INPUT_DATA_KEY\"] = input_data_key\n\
+          \n        mapping[\"OGX_CLIENT_BASE_URL\"] = (os.environ.get(\"OGX_CLIENT_BASE_URL\"\
+          ) or \"\").strip()\n\n        return mapping\n\n    def generate_notebook_from_templates(\n\
+          \        notebook_template: Literal[\n            \"ogx_inference\",\n \
+          \           \"ogx_indexing\",\n        ],\n        output_data: dict[str,\
+          \ Any],\n        output_notebook_path: Path,\n        test_data_key: str\
+          \ = \"\",\n        input_data_key: str = \"\",\n    ) -> None:\n       \
+          \ \"\"\"Generate a filled notebook from templates and output.json.\n\n \
+          \       Args:\n            notebook_template: One of the allowed template\
           \ names.\n            output_data: The parsed output.json data.\n      \
           \      output_notebook_path: Path where to save the generated notebook.\n\
           \            test_data_key: Path to test data file within bucket used as\
           \ input to AI4RAG.\n            input_data_key: Path to documents dir within\
-          \ bucket used as input to AI4RAG.\n            ogx_ssl_verify: Whether OGX\
-          \ SSL verification succeeded; False causes the\n                generated\
-          \ notebook to skip the SSL probe and connect with verify=False directly.\n\
-          \n        Returns:\n            None. The notebook is written to output_notebook_path.\n\
-          \        \"\"\"\n        placeholder_mapping = create_placeholder_mapping(\n\
-          \            output_data,\n            test_data_key=test_data_key,\n  \
-          \          input_data_key=input_data_key,\n            ogx_ssl_verify=ogx_ssl_verify,\n\
+          \ bucket used as input to AI4RAG.\n\n        Returns:\n            None.\
+          \ The notebook is written to output_notebook_path.\n        \"\"\"\n   \
+          \     placeholder_mapping = create_placeholder_mapping(\n            output_data,\n\
+          \            test_data_key=test_data_key,\n            input_data_key=input_data_key,\n\
           \        )\n        notebook = Notebook.load(notebook_name=f\"{notebook_template}_template.ipynb\"\
           )\n        filled_cells = []\n        for cell in notebook.cells:\n    \
           \        filled_cell = cell.format_source(placeholder_mapping)\n       \
@@ -1315,12 +945,12 @@ deploymentSpec:
           \ = (os.environ.get(\"OGX_CLIENT_API_KEY\") or \"\").strip()\n\n    if not\
           \ ogx_client_base_url or not ogx_client_api_key:\n        raise ValueError(\n\
           \            \"OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY environment variables\
-          \ must be set to non-empty values.\"\n        )\n\n    client = _create_ogx_client(base_url=ogx_client_base_url,\
-          \ api_key=ogx_client_api_key)\n\n    def construct_model_instance(loader,\
-          \ node: yml.MappingNode) -> BaseEmbeddingModel | BaseFoundationModel:\n\
-          \        \"\"\"Instructs yml.Loader on how to construct \"!Model\" tag.\"\
-          \"\"\n        mapping = loader.construct_mapping(node, deep=True)\n\n  \
-          \      match mapping:\n            case {\"type_\": \"embedding\", **id_to_params}:\n\
+          \ must be set to non-empty values.\"\n        )\n\n    client = _create_ogx_client(ogx_client_base_url,\
+          \ ogx_client_api_key)\n\n    def construct_model_instance(loader, node:\
+          \ yml.MappingNode) -> BaseEmbeddingModel | BaseFoundationModel:\n      \
+          \  \"\"\"Instructs yml.Loader on how to construct \"!Model\" tag.\"\"\"\n\
+          \        mapping = loader.construct_mapping(node, deep=True)\n\n       \
+          \ match mapping:\n            case {\"type_\": \"embedding\", **id_to_params}:\n\
           \                model_id, params = id_to_params.popitem()\n           \
           \     return OGXEmbeddingModel(client=client, model_id=model_id, params=params)\n\
           \n            case {\"type_\": \"generation\", **id_to_params}:\n      \
@@ -1396,35 +1026,35 @@ deploymentSpec:
           , [])\n\n    def _build_system_message(custom_text: str | None, lang: dict\
           \ | None) -> str:\n        \"\"\"Build system message with explicit language\
           \ instruction when detected.\"\"\"\n        base = custom_text if custom_text\
-          \ else _DEFAULT_SYSTEM_MSG\n        if not lang:\n            return base\n\
-          \        lang_name = lang.get(\"name\", \"\")\n        if not lang_name:\n\
-          \            return base\n        instruction = f\"You MUST respond in {lang_name}.\"\
-          \n        if instruction in base:\n            return base\n        return\
-          \ f\"{instruction} {base}\"\n\n    def _build_pattern_json(evaluation_result,\
-          \ iteration: int, max_combinations: int) -> dict:\n        \"\"\"Build pattern.json\
-          \ with flat schema (name, iteration, settings, scores, final_score).\"\"\
-          \"\n        idx = evaluation_result.indexing_params or {}\n        rp =\
-          \ evaluation_result.rag_params or {}\n        chunking = idx.get(\"chunking\"\
-          ) or {}\n        # ai4rag puts embedding in indexing_params.embedding, not\
-          \ rag_params\n        embedding_from_idx = idx.get(\"embedding\") or idx.get(\"\
-          embeddings\") or {}\n        embeddings = rp.get(\"embeddings\") or rp.get(\"\
-          embedding\") or embedding_from_idx\n        retrieval = rp.get(\"retrieval\"\
-          ) or {}\n\n        # ai4rag retrieval: search_mode is \"hybrid\" | \"vector\"\
-          ; ranker_* used when search_mode is hybrid\n        def _ret(key: str, default=None):\n\
-          \            return retrieval.get(key) if isinstance(retrieval, dict) else\
-          \ default\n\n        def _rp(key: str, default=None):\n            return\
-          \ rp.get(key) if isinstance(rp, dict) else default\n\n        retrieval_method\
-          \ = _ret(\"method\") or _ret(\"retrieval_method\") or _rp(\"retrieval_method\"\
-          ) or \"simple\"\n        number_of_chunks = _ret(\"number_of_chunks\") or\
-          \ _rp(\"number_of_chunks\") or 5\n        search_mode = _ret(\"search_mode\"\
-          ) or _rp(\"search_mode\")\n        ranker_strategy = _ret(\"ranker_strategy\"\
-          ) or _rp(\"ranker_strategy\")\n        ranker_k = _ret(\"ranker_k\") if\
-          \ _ret(\"ranker_k\") is not None else _rp(\"ranker_k\")\n        ranker_alpha\
-          \ = _ret(\"ranker_alpha\") if _ret(\"ranker_alpha\") is not None else _rp(\"\
-          ranker_alpha\")\n        generation = rp.get(\"generation\") or {}\n   \
-          \     # embedding model_id: from indexing_params.embedding (ai4rag), or\
-          \ rag_params, or flat embedding_model\n        embedding_model_id = None\n\
-          \        if isinstance(embedding_from_idx, dict) and embedding_from_idx.get(\"\
+          \ else _DEFAULT_SYSTEM_MSG\n        if not lang or lang.get(\"code\") ==\
+          \ \"en\":\n            return base\n        lang_name = lang.get(\"name\"\
+          , \"\")\n        if not lang_name:\n            return base\n        instruction\
+          \ = f\"You MUST respond in {lang_name}.\"\n        if instruction in base:\n\
+          \            return base\n        return f\"{instruction} {base}\"\n\n \
+          \   def _build_pattern_json(evaluation_result, iteration: int, max_combinations:\
+          \ int) -> dict:\n        \"\"\"Build pattern.json with flat schema (name,\
+          \ iteration, settings, scores, final_score).\"\"\"\n        idx = evaluation_result.indexing_params\
+          \ or {}\n        rp = evaluation_result.rag_params or {}\n        chunking\
+          \ = idx.get(\"chunking\") or {}\n        # ai4rag puts embedding in indexing_params.embedding,\
+          \ not rag_params\n        embedding_from_idx = idx.get(\"embedding\") or\
+          \ idx.get(\"embeddings\") or {}\n        embeddings = rp.get(\"embeddings\"\
+          ) or rp.get(\"embedding\") or embedding_from_idx\n        retrieval = rp.get(\"\
+          retrieval\") or {}\n\n        # ai4rag retrieval: search_mode is \"hybrid\"\
+          \ | \"vector\"; ranker_* used when search_mode is hybrid\n        def _ret(key:\
+          \ str, default=None):\n            return retrieval.get(key) if isinstance(retrieval,\
+          \ dict) else default\n\n        def _rp(key: str, default=None):\n     \
+          \       return rp.get(key) if isinstance(rp, dict) else default\n\n    \
+          \    retrieval_method = _ret(\"method\") or _ret(\"retrieval_method\") or\
+          \ _rp(\"retrieval_method\") or \"simple\"\n        number_of_chunks = _ret(\"\
+          number_of_chunks\") or _rp(\"number_of_chunks\") or 5\n        search_mode\
+          \ = _ret(\"search_mode\") or _rp(\"search_mode\")\n        ranker_strategy\
+          \ = _ret(\"ranker_strategy\") or _rp(\"ranker_strategy\")\n        ranker_k\
+          \ = _ret(\"ranker_k\") if _ret(\"ranker_k\") is not None else _rp(\"ranker_k\"\
+          )\n        ranker_alpha = _ret(\"ranker_alpha\") if _ret(\"ranker_alpha\"\
+          ) is not None else _rp(\"ranker_alpha\")\n        generation = rp.get(\"\
+          generation\") or {}\n        # embedding model_id: from indexing_params.embedding\
+          \ (ai4rag), or rag_params, or flat embedding_model\n        embedding_model_id\
+          \ = None\n        if isinstance(embedding_from_idx, dict) and embedding_from_idx.get(\"\
           model_id\"):\n            embedding_model_id = embedding_from_idx.get(\"\
           model_id\")\n        if not embedding_model_id and isinstance(embeddings,\
           \ dict):\n            embedding_model_id = embeddings.get(\"model_id\")\n\
@@ -1438,73 +1068,98 @@ deploymentSpec:
           \ and isinstance(rp.get(\"foundation_model\"), str):\n            generation_model_id\
           \ = rp.get(\"foundation_model\")\n        if not generation_model_id and\
           \ hasattr(rp.get(\"foundation_model\"), \"model_id\"):\n            generation_model_id\
-          \ = getattr(rp.get(\"foundation_model\"), \"model_id\", None)\n        return\
-          \ {\n            \"name\": getattr(evaluation_result, \"pattern_name\",\
-          \ \"\"),\n            \"iteration\": iteration,\n            \"max_combinations\"\
-          : max_combinations,\n            \"duration_seconds\": getattr(evaluation_result,\
-          \ \"execution_time\", 0) or 0,\n            \"settings\": {\n          \
-          \      \"vector_store\": {\n                    \"datasource_type\": idx.get(\"\
-          vector_store\", {}).get(\"datasource_type\")\n                    or rp.get(\"\
-          vector_store\", {}).get(\"datasource_type\")\n                    or vector_io_provider_id,\n\
-          \                    \"collection_name\": getattr(evaluation_result, \"\
-          collection\", \"\") or \"\",\n                },\n                \"chunking\"\
-          : {\n                    \"method\": chunking.get(\"method\", \"recursive\"\
-          ),\n                    \"chunk_size\": chunking.get(\"chunk_size\", 2048),\n\
-          \                    \"chunk_overlap\": chunking.get(\"chunk_overlap\",\
-          \ 256),\n                },\n                \"embedding\": {\n        \
-          \            \"model_id\": embedding_model_id or \"\",\n               \
-          \     \"distance_metric\": (\n                        embeddings.get(\"\
-          distance_metric\", \"cosine\") if isinstance(embeddings, dict) else \"cosine\"\
-          \n                    ),\n                    \"embedding_params\": embeddings.get(\"\
-          embedding_params\", {\"embedding_dimension\": 768}),\n                },\n\
-          \                \"retrieval\": {\n                    \"method\": retrieval_method,\n\
-          \                    \"number_of_chunks\": number_of_chunks,\n         \
-          \           **({\"search_mode\": search_mode} if search_mode is not None\
-          \ else {}),\n                    **({\"ranker_strategy\": ranker_strategy}\
-          \ if ranker_strategy is not None else {}),\n                    **({\"ranker_k\"\
-          : ranker_k} if ranker_k is not None else {}),\n                    **({\"\
-          ranker_alpha\": ranker_alpha} if ranker_alpha is not None else {}),\n  \
-          \              },\n                \"generation\": {\n                 \
-          \   \"model_id\": generation_model_id or \"\",\n                    \"context_template_text\"\
-          : generation.get(\"context_template_text\", \"{document}\"),\n         \
-          \           \"user_message_text\": generation.get(\n                   \
-          \     \"user_message_text\",\n                        (\n              \
-          \              \"\\n\\nContext:\\n{reference_documents}:\\n\\nQuestion:\
-          \ {question}. \\nAgain, please answer \"\n                            \"\
-          the question based on the context provided only. If the context is not related\
-          \ to \"\n                            \"the question, just say you cannot\
-          \ answer. Respond exclusively in the language of \"\n                  \
-          \          \"the question.\"\n                        ),\n             \
-          \       ),\n                    \"system_message_text\": _build_system_message(\n\
+          \ = getattr(rp.get(\"foundation_model\"), \"model_id\", None)\n\n      \
+          \  provider = None\n        try:\n            provider = client.providers.retrieve(vector_io_provider_id)\n\
+          \        except Exception:\n            _ssl_logger.warning(\n         \
+          \       \"Could not retrieve provider_type attribute of vector store in\
+          \ use... Fallback to the default value.\",\n                exc_info=True,\n\
+          \            )\n\n        pattern = {\n            \"name\": getattr(evaluation_result,\
+          \ \"pattern_name\", \"\"),\n            \"iteration\": iteration,\n    \
+          \        \"max_combinations\": max_combinations,\n            \"duration_seconds\"\
+          : getattr(evaluation_result, \"execution_time\", 0) or 0,\n            \"\
+          settings\": {\n                \"vector_store_binding\": {\n           \
+          \         \"provider_id\": vector_io_provider_id,\n                    \"\
+          provider_type\": getattr(provider, \"provider_type\", \"Unknown\"),\n  \
+          \                  \"vector_store_id\": evaluation_result.collection,\n\
+          \                },\n                \"chunking\": {\n                 \
+          \   \"method\": chunking.get(\"method\", \"recursive\"),\n             \
+          \       \"chunk_size\": chunking.get(\"chunk_size\", 2048),\n          \
+          \          \"chunk_overlap\": chunking.get(\"chunk_overlap\", 256),\n  \
+          \              },\n                \"embedding\": {\n                  \
+          \  \"model_id\": embedding_model_id or \"\",\n                    \"distance_metric\"\
+          : (\n                        embeddings.get(\"distance_metric\", \"cosine\"\
+          ) if isinstance(embeddings, dict) else \"cosine\"\n                    ),\n\
+          \                    \"embedding_params\": {\n                        \"\
+          embedding_dimension\": embeddings.get(\"embedding_params\", {}).get(\"embedding_dimension\"\
+          , None)\n                    },\n                },\n                \"\
+          retrieval\": {\n                    \"method\": retrieval_method,\n    \
+          \                \"number_of_chunks\": number_of_chunks,\n             \
+          \       **({\"search_mode\": search_mode} if search_mode is not None else\
+          \ {}),\n                    **({\"ranker_strategy\": ranker_strategy} if\
+          \ ranker_strategy is not None else {}),\n                    **({\"ranker_k\"\
+          : ranker_k} if ranker_strategy == \"rrf\" else {}),\n                  \
+          \  **({\"ranker_alpha\": ranker_alpha} if ranker_strategy == \"weighted\"\
+          \ else {}),\n                },\n                \"generation\": {\n   \
+          \                 \"model_id\": generation_model_id or \"\",\n         \
+          \           \"context_template_text\": generation.get(\"context_template_text\"\
+          , \"{document}\"),\n                    \"user_message_text\": generation.get(\n\
+          \                        \"user_message_text\",\n                      \
+          \  (\n                            \"\\n\\nContext:\\n{reference_documents}:\\\
+          n\\nQuestion: {question}. \\nAgain, please answer \"\n                 \
+          \           \"the question based on the context provided only. If the context\
+          \ is not related to \"\n                            \"the question, just\
+          \ say you cannot answer. Respond exclusively in the language of \"\n   \
+          \                         \"the question.\"\n                        ),\n\
+          \                    ),\n                    \"system_message_text\": _build_system_message(\n\
           \                        generation.get(\"system_message_text\"),\n    \
           \                    detected_language,\n                    ),\n      \
           \              **({\"detected_language\": detected_language} if detected_language\
-          \ else {}),\n                },\n            },\n        }\n\n    evaluations_list\
-          \ = list(rag_exp.results.evaluations)\n    max_combinations = getattr(rag_exp.results,\
-          \ \"max_combinations\", len(evaluations_list)) or 24\n\n    rag_patterns.metadata[\"\
-          name\"] = \"rag_patterns_artifact\"\n    rag_patterns.metadata[\"uri\"]\
-          \ = rag_patterns.uri\n    rag_patterns.metadata[\"metadata\"] = {\"patterns\"\
-          : []}\n    for i, eval in enumerate(evaluations_list):\n        patt_dir\
-          \ = rag_patterns_dir / eval.pattern_name\n        patt_dir.mkdir(parents=True,\
+          \ else {}),\n                },\n                \"responses_template\"\
+          : {\n                    \"model\": generation_model_id,\n             \
+          \       \"stream\": False,  # Not supported yet\n                    \"\
+          store\": False,  # OGX-client default (but ResponsesAPI default is True)\n\
+          \                    \"input\": \"<user_query_placeholder>\",\n        \
+          \            \"instructions\": _build_system_message(generation.get(\"system_message_text\"\
+          ), detected_language),\n                    \"tools\": [{\"type\": \"file_search\"\
+          , \"vector_store_ids\": [evaluation_result.collection]}],\n            \
+          \        \"include\": [\"file_search_call.results\"],\n                },\n\
+          \            },\n        }\n\n        if search_mode == \"hybrid\" and ranker_strategy\
+          \ == \"rrf\":\n            ranking_options = {\"impact_factor\": ranker_k}\n\
+          \            pattern[\"settings\"][\"responses_template\"][\"tools\"][0][\"\
+          ranking_options\"] = ranking_options\n        elif search_mode == \"hybrid\"\
+          \ and ranker_strategy == \"weighted\":\n            ranking_options = {\"\
+          alpha\": ranker_alpha}\n            pattern[\"settings\"][\"responses_template\"\
+          ][\"tools\"][0][\"ranking_options\"] = ranking_options\n\n        return\
+          \ pattern\n\n    evaluations_list = list(rag_exp.results.evaluations)\n\
+          \    max_combinations = getattr(rag_exp.results, \"max_combinations\", len(evaluations_list))\
+          \ or 24\n\n    rag_patterns.metadata[\"name\"] = \"rag_patterns_artifact\"\
+          \n    rag_patterns.metadata[\"uri\"] = rag_patterns.uri\n    rag_patterns.metadata[\"\
+          metadata\"] = {\"patterns\": []}\n    for i, eval in enumerate(evaluations_list):\n\
+          \        patt_dir = rag_patterns_dir / eval.pattern_name\n        patt_dir.mkdir(parents=True,\
           \ exist_ok=True)\n\n        pattern_data = _build_pattern_json(eval, iteration=i,\
           \ max_combinations=max_combinations)\n        generate_notebook_from_templates(\n\
           \            \"ogx_indexing\",\n            pattern_data,\n            Path(patt_dir,\
           \ \"indexing.ipynb\"),\n            input_data_key=input_data_key,\n   \
-          \         ogx_ssl_verify=_ogx_ssl_verify[0],\n        )\n\n        generate_notebook_from_templates(\n\
-          \            \"ogx_inference\",\n            pattern_data,\n           \
-          \ Path(patt_dir, \"inference.ipynb\"),\n            test_data_key=test_data_key,\n\
-          \            ogx_ssl_verify=_ogx_ssl_verify[0],\n        )\n\n        #\
-          \ Flat schema: scores = per-metric aggregates (mean, ci_low, ci_high); final_score\n\
+          \     )\n\n        generate_notebook_from_templates(\n            \"ogx_inference\"\
+          ,\n            pattern_data,\n            Path(patt_dir, \"inference.ipynb\"\
+          ),\n            test_data_key=test_data_key,\n        )\n\n        # Flat\
+          \ schema: scores = per-metric aggregates (mean, ci_low, ci_high); final_score\n\
           \        pattern_data[\"scores\"] = (getattr(eval, \"scores\", None) or\
           \ {}).get(\"scores\") or {}\n        pattern_data[\"final_score\"] = getattr(eval,\
           \ \"final_score\", None)\n        rag_patterns.metadata[\"metadata\"][\"\
           patterns\"].append(pattern_data)\n        with (patt_dir / \"pattern.json\"\
           ).open(\"w+\", encoding=\"utf-8\") as pattern_details:\n            json_dump(pattern_data,\
-          \ pattern_details, indent=2)\n\n        eval_data = evaluation_data_list[i]\
-          \ if i < len(evaluation_data_list) else []\n        try:\n            q_scores\
-          \ = (eval.scores or {}).get(\"question_scores\") or {}\n            if q_scores\
-          \ and all(isinstance(q_scores.get(k), dict) for k in q_scores):\n      \
-          \          evaluation_result_list = ExperimentResults.create_evaluation_results_json(eval_data,\
+          \ pattern_details, indent=2)\n\n        template_context = {\n         \
+          \   \"responses_template\": pattern_data[\"settings\"][\"responses_template\"\
+          ],\n        }\n        with (Path(embedded_artifact.path) / \"script_templates\"\
+          \ / \"create_model_response.py.templ\").open(\n            \"r\", encoding=\"\
+          utf-8\"\n        ) as f:\n            model_responses_templ = Template(f.read())\n\
+          \            with (patt_dir / \"create_model_response.py\").open(\"w+\"\
+          , encoding=\"utf-8\") as ff:\n                ff.write(model_responses_templ.substitute(template_context))\n\
+          \n        eval_data = evaluation_data_list[i] if i < len(evaluation_data_list)\
+          \ else []\n        try:\n            q_scores = (eval.scores or {}).get(\"\
+          question_scores\") or {}\n            if q_scores and all(isinstance(q_scores.get(k),\
+          \ dict) for k in q_scores):\n                evaluation_result_list = ExperimentResults.create_evaluation_results_json(eval_data,\
           \ eval)\n            else:\n                evaluation_result_list = _evaluation_result_fallback(eval_data,\
           \ eval)\n        except (KeyError, TypeError):\n            evaluation_result_list\
           \ = _evaluation_result_fallback(eval_data, eval)\n        with (patt_dir\
@@ -1651,25 +1306,23 @@ deploymentSpec:
           \                temperature=0.0,\n            )\n            raw = response.choices[0].message.content.strip().lower().replace('\"\
           ', \"\").replace(\"'\", \"\")\n            detected_code = raw.split()[0]\
           \ if raw else None\n\n            if not detected_code:\n              \
-          \  return None\n            if detected_code == \"en\":\n              \
-          \  return {\"code\": \"en\", \"name\": \"English\"}\n\n            name\
-          \ = LANGUAGE_MAP.get(detected_code)\n            if not name:\n        \
-          \        _ssl_logger.warning(\"LLM returned unsupported language code: %s\"\
-          , detected_code)\n                return None\n            _ssl_logger.info(\"\
-          Language detected via LLM: %s (%s)\", detected_code, name)\n           \
-          \ return {\"code\": detected_code, \"name\": name}\n\n        except Exception\
-          \ as exc:\n            _ssl_logger.warning(\"LLM language detection failed:\
-          \ %s\", exc)\n            return None\n\n    def _detect_benchmark_language(df:\
-          \ pd.DataFrame, llm_client: OgxClient) -> dict[str, str] | None:\n     \
-          \   \"\"\"Detect the dominant language from benchmark questions.\n\n   \
-          \     Uses LLM via OGX for accurate detection across all languages.\n  \
-          \      Returns a dict with code/name, or None for English / on failure.\n\
-          \        \"\"\"\n        questions = df[\"question\"].dropna().astype(str).tolist()\n\
-          \        if not questions:\n            return None\n\n        sample =\
-          \ questions[:LANGUAGE_DETECTION_SAMPLE_SIZE]\n        return _detect_language_via_llm(sample,\
-          \ llm_client, allowed_generation_models=generation_models)\n\n    supported_metrics\
-          \ = [\"faithfulness\", \"answer_correctness\", \"context_correctness\"]\n\
-          \n    if embedding_models:\n        if not isinstance(embedding_models,\
+          \  return None\n\n            name = LANGUAGE_MAP.get(detected_code)\n \
+          \           if not name:\n                _ssl_logger.warning(\"LLM returned\
+          \ unsupported language code: %s\", detected_code)\n                return\
+          \ None\n            _ssl_logger.info(\"Language detected via LLM: %s (%s)\"\
+          , detected_code, name)\n            return {\"code\": detected_code, \"\
+          name\": name}\n\n        except Exception as exc:\n            _ssl_logger.warning(\"\
+          LLM language detection failed: %s\", exc)\n            return None\n\n \
+          \   def _detect_benchmark_language(df: pd.DataFrame, llm_client: OgxClient)\
+          \ -> dict[str, str] | None:\n        \"\"\"Detect the dominant language\
+          \ from benchmark questions.\n\n        Uses LLM via OGX for accurate detection\
+          \ across all languages.\n        Returns a dict with code/name, or None\
+          \ for English / on failure.\n        \"\"\"\n        questions = df[\"question\"\
+          ].dropna().astype(str).tolist()\n        if not questions:\n           \
+          \ return None\n\n        sample = questions[:LANGUAGE_DETECTION_SAMPLE_SIZE]\n\
+          \        return _detect_language_via_llm(sample, llm_client, allowed_generation_models=generation_models)\n\
+          \n    supported_metrics = [\"faithfulness\", \"answer_correctness\", \"\
+          context_correctness\"]\n\n    if embedding_models:\n        if not isinstance(embedding_models,\
           \ list):\n            raise TypeError(\"embedding_models must be a list.\"\
           )\n        for i, m in enumerate(embedding_models):\n            if not\
           \ m:\n                raise TypeError(f\"embedding_models[{i}] must be a\
@@ -2224,20 +1877,6 @@ root:
                 producerTask: rag-templates-optimization
         taskInfo:
           name: leaderboard-evaluation
-      prepare-responses-api-requests:
-        cachingOptions: {}
-        componentRef:
-          name: comp-prepare-responses-api-requests
-        dependentTasks:
-        - rag-templates-optimization
-        inputs:
-          artifacts:
-            rag_patterns:
-              taskOutputArtifact:
-                outputArtifactKey: rag_patterns
-                producerTask: rag-templates-optimization
-        taskInfo:
-          name: prepare-responses-api-requests
       rag-templates-optimization:
         cachingOptions: {}
         componentRef:
@@ -2420,16 +2059,6 @@ platforms:
             optional: true
             secretNameParameter:
               componentInputParameter: input_data_secret_name
-        exec-prepare-responses-api-requests:
-          secretAsEnv:
-          - keyToEnv:
-            - envVar: OGX_CLIENT_BASE_URL
-              secretKey: OGX_CLIENT_BASE_URL
-            - envVar: OGX_CLIENT_API_KEY
-              secretKey: OGX_CLIENT_API_KEY
-            optional: false
-            secretNameParameter:
-              componentInputParameter: ogx_secret_name
         exec-rag-templates-optimization:
           secretAsEnv:
           - keyToEnv:
