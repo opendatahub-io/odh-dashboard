@@ -85,9 +85,9 @@ func (kc *TokenKubernetesClient) CanAccessAgentCardEnrichment(
 }
 
 const (
-	agentRuntimeEnrichmentGroup     = "agent.kagenti.dev"
-	agentRuntimeEnrichmentResource  = "agentruntimes"
-	openshiftRouteEnrichmentGroup   = "route.openshift.io"
+	agentRuntimeEnrichmentGroup      = "agent.kagenti.dev"
+	agentRuntimeEnrichmentResource   = "agentruntimes"
+	openshiftRouteEnrichmentGroup    = "route.openshift.io"
 	openshiftRouteEnrichmentResource = "routes"
-	mcpServerRegistrationResource   = "mcpserverregistrations"
+	mcpServerRegistrationResource    = "mcpserverregistrations"
 )

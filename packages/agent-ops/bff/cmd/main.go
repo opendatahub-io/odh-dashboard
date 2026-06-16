@@ -82,6 +82,9 @@ func main() {
 		logger.Error("invalid auth method: (must be internal, user_token, or disabled)", "authMethod", cfg.AuthMethod)
 		os.Exit(1)
 	}
+	if cfg.AuthMethod == config.AuthMethodDisabled {
+		logger.Warn("AUTH_METHOD=disabled: all authentication and RBAC checks are bypassed — do not use in staging or production")
+	}
 
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)

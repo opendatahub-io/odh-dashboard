@@ -117,11 +117,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	if cfg.AuthMethod == config.AuthMethodDisabled {
-		logger.Warn("AUTH_METHOD=disabled: API authentication and RBAC middleware are bypassed; use only for local tests with MOCK_AGENT_CLIENT=true")
-		if !cfg.MockAgentClient {
-			return nil, fmt.Errorf("AUTH_METHOD=disabled requires MOCK_AGENT_CLIENT=true: Kubernetes-backed agent routes need authenticated access")
-		}
+	if cfg.AuthMethod == config.AuthMethodDisabled && !cfg.MockAgentClient {
+		return nil, fmt.Errorf("AUTH_METHOD=disabled requires MOCK_AGENT_CLIENT=true: Kubernetes-backed agent routes need authenticated access")
 	}
 
 	if cfg.AuthMethod != config.AuthMethodDisabled || cfg.MockK8Client {
