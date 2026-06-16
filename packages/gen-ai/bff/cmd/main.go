@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -201,11 +202,11 @@ func validateInsecureSkipVerify(insecureSkipVerify bool) error {
 			"insecure_skip_verify", insecureSkipVerify,
 			"allow_insecure_tls", allowInsecureTLSRaw,
 			"env", env,
+			"warning", "InsecureSkipVerify disables TLS certificate verification and MUST NOT be used in production",
+			"fix", "For local development only, set ALLOW_INSECURE_TLS=true",
+			"important", "NEVER set ALLOW_INSECURE_TLS=true in production deployments",
 		)
-		slog.Error("InsecureSkipVerify disables TLS certificate verification and MUST NOT be used in production")
-		slog.Error("To fix: For local development only, set ALLOW_INSECURE_TLS=true")
-		slog.Error("NEVER set ALLOW_INSECURE_TLS=true in production deployments")
-		return fmt.Errorf("InsecureSkipVerify requires ALLOW_INSECURE_TLS=true")
+		return errors.New("InsecureSkipVerify requires ALLOW_INSECURE_TLS=true")
 	}
 
 	// Check for CI environment (normalize to handle "true", "1", case variants, whitespace)
@@ -225,8 +226,8 @@ func validateInsecureSkipVerify(insecureSkipVerify bool) error {
 			"env", env,
 			"is_ci", isCI,
 			"insecure_skip_verify", insecureSkipVerify,
+			"fix", "Remove --insecure-skip-verify flag and INSECURE_SKIP_VERIFY env var",
 		)
-		slog.Error("To fix: Remove --insecure-skip-verify flag and INSECURE_SKIP_VERIFY env var")
 		return fmt.Errorf("InsecureSkipVerify cannot be used in %s environment", envType)
 	}
 
