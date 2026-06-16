@@ -110,7 +110,7 @@ func TestParseAgentRuntimeCardLinkedSkillsOnly(t *testing.T) {
 }
 
 func TestParseAgentRuntimeCardUsesAgentsPackage(t *testing.T) {
-	_ = agents.A2AAgentCardPath
+	_ = agents.A2AAgentCardPath()
 }
 
 func TestAgentRuntimeTargetsWorkloadByTargetRef(t *testing.T) {

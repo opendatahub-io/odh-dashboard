@@ -144,6 +144,17 @@ func TestFindExternalAgentCardURLPrefersRouteNamedAfterService(t *testing.T) {
 	assert.Equal(t, "http://preferred.apps.example.com/.well-known/agent-card.json", got)
 }
 
+func TestRouteAgentCardURLRejectsPathTraversal(t *testing.T) {
+	route := &unstructured.Unstructured{Object: map[string]any{
+		"spec": map[string]any{
+			"host": "agent.apps.example.com",
+			"path": "/agents/../secrets",
+			"tls":  map[string]any{"termination": "edge"},
+		},
+	}}
+	assert.Equal(t, "", routeAgentCardURL(route))
+}
+
 func TestRouteSelectionPriority(t *testing.T) {
 	serviceName := "sample-support-agent"
 

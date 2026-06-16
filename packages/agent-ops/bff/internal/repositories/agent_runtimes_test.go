@@ -74,6 +74,27 @@ func TestPaginateAgentRuntimes(t *testing.T) {
 	assert.Equal(t, "agent-a", secondPage.Runtimes[0].Name)
 }
 
+func TestPaginateAgentRuntimesCursorContinuesAfterLastSeenItem(t *testing.T) {
+	runtimes := []models.AgentRuntime{
+		{Name: "agent-b", Namespace: "ns-a"},
+		{Name: "agent-c", Namespace: "ns-a"},
+		{Name: "agent-a", Namespace: "ns-b"},
+	}
+
+	firstPage, err := paginateAgentRuntimes(runtimes, 1, "")
+	require.NoError(t, err)
+	require.Len(t, firstPage.Runtimes, 1)
+	require.NotNil(t, firstPage.ContinueToken)
+	assert.Equal(t, "agent-b", firstPage.Runtimes[0].Name)
+
+	secondPage, err := paginateAgentRuntimes(runtimes, 2, *firstPage.ContinueToken)
+	require.NoError(t, err)
+	require.Len(t, secondPage.Runtimes, 2)
+	assert.Equal(t, "agent-c", secondPage.Runtimes[0].Name)
+	assert.Equal(t, "agent-a", secondPage.Runtimes[1].Name)
+	assert.Nil(t, secondPage.ContinueToken)
+}
+
 func TestPaginateAgentRuntimesInvalidContinueToken(t *testing.T) {
 	_, err := paginateAgentRuntimes(nil, 10, "not-a-valid-token")
 	require.Error(t, err)

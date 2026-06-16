@@ -10,6 +10,37 @@ import (
 	ktesting "k8s.io/client-go/testing"
 )
 
+func TestCanAccessAgentCardEnrichment_UsesAgentRuntimeNameForGetSAR(t *testing.T) {
+	var gotName string
+	client := newRBACTestInternalClient(t, func(sar *authv1.SubjectAccessReview) bool {
+		attrs := sar.Spec.ResourceAttributes
+		if attrs == nil {
+			return false
+		}
+		if attrs.Verb == "get" && attrs.Resource == agentRuntimeEnrichmentResource {
+			gotName = attrs.Name
+			return true
+		}
+		return attrs.Verb == "list"
+	})
+
+	access, err := client.CanAccessAgentCardEnrichment(
+		context.Background(),
+		&RequestIdentity{UserID: "user@example.com"},
+		"demo-ns",
+		"runtime-cr-name",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotName != "runtime-cr-name" {
+		t.Fatalf("expected get SAR for runtime CR name, got %q", gotName)
+	}
+	if !access.AgentRuntime {
+		t.Fatal("expected agent runtime enrichment access")
+	}
+}
+
 func TestCanAccessAgentCardEnrichment_GrantsMCPWhenEitherAPIGroupAllows(t *testing.T) {
 	client := newRBACTestInternalClient(t, func(sar *authv1.SubjectAccessReview) bool {
 		attrs := sar.Spec.ResourceAttributes

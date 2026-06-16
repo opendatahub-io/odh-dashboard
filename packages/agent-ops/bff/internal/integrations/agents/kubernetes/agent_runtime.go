@@ -27,20 +27,26 @@ func (c *Client) enrichAgentCard(ctx context.Context, namespace, name string, de
 
 	detail.ServiceAccountName = serviceAccountFromSpec(detail.Spec)
 
-	access, err := c.k8sClient.CanAccessAgentCardEnrichment(ctx, c.identity, namespace, name)
+	dynamicClient, err := c.k8sClient.DynamicClient()
 	if err != nil {
-		c.logger.Warn("skipping agent card enrichment; enrichment access check failed",
+		c.logger.Warn("skipping agent card enrichment; dynamic client unavailable",
 			slog.String("namespace", namespace),
 			slog.String("name", name),
 			slog.Any("error", err))
 		return
 	}
 
-	dynamicClient, err := c.k8sClient.DynamicClient()
+	agentRuntimeName := name
+	if runtimeObj, lookupErr := getAgentRuntimeForWorkload(ctx, dynamicClient, namespace, name); lookupErr == nil && runtimeObj != nil {
+		agentRuntimeName = runtimeObj.GetName()
+	}
+
+	access, err := c.k8sClient.CanAccessAgentCardEnrichment(ctx, c.identity, namespace, agentRuntimeName)
 	if err != nil {
-		c.logger.Warn("skipping agent card enrichment; dynamic client unavailable",
+		c.logger.Warn("skipping agent card enrichment; enrichment access check failed",
 			slog.String("namespace", namespace),
 			slog.String("name", name),
+			slog.String("agentRuntime", agentRuntimeName),
 			slog.Any("error", err))
 		return
 	}

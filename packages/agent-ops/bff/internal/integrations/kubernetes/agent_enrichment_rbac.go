@@ -15,11 +15,11 @@ var mcpEnrichmentAPIGroups = []string{"mcp.kuadrant.io", "mcp.kagenti.com"}
 func (kc *InternalKubernetesClient) CanAccessAgentCardEnrichment(
 	ctx context.Context,
 	identity *RequestIdentity,
-	namespace, workloadName string,
+	namespace, agentRuntimeName string,
 ) (AgentCardEnrichmentAccess, error) {
 	access := AgentCardEnrichmentAccess{}
 
-	allowedGet, err := kc.subjectAccessReviewGroup(ctx, identity, namespace, workloadName, agentRuntimeEnrichmentGroup, agentRuntimeEnrichmentResource, "get")
+	allowedGet, err := kc.subjectAccessReviewGroup(ctx, identity, namespace, agentRuntimeName, agentRuntimeEnrichmentGroup, agentRuntimeEnrichmentResource, "get")
 	if err != nil {
 		return access, err
 	}
@@ -51,11 +51,11 @@ func (kc *InternalKubernetesClient) CanAccessAgentCardEnrichment(
 func (kc *TokenKubernetesClient) CanAccessAgentCardEnrichment(
 	ctx context.Context,
 	_ *RequestIdentity,
-	namespace, workloadName string,
+	namespace, agentRuntimeName string,
 ) (AgentCardEnrichmentAccess, error) {
 	access := AgentCardEnrichmentAccess{}
 
-	allowedGet, err := kc.selfSubjectAccessReviewGroup(ctx, namespace, workloadName, agentRuntimeEnrichmentGroup, agentRuntimeEnrichmentResource, "get")
+	allowedGet, err := kc.selfSubjectAccessReviewGroup(ctx, namespace, agentRuntimeName, agentRuntimeEnrichmentGroup, agentRuntimeEnrichmentResource, "get")
 	if err != nil {
 		return access, err
 	}

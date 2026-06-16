@@ -19,19 +19,33 @@ const (
 	WorkloadTypeJob         = "job"
 )
 
-// A2AAgentCardPath is the default in-cluster/public path suffix for A2A agent card discovery.
-// Override with AGENT_OPS_A2A_AGENT_CARD_PATH.
-var A2AAgentCardPath = "/.well-known/agent-card.json"
+const (
+	defaultA2AAgentCardPath  = "/.well-known/agent-card.json"
+	defaultSpiffeTrustDomain = "cluster.local"
+	envA2AAgentCardPath      = "AGENT_OPS_A2A_AGENT_CARD_PATH"
+	envSpiffeTrustDomain     = "AGENT_OPS_SPIFFE_TRUST_DOMAIN"
+)
 
-// DefaultSpiffeTrustDomain is the default SPIFFE trust domain when none is attested on the card.
-// Override with AGENT_OPS_SPIFFE_TRUST_DOMAIN.
-var DefaultSpiffeTrustDomain = "cluster.local"
+var (
+	configuredA2AAgentCardPath  = defaultA2AAgentCardPath
+	configuredSpiffeTrustDomain = defaultSpiffeTrustDomain
+)
 
 func init() {
-	if value := os.Getenv("AGENT_OPS_A2A_AGENT_CARD_PATH"); value != "" {
-		A2AAgentCardPath = value
+	if value := os.Getenv(envA2AAgentCardPath); value != "" {
+		configuredA2AAgentCardPath = value
 	}
-	if value := os.Getenv("AGENT_OPS_SPIFFE_TRUST_DOMAIN"); value != "" {
-		DefaultSpiffeTrustDomain = value
+	if value := os.Getenv(envSpiffeTrustDomain); value != "" {
+		configuredSpiffeTrustDomain = value
 	}
+}
+
+// A2AAgentCardPath returns the configured in-cluster/public path suffix for A2A agent card discovery.
+func A2AAgentCardPath() string {
+	return configuredA2AAgentCardPath
+}
+
+// DefaultSpiffeTrustDomain returns the configured SPIFFE trust domain when none is attested on the card.
+func DefaultSpiffeTrustDomain() string {
+	return configuredSpiffeTrustDomain
 }

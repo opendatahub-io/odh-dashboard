@@ -2,83 +2,126 @@ package repositories
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"sort"
-	"strconv"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
 )
 
 const (
-	defaultAgentRuntimesLimit = 100
-	maxAgentRuntimesLimit     = 500
+	// DefaultAgentRuntimesLimit is the default page size for runtime list queries.
+	DefaultAgentRuntimesLimit = 100
+	// MaxAgentRuntimesLimit is the maximum page size for runtime list queries.
+	MaxAgentRuntimesLimit = 500
 )
 
-func normalizeAgentRuntimesLimit(limit int) int {
+// NormalizeAgentRuntimesLimit clamps list page sizes to supported bounds.
+func NormalizeAgentRuntimesLimit(limit int) int {
 	if limit <= 0 {
-		return defaultAgentRuntimesLimit
+		return DefaultAgentRuntimesLimit
 	}
-	if limit > maxAgentRuntimesLimit {
-		return maxAgentRuntimesLimit
+	if limit > MaxAgentRuntimesLimit {
+		return MaxAgentRuntimesLimit
 	}
 	return limit
 }
 
-func paginateAgentRuntimes(runtimes []models.AgentRuntime, limit int, continueToken string) (*models.AgentRuntimesResponse, error) {
-	limit = normalizeAgentRuntimesLimit(limit)
+type agentRuntimesCursor struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+}
 
-	offset, err := decodeAgentRuntimesContinueToken(continueToken)
+func paginateAgentRuntimes(runtimes []models.AgentRuntime, limit int, continueToken string) (*models.AgentRuntimesResponse, error) {
+	limit = NormalizeAgentRuntimesLimit(limit)
+
+	sort.Slice(runtimes, func(i, j int) bool {
+		return compareAgentRuntimes(runtimes[i], runtimes[j]) < 0
+	})
+
+	start, err := startIndexAfterCursor(runtimes, continueToken)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidContinueToken, err)
 	}
 
-	sort.Slice(runtimes, func(i, j int) bool {
-		if runtimes[i].Namespace != runtimes[j].Namespace {
-			return runtimes[i].Namespace < runtimes[j].Namespace
-		}
-		return runtimes[i].Name < runtimes[j].Name
-	})
-
-	if offset > len(runtimes) {
-		offset = len(runtimes)
-	}
-
-	end := offset + limit
+	end := start + limit
 	hasMore := end < len(runtimes)
 	if end > len(runtimes) {
 		end = len(runtimes)
 	}
 
-	page := runtimes[offset:end]
+	page := runtimes[start:end]
 	response := &models.AgentRuntimesResponse{
 		Runtimes: page,
 	}
-	if hasMore {
-		token := encodeAgentRuntimesContinueToken(end)
+	if hasMore && len(page) > 0 {
+		last := page[len(page)-1]
+		token := encodeAgentRuntimesContinueToken(agentRuntimesCursor{
+			Namespace: last.Namespace,
+			Name:      last.Name,
+		})
 		response.ContinueToken = &token
 	}
 
 	return response, nil
 }
 
-func encodeAgentRuntimesContinueToken(offset int) string {
-	return base64.RawURLEncoding.EncodeToString([]byte(strconv.Itoa(offset)))
+func compareAgentRuntimes(left, right models.AgentRuntime) int {
+	if left.Namespace != right.Namespace {
+		if left.Namespace < right.Namespace {
+			return -1
+		}
+		return 1
+	}
+	if left.Name != right.Name {
+		if left.Name < right.Name {
+			return -1
+		}
+		return 1
+	}
+	return 0
 }
 
-func decodeAgentRuntimesContinueToken(token string) (int, error) {
-	if token == "" {
+func startIndexAfterCursor(runtimes []models.AgentRuntime, continueToken string) (int, error) {
+	if continueToken == "" {
 		return 0, nil
 	}
 
-	raw, err := base64.RawURLEncoding.DecodeString(token)
+	cursor, err := decodeAgentRuntimesContinueToken(continueToken)
 	if err != nil {
 		return 0, err
 	}
 
-	offset, err := strconv.Atoi(string(raw))
-	if err != nil || offset < 0 {
-		return 0, fmt.Errorf("invalid offset")
+	for i, runtime := range runtimes {
+		if compareAgentRuntimes(runtime, cursor) > 0 {
+			return i, nil
+		}
 	}
 
-	return offset, nil
+	return len(runtimes), nil
+}
+
+func encodeAgentRuntimesContinueToken(cursor agentRuntimesCursor) string {
+	payload, _ := json.Marshal(cursor)
+	return base64.RawURLEncoding.EncodeToString(payload)
+}
+
+func decodeAgentRuntimesContinueToken(token string) (models.AgentRuntime, error) {
+	raw, err := base64.RawURLEncoding.DecodeString(token)
+	if err != nil {
+		return models.AgentRuntime{}, err
+	}
+
+	var cursor agentRuntimesCursor
+	if err := json.Unmarshal(raw, &cursor); err != nil {
+		return models.AgentRuntime{}, err
+	}
+	if cursor.Namespace == "" || cursor.Name == "" {
+		return models.AgentRuntime{}, fmt.Errorf("cursor must include namespace and name")
+	}
+
+	return models.AgentRuntime{
+		Namespace: cursor.Namespace,
+		Name:      cursor.Name,
+	}, nil
 }

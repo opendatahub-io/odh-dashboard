@@ -25,7 +25,7 @@ type KubernetesClientInterface interface {
 	// (deployment, statefulset, or job) and its service in the namespace.
 	CanGetAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace, name string) (bool, error)
 	// CanAccessAgentCardEnrichment checks SAR/SSAR for optional card enrichment sources.
-	CanAccessAgentCardEnrichment(ctx context.Context, identity *RequestIdentity, namespace, workloadName string) (AgentCardEnrichmentAccess, error)
+	CanAccessAgentCardEnrichment(ctx context.Context, identity *RequestIdentity, namespace, agentRuntimeName string) (AgentCardEnrichmentAccess, error)
 	// KubernetesClientset exposes the underlying clientset for workload reads.
 	KubernetesClientset() kubernetes.Interface
 	// DynamicClient exposes a dynamic client for CRD reads (e.g. AgentRuntime).

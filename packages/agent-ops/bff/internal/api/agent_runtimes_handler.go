@@ -13,16 +13,11 @@ import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 )
 
-const (
-	defaultAgentRuntimesLimit = 100
-	maxAgentRuntimesLimit     = 500
-)
-
 type AgentRuntimesEnvelope Envelope[*models.AgentRuntimesResponse, None]
 
 func parseListAgentRuntimesOptions(r *http.Request) (models.ListAgentRuntimesOptions, error) {
 	opts := models.ListAgentRuntimesOptions{
-		Limit:         defaultAgentRuntimesLimit,
+		Limit:         repositories.DefaultAgentRuntimesLimit,
 		ContinueToken: r.URL.Query().Get("continueToken"),
 	}
 
@@ -32,11 +27,8 @@ func parseListAgentRuntimesOptions(r *http.Request) (models.ListAgentRuntimesOpt
 	}
 
 	limit, err := strconv.Atoi(limitValue)
-	if err != nil || limit < 1 {
-		return models.ListAgentRuntimesOptions{}, fmt.Errorf("limit must be an integer between 1 and %d", maxAgentRuntimesLimit)
-	}
-	if limit > maxAgentRuntimesLimit {
-		limit = maxAgentRuntimesLimit
+	if err != nil || limit < 1 || limit > repositories.MaxAgentRuntimesLimit {
+		return models.ListAgentRuntimesOptions{}, fmt.Errorf("limit must be an integer between 1 and %d", repositories.MaxAgentRuntimesLimit)
 	}
 
 	opts.Limit = limit

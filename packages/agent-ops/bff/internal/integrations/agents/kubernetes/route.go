@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"sort"
 	"strings"
@@ -135,11 +134,12 @@ func routeAgentCardURL(route *unstructured.Unstructured) string {
 	}
 
 	path := strings.TrimSpace(stringField(spec["path"]))
+	cardPath := agents.A2AAgentCardPath()
 	if path == "" {
-		path = agents.A2AAgentCardPath
-	} else if !strings.HasSuffix(path, agents.A2AAgentCardPath) {
-		path = strings.TrimSuffix(path, "/") + agents.A2AAgentCardPath
+		path = cardPath
+	} else if !strings.HasSuffix(path, cardPath) {
+		path = strings.TrimSuffix(path, "/") + cardPath
 	}
 
-	return agents.SanitizeHTTPURL(fmt.Sprintf("%s://%s%s", scheme, host, path))
+	return agents.BuildSanitizedHTTPURL(scheme, host, path)
 }

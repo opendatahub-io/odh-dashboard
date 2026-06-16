@@ -82,7 +82,7 @@ func BuildAgentCardDiscoveryURL(serviceEndpoints []models.AgentServiceEndpoint) 
 		if base == "" {
 			continue
 		}
-		return strings.TrimSuffix(base, "/") + agents.A2AAgentCardPath
+		return strings.TrimSuffix(base, "/") + agents.A2AAgentCardPath()
 	}
 
 	// Endpoints without port metadata: use the first non-empty URL.
@@ -91,7 +91,7 @@ func BuildAgentCardDiscoveryURL(serviceEndpoints []models.AgentServiceEndpoint) 
 		if base == "" {
 			continue
 		}
-		return strings.TrimSuffix(base, "/") + agents.A2AAgentCardPath
+		return strings.TrimSuffix(base, "/") + agents.A2AAgentCardPath()
 	}
 	return ""
 }
@@ -101,10 +101,10 @@ func agentCardURLFromCardField(rawURL string) string {
 	if url == "" {
 		return ""
 	}
-	if strings.HasSuffix(url, agents.A2AAgentCardPath) {
+	if strings.HasSuffix(url, agents.A2AAgentCardPath()) {
 		return url
 	}
-	return url + agents.A2AAgentCardPath
+	return url + agents.A2AAgentCardPath()
 }
 
 func MapAgentCardSkills(skills []agents.AgentCardSkillObserved) []models.AgentCardSkill {
@@ -290,7 +290,7 @@ func resolveSpiffeID(card *agents.AgentCardObserved, detail *agents.AgentDetail)
 		serviceAccount = "default"
 	}
 	return fmt.Sprintf("spiffe://%s/ns/%s/sa/%s",
-		agents.DefaultSpiffeTrustDomain,
+		agents.DefaultSpiffeTrustDomain(),
 		detail.Metadata.Namespace,
 		serviceAccount,
 	)
