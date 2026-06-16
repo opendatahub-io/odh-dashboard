@@ -1,5 +1,6 @@
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { mockK8sResourceList } from '#~/__mocks__';
 import { KnownLabels } from '#~/k8sTypes';
 import { mockCustomSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import { useExistingSecrets } from '#~/pages/projects/screens/spawner/environmentVariables/useExistingSecrets';
@@ -22,18 +23,17 @@ describe('useExistingSecrets', () => {
   });
 
   it('should fetch and return only non-connection non-dashboard Opaque secrets', async () => {
-    k8sListResourceMock.mockResolvedValue({
-      items: [
-        (() => {
-          const s = mockCustomSecretK8sResource({
-            name: 'external-secret',
-            namespace: 'ns',
-            data: { DB_HOST: 'aG9zdA==', DB_PORT: 'NTQzMg==' },
-            type: 'Opaque',
-          });
-          delete s.metadata.labels;
-          return s;
-        })(),
+    const externalSecret = mockCustomSecretK8sResource({
+      name: 'external-secret',
+      namespace: 'ns',
+      data: { DB_HOST: 'aG9zdA==', DB_PORT: 'NTQzMg==' },
+      type: 'Opaque',
+    });
+    delete externalSecret.metadata.labels;
+
+    k8sListResourceMock.mockResolvedValue(
+      mockK8sResourceList([
+        externalSecret,
         mockCustomSecretK8sResource({
           name: 'connection-secret',
           namespace: 'ns',
@@ -54,8 +54,8 @@ describe('useExistingSecrets', () => {
           data: { token: 'dG9r' },
           type: 'kubernetes.io/service-account-token',
         }),
-      ],
-    });
+      ]),
+    );
 
     const renderResult = testHook(useExistingSecrets)('ns');
     await renderResult.waitForNextUpdate();
@@ -75,7 +75,7 @@ describe('useExistingSecrets', () => {
       type: 'Opaque',
     });
     delete s.metadata.labels;
-    k8sListResourceMock.mockResolvedValue({ items: [s] });
+    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([s]));
 
     const renderResult = testHook(useExistingSecrets)('ns');
     await renderResult.waitForNextUpdate();
@@ -95,7 +95,7 @@ describe('useExistingSecrets', () => {
     delete secret.metadata.labels;
     delete (secret as Record<string, unknown>).data;
 
-    k8sListResourceMock.mockResolvedValue({ items: [secret] });
+    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([secret]));
 
     const renderResult = testHook(useExistingSecrets)('ns');
     await renderResult.waitForNextUpdate();
