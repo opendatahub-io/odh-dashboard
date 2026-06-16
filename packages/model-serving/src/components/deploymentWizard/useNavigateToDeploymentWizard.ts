@@ -57,16 +57,18 @@ export const useNavigateToDeploymentWizard = (
 ): ((projectName?: string, initialDataOnNavigate?: InitialWizardFormData | null) => void) => {
   const navigate: NavigateFunction = useNavigate();
   const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
+  // Projects routes don't exist in project-less distributions (e.g. RHAII)
+  const hasProjects = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW).status;
 
   // Load hooks needed for the deployment wizard
   const { formData, loaded, error } = useExtractFormDataFromDeployment(deployment);
   const location = useLocation();
   let returnRoute = returnRouteValue ?? location.pathname;
-  if (returnRoute.includes('projects')) {
+  if (hasProjects && returnRoute.includes('projects')) {
     returnRoute += '?section=model-server';
   }
   let cancelReturnRoute = cancelReturnRouteValue ?? location.pathname;
-  if (cancelReturnRoute.includes('projects')) {
+  if (hasProjects && cancelReturnRoute.includes('projects')) {
     cancelReturnRoute += '?section=model-server';
   }
 
