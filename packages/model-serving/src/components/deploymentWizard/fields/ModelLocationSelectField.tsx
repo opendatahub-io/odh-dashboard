@@ -25,23 +25,11 @@ import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsArea
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
+import { ociOption, s3Option, uriOption } from './modelLocationFields/modeLocationTypes';
 import { isModelLocationType, ModelLocationData, ModelLocationType } from '../types';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 // Component
-
-export const s3Option = {
-  key: 'S3',
-  label: 'S3 object storage',
-};
-export const ociOption = {
-  key: 'OCI',
-  label: 'OCI compliant registry',
-};
-export const uriOption = {
-  key: 'URI',
-  label: 'URI',
-};
 
 type ModelLocationSelectFieldProps = {
   wizardState: UseModelDeploymentWizardState;
