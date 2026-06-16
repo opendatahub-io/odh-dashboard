@@ -383,7 +383,8 @@ var _ = Describe("fetchMaaSModels", func() {
 
 		assert.Error(t, err)
 		assert.Nil(t, aaModels)
-		assert.Contains(t, err.Error(), "failed to call MaaS BFF")
+		// Error is returned unwrapped from Call - check for BFFClientError details
+		assert.Contains(t, err.Error(), "mock BFF error")
 	})
 
 	It("should handle MaaS models with ModelDetails correctly", func() {
