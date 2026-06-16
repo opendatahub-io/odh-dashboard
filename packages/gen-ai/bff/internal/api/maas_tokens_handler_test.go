@@ -200,6 +200,31 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Contains(t, strings.ToLower(string(body)), "subscription is required")
 	})
+
+	t.Run("should return 503 when MaaS BFF client is nil", func(t *testing.T) {
+		tokenRequest := models.MaaSTokenRequest{Subscription: "test-subscription"}
+		requestBody, err := json.Marshal(tokenRequest)
+		assert.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Simulate AttachBFFMaaSClient middleware with nil client (MaaS BFF not configured)
+		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), nil)
+		req = req.WithContext(ctx)
+
+		app.MaaSIssueTokenHandler(rr, req, nil)
+
+		// Should return 503 when BFF client is unavailable
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+
+		defer rr.Result().Body.Close()
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		assert.Contains(t, strings.ToLower(string(body)), "not available")
+	})
 }
 
 // TestMaaSBFFAPIKeyResponseContract verifies that Gen AI BFF correctly unmarshals
