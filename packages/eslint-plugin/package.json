@@ -8,9 +8,12 @@
   "dependencies": {
     "micromatch": "^4.0.8"
   },
+  "peerDependencies": {
+    "eslint": "^8.0.0"
+  },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "eslint": "^8.57.0"
+    "eslint": "^8.57.1"
   }
 }
 

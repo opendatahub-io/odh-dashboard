@@ -32,7 +32,7 @@ const assertPerformanceFiltersVisible = (shouldExist: boolean): void => {
   cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.workloadType).should(assertion);
   cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.latency).should(assertion);
   cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.maxRps).should(assertion);
-  cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.coldStartLatency).should(assertion);
+  cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.coldStartLoadTime).should(assertion);
 };
 
 const visitWithPerformanceToggle = (toggleOn: boolean): void => {
@@ -76,7 +76,9 @@ describe('Model Catalog Performance Filters API Behavior', () => {
         expect(url).to.not.include('artifacts.e2e');
         expect(url).to.not.include('artifacts.itl');
         expect(url).to.not.include('artifacts.requests_per_second');
-        expect(url).to.not.include('cold_start_load_time_seconds');
+        expect(url).to.not.include('cold_start_time_to_load_seconds');
+        expect(url).to.not.include('min_vram_gb');
+        expect(url).to.not.include('modelcar_image_size');
         expect(url).to.not.include('targetRPS');
         expect(url).to.not.include('latencyProperty');
 
@@ -159,7 +161,9 @@ describe('Model Catalog Performance Filters API Behavior', () => {
 
         expect(url).to.not.include('artifacts.use_case');
         expect(url).to.not.include('artifacts.ttft');
-        expect(url).to.not.include('cold_start_load_time_seconds');
+        expect(url).to.not.include('cold_start_time_to_load_seconds');
+        expect(url).to.not.include('min_vram_gb');
+        expect(url).to.not.include('modelcar_image_size');
         expect(url).to.not.include('targetRPS');
       });
 
@@ -301,8 +305,8 @@ describe('Model Catalog Performance Filters API Behavior', () => {
     });
   });
 
-  describe('Cold start latency filter API behavior', () => {
-    it('should include cold_start_load_time_seconds in filterQuery when applied with toggle ON', () => {
+  describe('Cold start load time filter API behavior', () => {
+    it('should include cold_start_time_to_load_seconds in filterQuery when applied with toggle ON', () => {
       visitWithPerformanceToggle(true);
 
       modelCatalog.openColdStartLatencyFilter();
@@ -314,11 +318,11 @@ describe('Model Catalog Performance Filters API Behavior', () => {
 
       cy.wait('@getModelsWithColdStart').then((interception) => {
         const decodedUrl = decodeURIComponent(interception.request.url);
-        expect(decodedUrl).to.include('cold_start_load_time_seconds');
+        expect(decodedUrl).to.include('cold_start_time_to_load_seconds');
       });
     });
 
-    it('should NOT include cold_start_load_time_seconds after toggle is turned OFF', () => {
+    it('should NOT include cold_start_time_to_load_seconds after toggle is turned OFF', () => {
       visitWithPerformanceToggle(true);
 
       modelCatalog.openColdStartLatencyFilter();
@@ -333,11 +337,11 @@ describe('Model Catalog Performance Filters API Behavior', () => {
 
       cy.wait('@getModelsWithoutColdStart').then((interception) => {
         const decodedUrl = decodeURIComponent(interception.request.url);
-        expect(decodedUrl).to.not.include('cold_start_load_time_seconds');
+        expect(decodedUrl).to.not.include('cold_start_time_to_load_seconds');
       });
     });
 
-    it('should pass cold_start_load_time_seconds as orderBy when cold start sort is selected', () => {
+    it('should pass cold_start_time_to_load_seconds as orderBy when cold start sort is selected', () => {
       visitWithPerformanceToggle(true);
 
       modelCatalog.selectSortOption('sort-option-lowest-cold-start');
@@ -348,8 +352,84 @@ describe('Model Catalog Performance Filters API Behavior', () => {
 
       cy.wait('@getModelsSortedColdStart').then((interception) => {
         const decodedUrl = decodeURIComponent(interception.request.url);
-        expect(decodedUrl).to.include('cold_start_load_time_seconds');
+        expect(decodedUrl).to.include('cold_start_time_to_load_seconds');
         expect(decodedUrl).to.include('sortOrder=ASC');
+      });
+    });
+  });
+
+  describe('Min vRAM and Container size filter API behavior', () => {
+    it('should include min_vram_gb in filterQuery when vRAM filter is applied', () => {
+      visitWithPerformanceToggle(true);
+
+      cy.findByTestId('minimum-vram-filter').scrollIntoView();
+      cy.findByTestId('minimum-vram-filter').click();
+      cy.findByTestId('minimum-vram-apply-filter').should('be.visible').click();
+
+      cy.intercept('GET', '**/model_catalog/models*').as('getModelsWithVramFilter');
+
+      triggerFilterRefresh();
+
+      cy.wait('@getModelsWithVramFilter').then((interception) => {
+        const decodedUrl = decodeURIComponent(interception.request.url);
+        expect(decodedUrl).to.include('min_vram_gb.double_value');
+      });
+    });
+
+    it('should include modelcar_image_size in filterQuery when container size filter is applied', () => {
+      visitWithPerformanceToggle(true);
+
+      cy.findByTestId('container-size-filter').scrollIntoView();
+      cy.findByTestId('container-size-filter').click();
+      cy.findByTestId('container-size-apply-filter').should('be.visible').click();
+
+      cy.intercept('GET', '**/model_catalog/models*').as('getModelsWithContainerSizeFilter');
+
+      triggerFilterRefresh();
+
+      cy.wait('@getModelsWithContainerSizeFilter').then((interception) => {
+        const decodedUrl = decodeURIComponent(interception.request.url);
+        expect(decodedUrl).to.include('modelcar_image_size.double_value');
+      });
+    });
+
+    it('should NOT include min_vram_gb after toggle is turned OFF', () => {
+      visitWithPerformanceToggle(true);
+
+      cy.findByTestId('minimum-vram-filter').scrollIntoView();
+      cy.findByTestId('minimum-vram-filter').click();
+      cy.findByTestId('minimum-vram-apply-filter').should('be.visible').click();
+
+      modelCatalog.togglePerformanceView();
+      modelCatalog.findLoadingState().should('not.exist');
+
+      cy.intercept('GET', '**/model_catalog/models*').as('getModelsWithoutVram');
+
+      triggerFilterRefresh();
+
+      cy.wait('@getModelsWithoutVram').then((interception) => {
+        const decodedUrl = decodeURIComponent(interception.request.url);
+        expect(decodedUrl).to.not.include('min_vram_gb');
+      });
+    });
+
+    it('should NOT include modelcar_image_size after toggle is turned OFF', () => {
+      visitWithPerformanceToggle(true);
+
+      cy.findByTestId('container-size-filter').scrollIntoView();
+      cy.findByTestId('container-size-filter').click();
+      cy.findByTestId('container-size-apply-filter').should('be.visible').click();
+
+      modelCatalog.togglePerformanceView();
+      modelCatalog.findLoadingState().should('not.exist');
+
+      cy.intercept('GET', '**/model_catalog/models*').as('getModelsWithoutContainerSize');
+
+      triggerFilterRefresh();
+
+      cy.wait('@getModelsWithoutContainerSize').then((interception) => {
+        const decodedUrl = decodeURIComponent(interception.request.url);
+        expect(decodedUrl).to.not.include('modelcar_image_size');
       });
     });
   });

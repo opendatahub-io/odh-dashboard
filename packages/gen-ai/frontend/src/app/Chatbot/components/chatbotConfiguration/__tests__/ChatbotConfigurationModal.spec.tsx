@@ -300,6 +300,77 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
   });
 });
 
+// ─── ASR model exclusion ──────────────────────────────────────────────────────
+
+describe('ChatbotConfigurationModal ASR model exclusion', () => {
+  it('excludes ASR-only models from the model list', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const asrModel = createAIModel({
+      model_name: 'whisper-asr',
+      display_name: 'Whisper ASR',
+      capabilities: ['audio-transcription'],
+    });
+    renderModal({ allModels: [chatModel, asrModel] });
+    expect(getSelectedModelNames()).toEqual(['chat-model']);
+  });
+
+  it('keeps models that have ASR plus other capabilities', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const multiCapModel = createAIModel({
+      model_name: 'multi-cap',
+      display_name: 'Multi Cap',
+      capabilities: ['text-generation', 'audio-transcription'],
+    });
+    renderModal({ allModels: [chatModel, multiCapModel] });
+    expect(getSelectedModelNames()).toEqual(['chat-model', 'multi-cap']);
+  });
+
+  it('keeps models without capabilities (defaults to text-generation)', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const noCapsModel = createAIModel({
+      model_name: 'no-caps',
+      display_name: 'No Caps Model',
+    });
+    renderModal({ allModels: [chatModel, noCapsModel] });
+    expect(getSelectedModelNames()).toEqual(['chat-model', 'no-caps']);
+  });
+
+  it('excludes ASR-only models from extraSelectedModels when existingModels present', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const asrModel = createAIModel({
+      model_name: 'whisper-asr',
+      display_name: 'Whisper ASR',
+      capabilities: ['audio-transcription'],
+    });
+    const existing: LlamaModel[] = [
+      {
+        id: 'pA/chat-model',
+        object: 'model',
+        created: Date.now(),
+        owned_by: 'x',
+        modelId: 'chat-model',
+      },
+    ];
+    renderModal({
+      allModels: [chatModel, asrModel],
+      existingModels: existing,
+      extraSelectedModels: [asrModel],
+    });
+    expect(getSelectedModelNames()).toEqual(['chat-model']);
+  });
+
+  it('excludes ASR-only models from extraSelectedModels in fallback path', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const asrModel = createAIModel({
+      model_name: 'whisper-asr',
+      display_name: 'Whisper ASR',
+      capabilities: ['audio-transcription'],
+    });
+    renderModal({ allModels: [chatModel, asrModel], extraSelectedModels: [chatModel, asrModel] });
+    expect(getSelectedModelNames()).toEqual(['chat-model']);
+  });
+});
+
 // ─── max_tokens ───────────────────────────────────────────────────────────────
 
 describe('ChatbotConfigurationModal max_tokens support', () => {

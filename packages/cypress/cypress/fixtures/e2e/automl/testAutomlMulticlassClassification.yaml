@@ -6,5 +6,8 @@ runDescription: 'E2E test multiclass classification run'
 trainingDataFile: automl-multiclass-test-data.csv
 taskType: multiclass
 topN: 1
+defaultMetricLabel: Accuracy
+changedMetricKey: f1_macro
+changedMetricLabel: F₁ Macro
 labelColumn: species
 awsBucket: BUCKET_2

@@ -84,6 +84,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "LLM-D Codestral 22B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "llm-d-deepseek-coder-33b",
@@ -99,6 +100,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "LLM-D DeepSeek Coder 33B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 		}
 	case "mock-test-namespace-2", "mock-test-namespace-3":
@@ -118,6 +120,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "Granite 7B code",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "llama-3.1-8b-instruct",
@@ -134,6 +137,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "Llama 3.1 8B instruct",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "mistral-7b-instruct",
@@ -149,6 +153,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Stop",
 				DisplayName:     "Mistral 7B instruct",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "ollama/llama3.2:3b",
@@ -165,6 +170,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "Ollama Llama 3.2 3B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "ollama/all-minilm:l6-v2",
@@ -181,6 +187,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "Ollama All MiniLM L6 v2",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 		}
 
@@ -201,6 +208,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "LLM-D Llama 3.1 70B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "llm-d-mixtral-8x7b",
@@ -217,6 +225,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "LLM-D Mixtral 8x7B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "llm-d-qwen2.5-72b",
@@ -232,6 +241,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "LLM-D Qwen 2.5 72B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 		}
 

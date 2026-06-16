@@ -49,8 +49,9 @@ export const getExternalRouteFromDeployment = (deployment: Deployment): boolean 
 export const getTokenAuthenticationFromDeployment = (
   deployment: Deployment,
   deploymentSecrets: SecretKind[],
+  platformAuthCheck?: (deployment: Deployment) => boolean,
 ): TokenAuthenticationFieldData => {
-  const isTokenAuthEnabled = isDeploymentAuthEnabled(deployment);
+  const isTokenAuthEnabled = isDeploymentAuthEnabled(deployment, platformAuthCheck);
 
   if (isTokenAuthEnabled) {
     return deploymentSecrets.map((secret) => ({

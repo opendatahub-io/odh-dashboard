@@ -20,11 +20,18 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/model-serving": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-core": "^6",
+    "react": "^18",
+    "react-dom": "^18"
   }
 }
