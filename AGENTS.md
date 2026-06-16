@@ -21,7 +21,7 @@ odh-dashboard/
 │   ├── internal/controller/    # Reconciler, actions, support utilities
 │   └── config/                 # Generated CRD, RBAC, manager manifests
 ├── distributions/               # Independently-deployable dashboard variants
-│   ├── base/                    # Minimal app shell (frontend-only)
+│   ├── base/                    # Shared app shell library (not deployed on its own)
 │   ├── core-bff/                # Full Go BFF + React frontend (has BFF)
 │   └── rhaii/                   # RHAII-specific distribution (frontend-only)
 ├── packages/                    # Feature packages

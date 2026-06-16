@@ -14,9 +14,11 @@ Distributions are independently-deployable dashboard variants in `distributions/
 
 | Directory | Type | Has BFF? | Build |
 |-----------|------|----------|-------|
-| `base/` | App shell framework (PatternFly chrome, no features) | Stub only | `npm run build` |
+| `base/` | Shared app shell library (PatternFly chrome, no features) — **not deployed on its own** | Stub only | `npm run build` |
 | `core-bff/` | Full Go BFF + React frontend for sidecar/xKC deployments | Yes (Go 1.25+) | `make build` |
 | `rhaii/` | RHAII-specific distribution | No | `npm run build` |
+
+> **`base/` is a library, not a deployable distribution.** It provides the shared app shell framework (masthead, sidebar, error boundary, theme context, extensibility hooks) that concrete distributions like `core-bff/` and `rhaii/` extend. Do not treat it as a standalone application.
 
 ## Isolation from npm workspaces
 
@@ -34,11 +36,13 @@ cd distributions/core-bff && make lint
 
 ## Build and dev commands
 
-### `base/` and `rhaii/` (frontend-only)
+### `base/` (shared library) and `rhaii/` (frontend-only)
+
+`base/` is a library — run these commands for development and testing, not for standalone deployment. `rhaii/` is a deployable distribution that extends `base/`.
 
 ```bash
 npm run build         # Webpack production build
-npm run start:dev     # Webpack dev server
+npm run start:dev     # Webpack dev server (local development/testing only for base/)
 npx eslint src/       # Lint
 npx tsc --noEmit      # Type-check
 ```

@@ -94,11 +94,12 @@ Independently-deployable dashboard variants. These are NOT part of the npm works
 
 | Directory | Description | Has BFF? | Build System |
 |-----------|-------------|----------|--------------|
-| `base/` | Minimal app shell (PatternFly chrome, error boundary, no features) | Stub only | Webpack |
+| `base/` | Shared app shell library (PatternFly chrome, error boundary, extensibility hooks) — **not deployed on its own** | Stub only | Webpack |
 | `core-bff/` | Full Go BFF + React frontend for sidecar/xKC deployments | Yes (Go 1.25+) | Make + Webpack |
 | `rhaii/` | RHAII-specific distribution | No | Webpack |
 
-- `base/` and `rhaii/` are frontend-only — React + Webpack + Module Federation host configuration
+- `base/` is a shared library/framework (not independently deployed) — it provides the app shell (masthead, sidebar, error boundary, theme context) that `core-bff/` and `rhaii/` extend
+- `rhaii/` is frontend-only — React + Webpack + Module Federation host configuration
 - `core-bff/` has both a Go BFF (`bff/`) and React frontend (`frontend/`) with its own contract tests (`contract-tests/`)
 - Each distribution has its own `package.json`, `tsconfig.json`, and webpack config
 - `core-bff/` follows contract-first development (OpenAPI → BFF stub → Frontend → Production BFF)
