@@ -1,5 +1,5 @@
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import {
   useResolvedExtensions,

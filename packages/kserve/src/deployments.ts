@@ -1,8 +1,8 @@
 import React from 'react';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import {
   InferenceServiceKind,
   K8sAPIOptions,
-  ProjectKind,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import {

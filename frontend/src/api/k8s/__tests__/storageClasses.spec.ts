@@ -3,8 +3,9 @@ import {
   k8sListResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { MetadataAnnotation, StorageClassKind } from '#~/k8sTypes';
+import { StorageClassKind } from '#~/k8sTypes';
 import { StorageClassModel } from '#~/api/models';
 import { mockStorageClasses } from '#~/__mocks__';
 import {

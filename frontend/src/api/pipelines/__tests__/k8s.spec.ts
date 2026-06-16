@@ -4,6 +4,7 @@ import {
   k8sDeleteResource,
   k8sGetResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
@@ -18,7 +19,7 @@ import {
   getPipelineAPIRoute,
   getPipelinesCR,
 } from '#~/api';
-import { DSPipelineKind, K8sAPIOptions, RouteKind, SecretKind } from '#~/k8sTypes';
+import { DSPipelineKind, K8sAPIOptions, RouteKind } from '#~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),
