@@ -77,11 +77,8 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
+	// pipelineType is tabular or timeseries; HasAllRequiredAutoMLPipelines guarantees both are present.
 	discovered := discoveredPipelines[pipelineType]
-	if discovered == nil {
-		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
-		return
-	}
 
 	runResponse, err := app.repositories.PipelineRuns.CreatePipelineRun(
 		client,
