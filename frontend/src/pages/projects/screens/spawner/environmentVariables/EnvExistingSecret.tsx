@@ -193,6 +193,7 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
             value={secretSelectionOptions}
             setValue={handleSecretSelectionChange}
             hasCheckbox
+            isScrollable
             popperProps={popperProps}
           />
         </FormGroup>
