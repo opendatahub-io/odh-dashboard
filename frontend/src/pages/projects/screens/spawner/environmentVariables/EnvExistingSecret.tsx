@@ -15,7 +15,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
-import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
+import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 import { getDashboardMainContainer } from '#~/utilities/utils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ExistingSecretRef } from '#~/pages/projects/types';
@@ -55,15 +55,14 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
     [existingSecretRefs],
   );
 
-  const availableOptions = React.useMemo<TypeaheadSelectOption[]>(
+  const secretSelectionOptions = React.useMemo<SelectionOptions[]>(
     () =>
-      secrets
-        .filter((s) => !selectedNames.has(s.name))
-        .map((s) => ({
-          value: s.name,
-          content: s.name,
-          description: `${s.keys.length} key${s.keys.length !== 1 ? 's' : ''}`,
-        })),
+      secrets.map((s) => ({
+        id: s.name,
+        name: s.name,
+        description: `${s.keys.length} key${s.keys.length !== 1 ? 's' : ''}`,
+        selected: selectedNames.has(s.name),
+      })),
     [secrets, selectedNames],
   );
 
@@ -81,19 +80,24 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
     });
   }, []);
 
-  const handleAddSecret = React.useCallback(
-    (
-      _event: React.MouseEvent | React.KeyboardEvent<HTMLInputElement> | undefined,
-      value: string | number,
-    ) => {
-      const name = String(value);
-      const secret = secretsByName.get(name);
-      const keys = secret?.keys ?? [];
-      setExpandedSecrets((prev) => new Set(prev).add(name));
-      onUpdate([
-        ...existingSecretRefs,
-        { secretName: name, selectedKeys: keys, allKeys: keys.length > 0 },
-      ]);
+  const handleSecretSelectionChange = React.useCallback(
+    (options: SelectionOptions[]) => {
+      const nowSelected = new Set(options.filter((o) => o.selected).map((o) => String(o.id)));
+      const existingMap = new Map(existingSecretRefs.map((r) => [r.secretName, r]));
+
+      const newRefs: ExistingSecretRef[] = [];
+      for (const name of nowSelected) {
+        const existing = existingMap.get(name);
+        if (existing) {
+          newRefs.push(existing);
+        } else {
+          const secret = secretsByName.get(name);
+          const keys = secret?.keys ?? [];
+          setExpandedSecrets((prev) => new Set(prev).add(name));
+          newRefs.push({ secretName: name, selectedKeys: keys, allKeys: keys.length > 0 });
+        }
+      }
+      onUpdate(newRefs);
     },
     [secretsByName, existingSecretRefs, onUpdate],
   );
@@ -169,19 +173,27 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
         </HelperText>
       </StackItem>
       <StackItem>
-        <FormGroup label="Add secret" fieldId={selectFieldId}>
-          <TypeaheadSelect
-            selectOptions={availableOptions}
-            onSelect={handleAddSecret}
+        <FormGroup
+          label="Secrets"
+          fieldId={selectFieldId}
+          isRequired={existingSecretRefs.length > 0}
+        >
+          <MultiSelection
+            id={selectFieldId}
+            toggleId={selectFieldId}
+            toggleTestId={selectFieldId}
+            ariaLabel="Select secrets"
             placeholder={
-              availableOptions.length > 0 ? 'Select a secret to add' : 'No more secrets available'
+              existingSecretRefs.length > 0
+                ? `${existingSecretRefs.length} secret${
+                    existingSecretRefs.length !== 1 ? 's' : ''
+                  } selected`
+                : 'Select secrets'
             }
-            noOptionsAvailableMessage="No secrets available in this project"
-            noOptionsFoundMessage={(filter) => `No secrets found for "${filter}"`}
+            value={secretSelectionOptions}
+            setValue={handleSecretSelectionChange}
+            hasCheckbox
             popperProps={popperProps}
-            dataTestId={selectFieldId}
-            isRequired={false}
-            previewDescription
           />
         </FormGroup>
       </StackItem>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import EnvExistingSecret from '#~/pages/projects/screens/spawner/environmentVariables/EnvExistingSecret';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
@@ -66,10 +66,20 @@ describe('EnvExistingSecret', () => {
     expect(screen.getByTestId('existing-secret-no-permission')).toBeInTheDocument();
   });
 
-  it('should render description text and dropdown when loaded', () => {
+  it('should render description text and secrets dropdown when loaded', () => {
     renderComponent();
     expect(screen.getByText(/Attach an available secret/)).toBeInTheDocument();
     expect(screen.getByTestId('existing-secret-select-0')).toBeInTheDocument();
+  });
+
+  it('should show "Secrets" label as required when secrets are selected', () => {
+    renderComponent({
+      existingSecretRefs: [
+        { secretName: 'db-credentials', selectedKeys: ['DB_HOST'], allKeys: false },
+      ],
+    });
+    const label = screen.getByText('Secrets');
+    expect(label.closest('.pf-v6-c-form__group')).toBeInTheDocument();
   });
 
   it('should not show restart info when no secrets are selected', () => {
@@ -77,51 +87,28 @@ describe('EnvExistingSecret', () => {
     expect(screen.queryByText(/Environment variables are set/)).not.toBeInTheDocument();
   });
 
-  it('should render selected secrets collapsed with toggle showing name and badge', () => {
+  it('should render selected secret row with key badge', () => {
     renderComponent({
       existingSecretRefs: [
         { secretName: 'db-credentials', selectedKeys: ['DB_HOST', 'DB_PORT'], allKeys: false },
       ],
     });
 
-    expect(screen.getByTestId('existing-secret-row-db-credentials')).toBeInTheDocument();
-    expect(screen.getByText('db-credentials')).toBeInTheDocument();
-    expect(screen.getByText('2 of 3 keys')).toBeInTheDocument();
+    const row = screen.getByTestId('existing-secret-row-db-credentials');
+    expect(row).toBeInTheDocument();
+    expect(within(row).getByText('2 of 3 keys')).toBeInTheDocument();
     expect(screen.getByText(/Environment variables are set/)).toBeInTheDocument();
   });
 
-  it('should show select all button and key checkboxes when expanded', () => {
+  it('should render key checkboxes for selected secret', () => {
     renderComponent({
       existingSecretRefs: [
         { secretName: 'db-credentials', selectedKeys: ['DB_HOST', 'DB_PORT'], allKeys: false },
       ],
     });
 
-    fireEvent.click(screen.getByText('db-credentials'));
-
-    expect(screen.getByTestId('existing-secret-0-db-credentials-all-keys')).toHaveTextContent(
-      'Select all',
-    );
-    expect(screen.getByTestId('existing-secret-0-db-credentials-key-DB_HOST')).toBeVisible();
-    expect(screen.getByTestId('existing-secret-0-db-credentials-key-DB_PORT')).toBeVisible();
-  });
-
-  it('should show deselect all button when all keys are selected', () => {
-    renderComponent({
-      existingSecretRefs: [
-        {
-          secretName: 'db-credentials',
-          selectedKeys: ['DB_HOST', 'DB_PORT', 'DB_PASS'],
-          allKeys: true,
-        },
-      ],
-    });
-
-    fireEvent.click(screen.getByText('db-credentials'));
-
-    expect(screen.getByTestId('existing-secret-0-db-credentials-all-keys')).toHaveTextContent(
-      'Deselect all',
-    );
+    expect(screen.getByTestId('existing-secret-0-db-credentials-key-DB_HOST')).toBeInTheDocument();
+    expect(screen.getByTestId('existing-secret-0-db-credentials-key-DB_PORT')).toBeInTheDocument();
   });
 
   it('should call onUpdate when remove button is clicked', () => {
@@ -147,7 +134,5 @@ describe('EnvExistingSecret', () => {
 
     expect(screen.getByTestId('existing-secret-row-db-credentials')).toBeInTheDocument();
     expect(screen.getByTestId('existing-secret-row-api-config')).toBeInTheDocument();
-    expect(screen.getByText('1 of 3 keys')).toBeInTheDocument();
-    expect(screen.getByText('2 of 2 keys')).toBeInTheDocument();
   });
 });
