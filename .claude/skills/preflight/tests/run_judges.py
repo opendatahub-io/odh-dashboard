@@ -15,6 +15,7 @@ Usage:
 import argparse
 import importlib.util
 import json
+import math
 import os
 import sys
 import warnings
@@ -91,11 +92,11 @@ def run(judge_paths, experiment_id, base_dir, commit=None):
             value = row.get(value_col, "unknown")
             value_str = str(value).lower()
             if isinstance(value, (list, dict, int, float)):
-                passed = True
+                passed = not (isinstance(value, float) and math.isnan(value))
             else:
                 try:
-                    float(value_str)
-                    passed = True
+                    f = float(value_str)
+                    passed = not math.isnan(f)
                 except (ValueError, TypeError):
                     passed = value_str in ("yes", "true", "pass")
 

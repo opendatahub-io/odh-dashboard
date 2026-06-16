@@ -24,14 +24,17 @@ def get_judges():
                 result = str(outputs.get("result", ""))
                 subject = inputs.get("subject", "")
                 if "Task #" in result:
-                    task_id = result.split("Task #")[1].split(" ")[0]
-                    created[task_id] = subject
+                    parts = result.split("Task #", 1)
+                    if len(parts) > 1 and parts[1]:
+                        task_id = parts[1].split()[0] if parts[1].split() else ""
+                        if task_id:
+                            created[task_id] = subject
 
             if "TaskUpdate" in span.name:
                 status = inputs.get("status", "")
-                task_id = str(inputs.get("taskId", ""))
-                if status == "completed" and task_id:
-                    completed_ids.add(task_id)
+                task_id = inputs.get("taskId")
+                if status == "completed" and task_id is not None:
+                    completed_ids.add(str(task_id))
 
         if not created:
             return Feedback(

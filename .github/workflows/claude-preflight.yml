@@ -305,6 +305,9 @@ jobs:
           MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
           MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
           MLFLOW_WORKSPACE: "odh-dashboard-tracing"
+          TAG_COMMIT: ${{ env.HEAD_SHA }}
+          TAG_PR_NUMBER: ${{ env.PR_NUMBER }}
+          TAG_PR_URL: https://github.com/${{ github.repository }}/pull/${{ env.PR_NUMBER }}
           TRIGGER_ACTOR: ${{ github.event.comment.user.login || github.actor }}
           TRIGGER_COMMENT_URL: ${{ github.event.comment.html_url }}
           TRIGGER_COMMENT_ID: ${{ github.event.comment.id }}
@@ -313,7 +316,10 @@ jobs:
           import mlflow, os, warnings
           warnings.filterwarnings('ignore')
 
-          commit = '${{ env.HEAD_SHA }}'
+          commit = os.environ['TAG_COMMIT']
+          pr_number = os.environ['TAG_PR_NUMBER']
+          pr_url = os.environ['TAG_PR_URL']
+
           traces = mlflow.search_traces(experiment_ids=['1'], return_type='list')
           match = [t for t in traces if (t.info.request_metadata or {}).get('mlflow.source.git.commit', '').startswith(commit)]
 
@@ -322,10 +328,10 @@ jobs:
               exit(0)
 
           trace_id = match[0].info.request_id
-          print(f'[TAG] Tagging trace {trace_id[:16]} for PR #${{ env.PR_NUMBER }}')
+          print(f'[TAG] Tagging trace {trace_id[:16]} for PR #{pr_number}')
 
-          mlflow.set_trace_tag(trace_id, 'pr_number', '${{ env.PR_NUMBER }}')
-          mlflow.set_trace_tag(trace_id, 'pr_url', 'https://github.com/${{ github.repository }}/pull/${{ env.PR_NUMBER }}')
+          mlflow.set_trace_tag(trace_id, 'pr_number', pr_number)
+          mlflow.set_trace_tag(trace_id, 'pr_url', pr_url)
           mlflow.set_trace_tag(trace_id, 'triggered_by', os.environ.get('TRIGGER_ACTOR', ''))
           comment_url = os.environ.get('TRIGGER_COMMENT_URL', '')
           if comment_url:
@@ -347,7 +353,7 @@ jobs:
         run: |
           python3 .claude/skills/preflight/tests/test_skill.py \
             .claude/skills/preflight/tests/configs/preflight_check.yaml \
-            --commit ${{ env.HEAD_SHA }}
+            --commit "$HEAD_SHA"
 
       # ── Report ──
       - name: Update check run (success)
