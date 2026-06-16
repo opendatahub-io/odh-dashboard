@@ -10,6 +10,7 @@ import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testAppLogger() *slog.Logger {
@@ -44,6 +45,15 @@ func TestAgentRuntimeDetailRoute_Registered(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent", nil)
 	app.Routes().ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestNewApp_AuthDisabledRequiresMockAgentClient(t *testing.T) {
+	_, err := NewApp(config.EnvConfig{
+		AuthMethod:      config.AuthMethodDisabled,
+		MockAgentClient: false,
+	}, testAppLogger())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "MOCK_AGENT_CLIENT")
 }
 
 func TestInjectRequestIdentity_UnauthorizedWithoutToken(t *testing.T) {

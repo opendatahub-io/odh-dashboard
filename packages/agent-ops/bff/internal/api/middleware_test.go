@@ -164,6 +164,58 @@ func TestAttachNamespaceFromParam_InvalidNamespace(t *testing.T) {
 	assert.False(t, called)
 }
 
+func TestRequireAccessToAgent_InvalidAgentName(t *testing.T) {
+	app := newRBACTestAppWithGet(true, true)
+
+	handler := app.RequireAccessToAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called when agent name is invalid")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/demo-ns/INVALID.agent", nil)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "demo-ns")
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "INVALID.agent"}})
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestRequireAuthenticatedForAgents_Allowed(t *testing.T) {
+	app := newRBACTestApp(true)
+	called := false
+
+	handler := app.RequireAuthenticatedForAgents(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath, nil)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.True(t, called)
+}
+
+func TestRequireAuthenticatedForAgents_Unauthorized(t *testing.T) {
+	app := newRBACTestApp(true)
+
+	handler := app.RequireAuthenticatedForAgents(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called without identity")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath, nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	require.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
 func TestRequireAccessToAgent_Allowed(t *testing.T) {
 	app := newRBACTestAppWithGet(true, true)
 	called := false

@@ -25,9 +25,7 @@ type Client struct {
 func (c *Client) ListNamespaces(ctx context.Context, enabledOnly bool) ([]string, error) {
 	namespaces, err := c.k8sClient.GetNamespaces(ctx, c.identity)
 	if err != nil {
-		c.logger.Warn("failed to list namespaces for agent discovery",
-			slog.Any("error", err))
-		return []string{}, nil
+		return nil, fmt.Errorf("failed to list namespaces for agent discovery: %w", err)
 	}
 
 	result := make([]string, 0, len(namespaces))

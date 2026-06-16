@@ -25,6 +25,10 @@ func NewFactory(k8sFactory k8s.KubernetesClientFactory, logger *slog.Logger) *Fa
 
 // GetClient implements agents.ClientFactory.
 func (f *Factory) GetClient(ctx context.Context) (agents.Client, error) {
+	if f.k8sFactory == nil {
+		return nil, fmt.Errorf("kubernetes client factory is not configured")
+	}
+
 	identity, err := requestIdentityFromContext(ctx)
 	if err != nil {
 		return nil, err

@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -194,4 +195,54 @@ func TestClient_ListNamespacesSkipsWithoutKagentiLabel(t *testing.T) {
 	namespaces, err := client.ListNamespaces(context.Background(), true)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"enabled-ns"}, namespaces)
+}
+
+func TestClient_ListNamespacesReturnsErrorOnFailure(t *testing.T) {
+	client := &Client{
+		k8sClient: &failingNamespacesK8sClient{},
+		identity:  &k8s.RequestIdentity{UserID: "test-user"},
+		logger:    slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
+
+	_, err := client.ListNamespaces(context.Background(), true)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to list namespaces for agent discovery")
+}
+
+type failingNamespacesK8sClient struct{}
+
+func (c *failingNamespacesK8sClient) GetNamespaces(context.Context, *k8s.RequestIdentity) ([]corev1.Namespace, error) {
+	return nil, assert.AnError
+}
+
+func (c *failingNamespacesK8sClient) IsClusterAdmin(*k8s.RequestIdentity) (bool, error) {
+	return false, nil
+}
+
+func (c *failingNamespacesK8sClient) GetUser(*k8s.RequestIdentity) (string, error) {
+	return "test-user", nil
+}
+
+func (c *failingNamespacesK8sClient) CanListServicesInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
+	return true, nil
+}
+
+func (c *failingNamespacesK8sClient) CanListAgentsInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
+	return true, nil
+}
+
+func (c *failingNamespacesK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
+	return true, nil
+}
+
+func (c *failingNamespacesK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string, string) (k8s.AgentCardEnrichmentAccess, error) {
+	return k8s.AgentCardEnrichmentAccess{}, nil
+}
+
+func (c *failingNamespacesK8sClient) KubernetesClientset() kubernetes.Interface {
+	return nil
+}
+
+func (c *failingNamespacesK8sClient) DynamicClient() (dynamic.Interface, error) {
+	return nil, assert.AnError
 }

@@ -117,6 +117,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
+	if cfg.AuthMethod == config.AuthMethodDisabled {
+		logger.Warn("AUTH_METHOD=disabled: API authentication and RBAC middleware are bypassed; use only for local tests with MOCK_AGENT_CLIENT=true")
+		if !cfg.MockAgentClient {
+			return nil, fmt.Errorf("AUTH_METHOD=disabled requires MOCK_AGENT_CLIENT=true: Kubernetes-backed agent routes need authenticated access")
+		}
+	}
+
 	if cfg.AuthMethod != config.AuthMethodDisabled || cfg.MockK8Client {
 		if cfg.MockK8Client {
 			//mock all k8s calls with 'env test'
@@ -212,8 +219,9 @@ func (app *App) Routes() http.Handler {
 		return app.GetNamespacesHandler
 	}))
 
-	// Agent endpoints — list skips inaccessible namespaces inside the Kubernetes client.
-	apiRouter.GET(AgentRuntimesPath, app.ListAgentRuntimesHandler)
+	// Agent list: RequireAuthenticatedForAgents gates identity when auth is enabled; per-namespace
+	// SSAR filtering happens inside the Kubernetes agent client (ListNamespaces / ListAgents).
+	apiRouter.GET(AgentRuntimesPath, app.RequireAuthenticatedForAgents(app.ListAgentRuntimesHandler))
 	apiRouter.GET(AgentRuntimeDetailPath,
 		app.AttachNamespaceFromParam("ns",
 			app.RequireAccessToAgent(app.GetAgentRuntimeDetailHandler)))

@@ -132,6 +132,42 @@ func (app *App) AttachNamespaceFromParam(paramName string, next func(http.Respon
 	}
 }
 
+// authenticateAgentRequest validates caller identity for agent routes when auth is enabled.
+func (app *App) authenticateAgentRequest(w http.ResponseWriter, r *http.Request) (*k8s.RequestIdentity, bool) {
+	if app.config.AuthMethod == config.AuthMethodDisabled {
+		return nil, true
+	}
+
+	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	if !ok || identity == nil {
+		app.unauthorizedResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+		return nil, false
+	}
+
+	if app.kubernetesClientFactory == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("kubernetes client factory is not configured"))
+		return nil, false
+	}
+
+	if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
+		app.unauthorizedResponse(w, r, err)
+		return nil, false
+	}
+
+	return identity, true
+}
+
+// RequireAuthenticatedForAgents ensures agent API routes receive a valid identity when auth is enabled.
+// Namespace-scoped SSAR filtering for list results is performed in the Kubernetes agent client.
+func (app *App) RequireAuthenticatedForAgents(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if _, ok := app.authenticateAgentRequest(w, r); !ok {
+			return
+		}
+		next(w, r, ps)
+	}
+}
+
 // RequireAccessToService validates identity and checks whether the user can list services in the
 // namespace injected by AttachNamespace or AttachNamespaceFromParam.
 // This middleware must be placed after InjectRequestIdentity and a namespace-attachment middleware.
@@ -144,14 +180,8 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 
 		ctx := r.Context()
 
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-		if !ok || identity == nil {
-			app.unauthorizedResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-			return
-		}
-
-		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
-			app.unauthorizedResponse(w, r, err)
+		identity, ok := app.authenticateAgentRequest(w, r)
+		if !ok {
 			return
 		}
 
@@ -196,14 +226,8 @@ func (app *App) RequireAccessToAgent(next func(http.ResponseWriter, *http.Reques
 
 		ctx := r.Context()
 
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-		if !ok || identity == nil {
-			app.unauthorizedResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-			return
-		}
-
-		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
-			app.unauthorizedResponse(w, r, err)
+		identity, ok := app.authenticateAgentRequest(w, r)
+		if !ok {
 			return
 		}
 
@@ -213,13 +237,23 @@ func (app *App) RequireAccessToAgent(next func(http.ResponseWriter, *http.Reques
 			return
 		}
 
+		agentName := ps.ByName("name")
+		if agentName == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing required path parameter: name"))
+			return
+		}
+		if !isValidDNS1123Label(agentName) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid agent name %q", agentName))
+			return
+		}
+
 		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 		if err != nil {
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
 			return
 		}
 
-		allowed, err := k8sClient.CanGetAgentInNamespace(ctx, identity, namespace, ps.ByName("name"))
+		allowed, err := k8sClient.CanGetAgentInNamespace(ctx, identity, namespace, agentName)
 		if err != nil {
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to check agent access: %w", err))
 			return
