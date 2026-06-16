@@ -20,6 +20,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -419,6 +420,15 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 	createRequest.Subscription = strings.TrimSpace(createRequest.Subscription)
 
+	// Set input on the BFF root span for MLflow trace display
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		inputJSON, _ := json.Marshal([]map[string]string{{"role": "user", "content": createRequest.Input.Text}})
+		span.SetAttributes(
+			attribute.String("mlflow.spanInputs", string(inputJSON)),
+			attribute.String("mlflow.spanType", "CHAIN"),
+		)
+	}
+
 	// Convert chat context format
 	var chatContext []llamastack.ChatContextMessage
 	for _, msg := range createRequest.ChatContext {
@@ -585,13 +595,17 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 // checkInputModeration runs input moderation and returns the result.
 // The caller decides how to report errors (HTTP response vs SSE event).
 func (app *App) checkInputModeration(ctx context.Context, messages []nemo.Message, opts nemo.GuardrailsOptions) (flagged bool, violationReason string, err error) {
-	result, modErr := app.checkModeration(ctx, messages, opts)
+	result, modErr := app.checkModerationWithSpan(ctx, "guardrail-input-check", messages, opts)
 	if modErr != nil {
 		app.logger.Error("Input moderation check failed", "error", modErr)
 		return false, "", modErr
 	}
 	if result != nil && result.Flagged {
 		app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+		if span := trace.SpanFromContext(ctx); span.IsRecording() {
+			refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "input blocked by safety guardrails"}})
+			span.SetAttributes(attribute.String("mlflow.spanOutputs", string(refusalJSON)))
+		}
 		return true, result.ViolationReason, nil
 	}
 	return false, "", nil
@@ -779,7 +793,7 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 		responseText := extractResponseText(&responseData)
 		if responseText != "" {
 			outputMessages := []nemo.Message{{Role: nemo.RoleAssistant, Content: responseText}}
-			result, modErr := app.checkModeration(ctx, outputMessages, params.GuardrailOpts)
+			result, modErr := app.checkModerationWithSpan(ctx, "guardrail-output-check", outputMessages, params.GuardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Output moderation check failed", "error", modErr)
 				app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
@@ -787,6 +801,10 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 			}
 			if result != nil && result.Flagged {
 				app.logger.Info("Output moderation flagged content", "reason", result.ViolationReason)
+				if span := trace.SpanFromContext(ctx); span.IsRecording() {
+					refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "output blocked by safety guardrails"}})
+					span.SetAttributes(attribute.String("mlflow.spanOutputs", string(refusalJSON)))
+				}
 				app.guardrailViolationResponse(w, r, constants.GuardrailOutputViolationCode, "output blocked by safety guardrails")
 				return
 			}
@@ -803,6 +821,14 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 		LatencyMs: latencyMs,
 		Usage:     extractUsage(llamaResponse),
 		TraceID:   otelTraceID(ctx),
+	}
+
+	// Set output on the BFF root span for MLflow trace display
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		if len(responseData.Output) > 0 {
+			outputJSON, _ := json.Marshal(responseData.Output)
+			span.SetAttributes(attribute.String("mlflow.spanOutputs", string(outputJSON)))
+		}
 	}
 
 	apiResponse := llamastack.APIResponse{
