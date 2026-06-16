@@ -6,7 +6,6 @@ import { applyOpenShiftYaml } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 import { replacePlaceholdersInYaml } from '../yaml_files';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
-import { loadYamlFixture } from '../../utils/dataLoader';
 
 /**
  * Get the model registry namespace based on the environment
@@ -123,10 +122,12 @@ export const createModelRegistryDatabaseViaYAML = (
         );
         return cy.wrap(checkResult);
       }
+
       // Database doesn't exist, create it
       cy.log(`Database '${databaseName}' does not exist, proceeding with creation`);
-      return loadYamlFixture('resources/yaml/model_registry_database.yaml').then(
-        (databaseYamlContent) => {
+      return cy
+        .fixture('resources/yaml/model_registry_database.yaml')
+        .then((databaseYamlContent) => {
           const modifiedDatabaseYaml = replacePlaceholdersInYaml(
             databaseYamlContent,
             databaseReplacements,
@@ -140,8 +141,7 @@ export const createModelRegistryDatabaseViaYAML = (
               cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false });
               return cy.wrap(result);
             });
-        },
-      );
+        });
     })
     .then((result: CommandLineResult) => {
       return result;
@@ -528,7 +528,9 @@ export const createModelRegistryViaYAML = (
   cy.log(
     `Creating model registry ${registryName} in namespace ${targetNamespace} using database '${databaseName}'`,
   );
-  return loadYamlFixture('resources/yaml/model_registry.yaml')
+
+  return cy
+    .fixture('resources/yaml/model_registry.yaml')
     .then((registryYamlContent) => {
       const modifiedRegistryYaml = replacePlaceholdersInYaml(
         registryYamlContent,
@@ -582,6 +584,7 @@ export const getModelRegistryDatabaseConfig = (
 }> => {
   const targetNamespace = namespace || getModelRegistryNamespace();
   const command = `oc get modelregistry.modelregistry.opendatahub.io ${registryName} -n ${targetNamespace} -o json`;
+
   return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
@@ -659,6 +662,7 @@ export const deleteModelRegistry = (registryName: string): Cypress.Chainable<Com
   const registryCommand = `oc delete modelregistry.modelregistry.opendatahub.io ${registryName} -n ${targetNamespace} --timeout=240s`;
 
   cy.log(`Deleting model registry ${registryName} from namespace ${targetNamespace}`);
+
   return cy.exec(registryCommand, { failOnNonZeroExit: false, timeout: 240000 });
 };
 
