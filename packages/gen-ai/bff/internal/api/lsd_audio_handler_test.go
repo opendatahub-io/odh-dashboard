@@ -165,7 +165,7 @@ func asrModel(namespace string) models.AAModel {
 		Status:          models.ModelStatusRunning,
 		DisplayName:     "Whisper ASR",
 		ModelSourceType: models.ModelSourceTypeNamespace,
-		Modality:        constants.ModalityAudioTranscription,
+		Capabilities:    []string{constants.CapabilityAudioTranscription},
 	}
 }
 
@@ -296,9 +296,9 @@ func TestAudioTranscription_ModelNotFound(t *testing.T) {
 	assert.False(t, fe.Error.Retriable)
 }
 
-func TestAudioTranscription_ModelLacksModalityLabel(t *testing.T) {
+func TestAudioTranscription_ModelLacksCapability(t *testing.T) {
 	model := asrModel("test-ns")
-	model.Modality = ""
+	model.Capabilities = []string{constants.CapabilityTextGeneration}
 	app := newTestAppForASR(t, []models.AAModel{model})
 	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
 
@@ -310,7 +310,7 @@ func TestAudioTranscription_ModelLacksModalityLabel(t *testing.T) {
 	fe := parseFrontendError(t, rr.Body.Bytes())
 	assert.Equal(t, "asr", fe.Error.Component)
 	assert.Equal(t, constants.ASRCodeModelInvalid, fe.Error.Code)
-	assert.Contains(t, fe.Error.Message, "not an ASR model")
+	assert.Contains(t, fe.Error.Message, "does not have audio-transcription capability")
 	assert.False(t, fe.Error.Retriable)
 }
 

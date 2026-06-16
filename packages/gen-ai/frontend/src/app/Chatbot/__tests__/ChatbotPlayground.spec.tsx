@@ -176,6 +176,20 @@ jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-compare-id'),
   getLlamaModelDisplayName: jest.fn((id: string) => id),
   splitLlamaModelId: jest.fn((id: string) => ({ providerId: 'p', id })),
+  convertMaaSModelToAIModel: jest.fn((m: unknown) => m),
+  isPlaygroundModelMatchForAIModel: jest.fn(() => true),
+  isVisionModel: jest.fn(() => true),
+  isMaasLlamaModelId: jest.fn(() => false),
+}));
+
+jest.mock('~/app/hooks/useWorkspaceCapabilities', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    hasVisionModel: true,
+    hasASRModel: true,
+    capabilitiesReady: true,
+    capabilitiesError: false,
+  })),
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
