@@ -14,5 +14,12 @@ type AgentRuntime struct {
 
 // AgentRuntimesResponse is the list payload for deployed agent runtimes.
 type AgentRuntimesResponse struct {
-	Runtimes []AgentRuntime `json:"runtimes"`
+	Runtimes      []AgentRuntime `json:"runtimes"`
+	ContinueToken *string        `json:"continueToken,omitempty"`
+}
+
+// ListAgentRuntimesOptions controls pagination for runtime list queries.
+type ListAgentRuntimesOptions struct {
+	Limit         int
+	ContinueToken string
 }

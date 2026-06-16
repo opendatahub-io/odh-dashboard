@@ -34,7 +34,11 @@ func (app *App) handleAgentRepositoryError(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if errors.Is(err, bfferrors.ErrForbidden) {
-		app.forbiddenResponse(w, r, err.Error())
+		app.logger.Warn("Agent repository access forbidden",
+			"error", err.Error(),
+			"method", r.Method,
+			"uri", r.URL.RequestURI())
+		app.forbiddenResponse(w, r, "user does not have permission to access the requested agent")
 		return
 	}
 	if errors.Is(err, bfferrors.ErrUpstreamUnavailable) {

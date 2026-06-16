@@ -12,6 +12,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestListAgentRuntimesHandler_InvalidLimit(t *testing.T) {
+	app := &App{
+		repositories: testRepositoriesWithAgents(),
+	}
+
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath+"?limit=0", nil)
+	rr := httptest.NewRecorder()
+	app.ListAgentRuntimesHandler(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestListAgentRuntimesHandler_InvalidContinueToken(t *testing.T) {
+	app := &App{
+		repositories: testRepositoriesWithAgents(),
+	}
+
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath+"?continueToken=invalid", nil)
+	rr := httptest.NewRecorder()
+	app.ListAgentRuntimesHandler(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
 func TestListAgentRuntimesHandler(t *testing.T) {
 	app := &App{
 		repositories: testRepositoriesWithAgents(),

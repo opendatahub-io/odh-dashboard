@@ -78,6 +78,22 @@ paths:
     get:
       tags:
         - AgentOperation
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of runtimes to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - name: continueToken
+          in: query
+          required: false
+          description: Opaque token for the next page of runtime results.
+          schema:
+            type: string
       responses:
         "200":
           $ref: "#/components/responses/AgentRuntimesResponse"
@@ -240,8 +256,13 @@ components:
       properties:
         runtimes:
           type: array
+          maxItems: 500
           items:
             $ref: "#/components/schemas/AgentRuntime"
+        continueToken:
+          type: string
+          nullable: true
+          description: Opaque token for fetching the next page. Omitted when all results fit in the current page.
     AgentServiceEndpoint:
       description: Network endpoint exposed by an agent runtime.
       required:

@@ -1,28 +1,69 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
+)
+
+const (
+	defaultAgentRuntimesLimit = 100
+	maxAgentRuntimesLimit     = 500
 )
 
 type AgentRuntimesEnvelope Envelope[*models.AgentRuntimesResponse, None]
+
+func parseListAgentRuntimesOptions(r *http.Request) (models.ListAgentRuntimesOptions, error) {
+	opts := models.ListAgentRuntimesOptions{
+		Limit:         defaultAgentRuntimesLimit,
+		ContinueToken: r.URL.Query().Get("continueToken"),
+	}
+
+	limitValue := r.URL.Query().Get("limit")
+	if limitValue == "" {
+		return opts, nil
+	}
+
+	limit, err := strconv.Atoi(limitValue)
+	if err != nil || limit < 1 {
+		return models.ListAgentRuntimesOptions{}, fmt.Errorf("limit must be an integer between 1 and %d", maxAgentRuntimesLimit)
+	}
+	if limit > maxAgentRuntimesLimit {
+		limit = maxAgentRuntimesLimit
+	}
+
+	opts.Limit = limit
+	return opts, nil
+}
 
 // ListAgentRuntimesHandler handles GET /api/v1/agents/runtimes.
 func (app *App) ListAgentRuntimesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	logger := helper.GetContextLoggerFromReq(r)
 	logger.Info("Listing agent runtimes", slog.String("method", r.Method), slog.String("path", r.URL.Path))
 
-	result, err := app.repositories.AgentRuntimes.ListAgentRuntimes(r.Context())
+	opts, err := parseListAgentRuntimesOptions(r)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	result, err := app.repositories.AgentRuntimes.ListAgentRuntimes(r.Context(), opts)
 	if err != nil {
 		logger.Error("Failed to list agent runtimes",
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),
 			slog.Any("error", err))
+		if errors.Is(err, repositories.ErrInvalidContinueToken) {
+			app.badRequestResponse(w, r, err)
+			return
+		}
 		app.handleAgentRepositoryError(w, r, err)
 		return
 	}

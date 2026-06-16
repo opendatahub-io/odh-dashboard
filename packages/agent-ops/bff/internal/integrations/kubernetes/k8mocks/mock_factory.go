@@ -36,11 +36,7 @@ func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *e
 		return k8sFactory, nil
 
 	case config.AuthMethodDisabled:
-		k8sFactory, err := NewStaticClientFactory(clientset, logger)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create static client factory: %w", err)
-		}
-		return k8sFactory, nil
+		return nil, nil
 
 	default:
 		return nil, fmt.Errorf("invalid auth method: %q", cfg.AuthMethod)

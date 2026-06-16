@@ -4,13 +4,16 @@
 import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
 describe('Agent Ops API Contract Tests', () => {
+  const clusterMode = process.env.AGENT_OPS_CONTRACT_CLUSTER === 'true';
   const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
   const apiClient = new ContractApiClient({
     baseUrl,
-    defaultHeaders: {
-      'kubeflow-userid': 'dev-user@example.com',
-      'kubeflow-groups': 'system:masters',
-    },
+    defaultHeaders: clusterMode
+      ? { 'x-forwarded-access-token': 'contract-test-token' }
+      : {
+          'kubeflow-userid': 'dev-user@example.com',
+          'kubeflow-groups': 'system:masters',
+        },
   });
 
   const apiSchema = loadOpenAPISchema('api/openapi/agent-ops.yaml');
@@ -36,15 +39,20 @@ describe('Agent Ops API Contract Tests', () => {
   });
 
   describe('Agent Runtime Detail Endpoint', () => {
-    it('should return runtime detail for a deployed agent', async () => {
-      const result = await apiClient.get(
-        '/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent',
-      );
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/AgentRuntimeDetailResponse/content/application/json/schema',
-        status: 200,
-      });
-    });
+    (clusterMode ? describe : describe.skip)(
+      'Success Cases (requires cluster-backed BFF; run test:contract:cluster)',
+      () => {
+        it('should return runtime detail for a deployed agent', async () => {
+          const result = await apiClient.get(
+            '/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent',
+          );
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/AgentRuntimeDetailResponse/content/application/json/schema',
+            status: 200,
+          });
+        });
+      },
+    );
 
     describe('Error Cases', () => {
       it('should return 404 for a missing agent', async () => {

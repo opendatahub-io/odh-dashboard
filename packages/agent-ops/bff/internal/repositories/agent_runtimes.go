@@ -12,6 +12,9 @@ import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
 )
 
+// ErrInvalidContinueToken is returned when a runtime list continueToken cannot be decoded.
+var ErrInvalidContinueToken = errors.New("invalid continueToken")
+
 // AgentRuntimesRepository loads agent runtime data from an agent data source.
 type AgentRuntimesRepository struct {
 	agentSourceFactory agents.ClientFactory
@@ -23,7 +26,7 @@ func NewAgentRuntimesRepository(agentSourceFactory agents.ClientFactory) *AgentR
 }
 
 // ListAgentRuntimes returns deployed agent runtimes across enabled namespaces.
-func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context) (*models.AgentRuntimesResponse, error) {
+func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context, opts models.ListAgentRuntimesOptions) (*models.AgentRuntimesResponse, error) {
 	client, err := r.agentSourceFactory.GetClient(ctx)
 	if err != nil {
 		return nil, translateAgentError(err)
@@ -51,7 +54,7 @@ func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context) (*model
 		}
 	}
 
-	return &models.AgentRuntimesResponse{Runtimes: runtimes}, nil
+	return paginateAgentRuntimes(runtimes, opts.Limit, opts.ContinueToken)
 }
 
 // GetAgentRuntimeDetail returns full runtime detail for a single agent.
@@ -64,6 +67,9 @@ func (r *AgentRuntimesRepository) GetAgentRuntimeDetail(ctx context.Context, nam
 	detail, err := client.GetAgent(ctx, namespace, name)
 	if err != nil {
 		return nil, translateAgentError(err)
+	}
+	if detail == nil {
+		return nil, bfferrors.ErrNotFound
 	}
 
 	return mapper.AgentDetailToRuntimeDetail(detail), nil
