@@ -23,6 +23,9 @@ func getEnvOrDefault(key, fallback string) string {
 }
 
 // ManagedPipelinesNotFoundMessage is returned when required managed pipelines are missing.
+//
+// NOTE: The frontend matches this message via regex in
+// packages/automl/frontend/src/app/utilities/pipelineServerEmptyState.ts — update both if changing.
 const ManagedPipelinesNotFoundMessage = "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
 
 // TODO: Confirm caching architecture for shared ODH deployments
