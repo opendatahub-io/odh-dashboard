@@ -18,7 +18,7 @@ export const techPreviewFlags = {
   vLLMDeploymentOnMaaS: false,
   llmGatewayField: false,
   promptManagement: false,
-  mySubscriptions: false,
+  mySubscriptions: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -28,6 +28,7 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOps: false,
   roleManagement: false,
+  agentProfileManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features

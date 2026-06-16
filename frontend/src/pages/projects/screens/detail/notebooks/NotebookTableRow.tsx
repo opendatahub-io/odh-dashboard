@@ -27,9 +27,11 @@ import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/use
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
 import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
+import { useWorkbenchFeatureStores } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
 import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
+import NotebookFeatureStoreList from './NotebookFeatureStoreList';
 import NotebookSizeDetails from './NotebookSizeDetails';
 import WorkbenchMigrationLabel from './WorkbenchMigrationLabel';
 import useNotebookImage from './useNotebookImage';
@@ -70,6 +72,12 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const showMigrationRequired = !isWorkbenchMigrated(obj.notebook);
 
   const isMlflowAvailable = useIsAreaAvailable(SupportedArea.MLFLOW).status;
+  const isFeatureStoreAvailable = useIsAreaAvailable(SupportedArea.FEATURE_STORE).status;
+  const { featureStores, loaded: featureStoresLoaded } = useWorkbenchFeatureStores();
+  const availableFeatureStoreNames = React.useMemo(
+    () => new Set(featureStores.map((fs) => fs.projectName)),
+    [featureStores],
+  );
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
@@ -274,7 +282,20 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             />
           </ExpandableRowContent>
         </Td>
-        <Td />
+        {isFeatureStoreAvailable ? (
+          <Td>
+            <ExpandableRowContent>
+              <NotebookFeatureStoreList
+                key={obj.notebook.metadata.uid}
+                notebook={obj.notebook}
+                availableNames={availableFeatureStoreNames}
+                availabilityLoaded={featureStoresLoaded}
+              />
+            </ExpandableRowContent>
+          </Td>
+        ) : (
+          <Td />
+        )}
         <Td />
         <Td />
       </Tr>

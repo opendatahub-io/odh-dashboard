@@ -5,6 +5,7 @@ import {
   DropEvent,
   MenuItem,
   MenuList,
+  Tooltip,
 } from '@patternfly/react-core';
 import { ChatbotFootnote, FileDetailsLabel, MessageBar } from '@patternfly/chatbot';
 import { FileRejection } from 'react-dropzone';
@@ -14,7 +15,9 @@ import {
   FILE_UPLOAD_CONFIG,
   ERROR_MESSAGES,
   ALERT_TIMEOUT_MS,
+  AUDIO_UPLOAD_CONFIG,
 } from '~/app/Chatbot/const';
+import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
 
 export interface ImageUploadState {
   uploading: boolean;
@@ -46,10 +49,19 @@ interface ChatbotMessageInputProps {
   imageUploadState: ImageUploadState;
   onRemoveImage: () => void;
   isImageUploadDisabled: boolean;
+  imageDisabledTooltip?: string;
+  showImageUpload?: boolean;
+  showAudioUpload?: boolean;
   isAudioUploadDisabled: boolean;
+  audioDisabledTooltip?: string;
+  onAudioUpload?: (file: File) => void;
+  audioTranscriptionState?: AudioTranscriptionState;
+  onAudioCancel?: () => void;
   pendingDocChips?: PendingDocChip[];
   onRemoveDocChip?: (chipId: string) => void;
   alwaysShowSendButton?: boolean;
+  messageBarValue?: string;
+  onMessageBarValueChange?: (value: string) => void;
 }
 
 const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
@@ -64,15 +76,50 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   imageUploadState,
   onRemoveImage,
   isImageUploadDisabled,
+  imageDisabledTooltip,
+  showImageUpload = true,
+  showAudioUpload = true,
   isAudioUploadDisabled,
+  audioDisabledTooltip,
+  onAudioUpload,
+  audioTranscriptionState,
+  onAudioCancel,
   pendingDocChips,
   onRemoveDocChip,
   alwaysShowSendButton,
+  messageBarValue,
+  onMessageBarValueChange,
 }) => {
   const [isAttachMenuOpen, setIsAttachMenuOpen] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string | null>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const audioInputRef = React.useRef<HTMLInputElement>(null);
   const documentInputRef = React.useRef<HTMLInputElement>(null);
+  const messageBarTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  const audioPhase = audioTranscriptionState?.phase || 'idle';
+  const isAudioActive = audioPhase === 'uploading' || audioPhase === 'transcribing';
+
+  // PatternFly MessageBar only reads the `value` prop at mount time (internal useState).
+  // When messageBarValue changes programmatically (e.g. from transcription), we must
+  // force-sync the textarea via native setter + event dispatch.
+  React.useEffect(() => {
+    const textarea = messageBarTextareaRef.current;
+    if (!textarea || messageBarValue === undefined) {
+      return;
+    }
+    if (textarea.value === messageBarValue) {
+      return;
+    }
+    const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype,
+      'value',
+    )?.set;
+    if (nativeTextAreaValueSetter) {
+      nativeTextAreaValueSetter.call(textarea, messageBarValue);
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }, [messageBarValue]);
 
   React.useEffect(() => {
     if (!validationError) {
@@ -86,6 +133,8 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
     setIsAttachMenuOpen(false);
     if (action === 'upload-image') {
       imageInputRef.current?.click();
+    } else if (action === 'upload-audio') {
+      audioInputRef.current?.click();
     } else if (action === 'upload-documents') {
       documentInputRef.current?.click();
     }
@@ -114,6 +163,38 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       onImageUpload(file);
     },
     [onImageUpload],
+  );
+
+  const handleAudioFileSelect = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+      // eslint-disable-next-line no-param-reassign
+      event.target.value = '';
+
+      let mimeType = file.type;
+      if (!mimeType) {
+        const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        mimeType = AUDIO_UPLOAD_CONFIG.EXTENSION_TO_MIME[ext] || '';
+      }
+
+      if (!AUDIO_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.includes(mimeType)) {
+        setValidationError(
+          `${file.name} is not a supported audio file type. Accepted types: WAV, MP3.`,
+        );
+        return;
+      }
+      if (file.size > AUDIO_UPLOAD_CONFIG.MAX_FILE_SIZE) {
+        setValidationError(
+          `${file.name} exceeds maximum size of ${AUDIO_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)} MB. Try a smaller file.`,
+        );
+        return;
+      }
+      onAudioUpload?.(file);
+    },
+    [onAudioUpload],
   );
 
   const handleDocumentFileSelect = React.useCallback(
@@ -151,19 +232,65 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
     [onDocumentAttach],
   );
 
+  const audioAnnounceText = React.useMemo(() => {
+    if (!audioTranscriptionState) {
+      return '';
+    }
+    switch (audioTranscriptionState.phase) {
+      case 'uploading':
+        return `Uploading ${audioTranscriptionState.fileName}`;
+      case 'transcribing':
+        return `Transcribing audio with speech recognition model`;
+      case 'complete':
+        return 'Transcription ready';
+      case 'error':
+        return `Transcription failed: ${audioTranscriptionState.error?.title ?? 'Unknown error'}`;
+      default:
+        return '';
+    }
+  }, [audioTranscriptionState]);
+
   const attachMenuItems = React.useMemo(
     () => (
       <MenuList>
-        <MenuItem
-          icon={<OutlinedFileImageIcon />}
-          isDisabled={isImageUploadDisabled}
-          onClick={() => handleMenuSelect('upload-image')}
-        >
-          Upload image
-        </MenuItem>
-        <MenuItem icon={<VolumeUpIcon />} isDisabled={isAudioUploadDisabled}>
-          Upload audio
-        </MenuItem>
+        {showImageUpload &&
+          (isImageUploadDisabled && imageDisabledTooltip ? (
+            <Tooltip content={imageDisabledTooltip} position="left" enableFlip>
+              <MenuItem
+                icon={<OutlinedFileImageIcon />}
+                isAriaDisabled
+                data-testid="upload-image-menu-item"
+              >
+                Upload image
+              </MenuItem>
+            </Tooltip>
+          ) : (
+            <MenuItem
+              icon={<OutlinedFileImageIcon />}
+              isDisabled={isImageUploadDisabled}
+              onClick={() => handleMenuSelect('upload-image')}
+              data-testid="upload-image-menu-item"
+            >
+              Upload image
+            </MenuItem>
+          ))}
+        {showAudioUpload &&
+          (isAudioUploadDisabled && audioDisabledTooltip ? (
+            <Tooltip content={audioDisabledTooltip} position="left" enableFlip>
+              <MenuItem icon={<VolumeUpIcon />} isAriaDisabled data-testid="upload-audio-menu-item">
+                Upload audio
+              </MenuItem>
+            </Tooltip>
+          ) : (
+            <MenuItem
+              icon={<VolumeUpIcon />}
+              isDisabled={isAudioUploadDisabled}
+              onClick={() => handleMenuSelect('upload-audio')}
+              data-testid="upload-audio-menu-item"
+            >
+              Upload audio
+            </MenuItem>
+          ))}
         <MenuItem
           icon={<OutlinedFileAltIcon />}
           onClick={() => handleMenuSelect('upload-documents')}
@@ -172,7 +299,15 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         </MenuItem>
       </MenuList>
     ),
-    [isImageUploadDisabled, isAudioUploadDisabled, handleMenuSelect],
+    [
+      showImageUpload,
+      isImageUploadDisabled,
+      imageDisabledTooltip,
+      showAudioUpload,
+      isAudioUploadDisabled,
+      audioDisabledTooltip,
+      handleMenuSelect,
+    ],
   );
 
   return (
@@ -184,7 +319,17 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           ? 'var(--pf-t--global--dark--background--color--100)'
           : 'var(--pf-t--global--background--color--100)',
       }}
+      aria-busy={isAudioActive}
     >
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="pf-v6-screen-reader"
+        data-testid="audio-aria-live"
+      >
+        {audioAnnounceText}
+      </div>
       {validationError && (
         <div style={{ paddingBottom: '0.5rem' }}>
           <Alert
@@ -196,7 +341,22 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           />
         </div>
       )}
-      {(imageUploadState.fileName || (pendingDocChips && pendingDocChips.length > 0)) && (
+      {audioTranscriptionState?.phase === 'error' && audioTranscriptionState.error && (
+        <div style={{ paddingBottom: '0.5rem' }}>
+          <Alert
+            variant={audioTranscriptionState.error.variant}
+            isInline
+            title={audioTranscriptionState.error.title}
+            actionClose={<AlertActionCloseButton onClose={onAudioCancel} />}
+            data-testid="audio-transcription-error"
+          >
+            <p>{audioTranscriptionState.error.description}</p>
+          </Alert>
+        </div>
+      )}
+      {(imageUploadState.fileName ||
+        isAudioActive ||
+        (pendingDocChips && pendingDocChips.length > 0)) && (
         <div
           style={{
             display: 'flex',
@@ -204,6 +364,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             gap: '0.5rem',
             paddingBottom: '0.5rem',
           }}
+          aria-busy={isAudioActive}
         >
           {imageUploadState.fileName && (
             <FileDetailsLabel
@@ -213,6 +374,16 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
               hasTruncation
               variant="outline"
               data-testid="vision-file-preview"
+            />
+          )}
+          {isAudioActive && audioTranscriptionState && (
+            <FileDetailsLabel
+              fileName={audioTranscriptionState.fileName}
+              isLoading
+              onClose={onAudioCancel}
+              hasTruncation
+              variant="outline"
+              data-testid="audio-file-chip"
             />
           )}
           {pendingDocChips?.map((chip) => (
@@ -240,19 +411,37 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
               onSendMessage(message);
             }
           }}
+          innerRef={messageBarTextareaRef}
           handleStopButton={onStopStreaming}
           hasAttachButton={showAttachButton}
           isSendButtonDisabled={isSendDisabled}
           hasStopButton={isLoading}
           alwayShowSendButton={alwaysShowSendButton}
           data-testid="chatbot-message-bar"
+          {...(messageBarValue !== undefined
+            ? {
+                value: messageBarValue,
+                onChange: (_e: React.ChangeEvent<HTMLTextAreaElement>, val: string | number) =>
+                  onMessageBarValueChange?.(String(val)),
+              }
+            : {})}
+          {...(audioPhase === 'transcribing'
+            ? {
+                placeholder: 'Transcribing audio… This may take up to 2 minutes.',
+                readOnly: true,
+              }
+            : {})}
           {...(showAttachButton
             ? {
                 attachMenuProps: {
-                  isAttachMenuOpen,
+                  isAttachMenuOpen: isAudioActive ? false : isAttachMenuOpen,
                   setIsAttachMenuOpen,
                   attachMenuItems,
-                  onAttachMenuToggleClick: () => setIsAttachMenuOpen(!isAttachMenuOpen),
+                  onAttachMenuToggleClick: () => {
+                    if (!isAudioActive) {
+                      setIsAttachMenuOpen(!isAttachMenuOpen);
+                    }
+                  },
                 },
               }
             : {})}
@@ -260,6 +449,11 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             attach: {
               tooltipContent: 'Attach',
               inputTestId: 'chatbot-attach-input',
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+              props: {
+                disabled: isAudioActive,
+                'aria-disabled': isAudioActive,
+              } as React.ComponentProps<'button'>,
             },
             send: {
               // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -270,14 +464,26 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           }}
         />
       </div>
-      <input
-        ref={imageInputRef}
-        type="file"
-        accept={VISION_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
-        style={{ display: 'none' }}
-        onChange={handleImageFileSelect}
-        data-testid="vision-file-input"
-      />
+      {showImageUpload && (
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept={VISION_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
+          style={{ display: 'none' }}
+          onChange={handleImageFileSelect}
+          data-testid="vision-file-input"
+        />
+      )}
+      {showAudioUpload && (
+        <input
+          ref={audioInputRef}
+          type="file"
+          accept={AUDIO_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
+          style={{ display: 'none' }}
+          onChange={handleAudioFileSelect}
+          data-testid="audio-file-input"
+        />
+      )}
       <input
         ref={documentInputRef}
         type="file"
