@@ -6,6 +6,18 @@ Shared Go library consumed by automl and autorag BFFs. This is a code-only packa
 
 See the [original PR](https://github.com/opendatahub-io/odh-dashboard/pull/7516) for the full list of architectural decisions and rationale behind autox-core/services.
 
+## autox-core First
+
+When implementing any new feature, start by identifying the product-agnostic parts and build those in autox-core first. Then add product-specific logic in the consuming package (automl, autorag) only if needed.
+
+The thought process for every feature should be:
+
+1. **Decompose** — separate the generic capability (S3 operations, pipeline orchestration, Kubernetes resource management) from product-specific concerns (automl-specific validation rules, autorag-specific response shaping).
+2. **Implement in autox-core** — the generic client, service, models, and error types go here. These should work for any consuming package without modification.
+3. **Extend in the product BFF** — if the product needs additional orchestration, validation, or response transformation on top of what autox-core provides, add a thin product-level service in the consuming package that wraps the autox-core service.
+
+Why: autox-core exists to eliminate duplication between automl and autorag. If a capability is implemented directly in a product BFF when it could be generic, the other product will inevitably need it too — leading to copy-paste divergence, duplicated bugs, and inconsistent behavior. Building generic-first also forces cleaner interfaces because the code can't rely on product-specific assumptions.
+
 ## Build & Linking
 
 Consuming packages (automl, autorag) use `replace` directives in their `go.mod` to resolve autox-core via relative path (e.g. `replace github.com/opendatahub-io/odh-dashboard/packages/autox-core/services => ../../autox-core/services`). This works both locally and in Docker builds because the Dockerfile mirrors the monorepo layout so the relative path resolves inside the container.
