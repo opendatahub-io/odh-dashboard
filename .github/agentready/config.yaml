@@ -1,7 +1,2 @@
 # AgentReady Configuration for ODH Dashboard
-# This file configures which assessors to exclude for this monorepo
-
-# Exclude assessors that don't apply to this monorepo structure
-excluded_attributes:
-  - type_annotations  # Uses TypeScript project references, no root tsconfig.json
-  - precommit_hooks   # Uses Husky, not Python pre-commit framework
+# Empty config - no exclusions needed
