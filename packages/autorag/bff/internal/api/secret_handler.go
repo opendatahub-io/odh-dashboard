@@ -16,7 +16,7 @@ import (
 
 type SecretDataEnvelope Envelope[map[string]string, None]
 
-// GetSecretHandler retrieves a single secret by name and returns its data with all values base64-encoded.
+// GetSecretHandler retrieves OGX credentials (OGX_CLIENT_BASE_URL, OGX_CLIENT_API_KEY) from a named secret, base64-encoded.
 func (app *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -87,6 +87,7 @@ func (app *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps http
 		Data: data,
 	}
 
+	w.Header().Set("Cache-Control", "no-store")
 	err = app.WriteJSON(w, http.StatusOK, envelope, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

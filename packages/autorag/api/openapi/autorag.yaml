@@ -148,10 +148,13 @@ paths:
         - 'ogx': Returns only secrets classified as OGX type (via key-based classification or connection-type annotation)
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
-    summary: Path used to retrieve a single secret's data by name.
+    summary: Path used to retrieve credential data from a named secret.
     description: >-
-      The REST endpoint/path used to retrieve the full key-value data of a single Kubernetes secret.
-      All values are base64-encoded in the response for transport safety.
+      The REST endpoint/path used to retrieve credential data from a single Kubernetes secret.
+      Only allowed credential keys are returned; other keys in the secret are omitted.
+      Currently returns OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY.
+      Values are base64-encoded in the response for transport safety.
+      The response includes Cache-Control: no-store to prevent credential caching.
     get:
       tags:
         - K8SOperation
@@ -188,11 +191,12 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: getSecretByName
-      summary: Get a single secret's data
+      summary: Get credential data from a named secret
       description: >-
-        Retrieves the full key-value data of a single Kubernetes secret by name.
-        All values are base64-encoded in the response. The caller must decode
-        values with base64 decoding before use.
+        Retrieves allowed credential keys from a single Kubernetes secret by name.
+        Only permitted keys (currently OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
+        are returned; all other keys are omitted. Values are base64-encoded.
+        The caller must decode values with base64 decoding before use.
 
   # =============================================================================
   # S3 Endpoints
