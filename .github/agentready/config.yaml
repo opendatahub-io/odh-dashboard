@@ -1,2 +1,2 @@
 # AgentReady Configuration for ODH Dashboard
-# Empty config - no exclusions needed
+excluded_attributes: []
