@@ -341,14 +341,43 @@ describe('MultiSelection', () => {
     });
 
     const slashEncodedId = document.getElementById('test-select-option-coreu47upods');
-    const literalEncodedId = document.getElementById('test-select-option-coreuu117uu47uu117uu');
+    const literalEncodedId = document.getElementById('test-select-option-coreuu47uupods');
 
     expect(slashEncodedId).toBeInTheDocument();
     expect(literalEncodedId).toBeInTheDocument();
     expect(slashEncodedId).not.toBe(literalEncodedId);
   });
 
-  it('should only restore modal overflow after all open instances close', async () => {
+  it('should restore modal overflow when a menu closes', async () => {
+    const dialogRef = React.createRef<HTMLDivElement>();
+
+    render(
+      <div ref={dialogRef} role="dialog" style={{ overflow: 'auto' }}>
+        <MultiSelection
+          id="select-a"
+          ariaLabel="API groups"
+          value={defaultOptions}
+          setValue={jest.fn()}
+        />
+      </div>,
+    );
+
+    const dialog = dialogRef.current as HTMLDivElement;
+    const combobox = screen.getByRole('combobox', { name: 'API groups' });
+
+    await act(async () => {
+      fireEvent.click(combobox);
+    });
+    expect(dialog.style.overflow).toBe('visible');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'Escape' });
+    });
+    expect(dialog.style.overflow).toBe('auto');
+    expect(dialog.getAttribute('data-multiselection-overflow-unlock-count')).toBeNull();
+  });
+
+  it('should keep modal overflow unlocked when switching between two instances', async () => {
     const dialogRef = React.createRef<HTMLDivElement>();
 
     render(
@@ -377,19 +406,17 @@ describe('MultiSelection', () => {
     });
     expect(dialog.style.overflow).toBe('visible');
 
+    // Opening the second combobox closes the first menu (PF outside-click behavior).
     await act(async () => {
       fireEvent.click(comboboxB);
     });
     expect(dialog.style.overflow).toBe('visible');
+    expect(dialog.getAttribute('data-multiselection-overflow-unlock-count')).toBe('1');
 
     await act(async () => {
-      fireEvent.click(comboboxA);
-    });
-    expect(dialog.style.overflow).toBe('visible');
-
-    await act(async () => {
-      fireEvent.click(comboboxB);
+      fireEvent.keyDown(comboboxB, { key: 'Escape' });
     });
     expect(dialog.style.overflow).toBe('auto');
+    expect(dialog.getAttribute('data-multiselection-overflow-unlock-count')).toBeNull();
   });
 });
