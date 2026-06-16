@@ -82,19 +82,20 @@ func TestGetSecretHandler_MissingNamespace(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-func TestGetSecretHandler_MultipleKeys(t *testing.T) {
+func TestGetSecretHandler_OnlyReturnsOGXKeys(t *testing.T) {
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "s3-secret",
+				Name:      "mixed-secret",
 				Namespace: "test-namespace",
 				UID:       types.UID("uid-2"),
 			},
 			Data: map[string][]byte{
+				"OGX_CLIENT_API_KEY":    []byte("sk-test-key"),
+				"OGX_CLIENT_BASE_URL":   []byte("https://ogx.example.com"),
 				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
 				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG"),
-				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
-				"AWS_S3_BUCKET":         []byte("my-bucket"),
+				"OTHER_FIELD":           []byte("should-not-appear"),
 			},
 		},
 	}
@@ -105,7 +106,7 @@ func TestGetSecretHandler_MultipleKeys(t *testing.T) {
 
 	envelope, res, err := setupApiTest[SecretDataEnvelope](
 		"GET",
-		"/api/v1/secret/s3-secret?namespace=test-namespace",
+		"/api/v1/secret/mixed-secret?namespace=test-namespace",
 		nil,
 		factory,
 		identity,
@@ -113,11 +114,12 @@ func TestGetSecretHandler_MultipleKeys(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Len(t, envelope.Data, 4)
-
-	for key, rawValue := range mockSecrets[0].Data {
-		assert.Equal(t, base64.StdEncoding.EncodeToString(rawValue), envelope.Data[key])
-	}
+	assert.Len(t, envelope.Data, 2)
+	assert.Equal(t, base64.StdEncoding.EncodeToString([]byte("sk-test-key")), envelope.Data["OGX_CLIENT_API_KEY"])
+	assert.Equal(t, base64.StdEncoding.EncodeToString([]byte("https://ogx.example.com")), envelope.Data["OGX_CLIENT_BASE_URL"])
+	assert.NotContains(t, envelope.Data, "AWS_ACCESS_KEY_ID")
+	assert.NotContains(t, envelope.Data, "AWS_SECRET_ACCESS_KEY")
+	assert.NotContains(t, envelope.Data, "OTHER_FIELD")
 }
 
 func TestGetSecretHandler_EmptySecret(t *testing.T) {

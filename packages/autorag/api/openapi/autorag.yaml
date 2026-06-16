@@ -171,6 +171,8 @@ paths:
           description: The namespace containing the secret
           schema:
             type: string
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
           example: default
       responses:
         "200":

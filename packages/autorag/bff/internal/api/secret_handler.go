@@ -75,9 +75,12 @@ func (app *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	data := make(map[string]string, len(secret.Data))
-	for key, value := range secret.Data {
-		data[key] = base64.StdEncoding.EncodeToString(value)
+	ogxKeys := []string{constants.AllowedSecretKey_OGX_Base_URL, constants.AllowedSecretKey_OGX_API_Key}
+	data := make(map[string]string, len(ogxKeys))
+	for _, key := range ogxKeys {
+		if value, ok := secret.Data[key]; ok {
+			data[key] = base64.StdEncoding.EncodeToString(value)
+		}
 	}
 
 	envelope := SecretDataEnvelope{
