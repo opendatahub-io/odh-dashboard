@@ -1032,7 +1032,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     apiKeysPage.findSubscriptionsTab().click();
     subscriptionsTab.findSubscriptionRows().should('have.length', 1);
     subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', 'No Keys Sub');
-    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '0 keys');
+    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '0 active keys');
   });
 
   it('should show empty state when no subscriptions exist', () => {
