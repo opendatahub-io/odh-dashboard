@@ -7,6 +7,11 @@ repository:
   package_manager: npm
   workspace_pattern: "packages/*"
 
+# Exclude assessors that don't apply to this monorepo structure
+excluded_attributes:
+  - type_annotations  # Uses TypeScript project references, no root tsconfig.json
+  - precommit_hooks   # Uses Husky, not Python pre-commit framework
+
 # Source code locations (monorepo uses workspace-based structure)
 structure:
   source_directories:
@@ -198,38 +203,3 @@ reporting:
 
   # Include package-level scores
   per_package_scores: true
-
----
-
-# Notes for AgentReady Assessment Tool:
-
-# This is an npm workspaces monorepo with ~25 packages. Key patterns:
-
-# 1. Source Code Organization:
-#    - NOT at root /src or /tests
-#    - Distributed across workspaces: frontend/src/, backend/src/, packages/*/src/
-
-# 2. TypeScript Configuration:
-#    - Root tsconfig.json has "references" array (TypeScript project references)
-#    - Strict mode configured in workspace-level configs
-#    - Shared config in packages/tsconfig
-
-# 3. Pre-commit Hooks:
-#    - Uses Husky (.husky/pre-commit), not .pre-commit-config.yaml
-#    - lint-staged configured in root package.json
-
-# 4. One-Command Setup:
-#    - `npm install` handles all workspace dependencies
-#    - No separate setup script needed (npm workspaces feature)
-
-# 5. Testing:
-#    - Jest for unit tests (shared config in packages/jest-config)
-#    - Cypress for E2E and component tests (packages/cypress)
-#    - Tests co-located with source in __tests__ directories
-
-# 6. Build Orchestration:
-#    - Turbo manages builds across workspaces
-#    - Single `npm run build` builds all packages in dependency order
-
-# These patterns are STANDARD for modern monorepos but may appear as false
-# negatives if assessment tool expects traditional single-package structure.
