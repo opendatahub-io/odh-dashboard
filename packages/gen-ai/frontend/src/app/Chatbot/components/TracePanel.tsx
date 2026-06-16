@@ -90,7 +90,7 @@ const TracePanel: React.FC<TracePanelProps> = ({
   );
 
   return (
-    <Drawer isExpanded={isOpen} isInline position="end">
+    <Drawer isExpanded={isOpen} position="end">
       <DrawerContent panelContent={isOpen ? panelContent : undefined}>
         <DrawerContentBody>{children}</DrawerContentBody>
       </DrawerContent>
