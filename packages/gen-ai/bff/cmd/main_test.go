@@ -182,6 +182,14 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 			expectedErrorContains: "cannot be used in production environment",
 		},
 		{
+			name:                  "InsecureSkipVerify enabled with ENV=production without ALLOW_INSECURE_TLS - should fail with production error",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "",
+			env:                   "production",
+			expectedError:         true,
+			expectedErrorContains: "cannot be used in production environment",
+		},
+		{
 			name:                  "InsecureSkipVerify enabled with ENV=staging - should fail",
 			insecureSkipVerify:    true,
 			allowInsecureTLS:      "true",
@@ -233,6 +241,15 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 			expectedErrorContains: "cannot be used in CI environment",
 		},
 		{
+			name:                  "InsecureSkipVerify enabled with CI=yes - should fail",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "true",
+			env:                   "",
+			ci:                    "yes",
+			expectedError:         true,
+			expectedErrorContains: "cannot be used in CI environment",
+		},
+		{
 			name:                  "InsecureSkipVerify enabled with CI=true and ENV=production - should fail with production (CI)",
 			insecureSkipVerify:    true,
 			allowInsecureTLS:      "true",
@@ -267,11 +284,12 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("ALLOW_INSECURE_TLS", tc.allowInsecureTLS)
-			t.Setenv("ENV", tc.env)
-			t.Setenv("CI", tc.ci)
-
-			err := validateInsecureSkipVerify(tc.insecureSkipVerify)
+			err := validateInsecureSkipVerify(
+				tc.insecureSkipVerify,
+				tc.allowInsecureTLS,
+				tc.env,
+				tc.ci,
+			)
 
 			if tc.expectedError {
 				assert.Error(t, err, "Expected validation to fail")

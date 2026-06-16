@@ -99,7 +99,12 @@ func main() {
 	// that must run as early as possible (fail-fast). The validation uses slog.Error with
 	// Go's default formatter, which is acceptable since the process exits immediately on
 	// failure and never reaches normal operation.
-	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify); err != nil {
+	if err := validateInsecureSkipVerify(
+		cfg.InsecureSkipVerify,
+		os.Getenv("ALLOW_INSECURE_TLS"),
+		os.Getenv("ENV"),
+		os.Getenv("CI"),
+	); err != nil {
 		os.Exit(1)
 	}
 
@@ -187,32 +192,19 @@ func main() {
 
 // validateInsecureSkipVerify validates the InsecureSkipVerify configuration at startup.
 // Returns an error if the configuration is invalid or poses a security risk.
-func validateInsecureSkipVerify(insecureSkipVerify bool) error {
+// Accepts env var values as parameters to enable hermetic testing.
+func validateInsecureSkipVerify(insecureSkipVerify bool, allowInsecureTLSRaw, env, ci string) error {
 	if !insecureSkipVerify {
 		return nil
 	}
 
-	allowInsecureTLSRaw := os.Getenv("ALLOW_INSECURE_TLS")
-	allowInsecure := strings.EqualFold(strings.TrimSpace(allowInsecureTLSRaw), "true")
-	env := os.Getenv("ENV")
 	normalizedEnv := strings.ToLower(strings.TrimSpace(env))
 
-	if !allowInsecure {
-		slog.Error("SECURITY: InsecureSkipVerify requires explicit ALLOW_INSECURE_TLS=true",
-			"insecure_skip_verify", insecureSkipVerify,
-			"allow_insecure_tls", allowInsecureTLSRaw,
-			"env", env,
-			"warning", "InsecureSkipVerify disables TLS certificate verification and MUST NOT be used in production",
-			"fix", "For local development only, set ALLOW_INSECURE_TLS=true",
-			"important", "NEVER set ALLOW_INSECURE_TLS=true in production deployments",
-		)
-		return errors.New("InsecureSkipVerify requires ALLOW_INSECURE_TLS=true")
-	}
+	// Check for CI environment (normalize to handle "true", "1", "yes", case variants, whitespace)
+	ciValue := strings.ToLower(strings.TrimSpace(ci))
+	isCI := ciValue == "true" || ciValue == "1" || ciValue == "yes"
 
-	// Check for CI environment (normalize to handle "true", "1", case variants, whitespace)
-	ciValue := strings.ToLower(strings.TrimSpace(os.Getenv("CI")))
-	isCI := ciValue == "true" || ciValue == "1"
-
+	// Check production/staging/CI environments FIRST - reject regardless of ALLOW_INSECURE_TLS
 	if normalizedEnv == "prod" || normalizedEnv == "production" || normalizedEnv == "staging" || isCI {
 		envType := normalizedEnv
 		if isCI {
@@ -229,6 +221,20 @@ func validateInsecureSkipVerify(insecureSkipVerify bool) error {
 			"fix", "Remove --insecure-skip-verify flag and INSECURE_SKIP_VERIFY env var",
 		)
 		return fmt.Errorf("InsecureSkipVerify cannot be used in %s environment", envType)
+	}
+
+	// For non-production environments, require explicit opt-in
+	allowInsecure := strings.EqualFold(strings.TrimSpace(allowInsecureTLSRaw), "true")
+	if !allowInsecure {
+		slog.Error("SECURITY: InsecureSkipVerify requires explicit ALLOW_INSECURE_TLS=true",
+			"insecure_skip_verify", insecureSkipVerify,
+			"allow_insecure_tls", allowInsecureTLSRaw,
+			"env", env,
+			"warning", "InsecureSkipVerify disables TLS certificate verification and MUST NOT be used in production",
+			"fix", "For local development only, set ALLOW_INSECURE_TLS=true",
+			"important", "NEVER set ALLOW_INSECURE_TLS=true in production deployments",
+		)
+		return errors.New("InsecureSkipVerify requires ALLOW_INSECURE_TLS=true")
 	}
 
 	slog.Warn("SECURITY WARNING: TLS certificate verification is DISABLED (InsecureSkipVerify=true)",
