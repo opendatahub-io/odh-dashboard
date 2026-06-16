@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
+import { DEFAULT_EVAL_METRIC_BY_TASK } from '~/app/utilities/const';
 import { getTaskType } from '~/app/utilities/utils';
 
 const configureSchema = createConfigureSchema();
@@ -81,6 +82,13 @@ export function getAutomlContext({
     console.warn('Failed to parse pipeline runtime parameters:', parseResult.error);
     // eslint-disable-next-line camelcase
     parameters = { task_type: getTaskType(pipelineRun) ?? 'timeseries' };
+  }
+
+  // Populate eval_metric with the task-type default when missing from stored parameters
+  // (e.g. runs created before the eval_metric feature, or when the default was used)
+  if (parameters.eval_metric === undefined && parameters.task_type) {
+    // eslint-disable-next-line camelcase
+    parameters.eval_metric = DEFAULT_EVAL_METRIC_BY_TASK[parameters.task_type];
   }
 
   return {

@@ -20,7 +20,10 @@ import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/
 import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireMiscTrackingEvent,
+  fireSimpleTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
@@ -201,17 +204,31 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     setSelectedStatus('');
   }, []);
 
-  const handleSelectionChange = React.useCallback((jobId: string, checked: boolean) => {
-    setSelectedEvaluationIds((prev) => {
-      const next = new Set(prev);
-      if (checked) {
-        next.add(jobId);
-      } else {
-        next.delete(jobId);
-      }
-      return next;
-    });
-  }, []);
+  const handleSelectionChange = React.useCallback(
+    (jobId: string, checked: boolean) => {
+      setSelectedEvaluationIds((prev) => {
+        const next = new Set(prev);
+        if (checked) {
+          next.add(jobId);
+        } else {
+          next.delete(jobId);
+        }
+
+        const job = evaluations.find((j) => j.resource.id === jobId);
+        if (job) {
+          fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_RUN_SELECTED, {
+            evaluationName: getEvaluationName(job),
+            evaluationType: isBenchmarkSuiteRun(job) ? 'Benchmark suite' : 'Benchmark',
+            isSelected: checked,
+            countOfRuns: next.size,
+          });
+        }
+
+        return next;
+      });
+    },
+    [evaluations],
+  );
 
   const handleCompare = React.useCallback(() => {
     const selectedJobs = evaluations.filter((job) => selectedEvaluationIds.has(job.resource.id));
@@ -220,6 +237,15 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     }
 
     const hasSuiteSelections = selectedJobs.some(isBenchmarkSuiteRun);
+    const allSuites = selectedJobs.every(isBenchmarkSuiteRun);
+    const allBenchmarks = selectedJobs.every((job) => !isBenchmarkSuiteRun(job));
+
+    fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_INITIATED, {
+      countOfRuns: selectedJobs.length,
+      runTypes: allBenchmarks ? 'all_benchmarks' : allSuites ? 'all_suites' : 'mixed',
+      hasCollections: hasSuiteSelections,
+    });
+
     const selectedJobIds = selectedJobs.map((job) => job.resource.id);
 
     if (hasSuiteSelections) {

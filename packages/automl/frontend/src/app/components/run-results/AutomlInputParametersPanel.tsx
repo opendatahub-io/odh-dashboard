@@ -24,7 +24,7 @@ import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
-import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+import { formatMetricName, isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
 
 import './AutomlInputParametersPanel.scss';
 
@@ -61,6 +61,7 @@ const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'id_column', label: 'ID column' },
   { key: 'known_covariates_names', label: 'Known covariates' },
   { key: 'prediction_length', label: 'Prediction length' },
+  { key: 'eval_metric', label: 'Optimization metric' },
   { key: 'top_n', label: 'Top models to consider' },
 ];
 
@@ -90,6 +91,9 @@ const formatValue = (key: string, value: unknown): React.ReactNode => {
   }
   if (key === 'task_type' && typeof value === 'string') {
     return TASK_TYPE_LABELS[value] ?? value;
+  }
+  if (key === 'eval_metric' && typeof value === 'string') {
+    return formatMetricName(value);
   }
   if (Array.isArray(value)) {
     return value.join(', ');

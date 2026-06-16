@@ -1664,7 +1664,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
+    modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
 
     modelServingWizard.findNumReplicasInput().should('exist');
     modelServingWizard.findNumReplicasInputField().should('have.value', '1');

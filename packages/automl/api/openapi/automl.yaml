@@ -622,6 +622,7 @@ paths:
                   train_data_file_key: "credit/train.csv"
                   label_column: "default"
                   task_type: "binary"
+                  eval_metric: "f1"
                   top_n: 5
               tabular-multiclass:
                 summary: Tabular multiclass classification pipeline request
@@ -633,6 +634,7 @@ paths:
                   train_data_file_key: "customers/train.csv"
                   label_column: "segment"
                   task_type: "multiclass"
+                  eval_metric: "roc_auc"
                   top_n: 5
               tabular-regression:
                 summary: Tabular regression pipeline request
@@ -644,6 +646,7 @@ paths:
                   train_data_file_key: "housing/train.csv"
                   label_column: "price"
                   task_type: "regression"
+                  eval_metric: "r2"
                   top_n: 3
               timeseries:
                 summary: Timeseries forecasting pipeline request
@@ -659,6 +662,7 @@ paths:
                   timestamp_column: "date"
                   prediction_length: 7
                   known_covariates_names: ["temperature", "is_holiday"]
+                  eval_metric: "RMSE"
                   top_n: 3
       responses:
         "200":
@@ -1236,6 +1240,58 @@ components:
           minLength: 1
           description: S3 object key for the training data file
           example: "data/train.csv"
+        eval_metric:
+          type: string
+          enum:
+            # Classification (binary & multiclass)
+            - accuracy
+            - balanced_accuracy
+            - log_loss
+            - f1
+            - f1_macro
+            - f1_micro
+            - f1_weighted
+            - roc_auc
+            - roc_auc_ovo
+            - roc_auc_ovo_macro
+            - roc_auc_ovo_weighted
+            - roc_auc_ovr
+            - roc_auc_ovr_macro
+            - roc_auc_ovr_micro
+            - roc_auc_ovr_weighted
+            - average_precision
+            - precision
+            - precision_macro
+            - precision_micro
+            - precision_weighted
+            - recall
+            - recall_macro
+            - recall_micro
+            - recall_weighted
+            - mcc
+            - pac_score
+            # Regression
+            - root_mean_squared_error
+            - mean_squared_error
+            - mean_absolute_error
+            - median_absolute_error
+            - mean_absolute_percentage_error
+            - r2
+            - symmetric_mean_absolute_percentage_error
+            # Timeseries
+            - SQL
+            - WQL
+            - MAE
+            - MAPE
+            - MASE
+            - MSE
+            - RMSE
+            - RMSLE
+            - RMSSE
+            - SMAPE
+            - WAPE
+          description: Evaluation metric to optimize during training. Valid values depend on task_type — the BFF rejects metrics that do not match the task type. When omitted, the pipeline uses its built-in default (accuracy for classification, r2 for regression, MASE for timeseries).
+          example: "accuracy"
         top_n:
           type: integer
           minimum: 1

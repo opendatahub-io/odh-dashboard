@@ -8,7 +8,7 @@ type ModelRegistryDashboardConfig = {
 const useModelRegistryDashboardConfig = (): ModelRegistryDashboardConfig => {
   const config = React.useContext(DashboardConfigContext);
   return {
-    toolCalling: config?.dashboardConfig.toolCalling ?? true,
+    toolCalling: config === null ? true : (config.dashboardConfig.toolCalling ?? false),
   };
 };
 

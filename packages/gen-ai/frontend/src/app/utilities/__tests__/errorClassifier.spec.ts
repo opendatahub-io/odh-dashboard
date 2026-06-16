@@ -328,6 +328,25 @@ describe('errorClassifier', () => {
         );
       });
 
+      it('should generate description for rag:vector_store_timeout', () => {
+        const error = {
+          error: {
+            component: 'rag' as const,
+            code: 'vector_store_timeout',
+            message: 'Vector store timed out after 30s',
+            retriable: true,
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Vector store timed out');
+        expect(result.description).toBe(
+          'The vector store did not respond in time. Contact your Platform Engineer to verify the connection.',
+        );
+        expect(result.pattern).toBe('partial-failure');
+        expect(result.variant).toBe('warning');
+      });
+
       it('should use generic fallback for unknown errors', () => {
         const error = {
           error: {
