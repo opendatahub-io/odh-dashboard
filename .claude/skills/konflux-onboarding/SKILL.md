@@ -288,7 +288,57 @@ Generate from the upstream Dockerfile with these changes:
 
 See [references/dockerfile-templates.md](references/dockerfile-templates.md) § Downstream Type B.
 
-**Output**: Print the full Dockerfile content for the user to commit to the downstream repo. Do NOT write it to the upstream repo.
+### Pushing to the Downstream Repo
+
+The downstream Dockerfile **must** be committed to the downstream repo (e.g. `red-hat-data-services/odh-dashboard`), **not** to the upstream repo (`opendatahub-io/odh-dashboard`).
+
+1. **Identify the downstream remote.** Scan `git remote -v` for the downstream repo URL (e.g. `red-hat-data-services/odh-dashboard`). The remote name varies by checkout — it may be `origin`, `downstream`, or something else.
+
+   ```bash
+   DOWNSTREAM_REMOTE=$(git remote -v | grep 'red-hat-data-services/odh-dashboard' | head -1 | awk '{print $1}')
+   if [ -z "$DOWNSTREAM_REMOTE" ]; then
+     echo "ERROR: No remote found for red-hat-data-services/odh-dashboard"
+     echo "Add it with: git remote add downstream git@github.com:red-hat-data-services/odh-dashboard.git"
+     exit 1
+   fi
+   echo "Downstream remote: $DOWNSTREAM_REMOTE"
+   ```
+
+2. **Determine the target branch.** Use the `repo_branch` value from Phase 3 (e.g. `rhoai-3.5-ea.2`). Fetch and verify it exists:
+
+   ```bash
+   git fetch "$DOWNSTREAM_REMOTE" "$TARGET_BRANCH"
+   ```
+
+3. **Create a feature branch, add the Dockerfile, and push:**
+
+   ```bash
+   # Create branch from the downstream target
+   git checkout -b "<jira-key>-dockerfile-konflux" "$DOWNSTREAM_REMOTE/$TARGET_BRANCH"
+
+   # Write Dockerfile.konflux.<name> at repo root
+   # (use the content generated above)
+
+   git add "Dockerfile.konflux.<name>"
+   git commit -m "<JIRA-KEY>: Add Dockerfile.konflux.<name> for RHOAI Konflux builds"
+   git push "$DOWNSTREAM_REMOTE" "<jira-key>-dockerfile-konflux"
+   ```
+
+4. **Create a PR against the downstream repo** targeting `$TARGET_BRANCH`:
+
+   ```bash
+   gh pr create \
+     --repo red-hat-data-services/odh-dashboard \
+     --base "$TARGET_BRANCH" \
+     --head "<jira-key>-dockerfile-konflux" \
+     --title "<JIRA-KEY>: Add Dockerfile.konflux.<name>" \
+     --body "Adds the downstream Konflux Dockerfile for the <name> component.
+
+   This Dockerfile uses SHA-pinned base images and FIPS-compliant build flags
+   as required for RHOAI builds."
+   ```
+
+**Do NOT** write the Dockerfile to the upstream repo or create a PR against `opendatahub-io/odh-dashboard` — the downstream Dockerfile only exists in the downstream repo.
 
 ## Phase 5: Manifest Overlay (Type A only)
 
@@ -367,7 +417,7 @@ Print a final report:
 1. Review and merge Tekton pipeline PRs
 2. Wait for DevOps GitLab CI to process onboarding request (~2-4 hours)
 3. Review and merge DevOps-generated PRs (check Jira labels for progression)
-4. Commit Dockerfile.konflux.<name> to downstream repo
+4. Review and merge Dockerfile.konflux.<name> PR in the downstream repo
 5. Submit OpenShift CI config PR to openshift/release
 6. Coordinate operator integration with Platform team (RHOAIENG-37067) — update operator component references, OLM bundle, and test integration
 7. Verify first build succeeds end-to-end (both ODH and RHOAI)
