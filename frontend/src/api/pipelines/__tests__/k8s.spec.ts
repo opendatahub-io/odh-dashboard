@@ -98,6 +98,7 @@ describe('createPipelinesCR', () => {
   const DSPipelinemock = mockDataSciencePipelineApplicationK8sResource({});
   delete DSPipelinemock.status;
   delete DSPipelinemock.metadata.creationTimestamp;
+  delete DSPipelinemock.metadata.resourceVersion;
   it('should create pipelines CR', async () => {
     k8sCreateResourceMock.mockResolvedValue(DSPipelinemock);
     const result = await createPipelinesCR('test-project', DSPipelinemock.spec);
