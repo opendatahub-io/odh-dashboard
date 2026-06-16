@@ -1,6 +1,12 @@
 import * as React from 'react';
 import { Label, LabelProps, Popover } from '@patternfly/react-core';
-import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
+import {
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  OutlinedQuestionCircleIcon,
+  ExclamationTriangleIcon,
+  PendingIcon,
+} from '@patternfly/react-icons';
 
 type PhaseLabelProps = {
   phase: string | undefined;
@@ -15,12 +21,15 @@ const getPhaseProps = (
     case 'Ready':
       return { icon: <CheckCircleIcon />, status: 'success' };
     case 'Failed':
-    case 'Unhealthy':
       return { icon: <ExclamationCircleIcon />, status: 'danger' };
+    case 'Unhealthy':
+      return { icon: <ExclamationCircleIcon />, status: 'warning' };
     case 'Pending':
-      return { icon: <InProgressIcon />, color: 'blue' };
+      return { icon: <PendingIcon />, color: 'purple' };
+    case 'Degraded':
+      return { icon: <ExclamationTriangleIcon />, status: 'warning' };
     default:
-      return { icon: undefined, color: 'grey' };
+      return { icon: <OutlinedQuestionCircleIcon />, color: 'grey' };
   }
 };
 

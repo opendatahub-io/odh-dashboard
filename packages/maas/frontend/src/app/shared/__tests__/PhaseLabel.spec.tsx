@@ -22,6 +22,15 @@ describe('PhaseLabel', () => {
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('Failed');
+    expect(label.className).toContain('pf-m-danger');
+  });
+
+  it('should render Degraded phase with correct text', () => {
+    render(<PhaseLabel phase="Degraded" />);
+    const label = screen.getByTestId('phase-label');
+    expect(label).not.toBeNull();
+    expect(label.textContent).toContain('Degraded');
+    expect(label.className).toContain('pf-m-warning');
   });
 
   it('should render Unhealthy phase with correct text', () => {
@@ -29,6 +38,7 @@ describe('PhaseLabel', () => {
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('Unhealthy');
+    expect(label.className).toContain('pf-m-warning');
   });
 
   it('should render Pending phase with correct text', () => {
