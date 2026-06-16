@@ -102,6 +102,7 @@ type RegisteredModelMetadata struct {
 	DisplayName        string                      `yaml:"display_name"`
 	EmbeddingDimension *int                        `yaml:"embedding_dimension,omitempty"`
 	CustomGenAI        *RegisteredModelCustomGenAI `yaml:"custom_gen_ai,omitempty"`
+	Capabilities       []string                    `yaml:"capabilities,omitempty"`
 }
 
 // RegisteredModelCustomGenAI represents custom gen AI metadata

@@ -1594,7 +1594,7 @@ paths:
     description: >-
       Retrieves audio from OGX Files API and forwards it to a user-selected
       ASR AI Asset endpoint (vLLM /v1/audio/transcriptions) for transcription.
-      Only namespace-deployed models with the audio-transcription modality label
+      Only namespace-deployed models with the audio-transcription capability
       are accepted (SSRF prevention).
     post:
       tags:
@@ -1648,7 +1648,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/FrontendErrorResponse'
         '404':
-          description: 'ASR model not found or lacks modality label (code: model_not_found)'
+          description: 'ASR model not found (code: model_not_found) or lacks audio-transcription capability (code: model_invalid)'
           content:
             application/json:
               schema:
@@ -2695,8 +2695,8 @@ components:
         asr_model_id:
           type: string
           description: >-
-            ID of the ASR-capable model (must have label
-            opendatahub.io/modality=audio-transcription)
+            ID of the ASR-capable model (must have audio-transcription
+            in its capabilities annotation)
           example: 'whisper-asr'
 
     AudioTranscriptionResponse:
@@ -3099,6 +3099,7 @@ components:
         - endpoints
         - status
         - model_source_type
+        - capabilities
       properties:
         model_name:
           type: string
@@ -3167,13 +3168,19 @@ components:
           type: string
           example: 'Llama 3.2 3B Instruct'
           description: Human-readable display name for the model
-        modality:
-          type: string
-          example: 'audio-transcription'
+        capabilities:
+          type: array
+          items:
+            type: string
+            enum:
+              - vision
+              - audio-transcription
+              - text-generation
           description: >-
-            Model modality capability from InferenceService label
-            (opendatahub.io/modality). Empty for standard text models.
-            Known values: 'audio-transcription' for ASR models.
+            Model capabilities parsed from the opendatahub.io/model-capabilities
+            annotation (cluster models), metadata.capabilities (custom endpoints),
+            or empty array (MaaS). Default when no annotation: ["text-generation"].
+          example: ["vision", "text-generation"]
         sa_token:
           $ref: '#/components/schemas/SAToken'
 
@@ -5654,6 +5661,8 @@ components:
                 - 'https://api.openai.com/v1'
               status: 'Running'
               display_name: 'GPT-4 Optimized'
+              capabilities:
+                - text-generation
               sa_token:
                 name: ''
                 token_name: ''

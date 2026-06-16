@@ -111,10 +111,15 @@ describe('Verify Performance Filters are available on RHOAI', () => {
       cy.step('Turn ON performance view toggle');
       modelCatalog.togglePerformanceView();
 
-      cy.step('Verify performance filters appear');
+      cy.step('Verify performance toolbar filters appear');
       modelCatalog.findWorkloadTypeFilter().should('be.visible');
       modelCatalog.findLatencyFilter().should('be.visible');
       modelCatalog.findMaxRpsFilter().should('be.visible');
+      modelCatalog.findColdStartLoadTimeFilter().should('be.visible');
+
+      cy.step('Verify performance sidebar slider filters appear');
+      modelCatalog.findMinimumVramFilter().should('be.visible');
+      modelCatalog.findContainerSizeFilter().should('be.visible');
 
       cy.step('Check if performance data is available on this cluster');
       checkPerformanceDataAvailable(15000).then((count) => {

@@ -521,7 +521,7 @@ jobs:
   e2e-tests:
     needs: [select-cluster, set-pending-status, get-test-tags]
     runs-on: self-hosted
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:

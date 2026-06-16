@@ -44,7 +44,7 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit an AutoML time series forecasting run',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression'], retries: { runMode: 0, openMode: 0 } },
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
