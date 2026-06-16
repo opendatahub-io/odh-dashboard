@@ -29,6 +29,8 @@ export type {
 
 export { KnownLabels, MetadataAnnotation, HardwareProfileFeatureVisibility } from './k8sTypes';
 export type {
+  K8sVerb,
+  AccessReviewResourceAttributes,
   K8sResourceCommon,
   DisplayNameAnnotations,
   DashboardLabels,

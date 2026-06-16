@@ -10,7 +10,12 @@ import {
   ModalHeader,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
-import type { PersistentVolumeClaimKind, ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
+import type {
+  PersistentVolumeClaimKind,
+  ProjectKind,
+  SecretKind,
+  AccessReviewResourceAttributes,
+} from '@odh-dashboard/k8s-core';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -20,11 +25,7 @@ import {
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
-import {
-  AccessReviewResourceAttributes,
-  InferenceServiceKind,
-  ServingRuntimeKind,
-} from '#~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';

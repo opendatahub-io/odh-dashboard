@@ -17,14 +17,12 @@ import {
   type Volume,
   type VolumeMount,
   type HardwareProfileBindingAnnotations,
+  type AccessReviewResourceAttributes,
 } from '@odh-dashboard/k8s-core';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
 import type { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { ImageStreamStatusTagCondition, ImageStreamStatusTagItem } from './types';
-import type { AccessReviewResourceAttributes } from './types-core';
-
-export type { AccessReviewResourceAttributes } from './types-core';
 
 export type ModelRegistry = {
   name: string;
@@ -32,16 +30,6 @@ export type ModelRegistry = {
   description: string;
   serverAddress?: string;
 };
-
-export type K8sVerb =
-  | 'create'
-  | 'get'
-  | 'list'
-  | 'update'
-  | 'patch'
-  | 'delete'
-  | 'deletecollection'
-  | 'watch';
 
 export type AccessModeSettings = Partial<Record<AccessMode, boolean>>;
 

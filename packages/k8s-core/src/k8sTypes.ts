@@ -15,6 +15,25 @@ import type {
 
 export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
+export type K8sVerb =
+  | 'create'
+  | 'get'
+  | 'list'
+  | 'update'
+  | 'patch'
+  | 'delete'
+  | 'deletecollection'
+  | 'watch';
+
+export type AccessReviewResourceAttributes = {
+  group?: '*' | string;
+  resource?: string;
+  subresource?: '' | 'api' | 'spec' | 'status';
+  verb: '*' | K8sVerb;
+  name?: string;
+  namespace?: string;
+};
+
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
   PROJECT_SHARING = 'opendatahub.io/project-sharing',

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Content } from '@patternfly/react-core';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { useAccessReview } from '#~/api';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '#~/concepts/design/utils';
 import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
