@@ -2,8 +2,13 @@ package kubernetes
 
 import (
 	"context"
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -47,7 +52,10 @@ type otelConfigManager struct {
 	logger             *slog.Logger
 	collectorNamespace string
 	collectorName      string
-	mlflowOTLPEndpoint string
+	mlflowOTLPBaseURL  string // e.g. "https://mlflow.opendatahub.svc:8443" (OTLP HTTP exporter appends /v1/traces)
+	mlflowTrackingURL  string // e.g. "https://mlflow.opendatahub.svc:8443/mlflow" (REST API base for experiment management)
+	httpClient         *http.Client
+	bearerToken        string // from kubeconfig (local dev) or SA token (in-cluster)
 }
 
 // newOTelConfigManager creates a manager using the in-cluster service account
@@ -103,10 +111,22 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 	mlflowOTLP := strings.TrimSuffix(mlflowURL, "/mlflow")
 	mlflowOTLP = strings.TrimSuffix(mlflowOTLP, "/")
 
+	// For MLflow API calls (experiment management), prefer the configured MLflowURL
+	// (reachable from wherever the BFF runs, e.g. localhost via port-forward) over
+	// the in-cluster service URL (only reachable from within the cluster).
+	// Ensure the tracking URL includes the /mlflow path prefix.
+	mlflowTracking := strings.TrimSuffix(cfg.MLflowURL, "/")
+	if mlflowTracking == "" {
+		mlflowTracking = strings.TrimSuffix(mlflowURL, "/")
+	} else if !strings.HasSuffix(mlflowTracking, "/mlflow") {
+		mlflowTracking += "/mlflow"
+	}
+
 	logger.Info("OTel config manager initialized",
 		"collectorNamespace", collectorNS,
 		"collectorName", collectorName,
-		"mlflowOTLPEndpoint", mlflowOTLP,
+		"mlflowOTLPBaseURL", mlflowOTLP,
+		"mlflowTrackingURL", mlflowTracking,
 	)
 
 	return &otelConfigManager{
@@ -114,7 +134,15 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 		logger:             logger,
 		collectorNamespace: collectorNS,
 		collectorName:      collectorName,
-		mlflowOTLPEndpoint: mlflowOTLP,
+		mlflowOTLPBaseURL:  mlflowOTLP,
+		mlflowTrackingURL:  mlflowTracking,
+		bearerToken:        restCfg.BearerToken,
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // in-cluster service-CA
+			},
+		},
 	}, nil
 }
 
@@ -160,8 +188,14 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string) {
 		return
 	}
 
+	experimentID := m.ensureMLflowExperiment(ctx, namespace)
+	if experimentID == "" {
+		m.logger.Warn("skipping collector route setup — MLflow experiment could not be created", "namespace", namespace)
+		return
+	}
+
 	changed := ensureRoutingConnector(collectorCfg)
-	changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowOTLPEndpoint) || changed
+	changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowOTLPBaseURL, experimentID) || changed
 
 	if !changed {
 		m.logger.Info("collector config already has route for namespace, no update needed", "namespace", namespace)
@@ -266,6 +300,115 @@ func (m *otelConfigManager) writeBackConfig(ctx context.Context, cr *unstructure
 	return err
 }
 
+// --- MLflow experiment management ---
+
+const (
+	saTokenPath          = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	mlflowExperimentsAPI = "/api/2.0/mlflow/experiments"
+)
+
+// ensureMLflowExperiment creates a "Default" experiment in the given workspace
+// if one doesn't exist, and returns its experiment ID. Returns "" on error,
+// signalling the caller to skip route creation for this namespace.
+func (m *otelConfigManager) ensureMLflowExperiment(ctx context.Context, workspace string) string {
+	token := m.getAuthToken()
+	if token == "" {
+		m.logger.Warn("no auth token available for MLflow experiment setup")
+		return ""
+	}
+
+	expID, err := m.searchExperiment(ctx, workspace, token)
+	if err == nil && expID != "" {
+		return expID
+	}
+
+	expID, err = m.createExperiment(ctx, workspace, token)
+	if err != nil {
+		m.logger.Warn("failed to create MLflow experiment", "error", err, "workspace", workspace)
+		return ""
+	}
+
+	m.logger.Info("created MLflow experiment for workspace", "workspace", workspace, "experimentId", expID)
+	return expID
+}
+
+// getAuthToken returns a bearer token for MLflow API calls.
+// In-cluster: reads the SA token from the mounted secret (refreshed by kubelet).
+// Local dev: uses the kubeconfig bearer token stored at init time.
+func (m *otelConfigManager) getAuthToken() string {
+	if data, err := os.ReadFile(saTokenPath); err == nil {
+		return strings.TrimSpace(string(data))
+	}
+	return m.bearerToken
+}
+
+func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace string, token string) (string, error) {
+	url := fmt.Sprintf("%s%s/search?max_results=1", m.mlflowTrackingURL, mlflowExperimentsAPI)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-MLFLOW-WORKSPACE", workspace)
+
+	resp, err := m.httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("MLflow experiments search returned %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Experiments []struct {
+			ExperimentID string `json:"experiment_id"`
+		} `json:"experiments"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+
+	if len(result.Experiments) > 0 {
+		return result.Experiments[0].ExperimentID, nil
+	}
+	return "", fmt.Errorf("no experiments found")
+}
+
+func (m *otelConfigManager) createExperiment(ctx context.Context, workspace string, token string) (string, error) {
+	url := fmt.Sprintf("%s%s/create", m.mlflowTrackingURL, mlflowExperimentsAPI)
+
+	body := strings.NewReader(`{"name":"Default"}`)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-MLFLOW-WORKSPACE", workspace)
+
+	resp, err := m.httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("MLflow experiment create returned %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result struct {
+		ExperimentID string `json:"experiment_id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+	return result.ExperimentID, nil
+}
+
 // --- config parsing ---
 
 func parseCollectorConfig(cfgYAML string) (map[string]interface{}, error) {
@@ -368,7 +511,7 @@ func ensureRoutingConnector(cfg map[string]interface{}) bool {
 
 // addNamespaceRoute adds a routing table entry, exporter, and pipeline for the
 // given namespace. Returns true if entries were added (false if already present).
-func addNamespaceRoute(cfg map[string]interface{}, namespace string, mlflowEndpoint string) bool {
+func addNamespaceRoute(cfg map[string]interface{}, namespace string, mlflowEndpoint string, experimentID string) bool {
 	exporterName := collectorExporterName(namespace)
 	pipelineName := collectorPipelineName(namespace)
 
@@ -387,7 +530,7 @@ func addNamespaceRoute(cfg map[string]interface{}, namespace string, mlflowEndpo
 		},
 		"headers": map[string]interface{}{
 			"X-MLFLOW-WORKSPACE":     namespace,
-			"x-mlflow-experiment-id": "1",
+			"x-mlflow-experiment-id": experimentID,
 		},
 	}
 

@@ -109,7 +109,7 @@ func TestAddNamespaceRoute(t *testing.T) {
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
 
-	changed := addNamespaceRoute(cfg, "chrjones", "https://mlflow.test.svc:8443/mlflow/api/v1/traces")
+	changed := addNamespaceRoute(cfg, "chrjones", "https://mlflow.test.svc:8443/mlflow/api/v1/traces", "1")
 	assert.True(t, changed)
 
 	exporters := cfg["exporters"].(map[string]interface{})
@@ -137,9 +137,9 @@ func TestAddNamespaceRoute_Idempotent(t *testing.T) {
 	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
-	addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces")
+	addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces", "1")
 
-	changed := addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces")
+	changed := addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces", "1")
 	assert.False(t, changed, "re-adding same namespace should be a no-op")
 }
 
@@ -147,8 +147,8 @@ func TestAddMultipleNamespaceRoutes(t *testing.T) {
 	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
-	addNamespaceRoute(cfg, "ns-alpha", "https://mlflow.svc/traces")
-	addNamespaceRoute(cfg, "ns-beta", "https://mlflow.svc/traces")
+	addNamespaceRoute(cfg, "ns-alpha", "https://mlflow.svc/traces", "1")
+	addNamespaceRoute(cfg, "ns-beta", "https://mlflow.svc/traces", "1")
 
 	exporters := cfg["exporters"].(map[string]interface{})
 	_, hasAlpha := exporters["otlphttp/mlflow-ns-alpha"]
@@ -166,7 +166,7 @@ func TestRemoveNamespaceRoute(t *testing.T) {
 	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
-	addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces")
+	addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces", "1")
 
 	removed := removeNamespaceRoute(cfg, "chrjones")
 	assert.True(t, removed)
@@ -199,8 +199,8 @@ func TestRemoveOneOfMultipleRoutes(t *testing.T) {
 	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
-	addNamespaceRoute(cfg, "ns-alpha", "https://mlflow.svc/traces")
-	addNamespaceRoute(cfg, "ns-beta", "https://mlflow.svc/traces")
+	addNamespaceRoute(cfg, "ns-alpha", "https://mlflow.svc/traces", "1")
+	addNamespaceRoute(cfg, "ns-beta", "https://mlflow.svc/traces", "1")
 
 	removeNamespaceRoute(cfg, "ns-alpha")
 
@@ -220,7 +220,7 @@ func TestRemoveLastRoute_CleansUpRouting(t *testing.T) {
 	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
-	addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces")
+	addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces", "1")
 
 	removeNamespaceRoute(cfg, "chrjones")
 	assert.True(t, routingTableEmpty(cfg))
@@ -253,7 +253,7 @@ func TestRoutingTableEmpty(t *testing.T) {
 	ensureRoutingConnector(cfg)
 	assert.True(t, routingTableEmpty(cfg), "empty table = empty")
 
-	addNamespaceRoute(cfg, "ns1", "https://mlflow.svc/traces")
+	addNamespaceRoute(cfg, "ns1", "https://mlflow.svc/traces", "1")
 	assert.False(t, routingTableEmpty(cfg), "one route = not empty")
 
 	removeNamespaceRoute(cfg, "ns1")
@@ -295,8 +295,8 @@ func TestFullLifecycle(t *testing.T) {
 
 	// Add two namespaces.
 	ensureRoutingConnector(cfg)
-	addNamespaceRoute(cfg, "alpha", "https://mlflow.svc/traces")
-	addNamespaceRoute(cfg, "beta", "https://mlflow.svc/traces")
+	addNamespaceRoute(cfg, "alpha", "https://mlflow.svc/traces", "1")
+	addNamespaceRoute(cfg, "beta", "https://mlflow.svc/traces", "1")
 
 	// Verify both exist.
 	exporters := cfg["exporters"].(map[string]interface{})
