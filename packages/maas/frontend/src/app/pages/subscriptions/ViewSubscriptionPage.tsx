@@ -17,6 +17,7 @@ import {
   SubscriptionInfoResponse,
 } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { getReturnToFromState } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
@@ -30,6 +31,8 @@ type SubscriptionActionsProps = {
 const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription, returnTo }) => {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
+  const navState = returnTo ? { state: { returnTo } } : undefined;
 
   return (
     <>
@@ -39,7 +42,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
           {
             key: 'edit',
             label: 'Edit',
-            onClick: () => navigate(`${URL_PREFIX}/subscriptions/edit/${subscription.name}`),
+            onClick: () => navigate(`${base}/edit/${subscription.name}`, navState),
             isDisabled: !!subscription.deletionTimestamp,
           },
           { isSpacer: true },
@@ -57,7 +60,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
-              navigate(returnTo ?? `${URL_PREFIX}/subscriptions`);
+              navigate(base);
             }
           }}
         />
@@ -94,14 +97,7 @@ const ViewSubscriptionPage: React.FC = () => {
   const displaySubscriptionName =
     subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
 
-  const { state } = location;
-  const returnTo =
-    state != null &&
-    typeof state === 'object' &&
-    'returnTo' in state &&
-    typeof state.returnTo === 'string'
-      ? state.returnTo
-      : undefined;
+  const returnTo = getReturnToFromState(location.state);
 
   const breadcrumb = (
     <Breadcrumb>

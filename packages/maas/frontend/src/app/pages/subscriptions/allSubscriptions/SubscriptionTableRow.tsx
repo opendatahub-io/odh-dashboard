@@ -26,13 +26,14 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
+  const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
   const navState = returnTo ? { state: { returnTo } } : undefined;
 
   const onViewDetailsSubscription = (subscriptionName: string) => {
-    navigate(`${URL_PREFIX}/subscriptions/view/${subscriptionName}`, navState);
+    navigate(`${base}/view/${subscriptionName}`, navState);
   };
   const onEditSubscription = (subscriptionName: string) => {
-    navigate(`${URL_PREFIX}/subscriptions/edit/${subscriptionName}`, navState);
+    navigate(`${base}/edit/${subscriptionName}`, navState);
   };
   const onDeleteSubscription = (subscriptionToDelete: MaaSSubscription) => {
     setDeleteSubscription(subscriptionToDelete);
@@ -61,7 +62,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
             ) : (
               <ResourceNameTooltip resource={convertSubscriptionToK8sResource(subscription)}>
                 <Link
-                  to={`${URL_PREFIX}/subscriptions/view/${subscription.name}`}
+                  to={`${base}/view/${subscription.name}`}
                   state={returnTo ? { returnTo } : undefined}
                 >
                   {subscription.displayName ?? subscription.name}

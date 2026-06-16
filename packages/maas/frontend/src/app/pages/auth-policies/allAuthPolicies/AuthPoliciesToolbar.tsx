@@ -48,7 +48,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
           component={(props) => (
             <Link
               {...props}
-              to={`${URL_PREFIX}/auth-policies/create`}
+              to={`${returnTo ?? `${URL_PREFIX}/auth-policies`}/create`}
               state={returnTo ? { returnTo } : undefined}
             />
           )}

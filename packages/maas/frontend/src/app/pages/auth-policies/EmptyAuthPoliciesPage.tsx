@@ -20,7 +20,7 @@ const EmptyAuthPoliciesPage: React.FC<EmptyAuthPoliciesPageProps> = ({ returnTo 
           component={(props) => (
             <Link
               {...props}
-              to={`${URL_PREFIX}/auth-policies/create`}
+              to={`${returnTo ?? `${URL_PREFIX}/auth-policies`}/create`}
               state={returnTo ? { returnTo } : undefined}
             />
           )}

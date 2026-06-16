@@ -14,6 +14,7 @@ import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { getReturnToFromState } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
@@ -45,6 +46,8 @@ const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] 
 const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
+  const navState = returnTo ? { state: { returnTo } } : undefined;
 
   return (
     <>
@@ -54,8 +57,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
           {
             key: 'edit',
             label: 'Edit',
-            onClick: () =>
-              navigate(`${URL_PREFIX}/auth-policies/edit/${encodeURIComponent(policy.name)}`),
+            onClick: () => navigate(`${base}/edit/${encodeURIComponent(policy.name)}`, navState),
             isDisabled: !!policy.deletionTimestamp,
           },
           { isSpacer: true },
@@ -73,7 +75,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
-              navigate(returnTo ?? `${URL_PREFIX}/auth-policies`);
+              navigate(base);
             }
           }}
         />
@@ -88,14 +90,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [policyInfo, loaded, loadError] = useGetPolicyInfo(authPolicyName);
 
-  const { state } = location;
-  const returnTo =
-    state != null &&
-    typeof state === 'object' &&
-    'returnTo' in state &&
-    typeof state.returnTo === 'string'
-      ? state.returnTo
-      : undefined;
+  const returnTo = getReturnToFromState(location.state);
 
   const breadcrumb = (
     <Breadcrumb>

@@ -27,6 +27,12 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route path="/" element={<SubscriptionManagementPage />} />
         <Route path="/:tab" element={<SubscriptionManagementPage />} />
+        <Route path="/subscriptions/create" element={<CreateSubscriptionPage />} />
+        <Route path="/subscriptions/view/:subscriptionName" element={<ViewSubscriptionPage />} />
+        <Route path="/subscriptions/edit/:subscriptionName" element={<EditSubscriptionPage />} />
+        <Route path="/auth-policies/create" element={<CreateAuthPolicyPage />} />
+        <Route path="/auth-policies/view/:authPolicyName" element={<ViewAuthPoliciesPage />} />
+        <Route path="/auth-policies/edit/:authPolicyName" element={<EditAuthPolicyPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     );

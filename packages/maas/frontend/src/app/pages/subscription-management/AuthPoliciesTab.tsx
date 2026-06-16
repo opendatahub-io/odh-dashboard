@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import { useListAuthPolicies } from '~/app/hooks/useListAuthPolicies';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import AuthPoliciesTable from '~/app/pages/auth-policies/allAuthPolicies/AuthPoliciesTable';
@@ -58,7 +58,17 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
     );
   }
 
-  if (loaded && !error && authPolicies.length === 0) {
+  if (error) {
+    return (
+      <PageSection isFilled>
+        <Alert variant="danger" isInline title="Error loading authorization policies">
+          {error.message}
+        </Alert>
+      </PageSection>
+    );
+  }
+
+  if (authPolicies.length === 0) {
     return <EmptyAuthPoliciesPage returnTo={returnTo} />;
   }
 

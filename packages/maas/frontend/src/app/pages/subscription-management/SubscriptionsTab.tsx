@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsTable';
@@ -56,7 +56,17 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
     );
   }
 
-  if (loaded && !error && subscriptions.length === 0) {
+  if (error) {
+    return (
+      <PageSection isFilled>
+        <Alert variant="danger" isInline title="Error loading subscriptions">
+          {error.message}
+        </Alert>
+      </PageSection>
+    );
+  }
+
+  if (subscriptions.length === 0) {
     return <EmptySubscriptionsPage returnTo={returnTo} />;
   }
 

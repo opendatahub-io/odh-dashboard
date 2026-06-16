@@ -20,7 +20,7 @@ const EmptySubscriptionsPage: React.FC<EmptySubscriptionsPageProps> = ({ returnT
           component={(props) => (
             <Link
               {...props}
-              to={`${URL_PREFIX}/subscriptions/create`}
+              to={`${returnTo ?? `${URL_PREFIX}/subscriptions`}/create`}
               state={returnTo ? { returnTo } : undefined}
             />
           )}

@@ -48,7 +48,8 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
           <Button
             variant="primary"
             onClick={() => {
-              navigate(`${URL_PREFIX}/subscriptions/create`, {
+              const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
+              navigate(`${base}/create`, {
                 state: returnTo ? { returnTo } : undefined,
               });
             }}
