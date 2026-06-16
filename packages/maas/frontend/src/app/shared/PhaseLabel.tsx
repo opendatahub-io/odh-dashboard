@@ -1,42 +1,23 @@
 import * as React from 'react';
-import { Label, LabelProps, Popover } from '@patternfly/react-core';
+import { Label, Popover } from '@patternfly/react-core';
 import {
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  OutlinedQuestionCircleIcon,
-  ExclamationTriangleIcon,
-  PendingIcon,
-} from '@patternfly/react-icons';
+  normalizePhase,
+  getPhaseProps,
+  getPopoverContent,
+  PhaseResourceType,
+} from '~/app/utilities/phaseLabelUtils';
 
 type PhaseLabelProps = {
   phase: string | undefined;
+  resourceType: PhaseResourceType;
   statusMessage?: string;
 };
 
-const getPhaseProps = (
-  phase: string | undefined,
-): { icon: React.ReactNode; status?: LabelProps['status']; color?: LabelProps['color'] } => {
-  switch (phase) {
-    case 'Active':
-    case 'Ready':
-      return { icon: <CheckCircleIcon />, status: 'success' };
-    case 'Failed':
-      return { icon: <ExclamationCircleIcon />, status: 'danger' };
-    case 'Unhealthy':
-      return { icon: <ExclamationCircleIcon />, status: 'warning' };
-    case 'Pending':
-      return { icon: <PendingIcon />, color: 'purple' };
-    case 'Degraded':
-      return { icon: <ExclamationTriangleIcon />, status: 'warning' };
-    default:
-      return { icon: <OutlinedQuestionCircleIcon />, color: 'grey' };
-  }
-};
-
-const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, statusMessage }) => {
-  const normalized = phase?.trim() || 'Unknown';
+const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, resourceType, statusMessage }) => {
+  const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
-  const hasPopover = !!statusMessage;
+  const hasPopover = !!statusMessage && normalized !== 'Active' && normalized !== 'Ready';
+  const popoverContent = getPopoverContent(normalized, resourceType, statusMessage);
 
   const label = (
     <Label
@@ -57,8 +38,10 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, statusMessage }) => {
   return (
     <Popover
       data-testid="phase-popover"
-      headerContent={normalized}
-      bodyContent={statusMessage}
+      headerContent={popoverContent.headerContent}
+      headerIcon={popoverContent.headerIcon}
+      bodyContent={popoverContent.bodyContent}
+      footerContent={popoverContent.footerContent}
       position="top"
     >
       {label}
