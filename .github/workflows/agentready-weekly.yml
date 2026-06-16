@@ -18,22 +18,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          node-version: '22'
+          python-version: '3.12'
 
       - name: Install AgentReady
         run: |
-          npm install -g agentready
+          pip install agentready==2.47.0
 
       - name: Run AgentReady Assessment
         id: assessment
         run: |
-          # Exclude assessors that don't apply to this monorepo structure:
-          # - type_annotations: Uses project references, no root tsconfig.json
-          # - precommit_hooks: Uses Husky, not Python pre-commit framework
-          agentready assess . -e type_annotations -e precommit_hooks > assessment-output.txt
+          # Exclusions configured in .github/agentready-config.yaml
+          agentready assess . --config .github/agentready-config.yaml > assessment-output.txt
           cat assessment-output.txt
           SCORE=$(grep "Overall Score:" assessment-output.txt | grep -oE '[0-9]+\.[0-9]+' | head -1)
           echo "score=$SCORE" >> $GITHUB_OUTPUT
