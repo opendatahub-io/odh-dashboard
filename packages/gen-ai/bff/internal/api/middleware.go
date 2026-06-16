@@ -454,24 +454,23 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		// Check if MaaS BFF target is configured
 		if !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			logger.Debug("MaaS BFF target not configured, attaching nil client")
-			// CODE REVIEW NOTE: Storing nil client in context is intentional defensive programming.
-			// Handlers check for nil and return 503. This pattern allows mixed-source endpoints
-			// (e.g., namespace+maas models) to degrade gracefully when MaaS BFF is unavailable.
-			// Alternative (503 here) would block all requests, even those not needing MaaS.
+			// Intentionally store nil client to allow graceful degradation. Handlers check for nil
+			// and return 503 when MaaS-specific operations are requested. This pattern allows
+			// mixed-source endpoints (e.g., namespace+maas models) to succeed with partial data
+			// when MaaS BFF is unavailable, rather than failing the entire request.
 			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), nil)
 			next(w, r.WithContext(ctx), ps)
 			return
 		}
 
-		// Get auth token from RequestIdentity
+		// Get auth token from RequestIdentity.
+		// Safe to use empty string when identity is absent due to middleware ordering:
+		// RequireAccessToService runs before AttachBFFMaaSClient (see Routes() in app.go),
+		// guaranteeing RequestIdentity exists and is validated before reaching this code.
 		var authToken string
 		if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); ok && identity != nil {
 			authToken = identity.Token
 		}
-		// CODE REVIEW NOTE: Empty authToken when RequestIdentity is absent is safe by middleware ordering.
-		// RequireAccessToService runs BEFORE AttachBFFMaaSClient in the chain (see Routes() in app.go),
-		// guaranteeing RequestIdentity exists and is validated before this code executes.
-		// If this invariant is ever violated, downstream BFF calls will fail with 401/403.
 
 		// Build headers based on MaaS BFF's auth method
 		forwardHeaders := make(map[string]string)
