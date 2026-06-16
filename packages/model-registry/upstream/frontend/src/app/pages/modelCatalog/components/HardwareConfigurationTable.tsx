@@ -2,7 +2,6 @@ import * as React from 'react';
 import { DashboardEmptyTableView, Table, ManageColumnsModal } from 'mod-arch-shared';
 import { Button, Spinner } from '@patternfly/react-core';
 import { ColumnsIcon } from '@patternfly/react-icons';
-import { OuterScrollContainer } from '@patternfly/react-table';
 import { CatalogPerformanceMetricsArtifact, HardwareConfiguration } from '~/app/modelCatalogTypes';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { getActiveLatencyFieldName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
@@ -106,42 +105,40 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
 
   return (
     <>
-      <OuterScrollContainer>
-        <Table
-          data-testid="hardware-configuration-table"
-          variant="compact"
-          isStickyHeader
-          hasStickyColumns
-          data={performanceArtifacts}
-          columns={columns}
-          toolbarContent={toolbarContent}
-          onClearFilters={handleClearFilters}
-          {...(hasActiveSort ? { defaultSortColumn: sortIndex } : {})}
-          {...controlledSortProps}
-          emptyTableView={<DashboardEmptyTableView onClearFilters={handleClearFilters} />}
-          rowRenderer={(artifact: CatalogPerformanceMetricsArtifact) => {
-            const hwConfig = getStringValue(
-              artifact.customProperties,
-              PerformancePropertyKey.HARDWARE_CONFIGURATION,
-            );
-            const hwType = getStringValue(
-              artifact.customProperties,
-              PerformancePropertyKey.HARDWARE_TYPE,
-            );
-            const matched = hardwareConfigurations?.find(
-              (c) => hwConfig.startsWith(c.gpu_type) || c.gpu_type === hwType,
-            );
-            return (
-              <HardwareConfigurationTableRow
-                key={artifact.customProperties?.config_id?.string_value}
-                performanceArtifact={artifact}
-                columns={columns}
-                matchedHardwareConfig={matched}
-              />
-            );
-          }}
-        />
-      </OuterScrollContainer>
+      <Table
+        data-testid="hardware-configuration-table"
+        variant="compact"
+        isStickyHeader
+        hasStickyColumns
+        data={performanceArtifacts}
+        columns={columns}
+        toolbarContent={toolbarContent}
+        onClearFilters={handleClearFilters}
+        {...(hasActiveSort ? { defaultSortColumn: sortIndex } : {})}
+        {...controlledSortProps}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={handleClearFilters} />}
+        rowRenderer={(artifact: CatalogPerformanceMetricsArtifact) => {
+          const hwConfig = getStringValue(
+            artifact.customProperties,
+            PerformancePropertyKey.HARDWARE_CONFIGURATION,
+          );
+          const hwType = getStringValue(
+            artifact.customProperties,
+            PerformancePropertyKey.HARDWARE_TYPE,
+          );
+          const matched = hardwareConfigurations?.find(
+            (c) => hwConfig.startsWith(c.gpu_type) || c.gpu_type === hwType,
+          );
+          return (
+            <HardwareConfigurationTableRow
+              key={artifact.customProperties?.config_id?.string_value}
+              performanceArtifact={artifact}
+              columns={columns}
+              matchedHardwareConfig={matched}
+            />
+          );
+        }}
+      />
       <ManageColumnsModal
         manageColumnsResult={manageColumnsResult}
         description="Manage the columns that appear in the hardware configuration table."
