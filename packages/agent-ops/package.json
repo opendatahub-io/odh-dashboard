@@ -42,18 +42,11 @@
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9111 -s -L",
     "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9111 PROXY_PORT=4021 npm run start:dev",
-    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9111"
-  },
-  "dependencies": {
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "mod-arch-core": "^1.10.1"
+    "cypress:server:wait": "wait-on -i 1000 http://localhost:9111"
   },
   "devDependencies": {
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*",
-    "cross-env": "^10.1.0",
-    "eslint-plugin-n": "^17.23.1"
+    "@odh-dashboard/tsconfig": "*"
   }
 }
