@@ -10,6 +10,7 @@ import {
   PendingIcon,
 } from '@patternfly/react-icons';
 import { Icon, LabelProps } from '@patternfly/react-core';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
 import {
   PipelineCoreResourceKF,
   PipelineRecurringRunKF,
@@ -20,7 +21,7 @@ import {
 import { getTimeRangeCategory, relativeTime } from '#~/utilities/time';
 import { getRunStartTime } from '#~/concepts/pipelines/content/tables/utils';
 import { StatusType } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
-import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes.ts';
+import { K8sDspaConditionReason } from '#~/k8sTypes';
 
 export type RunStatusDetails = {
   icon: React.ReactNode;

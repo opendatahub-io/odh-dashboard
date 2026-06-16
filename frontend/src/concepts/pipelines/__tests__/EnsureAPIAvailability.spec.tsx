@@ -2,11 +2,10 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { K8sStatusError } from '#~/api/errorUtils';
-import { ProjectKind } from '#~/k8sTypes';
-
 // Mock the usePipelinesAPI hook
 jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),

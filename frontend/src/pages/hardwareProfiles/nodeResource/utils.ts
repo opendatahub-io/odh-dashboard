@@ -1,6 +1,6 @@
 import { z, ZodIssue } from 'zod';
+import type { Identifier } from '@odh-dashboard/k8s-core';
 import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
-import { Identifier } from '#~/types';
 import { isLarger, splitValueUnit, UnitOption } from '#~/utilities/valueUnits';
 
 const defaultCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) =>

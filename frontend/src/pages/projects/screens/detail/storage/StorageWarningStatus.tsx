@@ -5,7 +5,7 @@ import {
   ExclamationTriangleIcon,
   InfoCircleIcon,
 } from '@patternfly/react-icons';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { usePVCFreeAmount } from '#~/api';
 import { getPvcPercentageUsed } from '#~/pages/projects/utils';
 import { getFullStatusFromPercentage } from './utils';

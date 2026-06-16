@@ -1,6 +1,6 @@
 import * as React from 'react';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { getSecretsByLabel } from '#~/api';
-import { SecretKind } from '#~/k8sTypes';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, FlexItem, FormGroup } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
-import { Toleration } from '#~/types';
+import type { Toleration } from '@odh-dashboard/k8s-core';
 import ManageTolerationModal from '#~/pages/hardwareProfiles/toleration/ManageTolerationModal';
 import TolerationTable from '#~/pages/hardwareProfiles/toleration/TolerationTable';
 import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const';

@@ -1,4 +1,4 @@
-import { DashboardCommonConfig } from '#~/k8sTypes';
+import type { DashboardCommonConfig } from '@odh-dashboard/k8s-core';
 import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from './types';
 
 export const techPreviewFlags = {
