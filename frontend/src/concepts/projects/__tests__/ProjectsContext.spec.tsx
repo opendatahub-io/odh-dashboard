@@ -95,6 +95,36 @@ describe('ProjectsContextProvider', () => {
       expect(resolved).toBe(false);
     });
 
+    it('should resolve when the component unmounts before the timeout', async () => {
+      useProjectsMock.mockReturnValue([[], true, undefined]);
+
+      const { result, unmount } = renderHook(() => React.useContext(ProjectsContext), { wrapper });
+
+      let resolved = false;
+      await act(async () => {
+        const promise = result.current.waitForProject('missing-project');
+        promise.then(() => {
+          resolved = true;
+        });
+
+        // Advance a few intervals but stay under the timeout
+        for (let i = 0; i < 5; i++) {
+          jest.advanceTimersByTime(200);
+          await Promise.resolve();
+        }
+        expect(resolved).toBe(false);
+
+        // Unmount the provider
+        unmount();
+
+        // Advance one more interval so the next poll fires and sees unmounted
+        jest.advanceTimersByTime(200);
+        await Promise.resolve();
+      });
+
+      expect(resolved).toBe(true);
+    });
+
     it('should resolve (not reject) on timeout since project creation already succeeded', async () => {
       useProjectsMock.mockReturnValue([[], true, undefined]);
 

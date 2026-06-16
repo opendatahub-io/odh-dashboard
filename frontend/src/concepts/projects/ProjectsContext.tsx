@@ -103,6 +103,10 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
         // Projects take a moment to appear in K8s due to their shell version of Namespaces
         const doCheckAgain = () => {
           setTimeout(() => {
+            if (!isMounted.current) {
+              resolve();
+              return;
+            }
             elapsed += POLL_INTERVAL;
             if (projectsRef.current.find(byName(projectName))) {
               resolve();
@@ -114,9 +118,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
               resolve();
               return;
             }
-            if (isMounted.current) {
-              doCheckAgain();
-            }
+            doCheckAgain();
           }, POLL_INTERVAL);
         };
         doCheckAgain();
