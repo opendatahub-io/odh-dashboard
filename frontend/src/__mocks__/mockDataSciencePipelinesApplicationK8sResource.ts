@@ -36,6 +36,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   metadata: {
     name,
     namespace,
+    resourceVersion: '1',
     creationTimestamp: '2024-08-26T07:45:24Z',
   },
   spec: {

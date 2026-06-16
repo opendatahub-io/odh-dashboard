@@ -69,6 +69,14 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     initManagedPipelinesEnabled,
   );
 
+  React.useEffect(() => {
+    setEnableCaching(pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false);
+    setEnableManagedPipelines(
+      !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
+        !('instructLab' in (pipelineNamespaceCR.spec.apiServer.managedPipelines ?? {})),
+    );
+  }, [pipelineNamespaceCR]);
+
   // Track if changes have been made
   const hasChanges =
     enableCaching !== initCachingEnabled ||
