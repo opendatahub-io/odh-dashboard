@@ -95,10 +95,23 @@ describe('CreateRoleFooter', () => {
   });
 
   it('should re-enable submit button after onSubmit rejects', async () => {
-    const onSubmit = jest.fn().mockRejectedValue(new Error('API error'));
+    let rejectPromise: (reason?: unknown) => void = () => undefined;
+    const onSubmit = jest.fn(
+      () =>
+        new Promise<void>((_, reject) => {
+          rejectPromise = reject;
+        }),
+    );
     renderFooter({ onSubmit });
 
     fireEvent.click(screen.getByTestId('create-role-submit'));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('create-role-submit')).toBeDisabled();
+    });
+
+    rejectPromise(new Error('API error'));
 
     await waitFor(() => {
       expect(screen.getByTestId('create-role-submit')).not.toBeDisabled();
