@@ -1121,7 +1121,7 @@ describe('AutoML API Contract Tests', () => {
             train_data_file_key: 'data/train.csv',
             label_column: 'target',
             task_type: 'multiclass',
-            preset: 'medium_quality',
+            preset: 'speed',
             eval_metric: 'roc_auc',
             top_n: 5,
           });
@@ -1258,7 +1258,7 @@ describe('AutoML API Contract Tests', () => {
             timestamp_column: 'date',
             prediction_length: 7,
             known_covariates_names: ['temperature', 'is_holiday'],
-            preset: 'fast_training',
+            preset: 'speed',
             eval_metric: 'RMSE',
             top_n: 5,
           });

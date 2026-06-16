@@ -15,7 +15,6 @@ import {
   computeRankMap,
   findEquivalentMetric,
   generateReconfigureName,
-  resolvePresetFromBackend,
 } from '~/app/utilities/utils';
 
 describe('isRunCompleted', () => {
@@ -646,35 +645,5 @@ describe('generateReconfigureName', () => {
     const hugeNum = '1'.repeat(260); // 260-digit number
     const result = generateReconfigureName(`run - ${hugeNum}`);
     expect(Array.from(result).length).toBeLessThanOrEqual(250);
-  });
-});
-
-describe('resolvePresetFromBackend', () => {
-  it('should map medium_quality to faster for tabular task types', () => {
-    expect(resolvePresetFromBackend('medium_quality', 'binary')).toBe('faster');
-    expect(resolvePresetFromBackend('medium_quality', 'multiclass')).toBe('faster');
-    expect(resolvePresetFromBackend('medium_quality', 'regression')).toBe('faster');
-  });
-
-  it('should map good_quality to better_quality for tabular task types', () => {
-    expect(resolvePresetFromBackend('good_quality', 'binary')).toBe('better_quality');
-    expect(resolvePresetFromBackend('good_quality', 'multiclass')).toBe('better_quality');
-    expect(resolvePresetFromBackend('good_quality', 'regression')).toBe('better_quality');
-  });
-
-  it('should map fast_training to faster for timeseries', () => {
-    expect(resolvePresetFromBackend('fast_training', 'timeseries')).toBe('faster');
-  });
-
-  it('should map medium_quality to better_quality for timeseries', () => {
-    expect(resolvePresetFromBackend('medium_quality', 'timeseries')).toBe('better_quality');
-  });
-
-  it('should return faster as fallback for unknown backend preset', () => {
-    expect(resolvePresetFromBackend('unknown_preset', 'binary')).toBe('faster');
-  });
-
-  it('should return faster as fallback for unknown task type', () => {
-    expect(resolvePresetFromBackend('medium_quality', 'unknown_type')).toBe('faster');
   });
 });

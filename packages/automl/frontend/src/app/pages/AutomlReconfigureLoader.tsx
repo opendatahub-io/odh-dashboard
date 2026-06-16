@@ -18,12 +18,7 @@ import {
   REQUIRED_CONNECTION_SECRET_KEYS,
   DEFAULT_EVAL_METRIC_BY_TASK,
 } from '~/app/utilities/const';
-import {
-  generateReconfigureName,
-  getTaskType,
-  parseErrorStatus,
-  resolvePresetFromBackend,
-} from '~/app/utilities/utils';
+import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
 const configureBasePartial = createConfigureSchema().base.partial();
@@ -197,10 +192,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
     target_column: targetColumn,
-    ...(parsed.preset != null &&
-      taskType != null && {
-        preset: resolvePresetFromBackend(parsed.preset, taskType),
-      }),
+    ...(parsed.preset != null && { preset: parsed.preset }),
     ...(parsed.eval_metric === undefined &&
       resolvedTaskType != null && {
         eval_metric: DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType],

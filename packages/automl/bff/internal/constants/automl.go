@@ -38,16 +38,16 @@ var ValidTaskTypes = map[string]bool{
 	TaskTypeRegression: true,
 }
 
-// ValidTabularPresets lists the valid AutoGluon preset strings for tabular pipelines.
+// ValidTabularPresets lists the valid preset strings for tabular pipelines.
 var ValidTabularPresets = map[string]bool{
-	"medium_quality": true,
-	"good_quality":   true,
+	"speed":    true,
+	"balanced": true,
 }
 
-// ValidTimeseriesPresets lists the valid AutoGluon preset strings for timeseries pipelines.
+// ValidTimeseriesPresets lists the valid preset strings for timeseries pipelines.
 var ValidTimeseriesPresets = map[string]bool{
-	"fast_training":  true,
-	"medium_quality": true,
+	"speed":    true,
+	"balanced": true,
 }
 
 // ValidClassificationEvalMetrics lists valid eval_metric values for binary and multiclass classification.

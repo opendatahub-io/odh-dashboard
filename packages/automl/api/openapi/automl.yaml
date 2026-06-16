@@ -622,7 +622,7 @@ paths:
                   train_data_file_key: "credit/train.csv"
                   label_column: "default"
                   task_type: "binary"
-                  preset: "medium_quality"
+                  preset: "speed"
                   eval_metric: "f1"
                   top_n: 5
               tabular-multiclass:
@@ -635,7 +635,7 @@ paths:
                   train_data_file_key: "customers/train.csv"
                   label_column: "segment"
                   task_type: "multiclass"
-                  preset: "good_quality"
+                  preset: "balanced"
                   eval_metric: "roc_auc"
                   top_n: 5
               tabular-regression:
@@ -648,7 +648,7 @@ paths:
                   train_data_file_key: "housing/train.csv"
                   label_column: "price"
                   task_type: "regression"
-                  preset: "medium_quality"
+                  preset: "speed"
                   eval_metric: "r2"
                   top_n: 3
               timeseries:
@@ -665,7 +665,7 @@ paths:
                   timestamp_column: "date"
                   prediction_length: 7
                   known_covariates_names: ["temperature", "is_holiday"]
-                  preset: "fast_training"
+                  preset: "speed"
                   eval_metric: "RMSE"
                   top_n: 3
       responses:
@@ -1246,9 +1246,9 @@ components:
           example: "data/train.csv"
         preset:
           type: string
-          enum: [medium_quality, good_quality, fast_training]
-          description: AutoGluon preset controlling the trade-off between training speed and model quality. The value depends on the pipeline type (e.g. medium_quality or good_quality for tabular; fast_training or medium_quality for timeseries). When omitted, the pipeline uses its built-in default.
-          example: "medium_quality"
+          enum: [speed, balanced]
+          description: Training quality tier controlling the trade-off between training speed and model quality. "speed" (default) uses fewer resources; "balanced" prioritizes accuracy with longer training time. When omitted, the pipeline defaults to "speed".
+          example: "speed"
         eval_metric:
           type: string
           enum:

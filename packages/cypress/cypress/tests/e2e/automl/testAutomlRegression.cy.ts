@@ -56,7 +56,7 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
       automlConfigurePage.findTaskTypeCard('regression').click();
 
       cy.step('Verify run preset defaults to Faster');
-      automlConfigurePage.findPresetRadio('faster').should('be.checked');
+      automlConfigurePage.findPresetRadio('speed').should('be.checked');
 
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);

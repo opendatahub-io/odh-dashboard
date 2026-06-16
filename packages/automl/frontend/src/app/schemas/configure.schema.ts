@@ -1,9 +1,7 @@
 /* eslint-disable camelcase */
 import * as z from 'zod';
 import {
-  PRESET_AUTOGLUON_VALUES,
   PRESET_FASTER,
-  PRESETS,
   ALL_EVAL_METRICS,
   DEFAULT_EVAL_METRIC_BY_TASK,
   EVAL_METRICS_BY_TASK_TYPE,
@@ -185,14 +183,6 @@ function createConfigureSchema() {
           delete data.known_covariates_names;
         }
         delete data.target_column;
-        return data;
-      },
-      // Map UI preset to backend AutoGluon preset string
-      (data) => {
-        const uiPreset = PRESETS.find((p) => p === data.preset);
-        if (uiPreset) {
-          data.preset = PRESET_AUTOGLUON_VALUES[uiPreset][data.task_type];
-        }
         return data;
       },
     ],

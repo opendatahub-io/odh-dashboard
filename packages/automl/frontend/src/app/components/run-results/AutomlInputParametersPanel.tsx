@@ -24,12 +24,7 @@ import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { PRESET_LABELS, TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
-import {
-  formatMetricName,
-  isRunCompleted,
-  isRunInTerminalState,
-  resolvePresetFromBackend,
-} from '~/app/utilities/utils';
+import { formatMetricName, isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
 
 import './AutomlInputParametersPanel.scss';
 
@@ -147,12 +142,10 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
     const isTimeseries = parameters.task_type === TASK_TYPE_TIMESERIES;
     const hiddenKeys = isTimeseries ? TABULAR_ONLY_KEYS : TIMESERIES_ONLY_KEYS;
 
-    // Resolve preset from backend AutoGluon value to user-friendly label
-    if (parameters.task_type && valueByKey.has('preset')) {
-      const backendPreset = valueByKey.get('preset');
-      if (typeof backendPreset === 'string') {
-        const uiPreset = resolvePresetFromBackend(backendPreset, parameters.task_type);
-        valueByKey.set('preset', PRESET_LABELS[uiPreset] ?? backendPreset);
+    if (valueByKey.has('preset')) {
+      const preset = valueByKey.get('preset');
+      if (typeof preset === 'string') {
+        valueByKey.set('preset', PRESET_LABELS[preset] ?? preset);
       }
     }
 

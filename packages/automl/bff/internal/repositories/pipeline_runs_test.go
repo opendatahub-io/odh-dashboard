@@ -258,7 +258,7 @@ func newValidTabularRequest() models.CreateAutoMLRunRequest {
 	topN := 3
 	labelColumn := "target"
 	taskType := "binary"
-	preset := "medium_quality"
+	preset := "speed"
 	return models.CreateAutoMLRunRequest{
 		DisplayName:         "test-run",
 		TrainDataSecretName: "minio-secret",
@@ -280,7 +280,7 @@ func newValidTimeSeriesRequest() models.CreateAutoMLRunRequest {
 	timestampColumn := "date"
 	predictionLength := 7
 	covariates := []string{"temperature", "is_holiday"}
-	preset := "fast_training"
+	preset := "speed"
 	return models.CreateAutoMLRunRequest{
 		DisplayName:          "test-run",
 		TrainDataSecretName:  "minio-secret",
@@ -356,7 +356,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		req := newValidTabularRequest()
 		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
 
-		assert.Equal(t, "medium_quality", result.RuntimeConfig.Parameters["preset"])
+		assert.Equal(t, "speed", result.RuntimeConfig.Parameters["preset"])
 	})
 
 	t.Run("should omit preset when nil", func(t *testing.T) {
@@ -589,15 +589,15 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 
 	t.Run("should accept valid preset for tabular pipeline", func(t *testing.T) {
 		req := newValidTabularRequest()
-		preset := "good_quality"
+		preset := "balanced"
 		req.Preset = &preset
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
 		assert.NoError(t, err)
 	})
 
-	t.Run("should reject timeseries preset for tabular pipeline", func(t *testing.T) {
+	t.Run("should reject invalid preset for tabular pipeline", func(t *testing.T) {
 		req := newValidTabularRequest()
-		preset := "fast_training"
+		preset := "best_quality"
 		req.Preset = &preset
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
 		assert.Error(t, err)
@@ -607,15 +607,15 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 
 	t.Run("should accept valid preset for timeseries pipeline", func(t *testing.T) {
 		req := newValidTimeSeriesRequest()
-		preset := "medium_quality"
+		preset := "balanced"
 		req.Preset = &preset
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
 		assert.NoError(t, err)
 	})
 
-	t.Run("should reject tabular-only preset for timeseries pipeline", func(t *testing.T) {
+	t.Run("should reject invalid preset for timeseries pipeline", func(t *testing.T) {
 		req := newValidTimeSeriesRequest()
-		preset := "good_quality"
+		preset := "high_quality"
 		req.Preset = &preset
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
 		assert.Error(t, err)
