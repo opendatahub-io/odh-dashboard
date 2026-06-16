@@ -366,6 +366,23 @@ describe('findEquivalentMetric', () => {
   it('should return undefined for unknown task type', () => {
     expect(findEquivalentMetric('accuracy', 'unknown')).toBeUndefined();
   });
+
+  it('should return undefined for OVO/OVR metrics against binary task type', () => {
+    expect(findEquivalentMetric('roc_auc_ovo', 'binary')).toBeUndefined();
+    expect(findEquivalentMetric('roc_auc_ovo_macro', 'binary')).toBeUndefined();
+    expect(findEquivalentMetric('roc_auc_ovo_weighted', 'binary')).toBeUndefined();
+    expect(findEquivalentMetric('roc_auc_ovr', 'binary')).toBeUndefined();
+    expect(findEquivalentMetric('roc_auc_ovr_macro', 'binary')).toBeUndefined();
+    expect(findEquivalentMetric('roc_auc_ovr_micro', 'binary')).toBeUndefined();
+    expect(findEquivalentMetric('roc_auc_ovr_weighted', 'binary')).toBeUndefined();
+  });
+
+  it('should return OVO/OVR metrics when target task type is multiclass', () => {
+    expect(findEquivalentMetric('roc_auc_ovo', 'multiclass')).toBe('roc_auc_ovo');
+    expect(findEquivalentMetric('roc_auc_ovo_macro', 'multiclass')).toBe('roc_auc_ovo_macro');
+    expect(findEquivalentMetric('roc_auc_ovr', 'multiclass')).toBe('roc_auc_ovr');
+    expect(findEquivalentMetric('roc_auc_ovr_weighted', 'multiclass')).toBe('roc_auc_ovr_weighted');
+  });
 });
 
 describe('computeRankMap', () => {

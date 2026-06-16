@@ -81,7 +81,9 @@ export const METRIC_ALIASES: Readonly<Record<string, string>> = {
 /* eslint-enable camelcase */
 
 // Eval metric enums per task type
-export const EVAL_METRICS_CLASSIFICATION = [
+
+/** Metrics valid for binary classification only (no OVO/OVR variants). */
+export const EVAL_METRICS_BINARY = [
   'accuracy',
   'balanced_accuracy',
   'log_loss',
@@ -90,13 +92,6 @@ export const EVAL_METRICS_CLASSIFICATION = [
   'f1_micro',
   'f1_weighted',
   'roc_auc',
-  'roc_auc_ovo',
-  'roc_auc_ovo_macro',
-  'roc_auc_ovo_weighted',
-  'roc_auc_ovr',
-  'roc_auc_ovr_macro',
-  'roc_auc_ovr_micro',
-  'roc_auc_ovr_weighted',
   'average_precision',
   'precision',
   'precision_macro',
@@ -109,6 +104,26 @@ export const EVAL_METRICS_CLASSIFICATION = [
   'mcc',
   'pac_score',
 ] as const;
+
+/** OVO/OVR metrics valid only for multiclass classification. */
+const EVAL_METRICS_OVO_OVR = [
+  'roc_auc_ovo',
+  'roc_auc_ovo_macro',
+  'roc_auc_ovo_weighted',
+  'roc_auc_ovr',
+  'roc_auc_ovr_macro',
+  'roc_auc_ovr_micro',
+  'roc_auc_ovr_weighted',
+] as const;
+
+/** Metrics valid for multiclass classification (binary metrics + OVO/OVR variants). */
+export const EVAL_METRICS_MULTICLASS = [...EVAL_METRICS_BINARY, ...EVAL_METRICS_OVO_OVR] as const;
+
+/**
+ * All classification metrics (union of binary and multiclass).
+ * @deprecated Use EVAL_METRICS_BINARY or EVAL_METRICS_MULTICLASS for task-specific lists.
+ */
+export const EVAL_METRICS_CLASSIFICATION = EVAL_METRICS_MULTICLASS;
 
 export const EVAL_METRICS_REGRESSION = [
   'root_mean_squared_error',
@@ -143,8 +158,8 @@ export const ALL_EVAL_METRICS = [
 export type EvalMetric = (typeof ALL_EVAL_METRICS)[number];
 
 export const EVAL_METRICS_BY_TASK_TYPE: Partial<Record<string, readonly EvalMetric[]>> = {
-  [TASK_TYPE_BINARY]: EVAL_METRICS_CLASSIFICATION,
-  [TASK_TYPE_MULTICLASS]: EVAL_METRICS_CLASSIFICATION,
+  [TASK_TYPE_BINARY]: EVAL_METRICS_BINARY,
+  [TASK_TYPE_MULTICLASS]: EVAL_METRICS_MULTICLASS,
   [TASK_TYPE_REGRESSION]: EVAL_METRICS_REGRESSION,
   [TASK_TYPE_TIMESERIES]: EVAL_METRICS_TIMESERIES,
 };

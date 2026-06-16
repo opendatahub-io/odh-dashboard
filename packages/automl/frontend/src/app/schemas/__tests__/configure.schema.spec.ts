@@ -500,6 +500,52 @@ describe('createConfigureSchema', () => {
       }
     });
 
+    it('should reject OVO/OVR metric for binary task type', () => {
+      const ovoOvrMetrics = [
+        'roc_auc_ovo',
+        'roc_auc_ovo_macro',
+        'roc_auc_ovo_weighted',
+        'roc_auc_ovr',
+        'roc_auc_ovr_macro',
+        'roc_auc_ovr_micro',
+        'roc_auc_ovr_weighted',
+      ] as const;
+
+      for (const metric of ovoOvrMetrics) {
+        const result = schema.full.safeParse({
+          ...baseData,
+          task_type: TASK_TYPE_BINARY,
+          eval_metric: metric,
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const paths = result.error.issues.map((i) => i.path.join('.'));
+          expect(paths).toContain('eval_metric');
+        }
+      }
+    });
+
+    it('should accept OVO/OVR metric for multiclass task type', () => {
+      const ovoOvrMetrics = [
+        'roc_auc_ovo',
+        'roc_auc_ovo_macro',
+        'roc_auc_ovo_weighted',
+        'roc_auc_ovr',
+        'roc_auc_ovr_macro',
+        'roc_auc_ovr_micro',
+        'roc_auc_ovr_weighted',
+      ] as const;
+
+      for (const metric of ovoOvrMetrics) {
+        const result = schema.full.safeParse({
+          ...baseData,
+          task_type: TASK_TYPE_MULTICLASS,
+          eval_metric: metric,
+        });
+        expect(result.success).toBe(true);
+      }
+    });
+
     it('should reject tabular metric for timeseries task type', () => {
       const result = schema.full.safeParse({
         ...baseData,
