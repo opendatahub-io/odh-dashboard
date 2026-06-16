@@ -854,6 +854,43 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
+	t.Run("should return 404 when only one AutoML pipeline is discovered", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "server-error-run-id"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		tsIDs := psmocks.DeriveMockIDs("test-namespace")
+		partial := map[string]*repositories.DiscoveredPipeline{
+			constants.PipelineTypeTimeSeries: {
+				PipelineID:        tsIDs.PipelineID,
+				PipelineVersionID: tsIDs.LatestVersionID,
+				PipelineName:      "autogluon-timeseries-training-pipeline",
+			},
+		}
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, partial)
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var response ErrorEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, repositories.ManagedPipelinesNotFoundMessage, response.Error.Message)
+	})
+
 	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		runID := "run-nil-reference"
