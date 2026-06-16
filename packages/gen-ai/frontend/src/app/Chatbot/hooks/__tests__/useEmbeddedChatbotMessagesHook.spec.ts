@@ -197,7 +197,7 @@ describe('useEmbeddedChatbotMessages', () => {
   });
 
   it('should include annotations and citationMap from response', async () => {
-    const citationMap = new Map([['doc1.pdf', 1]]);
+    const citationMap = new Map([['f1', 1]]);
     const fileSearchData = {
       queries: ['test query'],
       results: [{ filename: 'doc1.pdf', score: 0.95, text: 'test content' }],
@@ -222,7 +222,7 @@ describe('useEmbeddedChatbotMessages', () => {
     const botMessage = result.current.messages[1];
     expect(botMessage.annotations).toBeDefined();
     expect(botMessage.citationMap).toBeDefined();
-    expect(botMessage.citationMap?.get('doc1.pdf')).toBe(1);
+    expect(botMessage.citationMap?.get('f1')).toBe(1);
     expect(botMessage.fileSearchData).toBeDefined();
     expect(botMessage.fileSearchData).toEqual(fileSearchData);
   });
