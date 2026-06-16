@@ -312,6 +312,8 @@ export function useAutoragResults(
       // TODO[3.5]: Remove and handle from inside playground - both payloads should be supported
       // as they are valid open api schema
       if (
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        patternData.settings &&
         patternData.settings.responses_template &&
         typeof patternData.settings.responses_template.input === 'string'
       ) {
