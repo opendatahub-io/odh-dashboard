@@ -13,11 +13,6 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
     mockGetGenericErrorCode.mockReturnValue(undefined);
   });
 
-  it('returns false for unrelated 404 errors', () => {
-    mockGetGenericErrorCode.mockReturnValue(404);
-    expect(shouldShowConfigurePipelineServerEmptyState(new Error('any'))).toBe(false);
-  });
-
   it('returns true for missing managed pipelines message with 404', () => {
     mockGetGenericErrorCode.mockReturnValue(404);
     expect(
@@ -27,6 +22,15 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
         ),
       ),
     ).toBe(true);
+  });
+
+  it('returns false for 404 when message does not match managed pipelines error', () => {
+    mockGetGenericErrorCode.mockReturnValue(404);
+    expect(
+      shouldShowConfigurePipelineServerEmptyState(
+        new Error('the requested resource could not be found'),
+      ),
+    ).toBe(false);
   });
 
   it('returns true for missing managed pipelines message without status code (flattened Error)', () => {
