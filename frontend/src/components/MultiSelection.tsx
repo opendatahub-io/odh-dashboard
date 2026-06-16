@@ -69,9 +69,14 @@ const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterText: string, options: SelectionOptions[]) =>
   options.filter((o) => !filterText || o.name.toLowerCase().includes(filterText.toLowerCase()));
 
-/** Encode option ids for stable, non-colliding DOM id segments (e.g. 'a b' vs 'a-b'). */
+/** Encode option ids for stable, injective DOM id segments (e.g. 'a b' vs 'a-b', 'core/pods' vs 'coreu47upods'). */
 const encodeOptionIdForDom = (optionId: number | string): string =>
-  String(optionId).replace(/[^a-zA-Z0-9_-]/g, (ch) => `u${ch.charCodeAt(0)}u`);
+  String(optionId)
+    .replace(/u/g, 'uu')
+    .replace(/[^a-zA-Z0-9_-]/g, (ch) => `u${ch.charCodeAt(0)}u`);
+
+const MODAL_OVERFLOW_UNLOCK_COUNT_ATTR = 'data-multiselection-overflow-unlock-count';
+const MODAL_OVERFLOW_ORIGINAL_ATTR = 'data-multiselection-overflow-original';
 
 export const MultiSelection: React.FC<MultiSelectionProps> = ({
   value = [],
@@ -214,6 +219,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   }, [inputValue]);
 
   // Modal boxes use overflow:auto; unlock while open so the portaled menu is not clipped.
+  // Ref-count when multiple instances share a dialog (e.g. AddRuleModal).
   React.useLayoutEffect(() => {
     if (!isOpen) {
       return;
@@ -222,10 +228,22 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     if (!dialog) {
       return;
     }
-    const previousOverflow = dialog.style.overflow;
+    const unlockCount = Number(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR) ?? '0');
+    if (unlockCount === 0) {
+      dialog.setAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR, dialog.style.overflow);
+    }
+    dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(unlockCount + 1));
     dialog.style.overflow = 'visible';
     return () => {
-      dialog.style.overflow = previousOverflow;
+      const currentCount = Number(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR) ?? '1');
+      const nextCount = currentCount - 1;
+      if (nextCount <= 0) {
+        dialog.style.overflow = dialog.getAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR) ?? '';
+        dialog.removeAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR);
+        dialog.removeAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR);
+      } else {
+        dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(nextCount));
+      }
     };
   }, [isOpen]);
 
@@ -429,6 +447,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           appendTo: popperProps?.appendTo ?? (() => getModalDialog() ?? document.body),
         }}
       >
+        {/* Single SelectList id for aria-controls; SelectGroup inside matches TypeaheadSelect. */}
         <SelectList
           isAriaMultiselectable
           id={listboxId}

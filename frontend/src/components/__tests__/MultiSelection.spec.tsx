@@ -1,6 +1,5 @@
 import React from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 
 const defaultOptions: SelectionOptions[] = [
@@ -106,6 +105,154 @@ describe('MultiSelection', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('should wrap ArrowUp from the first option to the last option', async () => {
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Connections"
+        value={defaultOptions}
+        setValue={jest.fn()}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowUp' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-3');
+  });
+
+  it('should close the menu on Escape and Tab', async () => {
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Connections"
+        value={defaultOptions}
+        setValue={jest.fn()}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-expanded', 'true');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'Escape' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-expanded', 'false');
+    expect(combobox).not.toHaveAttribute('aria-activedescendant');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-expanded', 'true');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'Tab' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('should reset keyboard focus when clearing all selections', async () => {
+    const setValue = jest.fn();
+    const selectedOptions = defaultOptions.map((option, index) => ({
+      ...option,
+      selected: index === 0,
+    }));
+
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Connections"
+        value={selectedOptions}
+        setValue={setValue}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-activedescendant');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear input value' }));
+    });
+
+    expect(combobox).not.toHaveAttribute('aria-activedescendant');
+    expect(setValue).toHaveBeenCalledWith(
+      selectedOptions.map((option) => ({ ...option, selected: false })),
+    );
+  });
+
+  it('should focus the first option when opening via toggle click', async () => {
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Connections"
+        value={defaultOptions}
+        setValue={jest.fn()}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
+
+    await act(async () => {
+      fireEvent.click(combobox);
+    });
+
+    expect(combobox).toHaveAttribute('aria-expanded', 'true');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
+  });
+
+  it('should render grouped option labels for groupedValues consumers', async () => {
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Metrics"
+        groupedValues={[
+          {
+            id: 'SPD',
+            name: 'SPD',
+            values: [{ id: 'spd-1', name: 'SPD metric', selected: false }],
+          },
+          {
+            id: 'DIR',
+            name: 'DIR',
+            values: [{ id: 'dir-1', name: 'DIR metric', selected: false }],
+          },
+        ]}
+        setValue={jest.fn()}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('combobox', { name: 'Metrics' }));
+    });
+
+    expect(screen.getByText('SPD')).toBeInTheDocument();
+    expect(screen.getByText('DIR')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'SPD metric' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'DIR metric' })).toBeInTheDocument();
+  });
+
   it('should pass hasCheckbox to regular options when enabled (upstream RHOAIENG-63155)', async () => {
     render(
       <MultiSelection
@@ -172,5 +319,77 @@ describe('MultiSelection', () => {
     expect(screen.getAllByRole('menuitem')).toHaveLength(2);
     expect(document.getElementById('test-select-option-coreu47upods')).toBeInTheDocument();
     expect(document.getElementById('test-select-option-u47upods')).toBeInTheDocument();
+  });
+
+  it('should produce distinct DOM ids for encoded and literal u47u option ids', async () => {
+    const collisionRiskOptions: SelectionOptions[] = [
+      { id: 'core/pods', name: 'pods from slash', selected: false },
+      { id: 'coreu47upods', name: 'pods from literal', selected: false },
+    ];
+
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Resource types"
+        value={collisionRiskOptions}
+        setValue={jest.fn()}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('combobox', { name: 'Resource types' }));
+    });
+
+    const slashEncodedId = document.getElementById('test-select-option-coreu47upods');
+    const literalEncodedId = document.getElementById('test-select-option-coreuu117uu47uu117uu');
+
+    expect(slashEncodedId).toBeInTheDocument();
+    expect(literalEncodedId).toBeInTheDocument();
+    expect(slashEncodedId).not.toBe(literalEncodedId);
+  });
+
+  it('should only restore modal overflow after all open instances close', async () => {
+    const dialogRef = React.createRef<HTMLDivElement>();
+
+    render(
+      <div ref={dialogRef} role="dialog" style={{ overflow: 'auto' }}>
+        <MultiSelection
+          id="select-a"
+          ariaLabel="API groups"
+          value={defaultOptions}
+          setValue={jest.fn()}
+        />
+        <MultiSelection
+          id="select-b"
+          ariaLabel="Resource types"
+          value={defaultOptions}
+          setValue={jest.fn()}
+        />
+      </div>,
+    );
+
+    const dialog = dialogRef.current as HTMLDivElement;
+    const comboboxA = screen.getByRole('combobox', { name: 'API groups' });
+    const comboboxB = screen.getByRole('combobox', { name: 'Resource types' });
+
+    await act(async () => {
+      fireEvent.click(comboboxA);
+    });
+    expect(dialog.style.overflow).toBe('visible');
+
+    await act(async () => {
+      fireEvent.click(comboboxB);
+    });
+    expect(dialog.style.overflow).toBe('visible');
+
+    await act(async () => {
+      fireEvent.click(comboboxA);
+    });
+    expect(dialog.style.overflow).toBe('visible');
+
+    await act(async () => {
+      fireEvent.click(comboboxB);
+    });
+    expect(dialog.style.overflow).toBe('auto');
   });
 });

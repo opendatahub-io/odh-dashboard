@@ -1,3 +1,4 @@
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import type { DataScienceProjectData } from '../../../types';
@@ -32,8 +33,9 @@ describe('Verify that users can provide contributor project permissions to non-a
       }),
   );
   after(() => {
-    // Delete provisioned Project
     if (projectName) {
+      cy.step('Restore admin oc session for cleanup');
+      ensureAdminOcSession();
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
