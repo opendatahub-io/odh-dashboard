@@ -94,7 +94,7 @@ const formatValue = (key: string, value: unknown): React.ReactNode => {
     return TASK_TYPE_LABELS[value] ?? value;
   }
   if (key === 'preset' && typeof value === 'string') {
-    return value;
+    return PRESET_LABELS[value] ?? value;
   }
   if (key === 'eval_metric' && typeof value === 'string') {
     return formatMetricName(value);
@@ -141,13 +141,6 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
     // Determine which keys to hide based on the current task type
     const isTimeseries = parameters.task_type === TASK_TYPE_TIMESERIES;
     const hiddenKeys = isTimeseries ? TABULAR_ONLY_KEYS : TIMESERIES_ONLY_KEYS;
-
-    if (valueByKey.has('preset')) {
-      const preset = valueByKey.get('preset');
-      if (typeof preset === 'string') {
-        valueByKey.set('preset', PRESET_LABELS[preset] ?? preset);
-      }
-    }
 
     // Build entries in the display order defined by PANEL_PARAMETERS, skipping empty values
     // and keys that don't apply to the current task type
