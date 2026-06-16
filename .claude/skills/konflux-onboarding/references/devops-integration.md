@@ -43,7 +43,8 @@ The skill is a Claude Code plugin from `opendatahub-io/aiops-infra`:
 ```
 
 Verify installation:
-```
+
+```text
 /skills
 ```
 Look for `create-component-onboarding-jira` in the list.
@@ -160,12 +161,33 @@ After the YAML is attached to a Jira ticket:
    - Konflux component appears in the tenant
    - A test push triggers a build
 
+## Label Progression
+
+DevOps automation tracks progress via Jira labels. These are added automatically by CI as each step completes:
+
+| Label | Meaning | Added by |
+|-------|---------|----------|
+| `yaml-attached` | Onboarding YAML attached to ticket | `/create-component-onboarding-jira` skill |
+| `validation-successful` | YAML passes schema + Dockerfile digest validation | `/validate-component-onboarding-jira` skill |
+| `component-onboarding` | GitLab CI picked up the request | DevOps automation |
+| `onboarding-in-review` | PRs/MRs have been generated and are pending review | DevOps automation |
+| `okc-pr-merged` | OKC (Konflux component registration) PR merged | DevOps automation |
+| `tekton-pr-merged` | Tekton pipeline configuration PR merged | DevOps automation |
+| `operator-pr-merged` | Operator-related PR merged (if applicable) | DevOps automation |
+| `bundle-pr-merged` | OLM bundle PR merged (if applicable) | DevOps automation |
+| `quay-mr-merged` | Quay repository MR merged | DevOps automation |
+| `krd-mr-merged` | KRD (Konflux Release Definition) MR merged (RHOAI only) | DevOps automation |
+| `component-onboarding-completed` | All onboarding steps finished | DevOps automation |
+
+**Monitoring**: Check the Jira ticket labels to track which stage the onboarding has reached. If labels stop progressing after 4+ hours, check the GitLab CI pipeline logs.
+
 ## Monitoring Progress
 
 1. Check if the YAML was committed to the onboarding repo
 2. Watch for automated PRs (typically 2-4 hours after YAML commit)
-3. Review and merge each PR
-4. Verify end-to-end by pushing a small change to the downstream repo
+3. Check Jira labels for progression (see table above)
+4. Review and merge each PR as it appears
+5. Verify end-to-end by pushing a small change to the downstream repo
 
 ## Troubleshooting
 

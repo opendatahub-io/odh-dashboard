@@ -28,6 +28,7 @@ Parse from `$ARGUMENTS`:
    - **Type B — Standalone Go component**: `<name>/` exists at repo root with a `go.mod`. These are Go services/operators with their own Dockerfile.
 
    Validate the component name first, then use quoted path checks:
+
    ```bash
    # Validate component name (lowercase alphanumeric + hyphens only)
    if ! echo "$COMPONENT_NAME" | grep -qE '^[a-z0-9]+(-[a-z0-9]+)*$'; then
@@ -57,7 +58,8 @@ Parse from `$ARGUMENTS`:
    ```
 
 4. Report classification and state to user:
-   ```
+
+   ```text
    Component: <name>
    Type: A (modular-arch package) / B (standalone Go component)
    ODH Dockerfile: ✅ exists / ❌ missing
@@ -273,7 +275,8 @@ Generate from the upstream Dockerfile with these changes:
 - Build flags: `CGO_ENABLED=1 GOOS=linux go build -a -ldflags="-s -w" -tags strictfipsruntime`
 - Runtime: `registry.access.redhat.com/ubi9/ubi-minimal@sha256:<digest>` (SHA-pinned)
 - Red Hat labels on final stage:
-  ```
+
+  ```dockerfile
   LABEL com.redhat.component="odh-<name>-container" \
         name="managed-open-data-hub/odh-<name>-rhel9" \
         summary="ODH <Display Name>" \
@@ -307,17 +310,20 @@ Reference existing module overlays in `manifests/modular-architecture/modules/` 
 
 This cannot be automated — it requires changes in a separate repository (`openshift/release`).
 
+**Prerequisite**: The component's Quay repository must have the `opendatahub+openshift_ci` robot account with **push** permission. Request this via `#rhoai-devtestops-request` Slack channel if not already configured.
+
 Provide the user with:
 1. The config snippet needed for `ci-operator/config/opendatahub-io/odh-dashboard/`
 2. Reference to existing PRs for similar components
 3. The PR process for `openshift/release`
 
-```
+```text
 To add OpenShift CI for this component:
-1. Create a config file in openshift/release:
+1. Ensure Quay repo has opendatahub+openshift_ci robot account with push permission
+2. Create a config file in openshift/release:
    ci-operator/config/opendatahub-io/odh-dashboard/<name>.yaml
-2. Reference existing configs in the same directory for the pattern
-3. Submit a PR to openshift/release
+3. Reference existing configs in the same directory for the pattern
+4. Submit a PR to openshift/release
 ```
 
 ## Phase 7: Jira Updates
@@ -337,7 +343,7 @@ If a Jira issue key was provided or is known from context, add a comment documen
 
 Print a final report:
 
-```
+```text
 ## Konflux Onboarding Report: <name>
 
 ### Component Classification
@@ -360,8 +366,9 @@ Print a final report:
 ### Remaining Manual Steps
 1. Review and merge Tekton pipeline PRs
 2. Wait for DevOps GitLab CI to process onboarding request (~2-4 hours)
-3. Review and merge DevOps-generated PRs
+3. Review and merge DevOps-generated PRs (check Jira labels for progression)
 4. Commit Dockerfile.konflux.<name> to downstream repo
 5. Submit OpenShift CI config PR to openshift/release
-6. Verify first build succeeds end-to-end
+6. Coordinate operator integration with Platform team (RHOAIENG-37067) — update operator component references, OLM bundle, and test integration
+7. Verify first build succeeds end-to-end (both ODH and RHOAI)
 ```
