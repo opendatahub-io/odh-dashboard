@@ -100,7 +100,7 @@ const CompareBenchmarksTableRow: React.FC<CompareBenchmarksTableRowProps> = ({
           <Checkbox
             id={`compare-run-checkbox-${job.resource.id}`}
             aria-label={`Select benchmarks for ${evaluationRunLabel}`}
-            isChecked={rowCheckboxChecked}
+            isChecked={rowCheckboxChecked ?? false}
             isDisabled={childSelectionKeys.length === 0}
             onChange={(_event, checked) => onSelectionChange(childSelectionKeys, checked)}
             data-testid={`compare-run-checkbox-${job.resource.id}`}

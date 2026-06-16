@@ -10,7 +10,7 @@
     "install:module": "npm install --prefix upstream/workspaces/frontend",
     "start:dev": "cd upstream/workspaces/frontend && PORT=9105 DEPLOYMENT_MODE=federated npm run start:dev",
     "start:dev:ext": "cd upstream/workspaces/frontend && DEPLOYMENT_MODE=federated PORT=9105 npm run start:dev",
-    "start:dev:wait": "npx wait-on -i 1000 http://localhost:9105"
+    "start:dev:wait": "wait-on -i 1000 http://localhost:9105"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/notebooks.git",
@@ -38,9 +38,6 @@
       "name": "odh-dashboard",
       "port": 8343
     }
-  },
-  "dependencies": {
-    "@odh-dashboard/internal": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",

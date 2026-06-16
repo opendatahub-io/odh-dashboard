@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/gen-ai
 
-go 1.25.8
+go 1.26.0
 
 require (
 	github.com/getkin/kin-openapi v0.132.0
