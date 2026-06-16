@@ -55,10 +55,11 @@ export const getPhaseProps = (
 };
 
 export const normalizePhase = (phase: string | undefined): string => {
-  if (phase === PhaseStatus.UNHEALTHY) {
+  const normalized = phase?.trim();
+  if (normalized === PhaseStatus.UNHEALTHY) {
     return PhaseStatus.UNAVAILABLE;
   }
-  return phase?.trim() || PhaseStatus.UNKNOWN;
+  return normalized || PhaseStatus.UNKNOWN;
 };
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
@@ -78,7 +79,7 @@ const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverC
       ),
       headerContent: 'Subscription failed',
       bodyContent:
-        'All critical dependencies are missing or reconiliation has failed. No models in this subscription are accessible.',
+        'All critical dependencies are missing or reconciliation has failed. No models in this subscription are accessible.',
       footerContent: 'Review the subscription spec and model references.',
     },
     [PhaseStatus.INVALID]: {
@@ -134,7 +135,7 @@ const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverC
       ),
       headerContent: 'Policy failed',
       bodyContent:
-        'All critical dependencies are missing or reconiliation has failed. Access controls are not in effect.',
+        'All critical dependencies are missing or reconciliation has failed. Access controls are not in effect.',
       footerContent: 'Review the policy spec and ensure referenced models exist.',
     },
     [PhaseStatus.INVALID]: {

@@ -114,7 +114,7 @@ describe('Subscriptions Page', () => {
       .findPhasePopover()
       .should(
         'contain.text',
-        'Subscription failedAll critical dependencies are missing or reconiliation has failed. No models in this subscription are accessible.Review the subscription spec and model references.',
+        'Subscription failedAll critical dependencies are missing or reconciliation has failed. No models in this subscription are accessible.Review the subscription spec and model references.',
       );
 
     const pendingRow = subscriptionsPage.getRow('pending-sub');

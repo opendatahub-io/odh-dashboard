@@ -134,7 +134,7 @@ describe('MaaS Auth Policies', () => {
       .findPhasePopover()
       .should(
         'contain.text',
-        'Policy failedAll critical dependencies are missing or reconiliation has failed. Access controls are not in effect.Review the policy spec and ensure referenced models exist.',
+        'Policy failedAll critical dependencies are missing or reconciliation has failed. Access controls are not in effect.Review the policy spec and ensure referenced models exist.',
       );
 
     const pendingRow = authPoliciesPage.getRow('pending-policy');

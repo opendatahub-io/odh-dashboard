@@ -16,7 +16,7 @@ type PhaseLabelProps = {
 const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, resourceType, statusMessage }) => {
   const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
-  const hasPopover = !!statusMessage && normalized !== 'Active' && normalized !== 'Ready';
+  const hasPopover = normalized !== 'Active' && normalized !== 'Ready';
   const popoverContent = getPopoverContent(normalized, resourceType, statusMessage);
 
   const label = (
