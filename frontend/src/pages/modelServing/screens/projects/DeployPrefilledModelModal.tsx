@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Form, FormSection, Spinner } from '@patternfly/react-core';
-import { ProjectKind } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import ContentModal from '#~/components/modals/ContentModal';
 import ProjectSelector from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';

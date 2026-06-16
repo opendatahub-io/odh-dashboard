@@ -2,10 +2,10 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { SchedulingType, TolerationOperator } from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable } from '#~/concepts/areas';
 import useDefaultDsc from '#~/pages/clusterSettings/useDefaultDsc';
 import useWorkloadPriorityClasses from '#~/concepts/distributedWorkloads/useWorkloadPriorityClasses';
-import { SchedulingType, TolerationOperator } from '#~/types';
 import { DEFAULT_PRIORITY_CLASS } from '#~/pages/hardwareProfiles/nodeResource/const';
 import ManageResourceAllocationSection from '#~/pages/hardwareProfiles/manage/ManageResourceAllocationSection';
 

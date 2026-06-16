@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import {
   buildSubjectRoleRows,
   SubjectRolesTableBase,
 } from '#~/pages/projects/projectPermissions/SubjectRolesTable';
 import SubjectRolesTableRow from '#~/pages/projects/projectPermissions/SubjectRolesTableRow';
 import { OPENSHIFT_BOOTSTRAPPING_DEFAULT_VALUE } from '#~/concepts/permissions/const';
-import { KnownLabels } from '#~/k8sTypes';
 import {
   mockGroupRoleBindingSubject,
   mockClusterRoleK8sResource,

@@ -1,5 +1,10 @@
 import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import type {
+  SecretKind,
+  PersistentVolumeClaimKind,
+  ContainerResources,
+} from '@odh-dashboard/k8s-core';
 import {
   isCpuResourceEqual,
   isCpuLimitLarger,
@@ -23,7 +28,6 @@ import {
   createRole,
 } from '#~/api';
 import {
-  SecretKind,
   K8sAPIOptions,
   RoleBindingKind,
   ServingRuntimeKind,
@@ -31,9 +35,7 @@ import {
   ServiceAccountKind,
   RoleKind,
   ServingContainer,
-  PersistentVolumeClaimKind,
 } from '#~/k8sTypes';
-import { ContainerResources } from '#~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import {
   CreatingInferenceServiceObject,
