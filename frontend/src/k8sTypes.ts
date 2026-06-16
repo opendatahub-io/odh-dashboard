@@ -24,6 +24,8 @@ import type { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { ImageStreamStatusTagCondition, ImageStreamStatusTagItem } from './types';
 
+export { KnownLabels };
+
 export type ModelRegistry = {
   name: string;
   displayName: string;
