@@ -94,6 +94,10 @@ func main() {
 
 	flag.Parse()
 
+	// Validate InsecureSkipVerify before logger setup - this is a security-critical check
+	// that must run as early as possible (fail-fast). The validation uses slog.Error with
+	// Go's default formatter, which is acceptable since the process exits immediately on
+	// failure and never reaches normal operation.
 	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify); err != nil {
 		os.Exit(1)
 	}
