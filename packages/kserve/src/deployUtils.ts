@@ -335,6 +335,15 @@ export const applyConnectionData = (
         ...result.metadata.annotations,
         'opendatahub.io/connection-path': modelLocationData.additionalFields.modelPath,
       };
+      // Set model storage for S3 connections so KServe can download the model
+      if (!dryRun && result.spec.predictor.model) {
+        const connectionName = secretName ?? createConnectionData.nameDesc?.name ?? '';
+        delete result.spec.predictor.model.storageUri;
+        result.spec.predictor.model.storage = {
+          key: connectionName,
+          path: modelLocationData.additionalFields.modelPath,
+        };
+      }
     } else {
       // Delete connection path from the annotations if it's not present or the connection type is not S3ObjectStorage
       delete result.metadata.annotations['opendatahub.io/connection-path'];
