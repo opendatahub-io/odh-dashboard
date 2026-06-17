@@ -1121,7 +1121,7 @@ describe('AutoML API Contract Tests', () => {
             train_data_file_key: 'data/train.csv',
             label_column: 'target',
             task_type: 'multiclass',
-            eval_metric: 'roc_auc',
+            eval_metric: 'roc_auc_ovo',
             top_n: 5,
           });
           expect(result).toMatchContract(apiSchema, {

@@ -634,7 +634,7 @@ paths:
                   train_data_file_key: "customers/train.csv"
                   label_column: "segment"
                   task_type: "multiclass"
-                  eval_metric: "roc_auc"
+                  eval_metric: "roc_auc_ovo"
                   top_n: 5
               tabular-regression:
                 summary: Tabular regression pipeline request
