@@ -64,7 +64,7 @@ const TracePanel: React.FC<TracePanelProps> = ({
   children,
 }) => {
   const panelContent = (
-    <DrawerPanelContent widths={{ default: 'width_75' }} data-testid="trace-panel">
+    <DrawerPanelContent isResizable defaultSize="75%" minSize="30%" data-testid="trace-panel">
       <DrawerHead>
         <Title headingLevel="h3" size="lg">
           Trace Details
