@@ -3,6 +3,7 @@ import type {
   InitialWizardFormData,
   WizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
+import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
 import { KServeDeployment } from './deployments';
 import { setUpTokenAuth } from './deployUtils';
 import { createServingRuntime } from './deployServer';
@@ -18,6 +19,7 @@ export const deployKServeDeployment = async (
   secretName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
+  applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
 ): Promise<KServeDeployment> => {
   const inferenceServiceData: CreatingInferenceServiceObject = {
     project: projectName,
@@ -57,6 +59,7 @@ export const deployKServeDeployment = async (
     existingDeployment?.model,
     secretName,
     initialWizardData?.transformData,
+    applyFieldData,
     {
       dryRun,
       overwrite,
@@ -75,9 +78,9 @@ export const deployKServeDeployment = async (
     { dryRun: dryRun ?? false },
   );
 
-  return Promise.resolve({
+  return {
     modelServingPlatformId: 'kserve',
     model: inferenceService,
     server: servingRuntime,
-  });
+  };
 };
