@@ -152,12 +152,6 @@ const COLUMN_META: Record<string, ColumnMeta> = {
       'ROC AUC using one-vs-one strategy, averaging over all pairwise class combinations.',
     minWidth: '9rem',
   },
-  'metric:roc_auc_ovo_macro': {
-    name: 'ROC AUC OvO Macro',
-    acronym: formatMetricName('roc_auc_ovo_macro'),
-    description: 'Macro-averaged one-vs-one ROC AUC. Unweighted mean across all class pairs.',
-    minWidth: '9rem',
-  },
   'metric:roc_auc_ovo_weighted': {
     name: 'ROC AUC OvO Weighted',
     acronym: formatMetricName('roc_auc_ovo_weighted'),
@@ -168,12 +162,6 @@ const COLUMN_META: Record<string, ColumnMeta> = {
     name: 'ROC AUC (One-vs-Rest)',
     acronym: formatMetricName('roc_auc_ovr'),
     description: 'ROC AUC using one-vs-rest strategy, treating each class as a binary problem.',
-    minWidth: '9rem',
-  },
-  'metric:roc_auc_ovr_macro': {
-    name: 'ROC AUC OvR Macro',
-    acronym: formatMetricName('roc_auc_ovr_macro'),
-    description: 'Macro-averaged one-vs-rest ROC AUC. Unweighted mean across all classes.',
     minWidth: '9rem',
   },
   'metric:roc_auc_ovr_micro': {

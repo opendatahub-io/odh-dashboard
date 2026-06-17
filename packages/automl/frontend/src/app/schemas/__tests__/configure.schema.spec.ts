@@ -448,7 +448,7 @@ describe('createConfigureSchema', () => {
       const result = schema.full.safeParse({
         ...baseData,
         task_type: TASK_TYPE_MULTICLASS,
-        eval_metric: 'roc_auc',
+        eval_metric: 'roc_auc_ovo',
       });
       expect(result.success).toBe(true);
     });

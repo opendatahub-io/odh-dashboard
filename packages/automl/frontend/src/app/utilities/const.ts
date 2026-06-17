@@ -81,7 +81,7 @@ export const METRIC_ALIASES: Readonly<Record<string, string>> = {
 /* eslint-enable camelcase */
 
 // Eval metric enums per task type
-export const EVAL_METRICS_CLASSIFICATION = [
+export const EVAL_METRICS_BINARY = [
   'accuracy',
   'balanced_accuracy',
   'log_loss',
@@ -90,19 +90,34 @@ export const EVAL_METRICS_CLASSIFICATION = [
   'f1_micro',
   'f1_weighted',
   'roc_auc',
-  'roc_auc_ovo',
-  'roc_auc_ovo_macro',
-  'roc_auc_ovo_weighted',
-  'roc_auc_ovr',
-  'roc_auc_ovr_macro',
-  'roc_auc_ovr_micro',
-  'roc_auc_ovr_weighted',
   'average_precision',
   'precision',
   'precision_macro',
   'precision_micro',
   'precision_weighted',
   'recall',
+  'recall_macro',
+  'recall_micro',
+  'recall_weighted',
+  'mcc',
+  'pac_score',
+] as const;
+
+export const EVAL_METRICS_MULTICLASS = [
+  'accuracy',
+  'balanced_accuracy',
+  'log_loss',
+  'f1_macro',
+  'f1_micro',
+  'f1_weighted',
+  'roc_auc_ovo',
+  'roc_auc_ovo_weighted',
+  'roc_auc_ovr',
+  'roc_auc_ovr_micro',
+  'roc_auc_ovr_weighted',
+  'precision_macro',
+  'precision_micro',
+  'precision_weighted',
   'recall_macro',
   'recall_micro',
   'recall_weighted',
@@ -135,7 +150,8 @@ export const EVAL_METRICS_TIMESERIES = [
 ] as const;
 
 export const ALL_EVAL_METRICS = [
-  ...EVAL_METRICS_CLASSIFICATION,
+  ...EVAL_METRICS_BINARY,
+  ...EVAL_METRICS_MULTICLASS,
   ...EVAL_METRICS_REGRESSION,
   ...EVAL_METRICS_TIMESERIES,
 ] as const;
@@ -143,8 +159,8 @@ export const ALL_EVAL_METRICS = [
 export type EvalMetric = (typeof ALL_EVAL_METRICS)[number];
 
 export const EVAL_METRICS_BY_TASK_TYPE: Partial<Record<string, readonly EvalMetric[]>> = {
-  [TASK_TYPE_BINARY]: EVAL_METRICS_CLASSIFICATION,
-  [TASK_TYPE_MULTICLASS]: EVAL_METRICS_CLASSIFICATION,
+  [TASK_TYPE_BINARY]: EVAL_METRICS_BINARY,
+  [TASK_TYPE_MULTICLASS]: EVAL_METRICS_MULTICLASS,
   [TASK_TYPE_REGRESSION]: EVAL_METRICS_REGRESSION,
   [TASK_TYPE_TIMESERIES]: EVAL_METRICS_TIMESERIES,
 };
@@ -160,10 +176,8 @@ export const EVAL_METRIC_DESCRIPTIONS: Record<EvalMetric, string> = {
   f1_weighted: 'Weighted mean of per-class F1 scores',
   roc_auc: 'Area under the ROC curve — best for imbalanced classes',
   roc_auc_ovo: 'ROC AUC using one-vs-one strategy',
-  roc_auc_ovo_macro: 'Macro-averaged one-vs-one ROC AUC',
   roc_auc_ovo_weighted: 'Weighted one-vs-one ROC AUC',
   roc_auc_ovr: 'ROC AUC using one-vs-rest strategy',
-  roc_auc_ovr_macro: 'Macro-averaged one-vs-rest ROC AUC',
   roc_auc_ovr_micro: 'Micro-averaged one-vs-rest ROC AUC',
   roc_auc_ovr_weighted: 'Weighted one-vs-rest ROC AUC',
   average_precision: 'Area under precision-recall curve',
