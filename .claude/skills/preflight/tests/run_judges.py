@@ -91,8 +91,10 @@ def run(judge_paths, experiment_id, base_dir, commit=None):
             value_col = f"{name}/value"
             value = row.get(value_col, "unknown")
             value_str = str(value).lower()
-            if isinstance(value, (list, dict, int, float)):
-                passed = not (isinstance(value, float) and math.isnan(value))
+            if isinstance(value, (int, float)):
+                passed = not math.isnan(value) and value == 0
+            elif isinstance(value, (list, dict)):
+                passed = True
             else:
                 try:
                     f = float(value_str)

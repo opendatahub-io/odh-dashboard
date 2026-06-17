@@ -39,7 +39,10 @@ def get_judges():
                 and hasattr(span.status, "status_code")
                 and "ERROR" in str(span.status.status_code)
             )
-            has_exception = bool(span.events)
+            has_exception = any(
+                getattr(event, "name", "") == "exception"
+                for event in (span.events or [])
+            )
             result_str = str(outputs.get("result", "")) if isinstance(outputs, dict) else out_str
             has_exit_code_error = result_str.startswith("Exit code") and not result_str.startswith("Exit code 0")
 
