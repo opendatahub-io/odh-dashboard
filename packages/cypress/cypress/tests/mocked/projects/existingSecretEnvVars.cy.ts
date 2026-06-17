@@ -23,13 +23,16 @@ import {
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { createSpawnerPage } from '../../../pages/workbench';
 
-const mockOpaqueSecret = (name: string, keys: string[]) =>
-  mockCustomSecretK8sResource({
+const mockOpaqueSecret = (name: string, keys: string[]) => {
+  const secret = mockCustomSecretK8sResource({
     name,
     namespace: 'test-project',
     data: Object.fromEntries(keys.map((k) => [k, btoa(`${k}-value`)])),
     type: 'Opaque',
   });
+  delete secret.metadata.labels;
+  return secret;
+};
 
 const mockConnectionSecret = (name: string, annotationKey: string) =>
   mockCustomSecretK8sResource({
