@@ -708,4 +708,140 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '4', memory: '8Gi' },
     });
   });
+
+  it('should not re-initialize resources after external profile selection overrides form state', () => {
+    // Simulates editing a deployment: user had customized cpu to 4 (default was 2)
+    const profile = mockHardwareProfile({
+      name: 'test-profile',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '8',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '16Gi',
+          defaultCount: '4Gi',
+        },
+      ],
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[profile], true, undefined],
+    });
+
+    const existingResources = {
+      requests: { cpu: '4', memory: '8Gi' },
+      limits: { cpu: '4', memory: '8Gi' },
+    };
+
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'test-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profile.metadata.namespace,
+    );
+
+    // Verify customized resources are preserved on initial load
+    expect(renderResult.result.current.formData.resources).toEqual({
+      requests: { cpu: '4', memory: '8Gi' },
+      limits: { cpu: '4', memory: '8Gi' },
+    });
+
+    // Simulate an external profile selection (e.g., SimpleSelect auto-select)
+    // that resets resources to defaults
+    act(() => {
+      renderResult.result.current.setFormData('selectedProfile', profile);
+      renderResult.result.current.setFormData('resources', {
+        requests: { cpu: '2', memory: '4Gi' },
+        limits: { cpu: '2', memory: '4Gi' },
+      });
+    });
+
+    // The resources should be what was explicitly set (the hook should NOT
+    // re-initialize and overwrite what was explicitly set)
+    expect(renderResult.result.current.formData.resources).toEqual({
+      requests: { cpu: '2', memory: '4Gi' },
+      limits: { cpu: '2', memory: '4Gi' },
+    });
+    expect(renderResult.result.current.formData.selectedProfile).toBe(profile);
+  });
+
+  it('should initialize with custom resources when profiles load after initial render', () => {
+    const profile = mockHardwareProfile({
+      name: 'test-profile',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '8',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '16Gi',
+          defaultCount: '4Gi',
+        },
+      ],
+    });
+
+    // Start with profiles not loaded
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], false, undefined],
+      globalProfiles: [[], false, undefined],
+    });
+
+    const existingResources = {
+      requests: { cpu: '4', memory: '8Gi' },
+      limits: { cpu: '4', memory: '8Gi' },
+    };
+
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'test-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profile.metadata.namespace,
+    );
+
+    // Before profiles load, resources should not be set
+    expect(renderResult.result.current.formData.resources).toBeUndefined();
+    expect(renderResult.result.current.formData.selectedProfile).toBeUndefined();
+
+    // Simulate profiles loading
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[profile], true, undefined],
+    });
+
+    renderResult.rerender(
+      'test-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profile.metadata.namespace,
+    );
+
+    // After profiles load, customized resources should be preserved
+    expect(renderResult.result.current.formData.resources).toEqual({
+      requests: { cpu: '4', memory: '8Gi' },
+      limits: { cpu: '4', memory: '8Gi' },
+    });
+    expect(renderResult.result.current.formData.selectedProfile).toBe(profile);
+  });
 });
