@@ -6,8 +6,7 @@ import DividedGallery from '#~/concepts/design/DividedGallery';
 import { useUser } from '#~/redux/selectors';
 import InfoGalleryItem from '#~/concepts/design/InfoGalleryItem';
 import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
-import { SupportedArea } from '#~/concepts/areas';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 export const useEnableTeamSection = (): React.ReactNode => {

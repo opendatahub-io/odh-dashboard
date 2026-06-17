@@ -40,7 +40,7 @@ import InferenceServiceFrameworkSection from '#~/pages/modelServing/screens/proj
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview, useTemplates } from '#~/api';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,

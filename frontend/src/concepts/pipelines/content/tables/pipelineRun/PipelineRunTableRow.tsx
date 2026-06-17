@@ -33,7 +33,7 @@ import { getDashboardMainContainer } from '#~/utilities/utils';
 import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import { useFetchRunArtifact } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
 import {
   FilterOptions,

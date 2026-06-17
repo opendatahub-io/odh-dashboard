@@ -22,7 +22,7 @@ import usePipelineById from '#~/concepts/pipelines/apiHooks/usePipelineById';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { RecurringRunTrigger } from '#~/concepts/pipelines/content/tables/renderUtils';
 import { Artifact } from '#~/third_party/mlmd';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getIsArtifactModelRegistered } from '#~/pages/pipelines/global/experiments/artifacts/utils';
 import PipelineRunRegisteredModelDetails from './PipelineRunRegisteredModelDetails';
 import { getArtifactModelData } from './artifacts/utils';

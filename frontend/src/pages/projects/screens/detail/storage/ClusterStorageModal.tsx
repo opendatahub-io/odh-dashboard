@@ -10,7 +10,7 @@ import {
   useRelatedNotebooks,
 } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import useWillNotebooksRestart from '#~/pages/projects/notebook/useWillNotebooksRestart';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import NotebookRestartAlert from '#~/pages/projects/components/NotebookRestartAlert';
 import { useCreateStorageObject } from '#~/pages/projects/screens/spawner/storage/utils';
 import BaseStorageModal from './BaseStorageModal';

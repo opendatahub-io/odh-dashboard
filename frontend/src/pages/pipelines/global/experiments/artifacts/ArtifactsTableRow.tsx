@@ -7,7 +7,7 @@ import PipelinesTableRowTime from '#~/concepts/pipelines/content/tables/Pipeline
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { artifactsDetailsRoute } from '#~/routes/pipelines/artifacts';
 import { Artifact } from '#~/third_party/mlmd';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getArtifactName, getIsArtifactModelRegistered } from './utils';
 
 type ArtifactsTableRowProps = {

@@ -12,7 +12,7 @@ import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PipelineImportModal from '#~/concepts/pipelines/content/import/PipelineImportModal';
 import PipelineVersionImportModal from '#~/concepts/pipelines/content/import/PipelineVersionImportModal';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import ManageSamplePipelinesModal from '#~/concepts/pipelines/content/ManageSamplePipelinesModal';
 
 type ImportPipelineSplitButtonProps = {

@@ -28,12 +28,8 @@ jest.mock('#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesE
   default: jest.fn(() => true),
 }));
 
-jest.mock('#~/concepts/areas', () => ({
-  SupportedArea: {
-    K_SERVE_AUTH: 'k-serve-auth',
-    STORAGE_CLASSES: 'storage-classes',
-    SERVING_RUNTIME_PARAMS: 'serving-runtime-params',
-  },
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(() => ({ status: true })),
 }));
 

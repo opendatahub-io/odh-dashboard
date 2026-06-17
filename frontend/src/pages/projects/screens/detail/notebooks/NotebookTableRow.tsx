@@ -18,7 +18,7 @@ import { getDescriptionFromK8sResource } from '#~/concepts/k8s/utils';
 import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
 import { NotebookActionsColumn } from '#~/pages/projects/notebook/NotebookActionsColumn';
 import { startNotebook, stopNotebook, getMlflowInstancePatch } from '#~/api';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils';
 import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';

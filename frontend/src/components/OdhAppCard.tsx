@@ -26,7 +26,7 @@ import { addNotification, forceComponentsUpdate } from '#~/redux/actions/actions
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useAppContext } from '#~/app/AppContext';
 import { useAppDispatch } from '#~/redux/hooks';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { isInternalRouteIntegrationsApp } from '#~/utilities/utils';
 import { deleteIntegrationApp } from '#~/services/integrationAppService';
 import { useUser } from '#~/redux/selectors';

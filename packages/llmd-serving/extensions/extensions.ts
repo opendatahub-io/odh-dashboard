@@ -14,7 +14,6 @@ import type {
   DeploymentWizardFieldOverrideExtension,
   ModelServingDeploymentTransformExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-// eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';

@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
   NavExtension,

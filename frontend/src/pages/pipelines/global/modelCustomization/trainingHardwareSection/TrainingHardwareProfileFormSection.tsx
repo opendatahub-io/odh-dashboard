@@ -17,7 +17,7 @@ import HardwareProfileCustomize from '#~/concepts/hardwareProfiles/HardwareProfi
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
 import { filterHardwareProfilesForTraining } from '#~/pages/pipelines/global/modelCustomization/utils';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 
 type TrainingHardwareProfileFormSectionProps = {
   data: HardwareProfileConfig;

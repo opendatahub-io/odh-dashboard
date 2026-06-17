@@ -25,7 +25,7 @@ import { useGetExecutionById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetE
 import { getOriginalExecutionId } from '#~/pages/pipelines/global/experiments/executions/utils';
 import PipelineRunRegisteredModelDetails from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunRegisteredModelDetails';
 import { getArtifactModelData } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import ExperimentPipelineRunLink from '#~/pages/pipelines/global/experiments/ExperimentPipelineRunLink';
 import { ArtifactPropertyDescriptionList } from './ArtifactPropertyDescriptionList';
 

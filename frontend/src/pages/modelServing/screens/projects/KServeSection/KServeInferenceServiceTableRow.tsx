@@ -15,7 +15,7 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ServingRuntimeDetails from '#~/pages/modelServing/screens/projects/ServingRuntimeDetails';
 import ServingRuntimeTokensTable from '#~/concepts/modelServingKServe/ServingRuntimeTokensTable';
 import { isInferenceServiceTokenEnabled } from '#~/pages/modelServing/screens/projects/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 
 type KServeInferenceServiceTableRowProps = {
   project?: string;

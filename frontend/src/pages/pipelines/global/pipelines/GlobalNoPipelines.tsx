@@ -3,7 +3,7 @@ import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import ImportPipelineButton from '#~/concepts/pipelines/content/import/ImportPipelineButton';
 import ImportPipelineSplitButton from '#~/concepts/pipelines/content/import/ImportPipelineSplitButton';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 
 const GlobalNoPipelines: React.FC = () => {
   const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;

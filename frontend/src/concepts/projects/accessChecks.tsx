@@ -1,6 +1,6 @@
 import type { K8sVerb } from '@odh-dashboard/k8s-core';
 import { useAccessReview } from '#~/api';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 
 /**
  * Effectively this check is equivalent to checking if a user is a project admin, specifically on the verb passed.

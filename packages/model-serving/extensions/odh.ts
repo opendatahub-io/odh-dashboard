@@ -5,7 +5,6 @@ import type {
   RouteExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-// eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { WizardFieldExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { DeploymentMethodSelectFieldType } from '../src/components/deploymentWizard/fields/DeploymentMethodSelectField';

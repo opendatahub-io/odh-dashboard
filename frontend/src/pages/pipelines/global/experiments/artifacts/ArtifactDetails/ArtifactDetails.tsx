@@ -23,7 +23,7 @@ import {
 } from '#~/pages/pipelines/global/experiments/artifacts/utils';
 import { ArtifactDetailsTabKey } from '#~/pages/pipelines/global/experiments/artifacts/constants';
 import { useGetArtifactById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { ArtifactOverviewDetails } from './ArtifactOverviewDetails';
 import ArtifactDetailsTitle from './ArtifactDetailsTitle';

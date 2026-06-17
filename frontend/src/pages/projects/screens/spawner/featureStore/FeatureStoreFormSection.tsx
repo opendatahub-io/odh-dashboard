@@ -3,7 +3,7 @@ import { FormSection, Stack, StackItem, FormGroup, FormHelperText } from '@patte
 import { SpawnerPageSectionTitles } from '#~/pages/projects/screens/spawner/const';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import FeatureStoreSelector from './FeatureStoreSelector';
 import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import FeatureStoreCodeBlock from './FeatureStoreCodeBlock';

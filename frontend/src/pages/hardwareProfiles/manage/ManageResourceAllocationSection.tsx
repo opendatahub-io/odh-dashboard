@@ -8,7 +8,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import ManageNodeSelectorSection from '#~/pages/hardwareProfiles/manage/ManageNodeSelectorSection.tsx';
 import ManageTolerationSection from '#~/pages/hardwareProfiles/manage/ManageTolerationSection.tsx';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const.tsx';
 import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage/types.ts';
 import ManageWorkloadStrategySection from '#~/pages/hardwareProfiles/manage/ManageWorkloadStrategySection.tsx';

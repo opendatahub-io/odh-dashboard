@@ -16,8 +16,7 @@ import ScopedLabel from '#~/components/ScopedLabel';
 import { useTemplateByName } from '#~/pages/modelServing/customServingRuntimes/useTemplateByName';
 import ServingRuntimeVersionStatus from '#~/pages/modelServing/screens/ServingRuntimeVersionStatus';
 import { getServingRuntimeVersionStatus } from '#~/pages/modelServing/utils';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable.ts';
-import { SupportedArea } from '#~/concepts/areas/types.ts';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;

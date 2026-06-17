@@ -16,7 +16,7 @@ import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useAppContext } from '#~/app/AppContext';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import GetStartedPanel from './GetStartedPanel';

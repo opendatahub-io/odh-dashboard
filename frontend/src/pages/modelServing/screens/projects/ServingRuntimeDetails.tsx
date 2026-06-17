@@ -15,7 +15,7 @@ import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizes
 import { getResourceSize } from '#~/pages/modelServing/utils';
 import { formatMemory } from '#~/utilities/valueUnits';
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 import {

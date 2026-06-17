@@ -6,7 +6,7 @@ import useFetchState, {
   NotReadyError,
 } from '#~/utilities/useFetchState';
 import { BiasMetricConfig } from '#~/concepts/trustyai/types';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { formatListResponse } from '#~/concepts/trustyai/utils';
 
 const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMetricConfig[]> => {

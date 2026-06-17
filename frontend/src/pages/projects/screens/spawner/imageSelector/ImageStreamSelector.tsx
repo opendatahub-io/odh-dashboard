@@ -11,7 +11,7 @@ import {
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '#~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon.tsx';
 import { ImageStreamDropdownLabel } from '#~/pages/projects/screens/spawner/imageSelector/ImageStreamDropdownLabel';
 import {

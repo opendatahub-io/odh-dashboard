@@ -12,7 +12,7 @@ import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
 import ModelServingPlatformSettings from '#~/pages/clusterSettings/ModelServingPlatformSettings';
 import ModelDeploymentSettings from '#~/pages/clusterSettings/ModelDeploymentSettings';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import SettingSection from '#~/components/SettingSection';

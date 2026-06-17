@@ -24,7 +24,7 @@ import {
   getServingRuntimeVersion,
 } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithIdentifier } from '#~/pages/projects/screens/spawner/spawnerUtils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { CustomWatchK8sResult } from '#~/types';
 import { ScopedType, SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import ProjectScopedPopover from '#~/components/ProjectScopedPopover';

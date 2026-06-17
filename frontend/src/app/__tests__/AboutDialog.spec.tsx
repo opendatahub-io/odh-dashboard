@@ -18,7 +18,7 @@ import { StorageClassKind } from '#~/k8sTypes';
 import { FetchState } from '#~/utilities/useFetchState';
 import AboutDialog from '#~/app/AboutDialog';
 import { useWatchOperatorSubscriptionStatus } from '#~/utilities/useWatchOperatorSubscriptionStatus';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 
 jest.mock('#~/app/AppContext', () => ({
   __esModule: true,

@@ -6,7 +6,7 @@ import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import ProjectModelMetricsConfigurationPage from '#~/pages/modelServing/screens/projects/ProjectModelMetricsConfigurationPage';
 import ProjectModelMetricsPage from '#~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
 import ProjectInferenceExplainabilityWrapper from '#~/pages/modelServing/screens/projects/ProjectInferenceExplainabilityWrapper';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import ProjectDetails from './screens/detail/ProjectDetails';
 import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';

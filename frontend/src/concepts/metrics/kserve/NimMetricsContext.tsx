@@ -14,7 +14,8 @@ import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { RefreshIntervalValue } from '#~/concepts/metrics/const';
 import { RefreshIntervalTitle, TimeframeTitle } from '#~/concepts/metrics/types';
 import { NimMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
-import { conditionalArea, SupportedArea } from '#~/concepts/areas';
+import { conditionalArea } from '#~/concepts/areas';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 type NimMetricsContextProps = {
   namespace: string;

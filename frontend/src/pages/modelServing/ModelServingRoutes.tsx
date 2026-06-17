@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import ModelServingExplainabilityWrapper from '#~/pages/modelServing/screens/metrics/ModelServingExplainabilityWrapper';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import GlobalModelServingCoreLoader from '#~/pages/modelServing/screens/global/GlobalModelServingCoreLoader';
 import BiasConfigurationBreadcrumbPage from './screens/metrics/bias/BiasConfigurationPage/BiasConfigurationBreadcrumbPage';
 import GlobalModelMetricsPage from './screens/metrics/GlobalModelMetricsPage';

@@ -41,7 +41,7 @@ import { NotebookControllerContext } from '#~/pages/notebookController/NotebookC
 import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { getEnvConfigMap, getEnvSecret } from '#~/services/envService';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';

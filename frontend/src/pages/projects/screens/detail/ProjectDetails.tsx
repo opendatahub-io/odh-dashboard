@@ -26,7 +26,7 @@ import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
 import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
 import ProjectRoles from '#~/pages/projects/projectRoles/ProjectRoles';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import {

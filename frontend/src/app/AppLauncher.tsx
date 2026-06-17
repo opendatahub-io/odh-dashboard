@@ -14,8 +14,7 @@ import { getOpenShiftConsoleServerURL } from '#~/utilities/clusterUtils';
 import { useClusterInfo } from '#~/redux/selectors/clusterInfo';
 import { ApplicationAction, Section } from '#~/types';
 import './AppLauncher.scss';
-import { SupportedArea } from '#~/concepts/areas/types';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { useAppContext } from './AppContext';
 

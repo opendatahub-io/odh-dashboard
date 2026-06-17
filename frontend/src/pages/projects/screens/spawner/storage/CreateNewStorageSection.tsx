@@ -4,7 +4,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { StorageData, UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import PVSizeField from '#~/pages/projects/components/PVSizeField';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';

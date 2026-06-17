@@ -12,7 +12,7 @@ import { PipelineTask } from '#~/concepts/pipelines/topology';
 const getStateLabel = (state: string): string =>
   Object.entries(runtimeStateLabels).find(([key]) => key === state)?.[1] ?? state;
 import TaskDetailsSection from '#~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getIsArtifactModelRegistered } from '#~/pages/pipelines/global/experiments/artifacts/utils';
 import { getArtifactModelData } from './artifacts/utils';
 import PipelineRunRegisteredModelDetails from './PipelineRunRegisteredModelDetails';

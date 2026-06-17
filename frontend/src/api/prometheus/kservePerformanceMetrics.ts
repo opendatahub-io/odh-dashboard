@@ -4,7 +4,7 @@ import {
   NimMetricGraphDefinition,
 } from '#~/concepts/metrics/kserve/types';
 import { defaultResponsePredicate } from '#~/api/prometheus/usePrometheusQueryRange';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { TimeframeTitle } from '#~/concepts/metrics/types';
 import useQueryRangeResourceData from '#~/api/prometheus/useQueryRangeResourceData';
 import { PendingContextResourceData, PrometheusQueryRangeResultValue } from '#~/types';

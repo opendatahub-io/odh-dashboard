@@ -1,6 +1,5 @@
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
-import { SupportedArea } from '#~/concepts/areas';
-import { SupportedAreaType } from '#~/concepts/areas/types';
+import { SupportedArea, type SupportedAreaType } from '@odh-dashboard/plugin-core/areas';
 
 describe('Verify const stability', () => {
   const computeTestFunc = (map: Partial<typeof SupportedAreasStateMap>) => {

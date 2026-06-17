@@ -2,7 +2,7 @@ import React from 'react';
 import { EmptyState, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import { WarningTriangleIcon } from '@patternfly/react-icons';
 import { InferenceServiceKind } from '#~/k8sTypes';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import MetricsPageToolbar from '#~/concepts/metrics/MetricsPageToolbar';
 import ModelGraphs from '#~/pages/modelServing/screens/metrics/performance/ModelGraphs';
 

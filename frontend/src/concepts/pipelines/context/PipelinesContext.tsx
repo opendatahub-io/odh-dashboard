@@ -22,7 +22,8 @@ import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipel
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import ManagePipelineServerModal from '#~/concepts/pipelines/content/ManagePipelineServerModal.tsx';
 import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
-import { conditionalArea, SupportedArea } from '#~/concepts/areas';
+import { conditionalArea } from '#~/concepts/areas';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { DEV_MODE } from '#~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';

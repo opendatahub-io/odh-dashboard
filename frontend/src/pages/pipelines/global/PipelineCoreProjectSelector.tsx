@@ -3,8 +3,7 @@ import { Alert, Button, Content, Stack, StackItem } from '@patternfly/react-core
 import { Link } from 'react-router-dom';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import { SupportedArea } from '#~/concepts/areas/types';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { mlflowExperimentsPath } from '#~/routes/pipelines/mlflow';
 
 type PipelineCoreProjectSelectorProps = {

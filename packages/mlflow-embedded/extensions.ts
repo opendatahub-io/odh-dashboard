@@ -4,7 +4,6 @@ import type {
   RouteExtension,
   TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-// eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 // eslint-disable-next-line no-restricted-syntax
 import {

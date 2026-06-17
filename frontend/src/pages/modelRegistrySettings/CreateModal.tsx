@@ -23,7 +23,7 @@ import {
 import { kindApiVersion } from '#~/concepts/k8s/utils';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { AreaContext } from '#~/concepts/areas/AreaContext';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';

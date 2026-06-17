@@ -6,7 +6,7 @@ import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
 import { RefreshIntervalTitle, TimeframeTitle } from '#~/concepts/metrics/types';
 import { RefreshIntervalValue } from '#~/concepts/metrics/const';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { PROMETHEUS_BIAS_PATH } from '#~/api/prometheus/const';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 import {

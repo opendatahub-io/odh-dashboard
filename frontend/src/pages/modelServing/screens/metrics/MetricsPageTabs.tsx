@@ -5,7 +5,7 @@ import { MetricsTabKeys } from '#~/pages/modelServing/screens/metrics/types';
 import { useModelBiasData } from '#~/concepts/trustyai/context/useModelBiasData';
 import NotFound from '#~/pages/NotFound';
 import useDoesTrustyAICRExist from '#~/concepts/trustyai/context/useDoesTrustyAICRExist';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import './MetricsPageTabs.scss';

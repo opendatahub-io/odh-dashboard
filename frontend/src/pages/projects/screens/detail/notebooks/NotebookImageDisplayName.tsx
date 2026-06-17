@@ -29,7 +29,7 @@ import {
   NotebookImageStatus,
 } from '#~/pages/projects/screens/detail/notebooks/const';
 import { NotebookImage } from '#~/pages/projects/screens/detail/notebooks/types';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import {
   getImageVersionBuildDate,
