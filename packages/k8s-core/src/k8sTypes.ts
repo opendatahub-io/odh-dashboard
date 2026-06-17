@@ -274,6 +274,7 @@ export type DashboardCommonConfig = {
   promptManagement?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
+  maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
   agentProfileManagement?: boolean;
