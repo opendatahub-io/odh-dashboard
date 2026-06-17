@@ -6,6 +6,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AutomlLeaderboard from '~/app/components/run-results/AutomlLeaderboard';
 import { AutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
+import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { PRESET_FASTER } from '~/app/utilities/const';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 
 // Mock empty state component
@@ -130,13 +132,14 @@ const mockModelsWithSmallValues: Record<string, AutomlModel> = {
 };
 
 // Helper to create mock parameters that match ConfigureSchema
-const createMockParameters = (taskType: string) => {
-  const base = {
+const createMockParameters = (taskType: string): Partial<ConfigureSchema> => {
+  const base: Partial<ConfigureSchema> = {
     display_name: 'test-run',
     task_type: taskType as 'binary' | 'multiclass' | 'regression' | 'timeseries',
     train_data_secret_name: 'test-secret',
     train_data_bucket_name: 'test-bucket',
     train_data_file_key: 'test-file.csv',
+    preset: PRESET_FASTER,
     top_n: 3,
   };
 
@@ -163,7 +166,7 @@ const createMockPipelineRun = (state: RuntimeStateKF, taskType?: string): Pipeli
   created_at: '2025-01-17T00:00:00Z',
   runtime_config: taskType
     ? {
-        parameters: createMockParameters(taskType),
+        parameters: createMockParameters(taskType) as ConfigureSchema,
       }
     : undefined,
 });

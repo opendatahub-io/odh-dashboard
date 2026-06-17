@@ -32,6 +32,7 @@ var sensitiveHeaders = []string{
 	"Cookie",
 	"Set-Cookie",
 	"Proxy-Authorization",
+	"X-Forwarded-Access-Token",
 }
 
 func isSensitiveHeader(h string) bool {

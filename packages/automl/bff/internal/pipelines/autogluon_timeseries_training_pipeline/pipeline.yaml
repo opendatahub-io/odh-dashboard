@@ -6,6 +6,7 @@
 #    id_column: str
 #    known_covariates_names: list
 #    prediction_length: int [Default: 1.0]
+#    preset: str [Default: 'speed']
 #    target: str
 #    timestamp_column: str
 #    top_n: int [Default: 3.0]
@@ -47,6 +48,13 @@ components:
           description: Forecast horizon (number of timesteps).
           isOptional: true
           parameterType: NUMBER_INTEGER
+        preset:
+          defaultValue: speed
+          description: 'Training quality tier. ``"speed"`` (default) or ``"balanced"``
+
+            (may run more than 2x longer).'
+          isOptional: true
+          parameterType: STRING
         run_id:
           description: Pipeline run id used in generated notebook placeholders.
           parameterType: STRING
@@ -97,8 +105,444 @@ components:
           parameterType: STRING
         top_models:
           parameterType: LIST
+  comp-autogluon-timeseries-models-training-2:
+    executorLabel: exec-autogluon-timeseries-models-training-2
+    inputDefinitions:
+      artifacts:
+        test_data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: Test dataset artifact for evaluation.
+      parameters:
+        eval_metric:
+          defaultValue: MASE
+          description: Metric for model ranking (e.g. ``"MASE"``, ``"WQL"``). Defaults
+            to ``"MASE"``.
+          isOptional: true
+          parameterType: STRING
+        extra_train_data_path:
+          description: Path to extra train split for full refit.
+          parameterType: STRING
+        id_column:
+          description: Name of the column identifying each time series (item_id).
+          parameterType: STRING
+        known_covariates_names:
+          description: Optional list of known covariate column names.
+          isOptional: true
+          parameterType: LIST
+        pipeline_name:
+          description: Pipeline name used in generated notebook placeholders.
+          parameterType: STRING
+        prediction_length:
+          defaultValue: 1.0
+          description: Forecast horizon (number of timesteps).
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        preset:
+          defaultValue: speed
+          description: 'Training quality tier. ``"speed"`` (default) or ``"balanced"``
+
+            (may run more than 2x longer).'
+          isOptional: true
+          parameterType: STRING
+        run_id:
+          description: Pipeline run id used in generated notebook placeholders.
+          parameterType: STRING
+        sample_rows:
+          defaultValue: '[]'
+          description: Sample rows JSON string used in generated notebook placeholders.
+          isOptional: true
+          parameterType: STRING
+        sampling_config:
+          description: Optional sampling config stored in artifact metadata.
+          isOptional: true
+          parameterType: STRUCT
+        split_config:
+          description: Optional split config stored in artifact metadata.
+          isOptional: true
+          parameterType: STRUCT
+        target:
+          description: Name of the target column to forecast.
+          parameterType: STRING
+        timestamp_column:
+          description: Name of the timestamp/datetime column.
+          parameterType: STRING
+        top_n:
+          description: Number of top models to select for full refit.
+          parameterType: NUMBER_INTEGER
+        train_data_path:
+          description: Path to the selection training CSV file.
+          parameterType: STRING
+        workspace_path:
+          description: Workspace directory where predictor will be saved.
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        component_status:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        models_artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        eval_metric:
+          parameterType: STRING
+        model_config:
+          parameterType: STRUCT
+        predictor_path:
+          parameterType: STRING
+        top_models:
+          parameterType: LIST
+  comp-condition-2:
+    dag:
+      tasks:
+        autogluon-timeseries-models-training:
+          cachingOptions: {}
+          componentRef:
+            name: comp-autogluon-timeseries-models-training
+          inputs:
+            artifacts:
+              test_data:
+                componentInputArtifact: pipelinechannel--timeseries-data-loader-sampled_test_dataset
+            parameters:
+              eval_metric:
+                componentInputParameter: pipelinechannel--eval_metric
+              extra_train_data_path:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-extra_train_data_path
+              id_column:
+                componentInputParameter: pipelinechannel--id_column
+              known_covariates_names:
+                componentInputParameter: pipelinechannel--known_covariates_names
+              pipeline_name:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_resource_name}}'
+              prediction_length:
+                componentInputParameter: pipelinechannel--prediction_length
+              preset:
+                componentInputParameter: pipelinechannel--preset
+              run_id:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_uuid}}'
+              sample_rows:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-sample_rows
+              sampling_config:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-sample_config
+              split_config:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-split_config
+              target:
+                componentInputParameter: pipelinechannel--target
+              timestamp_column:
+                componentInputParameter: pipelinechannel--timestamp_column
+              top_n:
+                componentInputParameter: pipelinechannel--top_n
+              train_data_path:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-models_selection_train_data_path
+              workspace_path:
+                runtimeValue:
+                  constant: '{{$.workspace_path}}'
+          taskInfo:
+            name: autogluon-timeseries-models-training
+        leaderboard-evaluation:
+          cachingOptions: {}
+          componentRef:
+            name: comp-leaderboard-evaluation
+          dependentTasks:
+          - autogluon-timeseries-models-training
+          inputs:
+            artifacts:
+              models_artifact:
+                taskOutputArtifact:
+                  outputArtifactKey: models_artifact
+                  producerTask: autogluon-timeseries-models-training
+            parameters:
+              eval_metric:
+                taskOutputParameter:
+                  outputParameterKey: eval_metric
+                  producerTask: autogluon-timeseries-models-training
+          taskInfo:
+            name: leaderboard-evaluation
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--timeseries-data-loader-sampled_test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--eval_metric:
+          parameterType: STRING
+        pipelinechannel--id_column:
+          parameterType: STRING
+        pipelinechannel--known_covariates_names:
+          parameterType: LIST
+        pipelinechannel--prediction_length:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--preset:
+          parameterType: STRING
+        pipelinechannel--target:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-extra_train_data_path:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-models_selection_train_data_path:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-sample_config:
+          parameterType: STRUCT
+        pipelinechannel--timeseries-data-loader-sample_rows:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-split_config:
+          parameterType: STRUCT
+        pipelinechannel--timestamp_column:
+          parameterType: STRING
+        pipelinechannel--top_n:
+          parameterType: NUMBER_INTEGER
+  comp-condition-3:
+    dag:
+      tasks:
+        autogluon-timeseries-models-training-2:
+          cachingOptions: {}
+          componentRef:
+            name: comp-autogluon-timeseries-models-training-2
+          inputs:
+            artifacts:
+              test_data:
+                componentInputArtifact: pipelinechannel--timeseries-data-loader-sampled_test_dataset
+            parameters:
+              eval_metric:
+                componentInputParameter: pipelinechannel--eval_metric
+              extra_train_data_path:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-extra_train_data_path
+              id_column:
+                componentInputParameter: pipelinechannel--id_column
+              known_covariates_names:
+                componentInputParameter: pipelinechannel--known_covariates_names
+              pipeline_name:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_resource_name}}'
+              prediction_length:
+                componentInputParameter: pipelinechannel--prediction_length
+              preset:
+                componentInputParameter: pipelinechannel--preset
+              run_id:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_uuid}}'
+              sample_rows:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-sample_rows
+              sampling_config:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-sample_config
+              split_config:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-split_config
+              target:
+                componentInputParameter: pipelinechannel--target
+              timestamp_column:
+                componentInputParameter: pipelinechannel--timestamp_column
+              top_n:
+                componentInputParameter: pipelinechannel--top_n
+              train_data_path:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-models_selection_train_data_path
+              workspace_path:
+                runtimeValue:
+                  constant: '{{$.workspace_path}}'
+          taskInfo:
+            name: autogluon-timeseries-models-training-2
+        leaderboard-evaluation-2:
+          cachingOptions: {}
+          componentRef:
+            name: comp-leaderboard-evaluation-2
+          dependentTasks:
+          - autogluon-timeseries-models-training-2
+          inputs:
+            artifacts:
+              models_artifact:
+                taskOutputArtifact:
+                  outputArtifactKey: models_artifact
+                  producerTask: autogluon-timeseries-models-training-2
+            parameters:
+              eval_metric:
+                taskOutputParameter:
+                  outputParameterKey: eval_metric
+                  producerTask: autogluon-timeseries-models-training-2
+          taskInfo:
+            name: leaderboard-evaluation-2
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--timeseries-data-loader-sampled_test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--eval_metric:
+          parameterType: STRING
+        pipelinechannel--id_column:
+          parameterType: STRING
+        pipelinechannel--known_covariates_names:
+          parameterType: LIST
+        pipelinechannel--prediction_length:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--preset:
+          parameterType: STRING
+        pipelinechannel--target:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-extra_train_data_path:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-models_selection_train_data_path:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-sample_config:
+          parameterType: STRUCT
+        pipelinechannel--timeseries-data-loader-sample_rows:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-split_config:
+          parameterType: STRUCT
+        pipelinechannel--timestamp_column:
+          parameterType: STRING
+        pipelinechannel--top_n:
+          parameterType: NUMBER_INTEGER
+  comp-condition-branches-1:
+    dag:
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          inputs:
+            artifacts:
+              pipelinechannel--timeseries-data-loader-sampled_test_dataset:
+                componentInputArtifact: pipelinechannel--timeseries-data-loader-sampled_test_dataset
+            parameters:
+              pipelinechannel--eval_metric:
+                componentInputParameter: pipelinechannel--eval_metric
+              pipelinechannel--id_column:
+                componentInputParameter: pipelinechannel--id_column
+              pipelinechannel--known_covariates_names:
+                componentInputParameter: pipelinechannel--known_covariates_names
+              pipelinechannel--prediction_length:
+                componentInputParameter: pipelinechannel--prediction_length
+              pipelinechannel--preset:
+                componentInputParameter: pipelinechannel--preset
+              pipelinechannel--target:
+                componentInputParameter: pipelinechannel--target
+              pipelinechannel--timeseries-data-loader-extra_train_data_path:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-extra_train_data_path
+              pipelinechannel--timeseries-data-loader-models_selection_train_data_path:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-models_selection_train_data_path
+              pipelinechannel--timeseries-data-loader-sample_config:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-sample_config
+              pipelinechannel--timeseries-data-loader-sample_rows:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-sample_rows
+              pipelinechannel--timeseries-data-loader-split_config:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-split_config
+              pipelinechannel--timestamp_column:
+                componentInputParameter: pipelinechannel--timestamp_column
+              pipelinechannel--top_n:
+                componentInputParameter: pipelinechannel--top_n
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--preset'] == 'balanced'
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            artifacts:
+              pipelinechannel--timeseries-data-loader-sampled_test_dataset:
+                componentInputArtifact: pipelinechannel--timeseries-data-loader-sampled_test_dataset
+            parameters:
+              pipelinechannel--eval_metric:
+                componentInputParameter: pipelinechannel--eval_metric
+              pipelinechannel--id_column:
+                componentInputParameter: pipelinechannel--id_column
+              pipelinechannel--known_covariates_names:
+                componentInputParameter: pipelinechannel--known_covariates_names
+              pipelinechannel--prediction_length:
+                componentInputParameter: pipelinechannel--prediction_length
+              pipelinechannel--preset:
+                componentInputParameter: pipelinechannel--preset
+              pipelinechannel--target:
+                componentInputParameter: pipelinechannel--target
+              pipelinechannel--timeseries-data-loader-extra_train_data_path:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-extra_train_data_path
+              pipelinechannel--timeseries-data-loader-models_selection_train_data_path:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-models_selection_train_data_path
+              pipelinechannel--timeseries-data-loader-sample_config:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-sample_config
+              pipelinechannel--timeseries-data-loader-sample_rows:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-sample_rows
+              pipelinechannel--timeseries-data-loader-split_config:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-split_config
+              pipelinechannel--timestamp_column:
+                componentInputParameter: pipelinechannel--timestamp_column
+              pipelinechannel--top_n:
+                componentInputParameter: pipelinechannel--top_n
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--preset''] ==
+              ''balanced'')'
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--timeseries-data-loader-sampled_test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--eval_metric:
+          parameterType: STRING
+        pipelinechannel--id_column:
+          parameterType: STRING
+        pipelinechannel--known_covariates_names:
+          parameterType: LIST
+        pipelinechannel--prediction_length:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--preset:
+          parameterType: STRING
+        pipelinechannel--target:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-extra_train_data_path:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-models_selection_train_data_path:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-sample_config:
+          parameterType: STRUCT
+        pipelinechannel--timeseries-data-loader-sample_rows:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-split_config:
+          parameterType: STRUCT
+        pipelinechannel--timestamp_column:
+          parameterType: STRING
+        pipelinechannel--top_n:
+          parameterType: NUMBER_INTEGER
   comp-leaderboard-evaluation:
     executorLabel: exec-leaderboard-evaluation
+    inputDefinitions:
+      artifacts:
+        models_artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          description: 'Combined Model artifact from ``autogluon_models_training``
+
+            with ``metadata["model_names"]`` and per-model subdirectories.'
+      parameters:
+        eval_metric:
+          description: 'Metric name for ranking (e.g. ``"accuracy"``, ``"root_mean_squared_error"``);
+
+            leaderboard sorted descending (AutoGluon uses higher-is-better convention).'
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        component_status:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        html_artifact:
+          artifactType:
+            schemaTitle: system.HTML
+            schemaVersion: 0.0.1
+      parameters:
+        best_model:
+          parameterType: STRING
+  comp-leaderboard-evaluation-2:
+    executorLabel: exec-leaderboard-evaluation-2
     inputDefinitions:
       artifacts:
         models_artifact:
@@ -229,16 +673,16 @@ deploymentSpec:
           \ dsl.Output[dsl.Artifact],\n    sample_rows: str = \"[]\",\n    sampling_config:\
           \ Optional[dict] = None,\n    split_config: Optional[dict] = None,\n   \
           \ prediction_length: int = 1,\n    known_covariates_names: Optional[List[str]]\
-          \ = None,\n    eval_metric: str = \"MASE\",\n) -> NamedTuple(\n    \"outputs\"\
-          ,\n    top_models=List[str],\n    predictor_path=str,\n    eval_metric=str,\n\
-          \    model_config=dict,\n):\n    \"\"\"Train, select, and full-refit top\
-          \ N AutoGluon timeseries models.\n\n    This component combines model generation\
-          \ and full-refit into one step to avoid\n    pipeline-level ``ParallelFor``.\
-          \ It trains multiple AutoGluon TimeSeries models on\n    the selection training\
-          \ data, ranks them on the test set, then sequentially refits\n    the top\
-          \ N models on full train data (selection split + extra split).\n\n    Refit\
-          \ outputs for all selected models are written under one ``models_artifact``\
-          \ in\n    a layout compatible with ``autogluon_leaderboard_evaluation``.\n\
+          \ = None,\n    preset: str = \"speed\",\n    eval_metric: str = \"MASE\"\
+          ,\n) -> NamedTuple(\n    \"outputs\",\n    top_models=List[str],\n    predictor_path=str,\n\
+          \    eval_metric=str,\n    model_config=dict,\n):\n    \"\"\"Train, select,\
+          \ and full-refit top N AutoGluon timeseries models.\n\n    This component\
+          \ combines model generation and full-refit into one step to avoid\n    pipeline-level\
+          \ ``ParallelFor``. It trains multiple AutoGluon TimeSeries models on\n \
+          \   the selection training data, ranks them on the test set, then sequentially\
+          \ refits\n    the top N models on full train data (selection split + extra\
+          \ split).\n\n    Refit outputs for all selected models are written under\
+          \ one ``models_artifact`` in\n    a layout compatible with ``autogluon_leaderboard_evaluation``.\n\
           \n    Args:\n        target: Name of the target column to forecast.\n  \
           \      id_column: Name of the column identifying each time series (item_id).\n\
           \        timestamp_column: Name of the timestamp/datetime column.\n    \
@@ -256,31 +700,36 @@ deploymentSpec:
           \ Forecast horizon (number of timesteps).\n        known_covariates_names:\
           \ Optional list of known covariate column names.\n        component_status:\
           \ Output artifact containing stage-level progress tracking for this component.\n\
-          \        eval_metric: Metric for model ranking (e.g. ``\"MASE\"``, ``\"\
-          WQL\"``). Defaults to ``\"MASE\"``.\n\n    Returns:\n        NamedTuple:\
-          \ top_models list, predictor_path, eval_metric, model_config.\n    \"\"\"\
-          \n    import json\n    import logging\n    import math\n    from pathlib\
-          \ import Path\n\n    import pandas as pd\n    from autogluon.timeseries\
-          \ import TimeSeriesDataFrame, TimeSeriesPredictor\n    from autogluon.timeseries.metrics\
-          \ import AVAILABLE_METRICS\n    from kfp_components.components.training.automl.shared.component_status\
-          \ import ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.run_status\
+          \        preset: Training quality tier. ``\"speed\"`` (default) or ``\"\
+          balanced\"``\n            (may run more than 2x longer).\n        eval_metric:\
+          \ Metric for model ranking (e.g. ``\"MASE\"``, ``\"WQL\"``). Defaults to\
+          \ ``\"MASE\"``.\n\n    Returns:\n        NamedTuple: top_models list, predictor_path,\
+          \ eval_metric, model_config.\n    \"\"\"\n    import json\n    import logging\n\
+          \    import math\n    from pathlib import Path\n\n    import pandas as pd\n\
+          \    from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor\n\
+          \    from autogluon.timeseries.metrics import AVAILABLE_METRICS\n    from\
+          \ kfp_components.components.training.automl.shared.component_status import\
+          \ ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.run_status\
           \ import shared_automl_dir\n\n    logger = logging.getLogger(__name__)\n\
           \n    from kfp_components.components.training.automl.shared.back_testing\
           \ import build_back_testing_json\n    from kfp_components.components.training.automl.shared.timeseries_notebook_utils\
           \ import (\n        build_predict_sample_artifact,\n    )\n\n    status\
           \ = ComponentStatusTracker(component_status.path, \"autogluon_timeseries_models_training\"\
-          )\n    with status:\n        TOP_N_MAX = 7\n        DEFAULT_PRESETS = \"\
-          fast_training\"\n        DEFAULT_TIME_LIMIT = 600  # 10 minutes\n\n    \
-          \    # Input validation\n        for param, value in (\n            (\"\
-          target\", target),\n            (\"id_column\", id_column),\n          \
-          \  (\"timestamp_column\", timestamp_column),\n            (\"train_data_path\"\
-          , train_data_path),\n            (\"workspace_path\", workspace_path),\n\
-          \            (\"eval_metric\", eval_metric),\n        ):\n            if\
-          \ not isinstance(value, str) or not value.strip():\n                raise\
-          \ TypeError(f\"{param} must be a non-empty string.\")\n        if eval_metric\
-          \ not in AVAILABLE_METRICS:\n            raise ValueError(f\"eval_metric\
-          \ must be one of {sorted(AVAILABLE_METRICS)}; got {eval_metric!r}.\")\n\
-          \        if not isinstance(top_n, int):\n            raise TypeError(\"\
+          )\n    with status:\n        TOP_N_MAX = 7\n        VALID_PRESETS = {\"\
+          speed\", \"balanced\"}\n        PRESET_AG_NAMES = {\"speed\": \"fast_training\"\
+          , \"balanced\": \"medium_quality\"}\n        PRESET_TIME_LIMITS = {\"speed\"\
+          : 10 * 60, \"balanced\": 60 * 60}\n\n        # Input validation\n      \
+          \  if preset not in VALID_PRESETS:\n            raise ValueError(f\"preset\
+          \ must be one of {VALID_PRESETS}; got {preset!r}.\")\n        for param,\
+          \ value in (\n            (\"target\", target),\n            (\"id_column\"\
+          , id_column),\n            (\"timestamp_column\", timestamp_column),\n \
+          \           (\"train_data_path\", train_data_path),\n            (\"workspace_path\"\
+          , workspace_path),\n            (\"eval_metric\", eval_metric),\n      \
+          \  ):\n            if not isinstance(value, str) or not value.strip():\n\
+          \                raise TypeError(f\"{param} must be a non-empty string.\"\
+          )\n        if eval_metric not in AVAILABLE_METRICS:\n            raise ValueError(f\"\
+          eval_metric must be one of {sorted(AVAILABLE_METRICS)}; got {eval_metric!r}.\"\
+          )\n        if not isinstance(top_n, int):\n            raise TypeError(\"\
           top_n must be an integer.\")\n        if top_n <= 0 or top_n > TOP_N_MAX:\n\
           \            raise ValueError(f\"top_n must be an integer in the range (0,\
           \ {TOP_N_MAX}]; got {top_n}.\")\n        if not isinstance(prediction_length,\
@@ -307,11 +756,12 @@ deploymentSpec:
           \ or None.\")\n        if split_config is not None and not isinstance(split_config,\
           \ dict):\n            raise TypeError(\"split_config must be a dictionary\
           \ or None.\")\n        sampling_config = sampling_config or {}\n       \
-          \ split_config = split_config or {}\n\n        status.record(\"load_data\"\
-          , \"started\")\n        train_df = pd.read_csv(train_data_path)\n      \
-          \  test_df = pd.read_csv(test_data.path)\n        logger.info(\"Loaded train=%s\
-          \ test=%s rows\", len(train_df), len(test_df))\n\n        train_ts = TimeSeriesDataFrame.from_data_frame(\n\
-          \            train_df,\n            id_column=id_column,\n            timestamp_column=timestamp_column,\n\
+          \ split_config = split_config or {}\n        time_limit = PRESET_TIME_LIMITS[preset]\n\
+          \n        status.record(\"load_data\", \"started\")\n        train_df =\
+          \ pd.read_csv(train_data_path)\n        test_df = pd.read_csv(test_data.path)\n\
+          \        logger.info(\"Loaded train=%s test=%s rows\", len(train_df), len(test_df))\n\
+          \n        train_ts = TimeSeriesDataFrame.from_data_frame(\n            train_df,\n\
+          \            id_column=id_column,\n            timestamp_column=timestamp_column,\n\
           \        )\n        test_ts = TimeSeriesDataFrame.from_data_frame(\n   \
           \         test_df,\n            id_column=id_column,\n            timestamp_column=timestamp_column,\n\
           \        )\n        logger.info(\n            \"Train TimeSeriesDataFrame:\
@@ -327,11 +777,11 @@ deploymentSpec:
           \        path=str(predictor_path),\n            verbosity=2,\n         \
           \   known_covariates_names=known_covariates_names,\n        )\n\n      \
           \  logger.info(\n            \"Timeseries selection: training (preset=%s,\
-          \ time_limit=%ss, prediction_length=%s)...\",\n            DEFAULT_PRESETS,\n\
-          \            DEFAULT_TIME_LIMIT,\n            prediction_length,\n     \
-          \   )\n        status.record(\"model_selection\", \"started\")\n       \
-          \ try:\n            predictor.fit(\n                train_data=train_ts,\n\
-          \                presets=DEFAULT_PRESETS,\n                time_limit=DEFAULT_TIME_LIMIT,\n\
+          \ time_limit=%ss, prediction_length=%s)...\",\n            preset,\n   \
+          \         time_limit,\n            prediction_length,\n        )\n     \
+          \   status.record(\"model_selection\", \"started\")\n        try:\n    \
+          \        predictor.fit(\n                train_data=train_ts,\n        \
+          \        presets=PRESET_AG_NAMES[preset],\n                time_limit=time_limit,\n\
           \                # exclude deep learning models pretrained on large time\
           \ series datasets\n                excluded_model_types=[\"Chronos\", \"\
           Toto\", \"Chronos2\"],\n            )\n        except Exception as e:\n\
@@ -354,11 +804,10 @@ deploymentSpec:
           : prediction_length,\n            \"eval_metric\": eval_metric,\n      \
           \      \"target\": target,\n            \"id_column\": id_column,\n    \
           \        \"timestamp_column\": timestamp_column,\n            \"presets\"\
-          : DEFAULT_PRESETS,\n            \"time_limit\": DEFAULT_TIME_LIMIT,\n  \
-          \          \"known_covariates_names\": known_covariates_names or [],\n \
-          \           \"num_models_trained\": len(leaderboard),\n        }\n\n   \
-          \     # Stage 2: Full refit of selected models on full train data (selection\
-          \ + extra).\n        if models_artifact is None or not extra_train_data_path.strip():\n\
+          : preset,\n            \"time_limit\": time_limit,\n            \"known_covariates_names\"\
+          : known_covariates_names or [],\n            \"num_models_trained\": len(leaderboard),\n\
+          \        }\n\n        # Stage 2: Full refit of selected models on full train\
+          \ data (selection + extra).\n        if models_artifact is None or not extra_train_data_path.strip():\n\
           \            logger.info(\n                \"Skipping combined full-refit\
           \ stage; missing models_artifact or extra_train_data_path. \"\n        \
           \        \"Returning selection-only outputs for backward compatibility.\"\
@@ -411,27 +860,343 @@ deploymentSpec:
           \              )\n                # fit() automatically saves the predictor\
           \ to path specified in constructor\n                predictor_refit.fit(\n\
           \                    train_data=full_train_ts_df,\n                    **additional_fit_params,\n\
-          \                    time_limit=DEFAULT_TIME_LIMIT,\n                  \
-          \  excluded_model_types=[\"Chronos\", \"Chronos2\", \"Toto\"],\n       \
-          \         )\n                metrics = predictor_refit.evaluate(test_ts,\
-          \ metrics=list(AVAILABLE_METRICS.keys()))\n                # Keep raw AutoGluon\
-          \ evaluate() signs for metrics.json (higher-is-better / negated errors)\n\
-          \                # so leaderboard_evaluation sorting stays correct. back_testing.json\
-          \ normalizes separately.\n                metrics_dict = {}\n          \
-          \      for k, v in metrics.items():\n                    if hasattr(v, \"\
-          item\"):\n                        v = float(v)\n                    if isinstance(v,\
-          \ (int, float)) and math.isfinite(v):\n                        metrics_dict[k]\
-          \ = v\n\n                if eval_metric not in metrics_dict:\n         \
-          \           raise ValueError(\n                        f\"Eval metric '{eval_metric}'\
-          \ was NaN/Inf for model '{model_name_full}' \"\n                       \
-          \ \"and was dropped from metrics. Cannot produce a valid leaderboard entry.\"\
-          \n                    )\n\n                metrics_path = output_path /\
-          \ \"metrics\"\n                metrics_path.mkdir(parents=True, exist_ok=True)\n\
-          \                with (metrics_path / \"metrics.json\").open(\"w\", encoding=\"\
-          utf-8\") as f:\n                    json.dump(metrics_dict, f, indent=2)\n\
-          \n                back_testing_available = False\n                try:\n\
-          \                    back_testing_payload = build_back_testing_json(\n \
-          \                       predictor_refit,\n                        model_name=model_name,\n\
+          \                    time_limit=time_limit,\n                    excluded_model_types=[\"\
+          Chronos\", \"Chronos2\", \"Toto\"],\n                )\n               \
+          \ metrics = predictor_refit.evaluate(test_ts, metrics=list(AVAILABLE_METRICS.keys()))\n\
+          \                # Keep raw AutoGluon evaluate() signs for metrics.json\
+          \ (higher-is-better / negated errors)\n                # so leaderboard_evaluation\
+          \ sorting stays correct. back_testing.json normalizes separately.\n    \
+          \            metrics_dict = {}\n                for k, v in metrics.items():\n\
+          \                    if hasattr(v, \"item\"):\n                        v\
+          \ = float(v)\n                    if isinstance(v, (int, float)) and math.isfinite(v):\n\
+          \                        metrics_dict[k] = v\n\n                if eval_metric\
+          \ not in metrics_dict:\n                    raise ValueError(\n        \
+          \                f\"Eval metric '{eval_metric}' was NaN/Inf for model '{model_name_full}'\
+          \ \"\n                        \"and was dropped from metrics. Cannot produce\
+          \ a valid leaderboard entry.\"\n                    )\n\n              \
+          \  metrics_path = output_path / \"metrics\"\n                metrics_path.mkdir(parents=True,\
+          \ exist_ok=True)\n                with (metrics_path / \"metrics.json\"\
+          ).open(\"w\", encoding=\"utf-8\") as f:\n                    json.dump(metrics_dict,\
+          \ f, indent=2)\n\n                back_testing_available = False\n     \
+          \           try:\n                    back_testing_payload = build_back_testing_json(\n\
+          \                        predictor_refit,\n                        model_name=model_name,\n\
+          \                        model_name_full=model_name_full,\n            \
+          \            train_data=full_train_ts_df,\n                        eval_metric=eval_metric,\n\
+          \                        target=target,\n                        id_column=id_column,\n\
+          \                        timestamp_column=timestamp_column,\n          \
+          \              prediction_length=prediction_length,\n                  \
+          \      metrics=list(AVAILABLE_METRICS.keys()),\n                    )\n\
+          \                    with (metrics_path / \"back_testing.json\").open(\"\
+          w\", encoding=\"utf-8\") as f:\n                        json.dump(back_testing_payload,\
+          \ f, indent=2)\n                    back_testing_available = True\n    \
+          \            except Exception as backtest_exc:\n                    logger.warning(\n\
+          \                        \"Could not generate back_testing.json for model\
+          \ %r: %s. Skipping backtest artifact.\",\n                        model_name_full,\n\
+          \                        backtest_exc,\n                    )\n\n      \
+          \          notebook_file = \"timeseries_notebook.ipynb\"\n             \
+          \   with (shared_automl_dir() / \"notebook_templates\" / notebook_file).open(\"\
+          r\", encoding=\"utf-8\") as f:\n                    notebook = json.load(f)\n\
+          \                predict_sample = build_predict_sample_artifact(\n     \
+          \               predictor_refit,\n                    sample_row_list,\n\
+          \                    id_column,\n                    timestamp_column,\n\
+          \                    known_covariates_names,\n                )\n      \
+          \          replacements = {\n                    \"<REPLACE_RUN_ID>\": run_id,\n\
+          \                    \"<REPLACE_PIPELINE_NAME>\": pipeline_name_trimmed,\n\
+          \                    \"<REPLACE_MODEL_NAME>\": model_name_full,\n      \
+          \              \"<REPLACE_PREDICT_SAMPLE>\": str(predict_sample),\n    \
+          \            }\n                notebook = replace_placeholder_in_notebook(notebook,\
+          \ replacements)\n\n                notebook_path = output_path / \"notebooks\"\
+          \n                notebook_path.mkdir(parents=True, exist_ok=True)\n   \
+          \             with (notebook_path / \"automl_predictor_notebook.ipynb\"\
+          ).open(\"w\", encoding=\"utf-8\") as f:\n                    json.dump(notebook,\
+          \ f)\n\n                model_location = {\n                    \"model_directory\"\
+          : model_name_full,\n                    \"predictor\": str(Path(model_name_full)\
+          \ / \"predictor\"),\n                    \"notebook\": str(Path(model_name_full)\
+          \ / \"notebooks\" / \"automl_predictor_notebook.ipynb\"),\n            \
+          \        \"metrics\": str(Path(model_name_full) / \"metrics\"),\n      \
+          \          }\n                # Only include back_testing path if file was\
+          \ successfully written\n                if back_testing_available:\n   \
+          \                 model_location[\"back_testing\"] = str(Path(model_name_full)\
+          \ / \"metrics\" / \"back_testing.json\")\n\n                model_metadata\
+          \ = {\n                    \"name\": model_name_full,\n                \
+          \    \"location\": model_location,\n                    \"metrics\": {\n\
+          \                        \"test_data\": metrics_dict,\n                \
+          \    },\n                }\n                with (output_path / \"model.json\"\
+          ).open(\"w\", encoding=\"utf-8\") as f:\n                    json.dump(model_metadata,\
+          \ f, indent=2)\n\n                # Only append to successful models lists\
+          \ after all operations succeed\n                model_names_full.append(model_name_full)\n\
+          \                models_metadata.append(model_metadata)\n\n            except\
+          \ Exception as e:\n                logger.error(\"Refit failed for model\
+          \ '%s': %s\", model_name, e)\n                failed_models.append(model_name)\n\
+          \n        # Report partial failures\n        if failed_models:\n       \
+          \     logger.warning(\"The following models failed refit: %s\", failed_models)\n\
+          \n        # Ensure at least one model succeeded\n        if not model_names_full:\n\
+          \            raise RuntimeError(\"All models failed refit. No artifacts\
+          \ written.\")\n\n        status.record(\"refit_full\", \"completed\", model_count=len(model_names_full))\n\
+          \        status.record(\"evaluate_models\", \"completed\", eval_metric=eval_metric)\n\
+          \        component_status.metadata[\"display_name\"] = \"Timeseries Models\
+          \ Training Status\"\n\n        models_artifact.metadata[\"model_names\"\
+          ] = json.dumps(model_names_full)\n        models_artifact.metadata[\"context\"\
+          ] = {\n            \"data_config\": {\n                \"sampling_config\"\
+          : sampling_config,\n                \"split_config\": split_config,\n  \
+          \          },\n            \"model_config\": model_config,\n           \
+          \ \"models\": models_metadata,\n        }\n\n        outputs = NamedTuple(\n\
+          \            \"outputs\",\n            top_models=List[str],\n         \
+          \   predictor_path=str,\n            eval_metric=str,\n            model_config=dict,\n\
+          \        )\n        return outputs(\n            top_models=top_models,\n\
+          \            predictor_path=str(predictor_path),\n            eval_metric=eval_metric,\n\
+          \            model_config=model_config,\n        )\n\n"
+        image: quay.io/opendatahub/odh-automl:odh-stable
+        resources:
+          cpuLimit: 32.0
+          cpuRequest: 8.0
+          memoryLimit: 68.719476736
+          memoryRequest: 34.359738368
+          resourceCpuLimit: '32'
+          resourceCpuRequest: '8'
+          resourceMemoryLimit: 64Gi
+          resourceMemoryRequest: 32Gi
+    exec-autogluon-timeseries-models-training-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - autogluon_timeseries_models_training
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef autogluon_timeseries_models_training(\n    target: str,\n   \
+          \ id_column: str,\n    timestamp_column: str,\n    train_data_path: str,\n\
+          \    test_data: dsl.Input[dsl.Dataset],\n    top_n: int,\n    workspace_path:\
+          \ str,\n    pipeline_name: str,\n    run_id: str,\n    models_artifact:\
+          \ dsl.Output[dsl.Model],\n    extra_train_data_path: str,\n    component_status:\
+          \ dsl.Output[dsl.Artifact],\n    sample_rows: str = \"[]\",\n    sampling_config:\
+          \ Optional[dict] = None,\n    split_config: Optional[dict] = None,\n   \
+          \ prediction_length: int = 1,\n    known_covariates_names: Optional[List[str]]\
+          \ = None,\n    preset: str = \"speed\",\n    eval_metric: str = \"MASE\"\
+          ,\n) -> NamedTuple(\n    \"outputs\",\n    top_models=List[str],\n    predictor_path=str,\n\
+          \    eval_metric=str,\n    model_config=dict,\n):\n    \"\"\"Train, select,\
+          \ and full-refit top N AutoGluon timeseries models.\n\n    This component\
+          \ combines model generation and full-refit into one step to avoid\n    pipeline-level\
+          \ ``ParallelFor``. It trains multiple AutoGluon TimeSeries models on\n \
+          \   the selection training data, ranks them on the test set, then sequentially\
+          \ refits\n    the top N models on full train data (selection split + extra\
+          \ split).\n\n    Refit outputs for all selected models are written under\
+          \ one ``models_artifact`` in\n    a layout compatible with ``autogluon_leaderboard_evaluation``.\n\
+          \n    Args:\n        target: Name of the target column to forecast.\n  \
+          \      id_column: Name of the column identifying each time series (item_id).\n\
+          \        timestamp_column: Name of the timestamp/datetime column.\n    \
+          \    train_data_path: Path to the selection training CSV file.\n       \
+          \ test_data: Test dataset artifact for evaluation.\n        top_n: Number\
+          \ of top models to select for full refit.\n        workspace_path: Workspace\
+          \ directory where predictor will be saved.\n        pipeline_name: Pipeline\
+          \ name used in generated notebook placeholders.\n        run_id: Pipeline\
+          \ run id used in generated notebook placeholders.\n        models_artifact:\
+          \ Combined output artifact containing all refitted models.\n        extra_train_data_path:\
+          \ Path to extra train split for full refit.\n        sample_rows: Sample\
+          \ rows JSON string used in generated notebook placeholders.\n        sampling_config:\
+          \ Optional sampling config stored in artifact metadata.\n        split_config:\
+          \ Optional split config stored in artifact metadata.\n        prediction_length:\
+          \ Forecast horizon (number of timesteps).\n        known_covariates_names:\
+          \ Optional list of known covariate column names.\n        component_status:\
+          \ Output artifact containing stage-level progress tracking for this component.\n\
+          \        preset: Training quality tier. ``\"speed\"`` (default) or ``\"\
+          balanced\"``\n            (may run more than 2x longer).\n        eval_metric:\
+          \ Metric for model ranking (e.g. ``\"MASE\"``, ``\"WQL\"``). Defaults to\
+          \ ``\"MASE\"``.\n\n    Returns:\n        NamedTuple: top_models list, predictor_path,\
+          \ eval_metric, model_config.\n    \"\"\"\n    import json\n    import logging\n\
+          \    import math\n    from pathlib import Path\n\n    import pandas as pd\n\
+          \    from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor\n\
+          \    from autogluon.timeseries.metrics import AVAILABLE_METRICS\n    from\
+          \ kfp_components.components.training.automl.shared.component_status import\
+          \ ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.run_status\
+          \ import shared_automl_dir\n\n    logger = logging.getLogger(__name__)\n\
+          \n    from kfp_components.components.training.automl.shared.back_testing\
+          \ import build_back_testing_json\n    from kfp_components.components.training.automl.shared.timeseries_notebook_utils\
+          \ import (\n        build_predict_sample_artifact,\n    )\n\n    status\
+          \ = ComponentStatusTracker(component_status.path, \"autogluon_timeseries_models_training\"\
+          )\n    with status:\n        TOP_N_MAX = 7\n        VALID_PRESETS = {\"\
+          speed\", \"balanced\"}\n        PRESET_AG_NAMES = {\"speed\": \"fast_training\"\
+          , \"balanced\": \"medium_quality\"}\n        PRESET_TIME_LIMITS = {\"speed\"\
+          : 10 * 60, \"balanced\": 60 * 60}\n\n        # Input validation\n      \
+          \  if preset not in VALID_PRESETS:\n            raise ValueError(f\"preset\
+          \ must be one of {VALID_PRESETS}; got {preset!r}.\")\n        for param,\
+          \ value in (\n            (\"target\", target),\n            (\"id_column\"\
+          , id_column),\n            (\"timestamp_column\", timestamp_column),\n \
+          \           (\"train_data_path\", train_data_path),\n            (\"workspace_path\"\
+          , workspace_path),\n            (\"eval_metric\", eval_metric),\n      \
+          \  ):\n            if not isinstance(value, str) or not value.strip():\n\
+          \                raise TypeError(f\"{param} must be a non-empty string.\"\
+          )\n        if eval_metric not in AVAILABLE_METRICS:\n            raise ValueError(f\"\
+          eval_metric must be one of {sorted(AVAILABLE_METRICS)}; got {eval_metric!r}.\"\
+          )\n        if not isinstance(top_n, int):\n            raise TypeError(\"\
+          top_n must be an integer.\")\n        if top_n <= 0 or top_n > TOP_N_MAX:\n\
+          \            raise ValueError(f\"top_n must be an integer in the range (0,\
+          \ {TOP_N_MAX}]; got {top_n}.\")\n        if not isinstance(prediction_length,\
+          \ int):\n            raise TypeError(\"prediction_length must be an integer.\"\
+          )\n        if prediction_length <= 0:\n            raise ValueError(\"prediction_length\
+          \ must be greater than 0.\")\n        if known_covariates_names is not None:\n\
+          \            if not isinstance(known_covariates_names, list) or any(\n \
+          \               (not isinstance(v, str) or not v.strip()) for v in known_covariates_names\n\
+          \            ):\n                raise TypeError(\"known_covariates_names\
+          \ must be a list of non-empty strings or None.\")\n        for param, value\
+          \ in (\n            (\"pipeline_name\", pipeline_name),\n            (\"\
+          run_id\", run_id),\n            (\"extra_train_data_path\", extra_train_data_path),\n\
+          \        ):\n            if not isinstance(value, str) or not value.strip():\n\
+          \                raise TypeError(f\"{param} must be a non-empty string.\"\
+          )\n        if not isinstance(sample_rows, str):\n            raise TypeError(\"\
+          sample_rows must be a string.\")\n        if models_artifact is not None\
+          \ and not hasattr(models_artifact, \"path\"):\n            raise TypeError(\"\
+          models_artifact must be a KFP output artifact or None.\")\n        if not\
+          \ hasattr(component_status, \"path\"):\n            raise TypeError(\"component_status\
+          \ must be a KFP output artifact.\")\n        if not hasattr(models_artifact,\
+          \ \"path\"):\n            raise TypeError(\"models_artifact must be a KFP\
+          \ output artifact.\")\n        if sampling_config is not None and not isinstance(sampling_config,\
+          \ dict):\n            raise TypeError(\"sampling_config must be a dictionary\
+          \ or None.\")\n        if split_config is not None and not isinstance(split_config,\
+          \ dict):\n            raise TypeError(\"split_config must be a dictionary\
+          \ or None.\")\n        sampling_config = sampling_config or {}\n       \
+          \ split_config = split_config or {}\n        time_limit = PRESET_TIME_LIMITS[preset]\n\
+          \n        status.record(\"load_data\", \"started\")\n        train_df =\
+          \ pd.read_csv(train_data_path)\n        test_df = pd.read_csv(test_data.path)\n\
+          \        logger.info(\"Loaded train=%s test=%s rows\", len(train_df), len(test_df))\n\
+          \n        train_ts = TimeSeriesDataFrame.from_data_frame(\n            train_df,\n\
+          \            id_column=id_column,\n            timestamp_column=timestamp_column,\n\
+          \        )\n        test_ts = TimeSeriesDataFrame.from_data_frame(\n   \
+          \         test_df,\n            id_column=id_column,\n            timestamp_column=timestamp_column,\n\
+          \        )\n        logger.info(\n            \"Train TimeSeriesDataFrame:\
+          \ %s rows, %s items; test: %s rows, %s items\",\n            len(train_ts),\n\
+          \            train_ts.num_items,\n            len(test_ts),\n          \
+          \  test_ts.num_items,\n        )\n        status.record(\n            \"\
+          load_data\",\n            \"completed\",\n            train_rows=len(train_ts),\n\
+          \            test_rows=len(test_ts),\n        )\n\n        # Create predictor\
+          \ path in workspace\n        predictor_path = Path(workspace_path) / \"\
+          timeseries_predictor\"\n\n        # Create TimeSeriesPredictor\n       \
+          \ predictor = TimeSeriesPredictor(\n            prediction_length=prediction_length,\n\
+          \            target=target,\n            eval_metric=eval_metric,\n    \
+          \        path=str(predictor_path),\n            verbosity=2,\n         \
+          \   known_covariates_names=known_covariates_names,\n        )\n\n      \
+          \  logger.info(\n            \"Timeseries selection: training (preset=%s,\
+          \ time_limit=%ss, prediction_length=%s)...\",\n            preset,\n   \
+          \         time_limit,\n            prediction_length,\n        )\n     \
+          \   status.record(\"model_selection\", \"started\")\n        try:\n    \
+          \        predictor.fit(\n                train_data=train_ts,\n        \
+          \        presets=PRESET_AG_NAMES[preset],\n                time_limit=time_limit,\n\
+          \                # exclude deep learning models pretrained on large time\
+          \ series datasets\n                excluded_model_types=[\"Chronos\", \"\
+          Toto\", \"Chronos2\"],\n            )\n        except Exception as e:\n\
+          \            logger.error(f\"Training failed: {str(e)}\")\n            raise\
+          \ ValueError(f\"TimeSeriesPredictor training failed: {str(e)}\") from e\n\
+          \n        try:\n            leaderboard = predictor.leaderboard(test_ts)\n\
+          \        except Exception as e:\n            logger.error(f\"Leaderboard\
+          \ generation failed: {str(e)}\")\n            raise ValueError(f\"Failed\
+          \ to generate leaderboard: {str(e)}\") from e\n\n        if top_n > len(leaderboard):\n\
+          \            raise ValueError(\n                f\"top_n must be less than\
+          \ or equal to number_of_models_trained ({len(leaderboard)}); got {top_n}.\"\
+          \n            )\n\n        top_models = leaderboard.head(top_n)[\"model\"\
+          ].values.tolist()\n        status.record(\n            \"model_selection\"\
+          ,\n            \"completed\",\n            top_n=top_n,\n            selected_models=top_models,\n\
+          \            steps=[\"model_training\", \"holdout_evaluation\"],\n     \
+          \   )\n        logger.info(\n            \"Timeseries selection done: top_%s=%s\
+          \ best_score_test=%s\",\n            top_n,\n            top_models,\n \
+          \           leaderboard.iloc[0][\"score_test\"],\n        )\n\n        #\
+          \ Create model config\n        model_config = {\n            \"prediction_length\"\
+          : prediction_length,\n            \"eval_metric\": eval_metric,\n      \
+          \      \"target\": target,\n            \"id_column\": id_column,\n    \
+          \        \"timestamp_column\": timestamp_column,\n            \"presets\"\
+          : preset,\n            \"time_limit\": time_limit,\n            \"known_covariates_names\"\
+          : known_covariates_names or [],\n            \"num_models_trained\": len(leaderboard),\n\
+          \        }\n\n        # Stage 2: Full refit of selected models on full train\
+          \ data (selection + extra).\n        if models_artifact is None or not extra_train_data_path.strip():\n\
+          \            logger.info(\n                \"Skipping combined full-refit\
+          \ stage; missing models_artifact or extra_train_data_path. \"\n        \
+          \        \"Returning selection-only outputs for backward compatibility.\"\
+          \n            )\n            component_status.metadata[\"display_name\"\
+          ] = \"Timeseries Models Training Status\"\n            outputs = NamedTuple(\n\
+          \                \"outputs\",\n                top_models=List[str],\n \
+          \               predictor_path=str,\n                eval_metric=str,\n\
+          \                model_config=dict,\n            )\n            return outputs(\n\
+          \                top_models=top_models,\n                predictor_path=str(predictor_path),\n\
+          \                eval_metric=eval_metric,\n                model_config=model_config,\n\
+          \            )\n        from autogluon.timeseries.metrics import AVAILABLE_METRICS\n\
+          \        from autogluon.timeseries.models.ensemble import AbstractTimeSeriesEnsembleModel\n\
+          \n        selection_ts_df = train_ts\n        extra_train_ts_df = TimeSeriesDataFrame.from_path(\n\
+          \            path=extra_train_data_path,\n            id_column=id_column,\n\
+          \            timestamp_column=timestamp_column,\n        )\n        full_train_ts_df\
+          \ = TimeSeriesDataFrame(pd.concat([selection_ts_df, extra_train_ts_df],\
+          \ axis=0))\n        model_hyperparams = predictor.fit_summary()[\"model_hyperparams\"\
+          ]\n\n        sample_row_list = json.loads(sample_rows or \"[]\")\n     \
+          \   if not isinstance(sample_row_list, list):\n            raise ValueError(\"\
+          sample_rows must be a JSON list.\")\n\n        def retrieve_pipeline_name(name:\
+          \ str) -> str:\n            if not name:\n                return name\n\
+          \            trimmed_name = name.rstrip(\"-\")\n            if \"-\" not\
+          \ in trimmed_name:\n                return trimmed_name\n            tokens\
+          \ = trimmed_name.split(\"-\")\n            return \"-\".join(tokens[:-1])\
+          \ if len(tokens) > 1 else tokens[0]\n\n        pipeline_name_trimmed = retrieve_pipeline_name(pipeline_name)\n\
+          \        model_names_full = []\n        models_metadata = []\n        failed_models\
+          \ = []\n\n        status.record(\"refit_full\", \"started\")\n\n       \
+          \ def replace_placeholder_in_notebook(notebook, replacements):\n       \
+          \     for cell in notebook.get(\"cells\", []):\n                if cell.get(\"\
+          cell_type\") != \"code\":\n                    continue\n              \
+          \  new_source = []\n                src = cell.get(\"source\", [])\n   \
+          \             if isinstance(src, str):\n                    src = [src]\n\
+          \                for line in src:\n                    for placeholder,\
+          \ value in replacements.items():\n                        line = line.replace(placeholder,\
+          \ value)\n                    new_source.append(line)\n                cell[\"\
+          source\"] = new_source\n            return notebook\n\n        for model_name\
+          \ in top_models:\n            try:\n                model_name_full = f\"\
+          {model_name}_FULL\"\n                output_path = Path(models_artifact.path)\
+          \ / model_name_full\n                output_path.mkdir(parents=True, exist_ok=True)\n\
+          \                predictor_output = output_path / \"predictor\"\n\n    \
+          \            model_type = predictor._trainer.get_model_attribute(model_name,\
+          \ \"type\")\n                is_ensemble = issubclass(model_type, AbstractTimeSeriesEnsembleModel)\n\
+          \                hyperparams_option = \"ensemble_hyperparameters\" if is_ensemble\
+          \ else \"hyperparameters\"\n                additional_fit_params = {hyperparams_option:\
+          \ {model_name: model_hyperparams[model_name]}}\n\n                predictor_refit\
+          \ = TimeSeriesPredictor(\n                    prediction_length=prediction_length,\n\
+          \                    target=target,\n                    eval_metric=eval_metric,\n\
+          \                    path=predictor_output,\n                    verbosity=2,\n\
+          \                    known_covariates_names=known_covariates_names,\n  \
+          \              )\n                # fit() automatically saves the predictor\
+          \ to path specified in constructor\n                predictor_refit.fit(\n\
+          \                    train_data=full_train_ts_df,\n                    **additional_fit_params,\n\
+          \                    time_limit=time_limit,\n                    excluded_model_types=[\"\
+          Chronos\", \"Chronos2\", \"Toto\"],\n                )\n               \
+          \ metrics = predictor_refit.evaluate(test_ts, metrics=list(AVAILABLE_METRICS.keys()))\n\
+          \                # Keep raw AutoGluon evaluate() signs for metrics.json\
+          \ (higher-is-better / negated errors)\n                # so leaderboard_evaluation\
+          \ sorting stays correct. back_testing.json normalizes separately.\n    \
+          \            metrics_dict = {}\n                for k, v in metrics.items():\n\
+          \                    if hasattr(v, \"item\"):\n                        v\
+          \ = float(v)\n                    if isinstance(v, (int, float)) and math.isfinite(v):\n\
+          \                        metrics_dict[k] = v\n\n                if eval_metric\
+          \ not in metrics_dict:\n                    raise ValueError(\n        \
+          \                f\"Eval metric '{eval_metric}' was NaN/Inf for model '{model_name_full}'\
+          \ \"\n                        \"and was dropped from metrics. Cannot produce\
+          \ a valid leaderboard entry.\"\n                    )\n\n              \
+          \  metrics_path = output_path / \"metrics\"\n                metrics_path.mkdir(parents=True,\
+          \ exist_ok=True)\n                with (metrics_path / \"metrics.json\"\
+          ).open(\"w\", encoding=\"utf-8\") as f:\n                    json.dump(metrics_dict,\
+          \ f, indent=2)\n\n                back_testing_available = False\n     \
+          \           try:\n                    back_testing_payload = build_back_testing_json(\n\
+          \                        predictor_refit,\n                        model_name=model_name,\n\
           \                        model_name_full=model_name_full,\n            \
           \            train_data=full_train_ts_df,\n                        eval_metric=eval_metric,\n\
           \                        target=target,\n                        id_column=id_column,\n\
@@ -509,6 +1274,131 @@ deploymentSpec:
           resourceMemoryLimit: 64Gi
           resourceMemoryRequest: 16Gi
     exec-leaderboard-evaluation:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - leaderboard_evaluation
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef leaderboard_evaluation(\n    models_artifact: dsl.Input[dsl.Model],\n\
+          \    eval_metric: str,\n    html_artifact: dsl.Output[dsl.HTML],\n    component_status:\
+          \ dsl.Output[dsl.Artifact],\n) -> NamedTuple(\"outputs\", best_model=str):\n\
+          \    \"\"\"Evaluate refitted AutoGluon models and generate a leaderboard.\n\
+          \n    This component reads pre-computed metrics from a combined models artifact\n\
+          \    produced by ``autogluon_models_training`` and generates an HTML-formatted\n\
+          \    leaderboard ranking the models by their performance metric.\n\n   \
+          \ The artifact layout expected under ``models_artifact.path``::\n\n    \
+          \    models_artifact.path /\n          <model_name>_FULL /\n           \
+          \ metrics / metrics.json\n            predictor / predictor.pkl\n      \
+          \      notebooks / automl_predictor_notebook.ipynb\n\n    ``models_artifact.metadata[\"\
+          model_names\"]`` must contain the list of\n    refitted model display names\
+          \ (e.g. ``[\"LightGBM_BAG_L1_FULL\", ...]``).\n\n    Args:\n        models_artifact:\
+          \ Combined Model artifact from ``autogluon_models_training``\n         \
+          \   with ``metadata[\"model_names\"]`` and per-model subdirectories.\n \
+          \       eval_metric: Metric name for ranking (e.g. ``\"accuracy\"``, ``\"\
+          root_mean_squared_error\"``);\n            leaderboard sorted descending\
+          \ (AutoGluon uses higher-is-better convention).\n        html_artifact:\
+          \ Output artifact for the HTML-formatted leaderboard.\n        component_status:\
+          \ Output artifact with stage progress (``component_status.json``).\n   \
+          \         KFP creates this automatically when the component is used inside\
+          \ a pipeline.\n\n    Raises:\n        FileNotFoundError: If any model metrics\
+          \ path cannot be found.\n        KeyError: If ``metadata[\"model_names\"\
+          ]`` is missing or metrics JSON lacks\n            the ``eval_metric`` key.\n\
+          \n    Example:\n        from kfp import dsl\n        from components.training.automl.autogluon_leaderboard_evaluation\
+          \ import (\n            leaderboard_evaluation\n        )\n\n        @dsl.pipeline(name=\"\
+          model-evaluation-pipeline\")\n        def evaluation_pipeline(models_artifact):\n\
+          \            # component_status is wired by KFP; callers do not pass it\
+          \ explicitly.\n            leaderboard = leaderboard_evaluation(\n     \
+          \           models_artifact=models_artifact,\n                eval_metric=\"\
+          root_mean_squared_error\",\n            )\n            return leaderboard\n\
+          \    \"\"\"  # noqa: E501\n    import importlib.resources\n    import json\n\
+          \    import logging\n    from pathlib import Path\n\n    import pandas as\
+          \ pd\n    from kfp_components.components.training.automl.shared.component_status\
+          \ import ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.leaderboard_utils\
+          \ import (\n        _build_leaderboard_html,\n        _build_leaderboard_table,\n\
+          \        _round_metrics,\n    )\n\n    # Initialize status tracker\n   \
+          \ status = ComponentStatusTracker(component_status.path, \"leaderboard_evaluation\"\
+          )\n    with status:\n        logger = logging.getLogger(__name__)\n\n  \
+          \      # Stage: build_leaderboard\n        status.record(\"build_leaderboard\"\
+          , \"started\")\n\n        # Input validation\n        if not isinstance(eval_metric,\
+          \ str) or not eval_metric.strip():\n            raise TypeError(\"eval_metric\
+          \ must be a non-empty string.\")\n        model_names_raw = models_artifact.metadata.get(\"\
+          model_names\", \"[]\")\n        # KFP/MLMD serializes lists as JSON strings\
+          \ to avoid the {\"list\": [...]} round-trip bug.\n        model_names =\
+          \ json.loads(model_names_raw) if isinstance(model_names_raw, str) else list(model_names_raw)\n\
+          \        if not model_names:\n            raise KeyError(\"models_artifact.metadata\
+          \ must contain a non-empty 'model_names' list.\")\n\n        results = []\n\
+          \        base_uri = models_artifact.uri.rstrip(\"/\")\n        for display_name\
+          \ in model_names:\n            metrics_path = Path(models_artifact.path)\
+          \ / display_name / \"metrics\" / \"metrics.json\"\n            if not metrics_path.exists():\n\
+          \                logger.warning(\n                    \"Skipping model '%s':\
+          \ no metrics/metrics.json found. \"\n                    \"The refit task\
+          \ may have failed for this model.\",\n                    display_name,\n\
+          \                )\n                continue\n            with metrics_path.open(\"\
+          r\") as f:\n                eval_results = json.load(f)\n            model_uri\
+          \ = f\"{base_uri}/{display_name}\"\n            predictor_uri = f\"{model_uri}/predictor\"\
+          \n            notebook_uri = f\"{model_uri}/notebooks/automl_predictor_notebook.ipynb\"\
+          \n            results.append(\n                {\n                    \"\
+          model\": display_name,\n                    **_round_metrics(eval_results),\n\
+          \                    \"notebook\": notebook_uri,\n                    \"\
+          predictor\": predictor_uri,\n                }\n            )\n\n      \
+          \  if not results:\n            raise ValueError(\n                \"No\
+          \ valid model artifacts found. All models may have failed or produced no\
+          \ metrics/metrics.json output.\"\n            )\n\n        # Notice: AutoGluon\
+          \ follows the \"higher is better\" strategy for all metrics.\n        #\
+          \ This means that some metrics\u2014like log_loss and root_mean_squared_error\u2014\
+          will have their signs FLIPPED and are shown as negative. # noqa: E501\n\
+          \        # This is to ensure that a higher value always means a better model,\
+          \ so users do not need to know about the metric's normal directionality\
+          \ when interpreting the leaderboard. # noqa: E501\n        leaderboard_df\
+          \ = pd.DataFrame(results).sort_values(by=eval_metric, ascending=False)\n\
+          \        n = len(leaderboard_df)\n        leaderboard_df.index = pd.RangeIndex(start=1,\
+          \ stop=n + 1, name=\"rank\")\n\n        html_table = _build_leaderboard_table(leaderboard_df)\n\
+          \n        best_model_name = leaderboard_df.iloc[0][\"model\"]\n        _template_ref\
+          \ = (\n            importlib.resources.files(\"kfp_components.components.training.automl.shared\"\
+          )\n            / \"leaderboard_html_template.html\"\n        )\n       \
+          \ with importlib.resources.as_file(_template_ref) as template_path:\n  \
+          \          html_content = _build_leaderboard_html(\n                template_path=template_path,\n\
+          \                table_html=html_table,\n                eval_metric=eval_metric,\n\
+          \                best_model_name=best_model_name,\n                num_models=len(leaderboard_df),\n\
+          \            )\n        with open(html_artifact.path, \"w\", encoding=\"\
+          utf-8\") as f:\n            f.write(html_content)\n\n        html_artifact.metadata[\"\
+          data\"] = leaderboard_df.to_dict()\n        html_artifact.metadata[\"display_name\"\
+          ] = \"automl_leaderboard\"\n        status.record(\n            \"build_leaderboard\"\
+          ,\n            \"completed\",\n            best_model=best_model_name,\n\
+          \            model_count=len(leaderboard_df),\n        )\n        component_status.metadata[\"\
+          display_name\"] = \"Leaderboard Evaluation Status\"\n    return NamedTuple(\"\
+          outputs\", best_model=str)(best_model=best_model_name)\n\n"
+        image: quay.io/opendatahub/odh-automl:odh-stable
+        resources:
+          cpuLimit: 32.0
+          cpuRequest: 1.0
+          memoryLimit: 68.719476736
+          memoryRequest: 4.294967296
+          resourceCpuLimit: '32'
+          resourceCpuRequest: '1'
+          resourceMemoryLimit: 64Gi
+          resourceMemoryRequest: 4Gi
+    exec-leaderboard-evaluation-2:
       container:
         args:
         - --executor_input
@@ -1032,83 +1922,56 @@ pipelineInfo:
 root:
   dag:
     tasks:
-      autogluon-timeseries-models-training:
-        cachingOptions: {}
+      condition-branches-1:
         componentRef:
-          name: comp-autogluon-timeseries-models-training
+          name: comp-condition-branches-1
         dependentTasks:
         - timeseries-data-loader
         inputs:
           artifacts:
-            test_data:
+            pipelinechannel--timeseries-data-loader-sampled_test_dataset:
               taskOutputArtifact:
                 outputArtifactKey: sampled_test_dataset
                 producerTask: timeseries-data-loader
           parameters:
-            eval_metric:
+            pipelinechannel--eval_metric:
               componentInputParameter: eval_metric
-            extra_train_data_path:
+            pipelinechannel--id_column:
+              componentInputParameter: id_column
+            pipelinechannel--known_covariates_names:
+              componentInputParameter: known_covariates_names
+            pipelinechannel--prediction_length:
+              componentInputParameter: prediction_length
+            pipelinechannel--preset:
+              componentInputParameter: preset
+            pipelinechannel--target:
+              componentInputParameter: target
+            pipelinechannel--timeseries-data-loader-extra_train_data_path:
               taskOutputParameter:
                 outputParameterKey: extra_train_data_path
                 producerTask: timeseries-data-loader
-            id_column:
-              componentInputParameter: id_column
-            known_covariates_names:
-              componentInputParameter: known_covariates_names
-            pipeline_name:
-              runtimeValue:
-                constant: '{{$.pipeline_job_resource_name}}'
-            prediction_length:
-              componentInputParameter: prediction_length
-            run_id:
-              runtimeValue:
-                constant: '{{$.pipeline_job_uuid}}'
-            sample_rows:
-              taskOutputParameter:
-                outputParameterKey: sample_rows
-                producerTask: timeseries-data-loader
-            sampling_config:
-              taskOutputParameter:
-                outputParameterKey: sample_config
-                producerTask: timeseries-data-loader
-            split_config:
-              taskOutputParameter:
-                outputParameterKey: split_config
-                producerTask: timeseries-data-loader
-            target:
-              componentInputParameter: target
-            timestamp_column:
-              componentInputParameter: timestamp_column
-            top_n:
-              componentInputParameter: top_n
-            train_data_path:
+            pipelinechannel--timeseries-data-loader-models_selection_train_data_path:
               taskOutputParameter:
                 outputParameterKey: models_selection_train_data_path
                 producerTask: timeseries-data-loader
-            workspace_path:
-              runtimeValue:
-                constant: '{{$.workspace_path}}'
-        taskInfo:
-          name: autogluon-timeseries-models-training
-      leaderboard-evaluation:
-        cachingOptions: {}
-        componentRef:
-          name: comp-leaderboard-evaluation
-        dependentTasks:
-        - autogluon-timeseries-models-training
-        inputs:
-          artifacts:
-            models_artifact:
-              taskOutputArtifact:
-                outputArtifactKey: models_artifact
-                producerTask: autogluon-timeseries-models-training
-          parameters:
-            eval_metric:
+            pipelinechannel--timeseries-data-loader-sample_config:
               taskOutputParameter:
-                outputParameterKey: eval_metric
-                producerTask: autogluon-timeseries-models-training
+                outputParameterKey: sample_config
+                producerTask: timeseries-data-loader
+            pipelinechannel--timeseries-data-loader-sample_rows:
+              taskOutputParameter:
+                outputParameterKey: sample_rows
+                producerTask: timeseries-data-loader
+            pipelinechannel--timeseries-data-loader-split_config:
+              taskOutputParameter:
+                outputParameterKey: split_config
+                producerTask: timeseries-data-loader
+            pipelinechannel--timestamp_column:
+              componentInputParameter: timestamp_column
+            pipelinechannel--top_n:
+              componentInputParameter: top_n
         taskInfo:
-          name: leaderboard-evaluation
+          name: condition-branches-1
       publish-component-stage-map:
         cachingOptions: {}
         componentRef:
@@ -1161,6 +2024,10 @@ root:
         defaultValue: 1.0
         isOptional: true
         parameterType: NUMBER_INTEGER
+      preset:
+        defaultValue: speed
+        isOptional: true
+        parameterType: STRING
       target:
         parameterType: STRING
       timestamp_column:
