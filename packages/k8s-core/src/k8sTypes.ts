@@ -274,11 +274,10 @@ export type DashboardCommonConfig = {
   promptManagement?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
-  iaRedesign?: boolean;
+  maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
   agentProfileManagement?: boolean;
-  iaRedesign?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

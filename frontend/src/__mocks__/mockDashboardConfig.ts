@@ -60,7 +60,7 @@ export type MockDashboardConfigType = {
   promptManagement?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
-  iaRedesign?: boolean;
+  maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
   genAiStudioConfig?: {
@@ -123,7 +123,7 @@ export const mockDashboardConfig = ({
   promptManagement = false,
   nimWizard = false,
   mySubscriptions = true,
-  iaRedesign = false,
+  maasSettingsIaRedesign = false,
   agentOps = false,
   roleManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
@@ -309,7 +309,7 @@ export const mockDashboardConfig = ({
       promptManagement,
       nimWizard,
       mySubscriptions,
-      iaRedesign,
+      maasSettingsIaRedesign,
       agentOps,
       roleManagement,
     },

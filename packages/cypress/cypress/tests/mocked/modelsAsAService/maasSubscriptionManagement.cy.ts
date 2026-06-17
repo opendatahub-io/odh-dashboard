@@ -12,7 +12,7 @@ const setupCommonIntercepts = () => {
   asProductAdminUser();
   cy.interceptOdh(
     'GET /api/config',
-    mockDashboardConfig({ modelAsService: true, iaRedesign: true }),
+    mockDashboardConfig({ modelAsService: true, maasSettingsIaRedesign: true }),
   );
   cy.interceptOdh('GET /maas/api/v1/user', {
     data: { userId: 'test-user', clusterAdmin: false },

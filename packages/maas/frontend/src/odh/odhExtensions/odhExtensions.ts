@@ -8,7 +8,7 @@ import {
 export const MODEL_AS_SERVICE_ID = 'modelAsService';
 export const MAAS_AUTH_POLICIES = 'maasAuthPolicies';
 export const MAAS_MY_SUBSCRIPTIONS = 'mySubscriptions';
-export const MAAS_IA_REDESIGN = 'iaRedesign';
+export const MAAS_IA_REDESIGN = 'maasSettingsIaRedesign';
 
 export type ODHExtensions = NavExtension | RouteExtension | AreaExtension | TaskItemExtension;
 const ADMIN_USER = 'ADMIN_USER';
@@ -48,7 +48,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     type: 'app.area',
     properties: {
       id: MAAS_IA_REDESIGN,
-      featureFlags: ['iaRedesign'],
+      featureFlags: ['maasSettingsIaRedesign'],
     },
   },
   {

@@ -19,7 +19,7 @@ export const techPreviewFlags = {
   llmGatewayField: false,
   promptManagement: false,
   mySubscriptions: true,
-  iaRedesign: false,
+  maasSettingsIaRedesign: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -262,8 +262,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MY_SUBSCRIPTIONS]: {
     featureFlags: ['mySubscriptions'],
   },
-  [SupportedArea.IA_REDESIGN]: {
-    featureFlags: ['iaRedesign'],
+  [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
+    featureFlags: ['maasSettingsIaRedesign'],
   },
 };
 
