@@ -759,7 +759,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             <TracePanel
               isOpen={!!selectedTraceId}
               traceId={selectedTraceId || ''}
-              experimentId="0"
               workspace={namespace?.name}
               onClose={() => setSelectedTraceId(null)}
             >

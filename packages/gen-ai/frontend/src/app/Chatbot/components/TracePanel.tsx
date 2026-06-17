@@ -19,7 +19,6 @@ import { loadRemote } from '@module-federation/runtime';
 
 interface MlflowTraceDetailWrapperProps {
   traceId: string;
-  experimentId: string;
   workspace?: string;
 }
 
@@ -49,7 +48,6 @@ const MlflowTraceDetail = React.lazy(() =>
 interface TracePanelProps {
   isOpen: boolean;
   traceId: string;
-  experimentId: string;
   workspace?: string;
   onClose: () => void;
   children: React.ReactNode;
@@ -58,7 +56,6 @@ interface TracePanelProps {
 const TracePanel: React.FC<TracePanelProps> = ({
   isOpen,
   traceId,
-  experimentId,
   workspace,
   onClose,
   children,
@@ -84,7 +81,6 @@ const TracePanel: React.FC<TracePanelProps> = ({
           <MlflowTraceDetail
             key={traceId}
             traceId={traceId}
-            experimentId={experimentId}
             workspace={workspace}
           />
         </React.Suspense>
