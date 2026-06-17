@@ -1,5 +1,6 @@
 import React from 'react';
-import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { getKServeDeploymentEndpoints } from '@odh-dashboard/kserve/deploymentEndpoints';
 import { useWatchInferenceServices, useWatchNIMDeploymentPods } from './watch';
 import { getNIMDeploymentStatus } from './status';

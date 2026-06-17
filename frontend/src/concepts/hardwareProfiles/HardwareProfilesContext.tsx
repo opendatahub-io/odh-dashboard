@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { HardwareProfileKind } from '#~/k8sTypes';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { CustomWatchK8sResult } from '#~/types';
 import { DEFAULT_LIST_WATCH_RESULT } from '#~/utilities/const';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';

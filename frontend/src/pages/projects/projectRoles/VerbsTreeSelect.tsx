@@ -68,6 +68,7 @@ const VerbsTreeSelect: React.FC<VerbsTreeSelectProps> = ({
         defaultExpanded: true,
         checkProps: {
           checked: allCategorySelected || (someCategorySelected ? null : false),
+          'data-testid': `verb-category-${category.id}`,
         },
         children: category.verbs.map((verbInfo) => ({
           id: verbInfo.verb,
@@ -79,6 +80,7 @@ const VerbsTreeSelect: React.FC<VerbsTreeSelectProps> = ({
           hasCheckbox: true,
           checkProps: {
             checked: isAllSelected || selectedVerbs.includes(verbInfo.verb),
+            'data-testid': `verb-checkbox-${verbInfo.verb}`,
           },
         })),
       };

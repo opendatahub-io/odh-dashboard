@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { mockClusterRoleK8sResource } from '#~/__mocks__';
-import { KnownLabels } from '#~/k8sTypes';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import type { ManageRolesRow } from '#~/pages/projects/projectPermissions/manageRoles/columns';
 import type { RoleAssignmentChanges } from '#~/pages/projects/projectPermissions/manageRoles/types';

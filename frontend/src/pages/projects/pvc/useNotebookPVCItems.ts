@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { NotebookKind } from '#~/k8sTypes';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { getNotebookPVCNames } from './utils';

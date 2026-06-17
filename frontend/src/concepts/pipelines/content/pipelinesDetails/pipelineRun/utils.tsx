@@ -11,9 +11,8 @@ import {
   TimestampFormat,
 } from '@patternfly/react-core';
 import { GlobeAmericasIcon } from '@patternfly/react-icons';
+import type { PodKind, PodContainer } from '@odh-dashboard/k8s-core';
 import { DateTimeKF, RuntimeConfigParamValue } from '#~/concepts/pipelines/kfTypes';
-import { PodKind } from '#~/k8sTypes';
-import { PodContainer } from '#~/types';
 import { NoValue } from '#~/components/NoValue';
 
 export type DetailItem = {

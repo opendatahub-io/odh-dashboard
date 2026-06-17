@@ -11,6 +11,7 @@
     "dev": "npm run start:dev",
     "start:dev": "concurrently -k -n bff,shell \"make -C ../core-bff dev-bff\" \"webpack serve --hot --color --config ./config/webpack.dev.js\"",
     "build": "webpack --config ./config/webpack.prod.js",
+    "build:prod": "webpack --config ./config/webpack.prod.js",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"

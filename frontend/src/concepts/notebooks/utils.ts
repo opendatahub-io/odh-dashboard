@@ -1,5 +1,6 @@
 import React from 'react';
-import { HardwareProfileFeatureVisibility, NotebookKind } from '#~/k8sTypes.ts';
+import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
+import { NotebookKind } from '#~/k8sTypes';
 import { Notebook } from '#~/types';
 import {
   useAssignHardwareProfile,
