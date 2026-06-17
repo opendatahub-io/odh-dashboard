@@ -1,0 +1,107 @@
+package api
+
+import (
+	"fmt"
+
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
+)
+
+var validProtocols = map[string]bool{
+	"a2a": true,
+	"mcp": true,
+}
+
+var validAuthBridgeModes = map[string]bool{
+	"proxy-sidecar": true,
+	"envoy-sidecar": true,
+	"lite":          true,
+	"waypoint":      true,
+}
+
+var validMTLSModes = map[string]bool{
+	"disabled":   true,
+	"permissive": true,
+	"strict":     true,
+}
+
+func validateDeployRequest(req *models.DeployAgentRequest) error {
+	if !isValidDNS1123Label(req.Name) {
+		return fmt.Errorf("invalid agent name %q", req.Name)
+	}
+	if !isValidDNS1123Label(req.Namespace) {
+		return fmt.Errorf("invalid namespace %q", req.Namespace)
+	}
+	if req.ContainerImage == "" {
+		return fmt.Errorf("containerImage is required")
+	}
+	if req.ImageTag == "" {
+		return fmt.Errorf("imageTag is required")
+	}
+	if req.Protocol != "" && !validProtocols[req.Protocol] {
+		return fmt.Errorf("invalid protocol %q: must be one of a2a, mcp", req.Protocol)
+	}
+	if req.AuthBridgeMode != "" && !validAuthBridgeModes[req.AuthBridgeMode] {
+		return fmt.Errorf("invalid authBridgeMode %q: must be one of proxy-sidecar, envoy-sidecar, lite, waypoint", req.AuthBridgeMode)
+	}
+	if req.MTLSMode != "" && !validMTLSModes[req.MTLSMode] {
+		return fmt.Errorf("invalid mtlsMode %q: must be one of disabled, permissive, strict", req.MTLSMode)
+	}
+	for i, p := range req.ServicePorts {
+		if p.Port < 1 || p.Port > 65535 {
+			return fmt.Errorf("servicePorts[%d].port must be between 1 and 65535", i)
+		}
+		if p.TargetPort < 1 || p.TargetPort > 65535 {
+			return fmt.Errorf("servicePorts[%d].targetPort must be between 1 and 65535", i)
+		}
+	}
+	return nil
+}
+
+func applyDeployDefaults(req *models.DeployAgentRequest) {
+	if req.Protocol == "" {
+		req.Protocol = "a2a"
+	}
+	if req.AuthBridgeEnabled == nil {
+		enabled := true
+		req.AuthBridgeEnabled = &enabled
+	}
+	if len(req.ServicePorts) == 0 {
+		req.ServicePorts = []models.ServicePort{
+			{Name: "http", Port: 8080, TargetPort: 8000, Protocol: "TCP"},
+		}
+	}
+}
+
+func mapDeployRequestToParams(req *models.DeployAgentRequest) *agents.DeployAgentParams {
+	params := &agents.DeployAgentParams{
+		Name:            req.Name,
+		Namespace:       req.Namespace,
+		ContainerImage:  req.ContainerImage,
+		ImageTag:        req.ImageTag,
+		ImagePullSecret: req.ImagePullSecret,
+		Protocol:        req.Protocol,
+		Framework:       req.Framework,
+		CreateRoute:     req.CreateRoute,
+		AuthBridgeMode:  req.AuthBridgeMode,
+		MTLSMode:        req.MTLSMode,
+	}
+	if req.AuthBridgeEnabled != nil {
+		params.AuthBridgeEnabled = *req.AuthBridgeEnabled
+	}
+	for _, e := range req.EnvVars {
+		params.EnvVars = append(params.EnvVars, agents.AgentEnvVar{
+			Name:  e.Name,
+			Value: e.Value,
+		})
+	}
+	for _, p := range req.ServicePorts {
+		params.ServicePorts = append(params.ServicePorts, agents.AgentServicePortSpec{
+			Name:       p.Name,
+			Port:       p.Port,
+			TargetPort: p.TargetPort,
+			Protocol:   p.Protocol,
+		})
+	}
+	return params
+}

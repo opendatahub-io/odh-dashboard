@@ -33,6 +33,10 @@ func (app *App) handleAgentRepositoryError(w http.ResponseWriter, r *http.Reques
 		app.notFoundResponse(w, r)
 		return
 	}
+	if errors.Is(err, bfferrors.ErrAlreadyExists) {
+		app.conflictResponse(w, r, err)
+		return
+	}
 	if errors.Is(err, bfferrors.ErrForbidden) {
 		app.logger.Warn("Agent repository access forbidden",
 			"error", err.Error(),

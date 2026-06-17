@@ -53,6 +53,43 @@ func (kc *TokenKubernetesClient) CanGetAgentInNamespace(ctx context.Context, _ *
 	return kc.selfSubjectAccessReview(ctx, namespace, name, "services", "get")
 }
 
+var agentDeployResources = []struct {
+	group    string
+	resource string
+}{
+	{"", "serviceaccounts"},
+	{"apps", "deployments"},
+	{"", "services"},
+	{"agent.kagenti.dev", "agentruntimes"},
+	{"route.openshift.io", "routes"},
+}
+
+func (kc *InternalKubernetesClient) CanDeployAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	for _, r := range agentDeployResources {
+		allowed, err := kc.subjectAccessReviewGroup(ctx, identity, namespace, "", r.group, r.resource, "create")
+		if err != nil {
+			return false, err
+		}
+		if !allowed {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (kc *TokenKubernetesClient) CanDeployAgentInNamespace(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+	for _, r := range agentDeployResources {
+		allowed, err := kc.selfSubjectAccessReviewGroup(ctx, namespace, "", r.group, r.resource, "create")
+		if err != nil {
+			return false, err
+		}
+		if !allowed {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 func (kc *InternalKubernetesClient) anySubjectAccessReview(
 	ctx context.Context,
 	identity *RequestIdentity,
