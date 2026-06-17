@@ -121,6 +121,20 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     };
   }, [catalogModels, performanceViewEnabled, isColdStartFilterActive]);
 
+  // When cold start filtering removes all items from a page but more pages exist,
+  // automatically load more items so the user sees results (or a genuine empty state).
+  React.useEffect(() => {
+    if (
+      filteredCatalogModels.items.length === 0 &&
+      filteredCatalogModels.hasMore &&
+      !filteredCatalogModels.isLoadingMore &&
+      catalogModelsLoaded &&
+      isColdStartFilterActive
+    ) {
+      filteredCatalogModels.loadMore();
+    }
+  }, [filteredCatalogModels, catalogModelsLoaded, isColdStartFilterActive]);
+
   const loaded = catalogModelsLoaded && filterOptionsLoaded && catalogLabelsLoaded;
   const loadError = catalogModelsLoadError || filterOptionsLoadError || catalogLabelsLoadError;
 
