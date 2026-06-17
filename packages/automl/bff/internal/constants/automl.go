@@ -38,6 +38,18 @@ var ValidTaskTypes = map[string]bool{
 	TaskTypeRegression: true,
 }
 
+// ValidTabularPresets lists the valid preset strings for tabular pipelines.
+var ValidTabularPresets = map[string]bool{
+	"speed":    true,
+	"balanced": true,
+}
+
+// ValidTimeseriesPresets lists the valid preset strings for timeseries pipelines.
+var ValidTimeseriesPresets = map[string]bool{
+	"speed":    true,
+	"balanced": true,
+}
+
 // ValidClassificationEvalMetrics lists valid eval_metric values for binary and multiclass classification.
 var ValidClassificationEvalMetrics = map[string]bool{
 	"accuracy": true, "balanced_accuracy": true, "log_loss": true,

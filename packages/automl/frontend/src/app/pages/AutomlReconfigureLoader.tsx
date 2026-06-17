@@ -192,8 +192,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
     target_column: targetColumn,
-    // Populate eval_metric with the task-type default when missing from the source run
-    // (e.g. runs created before the eval_metric feature)
+    ...(parsed.preset != null && { preset: parsed.preset }),
     ...(parsed.eval_metric === undefined &&
       resolvedTaskType != null && {
         eval_metric: DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType],

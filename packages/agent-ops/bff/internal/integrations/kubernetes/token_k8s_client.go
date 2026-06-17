@@ -12,6 +12,7 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -94,8 +95,19 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 // RESTConfig returns the rest.Config used to create this client.
 // This allows downstream code to access the underlying configuration
 // for creating additional clients (e.g., dynamic clients).
-func (kc *TokenKubernetesClient) RESTConfig() *rest.Config { //nolint:unused
+func (kc *TokenKubernetesClient) RESTConfig() *rest.Config {
 	return kc.restConfig
+}
+
+func (kc *TokenKubernetesClient) DynamicClient() (dynamic.Interface, error) {
+	if kc.restConfig == nil {
+		return nil, fmt.Errorf("kubernetes rest config is not configured")
+	}
+	client, err := dynamic.NewForConfig(kc.restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic kubernetes client: %w", err)
+	}
+	return client, nil
 }
 
 // RequestIdentity is unused because the token already represents the user identity.

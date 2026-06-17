@@ -103,6 +103,18 @@ Central index of key documentation in the ODH Dashboard monorepo.
 
 ---
 
+## Distributions
+
+| Doc | Description |
+|-----|-------------|
+| [Core BFF AGENTS.md](distributions/core-bff/AGENTS.md) | Core BFF development guide — contract-first workflow, BFF rules, frontend rules, deployment modes, testing |
+| [Core BFF Frontend Docs](distributions/core-bff/frontend/docs/) | Frontend dev setup, testing, and styling guides |
+| [Core BFF BFF Docs](distributions/core-bff/bff/README.md) | Go BFF documentation |
+| [Core BFF OpenAPI Spec](distributions/core-bff/bff/openapi/src/core-bff.yaml) | OpenAPI specification (contract-first source of truth) |
+| [Base Distribution README](distributions/base/README.md) | App shell setup, dev environment, environment variables |
+
+---
+
 ## Packages
 
 ### Full Docs
