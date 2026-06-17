@@ -4,15 +4,14 @@ import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
-import { URL_PREFIX } from '~/app/utilities/const';
-import { getReturnToFromState } from '~/app/utilities/subscriptionManagementNavigation';
+import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import PolicyForm from './policyForm/PolicyForm';
 
 const EditAuthPolicyPage: React.FC = () => {
   const { authPolicyName = '' } = useParams<{ authPolicyName: string }>();
-  const { state } = useLocation();
-  const returnTo = getReturnToFromState(state);
-  const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
+  const { state, pathname } = useLocation();
+  const base = getBackUrl(pathname, state, 'auth-policies');
+  const returnTo = base;
   const [policyInfo, policyLoaded, policyError] = useGetPolicyInfo(authPolicyName);
   const [formData, formLoaded, formError] = useSubscriptionPolicyFormData();
 

@@ -37,6 +37,7 @@ const AppRoutes: React.FC = () => {
       </Routes>
     );
   }
+  // TODO:Remove old routes when preparing feature for release
   if (isAuthPolicies) {
     return (
       <Routes>
@@ -48,6 +49,7 @@ const AppRoutes: React.FC = () => {
       </Routes>
     );
   }
+  // TODO:Remove old routes when preparing feature for release
   if (isSubscriptions) {
     return (
       <Routes>

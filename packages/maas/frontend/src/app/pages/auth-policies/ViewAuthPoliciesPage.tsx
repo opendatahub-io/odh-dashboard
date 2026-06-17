@@ -14,7 +14,7 @@ import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { getReturnToFromState } from '~/app/utilities/subscriptionManagementNavigation';
+import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
@@ -90,12 +90,12 @@ const ViewAuthPoliciesPage: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [policyInfo, loaded, loadError] = useGetPolicyInfo(authPolicyName);
 
-  const returnTo = getReturnToFromState(location.state);
+  const backUrl = getBackUrl(location.pathname, location.state, 'auth-policies');
 
   const breadcrumb = (
     <Breadcrumb>
       <BreadcrumbItem>
-        <Link to={returnTo ?? `${URL_PREFIX}/auth-policies`} data-testid="breadcrumb-policies-link">
+        <Link to={backUrl} data-testid="breadcrumb-policies-link">
           Authorization policies
         </Link>
       </BreadcrumbItem>
@@ -107,7 +107,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
     <ApplicationsPage
       title={policyInfo?.policy.displayName ?? authPolicyName}
       breadcrumb={breadcrumb}
-      headerAction={policyInfo && <PolicyActions policy={policyInfo.policy} returnTo={returnTo} />}
+      headerAction={policyInfo && <PolicyActions policy={policyInfo.policy} returnTo={backUrl} />}
       empty={false}
       loaded={loaded || !!loadError}
       loadError={loadError}

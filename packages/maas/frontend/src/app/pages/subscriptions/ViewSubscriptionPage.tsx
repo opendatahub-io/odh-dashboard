@@ -17,7 +17,7 @@ import {
   SubscriptionInfoResponse,
 } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { getReturnToFromState } from '~/app/utilities/subscriptionManagementNavigation';
+import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
@@ -97,15 +97,12 @@ const ViewSubscriptionPage: React.FC = () => {
   const displaySubscriptionName =
     subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
 
-  const returnTo = getReturnToFromState(location.state);
+  const backUrl = getBackUrl(location.pathname, location.state, 'subscriptions');
 
   const breadcrumb = (
     <Breadcrumb>
       <BreadcrumbItem>
-        <Link
-          to={returnTo ?? `${URL_PREFIX}/subscriptions`}
-          data-testid="breadcrumb-subscriptions-link"
-        >
+        <Link to={backUrl} data-testid="breadcrumb-subscriptions-link">
           Subscriptions
         </Link>
       </BreadcrumbItem>
@@ -119,7 +116,7 @@ const ViewSubscriptionPage: React.FC = () => {
       breadcrumb={breadcrumb}
       headerAction={
         subscriptionInfo && (
-          <SubscriptionActions subscription={subscriptionInfo.subscription} returnTo={returnTo} />
+          <SubscriptionActions subscription={subscriptionInfo.subscription} returnTo={backUrl} />
         )
       }
       empty={false}
