@@ -13,8 +13,8 @@ import {
 } from '../ModelAvailabilityFields';
 
 jest.mock('@odh-dashboard/plugin-core');
-jest.mock('@odh-dashboard/internal/concepts/areas', () => ({
-  ...jest.requireActual('@odh-dashboard/internal/concepts/areas'),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 

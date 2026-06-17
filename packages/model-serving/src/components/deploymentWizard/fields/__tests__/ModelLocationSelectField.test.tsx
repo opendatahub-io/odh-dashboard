@@ -214,7 +214,10 @@ jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: () => [mockConnectionTypes, true],
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/areas/useIsAreaAvailable');
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn(),
+}));
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockAreaStatus = (status: boolean): IsAreaAvailableStatus => ({
   status,
