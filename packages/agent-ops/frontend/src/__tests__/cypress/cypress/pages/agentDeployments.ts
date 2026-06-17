@@ -87,8 +87,10 @@ class AgentDeploymentsPage {
     return cy.findByTestId('agent-runtime-endpoints-modal');
   }
 
-  findEndpointUrlInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findEndpointsModal().find('input[readonly]');
+  findEndpointField(fieldId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findEndpointsModal()
+      .findByTestId(`agent-runtime-endpoint-${fieldId}`)
+      .find('input[readonly]');
   }
 }
 

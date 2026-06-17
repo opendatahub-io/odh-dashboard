@@ -3,7 +3,7 @@ import type { GenericStaticResponse, RouteHandlerController } from 'cypress/type
 import type { Namespace, UserSettings } from 'mod-arch-core';
 import { mockModArchResponse } from 'mod-arch-core';
 import type { RoleBindingKind } from '../../../shared/types';
-import type { AgentRuntimesList } from '~/app/types/agentRuntimes';
+import type { AgentRuntimesList, AgentRuntimeDetail } from '~/app/types/agentRuntimes';
 
 export const CLIENT_API_VERSION = 'v1';
 
@@ -45,6 +45,11 @@ declare global {
           type: 'GET /api/:apiVersion/agents/runtimes',
           options: { path: { apiVersion: string } },
           response: ApiResponse<AgentRuntimesList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/agents/runtimes/:namespace/:name',
+          options: { path: { apiVersion: string; namespace: string; name: string } },
+          response: ApiResponse<AgentRuntimeDetail>,
         ) => Cypress.Chainable<null>);
     }
   }

@@ -1,5 +1,9 @@
 import { mockNamespace } from '~/__mocks__/mockNamespace';
-import { mockAgentRuntime, mockAgentRuntimesList } from '~/__mocks__/mockAgentRuntime';
+import {
+  mockAgentRuntime,
+  mockAgentRuntimeDetail,
+  mockAgentRuntimesList,
+} from '~/__mocks__/mockAgentRuntime';
 import type { AgentRuntime } from '~/app/types/agentRuntimes';
 import { agentDeploymentsPage } from '~/__tests__/cypress/cypress/pages/agentDeployments';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
@@ -61,6 +65,28 @@ const initIntercepts = ({
     },
     mockAgentRuntimesList(runtimes),
   ).as('getAgentRuntimes');
+
+  runtimes.forEach((runtime) => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/agents/runtimes/:namespace/:name',
+      {
+        path: {
+          apiVersion: CLIENT_API_VERSION,
+          namespace: runtime.namespace,
+          name: runtime.name,
+        },
+      },
+      mockAgentRuntimeDetail({
+        name: runtime.name,
+        namespace: runtime.namespace,
+        runtime,
+        agentCard:
+          runtime.endpointUrl.trim() === ''
+            ? null
+            : mockAgentRuntimeDetail({ runtime }).agentCard,
+      }),
+    ).as(`getAgentRuntimeDetail-${runtime.namespace}-${runtime.name}`);
+  });
 };
 
 describe('Agent Deployments', () => {
@@ -79,11 +105,11 @@ describe('Agent Deployments', () => {
 
     const pendingRow = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'pending-agent');
     pendingRow.findStatusLabel().should('contain.text', 'Pending');
-    pendingRow.findEndpointViewButton().should('be.disabled');
+    pendingRow.findEndpointViewButton().should('exist').and('not.be.disabled');
 
     const failedRow = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'failed-agent');
     failedRow.findStatusLabel().should('contain.text', 'Failed');
-    failedRow.findEndpointViewButton().should('be.disabled');
+    failedRow.findEndpointViewButton().should('exist').and('not.be.disabled');
 
     const stoppedRow = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'sample-tool');
     stoppedRow.findStatusLabel().should('contain.text', 'Stopped');
@@ -167,12 +193,18 @@ describe('Agent Deployments', () => {
       .click();
 
     agentDeploymentsPage.findEndpointsModal().should('be.visible');
-    agentDeploymentsPage
-      .findEndpointUrlInput()
-      .should(
-        'have.value',
-        'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080',
-      );
+    agentDeploymentsPage.findEndpointField('cluster-url').should(
+      'have.value',
+      'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080',
+    );
+    agentDeploymentsPage.findEndpointField('local-url').should(
+      'have.value',
+      'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json',
+    );
+    agentDeploymentsPage.findEndpointField('external-production-endpoint').should(
+      'have.value',
+      'https://sample-support-agent.apps.example.com/.well-known/agent-card.json',
+    );
   });
 
   it('should show View details row action', () => {
