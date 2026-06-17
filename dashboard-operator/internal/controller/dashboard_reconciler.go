@@ -181,7 +181,7 @@ func (r *DashboardReconciler) reconcile(
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard manifests applied successfully"))
 
-	url, err := extractDashboardURL(ctx, r.Client, r.ApplicationsNamespace, r.Platform)
+	url, err := extractDashboardURL(ctx, r.Client, dashboard, r.ApplicationsNamespace, r.Platform)
 
 	var requeueAfter time.Duration
 

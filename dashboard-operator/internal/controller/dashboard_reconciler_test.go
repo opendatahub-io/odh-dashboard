@@ -64,6 +64,10 @@ data:
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
 
+	modArch := filepath.Join(base, "modular-architecture")
+	require.NoError(t, os.MkdirAll(modArch, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(modArch, "params.env"), []byte(""), 0644))
+
 	return base
 }
 
@@ -738,6 +742,10 @@ data:
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(kustomization), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
+
+	modArch := filepath.Join(base, "modular-architecture")
+	require.NoError(t, os.MkdirAll(modArch, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(modArch, "params.env"), []byte(""), 0644))
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                cli,
