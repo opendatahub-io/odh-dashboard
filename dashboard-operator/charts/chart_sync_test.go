@@ -11,8 +11,8 @@ func TestDashboardChartCRDInSync(t *testing.T) {
 	t.Helper()
 
 	root := ".."
-	sourcePath := filepath.Join(root, "config", "crd", "bases", "dashboard.opendatahub.io_dashboards.yaml")
-	chartPath := filepath.Join(root, "charts", "dashboard", "crds", "dashboard.opendatahub.io_dashboards.yaml")
+	sourcePath := filepath.Join(root, "config", "crd", "bases", "components.platform.opendatahub.io_dashboards.yaml")
+	chartPath := filepath.Join(root, "charts", "dashboard", "crds", "components.platform.opendatahub.io_dashboards.yaml")
 
 	source, err := os.ReadFile(sourcePath)
 	if err != nil {

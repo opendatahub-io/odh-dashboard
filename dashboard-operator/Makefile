@@ -58,8 +58,8 @@ manifests: controller-gen ## Generate CRD manifests.
 ##@ Helm
 
 CHART_DIR ?= charts/dashboard
-CRD_SOURCE ?= config/crd/bases/dashboard.opendatahub.io_dashboards.yaml
-CRD_CHART ?= $(CHART_DIR)/crds/dashboard.opendatahub.io_dashboards.yaml
+CRD_SOURCE ?= config/crd/bases/components.platform.opendatahub.io_dashboards.yaml
+CRD_CHART ?= $(CHART_DIR)/crds/components.platform.opendatahub.io_dashboards.yaml
 HELM ?= helm
 
 .PHONY: sync-chart-crds

@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.2
-  name: dashboards.dashboard.opendatahub.io
+  name: dashboards.components.platform.opendatahub.io
 spec:
-  group: dashboard.opendatahub.io
+  group: components.platform.opendatahub.io
   names:
     kind: Dashboard
     listKind: DashboardList
