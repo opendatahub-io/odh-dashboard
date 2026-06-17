@@ -15,6 +15,7 @@ import {
   getLabelDescription,
   hasFiltersApplied,
   isValueDifferentFromDefault,
+  hasColdStartData,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelCatalogSortDropdown from '~/app/pages/modelCatalog/components/ModelCatalogSortDropdown';
 import { CatalogGalleryLayout, EmptyCatalogState } from '~/app/shared/components/catalog';
@@ -103,6 +104,23 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     performanceParams,
   );
 
+  // When cold start filter is active, exclude models that don't have cold start data.
+  // The backend may return models without cold start artifacts (OR/null-inclusive behavior),
+  // so we enforce AND semantics client-side by filtering them out.
+  const isColdStartFilterActive =
+    filters[ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME] !== undefined;
+
+  const filteredCatalogModels = React.useMemo(() => {
+    if (!performanceViewEnabled || !isColdStartFilterActive) {
+      return catalogModels;
+    }
+    const filteredItems = catalogModels.items.filter(hasColdStartData);
+    return {
+      ...catalogModels,
+      items: filteredItems,
+    };
+  }, [catalogModels, performanceViewEnabled, isColdStartFilterActive]);
+
   const loaded = catalogModelsLoaded && filterOptionsLoaded && catalogLabelsLoaded;
   const loadError = catalogModelsLoadError || filterOptionsLoadError || catalogLabelsLoadError;
 
@@ -156,7 +174,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
   );
 
   const shouldShowPerformanceEmptyState = React.useMemo(() => {
-    const isEmptyResult = catalogModels.items.length === 0;
+    const isEmptyResult = filteredCatalogModels.items.length === 0;
     const isNotAllModelsCategory = selectedSourceLabel !== CategoryName.allModels;
     const isPerformanceExcludedSection = isNoLabelsSection || noUserFiltersOrSearch;
 
@@ -168,7 +186,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     );
   }, [
     performanceViewEnabled,
-    catalogModels.items.length,
+    filteredCatalogModels.items.length,
     selectedSourceLabel,
     isNoLabelsSection,
     noUserFiltersOrSearch,
@@ -192,7 +210,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
 
   return (
     <CatalogGalleryLayout
-      items={catalogModels.items}
+      items={filteredCatalogModels.items}
       loaded={loaded}
       loadError={loadError}
       renderCard={(model: CatalogModel) => (
@@ -202,9 +220,9 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
         />
       )}
       getItemKey={(model: CatalogModel) => `${model.name}/${model.source_id}`}
-      hasMore={catalogModels.hasMore}
-      isLoadingMore={catalogModels.isLoadingMore}
-      onLoadMore={catalogModels.loadMore}
+      hasMore={filteredCatalogModels.hasMore}
+      isLoadingMore={filteredCatalogModels.isLoadingMore}
+      onLoadMore={filteredCatalogModels.loadMore}
       loadMoreLabel="Load more models"
       loadingMoreLabel="Loading more catalog models..."
       loadingLabel="Loading model catalog..."
@@ -260,7 +278,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
           );
         }
 
-        if (catalogModels.items.length === 0 && noUserFiltersOrSearch) {
+        if (filteredCatalogModels.items.length === 0 && noUserFiltersOrSearch) {
           return (
             <EmptyCatalogState
               testid="empty-model-catalog-state"

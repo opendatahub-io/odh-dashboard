@@ -827,6 +827,16 @@ export const getMinimumVramFromCustomProperties = (
   return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
 };
 
+/**
+ * Checks if a catalog model has cold start data in its custom properties.
+ * A model has cold start data when it has a non-empty cold_start_matrix property
+ * with at least one valid hardware configuration entry.
+ */
+export const hasColdStartData = (model: CatalogModel): boolean => {
+  const configs = getHardwareConfigurationsFromCustomProperties(model.customProperties);
+  return configs.length > 0;
+};
+
 export const getHardwareConfigurationsFromCustomProperties = (
   customProperties?: ModelRegistryCustomProperties,
 ): HardwareConfiguration[] => {

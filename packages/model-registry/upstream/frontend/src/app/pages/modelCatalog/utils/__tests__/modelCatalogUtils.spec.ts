@@ -4,6 +4,7 @@ import {
   CatalogFilterOptionsList,
   CatalogLabel,
   CatalogLabelList,
+  CatalogModel,
   CatalogSource,
   CatalogSourceList,
   ModelCatalogFilterStates,
@@ -40,6 +41,7 @@ import {
   getActiveSourceLabels,
   hasValidatedToolCalling,
   getToolCallingArgs,
+  hasColdStartData,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { mockCatalogModelArtifact } from '~/__mocks__/mockCatalogModelArtifactList';
 import { ModelRegistryMetadataType } from '~/app/types';
@@ -1871,5 +1873,113 @@ describe('getToolCallingArgs', () => {
       toolCallParser: 'mistral',
     });
     expect(result).toBe('--tool-call-parser mistral');
+  });
+});
+
+describe('hasColdStartData', () => {
+  const createMockModel = (overrides: Partial<CatalogModel> = {}): CatalogModel => ({
+    name: 'test-model',
+    ...overrides,
+  });
+
+  it('should return false when model has no customProperties', () => {
+    expect(hasColdStartData(createMockModel())).toBe(false);
+    expect(hasColdStartData(createMockModel({ customProperties: undefined }))).toBe(false);
+  });
+
+  it('should return false when model has empty customProperties', () => {
+    expect(hasColdStartData(createMockModel({ customProperties: {} }))).toBe(false);
+  });
+
+  it('should return false when cold_start_matrix is not present', () => {
+    expect(
+      hasColdStartData(
+        createMockModel({
+          customProperties: {
+            model_type: {
+              string_value: 'generative',
+              metadataType: ModelRegistryMetadataType.STRING,
+            },
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('should return false when cold_start_matrix is empty JSON array', () => {
+    expect(
+      hasColdStartData(
+        createMockModel({
+          customProperties: {
+            cold_start_matrix: {
+              string_value: '[]',
+              metadataType: ModelRegistryMetadataType.STRING,
+            },
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('should return false when cold_start_matrix has invalid JSON', () => {
+    expect(
+      hasColdStartData(
+        createMockModel({
+          customProperties: {
+            cold_start_matrix: {
+              string_value: 'not valid json',
+              metadataType: ModelRegistryMetadataType.STRING,
+            },
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('should return false when cold_start_matrix has empty string', () => {
+    expect(
+      hasColdStartData(
+        createMockModel({
+          customProperties: {
+            cold_start_matrix: {
+              string_value: '',
+              metadataType: ModelRegistryMetadataType.STRING,
+            },
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('should return true when model has valid cold_start_matrix data', () => {
+    expect(
+      hasColdStartData(
+        createMockModel({
+          customProperties: {
+            cold_start_matrix: {
+              string_value:
+                '[{"gpu_type":"A100","gpu_count":1,"cold_start_time_to_load_seconds":85.2,"runtime_command":"vllm serve model"}]',
+              metadataType: ModelRegistryMetadataType.STRING,
+            },
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('should return true when model has multiple cold start configurations', () => {
+    expect(
+      hasColdStartData(
+        createMockModel({
+          customProperties: {
+            cold_start_matrix: {
+              string_value:
+                '[{"gpu_type":"A100","gpu_count":1,"cold_start_time_to_load_seconds":85.2,"runtime_command":"cmd1"},{"gpu_type":"H100","gpu_count":1,"cold_start_time_to_load_seconds":52.1,"runtime_command":"cmd2"}]',
+              metadataType: ModelRegistryMetadataType.STRING,
+            },
+          },
+        }),
+      ),
+    ).toBe(true);
   });
 });
