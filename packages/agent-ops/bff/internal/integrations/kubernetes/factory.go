@@ -10,6 +10,8 @@ import (
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (KubernetesClientFactory, error) {
@@ -25,6 +27,9 @@ func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (Kube
 	case config.AuthMethodUser:
 		k8sFactory := NewTokenClientFactory(logger, cfg)
 		return k8sFactory, nil
+
+	case config.AuthMethodDisabled:
+		return nil, nil
 
 	default:
 		return nil, fmt.Errorf("invalid auth method: %q", cfg.AuthMethod)
@@ -42,8 +47,9 @@ type KubernetesClientFactory interface {
 }
 
 type StaticClientFactory struct {
-	Logger *slog.Logger
-	Client KubernetesClientInterface
+	Logger     *slog.Logger
+	sarClient  KubernetesClientInterface
+	restConfig *rest.Config
 }
 
 func NewStaticClientFactory(logger *slog.Logger) (KubernetesClientFactory, error) {
@@ -51,14 +57,48 @@ func NewStaticClientFactory(logger *slog.Logger) (KubernetesClientFactory, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service account client: %w", err)
 	}
+	internal, ok := client.(*InternalKubernetesClient)
+	if !ok || internal.restConfig == nil {
+		return nil, fmt.Errorf("internal kubernetes client is missing rest config")
+	}
 	return &StaticClientFactory{
-		Client: client,
-		Logger: logger,
+		sarClient:  client,
+		restConfig: rest.CopyConfig(internal.restConfig),
+		Logger:     logger,
 	}, nil
 }
 
-func (f *StaticClientFactory) GetClient(_ context.Context) (KubernetesClientInterface, error) {
-	return f.Client, nil
+func (f *StaticClientFactory) GetClient(ctx context.Context) (KubernetesClientInterface, error) {
+	val := ctx.Value(constants.RequestIdentityKey)
+	if val == nil {
+		return nil, fmt.Errorf("missing RequestIdentity in context")
+	}
+
+	identity, ok := val.(*RequestIdentity)
+	if !ok || identity == nil || identity.UserID == "" {
+		return nil, fmt.Errorf("invalid or missing request identity")
+	}
+
+	impersonatedCfg := rest.CopyConfig(f.restConfig)
+	impersonatedCfg.Impersonate = rest.ImpersonationConfig{
+		UserName: identity.UserID,
+		Groups:   identity.Groups,
+	}
+	clearClientCertificateFields(impersonatedCfg)
+
+	clientset, err := kubernetes.NewForConfig(impersonatedCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create impersonated kubernetes client: %w", err)
+	}
+
+	return &InternalKubernetesClient{
+		SharedClientLogic: SharedClientLogic{
+			Client: clientset,
+			Logger: f.Logger,
+		},
+		restConfig:   impersonatedCfg,
+		sarClientset: f.sarClient.KubernetesClientset(),
+	}, nil
 }
 
 func (f *StaticClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error) {
@@ -94,6 +134,17 @@ func (f *StaticClientFactory) ValidateRequestIdentity(identity *RequestIdentity)
 		return errors.New("user ID (kubeflow-userid) required for internal authentication")
 	}
 	return nil
+}
+
+// clearClientCertificateFields prevents client-cert credentials from overriding impersonation.
+func clearClientCertificateFields(cfg *rest.Config) {
+	if cfg == nil {
+		return
+	}
+	cfg.CertData = nil
+	cfg.CertFile = ""
+	cfg.KeyData = nil
+	cfg.KeyFile = ""
 }
 
 //

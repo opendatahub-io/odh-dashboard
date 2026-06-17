@@ -329,3 +329,20 @@ export function downloadBlob(blob: Blob, filename: string): void {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Find the first S3 common-prefix directory whose leaf name starts with the
+ * given pattern.  Returns the prefix without a trailing slash, or `undefined`
+ * when no match is found.
+ */
+export function findTrainingTaskPrefix(
+  commonPrefixes: { prefix: string }[],
+  pattern: string,
+): string | undefined {
+  const match = commonPrefixes.find((p) => {
+    const segments = p.prefix.split('/').filter(Boolean);
+    const dirName = segments[segments.length - 1] ?? '';
+    return dirName.startsWith(pattern);
+  });
+  return match ? match.prefix.replace(/\/$/, '') : undefined;
+}
