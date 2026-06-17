@@ -4,7 +4,8 @@
 # Inputs:
 #    eval_metric: str [Default: '']
 #    label_column: str
-#    positive_class: str
+#    positive_class: str [Default: '']
+#    preset: str [Default: 'speed']
 #    task_type: str
 #    top_n: int [Default: 3.0]
 #    train_data_bucket_name: str
@@ -41,16 +42,110 @@ components:
           description: Pipeline run name; last dash-segment stripped for the notebook.
           parameterType: STRING
         positive_class:
-          description: 'Optional label value for the positive class in **binary**
-            classification
+          defaultValue: ''
+          description: 'Label value for the positive class in **binary** classification
 
-            (``int`` or ``str``, e.g. ``"1"`` or ``"yes"``). Passed to ``TabularPredictor``
-            when set.
+            (e.g. ``"1"`` or ``"yes"``). Passed to ``TabularPredictor`` when set.
 
-            If ``None`` or empty, AutoGluon infers the positive class when ``fit``
-            runs (see note below).
+            Empty string (default) lets AutoGluon infer the positive class when ``fit``
+            runs.
 
             Ignored for ``multiclass`` and ``regression``.'
+          isOptional: true
+          parameterType: STRING
+        preset:
+          defaultValue: speed
+          description: 'Training quality tier. ``"speed"`` (default) or ``"balanced"``
+
+            (may run more than 2x longer).'
+          isOptional: true
+          parameterType: STRING
+        run_id:
+          description: Pipeline run ID written into the generated notebook.
+          parameterType: STRING
+        sample_row:
+          description: JSON array of row dicts for the notebook example input; label
+            column is stripped.
+          parameterType: STRING
+        sampling_config:
+          description: Data sampling config stored in artifact metadata.
+          isOptional: true
+          parameterType: STRUCT
+        split_config:
+          description: Data split config stored in artifact metadata.
+          isOptional: true
+          parameterType: STRUCT
+        task_type:
+          description: 'ML task type: ``"binary"``, ``"multiclass"``, or ``"regression"``.'
+          parameterType: STRING
+        top_n:
+          description: Number of top models to select and refit (1-10).
+          parameterType: NUMBER_INTEGER
+        train_data_path:
+          description: Path to the selection-train CSV on the PVC workspace.
+          parameterType: STRING
+        workspace_path:
+          description: PVC workspace directory; predictor saved at ``workspace_path/autogluon_predictor``.
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        component_status:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        models_artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        eval_metric:
+          parameterType: STRING
+  comp-autogluon-models-training-2:
+    executorLabel: exec-autogluon-models-training-2
+    inputDefinitions:
+      artifacts:
+        test_data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: Dataset artifact (CSV) used for leaderboard ranking and evaluation.
+      parameters:
+        eval_metric:
+          defaultValue: ''
+          description: 'Metric for model ranking (e.g. ``"r2"``, ``"accuracy"``).
+            Defaults
+
+            to ``"r2"`` for regression and ``"accuracy"`` otherwise.'
+          isOptional: true
+          parameterType: STRING
+        extra_train_data_path:
+          defaultValue: ''
+          description: Optional path to extra training CSV passed to ``refit_full``.
+          isOptional: true
+          parameterType: STRING
+        label_column:
+          description: Target/label column name in train and test datasets.
+          parameterType: STRING
+        pipeline_name:
+          description: Pipeline run name; last dash-segment stripped for the notebook.
+          parameterType: STRING
+        positive_class:
+          defaultValue: ''
+          description: 'Label value for the positive class in **binary** classification
+
+            (e.g. ``"1"`` or ``"yes"``). Passed to ``TabularPredictor`` when set.
+
+            Empty string (default) lets AutoGluon infer the positive class when ``fit``
+            runs.
+
+            Ignored for ``multiclass`` and ``regression``.'
+          isOptional: true
+          parameterType: STRING
+        preset:
+          defaultValue: speed
+          description: 'Training quality tier. ``"speed"`` (default) or ``"balanced"``
+
+            (may run more than 2x longer).'
           isOptional: true
           parameterType: STRING
         run_id:
@@ -152,8 +247,325 @@ components:
           parameterType: STRING
         split_config:
           parameterType: STRUCT
+  comp-condition-2:
+    dag:
+      tasks:
+        autogluon-models-training:
+          cachingOptions: {}
+          componentRef:
+            name: comp-autogluon-models-training
+          inputs:
+            artifacts:
+              test_data:
+                componentInputArtifact: pipelinechannel--automl-data-loader-sampled_test_dataset
+            parameters:
+              eval_metric:
+                componentInputParameter: pipelinechannel--eval_metric
+              extra_train_data_path:
+                componentInputParameter: pipelinechannel--automl-data-loader-extra_train_data_path
+              label_column:
+                componentInputParameter: pipelinechannel--label_column
+              pipeline_name:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_resource_name}}'
+              positive_class:
+                componentInputParameter: pipelinechannel--positive_class
+              preset:
+                componentInputParameter: pipelinechannel--preset
+              run_id:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_uuid}}'
+              sample_row:
+                componentInputParameter: pipelinechannel--automl-data-loader-sample_row
+              sampling_config:
+                componentInputParameter: pipelinechannel--automl-data-loader-sample_config
+              split_config:
+                componentInputParameter: pipelinechannel--automl-data-loader-split_config
+              task_type:
+                componentInputParameter: pipelinechannel--task_type
+              top_n:
+                componentInputParameter: pipelinechannel--top_n
+              train_data_path:
+                componentInputParameter: pipelinechannel--automl-data-loader-models_selection_train_data_path
+              workspace_path:
+                runtimeValue:
+                  constant: '{{$.workspace_path}}'
+          taskInfo:
+            name: autogluon-models-training
+        leaderboard-evaluation:
+          cachingOptions: {}
+          componentRef:
+            name: comp-leaderboard-evaluation
+          dependentTasks:
+          - autogluon-models-training
+          inputs:
+            artifacts:
+              models_artifact:
+                taskOutputArtifact:
+                  outputArtifactKey: models_artifact
+                  producerTask: autogluon-models-training
+            parameters:
+              eval_metric:
+                taskOutputParameter:
+                  outputParameterKey: eval_metric
+                  producerTask: autogluon-models-training
+          taskInfo:
+            name: leaderboard-evaluation
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--automl-data-loader-sampled_test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--automl-data-loader-extra_train_data_path:
+          parameterType: STRING
+        pipelinechannel--automl-data-loader-models_selection_train_data_path:
+          parameterType: STRING
+        pipelinechannel--automl-data-loader-sample_config:
+          parameterType: STRUCT
+        pipelinechannel--automl-data-loader-sample_row:
+          parameterType: STRING
+        pipelinechannel--automl-data-loader-split_config:
+          parameterType: STRUCT
+        pipelinechannel--eval_metric:
+          parameterType: STRING
+        pipelinechannel--label_column:
+          parameterType: STRING
+        pipelinechannel--positive_class:
+          parameterType: STRING
+        pipelinechannel--preset:
+          parameterType: STRING
+        pipelinechannel--task_type:
+          parameterType: STRING
+        pipelinechannel--top_n:
+          parameterType: NUMBER_INTEGER
+  comp-condition-3:
+    dag:
+      tasks:
+        autogluon-models-training-2:
+          cachingOptions: {}
+          componentRef:
+            name: comp-autogluon-models-training-2
+          inputs:
+            artifacts:
+              test_data:
+                componentInputArtifact: pipelinechannel--automl-data-loader-sampled_test_dataset
+            parameters:
+              eval_metric:
+                componentInputParameter: pipelinechannel--eval_metric
+              extra_train_data_path:
+                componentInputParameter: pipelinechannel--automl-data-loader-extra_train_data_path
+              label_column:
+                componentInputParameter: pipelinechannel--label_column
+              pipeline_name:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_resource_name}}'
+              positive_class:
+                componentInputParameter: pipelinechannel--positive_class
+              preset:
+                componentInputParameter: pipelinechannel--preset
+              run_id:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_uuid}}'
+              sample_row:
+                componentInputParameter: pipelinechannel--automl-data-loader-sample_row
+              sampling_config:
+                componentInputParameter: pipelinechannel--automl-data-loader-sample_config
+              split_config:
+                componentInputParameter: pipelinechannel--automl-data-loader-split_config
+              task_type:
+                componentInputParameter: pipelinechannel--task_type
+              top_n:
+                componentInputParameter: pipelinechannel--top_n
+              train_data_path:
+                componentInputParameter: pipelinechannel--automl-data-loader-models_selection_train_data_path
+              workspace_path:
+                runtimeValue:
+                  constant: '{{$.workspace_path}}'
+          taskInfo:
+            name: autogluon-models-training-2
+        leaderboard-evaluation-2:
+          cachingOptions: {}
+          componentRef:
+            name: comp-leaderboard-evaluation-2
+          dependentTasks:
+          - autogluon-models-training-2
+          inputs:
+            artifacts:
+              models_artifact:
+                taskOutputArtifact:
+                  outputArtifactKey: models_artifact
+                  producerTask: autogluon-models-training-2
+            parameters:
+              eval_metric:
+                taskOutputParameter:
+                  outputParameterKey: eval_metric
+                  producerTask: autogluon-models-training-2
+          taskInfo:
+            name: leaderboard-evaluation-2
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--automl-data-loader-sampled_test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--automl-data-loader-extra_train_data_path:
+          parameterType: STRING
+        pipelinechannel--automl-data-loader-models_selection_train_data_path:
+          parameterType: STRING
+        pipelinechannel--automl-data-loader-sample_config:
+          parameterType: STRUCT
+        pipelinechannel--automl-data-loader-sample_row:
+          parameterType: STRING
+        pipelinechannel--automl-data-loader-split_config:
+          parameterType: STRUCT
+        pipelinechannel--eval_metric:
+          parameterType: STRING
+        pipelinechannel--label_column:
+          parameterType: STRING
+        pipelinechannel--positive_class:
+          parameterType: STRING
+        pipelinechannel--preset:
+          parameterType: STRING
+        pipelinechannel--task_type:
+          parameterType: STRING
+        pipelinechannel--top_n:
+          parameterType: NUMBER_INTEGER
+  comp-condition-branches-1:
+    dag:
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          inputs:
+            artifacts:
+              pipelinechannel--automl-data-loader-sampled_test_dataset:
+                componentInputArtifact: pipelinechannel--automl-data-loader-sampled_test_dataset
+            parameters:
+              pipelinechannel--automl-data-loader-extra_train_data_path:
+                componentInputParameter: pipelinechannel--automl-data-loader-extra_train_data_path
+              pipelinechannel--automl-data-loader-models_selection_train_data_path:
+                componentInputParameter: pipelinechannel--automl-data-loader-models_selection_train_data_path
+              pipelinechannel--automl-data-loader-sample_config:
+                componentInputParameter: pipelinechannel--automl-data-loader-sample_config
+              pipelinechannel--automl-data-loader-sample_row:
+                componentInputParameter: pipelinechannel--automl-data-loader-sample_row
+              pipelinechannel--automl-data-loader-split_config:
+                componentInputParameter: pipelinechannel--automl-data-loader-split_config
+              pipelinechannel--eval_metric:
+                componentInputParameter: pipelinechannel--eval_metric
+              pipelinechannel--label_column:
+                componentInputParameter: pipelinechannel--label_column
+              pipelinechannel--positive_class:
+                componentInputParameter: pipelinechannel--positive_class
+              pipelinechannel--preset:
+                componentInputParameter: pipelinechannel--preset
+              pipelinechannel--task_type:
+                componentInputParameter: pipelinechannel--task_type
+              pipelinechannel--top_n:
+                componentInputParameter: pipelinechannel--top_n
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--preset'] == 'balanced'
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            artifacts:
+              pipelinechannel--automl-data-loader-sampled_test_dataset:
+                componentInputArtifact: pipelinechannel--automl-data-loader-sampled_test_dataset
+            parameters:
+              pipelinechannel--automl-data-loader-extra_train_data_path:
+                componentInputParameter: pipelinechannel--automl-data-loader-extra_train_data_path
+              pipelinechannel--automl-data-loader-models_selection_train_data_path:
+                componentInputParameter: pipelinechannel--automl-data-loader-models_selection_train_data_path
+              pipelinechannel--automl-data-loader-sample_config:
+                componentInputParameter: pipelinechannel--automl-data-loader-sample_config
+              pipelinechannel--automl-data-loader-sample_row:
+                componentInputParameter: pipelinechannel--automl-data-loader-sample_row
+              pipelinechannel--automl-data-loader-split_config:
+                componentInputParameter: pipelinechannel--automl-data-loader-split_config
+              pipelinechannel--eval_metric:
+                componentInputParameter: pipelinechannel--eval_metric
+              pipelinechannel--label_column:
+                componentInputParameter: pipelinechannel--label_column
+              pipelinechannel--positive_class:
+                componentInputParameter: pipelinechannel--positive_class
+              pipelinechannel--preset:
+                componentInputParameter: pipelinechannel--preset
+              pipelinechannel--task_type:
+                componentInputParameter: pipelinechannel--task_type
+              pipelinechannel--top_n:
+                componentInputParameter: pipelinechannel--top_n
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--preset''] ==
+              ''balanced'')'
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--automl-data-loader-sampled_test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--automl-data-loader-extra_train_data_path:
+          parameterType: STRING
+        pipelinechannel--automl-data-loader-models_selection_train_data_path:
+          parameterType: STRING
+        pipelinechannel--automl-data-loader-sample_config:
+          parameterType: STRUCT
+        pipelinechannel--automl-data-loader-sample_row:
+          parameterType: STRING
+        pipelinechannel--automl-data-loader-split_config:
+          parameterType: STRUCT
+        pipelinechannel--eval_metric:
+          parameterType: STRING
+        pipelinechannel--label_column:
+          parameterType: STRING
+        pipelinechannel--positive_class:
+          parameterType: STRING
+        pipelinechannel--preset:
+          parameterType: STRING
+        pipelinechannel--task_type:
+          parameterType: STRING
+        pipelinechannel--top_n:
+          parameterType: NUMBER_INTEGER
   comp-leaderboard-evaluation:
     executorLabel: exec-leaderboard-evaluation
+    inputDefinitions:
+      artifacts:
+        models_artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          description: 'Combined Model artifact from ``autogluon_models_training``
+
+            with ``metadata["model_names"]`` and per-model subdirectories.'
+      parameters:
+        eval_metric:
+          description: 'Metric name for ranking (e.g. ``"accuracy"``, ``"root_mean_squared_error"``);
+
+            leaderboard sorted descending (AutoGluon uses higher-is-better convention).'
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        component_status:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        html_artifact:
+          artifactType:
+            schemaTitle: system.HTML
+            schemaVersion: 0.0.1
+      parameters:
+        best_model:
+          parameterType: STRING
+  comp-leaderboard-evaluation-2:
+    executorLabel: exec-leaderboard-evaluation-2
     inputDefinitions:
       artifacts:
         models_artifact:
@@ -234,49 +646,51 @@ deploymentSpec:
           \   sample_row: str,\n    models_artifact: dsl.Output[dsl.Model],\n    component_status:\
           \ dsl.Output[dsl.Artifact],\n    sampling_config: Optional[dict] = None,\n\
           \    split_config: Optional[dict] = None,\n    extra_train_data_path: str\
-          \ = \"\",\n    positive_class: Optional[str] = None,\n    eval_metric: str\
-          \ = \"\",\n) -> NamedTuple(\"outputs\", eval_metric=str):\n    \"\"\"Train\
-          \ AutoGluon models, select the top N, and refit each on the full dataset.\n\
-          \n    Expects pre-cleaned CSV data from the tabular data loader (infinite\
-          \ values replaced,\n    duplicates removed, missing labels dropped). Reads\
-          \ train/test/extra-train CSVs and\n    validates that the label column exists\
-          \ in each dataset.\n\n    This component combines the model selection and\
-          \ full-refit stages into a single\n    step. It trains a TabularPredictor\
-          \ on sampled data, ranks all models on the test\n    set, then refits each\
-          \ of the top N models on the full training data in a single\n    ``refit_full``\
-          \ call. Post-refit work (predict, evaluate, feature importance,\n    confusion\
-          \ matrix (via evaluate_predictions detailed_report), classification curves,\n\
-          \    notebook generation) runs concurrently across all top-N models\n  \
-          \  via ``ThreadPoolExecutor``. The deployment clone (``set_model_best``\
-          \ +\n    ``clone_for_deployment``) is serialized afterward because it mutates\
-          \ predictor\n    state. All artifacts are written under a single output\
-          \ artifact so the pipeline\n    does not require a ParallelFor loop. Each\
-          \ model directory contains a ``model.json``\n    file with model metadata\
-          \ (name, location, metrics).\n\n    Args:\n        label_column: Target/label\
-          \ column name in train and test datasets.\n        task_type: ML task type:\
-          \ ``\"binary\"``, ``\"multiclass\"``, or ``\"regression\"``.\n        top_n:\
-          \ Number of top models to select and refit (1-10).\n        train_data_path:\
-          \ Path to the selection-train CSV on the PVC workspace.\n        test_data:\
-          \ Dataset artifact (CSV) used for leaderboard ranking and evaluation.\n\
-          \        workspace_path: PVC workspace directory; predictor saved at ``workspace_path/autogluon_predictor``.\n\
-          \        pipeline_name: Pipeline run name; last dash-segment stripped for\
-          \ the notebook.\n        run_id: Pipeline run ID written into the generated\
-          \ notebook.\n        sample_row: JSON array of row dicts for the notebook\
-          \ example input; label column is stripped.\n        models_artifact: Output\
-          \ Model artifact containing all refitted model subdirectories.\n       \
-          \ component_status: Output artifact containing stage-level progress tracking\
-          \ for this component.\n        sampling_config: Data sampling config stored\
-          \ in artifact metadata.\n        split_config: Data split config stored\
-          \ in artifact metadata.\n        extra_train_data_path: Optional path to\
-          \ extra training CSV passed to ``refit_full``.\n        positive_class:\
-          \ Optional label value for the positive class in **binary** classification\n\
-          \            (``int`` or ``str``, e.g. ``\"1\"`` or ``\"yes\"``). Passed\
-          \ to ``TabularPredictor`` when set.\n            If ``None`` or empty, AutoGluon\
-          \ infers the positive class when ``fit`` runs (see note below).\n      \
-          \      Ignored for ``multiclass`` and ``regression``.\n        eval_metric:\
-          \ Metric for model ranking (e.g. ``\"r2\"``, ``\"accuracy\"``). Defaults\n\
-          \            to ``\"r2\"`` for regression and ``\"accuracy\"`` otherwise.\n\
-          \n    Returns:\n        NamedTuple with ``eval_metric`` (the metric used\
+          \ = \"\",\n    positive_class: str = \"\",\n    preset: str = \"speed\"\
+          ,\n    eval_metric: str = \"\",\n) -> NamedTuple(\"outputs\", eval_metric=str):\n\
+          \    \"\"\"Train AutoGluon models, select the top N, and refit each on the\
+          \ full dataset.\n\n    Expects pre-cleaned CSV data from the tabular data\
+          \ loader (infinite values replaced,\n    duplicates removed, missing labels\
+          \ dropped). Reads train/test/extra-train CSVs and\n    validates that the\
+          \ label column exists in each dataset.\n\n    This component combines the\
+          \ model selection and full-refit stages into a single\n    step. It trains\
+          \ a TabularPredictor on sampled data, ranks all models on the test\n   \
+          \ set, then refits each of the top N models on the full training data in\
+          \ a single\n    ``refit_full`` call. Post-refit work (predict, evaluate,\
+          \ feature importance,\n    confusion matrix (via evaluate_predictions detailed_report),\
+          \ classification curves,\n    notebook generation) runs concurrently across\
+          \ all top-N models\n    via ``ThreadPoolExecutor``. The deployment clone\
+          \ (``set_model_best`` +\n    ``clone_for_deployment``) is serialized afterward\
+          \ because it mutates predictor\n    state. All artifacts are written under\
+          \ a single output artifact so the pipeline\n    does not require a ParallelFor\
+          \ loop. Each model directory contains a ``model.json``\n    file with model\
+          \ metadata (name, location, metrics).\n\n    Args:\n        label_column:\
+          \ Target/label column name in train and test datasets.\n        task_type:\
+          \ ML task type: ``\"binary\"``, ``\"multiclass\"``, or ``\"regression\"\
+          ``.\n        top_n: Number of top models to select and refit (1-10).\n \
+          \       train_data_path: Path to the selection-train CSV on the PVC workspace.\n\
+          \        test_data: Dataset artifact (CSV) used for leaderboard ranking\
+          \ and evaluation.\n        workspace_path: PVC workspace directory; predictor\
+          \ saved at ``workspace_path/autogluon_predictor``.\n        pipeline_name:\
+          \ Pipeline run name; last dash-segment stripped for the notebook.\n    \
+          \    run_id: Pipeline run ID written into the generated notebook.\n    \
+          \    sample_row: JSON array of row dicts for the notebook example input;\
+          \ label column is stripped.\n        models_artifact: Output Model artifact\
+          \ containing all refitted model subdirectories.\n        component_status:\
+          \ Output artifact containing stage-level progress tracking for this component.\n\
+          \        sampling_config: Data sampling config stored in artifact metadata.\n\
+          \        split_config: Data split config stored in artifact metadata.\n\
+          \        extra_train_data_path: Optional path to extra training CSV passed\
+          \ to ``refit_full``.\n        positive_class: Label value for the positive\
+          \ class in **binary** classification\n            (e.g. ``\"1\"`` or ``\"\
+          yes\"``). Passed to ``TabularPredictor`` when set.\n            Empty string\
+          \ (default) lets AutoGluon infer the positive class when ``fit`` runs.\n\
+          \            Ignored for ``multiclass`` and ``regression``.\n        preset:\
+          \ Training quality tier. ``\"speed\"`` (default) or ``\"balanced\"``\n \
+          \           (may run more than 2x longer).\n        eval_metric: Metric\
+          \ for model ranking (e.g. ``\"r2\"``, ``\"accuracy\"``). Defaults\n    \
+          \        to ``\"r2\"`` for regression and ``\"accuracy\"`` otherwise.\n\n\
+          \    Returns:\n        NamedTuple with ``eval_metric`` (the metric used\
           \ for ranking, e.g. ``\"r2\"`` or ``\"accuracy\"``).\n\n    Raises:\n  \
           \      TypeError: If any required string parameter is empty or configs have\
           \ wrong types.\n        ValueError: If ``task_type`` is invalid, ``top_n``\
@@ -291,17 +705,22 @@ deploymentSpec:
           \ body for KFP container execution\n    )\n\n    import numpy as np\n  \
           \  import pandas as pd\n    from autogluon.core.metrics import METRICS\n\
           \    from autogluon.tabular import TabularPredictor\n\n    VALID_TASK_TYPES\
-          \ = {\"binary\", \"multiclass\", \"regression\"}\n    TOP_N_MAX = 10\n\n\
-          \    # Input parameters validation\n    if not isinstance(label_column,\
-          \ str) or not label_column.strip():\n        raise TypeError(\"label_column\
-          \ must be a non-empty string.\")\n    if task_type not in VALID_TASK_TYPES:\n\
-          \        raise ValueError(f\"task_type must be one of {VALID_TASK_TYPES};\
-          \ got {task_type!r}.\")\n    if not train_data_path or not isinstance(train_data_path,\
-          \ str) or not train_data_path.strip():\n        raise TypeError(\"train_data_path\
-          \ must be a non-empty string.\")\n    if not workspace_path or not isinstance(workspace_path,\
-          \ str) or not workspace_path.strip():\n        raise TypeError(\"workspace_path\
-          \ must be a non-empty string.\")\n    if top_n <= 0 or top_n > TOP_N_MAX:\n\
-          \        raise ValueError(f\"top_n must be an integer in the range (0, {TOP_N_MAX}];\
+          \ = {\"binary\", \"multiclass\", \"regression\"}\n    VALID_PRESETS = {\"\
+          speed\", \"balanced\"}\n    PRESET_TIME_LIMITS = {\"speed\": 45 * 60, \"\
+          balanced\": 90 * 60}\n    PRESET_AG_NAMES = {\"speed\": \"good_quality\"\
+          , \"balanced\": \"high_quality\"}\n    TOP_N_MAX = 10\n\n    # Input parameters\
+          \ validation\n    if not isinstance(label_column, str) or not label_column.strip():\n\
+          \        raise TypeError(\"label_column must be a non-empty string.\")\n\
+          \    if task_type not in VALID_TASK_TYPES:\n        raise ValueError(f\"\
+          task_type must be one of {VALID_TASK_TYPES}; got {task_type!r}.\")\n   \
+          \ if preset not in VALID_PRESETS:\n        raise ValueError(f\"preset must\
+          \ be one of {VALID_PRESETS}; got {preset!r}.\")\n    if not train_data_path\
+          \ or not isinstance(train_data_path, str) or not train_data_path.strip():\n\
+          \        raise TypeError(\"train_data_path must be a non-empty string.\"\
+          )\n    if not workspace_path or not isinstance(workspace_path, str) or not\
+          \ workspace_path.strip():\n        raise TypeError(\"workspace_path must\
+          \ be a non-empty string.\")\n    if top_n <= 0 or top_n > TOP_N_MAX:\n \
+          \       raise ValueError(f\"top_n must be an integer in the range (0, {TOP_N_MAX}];\
           \ got {top_n}.\")\n    for param, value in (\n        (\"pipeline_name\"\
           , pipeline_name),\n        (\"run_id\", run_id),\n        (\"sample_row\"\
           , sample_row),\n    ):\n        if not isinstance(value, str) or not value.strip():\n\
@@ -310,37 +729,34 @@ deploymentSpec:
           \ dict):\n        raise TypeError(\"sampling_config must be a dictionary\
           \ or None.\")\n    if split_config is not None and not isinstance(split_config,\
           \ dict):\n        raise TypeError(\"split_config must be a dictionary or\
-          \ None.\")\n    if positive_class is not None and not isinstance(positive_class,\
-          \ str):\n        raise TypeError(\"positive_class must be a string or None.\"\
-          )\n    if eval_metric and not eval_metric.strip():\n        raise TypeError(\"\
-          eval_metric must be a non-empty string (or empty string '' to use the task-type\
-          \ default).\")\n    if eval_metric and eval_metric not in METRICS.get(task_type,\
-          \ {}):\n        raise ValueError(\n            f\"eval_metric {eval_metric!r}\
-          \ is not valid for task_type={task_type!r}. \"\n            f\"Valid options:\
-          \ {sorted(METRICS.get(task_type, {}))}.\"\n        )\n\n    sampling_config\
-          \ = sampling_config or {}\n    split_config = split_config or {}\n\n   \
-          \ def _coerce_positive_class(value: Optional[str]) -> str | int | None:\n\
-          \        \"\"\"Normalize pipeline input; empty string means unset (AutoGluon\
-          \ will infer).\"\"\"\n        if value is None:\n            return None\n\
-          \        stripped = value.strip()\n        if not stripped:\n          \
-          \  return None\n        if stripped.lstrip(\"-\").isdigit():\n         \
-          \   return int(stripped)\n        return stripped\n\n    try:\n        sample_row_list\
-          \ = json.loads(sample_row)\n    except json.JSONDecodeError as e:\n    \
-          \    raise TypeError(f\"sample_row must be valid JSON array: {e}\") from\
-          \ e\n    if not isinstance(sample_row_list, list):\n        raise ValueError(\"\
-          sample_row must be a JSON array list of row objects.\")\n\n    logger =\
-          \ logging.getLogger(__name__)\n\n    from kfp_components.components.training.automl.shared.component_status\
+          \ None.\")\n\n    if eval_metric and not eval_metric.strip():\n        raise\
+          \ TypeError(\"eval_metric must be a non-empty string (or empty string ''\
+          \ to use the task-type default).\")\n    if eval_metric and eval_metric\
+          \ not in METRICS.get(task_type, {}):\n        raise ValueError(\n      \
+          \      f\"eval_metric {eval_metric!r} is not valid for task_type={task_type!r}.\
+          \ \"\n            f\"Valid options: {sorted(METRICS.get(task_type, {}))}.\"\
+          \n        )\n\n    sampling_config = sampling_config or {}\n    split_config\
+          \ = split_config or {}\n\n    def _coerce_positive_class(value: Optional[str])\
+          \ -> str | int | None:\n        \"\"\"Normalize pipeline input; empty string\
+          \ means unset (AutoGluon will infer).\"\"\"\n        if value is None:\n\
+          \            return None\n        stripped = value.strip()\n        if not\
+          \ stripped:\n            return None\n        if stripped.lstrip(\"-\").isdigit():\n\
+          \            return int(stripped)\n        return stripped\n\n    try:\n\
+          \        sample_row_list = json.loads(sample_row)\n    except json.JSONDecodeError\
+          \ as e:\n        raise TypeError(f\"sample_row must be valid JSON array:\
+          \ {e}\") from e\n    if not isinstance(sample_row_list, list):\n       \
+          \ raise ValueError(\"sample_row must be a JSON array list of row objects.\"\
+          )\n\n    logger = logging.getLogger(__name__)\n\n    from kfp_components.components.training.automl.shared.component_status\
           \ import ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.run_status\
           \ import shared_automl_dir\n\n    # Initialize status tracker\n    status\
           \ = ComponentStatusTracker(component_status.path, \"autogluon_models_training\"\
           )\n    with status:\n        # Stage: load_data\n        status.record(\"\
-          load_data\", \"started\")\n\n        DEFAULT_PRESET = \"medium_quality\"\
-          \n        DEFAULT_TIME_LIMIT = 30 * 60  # 30 minutes\n\n        # 1. models\
-          \ selection stage\n\n        train_data_df = pd.read_csv(train_data_path)\n\
-          \        if label_column not in train_data_df.columns:\n            raise\
-          \ ValueError(\n                f\"Label column {label_column!r} not found\
-          \ in train CSV. \"\n                f\"Available columns: {list(train_data_df.columns)}\"\
-          \n            )\n        if train_data_df.empty:\n            raise ValueError(\"\
+          load_data\", \"started\")\n\n        # 1. models selection stage\n\n   \
+          \     train_data_df = pd.read_csv(train_data_path)\n        if label_column\
+          \ not in train_data_df.columns:\n            raise ValueError(\n       \
+          \         f\"Label column {label_column!r} not found in train CSV. \"\n\
+          \                f\"Available columns: {list(train_data_df.columns)}\"\n\
+          \            )\n        if train_data_df.empty:\n            raise ValueError(\"\
           Training CSV is empty. Ensure the data loader produced valid training data.\"\
           )\n\n        test_data_df = pd.read_csv(test_data.path)\n        if label_column\
           \ not in test_data_df.columns:\n            raise ValueError(\n        \
@@ -377,34 +793,37 @@ deploymentSpec:
           label value after sorting classes (e.g. classes [0, 1] -> positive_class=1;\
           \ \"\n                \"classes ['abc', 'def'] -> positive_class='def').\"\
           \n            )\n\n        status.record(\"model_selection\", \"started\"\
-          )\n        predictor = TabularPredictor(**predictor_init_kwargs).fit(\n\
-          \            train_data=train_data_df,\n            num_stack_levels=1,\n\
-          \            num_bag_folds=4,\n            use_bag_holdout=True,\n     \
-          \       holdout_frac=0.2,\n            time_limit=DEFAULT_TIME_LIMIT,\n\
-          \            presets=DEFAULT_PRESET,\n        )\n\n        # Select top\
-          \ N models\n        leaderboard = predictor.leaderboard(test_data_df)\n\
+          )\n        time_limit = PRESET_TIME_LIMITS[preset]\n        predictor =\
+          \ TabularPredictor(**predictor_init_kwargs).fit(\n            train_data=train_data_df,\n\
+          \            presets=PRESET_AG_NAMES[preset],\n            # Pipeline handles\
+          \ refit explicitly via refit_full(); disable AutoGluon's built-in refit\n\
+          \            # to prevent double-refit and incorrect model selection.\n\
+          \            refit_full=False,\n            set_best_to_refit_full=False,\n\
+          \            # Required so refit_full() can access bag fold models after\
+          \ fit().\n            save_bag_folds=True,\n            time_limit=time_limit,\n\
+          \        )\n\n        # Select top N models\n        leaderboard = predictor.leaderboard(test_data_df)\n\
           \        logger.info(\"Leaderboard:\\n\\n %s\", leaderboard.head(top_n).to_string())\n\
           \        top_models = leaderboard.head(top_n)[\"model\"].values.tolist()\n\
           \        status.record(\n            \"model_selection\",\n            \"\
           completed\",\n            top_n=top_n,\n            selected_models=top_models,\n\
           \            steps=[\"feature_engineering\", \"model_training\", \"stacking\"\
           , \"model_evaluation\"],\n        )\n\n        model_config = {\n      \
-          \      \"preset\": DEFAULT_PRESET,\n            \"eval_metric\": eval_metric,\n\
-          \            \"time_limit\": DEFAULT_TIME_LIMIT,\n        }\n\n        def\
-          \ retrieve_pipeline_name(name: str) -> str:\n            \"\"\"Strip the\
-          \ last dash-separated segment (run id / suffix) from a pipeline name.\"\"\
-          \"\n            if not name:\n                return name\n            name\
-          \ = name.rstrip(\"-\")\n            if \"-\" not in name:\n            \
-          \    return name\n            tokens = name.split(\"-\")\n            return\
-          \ \"-\".join(tokens[:-1]) if len(tokens) > 1 else tokens[0]\n\n        pipeline_name_trimmed\
-          \ = retrieve_pipeline_name(pipeline_name)\n\n        # Strip label column\
-          \ from sample row -- same for all models\n        sample_row_formatted =\
-          \ [\n            {col: value for col, value in row.items() if col != predictor.label}\
-          \ for row in sample_row_list\n        ]\n\n        problem_type = predictor.problem_type\n\
-          \        match problem_type:\n            case \"regression\":\n       \
-          \         notebook_file = \"regression_notebook.ipynb\"\n            case\
-          \ \"binary\" | \"multiclass\":\n                notebook_file = \"classification_notebook.ipynb\"\
-          \n            case _:\n                raise ValueError(f\"Invalid problem\
+          \      \"preset\": preset,\n            \"eval_metric\": eval_metric,\n\
+          \            \"time_limit\": time_limit,\n        }\n\n        def retrieve_pipeline_name(name:\
+          \ str) -> str:\n            \"\"\"Strip the last dash-separated segment\
+          \ (run id / suffix) from a pipeline name.\"\"\"\n            if not name:\n\
+          \                return name\n            name = name.rstrip(\"-\")\n  \
+          \          if \"-\" not in name:\n                return name\n        \
+          \    tokens = name.split(\"-\")\n            return \"-\".join(tokens[:-1])\
+          \ if len(tokens) > 1 else tokens[0]\n\n        pipeline_name_trimmed = retrieve_pipeline_name(pipeline_name)\n\
+          \n        # Strip label column from sample row -- same for all models\n\
+          \        sample_row_formatted = [\n            {col: value for col, value\
+          \ in row.items() if col != predictor.label} for row in sample_row_list\n\
+          \        ]\n\n        problem_type = predictor.problem_type\n        match\
+          \ problem_type:\n            case \"regression\":\n                notebook_file\
+          \ = \"regression_notebook.ipynb\"\n            case \"binary\" | \"multiclass\"\
+          :\n                notebook_file = \"classification_notebook.ipynb\"\n \
+          \           case _:\n                raise ValueError(f\"Invalid problem\
           \ type: {problem_type}\")\n\n        model_names_full = [m + \"_FULL\" for\
           \ m in top_models]\n\n        # 2. models refit stage\n\n        # Clone\
           \ once to PVC (same filesystem as predictor_path) to avoid S3 FUSE file-dropping\n\
@@ -648,13 +1067,473 @@ deploymentSpec:
         image: quay.io/opendatahub/odh-automl:odh-stable
         resources:
           cpuLimit: 32.0
-          cpuRequest: 4.0
+          cpuRequest: 16.0
           memoryLimit: 68.719476736
-          memoryRequest: 17.179869184
+          memoryRequest: 68.719476736
           resourceCpuLimit: '32'
-          resourceCpuRequest: '4'
+          resourceCpuRequest: '16'
           resourceMemoryLimit: 64Gi
-          resourceMemoryRequest: 16Gi
+          resourceMemoryRequest: 64Gi
+    exec-autogluon-models-training-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - autogluon_models_training
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef autogluon_models_training(\n    label_column: str,\n    task_type:\
+          \ str,\n    top_n: int,\n    train_data_path: str,\n    test_data: dsl.Input[dsl.Dataset],\n\
+          \    workspace_path: str,\n    pipeline_name: str,\n    run_id: str,\n \
+          \   sample_row: str,\n    models_artifact: dsl.Output[dsl.Model],\n    component_status:\
+          \ dsl.Output[dsl.Artifact],\n    sampling_config: Optional[dict] = None,\n\
+          \    split_config: Optional[dict] = None,\n    extra_train_data_path: str\
+          \ = \"\",\n    positive_class: str = \"\",\n    preset: str = \"speed\"\
+          ,\n    eval_metric: str = \"\",\n) -> NamedTuple(\"outputs\", eval_metric=str):\n\
+          \    \"\"\"Train AutoGluon models, select the top N, and refit each on the\
+          \ full dataset.\n\n    Expects pre-cleaned CSV data from the tabular data\
+          \ loader (infinite values replaced,\n    duplicates removed, missing labels\
+          \ dropped). Reads train/test/extra-train CSVs and\n    validates that the\
+          \ label column exists in each dataset.\n\n    This component combines the\
+          \ model selection and full-refit stages into a single\n    step. It trains\
+          \ a TabularPredictor on sampled data, ranks all models on the test\n   \
+          \ set, then refits each of the top N models on the full training data in\
+          \ a single\n    ``refit_full`` call. Post-refit work (predict, evaluate,\
+          \ feature importance,\n    confusion matrix (via evaluate_predictions detailed_report),\
+          \ classification curves,\n    notebook generation) runs concurrently across\
+          \ all top-N models\n    via ``ThreadPoolExecutor``. The deployment clone\
+          \ (``set_model_best`` +\n    ``clone_for_deployment``) is serialized afterward\
+          \ because it mutates predictor\n    state. All artifacts are written under\
+          \ a single output artifact so the pipeline\n    does not require a ParallelFor\
+          \ loop. Each model directory contains a ``model.json``\n    file with model\
+          \ metadata (name, location, metrics).\n\n    Args:\n        label_column:\
+          \ Target/label column name in train and test datasets.\n        task_type:\
+          \ ML task type: ``\"binary\"``, ``\"multiclass\"``, or ``\"regression\"\
+          ``.\n        top_n: Number of top models to select and refit (1-10).\n \
+          \       train_data_path: Path to the selection-train CSV on the PVC workspace.\n\
+          \        test_data: Dataset artifact (CSV) used for leaderboard ranking\
+          \ and evaluation.\n        workspace_path: PVC workspace directory; predictor\
+          \ saved at ``workspace_path/autogluon_predictor``.\n        pipeline_name:\
+          \ Pipeline run name; last dash-segment stripped for the notebook.\n    \
+          \    run_id: Pipeline run ID written into the generated notebook.\n    \
+          \    sample_row: JSON array of row dicts for the notebook example input;\
+          \ label column is stripped.\n        models_artifact: Output Model artifact\
+          \ containing all refitted model subdirectories.\n        component_status:\
+          \ Output artifact containing stage-level progress tracking for this component.\n\
+          \        sampling_config: Data sampling config stored in artifact metadata.\n\
+          \        split_config: Data split config stored in artifact metadata.\n\
+          \        extra_train_data_path: Optional path to extra training CSV passed\
+          \ to ``refit_full``.\n        positive_class: Label value for the positive\
+          \ class in **binary** classification\n            (e.g. ``\"1\"`` or ``\"\
+          yes\"``). Passed to ``TabularPredictor`` when set.\n            Empty string\
+          \ (default) lets AutoGluon infer the positive class when ``fit`` runs.\n\
+          \            Ignored for ``multiclass`` and ``regression``.\n        preset:\
+          \ Training quality tier. ``\"speed\"`` (default) or ``\"balanced\"``\n \
+          \           (may run more than 2x longer).\n        eval_metric: Metric\
+          \ for model ranking (e.g. ``\"r2\"``, ``\"accuracy\"``). Defaults\n    \
+          \        to ``\"r2\"`` for regression and ``\"accuracy\"`` otherwise.\n\n\
+          \    Returns:\n        NamedTuple with ``eval_metric`` (the metric used\
+          \ for ranking, e.g. ``\"r2\"`` or ``\"accuracy\"``).\n\n    Raises:\n  \
+          \      TypeError: If any required string parameter is empty or configs have\
+          \ wrong types.\n        ValueError: If ``task_type`` is invalid, ``top_n``\
+          \ is out of range, ``sample_row``\n            is not a JSON list, ``problem_type``\
+          \ is unsupported for notebook generation,\n            label column not\
+          \ found in CSV, or train/test data is empty.\n        FileNotFoundError:\
+          \ If train/test data or predictor paths cannot be found.\n    \"\"\"  #\
+          \ noqa: E501\n    import json\n    import logging\n    import math\n   \
+          \ import shutil\n    from concurrent.futures import ThreadPoolExecutor\n\
+          \    from pathlib import Path\n    from typing import (\n        Any,\n\
+          \        NamedTuple,  # NamedTuple must be imported inside the function\
+          \ body for KFP container execution\n    )\n\n    import numpy as np\n  \
+          \  import pandas as pd\n    from autogluon.core.metrics import METRICS\n\
+          \    from autogluon.tabular import TabularPredictor\n\n    VALID_TASK_TYPES\
+          \ = {\"binary\", \"multiclass\", \"regression\"}\n    VALID_PRESETS = {\"\
+          speed\", \"balanced\"}\n    PRESET_TIME_LIMITS = {\"speed\": 45 * 60, \"\
+          balanced\": 90 * 60}\n    PRESET_AG_NAMES = {\"speed\": \"good_quality\"\
+          , \"balanced\": \"high_quality\"}\n    TOP_N_MAX = 10\n\n    # Input parameters\
+          \ validation\n    if not isinstance(label_column, str) or not label_column.strip():\n\
+          \        raise TypeError(\"label_column must be a non-empty string.\")\n\
+          \    if task_type not in VALID_TASK_TYPES:\n        raise ValueError(f\"\
+          task_type must be one of {VALID_TASK_TYPES}; got {task_type!r}.\")\n   \
+          \ if preset not in VALID_PRESETS:\n        raise ValueError(f\"preset must\
+          \ be one of {VALID_PRESETS}; got {preset!r}.\")\n    if not train_data_path\
+          \ or not isinstance(train_data_path, str) or not train_data_path.strip():\n\
+          \        raise TypeError(\"train_data_path must be a non-empty string.\"\
+          )\n    if not workspace_path or not isinstance(workspace_path, str) or not\
+          \ workspace_path.strip():\n        raise TypeError(\"workspace_path must\
+          \ be a non-empty string.\")\n    if top_n <= 0 or top_n > TOP_N_MAX:\n \
+          \       raise ValueError(f\"top_n must be an integer in the range (0, {TOP_N_MAX}];\
+          \ got {top_n}.\")\n    for param, value in (\n        (\"pipeline_name\"\
+          , pipeline_name),\n        (\"run_id\", run_id),\n        (\"sample_row\"\
+          , sample_row),\n    ):\n        if not isinstance(value, str) or not value.strip():\n\
+          \            raise TypeError(f\"{param} must be a non-empty string.\")\n\
+          \    if sampling_config is not None and not isinstance(sampling_config,\
+          \ dict):\n        raise TypeError(\"sampling_config must be a dictionary\
+          \ or None.\")\n    if split_config is not None and not isinstance(split_config,\
+          \ dict):\n        raise TypeError(\"split_config must be a dictionary or\
+          \ None.\")\n\n    if eval_metric and not eval_metric.strip():\n        raise\
+          \ TypeError(\"eval_metric must be a non-empty string (or empty string ''\
+          \ to use the task-type default).\")\n    if eval_metric and eval_metric\
+          \ not in METRICS.get(task_type, {}):\n        raise ValueError(\n      \
+          \      f\"eval_metric {eval_metric!r} is not valid for task_type={task_type!r}.\
+          \ \"\n            f\"Valid options: {sorted(METRICS.get(task_type, {}))}.\"\
+          \n        )\n\n    sampling_config = sampling_config or {}\n    split_config\
+          \ = split_config or {}\n\n    def _coerce_positive_class(value: Optional[str])\
+          \ -> str | int | None:\n        \"\"\"Normalize pipeline input; empty string\
+          \ means unset (AutoGluon will infer).\"\"\"\n        if value is None:\n\
+          \            return None\n        stripped = value.strip()\n        if not\
+          \ stripped:\n            return None\n        if stripped.lstrip(\"-\").isdigit():\n\
+          \            return int(stripped)\n        return stripped\n\n    try:\n\
+          \        sample_row_list = json.loads(sample_row)\n    except json.JSONDecodeError\
+          \ as e:\n        raise TypeError(f\"sample_row must be valid JSON array:\
+          \ {e}\") from e\n    if not isinstance(sample_row_list, list):\n       \
+          \ raise ValueError(\"sample_row must be a JSON array list of row objects.\"\
+          )\n\n    logger = logging.getLogger(__name__)\n\n    from kfp_components.components.training.automl.shared.component_status\
+          \ import ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.run_status\
+          \ import shared_automl_dir\n\n    # Initialize status tracker\n    status\
+          \ = ComponentStatusTracker(component_status.path, \"autogluon_models_training\"\
+          )\n    with status:\n        # Stage: load_data\n        status.record(\"\
+          load_data\", \"started\")\n\n        # 1. models selection stage\n\n   \
+          \     train_data_df = pd.read_csv(train_data_path)\n        if label_column\
+          \ not in train_data_df.columns:\n            raise ValueError(\n       \
+          \         f\"Label column {label_column!r} not found in train CSV. \"\n\
+          \                f\"Available columns: {list(train_data_df.columns)}\"\n\
+          \            )\n        if train_data_df.empty:\n            raise ValueError(\"\
+          Training CSV is empty. Ensure the data loader produced valid training data.\"\
+          )\n\n        test_data_df = pd.read_csv(test_data.path)\n        if label_column\
+          \ not in test_data_df.columns:\n            raise ValueError(\n        \
+          \        f\"Label column {label_column!r} not found in test CSV. Available\
+          \ columns: {list(test_data_df.columns)}\"\n            )\n        if test_data_df.empty:\n\
+          \            raise ValueError(\"Test CSV is empty. Ensure the data loader\
+          \ produced valid test data.\")\n        if not eval_metric:\n          \
+          \  eval_metric = \"r2\" if task_type == \"regression\" else \"accuracy\"\
+          \n\n        extra_train_df = None\n        if extra_train_data_path.strip():\n\
+          \            extra_train_df = pd.read_csv(extra_train_data_path)\n     \
+          \       if label_column not in extra_train_df.columns:\n               \
+          \ raise ValueError(\n                    f\"Label column {label_column!r}\
+          \ not found in extra-train CSV. \"\n                    f\"Available columns:\
+          \ {list(extra_train_df.columns)}\"\n                )\n            if extra_train_df.empty:\n\
+          \                logger.warning(\"Extra train CSV is empty; passing train_data_extra=None\
+          \ to refit_full.\")\n                extra_train_df = None\n\n        status.record(\n\
+          \            \"load_data\",\n            \"completed\",\n            train_rows=len(train_data_df),\n\
+          \            test_rows=len(test_data_df),\n        )\n\n        coerced_positive_class\
+          \ = _coerce_positive_class(positive_class)\n        if coerced_positive_class\
+          \ is not None and task_type != \"binary\":\n            logger.warning(\n\
+          \                \"positive_class=%r is ignored when task_type=%r (only\
+          \ used for binary classification).\",\n                coerced_positive_class,\n\
+          \                task_type,\n            )\n\n        predictor_path = Path(workspace_path)\
+          \ / \"autogluon_predictor\"\n        predictor_init_kwargs: dict[str, Any]\
+          \ = {\n            \"problem_type\": task_type,\n            \"label\":\
+          \ label_column,\n            \"eval_metric\": eval_metric,\n           \
+          \ \"path\": predictor_path,\n            \"verbosity\": 2,\n        }\n\
+          \        if task_type == \"binary\" and coerced_positive_class is not None:\n\
+          \            predictor_init_kwargs[\"positive_class\"] = coerced_positive_class\n\
+          \            logger.info(\"Using explicit positive_class=%r for TabularPredictor.\"\
+          , coerced_positive_class)\n        elif task_type == \"binary\":\n     \
+          \       logger.info(\n                \"positive_class not set; AutoGluon\
+          \ will infer it when fit runs as the second unique \"\n                \"\
+          label value after sorting classes (e.g. classes [0, 1] -> positive_class=1;\
+          \ \"\n                \"classes ['abc', 'def'] -> positive_class='def').\"\
+          \n            )\n\n        status.record(\"model_selection\", \"started\"\
+          )\n        time_limit = PRESET_TIME_LIMITS[preset]\n        predictor =\
+          \ TabularPredictor(**predictor_init_kwargs).fit(\n            train_data=train_data_df,\n\
+          \            presets=PRESET_AG_NAMES[preset],\n            # Pipeline handles\
+          \ refit explicitly via refit_full(); disable AutoGluon's built-in refit\n\
+          \            # to prevent double-refit and incorrect model selection.\n\
+          \            refit_full=False,\n            set_best_to_refit_full=False,\n\
+          \            # Required so refit_full() can access bag fold models after\
+          \ fit().\n            save_bag_folds=True,\n            time_limit=time_limit,\n\
+          \        )\n\n        # Select top N models\n        leaderboard = predictor.leaderboard(test_data_df)\n\
+          \        logger.info(\"Leaderboard:\\n\\n %s\", leaderboard.head(top_n).to_string())\n\
+          \        top_models = leaderboard.head(top_n)[\"model\"].values.tolist()\n\
+          \        status.record(\n            \"model_selection\",\n            \"\
+          completed\",\n            top_n=top_n,\n            selected_models=top_models,\n\
+          \            steps=[\"feature_engineering\", \"model_training\", \"stacking\"\
+          , \"model_evaluation\"],\n        )\n\n        model_config = {\n      \
+          \      \"preset\": preset,\n            \"eval_metric\": eval_metric,\n\
+          \            \"time_limit\": time_limit,\n        }\n\n        def retrieve_pipeline_name(name:\
+          \ str) -> str:\n            \"\"\"Strip the last dash-separated segment\
+          \ (run id / suffix) from a pipeline name.\"\"\"\n            if not name:\n\
+          \                return name\n            name = name.rstrip(\"-\")\n  \
+          \          if \"-\" not in name:\n                return name\n        \
+          \    tokens = name.split(\"-\")\n            return \"-\".join(tokens[:-1])\
+          \ if len(tokens) > 1 else tokens[0]\n\n        pipeline_name_trimmed = retrieve_pipeline_name(pipeline_name)\n\
+          \n        # Strip label column from sample row -- same for all models\n\
+          \        sample_row_formatted = [\n            {col: value for col, value\
+          \ in row.items() if col != predictor.label} for row in sample_row_list\n\
+          \        ]\n\n        problem_type = predictor.problem_type\n        match\
+          \ problem_type:\n            case \"regression\":\n                notebook_file\
+          \ = \"regression_notebook.ipynb\"\n            case \"binary\" | \"multiclass\"\
+          :\n                notebook_file = \"classification_notebook.ipynb\"\n \
+          \           case _:\n                raise ValueError(f\"Invalid problem\
+          \ type: {problem_type}\")\n\n        model_names_full = [m + \"_FULL\" for\
+          \ m in top_models]\n\n        # 2. models refit stage\n\n        # Clone\
+          \ once to PVC (same filesystem as predictor_path) to avoid S3 FUSE file-dropping\n\
+          \        # during shutil.copytree inside predictor.clone().\n        work_path\
+          \ = predictor_path.parent / \"refit_work\"\n        predictor_clone = predictor.clone(path=work_path,\
+          \ return_clone=True, dirs_exist_ok=True)\n\n        # Refit all top models\
+          \ in a single call:  AutoGluon resolves stacking dependencies internally.\n\
+          \        status.record(\"refit_full\", \"started\")\n        predictor_clone.refit_full(model=top_models,\
+          \ train_data_extra=extra_train_df)\n        status.record(\"refit_full\"\
+          , \"completed\", model_count=len(model_names_full))\n\n        def replace_placeholder_in_notebook(notebook,\
+          \ replacements):\n            for cell in notebook.get(\"cells\", []):\n\
+          \                if cell.get(\"cell_type\") != \"code\":\n             \
+          \       continue\n                new_source = []\n                for line\
+          \ in cell.get(\"source\", []):\n                    for placeholder, value\
+          \ in replacements.items():\n                        line = line.replace(placeholder,\
+          \ value)\n                    new_source.append(line)\n                cell[\"\
+          source\"] = new_source\n            return notebook\n\n        def _scalar_eval_metrics(eval_results:\
+          \ dict) -> dict:\n            \"\"\"Keep only finite scalar scores for metrics.json\
+          \ (KFP-safe).\"\"\"\n            metrics = {}\n            for key, value\
+          \ in eval_results.items():\n                if isinstance(value, float)\
+          \ and (math.isnan(value) or math.isinf(value)):\n                    continue\n\
+          \                if hasattr(value, \"item\"):\n                    value\
+          \ = float(value)\n                    if math.isnan(value) or math.isinf(value):\n\
+          \                        continue\n                if isinstance(value,\
+          \ (int, float)):\n                    metrics[key] = value\n           \
+          \ return metrics\n\n        def _confusion_matrix_to_dict(confusion_matrix_res)\
+          \ -> dict | None:\n            if confusion_matrix_res is None:\n      \
+          \          return None\n            if hasattr(confusion_matrix_res, \"\
+          to_dict\"):\n                return confusion_matrix_res.to_dict()\n   \
+          \         if isinstance(confusion_matrix_res, dict):\n                return\
+          \ confusion_matrix_res\n            raise TypeError(f\"Unexpected confusion_matrix\
+          \ type: {type(confusion_matrix_res)!r}\")\n\n        def _serialize_curve_array(values:\
+          \ Any) -> list[float]:\n            return [float(v) for v in np.asarray(values).tolist()]\n\
+          \n        def _serialize_curve_thresholds(values: Any) -> list[float | str]:\n\
+          \            serialized: list[float | str] = []\n            for value in\
+          \ np.asarray(values).tolist():\n                if isinstance(value, (float,\
+          \ np.floating)) and np.isposinf(value):\n                    serialized.append(\"\
+          inf\")\n                elif isinstance(value, (float, np.floating)) and\
+          \ np.isneginf(value):\n                    serialized.append(\"-inf\")\n\
+          \                else:\n                    serialized.append(float(value))\n\
+          \            return serialized\n\n        def _binarize_labels(y_true, positive_label:\
+          \ Any) -> np.ndarray:\n            import pandas as pd\n\n            labels\
+          \ = y_true if isinstance(y_true, pd.Series) else pd.Series(y_true)\n   \
+          \         return (labels == positive_label).astype(int).to_numpy()\n\n \
+          \       def _resolve_positive_column(classes: list[Any], positive_class:\
+          \ Any | None) -> Any:\n            if positive_class is not None and positive_class\
+          \ in classes:\n                return positive_class\n            if len(classes)\
+          \ == 2:\n                logger.warning(\n                    \"positive_class\
+          \ not specified for binary classification; defaulting to %r as positive\
+          \ class \"\n                    \"(available classes: %r). Set positive_class\
+          \ explicitly for clarity.\",\n                    classes[1],\n        \
+          \            classes,\n                )\n                return classes[1]\n\
+          \            raise ValueError(\n                f\"Cannot resolve positive\
+          \ class from proba columns {classes!r}; \"\n                f\"pass positive_class\
+          \ explicitly (got {positive_class!r}).\"\n            )\n\n        def _roc_curve_block(y_true_binary:\
+          \ np.ndarray, y_score: np.ndarray) -> dict[str, Any]:\n            import\
+          \ math\n\n            from sklearn.metrics import roc_auc_score, roc_curve\n\
+          \n            fpr, tpr, thresholds = roc_curve(y_true_binary, y_score)\n\
+          \            auc = float(roc_auc_score(y_true_binary, y_score))\n\n    \
+          \        if math.isnan(auc):\n                raise ValueError(\n      \
+          \              \"Cannot compute ROC AUC: only one class present in test\
+          \ data. \"\n                    \"ROC curves require both positive and negative\
+          \ examples.\"\n                )\n\n            return {\n             \
+          \   \"auc\": auc,\n                \"fpr\": _serialize_curve_array(fpr),\n\
+          \                \"tpr\": _serialize_curve_array(tpr),\n               \
+          \ \"thresholds\": _serialize_curve_thresholds(thresholds),\n           \
+          \ }\n\n        def _pr_curve_block(\n            y_true_binary: np.ndarray,\
+          \ y_score: np.ndarray, baseline_precision: float\n        ) -> dict[str,\
+          \ Any]:\n            import math\n\n            from sklearn.metrics import\
+          \ average_precision_score, precision_recall_curve\n\n            precision,\
+          \ recall, thresholds = precision_recall_curve(y_true_binary, y_score)\n\
+          \            average_precision = float(average_precision_score(y_true_binary,\
+          \ y_score))\n\n            if math.isnan(average_precision):\n         \
+          \       raise ValueError(\n                    \"Cannot compute precision-recall\
+          \ curve: only one class present in test data. \"\n                    \"\
+          Precision-recall curves require both positive and negative examples.\"\n\
+          \                )\n\n            return {\n                \"average_precision\"\
+          : average_precision,\n                \"precision\": _serialize_curve_array(precision),\n\
+          \                \"recall\": _serialize_curve_array(recall),\n         \
+          \       \"thresholds\": _serialize_curve_array(thresholds),\n          \
+          \      \"baseline_precision\": baseline_precision,\n            }\n\n  \
+          \      def _macro_weighted_curve_metric(values: list[float], weights: list[int])\
+          \ -> float:\n            if not values:\n                return 0.0\n  \
+          \          if sum(weights) == 0:\n                return float(np.mean(values))\n\
+          \            return float(np.average(values, weights=weights))\n\n     \
+          \   def _build_binary_curves_json(y_true, proba_df, positive_class: Any\
+          \ | None) -> dict[str, Any]:\n            classes = list(proba_df.columns)\n\
+          \            positive_label = _resolve_positive_column(classes, positive_class)\n\
+          \            y_true_binary = _binarize_labels(y_true, positive_label)\n\
+          \            y_score = proba_df[positive_label].to_numpy()\n           \
+          \ num_positive = int(y_true_binary.sum())\n            num_samples = len(y_true_binary)\n\
+          \            roc_block = _roc_curve_block(y_true_binary, y_score)\n    \
+          \        roc_block[\"support\"] = num_positive\n            pr_block = _pr_curve_block(\n\
+          \                y_true_binary,\n                y_score,\n            \
+          \    baseline_precision=num_positive / num_samples if num_samples else 0.0,\n\
+          \            )\n            pr_block[\"support\"] = num_positive\n     \
+          \       return {\n                \"task_type\": \"binary\",\n         \
+          \       \"positive_class\": positive_label.item() if hasattr(positive_label,\
+          \ \"item\") else positive_label,\n                \"num_samples\": num_samples,\n\
+          \                \"num_positive\": num_positive,\n                \"num_negative\"\
+          : num_samples - num_positive,\n                \"roc_curve\": roc_block,\n\
+          \                \"precision_recall_curve\": pr_block,\n            }\n\n\
+          \        def _build_multiclass_curves_json(y_true, proba_df) -> dict[str,\
+          \ Any]:\n            classes = list(proba_df.columns)\n            num_samples\
+          \ = len(y_true)\n            per_class_roc: dict[str, dict[str, Any]] =\
+          \ {}\n            per_class_pr: dict[str, dict[str, Any]] = {}\n       \
+          \     roc_aucs: list[float] = []\n            ap_scores: list[float] = []\n\
+          \            weights: list[int] = []\n            skipped_classes: list[str]\
+          \ = []\n\n            for label in classes:\n                key = str(label.item()\
+          \ if hasattr(label, \"item\") else label)\n                y_true_binary\
+          \ = _binarize_labels(y_true, label)\n                support = int(y_true_binary.sum())\n\
+          \                y_score = proba_df[label].to_numpy()\n                try:\n\
+          \                    roc = _roc_curve_block(y_true_binary, y_score)\n  \
+          \                  roc[\"support\"] = support\n                    per_class_roc[key]\
+          \ = roc\n                    roc_aucs.append(roc[\"auc\"])\n           \
+          \         pr = _pr_curve_block(\n                        y_true_binary,\n\
+          \                        y_score,\n                        baseline_precision=support\
+          \ / num_samples if num_samples else 0.0,\n                    )\n      \
+          \              per_class_pr[key] = pr\n                    ap_scores.append(pr[\"\
+          average_precision\"])\n                    weights.append(support)\n   \
+          \             except ValueError as e:\n                    logger.warning(\n\
+          \                        \"Skipping ROC/PR curves for class %r: %s\",\n\
+          \                        key,\n                        e,\n            \
+          \        )\n                    skipped_classes.append(key)\n\n        \
+          \    if not per_class_roc:\n                raise ValueError(\n        \
+          \            \"Cannot compute multiclass curves: no class had both positive\
+          \ and negative \"\n                    f\"examples in test data (skipped:\
+          \ {skipped_classes}).\"\n                )\n\n            serializable_classes\
+          \ = [c.item() if hasattr(c, \"item\") else c for c in classes]\n\n     \
+          \       payload: dict[str, Any] = {\n                \"task_type\": \"multiclass\"\
+          ,\n                \"strategy\": \"ovr\",\n                \"num_classes\"\
+          : len(classes),\n                \"classes\": serializable_classes,\n  \
+          \              \"num_samples\": num_samples,\n                \"roc_curve\"\
+          : {\n                    \"auc_macro\": float(np.mean(roc_aucs)),\n    \
+          \                \"auc_weighted\": _macro_weighted_curve_metric(roc_aucs,\
+          \ weights),\n                    \"per_class\": per_class_roc,\n       \
+          \         },\n                \"precision_recall_curve\": {\n          \
+          \          \"average_precision_macro\": float(np.mean(ap_scores)),\n   \
+          \                 \"average_precision_weighted\": _macro_weighted_curve_metric(ap_scores,\
+          \ weights),\n                    \"per_class\": per_class_pr,\n        \
+          \        },\n            }\n            if skipped_classes:\n          \
+          \      payload[\"skipped_classes\"] = skipped_classes\n            return\
+          \ payload\n\n        def build_curves_json(\n            y_true,\n     \
+          \       y_proba,\n            curves_task_type: str,\n            positive_class:\
+          \ Any | None = None,\n        ) -> dict[str, Any]:\n            \"\"\"Build\
+          \ curves.json for binary or multiclass classification.\"\"\"\n         \
+          \   import pandas as pd\n\n            if curves_task_type not in {\"binary\"\
+          , \"multiclass\"}:\n                raise ValueError(f\"task_type must be\
+          \ 'binary' or 'multiclass'; got {curves_task_type!r}.\")\n\n           \
+          \ y_true_series = pd.Series(y_true)\n            proba_df = y_proba if hasattr(y_proba,\
+          \ \"columns\") else pd.DataFrame(y_proba)\n\n            if curves_task_type\
+          \ == \"binary\":\n                return _build_binary_curves_json(y_true_series,\
+          \ proba_df, positive_class)\n            return _build_multiclass_curves_json(y_true_series,\
+          \ proba_df)\n\n        def _process_model(model_name_full: str) -> tuple[str,\
+          \ dict]:\n            \"\"\"Compute metrics and write metric files + notebook\
+          \ for one refitted model.\n\n            Safe to run concurrently across\
+          \ models: only reads from the shared predictor\n            and test data,\
+          \ and writes to isolated per-model directories under\n            models_artifact.path.\
+          \ Does NOT call set_model_best / clone_for_deployment,\n            which\
+          \ mutate predictor state and must stay sequential.\n\n            Returns\
+          \ (model_name_full, eval_results).\n            \"\"\"\n            output_path\
+          \ = Path(models_artifact.path) / model_name_full\n            y_true = test_data_df[predictor.label]\n\
+          \n            if problem_type in {\"binary\", \"multiclass\"}:\n       \
+          \         y_proba = predictor_clone.predict_proba(test_data_df, model=model_name_full)\n\
+          \                eval_results = predictor_clone.evaluate_predictions(\n\
+          \                    y_true=y_true,\n                    y_pred=y_proba,\n\
+          \                    detailed_report=True,\n                )\n        \
+          \        confusion_matrix_dict = _confusion_matrix_to_dict(eval_results.pop(\"\
+          confusion_matrix\", None))\n                eval_results.pop(\"classification_report\"\
+          , None)\n            else:\n                y_proba = None\n           \
+          \     predictions = predictor_clone.predict(test_data_df, model=model_name_full)\n\
+          \                eval_results = predictor_clone.evaluate_predictions(y_true=y_true,\
+          \ y_pred=predictions)\n                confusion_matrix_dict = None\n\n\
+          \            feature_importance = predictor_clone.feature_importance(\n\
+          \                test_data_df, model=model_name_full, subsample_size=2000\n\
+          \            )\n            metrics_for_json = _scalar_eval_metrics(eval_results)\n\
+          \n            (output_path / \"metrics\").mkdir(parents=True, exist_ok=True)\n\
+          \            with (output_path / \"metrics\" / \"metrics.json\").open(\"\
+          w\") as f:\n                json.dump(metrics_for_json, f)\n           \
+          \ with (output_path / \"metrics\" / \"feature_importance.json\").open(\"\
+          w\") as f:\n                json.dump(feature_importance.to_dict(), f)\n\
+          \n            if confusion_matrix_dict is not None:\n                with\
+          \ (output_path / \"metrics\" / \"confusion_matrix.json\").open(\"w\") as\
+          \ f:\n                    json.dump(confusion_matrix_dict, f)\n\n      \
+          \      if y_proba is not None:\n                try:\n                 \
+          \   curves_payload = build_curves_json(\n                        y_true=y_true,\n\
+          \                        y_proba=y_proba,\n                        curves_task_type=problem_type,\n\
+          \                        positive_class=getattr(predictor_clone, \"positive_class\"\
+          , None),\n                    )\n                    with (output_path /\
+          \ \"metrics\" / \"curves.json\").open(\"w\") as f:\n                   \
+          \     json.dump(curves_payload, f)\n                except ValueError as\
+          \ e:\n                    logger.warning(\n                        \"Could\
+          \ not generate curves.json for model %r: %s. Skipping curve generation.\"\
+          ,\n                        model_name_full,\n                        str(e),\n\
+          \                    )\n\n            with (shared_automl_dir() / \"notebook_templates\"\
+          \ / notebook_file).open(\"r\", encoding=\"utf-8\") as f:\n             \
+          \   notebook = json.load(f)\n            replacements = {\n            \
+          \    \"<REPLACE_RUN_ID>\": run_id,\n                \"<REPLACE_PIPELINE_NAME>\"\
+          : pipeline_name_trimmed,\n                \"<REPLACE_MODEL_NAME>\": model_name_full,\n\
+          \                \"<REPLACE_SAMPLE_ROW>\": str(sample_row_formatted),\n\
+          \            }\n            notebook = replace_placeholder_in_notebook(notebook,\
+          \ replacements)\n            notebook_path = output_path / \"notebooks\"\
+          \n            notebook_path.mkdir(parents=True, exist_ok=True)\n       \
+          \     with (notebook_path / \"automl_predictor_notebook.ipynb\").open(\"\
+          w\", encoding=\"utf-8\") as f:\n                json.dump(notebook, f)\n\
+          \n            return model_name_full, metrics_for_json\n\n        # Phase\
+          \ A: metrics + notebooks - all models run concurrently.\n        with ThreadPoolExecutor(max_workers=len(model_names_full))\
+          \ as executor:\n            futures = [executor.submit(_process_model, name)\
+          \ for name in model_names_full]\n            eval_results_by_model = dict(f.result()\
+          \ for f in futures)\n\n        # Phase B: clone for deployment - sequential\
+          \ because set_model_best mutates predictor state.\n        for model_name_full\
+          \ in model_names_full:\n            output_path = Path(models_artifact.path)\
+          \ / model_name_full\n            predictor_clone.set_model_best(model=model_name_full,\
+          \ save_trainer=True)\n            predictor_clone.clone_for_deployment(path=output_path\
+          \ / \"predictor\", dirs_exist_ok=True)\n\n        shutil.rmtree(work_path,\
+          \ ignore_errors=True)\n\n        # Build ordered models_metadata (preserves\
+          \ top-N ranking order).\n        models_metadata = []\n        for model_name_full\
+          \ in model_names_full:\n            eval_results = eval_results_by_model[model_name_full]\n\
+          \            model_metadata = {\n                \"name\": model_name_full,\n\
+          \                \"location\": {\n                    \"model_directory\"\
+          : model_name_full,\n                    \"predictor\": str(Path(model_name_full)\
+          \ / \"predictor\"),\n                    \"notebook\": str(Path(model_name_full)\
+          \ / \"notebooks\" / \"automl_predictor_notebook.ipynb\"),\n            \
+          \        \"metrics\": str(Path(model_name_full) / \"metrics\"),\n      \
+          \          },\n                \"metrics\": {\n                    \"test_data\"\
+          : eval_results,\n                },\n            }\n            models_metadata.append(model_metadata)\n\
+          \            with (Path(models_artifact.path) / model_name_full / \"model.json\"\
+          ).open(\"w\", encoding=\"utf-8\") as f:\n                json.dump(model_metadata,\
+          \ f, indent=2)\n\n        # Serialize as a JSON string and parse back in\
+          \ downstream components.\n        models_artifact.metadata[\"model_names\"\
+          ] = json.dumps(model_names_full)\n        models_artifact.metadata[\"context\"\
+          ] = {\n            \"data_config\": {\n                \"sampling_config\"\
+          : sampling_config,\n                \"split_config\": split_config,\n  \
+          \          },\n            \"task_type\": problem_type,\n            \"\
+          label_column\": predictor.label,\n            \"model_config\": model_config,\n\
+          \            \"models\": models_metadata,\n        }\n\n        status.record(\"\
+          evaluate_models\", \"completed\", eval_metric=str(predictor.eval_metric))\n\
+          \        component_status.metadata[\"display_name\"] = \"Models Training\
+          \ Status\"\n\n    return NamedTuple(\"outputs\", eval_metric=str)(eval_metric=eval_metric)\n\
+          \n"
+        image: quay.io/opendatahub/odh-automl:odh-stable
+        resources:
+          cpuLimit: 32.0
+          cpuRequest: 8.0
+          memoryLimit: 68.719476736
+          memoryRequest: 34.359738368
+          resourceCpuLimit: '32'
+          resourceCpuRequest: '8'
+          resourceMemoryLimit: 64Gi
+          resourceMemoryRequest: 32Gi
     exec-automl-data-loader:
       container:
         args:
@@ -1119,6 +1998,131 @@ deploymentSpec:
           resourceCpuRequest: '1'
           resourceMemoryLimit: 64Gi
           resourceMemoryRequest: 4Gi
+    exec-leaderboard-evaluation-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - leaderboard_evaluation
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef leaderboard_evaluation(\n    models_artifact: dsl.Input[dsl.Model],\n\
+          \    eval_metric: str,\n    html_artifact: dsl.Output[dsl.HTML],\n    component_status:\
+          \ dsl.Output[dsl.Artifact],\n) -> NamedTuple(\"outputs\", best_model=str):\n\
+          \    \"\"\"Evaluate refitted AutoGluon models and generate a leaderboard.\n\
+          \n    This component reads pre-computed metrics from a combined models artifact\n\
+          \    produced by ``autogluon_models_training`` and generates an HTML-formatted\n\
+          \    leaderboard ranking the models by their performance metric.\n\n   \
+          \ The artifact layout expected under ``models_artifact.path``::\n\n    \
+          \    models_artifact.path /\n          <model_name>_FULL /\n           \
+          \ metrics / metrics.json\n            predictor / predictor.pkl\n      \
+          \      notebooks / automl_predictor_notebook.ipynb\n\n    ``models_artifact.metadata[\"\
+          model_names\"]`` must contain the list of\n    refitted model display names\
+          \ (e.g. ``[\"LightGBM_BAG_L1_FULL\", ...]``).\n\n    Args:\n        models_artifact:\
+          \ Combined Model artifact from ``autogluon_models_training``\n         \
+          \   with ``metadata[\"model_names\"]`` and per-model subdirectories.\n \
+          \       eval_metric: Metric name for ranking (e.g. ``\"accuracy\"``, ``\"\
+          root_mean_squared_error\"``);\n            leaderboard sorted descending\
+          \ (AutoGluon uses higher-is-better convention).\n        html_artifact:\
+          \ Output artifact for the HTML-formatted leaderboard.\n        component_status:\
+          \ Output artifact with stage progress (``component_status.json``).\n   \
+          \         KFP creates this automatically when the component is used inside\
+          \ a pipeline.\n\n    Raises:\n        FileNotFoundError: If any model metrics\
+          \ path cannot be found.\n        KeyError: If ``metadata[\"model_names\"\
+          ]`` is missing or metrics JSON lacks\n            the ``eval_metric`` key.\n\
+          \n    Example:\n        from kfp import dsl\n        from components.training.automl.autogluon_leaderboard_evaluation\
+          \ import (\n            leaderboard_evaluation\n        )\n\n        @dsl.pipeline(name=\"\
+          model-evaluation-pipeline\")\n        def evaluation_pipeline(models_artifact):\n\
+          \            # component_status is wired by KFP; callers do not pass it\
+          \ explicitly.\n            leaderboard = leaderboard_evaluation(\n     \
+          \           models_artifact=models_artifact,\n                eval_metric=\"\
+          root_mean_squared_error\",\n            )\n            return leaderboard\n\
+          \    \"\"\"  # noqa: E501\n    import importlib.resources\n    import json\n\
+          \    import logging\n    from pathlib import Path\n\n    import pandas as\
+          \ pd\n    from kfp_components.components.training.automl.shared.component_status\
+          \ import ComponentStatusTracker\n    from kfp_components.components.training.automl.shared.leaderboard_utils\
+          \ import (\n        _build_leaderboard_html,\n        _build_leaderboard_table,\n\
+          \        _round_metrics,\n    )\n\n    # Initialize status tracker\n   \
+          \ status = ComponentStatusTracker(component_status.path, \"leaderboard_evaluation\"\
+          )\n    with status:\n        logger = logging.getLogger(__name__)\n\n  \
+          \      # Stage: build_leaderboard\n        status.record(\"build_leaderboard\"\
+          , \"started\")\n\n        # Input validation\n        if not isinstance(eval_metric,\
+          \ str) or not eval_metric.strip():\n            raise TypeError(\"eval_metric\
+          \ must be a non-empty string.\")\n        model_names_raw = models_artifact.metadata.get(\"\
+          model_names\", \"[]\")\n        # KFP/MLMD serializes lists as JSON strings\
+          \ to avoid the {\"list\": [...]} round-trip bug.\n        model_names =\
+          \ json.loads(model_names_raw) if isinstance(model_names_raw, str) else list(model_names_raw)\n\
+          \        if not model_names:\n            raise KeyError(\"models_artifact.metadata\
+          \ must contain a non-empty 'model_names' list.\")\n\n        results = []\n\
+          \        base_uri = models_artifact.uri.rstrip(\"/\")\n        for display_name\
+          \ in model_names:\n            metrics_path = Path(models_artifact.path)\
+          \ / display_name / \"metrics\" / \"metrics.json\"\n            if not metrics_path.exists():\n\
+          \                logger.warning(\n                    \"Skipping model '%s':\
+          \ no metrics/metrics.json found. \"\n                    \"The refit task\
+          \ may have failed for this model.\",\n                    display_name,\n\
+          \                )\n                continue\n            with metrics_path.open(\"\
+          r\") as f:\n                eval_results = json.load(f)\n            model_uri\
+          \ = f\"{base_uri}/{display_name}\"\n            predictor_uri = f\"{model_uri}/predictor\"\
+          \n            notebook_uri = f\"{model_uri}/notebooks/automl_predictor_notebook.ipynb\"\
+          \n            results.append(\n                {\n                    \"\
+          model\": display_name,\n                    **_round_metrics(eval_results),\n\
+          \                    \"notebook\": notebook_uri,\n                    \"\
+          predictor\": predictor_uri,\n                }\n            )\n\n      \
+          \  if not results:\n            raise ValueError(\n                \"No\
+          \ valid model artifacts found. All models may have failed or produced no\
+          \ metrics/metrics.json output.\"\n            )\n\n        # Notice: AutoGluon\
+          \ follows the \"higher is better\" strategy for all metrics.\n        #\
+          \ This means that some metrics\u2014like log_loss and root_mean_squared_error\u2014\
+          will have their signs FLIPPED and are shown as negative. # noqa: E501\n\
+          \        # This is to ensure that a higher value always means a better model,\
+          \ so users do not need to know about the metric's normal directionality\
+          \ when interpreting the leaderboard. # noqa: E501\n        leaderboard_df\
+          \ = pd.DataFrame(results).sort_values(by=eval_metric, ascending=False)\n\
+          \        n = len(leaderboard_df)\n        leaderboard_df.index = pd.RangeIndex(start=1,\
+          \ stop=n + 1, name=\"rank\")\n\n        html_table = _build_leaderboard_table(leaderboard_df)\n\
+          \n        best_model_name = leaderboard_df.iloc[0][\"model\"]\n        _template_ref\
+          \ = (\n            importlib.resources.files(\"kfp_components.components.training.automl.shared\"\
+          )\n            / \"leaderboard_html_template.html\"\n        )\n       \
+          \ with importlib.resources.as_file(_template_ref) as template_path:\n  \
+          \          html_content = _build_leaderboard_html(\n                template_path=template_path,\n\
+          \                table_html=html_table,\n                eval_metric=eval_metric,\n\
+          \                best_model_name=best_model_name,\n                num_models=len(leaderboard_df),\n\
+          \            )\n        with open(html_artifact.path, \"w\", encoding=\"\
+          utf-8\") as f:\n            f.write(html_content)\n\n        html_artifact.metadata[\"\
+          data\"] = leaderboard_df.to_dict()\n        html_artifact.metadata[\"display_name\"\
+          ] = \"automl_leaderboard\"\n        status.record(\n            \"build_leaderboard\"\
+          ,\n            \"completed\",\n            best_model=best_model_name,\n\
+          \            model_count=len(leaderboard_df),\n        )\n        component_status.metadata[\"\
+          display_name\"] = \"Leaderboard Evaluation Status\"\n    return NamedTuple(\"\
+          outputs\", best_model=str)(best_model=best_model_name)\n\n"
+        image: quay.io/opendatahub/odh-automl:odh-stable
+        resources:
+          cpuLimit: 32.0
+          cpuRequest: 1.0
+          memoryLimit: 68.719476736
+          memoryRequest: 4.294967296
+          resourceCpuLimit: '32'
+          resourceCpuRequest: '1'
+          resourceMemoryLimit: 64Gi
+          resourceMemoryRequest: 4Gi
     exec-publish-component-stage-map:
       container:
         args:
@@ -1207,60 +2211,6 @@ pipelineInfo:
 root:
   dag:
     tasks:
-      autogluon-models-training:
-        cachingOptions: {}
-        componentRef:
-          name: comp-autogluon-models-training
-        dependentTasks:
-        - automl-data-loader
-        inputs:
-          artifacts:
-            test_data:
-              taskOutputArtifact:
-                outputArtifactKey: sampled_test_dataset
-                producerTask: automl-data-loader
-          parameters:
-            eval_metric:
-              componentInputParameter: eval_metric
-            extra_train_data_path:
-              taskOutputParameter:
-                outputParameterKey: extra_train_data_path
-                producerTask: automl-data-loader
-            label_column:
-              componentInputParameter: label_column
-            pipeline_name:
-              runtimeValue:
-                constant: '{{$.pipeline_job_resource_name}}'
-            positive_class:
-              componentInputParameter: positive_class
-            run_id:
-              runtimeValue:
-                constant: '{{$.pipeline_job_uuid}}'
-            sample_row:
-              taskOutputParameter:
-                outputParameterKey: sample_row
-                producerTask: automl-data-loader
-            sampling_config:
-              taskOutputParameter:
-                outputParameterKey: sample_config
-                producerTask: automl-data-loader
-            split_config:
-              taskOutputParameter:
-                outputParameterKey: split_config
-                producerTask: automl-data-loader
-            task_type:
-              componentInputParameter: task_type
-            top_n:
-              componentInputParameter: top_n
-            train_data_path:
-              taskOutputParameter:
-                outputParameterKey: models_selection_train_data_path
-                producerTask: automl-data-loader
-            workspace_path:
-              runtimeValue:
-                constant: '{{$.workspace_path}}'
-        taskInfo:
-          name: autogluon-models-training
       automl-data-loader:
         cachingOptions: {}
         componentRef:
@@ -1282,25 +2232,52 @@ root:
                 constant: '{{$.workspace_path}}'
         taskInfo:
           name: automl-data-loader
-      leaderboard-evaluation:
-        cachingOptions: {}
+      condition-branches-1:
         componentRef:
-          name: comp-leaderboard-evaluation
+          name: comp-condition-branches-1
         dependentTasks:
-        - autogluon-models-training
+        - automl-data-loader
         inputs:
           artifacts:
-            models_artifact:
+            pipelinechannel--automl-data-loader-sampled_test_dataset:
               taskOutputArtifact:
-                outputArtifactKey: models_artifact
-                producerTask: autogluon-models-training
+                outputArtifactKey: sampled_test_dataset
+                producerTask: automl-data-loader
           parameters:
-            eval_metric:
+            pipelinechannel--automl-data-loader-extra_train_data_path:
               taskOutputParameter:
-                outputParameterKey: eval_metric
-                producerTask: autogluon-models-training
+                outputParameterKey: extra_train_data_path
+                producerTask: automl-data-loader
+            pipelinechannel--automl-data-loader-models_selection_train_data_path:
+              taskOutputParameter:
+                outputParameterKey: models_selection_train_data_path
+                producerTask: automl-data-loader
+            pipelinechannel--automl-data-loader-sample_config:
+              taskOutputParameter:
+                outputParameterKey: sample_config
+                producerTask: automl-data-loader
+            pipelinechannel--automl-data-loader-sample_row:
+              taskOutputParameter:
+                outputParameterKey: sample_row
+                producerTask: automl-data-loader
+            pipelinechannel--automl-data-loader-split_config:
+              taskOutputParameter:
+                outputParameterKey: split_config
+                producerTask: automl-data-loader
+            pipelinechannel--eval_metric:
+              componentInputParameter: eval_metric
+            pipelinechannel--label_column:
+              componentInputParameter: label_column
+            pipelinechannel--positive_class:
+              componentInputParameter: positive_class
+            pipelinechannel--preset:
+              componentInputParameter: preset
+            pipelinechannel--task_type:
+              componentInputParameter: task_type
+            pipelinechannel--top_n:
+              componentInputParameter: top_n
         taskInfo:
-          name: leaderboard-evaluation
+          name: condition-branches-1
       publish-component-stage-map:
         cachingOptions: {}
         componentRef:
@@ -1328,8 +2305,15 @@ root:
         description: Name of the target/label column in the dataset.
         parameterType: STRING
       positive_class:
+        defaultValue: ''
         description: Optional label value for the positive class in binary classification.
           Defaults to the second unique class after sorting label values.
+        isOptional: true
+        parameterType: STRING
+      preset:
+        defaultValue: speed
+        description: Training quality tier. "speed" (default, 8 vCPU / 32 GiB) or
+          "balanced" (may run more than 2x longer, 16 vCPU / 64 GiB).
         isOptional: true
         parameterType: STRING
       task_type:
