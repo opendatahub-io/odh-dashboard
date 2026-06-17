@@ -32,6 +32,7 @@ type PoliciesRepositoryInterface interface {
 
 // MaaSModelRefsRepositoryInterface defines the contract for MaaSModelRef operations.
 type MaaSModelRefsRepositoryInterface interface {
+	ListMaaSModelRefs(ctx context.Context) ([]models.MaaSModelRefSummary, error)
 	CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error)
 	UpdateMaaSModelRef(ctx context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error)
 	DeleteMaaSModelRef(ctx context.Context, namespace, name string, dryRun bool) error

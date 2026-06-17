@@ -39,7 +39,10 @@ const useAgentProfileUrlParam = ({
 
   const applyAgentProfile = useChatbotConfigStore((s) => s.applyAgentProfile);
   const updateActivePrompt = useChatbotConfigStore((s) => s.updateActivePrompt);
+  const updateSystemInstruction = useChatbotConfigStore((s) => s.updateSystemInstruction);
   const saveToolSelections = useChatbotConfigStore((s) => s.saveToolSelections);
+  // Skip re-fetching when handleProfileSaved already applied this profile (e.g. after Save/Save As)
+  const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -53,7 +56,8 @@ const useAgentProfileUrlParam = ({
       !namespace?.name ||
       !apiAvailable ||
       !mcpServersLoaded ||
-      appliedProfileId.current === agentProfileId
+      appliedProfileId.current === agentProfileId ||
+      loadedProfileId === agentProfileId
     ) {
       return;
     }
@@ -67,17 +71,22 @@ const useAgentProfileUrlParam = ({
       .then((profile) => {
         const { config, promptRef, mcpToolsPending } = deserializeAgentProfile(profile, {
           playgroundModels,
+          mcpServers,
         });
 
-        applyAgentProfile(config);
+        applyAgentProfile(
+          config,
+          agentProfileId,
+          profile.spec.displayName,
+          profile.spec.description,
+        );
 
-        // Restore MCP tool selections — mcpServers is guaranteed loaded at this point
+        // Restore MCP tool selections — mcpServers is guaranteed loaded at this point.
+        // mcpToolsPending is now keyed by server URL (same canonical format as
+        // selectedMcpServerIds), so no secondary name→URL lookup is needed here.
         if (mcpToolsPending) {
-          for (const [serverName, tools] of Object.entries(mcpToolsPending)) {
-            const server = mcpServers.find((s) => s.name === serverName);
-            if (server) {
-              saveToolSelections(DEFAULT_CONFIG_ID, namespace.name, server.url, tools);
-            }
+          for (const [serverUrl, tools] of Object.entries(mcpToolsPending)) {
+            saveToolSelections(DEFAULT_CONFIG_ID, namespace.name, serverUrl, tools);
           }
         }
 
@@ -89,6 +98,9 @@ const useAgentProfileUrlParam = ({
             .getMLflowPrompt({ name: promptRef.name, ...versionParam })
             .then((prompt) => {
               updateActivePrompt(DEFAULT_CONFIG_ID, prompt);
+              const instruction =
+                prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
+              updateSystemInstruction(DEFAULT_CONFIG_ID, instruction);
             })
             .catch((promptErr) => {
               // Prompt load failure is non-fatal — the rest of the profile is already applied
@@ -109,11 +121,13 @@ const useAgentProfileUrlParam = ({
     namespace?.name,
     apiAvailable,
     mcpServersLoaded,
+    loadedProfileId,
     api,
     playgroundModels,
     mcpServers,
     applyAgentProfile,
     updateActivePrompt,
+    updateSystemInstruction,
     saveToolSelections,
   ]);
 

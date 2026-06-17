@@ -74,7 +74,13 @@ const roundTrip = (
     serializeCtx,
   );
   const profile = wrapSpec(spec);
-  return deserializeAgentProfile(profile, deserializeCtx ?? { playgroundModels: [] });
+  // Pass the same server list to deserialize so that ConfigMap key names are resolved
+  // back to runtime URLs — the same canonical identifier used by the store and serialize.
+  const ctx: AgentProfileDeserializationContext = deserializeCtx ?? {
+    playgroundModels: [],
+    mcpServers: serializeCtx.mcpServers,
+  };
+  return deserializeAgentProfile(profile, ctx);
 };
 
 describe('serialize → deserialize round-trip', () => {
@@ -156,7 +162,7 @@ describe('serialize → deserialize round-trip', () => {
     const server = makeMcpServer();
     const config: ChatbotConfiguration = {
       ...DEFAULT_CONFIGURATION,
-      selectedMcpServerIds: ['weather-server'],
+      selectedMcpServerIds: ['http://weather-mcp.svc/sse'],
       mcpToolSelections: {
         'default-ns': { 'http://weather-mcp.svc/sse': ['get_forecast', 'get_alerts'] },
       },
@@ -167,8 +173,12 @@ describe('serialize → deserialize round-trip', () => {
       mcpConfigMapName: 'mcp-servers-config',
     });
 
-    expect(restored.selectedMcpServerIds).toEqual(['weather-server']);
-    expect(mcpToolsPending).toEqual({ 'weather-server': ['get_forecast', 'get_alerts'] });
+    // Both selectedMcpServerIds and mcpToolsPending keys must use the same URL-based
+    // canonical identifier so that a subsequent Save round-trip produces identical output.
+    expect(restored.selectedMcpServerIds).toEqual(['http://weather-mcp.svc/sse']);
+    expect(mcpToolsPending).toEqual({
+      'http://weather-mcp.svc/sse': ['get_forecast', 'get_alerts'],
+    });
   });
 
   it('should always produce cleared guardrail state (unsupported mapping)', () => {

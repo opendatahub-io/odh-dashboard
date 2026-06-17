@@ -14,6 +14,7 @@ import {
   resolveEvalMetric,
   computeRankMap,
   findEquivalentMetric,
+  findTrainingTaskPrefix,
   generateReconfigureName,
 } from '~/app/utilities/utils';
 
@@ -645,5 +646,57 @@ describe('generateReconfigureName', () => {
     const hugeNum = '1'.repeat(260); // 260-digit number
     const result = generateReconfigureName(`run - ${hugeNum}`);
     expect(Array.from(result).length).toBeLessThanOrEqual(250);
+  });
+});
+
+describe('findTrainingTaskPrefix', () => {
+  it('should match a directory starting with the pattern', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/automl-data-loader/' },
+      { prefix: 'pipeline/run-id/autogluon-models-training-2/' },
+      { prefix: 'pipeline/run-id/leaderboard-evaluation-2/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBe(
+      'pipeline/run-id/autogluon-models-training-2',
+    );
+  });
+
+  it('should match the exact pattern name without suffix', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/autogluon-models-training/' },
+      { prefix: 'pipeline/run-id/leaderboard-evaluation/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBe(
+      'pipeline/run-id/autogluon-models-training',
+    );
+  });
+
+  it('should return undefined when no directory matches', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/automl-data-loader/' },
+      { prefix: 'pipeline/run-id/leaderboard-evaluation/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBeUndefined();
+  });
+
+  it('should return undefined for an empty array', () => {
+    expect(findTrainingTaskPrefix([], 'autogluon-models-training')).toBeUndefined();
+  });
+
+  it('should match timeseries training pattern', () => {
+    const prefixes = [{ prefix: 'ts-pipeline/run-id/autogluon-timeseries-models-training/' }];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-timeseries-models-training')).toBe(
+      'ts-pipeline/run-id/autogluon-timeseries-models-training',
+    );
+  });
+
+  it('should return the first match when multiple directories match', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/autogluon-models-training/' },
+      { prefix: 'pipeline/run-id/autogluon-models-training-2/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBe(
+      'pipeline/run-id/autogluon-models-training',
+    );
   });
 });
