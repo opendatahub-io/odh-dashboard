@@ -84,6 +84,12 @@ export interface ChatbotConfigStoreState {
    * Use this to drive loaded-profile UI state (e.g. header indicators, save/discard flows).
    */
   profileApplied: boolean;
+  /** UUID of the currently loaded AgentProfile, or null when no profile is loaded. */
+  loadedProfileId: string | null;
+  /** displayName of the currently loaded AgentProfile, for pre-filling the Save modal. */
+  loadedProfileDisplayName: string | null;
+  /** description of the currently loaded AgentProfile, for pre-filling the Save modal. */
+  loadedProfileDescription: string | null;
 }
 
 /**
@@ -146,7 +152,12 @@ export interface ChatbotConfigStoreActions {
    * profileApplied: true so the knowledge-mode sync effect in ChatbotConfigInstance
    * knows not to clear an external vector store ID that came from the profile.
    */
-  applyAgentProfile: (config: Partial<ChatbotConfiguration>) => void;
+  applyAgentProfile: (
+    config: Partial<ChatbotConfiguration>,
+    profileId?: string,
+    displayName?: string,
+    description?: string,
+  ) => void;
 
   // Utility
   getConfiguration: (id: string) => ChatbotConfiguration | undefined;
