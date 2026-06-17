@@ -3,6 +3,7 @@ import type {
   OverviewSectionExtension,
   ProjectDetailsTab,
   RouteExtension,
+  TabRoutePageExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
@@ -21,6 +22,7 @@ const extensions: (
   | ProjectDetailsTab
   | RouteExtension
   | OverviewSectionExtension
+  | TabRoutePageExtension
   | TabRouteTabExtension
 )[] = [
   {
@@ -104,11 +106,26 @@ const extensions: (
       required: [SupportedArea.MODEL_SERVING],
     },
   },
+  // Model deployment settings tabbed page
+  {
+    type: 'app.tab-route/page',
+    flags: {
+      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+    },
+    properties: {
+      id: 'model-deployment-settings',
+      title: 'Model deployment settings',
+      href: '/settings/model-resources-operations/model-deployment-settings',
+      path: '/settings/model-resources-operations/model-deployment-settings/*',
+      section: 'settings-model-resources-and-operations',
+      group: '1_model-resources',
+    },
+  },
   // General settings tab in the Model deployment settings page
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
+      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
     },
     properties: {
       pageId: 'model-deployment-settings',

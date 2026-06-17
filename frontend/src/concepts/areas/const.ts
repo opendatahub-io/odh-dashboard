@@ -18,11 +18,16 @@ export const techPreviewFlags = {
   vLLMDeploymentOnMaaS: false,
   llmGatewayField: false,
   promptManagement: false,
+<<<<<<< Updated upstream
   mySubscriptions: true,
   modelDeploymentSettings: false,
+=======
+  mySubscriptions: false,
+>>>>>>> Stashed changes
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
+  modelDeploymentSettings: false,
   disableKueue: true,
   disableProjectScoped: true,
   mlflowPipelines: false,

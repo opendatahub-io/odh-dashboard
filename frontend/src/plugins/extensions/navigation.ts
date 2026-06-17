@@ -322,20 +322,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
     },
   },
   {
-    type: 'app.tab-route/page',
-    flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
-    },
-    properties: {
-      id: 'model-deployment-settings',
-      title: 'Model deployment settings',
-      href: '/settings/model-resources-operations/model-deployment-settings',
-      path: '/settings/model-resources-operations/model-deployment-settings/*',
-      section: 'settings-model-resources-and-operations',
-      group: '1_model-resources',
-    },
-  },
-  {
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
