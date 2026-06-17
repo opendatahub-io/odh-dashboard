@@ -4,7 +4,10 @@ import { CubesIcon } from '@patternfly/react-icons';
 
 const AgentDeploymentsEmptyState: React.FC = () => (
   <EmptyState
+<<<<<<< HEAD
     headingLevel="h2"
+=======
+>>>>>>> cbf3a4842 (agent list page skeleton)
     icon={CubesIcon}
     titleText="No agent deployments"
     variant={EmptyStateVariant.lg}

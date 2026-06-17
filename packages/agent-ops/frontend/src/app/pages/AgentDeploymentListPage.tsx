@@ -25,7 +25,10 @@ import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
 
 const selectProjectEmptyState = (
   <EmptyState
+<<<<<<< HEAD
     headingLevel="h2"
+=======
+>>>>>>> cbf3a4842 (agent list page skeleton)
     icon={CubesIcon}
     titleText="Select a project"
     variant={EmptyStateVariant.lg}
@@ -47,7 +50,11 @@ const AgentDeploymentListPage: React.FC = () => {
       <FlexItem>
         <Content component="p">Project</Content>
       </FlexItem>
+<<<<<<< HEAD
       <FlexItem data-testid="agent-ops-project-selector">
+=======
+      <FlexItem>
+>>>>>>> cbf3a4842 (agent list page skeleton)
         <AgentOpsProjectSelector namespace={namespace} getRedirectPath={agentOpsDeploymentsRoute} />
       </FlexItem>
       {namespace && (
@@ -73,7 +80,11 @@ const AgentDeploymentListPage: React.FC = () => {
       ) : (
         <Stack hasGutter>
           <StackItem>
+<<<<<<< HEAD
             <Toolbar inset={{ default: 'insetNone' }}>
+=======
+            <Toolbar inset={{ default: 'insetNone' }} className="pf-v6-u-w-100">
+>>>>>>> cbf3a4842 (agent list page skeleton)
               <ToolbarContent>
                 <AgentRuntimesToolbar filterText={filterText} onFilterChange={setFilterText} />
               </ToolbarContent>
