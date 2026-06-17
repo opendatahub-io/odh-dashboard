@@ -49,7 +49,7 @@ export const parseExistingSecretKeyRefs = (notebook: NotebookKind): EnvVariable[
     ([secretName, keys]): ExistingSecretRef => ({
       secretName,
       selectedKeys: keys,
-      allKeys: true,
+      allKeys: false,
     }),
   );
 

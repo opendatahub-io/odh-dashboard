@@ -173,15 +173,15 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectExistingSecret(instanceId: number, secretName: string) {
     this.findExistingSecretSelect(instanceId).click();
     this.findExistingSecretSelect(instanceId).find('input').clear().type(secretName);
-    cy.findByRole('option', { name: secretName }).click();
+    cy.findByTestId(`select-multi-typeahead-${secretName}`).click();
   }
 
-  findExistingSecretAllKeysCheckbox(instanceId: number) {
-    return this.find().findByTestId(`existing-secret-${instanceId}-all-keys`);
+  findExistingSecretAllKeysCheckbox(instanceId: number, secretName: string) {
+    return this.find().findByTestId(`existing-secret-${instanceId}-${secretName}-all-keys`);
   }
 
-  findExistingSecretKeyCheckbox(instanceId: number, key: string) {
-    return this.find().findByTestId(`existing-secret-${instanceId}-key-${key}`);
+  findExistingSecretKeyCheckbox(instanceId: number, secretName: string, key: string) {
+    return this.find().findByTestId(`existing-secret-${instanceId}-${secretName}-key-${key}`);
   }
 
   findExistingSecretSpinner() {

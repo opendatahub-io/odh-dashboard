@@ -120,12 +120,12 @@ describe('Existing Secret Environment Variables — RHOAIENG-69120/69121/69122',
 
     envField.findExistingSecretSelect(0).click();
 
-    cy.findByRole('option', { name: 'db-credentials' }).should('exist');
-    cy.findByRole('option', { name: 'api-config' }).should('exist');
-    cy.findByRole('option', { name: 'conn-protocol' }).should('not.exist');
-    cy.findByRole('option', { name: 'conn-ref' }).should('not.exist');
-    cy.findByRole('option', { name: 'sa-token-secret' }).should('not.exist');
-    cy.findByRole('option', { name: 'secret-abc123' }).should('not.exist');
+    cy.findByTestId('select-multi-typeahead-db-credentials').should('exist');
+    cy.findByTestId('select-multi-typeahead-api-config').should('exist');
+    cy.findByTestId('select-multi-typeahead-conn-protocol').should('not.exist');
+    cy.findByTestId('select-multi-typeahead-conn-ref').should('not.exist');
+    cy.findByTestId('select-multi-typeahead-sa-token-secret').should('not.exist');
+    cy.findByTestId('select-multi-typeahead-secret-abc123').should('not.exist');
   });
 
   it('should select all keys by default and write secretKeyRef entries for each key on save', () => {
@@ -138,18 +138,20 @@ describe('Existing Secret Environment Variables — RHOAIENG-69120/69121/69122',
     envField.selectEnvironmentVariableType('Existing secret');
     envField.selectExistingSecret(0, 'db-credentials');
 
-    envField.findExistingSecretAllKeysCheckbox(0).should('be.checked');
-    envField.findExistingSecretKeyCheckbox(0, 'DB_HOST').should('be.checked');
-    envField.findExistingSecretKeyCheckbox(0, 'DB_PORT').should('be.checked');
-    envField.findExistingSecretKeyCheckbox(0, 'DB_USER').should('be.checked');
-    envField.findExistingSecretKeyCheckbox(0, 'DB_PASSWORD').should('be.checked');
+    envField.findExistingSecretKeyCheckbox(0, 'db-credentials', 'DB_HOST').should('exist');
+    envField.findExistingSecretKeyCheckbox(0, 'db-credentials', 'DB_PORT').should('exist');
+    envField.findExistingSecretKeyCheckbox(0, 'db-credentials', 'DB_USER').should('exist');
+    envField.findExistingSecretKeyCheckbox(0, 'db-credentials', 'DB_PASSWORD').should('exist');
 
     createSpawnerPage.findSubmitButton().click();
 
     cy.wait('@createNotebook').then((interception) => {
       const { env } = interception.request.body.spec.template.spec.containers[0];
       const secretKeyRefs = env.filter(
-        (e: Record<string, unknown>) => e.valueFrom && typeof e.valueFrom === 'object',
+        (e: Record<string, unknown>) =>
+          e.valueFrom &&
+          typeof e.valueFrom === 'object' &&
+          (e.valueFrom as Record<string, unknown>).secretKeyRef !== undefined,
       );
       expect(secretKeyRefs).to.have.length(4);
 
@@ -174,19 +176,21 @@ describe('Existing Secret Environment Variables — RHOAIENG-69120/69121/69122',
     envField.selectEnvironmentVariableType('Existing secret');
     envField.selectExistingSecret(0, 'api-config');
 
-    envField.findExistingSecretKeyCheckbox(0, 'API_VERSION').click();
+    envField.findExistingSecretKeyCheckbox(0, 'api-config', 'API_VERSION').click();
 
-    envField.findExistingSecretAllKeysCheckbox(0).should('not.be.checked');
-    envField.findExistingSecretKeyCheckbox(0, 'API_KEY').should('be.checked');
-    envField.findExistingSecretKeyCheckbox(0, 'API_URL').should('be.checked');
-    envField.findExistingSecretKeyCheckbox(0, 'API_VERSION').should('not.be.checked');
+    envField.findExistingSecretKeyCheckbox(0, 'api-config', 'API_KEY').should('be.checked');
+    envField.findExistingSecretKeyCheckbox(0, 'api-config', 'API_URL').should('be.checked');
+    envField.findExistingSecretKeyCheckbox(0, 'api-config', 'API_VERSION').should('not.be.checked');
 
     createSpawnerPage.findSubmitButton().click();
 
     cy.wait('@createNotebook').then((interception) => {
       const { env } = interception.request.body.spec.template.spec.containers[0];
       const secretKeyRefs = env.filter(
-        (e: Record<string, unknown>) => e.valueFrom && typeof e.valueFrom === 'object',
+        (e: Record<string, unknown>) =>
+          e.valueFrom &&
+          typeof e.valueFrom === 'object' &&
+          (e.valueFrom as Record<string, unknown>).secretKeyRef !== undefined,
       );
       expect(secretKeyRefs).to.have.length(2);
 

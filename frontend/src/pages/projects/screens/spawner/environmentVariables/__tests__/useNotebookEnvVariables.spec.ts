@@ -86,7 +86,7 @@ describe('parseExistingSecretKeyRefs', () => {
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe(EnvironmentVariableType.EXISTING_SECRET);
     expect(result[0].existingSecretRefs).toEqual([
-      { secretName: 'db-creds', selectedKeys: ['DB_HOST'], allKeys: true },
+      { secretName: 'db-creds', selectedKeys: ['DB_HOST'], allKeys: false },
     ]);
   });
 
