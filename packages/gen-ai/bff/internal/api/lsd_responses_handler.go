@@ -642,7 +642,11 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	}
 	eventData, _ := json.Marshal(metricsEvent)
 	writeMu.Lock()
-	fmt.Fprintf(w, "data: %s\n\n", eventData)
+	if _, writeErr := fmt.Fprintf(w, "data: %s\n\n", eventData); writeErr != nil {
+		app.logger.Debug("Failed to write metrics event to client", "error", writeErr)
+		writeMu.Unlock()
+		return
+	}
 	flusher.Flush()
 	writeMu.Unlock()
 }

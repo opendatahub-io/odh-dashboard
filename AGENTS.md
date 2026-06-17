@@ -20,6 +20,10 @@ odh-dashboard/
 │   ├── cmd/manager/            # Controller entry point
 │   ├── internal/controller/    # Reconciler, actions, support utilities
 │   └── config/                 # Generated CRD, RBAC, manager manifests
+├── distributions/               # Independently-deployable dashboard variants
+│   ├── base/                    # Shared app shell library (not deployed on its own)
+│   ├── core-bff/                # Full Go BFF + React frontend (has BFF)
+│   └── rhaii/                   # RHAII-specific distribution (frontend-only)
 ├── packages/                    # Feature packages
 │   ├── cypress/                # Cypress test framework and shared tests
 │   ├── gen-ai/                 # Gen AI / LLM features (has BFF)
@@ -92,11 +96,12 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 
 | Rule                        | File                          | Trigger                                                                        |
 | --------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
-| **Architecture**            | `architecture.md`             | When making structural changes, adding packages, or modifying package boundaries |
-| **BFF Go**                  | `bff-go.md`                   | When working on Go BFF code in `packages/*/bff/`                               |
+| **Architecture**            | `architecture.md`             | When making structural changes, adding packages, modifying package boundaries, or working on distributions |
+| **BFF Go**                  | `bff-go.md`                   | When working on Go BFF code in `packages/*/bff/` or `distributions/core-bff/bff/` |
 | **Contract Tests**          | `contract-tests.md`           | When working on contract tests or BFF API validation                           |
 | **Conventions**             | `conventions.md`              | When writing or reviewing TypeScript, React, or backend code                   |
 | **CSS & PatternFly**        | `css-patternfly.md`           | When writing or modifying styles, SCSS, or PatternFly components               |
+| **Distributions**           | `distributions.md`            | When working on code in `distributions/`                                       |
 | **Cypress E2E Tests**       | `cypress-e2e.md`              | When creating or modifying E2E tests, Robot Framework migrations               |
 | **Cypress Mock Tests**      | `cypress-mock.md`             | When creating or modifying mock/component tests                                |
 | **Jira Creation**           | `jira-creation.md`            | When asked to create Jira issues, tickets, bugs, stories, tasks, or epics      |
