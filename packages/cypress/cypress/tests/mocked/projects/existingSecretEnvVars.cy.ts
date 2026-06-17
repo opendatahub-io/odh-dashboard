@@ -135,6 +135,7 @@ describe('Existing Secret Environment Variables — RHOAIENG-69120/69121/69122',
     createSpawnerPage.visitSpawner('test-project');
 
     createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('test-wb');
+    createSpawnerPage.findNotebookImage('test-image').click();
     createSpawnerPage.findAddVariableButton().click();
 
     const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -173,6 +174,7 @@ describe('Existing Secret Environment Variables — RHOAIENG-69120/69121/69122',
     createSpawnerPage.visitSpawner('test-project');
 
     createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('test-wb');
+    createSpawnerPage.findNotebookImage('test-image').click();
     createSpawnerPage.findAddVariableButton().click();
 
     const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
