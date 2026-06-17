@@ -78,7 +78,7 @@ func TestBuildDeployment(t *testing.T) {
 				Framework:      "langgraph",
 			},
 			wantLabels: map[string]string{
-				agents.LabelProtocolPrefix + "a2a": "true",
+				agents.LabelProtocolPrefix + "a2a": "",
 				labelFramework:                     "langgraph",
 			},
 			wantPort: defaultPort,
@@ -161,13 +161,16 @@ func TestBuildDeploymentEnvVars(t *testing.T) {
 	require.Len(t, deployment.Spec.Template.Spec.Containers, 1)
 
 	envVars := deployment.Spec.Template.Spec.Containers[0].Env
-	require.Len(t, envVars, 3)
-	assert.Equal(t, "AGENT_ENDPOINT", envVars[0].Name)
-	assert.Equal(t, "http://my-agent.test-ns.svc.cluster.local:8080/", envVars[0].Value)
-	assert.Equal(t, "API_KEY", envVars[1].Name)
-	assert.Equal(t, "secret", envVars[1].Value)
-	assert.Equal(t, "LOG_LEVEL", envVars[2].Name)
-	assert.Equal(t, "debug", envVars[2].Value)
+	envMap := make(map[string]string)
+	for _, ev := range envVars {
+		envMap[ev.Name] = ev.Value
+	}
+	assert.Equal(t, "http://my-agent.test-ns.svc.cluster.local:8080/", envMap["AGENT_ENDPOINT"])
+	assert.Equal(t, "8000", envMap["PORT"])
+	assert.Equal(t, "0.0.0.0", envMap["HOST"])
+	assert.Equal(t, "/app/.cache/uv", envMap["UV_CACHE_DIR"])
+	assert.Equal(t, "secret", envMap["API_KEY"])
+	assert.Equal(t, "debug", envMap["LOG_LEVEL"])
 }
 
 func TestBuildService(t *testing.T) {

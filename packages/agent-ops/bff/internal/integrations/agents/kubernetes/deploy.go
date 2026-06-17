@@ -55,8 +55,13 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 	agentRuntime := buildAgentRuntimeCR(params)
 	_, err = dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Create(ctx, agentRuntime, metav1.CreateOptions{})
 	if err != nil {
-		rollback()
-		return nil, fmt.Errorf("failed to create AgentRuntime: %w", mapK8sError(err))
+		if !apierrors.IsAlreadyExists(err) {
+			rollback()
+			return nil, fmt.Errorf("failed to create AgentRuntime: %w", mapK8sError(err))
+		}
+		c.logger.Debug("AgentRuntime already exists, reusing",
+			slog.String("name", params.Name),
+			slog.String("namespace", params.Namespace))
 	}
 	cleanups = append(cleanups, func() {
 		if delErr := dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Delete(rollbackCtx, params.Name, metav1.DeleteOptions{}); delErr != nil {
