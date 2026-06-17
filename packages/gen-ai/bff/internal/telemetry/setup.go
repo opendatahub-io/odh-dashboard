@@ -2,9 +2,11 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -13,24 +15,34 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const defaultServiceName = "gen-ai-bff"
 
 // Setup initialises the OpenTelemetry TracerProvider with an OTLP/HTTP exporter.
-// Tracing is opt-in: when OTEL_EXPORTER_OTLP_ENDPOINT is unset or empty, Setup
-// returns a noop shutdown function and tracing has zero runtime cost.
+// The collector endpoint is resolved in this order:
+//  1. OTEL_EXPORTER_OTLP_ENDPOINT env var (local dev override)
+//  2. Auto-discovery from the platform OpenTelemetryCollector CR (in-cluster)
+//  3. If neither is available, tracing is disabled (zero runtime cost)
 //
-// Standard OTel env vars are respected:
-//   - OTEL_EXPORTER_OTLP_ENDPOINT — collector endpoint (required to enable tracing)
+// Standard OTel env vars are also respected:
 //   - OTEL_SERVICE_NAME — service name resource attribute (default: gen-ai-bff)
 //   - OTEL_RESOURCE_ATTRIBUTES — comma-separated key=value pairs for resource attributes
 func Setup(logger *slog.Logger) func(context.Context) error {
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if endpoint == "" {
-		logger.Info("OTel tracing disabled (OTEL_EXPORTER_OTLP_ENDPOINT not set)")
+		endpoint = discoverCollectorEndpoint(logger)
+	}
+	if endpoint == "" {
+		logger.Info("OTel tracing disabled (no collector endpoint configured or discovered)")
 		return func(context.Context) error { return nil }
 	}
+	os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint)
 
 	ctx := context.Background()
 
@@ -76,6 +88,56 @@ func detectNamespace() string {
 	if data, err := os.ReadFile(namespacePath); err == nil {
 		return strings.TrimSpace(string(data))
 	}
+	return ""
+}
+
+const defaultCollectorName = "data-science-collector"
+
+var otelCollectorGVR = schema.GroupVersionResource{
+	Group:    "opentelemetry.io",
+	Version:  "v1beta1",
+	Resource: "opentelemetrycollectors",
+}
+
+// discoverCollectorEndpoint lists OpenTelemetryCollector CRs across all
+// namespaces and returns the OTLP/HTTP endpoint for the first one named
+// "data-science-collector". Returns "" if not found.
+func discoverCollectorEndpoint(logger *slog.Logger) string {
+	restCfg, err := rest.InClusterConfig()
+	if err != nil {
+		loadedCfg, loadErr := clientcmd.NewDefaultClientConfigLoadingRules().Load()
+		if loadErr != nil {
+			return ""
+		}
+		restCfg, err = clientcmd.NewDefaultClientConfig(*loadedCfg, &clientcmd.ConfigOverrides{}).ClientConfig()
+		if err != nil {
+			return ""
+		}
+	}
+
+	dynClient, err := dynamic.NewForConfig(restCfg)
+	if err != nil {
+		return ""
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	list, err := dynClient.Resource(otelCollectorGVR).Namespace("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		logger.Debug("collector auto-discovery failed", "error", err)
+		return ""
+	}
+
+	for _, item := range list.Items {
+		if item.GetName() == defaultCollectorName {
+			ns := item.GetNamespace()
+			endpoint := fmt.Sprintf("http://%s-collector.%s.svc:4318", defaultCollectorName, ns)
+			logger.Info("auto-discovered OTel collector endpoint", "endpoint", endpoint)
+			return endpoint
+		}
+	}
+
 	return ""
 }
 
