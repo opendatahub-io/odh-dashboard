@@ -220,8 +220,7 @@ func buildRoute(name, namespace string, port int32) *unstructured.Unstructured {
 
 func selectorLabels(name string) map[string]string {
 	return map[string]string{
-		agents.LabelAgentType: agents.AgentTypeAgent,
-		labelAppName:          name,
+		labelAppName: name,
 	}
 }
 
