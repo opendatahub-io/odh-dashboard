@@ -278,7 +278,7 @@ describe('View Auth Policy Page', () => {
     viewAuthPolicyPage
       .findDetailsSection()
       .should('contain.text', policyName)
-      .and('contain.text', 'Phase')
+      .and('contain.text', 'Status')
       .and('contain.text', 'Ready')
       .and('contain.text', 'Name')
       .and('contain.text', 'Resource name')

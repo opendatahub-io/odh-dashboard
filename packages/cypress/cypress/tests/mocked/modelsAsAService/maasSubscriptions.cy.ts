@@ -212,7 +212,7 @@ describe('View Subscription Page', () => {
 
     viewSubscriptionPage
       .findDetailsSection()
-      .and('contain.text', 'Phase')
+      .and('contain.text', 'Status')
       .and('contain.text', 'Ready')
       .should('contain.text', 'Premium Team Subscription')
       .and('contain.text', 'Name')

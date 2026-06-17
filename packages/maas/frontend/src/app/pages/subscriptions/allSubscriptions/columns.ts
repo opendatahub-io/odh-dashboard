@@ -10,8 +10,8 @@ export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
       (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),
   },
   {
-    label: 'Phase',
-    field: 'phase',
+    label: 'Status',
+    field: 'status',
     width: 15,
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       normalizePhase(a.phase).localeCompare(normalizePhase(b.phase)),

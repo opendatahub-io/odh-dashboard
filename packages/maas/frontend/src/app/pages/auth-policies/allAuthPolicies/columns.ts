@@ -10,8 +10,8 @@ export const authPoliciesColumns: SortableData<MaaSAuthPolicy>[] = [
       (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),
   },
   {
-    label: 'Phase',
-    field: 'phase',
+    label: 'Status',
+    field: 'status',
     width: 10,
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>
       normalizePhase(a.phase).localeCompare(normalizePhase(b.phase)),
