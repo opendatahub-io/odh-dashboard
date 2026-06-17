@@ -27,12 +27,6 @@ export interface ImageUploadState {
   fileName: string | null;
 }
 
-export interface PendingDocChip {
-  id: string;
-  fileName: string;
-  status: 'uploading' | 'uploaded' | 'failed';
-}
-
 interface ChatbotMessageInputProps {
   onSendMessage: (message: string) => void;
   onStopStreaming: () => void;
@@ -57,8 +51,6 @@ interface ChatbotMessageInputProps {
   onAudioUpload?: (file: File) => void;
   audioTranscriptionState?: AudioTranscriptionState;
   onAudioCancel?: () => void;
-  pendingDocChips?: PendingDocChip[];
-  onRemoveDocChip?: (chipId: string) => void;
   alwaysShowSendButton?: boolean;
   messageBarValue?: string;
   onMessageBarValueChange?: (value: string) => void;
@@ -84,8 +76,6 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   onAudioUpload,
   audioTranscriptionState,
   onAudioCancel,
-  pendingDocChips,
-  onRemoveDocChip,
   alwaysShowSendButton,
   messageBarValue,
   onMessageBarValueChange,
@@ -354,9 +344,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           </Alert>
         </div>
       )}
-      {(imageUploadState.fileName ||
-        isAudioActive ||
-        (pendingDocChips && pendingDocChips.length > 0)) && (
+      {(imageUploadState.fileName || isAudioActive) && (
         <div
           style={{
             display: 'flex',
@@ -386,17 +374,6 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
               data-testid="audio-file-chip"
             />
           )}
-          {pendingDocChips?.map((chip) => (
-            <FileDetailsLabel
-              key={chip.id}
-              fileName={chip.fileName}
-              isLoading={chip.status === 'uploading'}
-              onClose={chip.status === 'uploading' ? undefined : () => onRemoveDocChip?.(chip.id)}
-              hasTruncation
-              variant="outline"
-              data-testid={`doc-chip-${chip.id}`}
-            />
-          ))}
         </div>
       )}
       <div
