@@ -1343,12 +1343,42 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 	return aaModels, nil
 }
 
+// resolveCollectorEndpoint returns the in-cluster OTel collector OTLP HTTP endpoint.
+// Uses the collector namespace from the otelConfigManager if available,
+// otherwise falls back to the BFF's own OTEL_EXPORTER_OTLP_ENDPOINT env var.
+func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
+	if kc.otelConfigManager != nil && kc.otelConfigManager.collectorNamespace != "" {
+		return fmt.Sprintf("http://%s-collector.%s.svc:4318",
+			kc.otelConfigManager.collectorName,
+			kc.otelConfigManager.collectorNamespace,
+		)
+	}
+	return os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+}
+
 // ogxCommand returns the container command for the OGXServer pod.
-// When tracing is enabled, it invokes the image's native entrypoint which
-// wraps the process with opentelemetry-instrument automatically.
+//
+// When tracing is enabled, we use opentelemetry-instrument to wrap the OGX
+// process. This is a temporary workaround for two issues in the current OGX image:
+//
+//  1. ENABLE_USER_SITE=False in the container prevents sitecustomize.py from
+//     loading, so opentelemetry-instrument's auto-instrumentation silently fails.
+//     Workaround: copy sitecustomize.py to standard site-packages before starting.
+//
+//  2. The image entrypoint (/opt/app-root/entrypoint.sh) uses --traces_exporter=otlp
+//     which defaults to gRPC (port 4317). The platform collector exposes OTLP/HTTP
+//     on port 4318, so we must use otlp_proto_http explicitly.
+//
+// We can later use the simpler entrypoint command if the OGX image fixes the
+// sitecustomize.py loading issue and the entrypoint supports OTLP/HTTP export:
+//
+//	return []string{"/opt/app-root/entrypoint.sh"}
 func ogxCommand(enableTracing bool) []string {
 	if enableTracing {
-		return []string{"/opt/app-root/entrypoint.sh"}
+		return []string{"/bin/sh", "-c", strings.Join([]string{
+			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
+			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml",
+		}, " && ")}
 	}
 	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"}
 }
@@ -1364,12 +1394,14 @@ func ogxEnvVars(base []corev1.EnvVar, enableTracing bool, namespace string, coll
 
 	if enableTracing {
 		vars = append(vars,
-			corev1.EnvVar{Name: "RUN_CONFIG_PATH", Value: "/etc/ogx/config.yaml"},
 			corev1.EnvVar{Name: "OTEL_SERVICE_NAME", Value: "ogx-server"},
 			corev1.EnvVar{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: collectorEndpoint},
 			corev1.EnvVar{Name: "OTEL_RESOURCE_ATTRIBUTES", Value: fmt.Sprintf("k8s.namespace.name=%s", namespace)},
 			corev1.EnvVar{Name: "OTEL_SEMCONV_STABILITY_OPT_IN", Value: "http"},
 			corev1.EnvVar{Name: "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", Value: "true"},
+			// Suppress noisy spans from internal endpoints and low-level instrumentors
+			corev1.EnvVar{Name: "OTEL_PYTHON_FASTAPI_EXCLUDED_URLS", Value: "health,version,metadata"},
+			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: "sqlite3"},
 		)
 	}
 
@@ -1639,7 +1671,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
 					Command: ogxCommand(enableTracing),
-					Env:     ogxEnvVars(envVars, enableTracing, namespace, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")),
+					Env:     ogxEnvVars(envVars, enableTracing, namespace, kc.resolveCollectorEndpoint()),
 				},
 			},
 			Network: &ogxapi.NetworkSpec{

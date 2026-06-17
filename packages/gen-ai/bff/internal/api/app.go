@@ -517,6 +517,9 @@ func (app *App) Routes() http.Handler {
 	combinedMux.Handle("/", otelhttp.NewHandler(
 		app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))),
 		"gen-ai-bff",
+		otelhttp.WithSpanNameFormatter(func(_ string, _ *http.Request) string {
+			return "gen-ai-bff"
+		}),
 	))
 
 	return combinedMux

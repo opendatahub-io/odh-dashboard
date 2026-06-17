@@ -106,6 +106,7 @@ func buildResource(ctx context.Context) (*resource.Resource, error) {
 
 	return resource.New(ctx,
 		resource.WithAttributes(attrs...),
+		resource.WithFromEnv(),
 		resource.WithTelemetrySDK(),
 		resource.WithProcess(),
 	)
