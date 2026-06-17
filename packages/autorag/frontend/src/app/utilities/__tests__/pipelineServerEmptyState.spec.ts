@@ -24,6 +24,16 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
     ).toBe(true);
   });
 
+  it('returns false for similar managed pipeline message with singular pipeline', () => {
+    expect(
+      shouldShowConfigurePipelineServerEmptyState(
+        new Error(
+          'required managed pipeline not found in namespace - enable AutoML on the pipeline server',
+        ),
+      ),
+    ).toBe(false);
+  });
+
   it('returns false for 404 when message does not match managed pipelines error', () => {
     mockGetGenericErrorCode.mockReturnValue(404);
     expect(
