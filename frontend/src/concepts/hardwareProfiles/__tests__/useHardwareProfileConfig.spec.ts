@@ -775,6 +775,71 @@ describe('useHardwareProfileConfig', () => {
     expect(renderResult.result.current.formData.selectedProfile).toBe(profile);
   });
 
+  it('should initialize with custom resources when profiles are loaded but resources arrive later', () => {
+    const profile = mockHardwareProfile({
+      name: 'test-profile',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '8',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '16Gi',
+          defaultCount: '4Gi',
+        },
+      ],
+    });
+
+    // Profiles are already loaded
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[profile], true, undefined],
+    });
+
+    // Start with no resources (they haven't arrived yet)
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'test-profile',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profile.metadata.namespace,
+    );
+
+    // Before resources arrive, the hook should not have initialized with create-mode defaults
+    expect(renderResult.result.current.formData.resources).toBeUndefined();
+
+    // Now resources arrive via rerender
+    const existingResources = {
+      requests: { cpu: '4', memory: '8Gi' },
+      limits: { cpu: '4', memory: '8Gi' },
+    };
+
+    renderResult.rerender(
+      'test-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profile.metadata.namespace,
+    );
+
+    // Customized resources should be properly set (not overwritten by create-mode defaults)
+    expect(renderResult.result.current.formData.resources).toEqual({
+      requests: { cpu: '4', memory: '8Gi' },
+      limits: { cpu: '4', memory: '8Gi' },
+    });
+    expect(renderResult.result.current.formData.selectedProfile).toBe(profile);
+  });
+
   it('should initialize with custom resources when profiles load after initial render', () => {
     const profile = mockHardwareProfile({
       name: 'test-profile',

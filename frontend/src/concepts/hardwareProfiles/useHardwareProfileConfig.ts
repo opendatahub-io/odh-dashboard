@@ -152,6 +152,10 @@ export const useHardwareProfileConfig = (
       return;
     }
 
+    if (existingHardwareProfileName && !resources) {
+      return;
+    }
+
     initializedRef.current = true;
 
     let selectedProfile: HardwareProfileKind | undefined;
