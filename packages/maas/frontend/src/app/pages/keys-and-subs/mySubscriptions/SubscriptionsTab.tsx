@@ -4,6 +4,7 @@ import { UserSubscription } from '~/app/types/subscriptions';
 import SubscriptionsToolbar from './SubscriptionsToolbar';
 import SubscriptionsViewTable, { ModelGroupEntry } from './SubscriptionsViewTable';
 import ModelsViewTable from './ModelsViewTable';
+import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
 
 export const deriveModelGroups = (subscriptions: UserSubscription[]): ModelGroupEntry[] => {
   const modelMap = new Map<string, ModelGroupEntry>();
@@ -42,8 +43,6 @@ type SubscriptionsTabProps = {
 };
 
 const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ subscriptions }) => {
-  const [subSourceFilters, setSubSourceFilters] = React.useState<string[]>([]);
-  const [modelSourceFilters, setModelSourceFilters] = React.useState<string[]>([]);
   const [searchValue, setSearchValue] = React.useState('');
   const [sortField, setSortField] = React.useState<SubscriptionSortField>('subscription');
   const [modelSortDirection, setModelSortDirection] = React.useState<'asc' | 'desc' | undefined>(
@@ -57,12 +56,6 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ subscriptions }) =>
 
   const filteredSubscriptions = React.useMemo(() => {
     let result = subscriptions;
-    if (subSourceFilters.length > 0) {
-      const allowed = subSourceFilters.map((f) => f.toLowerCase());
-      result = result.filter((sub) =>
-        sub.model_refs.some((ref) => ref.source && allowed.includes(ref.source.toLowerCase())),
-      );
-    }
     if (searchValue.trim()) {
       const term = searchValue.trim().toLowerCase();
       result = result.filter((sub) => {
@@ -84,16 +77,10 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ subscriptions }) =>
       const nameB = (b.display_name || b.subscription_id_header).toLowerCase();
       return subSortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
     });
-  }, [subscriptions, subSourceFilters, searchValue, subSortDirection]);
+  }, [subscriptions, searchValue, subSortDirection]);
 
   const filteredModelGroups = React.useMemo(() => {
     let result = modelGroups;
-    if (modelSourceFilters.length > 0) {
-      const allowed = modelSourceFilters.map((f) => f.toLowerCase());
-      result = result.filter(
-        (group) => group.source && allowed.includes(group.source.toLowerCase()),
-      );
-    }
     if (searchValue.trim()) {
       const term = searchValue.trim().toLowerCase();
       result = result.filter((group) => {
@@ -115,30 +102,22 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ subscriptions }) =>
       const nameB = (b.displayName || b.name).toLowerCase();
       return modelSortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
     });
-  }, [modelGroups, modelSourceFilters, searchValue, modelSortDirection]);
+  }, [modelGroups, searchValue, modelSortDirection]);
+
+  if (subscriptions.length === 0) {
+    return (
+      <PageSection isFilled>
+        <EmptySubscriptionsTabState hasData={false} variant="subscription" />
+      </PageSection>
+    );
+  }
 
   return (
     <PageSection isFilled>
       <Content component={ContentVariants.p}>
-        Models available to you through your subscriptions, with token limits. Click a subscription
-        to create a key for it.
+        View your subscriptions and the models they give you access to.
       </Content>
       <SubscriptionsToolbar
-        sourceFilters={sortField === 'subscription' ? subSourceFilters : modelSourceFilters}
-        onSourceToggle={(source) => {
-          const setter = sortField === 'subscription' ? setSubSourceFilters : setModelSourceFilters;
-          setter((prev) =>
-            prev.includes(source) ? prev.filter((f) => f !== source) : [...prev, source],
-          );
-        }}
-        onSourceClear={(source) => {
-          const setter = sortField === 'subscription' ? setSubSourceFilters : setModelSourceFilters;
-          setter((prev) => prev.filter((f) => f !== source));
-        }}
-        onClearAllFilters={() => {
-          const setter = sortField === 'subscription' ? setSubSourceFilters : setModelSourceFilters;
-          setter([]);
-        }}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         sortField={sortField}

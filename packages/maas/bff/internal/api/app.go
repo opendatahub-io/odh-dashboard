@@ -220,6 +220,7 @@ func (app *App) Routes() http.Handler {
 	attachPolicyHandlers(apiRouter, app)
 	attachMaaSModelRefHandlers(apiRouter, app)
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithApp(app, ListModelsHandler))
+	apiRouter.GET(constants.ModelsOverviewPath, handlerWithApp(app, ListModelsOverviewHandler))
 	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))
 
 	// Minimal Kubernetes-backed starter endpoints TODO: Remove?

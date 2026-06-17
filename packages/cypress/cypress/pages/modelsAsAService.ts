@@ -1084,15 +1084,6 @@ class SubscriptionsTab {
     this.findSearchInput().find('button[aria-label="Reset"]').click();
   }
 
-  findSourceFilterToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscriptions-source-filter-toggle');
-  }
-
-  selectSourceFilter(source: string): void {
-    this.findSourceFilterToggle().click();
-    cy.findByRole('menuitem', { name: source }).click();
-  }
-
   findSortBySubscriptionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('sort-by-subscription');
   }
