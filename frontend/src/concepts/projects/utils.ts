@@ -1,4 +1,4 @@
-import { KnownLabels, ProjectKind } from '#~/k8sTypes';
+import { KnownLabels, type ProjectKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 export const isAiProject = (project: ProjectKind): boolean => {

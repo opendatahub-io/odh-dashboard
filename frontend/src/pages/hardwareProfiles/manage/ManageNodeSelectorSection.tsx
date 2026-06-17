@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, FormGroup } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
-import { NodeSelector } from '#~/types';
+import type { NodeSelector } from '@odh-dashboard/k8s-core';
 import ManageNodeSelectorModal from '#~/pages/hardwareProfiles/nodeSelector/ManageNodeSelectorModal';
 import NodeSelectorTable from '#~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
 import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const';

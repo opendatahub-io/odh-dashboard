@@ -2,7 +2,7 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import type { DashboardCommonConfig } from '@odh-dashboard/internal/k8sTypes';
+import type { DashboardCommonConfig } from '@odh-dashboard/k8s-core';
 import { modelCatalogSettings } from '../../../pages/modelCatalogSettings';
 import { pageNotfound } from '../../../pages/pageNotFound';
 import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';

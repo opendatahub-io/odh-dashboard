@@ -1,4 +1,4 @@
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 
 export const HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT = 128;
 export const HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT = 255;

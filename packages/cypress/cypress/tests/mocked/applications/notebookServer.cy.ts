@@ -13,7 +13,8 @@ import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import type { EnvironmentVariable, NotebookData } from '@odh-dashboard/internal/types';
+import type { EnvironmentVariable } from '@odh-dashboard/k8s-core';
+import type { NotebookData } from '@odh-dashboard/internal/types';
 import { mockConfigMap } from '@odh-dashboard/internal/__mocks__/mockConfigMap';
 import { mockImageStreamK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { notebookServer } from '../../../pages/notebookServer';

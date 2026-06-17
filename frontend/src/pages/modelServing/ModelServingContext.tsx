@@ -8,13 +8,8 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import {
-  InferenceServiceKind,
-  ProjectKind,
-  SecretKind,
-  ServingRuntimeKind,
-  TemplateKind,
-} from '#~/k8sTypes';
+import type { ProjectKind, SecretKind, TemplateKind } from '@odh-dashboard/k8s-core';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import {
   DEFAULT_LIST_FETCH_STATE,
   DEFAULT_LIST_WATCH_RESULT,

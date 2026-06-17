@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Label, Content, ContentVariants } from '@patternfly/react-core';
-import { TemplateKind } from '#~/k8sTypes';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { getAPIProtocolFromTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimeAPIProtocol } from '#~/types';
 

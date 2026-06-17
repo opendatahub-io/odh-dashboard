@@ -14,8 +14,8 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import useDimensions from 'react-cool-dimensions';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import ManageProjectModal from '#~/pages/projects/screens/projects/ManageProjectModal';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
 import { useAccessReview } from '#~/api';
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
