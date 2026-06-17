@@ -94,7 +94,7 @@ export function usePromptVersions(promptName: string | null): UsePromptVersionsR
       }
       const versionsResponse = await api.listMLflowPromptVersions({ name: promptName });
       const versions = await Promise.all(
-        versionsResponse.versions.map((v) =>
+        (versionsResponse.versions ?? []).map((v) =>
           api.getMLflowPrompt({ name: promptName, version: v.version }),
         ),
       );
