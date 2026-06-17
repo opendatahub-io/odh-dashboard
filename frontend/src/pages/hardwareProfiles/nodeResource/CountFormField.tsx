@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import MemoryField from '#~/components/MemoryField';
 import CPUField from '#~/components/CPUField';
 import NumberInputWrapper from '#~/components/NumberInputWrapper';
-import { IdentifierResourceType } from '#~/types';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 
 type CountFormFieldProps = {

@@ -1,4 +1,5 @@
-import { InferenceServiceKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   checkModelPodStatus,
   getInferenceServiceModelState,

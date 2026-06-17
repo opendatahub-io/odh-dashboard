@@ -1,8 +1,8 @@
 import React from 'react';
 import { Switch } from '@patternfly/react-core';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import useNotification from '#~/utilities/useNotification';
 import { HardwareProfileModel, toggleHardwareProfileEnablement } from '#~/api';
-import { HardwareProfileKind } from '#~/k8sTypes';
 import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
 import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 import { isHardwareProfileEnabled, validateProfileWarning } from './utils';

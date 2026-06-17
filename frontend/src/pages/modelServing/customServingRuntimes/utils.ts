@@ -1,5 +1,6 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sDSGResource, ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
+import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
+import { ServingRuntimeKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
   ServingRuntimeAPIProtocol,

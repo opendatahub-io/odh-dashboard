@@ -1,6 +1,7 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { DSPAMlflowIntegrationMode, ProjectKind } from '#~/k8sTypes';
+import { DSPAMlflowIntegrationMode } from '#~/k8sTypes';
 import useIsMlflowDSPAEnabled from '#~/concepts/mlflow/hooks/useIsMlflowDSPAEnabled';
 
 jest.mock('#~/concepts/pipelines/context', () => ({

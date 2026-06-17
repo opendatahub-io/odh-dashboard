@@ -1,9 +1,9 @@
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
+import type { PodKind } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
 import { getPodsForKserve, getPodsForNotebook } from '#~/api/k8s/pods';
 import { PodModel } from '#~/api/models';
-import { PodKind } from '#~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),

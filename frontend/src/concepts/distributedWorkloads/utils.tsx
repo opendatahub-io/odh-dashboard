@@ -18,6 +18,7 @@ import {
   chart_color_green_300 as chartColorGreen,
   t_chart_global_danger_color_100 as chartColorRed,
 } from '@patternfly/react-tokens';
+import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import {
   ClusterQueueKind,
   LocalQueueKind,
@@ -25,7 +26,6 @@ import {
   WorkloadKind,
   WorkloadOwnerType,
 } from '#~/k8sTypes';
-import { ContainerResourceAttributes } from '#~/types';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,

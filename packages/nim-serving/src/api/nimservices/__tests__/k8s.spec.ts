@@ -5,7 +5,7 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { createNIMService, updateNIMService, patchNIMService, assembleNIMService } from '../k8s';
 import { NIMServiceModel, type NIMServiceKind } from '../types';
 

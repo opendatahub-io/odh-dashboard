@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react';
+import { type PersistentVolumeClaimKind, MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import {
   useCreateStorageObject,
   useMountPathFormat,
@@ -6,7 +7,6 @@ import {
 } from '#~/pages/projects/screens/spawner/storage/utils';
 import { MountPathFormat } from '#~/pages/projects/screens/spawner/storage/types';
 import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';
-import { PersistentVolumeClaimKind, MetadataAnnotation } from '#~/k8sTypes';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { getPossibleStorageClassAccessModes } from '#~/pages/storageClasses/utils';
 import { mockStorageClasses } from '#~/__mocks__/mockStorageClasses';
