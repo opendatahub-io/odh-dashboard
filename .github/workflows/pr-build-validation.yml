@@ -14,6 +14,9 @@ on:
       - 'manifests/**'
       - '.github/workflows/pr-build-validation.yml'
 
+env:
+  NODE_VERSION: '22'
+
 # Concurrency control: Cancel in-progress runs when new commits are pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -33,10 +36,10 @@ jobs:
         run: |
           if [[ "${{ contains(github.event.pull_request.title, '[skip konflux-sim]') }}" == "true" ]] || \
              [[ "${{ contains(github.event.pull_request.labels.*.name, 'skip-konflux-sim') }}" == "true" ]]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "ℹ️  Validation will be skipped ([skip konflux-sim] marker found)"
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "✅ Validation will run"
           fi
 
@@ -52,10 +55,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.2.0
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
 
       - name: Validate lockfile for Hermeto/Cachi2 compatibility
         run: |
@@ -234,6 +240,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
 
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
       - name: Build ODH image
         run: |
           set -euo pipefail
@@ -266,6 +275,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
 
       - name: Build RHOAI image
         run: |
@@ -397,7 +409,7 @@ jobs:
             echo "❌ FAIL: app.*.js not found - build did not complete"
             FAILURES=$((FAILURES + 1))
           else
-            APP_FILE=$(ls /tmp/odh-dist/app.*.js | head -1)
+            APP_FILE=$(find /tmp/odh-dist -name 'app.*.js' | head -1)
             APP_SIZE=$(stat -c%s "$APP_FILE" 2>/dev/null || stat -f%z "$APP_FILE" 2>/dev/null)
             echo "✅ PASS: Main app bundle present ($(basename "$APP_FILE"), ${APP_SIZE} bytes)"
           fi
@@ -673,25 +685,38 @@ jobs:
       - name: Patch deployment for Kind resource constraints
         run: |
           set -euo pipefail
-          # Reduce resource requests to fit in Kind's limited memory (~2Gi total)
-          # Dashboard has many containers - reduce each to minimal viable requests
-          # Note: Patch may fail if deployment structure differs - this is acceptable
+
+          # Apply image, imagePullPolicy, resource limits, and replica count in a single
+          # JSON patch so only one rollout is triggered.
+          #
+          # Why image + imagePullPolicy: Never?
+          #   The manifests hardcode imagePullPolicy: Always, so Kubernetes would pull the
+          #   live quay.io:main image even if it's loaded into Kind. "Never" forces it to
+          #   use only what was loaded locally, guaranteeing we test the PR's built image.
+          #
+          # The full patch is attempted first. If it fails (e.g. resource paths differ
+          # across manifest versions), we fall back to the essential image-only patch so
+          # the job does not fail due to resource-constraint differences.
+          echo "Applying combined patch (image + imagePullPolicy + resources + replicas)..."
           if kubectl patch deployment odh-dashboard -n opendatahub --type=json -p='[
+            {"op": "replace", "path": "/spec/replicas",                                          "value": 1},
+            {"op": "replace", "path": "/spec/template/spec/containers/0/image",                  "value": "odh-dashboard:odh-test"},
+            {"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy",        "value": "Never"},
             {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "128Mi"},
-            {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/cpu", "value": "50m"},
+            {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/cpu",    "value": "50m"},
             {"op": "replace", "path": "/spec/template/spec/containers/1/resources/requests/memory", "value": "64Mi"},
-            {"op": "replace", "path": "/spec/template/spec/containers/1/resources/requests/cpu", "value": "50m"}
+            {"op": "replace", "path": "/spec/template/spec/containers/1/resources/requests/cpu",    "value": "50m"}
           ]' 2>/dev/null; then
-            echo "✅ Resource limits patched successfully"
+            echo "✅ Full patch applied — single rollout triggered"
           else
-            echo "⚠️  WARNING: Could not patch resource limits (deployment structure may differ)"
-            echo "   Continuing with default resource requests"
+            echo "⚠️  Full patch failed (resource paths may differ); applying essential patch..."
+            kubectl patch deployment odh-dashboard -n opendatahub --type=json -p='[
+              {"op": "replace", "path": "/spec/replicas",                                   "value": 1},
+              {"op": "replace", "path": "/spec/template/spec/containers/0/image",           "value": "odh-dashboard:odh-test"},
+              {"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "Never"}
+            ]'
+            echo "✅ Essential patch applied (image + imagePullPolicy + replicas)"
           fi
-
-          # Reduce to 1 replica for resource constraints
-          kubectl scale deployment odh-dashboard --replicas=1 -n opendatahub
-
-          echo "✅ Patched deployment for Kind constraints"
 
       - name: Wait for pods to attempt starting
         run: |
@@ -709,9 +734,12 @@ jobs:
             sleep 5
           done
 
-          # Give pods time to pull images and start containers
-          echo "Waiting 60s for image pull and container startup..."
-          sleep 60
+          # Wait for the rollout to complete rather than a fixed sleep.
+          # This correctly handles the single rollout triggered by the combined patch and
+          # avoids the race condition where a fixed sleep may expire before the new pod
+          # has fully replaced the old one.
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/odh-dashboard -n opendatahub --timeout=120s
 
       - name: Check container status and validate
         run: |
@@ -749,12 +777,53 @@ jobs:
             exit 1
           fi
 
-          echo "✅ PASS: Containers attempted to start, $IMAGES_PULLED image(s) pulled"
+          echo "✅ PASS: $IMAGES_PULLED image(s) pulled"
           echo "Container states: $CONTAINER_STATUSES"
 
-          # Show logs from main container (even if it failed)
-          echo "::group::Container logs"
+          # Show logs from main container before the health check so they are visible
+          # even when the container is crashing.
+          echo "::group::Container logs (odh-dashboard)"
           kubectl logs -n opendatahub "$POD" -c odh-dashboard --tail=100 || echo "No logs available"
+          echo "::endgroup::"
+
+          # Assert that the PR-built odh-dashboard container is actually running and has
+          # not restarted. A CrashLoopBackOff or any restart count > 0 means the server
+          # failed to start and is a hard failure.
+          echo "::group::Health check: odh-dashboard container"
+          DASHBOARD_RUNNING=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+            -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].state.running}' \
+            2>/dev/null || echo "")
+          # Use -1 as sentinel: a non-negative integer means success, anything else
+          # (including -1 or empty) means kubectl itself failed — pod not found,
+          # API server timeout, etc. — which should be a hard failure, not a silent pass.
+          DASHBOARD_RESTARTS=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+            -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].restartCount}' \
+            2>/dev/null || echo "-1")
+
+          if [ -z "$DASHBOARD_RUNNING" ]; then
+            TERM_REASON=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+              -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].state.terminated.reason}' \
+              2>/dev/null || echo "unknown")
+            echo "❌ FAIL: odh-dashboard container is not running (reason: ${TERM_REASON})"
+            echo "   This usually means the server crashed at startup."
+            echo "   Check the container logs above for the root cause."
+            exit 1
+          fi
+
+          if ! [[ "$DASHBOARD_RESTARTS" =~ ^[0-9]+$ ]]; then
+            echo "❌ FAIL: Could not determine restart count (kubectl may have failed — got: '${DASHBOARD_RESTARTS}')"
+            echo "   This may indicate the pod does not exist or the API server is unreachable."
+            exit 1
+          fi
+
+          if [ "$DASHBOARD_RESTARTS" -gt "0" ]; then
+            echo "❌ FAIL: odh-dashboard container has restarted ${DASHBOARD_RESTARTS} time(s)"
+            echo "   The server is crashing on startup (CrashLoopBackOff)."
+            echo "   Check the container logs above for the root cause."
+            exit 1
+          fi
+
+          echo "✅ PASS: odh-dashboard container is running with 0 restarts"
           echo "::endgroup::"
 
       - name: Cleanup

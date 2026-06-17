@@ -1,4 +1,5 @@
-import { K8sCondition, NIMAccountKind } from '#~/k8sTypes';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
+import { NIMAccountKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;

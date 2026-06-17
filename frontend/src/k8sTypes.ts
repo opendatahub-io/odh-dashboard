@@ -1,42 +1,47 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
+import {
+  KnownLabels,
+  MetadataAnnotation,
+  ContainerResourceAttributes,
+  type DisplayNameAnnotations,
+  type K8sCondition,
+  type PodSpec,
+  type SupportedModelFormats,
+  type SecretKind,
+  type ContainerResources,
+  type NodeSelector,
+  type PodAffinity,
+  type PodContainer,
+  type Toleration,
+  type Volume,
+  type VolumeMount,
+  type HardwareProfileBindingAnnotations,
+  type AccessReviewResourceAttributes,
+} from '@odh-dashboard/k8s-core';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
 import type { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import {
-  ContainerResourceAttributes,
+import { ImageStreamStatusTagCondition, ImageStreamStatusTagItem } from './types';
+
+// Re-export types from k8s-core that are used throughout the application
+export { KnownLabels, MetadataAnnotation, ContainerResourceAttributes };
+export type {
+  DisplayNameAnnotations,
+  K8sCondition,
+  PodSpec,
+  SupportedModelFormats,
+  SecretKind,
   ContainerResources,
-  Identifier,
-  HardwareProfileScheduling,
-  ImageStreamStatusTagCondition,
-  ImageStreamStatusTagItem,
   NodeSelector,
-  NotebookSize,
   PodAffinity,
   PodContainer,
   Toleration,
   Volume,
   VolumeMount,
-  HardwareProfileAnnotations,
   HardwareProfileBindingAnnotations,
-} from './types';
-import { ModelServingSize } from './pages/modelServing/screens/types';
-
-export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-
-export enum KnownLabels {
-  DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
-  PROJECT_SHARING = 'opendatahub.io/project-sharing',
-  MODEL_SERVING_PROJECT = 'modelmesh-enabled',
-  DATA_CONNECTION_AWS = 'opendatahub.io/managed',
-  LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
-  LABEL_SELECTOR_DATA_SCIENCE_PIPELINES = 'data-science-pipelines',
-  PROJECT_SUBJECT = 'opendatahub.io/rb-project-subject',
-  REGISTERED_MODEL_ID = 'modelregistry.opendatahub.io/registered-model-id',
-  MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
-  MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
-  KUEUE_MANAGED = 'kueue.openshift.io/managed',
-}
+  AccessReviewResourceAttributes,
+};
 
 export type ModelRegistry = {
   name: string;
@@ -44,25 +49,6 @@ export type ModelRegistry = {
   description: string;
   serverAddress?: string;
 };
-
-export type K8sVerb =
-  | 'create'
-  | 'get'
-  | 'list'
-  | 'update'
-  | 'patch'
-  | 'delete'
-  | 'deletecollection'
-  | 'watch';
-
-/**
- * Annotations that we will use to allow the user flexibility in describing items outside of the
- * k8s structure.
- */
-export type DisplayNameAnnotations = Partial<{
-  'openshift.io/description': string; // the description provided by the user
-  'openshift.io/display-name': string; // the name provided by the user
-}>;
 
 export type AccessModeSettings = Partial<Record<AccessMode, boolean>>;
 
@@ -75,14 +61,6 @@ export type StorageClassConfig = {
   accessModeSettings?: AccessModeSettings;
 };
 
-export enum MetadataAnnotation {
-  StorageClassIsDefault = 'storageclass.kubernetes.io/is-default-class',
-  K8sDescription = 'kubernetes.io/description',
-  OdhStorageClassConfig = 'opendatahub.io/sc-config',
-  Description = 'description',
-  ConnectionName = 'opendatahub.io/connections',
-}
-
 type StorageClassAnnotations = Partial<{
   // if true, enables any persistent volume claim (PVC) that does not specify a specific storage class to automatically be provisioned.
   // Only one, if any, StorageClass per cluster can be set as default.
@@ -91,16 +69,6 @@ type StorageClassAnnotations = Partial<{
   [MetadataAnnotation.K8sDescription]: string;
   [MetadataAnnotation.OdhStorageClassConfig]: string;
 }>;
-
-export type K8sDSGResource = K8sResourceCommon & {
-  metadata: {
-    annotations?: DisplayNameAnnotations &
-      Partial<{
-        'opendatahub.io/recommended-accelerators': string;
-      }>;
-    name: string;
-  };
-};
 
 type ImageStreamAnnotations = Partial<{
   'opendatahub.io/notebook-image-desc': string;
@@ -131,24 +99,6 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/connections': string | undefined; // the connections attached to the notebook
 }> &
   Partial<HardwareProfileBindingAnnotations>;
-
-export type DashboardLabels = {
-  [KnownLabels.DASHBOARD_RESOURCE]: 'true' | 'false';
-};
-
-export type ModelServingProjectLabels = {
-  [KnownLabels.MODEL_SERVING_PROJECT]: 'false';
-};
-
-export type K8sCondition = {
-  type: string;
-  status: string;
-  reason?: string;
-  message?: string;
-  lastProbeTime?: string | null;
-  lastTransitionTime?: string;
-  lastHeartbeatTime?: string;
-};
 
 // from: https://github.com/opendatahub-io/data-science-pipelines-operator/blob/9b518e02ee794d0afbe2b9ad35c85be10051ce6e/controllers/config/defaults.go#L127-L138
 export enum K8sDspaConditionReason {
@@ -334,31 +284,6 @@ export type OdhQuickStart = K8sResourceCommon & {
   };
 };
 
-export type PersistentVolumeClaimKind = K8sResourceCommon & {
-  metadata: {
-    annotations?: DisplayNameAnnotations;
-    name: string;
-    namespace: string;
-  };
-  spec: {
-    accessModes: AccessMode[];
-    resources: {
-      requests: {
-        storage: string;
-      };
-    };
-    storageClassName?: string;
-    volumeMode: 'Filesystem' | 'Block';
-  };
-  status?: {
-    phase: string;
-    capacity?: {
-      storage: string;
-    };
-    conditions?: K8sCondition[];
-  } & Record<string, unknown>;
-};
-
 export type StorageClassKind = K8sResourceCommon & {
   metadata: {
     annotations?: StorageClassAnnotations;
@@ -369,16 +294,6 @@ export type StorageClassKind = K8sResourceCommon & {
   reclaimPolicy: string;
   volumeBindingMode: string;
   allowVolumeExpansion?: boolean;
-};
-
-export type PodSpec = {
-  affinity?: PodAffinity;
-  enableServiceLinks?: boolean;
-  containers: PodContainer[];
-  initContainers?: PodContainer[];
-  volumes?: Volume[];
-  tolerations?: Toleration[];
-  nodeSelector?: NodeSelector;
 };
 
 export type NotebookKind = K8sResourceCommon & {
@@ -396,42 +311,6 @@ export type NotebookKind = K8sResourceCommon & {
     containerState?: {
       terminated?: { [key: string]: string };
     };
-  };
-};
-
-export type PodKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-  };
-  spec: PodSpec;
-  status?: {
-    phase: string;
-    conditions?: K8sCondition[];
-    containerStatuses?: PodContainerStatus[];
-  };
-};
-
-export type PodContainerStatus = {
-  name: string;
-  ready: boolean;
-  state?: {
-    running?: boolean | undefined;
-    waiting?: boolean | undefined;
-    terminated?: boolean | undefined;
-  };
-};
-
-export type ProjectKind = K8sResourceCommon & {
-  metadata: {
-    annotations?: DisplayNameAnnotations &
-      Partial<{
-        'openshift.io/requester': string; // the username of the user that requested this project
-      }>;
-    labels?: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
-    name: string;
-  };
-  status?: {
-    phase: 'Active' | 'Terminating';
   };
 };
 
@@ -486,12 +365,6 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     volumes?: Volume[];
     imagePullSecrets?: ImagePullSecret[];
   };
-};
-
-export type SupportedModelFormats = {
-  name: string;
-  version?: string;
-  autoSelect?: boolean;
 };
 
 export enum DeploymentMode {
@@ -619,14 +492,14 @@ export type RoleKind = K8sResourceCommon & {
     name: string;
     namespace: string;
   };
-  rules: ResourceRule[];
+  rules?: ResourceRule[];
 };
 
 export type ClusterRoleKind = K8sResourceCommon & {
   metadata: {
     name: string;
   };
-  rules: ResourceRule[];
+  rules?: ResourceRule[];
 };
 
 export type RoleBindingKind = K8sResourceCommon & {
@@ -651,16 +524,6 @@ export type RouteKind = K8sResourceCommon & {
       weight: number;
     };
   };
-};
-
-export type SecretKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-    namespace: string;
-  };
-  data?: Record<string, string>;
-  stringData?: Record<string, string>;
-  type?: string;
 };
 
 export type AWSSecretKind = SecretKind & {
@@ -719,12 +582,6 @@ export type DSPipelineExternalStorageKind = {
   };
 };
 
-export type DSPipelineManagedPipelinesKind = {
-  instructLab?: {
-    state: 'Removed' | 'Managed';
-  };
-};
-
 export enum DSPipelineAPIServerStore {
   KUBERNETES = 'kubernetes',
   DATABASE = 'database',
@@ -738,6 +595,32 @@ export enum DSPAMlflowIntegrationMode {
 export type DSPipelineMlflowKind = {
   integrationMode?: DSPAMlflowIntegrationMode;
 };
+
+/**
+ * Managed pipelines configuration.
+ *
+ * CURRENT (AutoML/AutoRAG pattern):
+ * - The UI sends an empty object {} to enable managed pipelines.
+ * - The operator injects the image and other fields.
+ *
+ * DEPRECATED (InstructLab pattern):
+ * - instructLab.state: Legacy pattern for single InstructLab pipeline management
+ * - Use the new pattern for all new implementations
+ */
+export type DSPipelineManagedPipelinesImageKind = {
+  image?: string;
+  pipelines?: Array<{ name: string }>;
+};
+
+export type DSPipelineManagedPipelinesInstructLabKind = {
+  instructLab?: {
+    state: 'Removed' | 'Managed';
+  };
+};
+
+export type DSPipelineManagedPipelinesKind =
+  | DSPipelineManagedPipelinesImageKind
+  | DSPipelineManagedPipelinesInstructLabKind;
 
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
@@ -1164,21 +1047,6 @@ export type WorkloadPriorityClassKind = K8sResourceCommon & {
   description?: string;
 };
 
-export type AccessReviewResourceAttributes = {
-  /** CRD group, '*' for all groups, omit for core resources */
-  group?: '*' | string;
-  /** Plural resource name, omit for all */
-  resource?: string;
-  /** TODO: Not a full list, could be expanded, "" means none */
-  subresource?: '' | 'api' | 'spec' | 'status';
-  /** Must provide the verb you are trying to do; '*' means all verbs */
-  verb: '*' | K8sVerb;
-  /** A resource name, omit when not interested in a specific resource */
-  name?: string;
-  /** The namespace the check is in, omit for unbounded check */
-  namespace?: string;
-};
-
 export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
   spec: {
     resourceAttributes?: AccessReviewResourceAttributes;
@@ -1256,125 +1124,6 @@ export type GroupKind = K8sResourceCommon & {
   users: string[];
 };
 
-export type TemplateKind = K8sResourceCommon & {
-  metadata: {
-    annotations?: Partial<{
-      tags: string;
-      iconClass?: string;
-      'opendatahub.io/template-enabled': string;
-      'opendatahub.io/modelServingSupport': string;
-      'opendatahub.io/apiProtocol': string;
-      'opendatahub.io/model-type': string;
-    }>;
-    name: string;
-    namespace: string;
-  };
-  objects: K8sDSGResource[];
-  parameters: TemplateParameter[];
-};
-
-export type TemplateParameter = {
-  name: string;
-  displayName: string;
-  description: string;
-  value: string;
-  required: boolean;
-};
-
-export type DashboardCommonConfig = {
-  enablement: boolean;
-  disableInfo: boolean;
-  disableSupport: boolean;
-  disableClusterManager: boolean;
-  disableTracking: boolean;
-  disableBYONImageStream: boolean;
-  disableISVBadges: boolean;
-  disableAppLauncher: boolean;
-  disableUserManagement: boolean;
-  disableHome: boolean;
-  disableProjects: boolean;
-  disableModelServing: boolean;
-  disableProjectScoped: boolean;
-  disableProjectSharing: boolean;
-  disableCustomServingRuntimes: boolean;
-  disablePipelines: boolean;
-  disableTrustyBiasMetrics: boolean;
-  disablePerformanceMetrics: boolean;
-  disableKServe: boolean;
-  disableKServeAuth: boolean;
-  disableKServeMetrics: boolean;
-  disableKServeRaw: boolean;
-  disableDistributedWorkloads: boolean;
-  disableModelCatalog: boolean;
-  disableModelRegistry: boolean;
-  disableModelRegistrySecureDB: boolean;
-  disableServingRuntimeParams: boolean;
-  disableStorageClasses: boolean;
-  disableNIMModelServing: boolean;
-  disableAdminConnectionTypes: boolean;
-  disableFineTuning: boolean;
-  disableLMEval: boolean;
-  disableKueue: boolean;
-  trainingJobs: boolean;
-  disableFeatureStore?: boolean;
-  genAiStudio?: boolean;
-  guardrails?: boolean;
-  automl?: boolean;
-  autorag?: boolean;
-  modelAsService?: boolean;
-  maasAuthPolicies?: boolean;
-  aiAssetCustomEndpoints?: boolean;
-  mlflowPipelines?: boolean;
-  mcpCatalog?: boolean;
-  toolCalling?: boolean;
-  projectRBAC?: boolean;
-  observabilityDashboard?: boolean;
-  disableLLMd?: boolean;
-  deploymentWizardYAMLViewer?: boolean;
-  externalVectorStores?: boolean;
-  vLLMDeploymentOnMaaS?: boolean;
-  llmGatewayField?: boolean;
-  promptManagement?: boolean;
-  nimWizard?: boolean;
-  mySubscriptions?: boolean;
-  agentOps?: boolean;
-  roleManagement?: boolean;
-  agentProfileManagement?: boolean;
-};
-
-// [1] Intentionally disjointed fields from the CRD in this type definition
-// but still present in the CRD until we upgrade the CRD version.
-export type DashboardConfigKind = K8sResourceCommon & {
-  spec: {
-    dashboardConfig: DashboardCommonConfig;
-    // Intentionally disjointed from the CRD [1]
-    // groupsConfig?: {
-    notebookSizes?: NotebookSize[]; // deprecated
-    modelServerSizes?: ModelServingSize[]; // deprecated
-    notebookController?: {
-      enabled: boolean;
-      pvcSize?: string;
-      storageClassName?: string;
-      // Intentionally disjointed from the CRD [1]
-      // notebookNamespace?: string;
-      // Intentionally disjointed from the CRD [1]
-      // notebookTolerationSettings?: TolerationSettings;
-    };
-    templateOrder?: string[];
-    templateDisablement?: string[];
-    hardwareProfileOrder?: string[];
-    modelServing?: {
-      deploymentStrategy?: string;
-      isLLMdDefault?: boolean;
-    };
-    genAiStudioConfig?: {
-      aiAssetCustomEndpoints?: {
-        externalProviders?: boolean;
-        clusterDomains?: string[];
-      };
-    };
-  };
-};
 /**
  * @deprecated -- accelerator profiles are going away; only in deprecation paths
  * used by *both* modelmesh and finetuning
@@ -1434,23 +1183,6 @@ export type LMEvalKind = K8sResourceCommon & {
       percent: string;
       remainingTimeEstimate: string;
     }[];
-  };
-};
-
-export enum HardwareProfileFeatureVisibility {
-  WORKBENCH = 'workbench',
-  MODEL_SERVING = 'model-serving',
-}
-
-export type HardwareProfileKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-    namespace: string;
-    annotations?: HardwareProfileAnnotations;
-  };
-  spec: {
-    identifiers?: Identifier[];
-    scheduling?: HardwareProfileScheduling;
   };
 };
 

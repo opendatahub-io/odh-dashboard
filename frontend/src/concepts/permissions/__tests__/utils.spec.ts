@@ -1,3 +1,4 @@
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import {
   buildGroupRoleMap,
   buildUserRoleMap,
@@ -11,7 +12,6 @@ import {
   roleBindingHasSubject,
 } from '#~/concepts/permissions/utils';
 import { RoleLabelType, RoleRef, SupportedSubjectRef } from '#~/concepts/permissions/types';
-import { KnownLabels } from '#~/k8sTypes';
 import { OPENSHIFT_BOOTSTRAPPING_DEFAULT_VALUE } from '#~/concepts/permissions/const';
 import {
   mockClusterRoleK8sResource,

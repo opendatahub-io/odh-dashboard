@@ -55,15 +55,15 @@ describe('AIModelsTableRowInfo', () => {
   });
 
   describe('ASR badge', () => {
-    it('should render ASR badge when model has audio-transcription modality', () => {
-      const model = createMockAIModel({ modality: 'audio-transcription' });
+    it('should render ASR badge when model has audio-transcription capability', () => {
+      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
       render(<AIModelsTableRowInfo model={model} />);
 
       expect(screen.getByText('ASR')).toBeInTheDocument();
     });
 
     it('should render ASR badge with data-testid asr-badge', () => {
-      const model = createMockAIModel({ modality: 'audio-transcription' });
+      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
       render(<AIModelsTableRowInfo model={model} />);
 
       expect(screen.getByTestId('asr-badge')).toBeInTheDocument();
@@ -79,7 +79,7 @@ describe('AIModelsTableRowInfo', () => {
     it('should render both Embedding and ASR badges if model has both', () => {
       const model = createMockAIModel({
         model_type: 'embedding',
-        modality: 'audio-transcription',
+        capabilities: ['audio-transcription'],
       });
       render(<AIModelsTableRowInfo model={model} />);
 

@@ -6,7 +6,7 @@ import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceName
 import { Label } from '@patternfly/react-core';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { Link, useNavigate } from 'react-router-dom';
-import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';

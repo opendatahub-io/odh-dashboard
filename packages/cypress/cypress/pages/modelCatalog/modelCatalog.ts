@@ -192,6 +192,18 @@ class ModelCatalog {
     return cy.findByTestId('validated-model-benchmark-link');
   }
 
+  findColdStartLoadTimeFilter() {
+    return cy.findByTestId('cold-start-load-time-filter');
+  }
+
+  findMinimumVramFilter() {
+    return cy.findByTestId('minimum-vram-filter');
+  }
+
+  findContainerSizeFilter() {
+    return cy.findByTestId('container-size-filter');
+  }
+
   findValidatedArgumentsFilter() {
     return cy.findByTestId('Validated arguments-filter');
   }

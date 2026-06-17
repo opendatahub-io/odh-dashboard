@@ -3,7 +3,7 @@ import {
   SchedulingType,
   TolerationEffect,
   TolerationOperator,
-} from '@odh-dashboard/internal/types';
+} from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 

@@ -309,6 +309,32 @@ class FeatureStoreGlobal {
     return cy.findByTestId('connected-workbenches-link');
   }
 
+  findConnectedWorkbenchesModal() {
+    return cy.findByRole('dialog', { name: /Connected workbenches/i });
+  }
+
+  findConnectedWorkbenchesModalProjectSelector() {
+    return cy.findByTestId('connected-workbenches-modal-search-toggle');
+  }
+
+  findConnectedWorkbenchesEmptyState() {
+    return cy.findByTestId('connected-workbenches-empty-state');
+  }
+
+  findConnectedWorkbenchesTable() {
+    return cy.findByTestId('connected-workbenches-table');
+  }
+
+  findConnectedWorkbenchNone() {
+    return cy.findByTestId('connected-workbench-none');
+  }
+
+  openConnectedWorkbenchesModal() {
+    this.findConnectedWorkbenchesLink().click();
+    this.findConnectedWorkbenchesModal().should('be.visible');
+    return this;
+  }
+
   findPaginationToggle() {
     return cy.get('#table-pagination-top-toggle');
   }

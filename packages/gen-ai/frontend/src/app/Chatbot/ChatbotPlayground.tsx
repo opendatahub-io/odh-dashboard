@@ -24,7 +24,14 @@ import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import { uploadMediaFile } from '~/app/services/llamaStackService';
 import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
-import { getId } from '~/app/utilities/utils';
+import {
+  convertMaaSModelToAIModel,
+  getId,
+  isMaasLlamaModelId,
+  isPlaygroundModelMatchForAIModel,
+  isVisionModel,
+} from '~/app/utilities/utils';
+import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
@@ -141,8 +148,17 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
   const isEmbedded = useIsEmbeddedPlayground();
-  const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
-    React.useContext(ChatbotContext);
+  const {
+    models,
+    modelsLoaded,
+    aiModels,
+    aiModelsLoaded,
+    aiModelsError,
+    maasModels,
+    maasModelsLoaded,
+    lastInput,
+    setLastInput,
+  } = React.useContext(ChatbotContext);
 
   const { data: bffConfig } = useFetchBFFConfig();
   const isDarkMode = useDarkMode();
@@ -155,7 +171,40 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const primarySelectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(primaryConfigId));
   const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
 
-  const isAudioUploadDisabled = !primaryIsAsrEnabled || !primarySelectedAsrModel;
+  // Workspace capabilities — controls visibility & disable state of multimodal uploads
+  const { hasVisionModel, hasASRModel, capabilitiesReady, capabilitiesError } =
+    useWorkspaceCapabilities(aiModels, aiModelsLoaded, maasModelsLoaded, aiModelsError);
+
+  const isAudioUploadDisabled =
+    !capabilitiesReady || capabilitiesError || !primaryIsAsrEnabled || !primarySelectedAsrModel;
+
+  const convertedMaasModels = React.useMemo(
+    () => maasModels.map(convertMaaSModelToAIModel),
+    [maasModels],
+  );
+
+  const selectedModelObj = React.useMemo(() => {
+    if (!primarySelectedModel) {
+      return undefined;
+    }
+    const llamaModel = models.find((m) => m.id === primarySelectedModel);
+    if (!llamaModel) {
+      return undefined;
+    }
+    const allAIModels = [...aiModels, ...convertedMaasModels];
+    return allAIModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai));
+  }, [primarySelectedModel, models, aiModels, convertedMaasModels]);
+
+  const selectedModelHasVision = isVisionModel(selectedModelObj ?? {});
+  const isMaasSelected = selectedModelObj
+    ? selectedModelObj.model_source_type === 'maas'
+    : primarySelectedModel
+      ? isMaasLlamaModelId(primarySelectedModel)
+      : false;
+  const isEmptyCapsMaaS = isMaasSelected && (selectedModelObj?.capabilities?.length ?? 0) === 0;
+
+  const showImageUpload = capabilitiesReady ? hasVisionModel && !isEmptyCapsMaaS : true;
+  const showAudioUpload = capabilitiesReady ? hasASRModel && !isEmptyCapsMaaS : true;
 
   // Router state
   const location = useLocation();
@@ -226,6 +275,23 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const uploadGenRef = React.useRef(0);
   const previewUrlRef = React.useRef<string | null>(null);
   previewUrlRef.current = imageUploadState.previewUrl;
+
+  // Capability-based image upload gating
+  const isImageUploadDisabled =
+    !capabilitiesReady || capabilitiesError || hasImageInConversation || !selectedModelHasVision;
+
+  const imageDisabledTooltip = React.useMemo(() => {
+    if (!capabilitiesReady) {
+      return undefined;
+    }
+    if (!selectedModelHasVision && hasVisionModel) {
+      return 'Switch to a vision-capable model to upload images.';
+    }
+    if (hasImageInConversation) {
+      return 'Only one image per conversation.';
+    }
+    return undefined;
+  }, [capabilitiesReady, selectedModelHasVision, hasVisionModel, hasImageInConversation]);
 
   // Audio transcription state
   const audioTranscription = useAudioTranscription();
@@ -511,6 +577,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const handleImageUpload = React.useCallback(
     (file: File) => {
+      if (!capabilitiesReady || !selectedModelHasVision) {
+        return;
+      }
       if (imageUploadState.fileName && !hasImageInConversation) {
         pendingReplaceFileRef.current = file;
         setShowReplaceMediaModal(true);
@@ -518,7 +587,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       }
       performImageUpload(file);
     },
-    [imageUploadState.fileName, hasImageInConversation, performImageUpload],
+    [
+      capabilitiesReady,
+      selectedModelHasVision,
+      imageUploadState.fileName,
+      hasImageInConversation,
+      performImageUpload,
+    ],
   );
 
   const handleReplaceMediaConfirm = React.useCallback(() => {
@@ -568,6 +643,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // Audio upload handler
   const handleAudioUpload = React.useCallback(
     (file: File) => {
+      if (!capabilitiesReady || !showAudioUpload) {
+        return;
+      }
       if (hasAudioInCurrentMessage || audioUploadLatchRef.current) {
         setShowAudioPerMessageModal(true);
         return;
@@ -579,7 +657,14 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       setHasAudioInCurrentMessage(true);
       audioTranscription.startUpload(file, primarySelectedAsrModel, namespace?.name || '');
     },
-    [hasAudioInCurrentMessage, primarySelectedAsrModel, namespace?.name, audioTranscription],
+    [
+      capabilitiesReady,
+      showAudioUpload,
+      hasAudioInCurrentMessage,
+      primarySelectedAsrModel,
+      namespace?.name,
+      audioTranscription,
+    ],
   );
 
   const handleAudioCancel = React.useCallback(() => {
@@ -952,7 +1037,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 onImageUpload={handleImageUpload}
                 imageUploadState={imageUploadState}
                 onRemoveImage={handleRemoveImage}
-                isImageUploadDisabled={hasImageInConversation}
+                isImageUploadDisabled={isImageUploadDisabled}
+                imageDisabledTooltip={imageDisabledTooltip}
+                showImageUpload={showImageUpload}
+                showAudioUpload={showAudioUpload}
                 isAudioUploadDisabled={isAudioUploadDisabled}
                 audioDisabledTooltip={
                   isAudioUploadDisabled

@@ -1,3 +1,4 @@
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import type {
   ClusterRoleKind,
   RoleBindingKind,
@@ -5,7 +6,6 @@ import type {
   RoleBindingSubject,
   RoleKind,
 } from '#~/k8sTypes';
-import { KnownLabels } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
   DEFAULT_CLUSTER_ROLE_NAMES,

@@ -15,11 +15,15 @@ const TASK_DISPLAY_NAMES: Record<string, string> = {
   'autogluon-timeseries-models-selection': 'Model selection',
   'for-loop-1': 'Model generation', // used in timeseries
   'autogluon-models-training': 'Model generation', // used in tabular
+  'autogluon-models-training-2': 'Model generation', // speed preset variant
   'timeseries-models-full-refit': 'Model generation',
   'autogluon-timeseries-models-training': 'Model generation',
+  'autogluon-timeseries-models-training-2': 'Model generation', // speed preset variant
   'autogluon-timeseries-models-full-refit': 'Model generation',
   'leaderboard-evaluation': 'Leaderboard evaluation',
+  'leaderboard-evaluation-2': 'Leaderboard evaluation', // speed preset variant
   'timeseries-leaderboard-evaluation': 'Leaderboard evaluation',
+  'condition-branches-1': 'Model training & evaluation',
 };
 
 /** Normalize display names / ids to kebab-ish keys used in TASK_DISPLAY_NAMES. */
