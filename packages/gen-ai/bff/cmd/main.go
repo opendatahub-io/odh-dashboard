@@ -69,6 +69,14 @@ func main() {
 	// RBAC configuration
 	flag.BoolVar(&cfg.EnableLlamaStackRBAC, "enable-llamastack-rbac", getEnvAsBool("ENABLE_LLAMASTACK_RBAC", false), "Enable RBAC endpoint filtering on LlamaStack configurations")
 
+	// pgvector (default vector store) configuration
+	flag.StringVar(&cfg.PgvectorHost, "pgvector-host", getEnvAsString("PGVECTOR_HOST", ""), "Hostname of pgvector-enabled PostgreSQL (enables remote::pgvector as default vector_io provider)")
+	flag.IntVar(&cfg.PgvectorPort, "pgvector-port", getEnvAsInt("PGVECTOR_PORT", 5432), "PostgreSQL port for pgvector")
+	flag.StringVar(&cfg.PgvectorDB, "pgvector-db", getEnvAsString("PGVECTOR_DB", "vectordb"), "PostgreSQL database name for pgvector")
+	flag.StringVar(&cfg.PgvectorUser, "pgvector-user", getEnvAsString("PGVECTOR_USER", "vectoruser"), "PostgreSQL user for pgvector")
+	flag.StringVar(&cfg.PgvectorPasswordSecretName, "pgvector-password-secret-name", getEnvAsString("PGVECTOR_PASSWORD_SECRET_NAME", ""), "Kubernetes Secret name containing the pgvector password")
+	flag.StringVar(&cfg.PgvectorPasswordSecretKey, "pgvector-password-secret-key", getEnvAsString("PGVECTOR_PASSWORD_SECRET_KEY", "password"), "Key in the pgvector password Secret")
+
 	// BFF inter-communication configuration
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
 	flag.StringVar(&cfg.BFFMaaSServiceName, "bff-maas-service-name", getEnvAsString("BFF_MAAS_SERVICE_NAME", "odh-dashboard"), "Kubernetes service name for MaaS BFF")
