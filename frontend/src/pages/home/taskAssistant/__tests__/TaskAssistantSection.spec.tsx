@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
 import TaskAssistantSection from '#~/pages/home/taskAssistant/TaskAssistantSection';
 import { makeGroupExtension, makeItemExtension } from './taskAssistantTestUtils';
 

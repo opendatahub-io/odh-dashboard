@@ -3,7 +3,7 @@ import useDimensions from 'react-cool-dimensions';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
 import { OdhDocument } from '#~/types';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { DOC_LINK, ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';

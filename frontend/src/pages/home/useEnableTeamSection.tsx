@@ -6,7 +6,7 @@ import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '#~/conce
 import DividedGallery from '#~/concepts/design/DividedGallery';
 import { useUser } from '#~/redux/selectors';
 import InfoGalleryItem from '#~/concepts/design/InfoGalleryItem';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 export const useEnableTeamSection = (): React.ReactNode => {

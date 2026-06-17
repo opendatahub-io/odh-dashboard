@@ -5,12 +5,6 @@ import {
   type BrowserStorageContextType,
 } from '@odh-dashboard/plugin-core/utilities';
 
-export { useBrowserStorage, BrowserStorageContext } from '@odh-dashboard/plugin-core/utilities';
-export type {
-  SetBrowserStorageHook,
-  BrowserStorageContextType,
-} from '@odh-dashboard/plugin-core/utilities';
-
 type ValueMap = { [storageKey: string]: unknown };
 
 type BrowserStorageContextProviderProps = {

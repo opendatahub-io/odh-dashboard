@@ -1,4 +1,4 @@
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
 
 const useStopNotebookModalAvailability = (): [boolean, (v: boolean) => void] =>
   useBrowserStorage<boolean>('odh.dashboard.dsg.stop.modal.preference', false);

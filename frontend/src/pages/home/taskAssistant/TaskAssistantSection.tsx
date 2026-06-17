@@ -14,7 +14,7 @@ import {
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
 import taskAssistantIllustration from '#~/images/Illustration-Learning_path-Teal-RH.svg';
 import TaskGroupCard from './TaskGroupCard';
 import TaskAssistantPillBar from './TaskAssistantPillBar';
