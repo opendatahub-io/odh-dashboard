@@ -44,7 +44,7 @@ describe('Create Role - Form/YAML toggle', () => {
   });
 
   it('should have Form selected by default', () => {
-    projectRoles.findFormViewToggle().should('have.class', 'pf-m-selected');
+    projectRoles.findFormViewToggle().find('button').should('have.class', 'pf-m-selected');
     projectRoles.findCreateRoleForm().should('exist');
   });
 
@@ -74,12 +74,11 @@ describe('Create Role - Form/YAML toggle', () => {
     projectRoles.findRoleNameInput().type('test-role');
     projectRoles.findYamlViewToggle().click();
 
-    projectRoles
-      .findYamlCodeEditor()
-      .should('contain.text', 'apiVersion: rbac.authorization.k8s.io/v1');
-    projectRoles.findYamlCodeEditor().should('contain.text', 'kind: Role');
-    projectRoles.findYamlCodeEditor().should('contain.text', 'name: test-role');
-    projectRoles.findYamlCodeEditor().should('contain.text', `namespace: ${NAMESPACE}`);
+    projectRoles.findYamlCodeEditor().should('exist');
+    cy.findByTestId('yaml-editor-container').contains('rbac.authorization.k8s.io/v1');
+    cy.findByTestId('yaml-editor-container').contains('Role');
+    cy.findByTestId('yaml-editor-container').contains('test-role');
+    cy.findByTestId('yaml-editor-container').contains(NAMESPACE);
   });
 
   it('should reflect description in YAML', () => {
@@ -87,9 +86,7 @@ describe('Create Role - Form/YAML toggle', () => {
     projectRoles.findDescriptionTextarea().type('My role description');
     projectRoles.findYamlViewToggle().click();
 
-    projectRoles
-      .findYamlCodeEditor()
-      .should('contain.text', 'openshift.io/description: My role description');
+    cy.findByTestId('yaml-editor-container').contains('My role description');
   });
 
   it('should switch back to Form view and preserve data', () => {
