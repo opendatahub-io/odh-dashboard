@@ -142,7 +142,6 @@ export type DashboardCommonConfig = {
   agentOps?: boolean;
   roleManagement?: boolean;
   agentProfileManagement?: boolean;
-  modelDeploymentSettings?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

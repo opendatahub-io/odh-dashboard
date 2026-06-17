@@ -277,6 +277,7 @@ export type DashboardCommonConfig = {
   agentOps?: boolean;
   roleManagement?: boolean;
   agentProfileManagement?: boolean;
+  modelDeploymentSettings?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
