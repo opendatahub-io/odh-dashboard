@@ -82,7 +82,7 @@ def run(judge_paths, experiment_id, base_dir, commit=None):
 
     judge_names = []
     for judge in judges:
-        judge_names.append(judge._name if hasattr(judge, "_name") else judge.name)
+        judge_names.append(getattr(judge, "name", str(judge)))
 
     output = []
     for _, row in df.iterrows():
