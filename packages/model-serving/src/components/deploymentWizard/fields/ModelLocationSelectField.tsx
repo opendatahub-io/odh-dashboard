@@ -11,7 +11,10 @@ import { type ZodIssue } from 'zod';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import {
+  Connection,
+  ConnectionTypeConfigMapObj,
+} from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   ModelServingCompatibleTypes,
   isModelServingCompatible,
@@ -25,7 +28,7 @@ import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsArea
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
-import { ociOption, s3Option, uriOption } from './modelLocationFields/modeLocationTypes';
+import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
 import { isModelLocationType, ModelLocationData, ModelLocationType } from '../types';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
@@ -221,37 +224,23 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                   });
                   setUserSelectedOption(newOption);
                 } else {
-                  switch (key) {
-                    case s3Option.key:
-                      setUserSelectedOption({ key: s3Option.key, label: s3Option.label });
-                      setModelLocationData({
-                        type: ModelLocationType.NEW,
-                        connectionTypeObject:
-                          s3ConnectionTypes.length > 1 ? undefined : s3ConnectionTypes[0],
-                        fieldValues: {},
-                        additionalFields: {},
-                      });
-                      break;
-                    case ociOption.key:
-                      setUserSelectedOption({ key: ociOption.key, label: ociOption.label });
-                      setModelLocationData({
-                        type: ModelLocationType.NEW,
-                        connectionTypeObject:
-                          ociConnectionTypes.length > 1 ? undefined : ociConnectionTypes[0],
-                        fieldValues: {},
-                        additionalFields: {},
-                      });
-                      break;
-                    case uriOption.key:
-                      setUserSelectedOption({ key: uriOption.key, label: uriOption.label });
-                      setModelLocationData({
-                        type: ModelLocationType.NEW,
-                        connectionTypeObject:
-                          uriConnectionTypes.length > 1 ? undefined : uriConnectionTypes[0],
-                        fieldValues: {},
-                        additionalFields: {},
-                      });
-                      break;
+                  const optionToTypes: Partial<
+                    Record<string, { option: typeof s3Option; types: ConnectionTypeConfigMapObj[] }>
+                  > = {
+                    [s3Option.key]: { option: s3Option, types: s3ConnectionTypes },
+                    [ociOption.key]: { option: ociOption, types: ociConnectionTypes },
+                    [uriOption.key]: { option: uriOption, types: uriConnectionTypes },
+                  };
+
+                  const match = optionToTypes[key];
+                  if (match) {
+                    setUserSelectedOption({ key: match.option.key, label: match.option.label });
+                    setModelLocationData({
+                      type: ModelLocationType.NEW,
+                      connectionTypeObject: match.types.length > 1 ? undefined : match.types[0],
+                      fieldValues: {},
+                      additionalFields: {},
+                    });
                   }
                 }
               }}

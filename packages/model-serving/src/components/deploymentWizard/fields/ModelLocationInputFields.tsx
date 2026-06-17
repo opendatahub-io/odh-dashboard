@@ -30,7 +30,7 @@ import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
 import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectField';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
-import { ociOption, s3Option, uriOption } from './modelLocationFields/modeLocationTypes';
+import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
 import usePvcs from '../../../concepts/usePvcs';
 import { ModelLocationData, ModelLocationType } from '../types';
 import { resolveConnectionType } from '../utils';
@@ -415,7 +415,7 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
                 additionalFields: {},
               });
             }}
-            typeLabel={customTypeOption.label || ''}
+            typeLabel={customTypeOption.label}
             selectedConnectionType={selectedConnectionType}
           />
         ) : null}
