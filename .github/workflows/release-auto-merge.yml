@@ -194,21 +194,9 @@ jobs:
             while IFS= read -r line || [[ -n "$line" ]]; do
               [[ "$line" =~ ^# || -z "$line" ]] && continue
               key="${line%%=*}"
-              # Match keys literally (params keys may contain dots, e.g. app.kubernetes.io/name)
-              parent_line=$(awk -F= -v key="$key" '$1==key {print; exit}' "$PARENT")
+              parent_line=$(grep "^${key}=" "$PARENT" || true)
               [[ -n "$parent_line" ]] || continue
-              tmp="$(mktemp)"
-              awk -v key="$key" -v repl="$parent_line" '
-                {
-                  if ($0 ~ /^#/ || $0 == "") { print; next }
-                  eq = index($0, "=")
-                  if (eq == 0) { print; next }
-                  k = substr($0, 1, eq - 1)
-                  if (k == key) print repl
-                  else print
-                }
-              ' "$params_file" > "$tmp"
-              mv "$tmp" "$params_file"
+              sed -i "s|^${key}=.*|${parent_line}|" "$params_file"
             done < "$params_file"
             echo "Synced $params_file"
           done

@@ -133,31 +133,7 @@ paths:
       operationId: getAgentRuntimeDetail
       summary: Get agent runtime detail
       description: Returns full runtime detail for a single deployed agent.
-  /api/v1/agents/cards/{ns}/{name}:
-    summary: Get agent discovery card.
-    description: >-
-      Returns agent card metadata including skills, capabilities, provider info,
-      and supported input/output modes.
-    get:
-      tags:
-        - AgentOperation
-      parameters:
-        - $ref: "#/components/parameters/agentNamespace"
-        - $ref: "#/components/parameters/agentName"
-      responses:
-        "200":
-          $ref: "#/components/responses/AgentCardResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      operationId: getAgentCard
-      summary: Get agent card
-      description: Returns the agent discovery card for a single agent.
+
 components:
   schemas:
     Config:
@@ -701,49 +677,7 @@ components:
                     validSignature: true
                     linkedSkills: ["summarizer"]
       description: A response containing full agent runtime detail.
-    AgentCardResponse:
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              metadata:
-                type: object
-                description: Metadata about the response
-              data:
-                $ref: "#/components/schemas/AgentCard"
-          examples:
-            default:
-              value:
-                metadata:
-                  requestId: req-agent-card-001
-                  status: ok
-                  timestamp: "2026-05-12T16:00:03.214610Z"
-                data:
-                  name: sample-support-agent
-                  namespace: agent-ops-demo
-                  description: Customer support agent that triages tickets and drafts responses.
-                  version: "1.2.0"
-                  url: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
-                  skills:
-                    - id: ticket-triage
-                      name: Ticket triage
-                      description: Classifies incoming support tickets by priority and topic.
-                    - id: response-draft
-                      name: Response drafting
-                      description: Drafts customer-facing replies from ticket context and knowledge base snippets.
-                  capabilities:
-                    streaming: true
-                    pushNotifications: false
-                  provider:
-                    name: opendatahub
-                    displayName: Open Data Hub
-                    url: https://opendatahub.io
-                  supportedInputModes:
-                    - text
-                  supportedOutputModes:
-                    - text
-      description: A response containing an agent discovery card.
+
 
   parameters:
     agentNamespace:
