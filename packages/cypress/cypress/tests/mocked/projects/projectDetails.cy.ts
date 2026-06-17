@@ -619,4 +619,28 @@ describe('Project Details', () => {
       cy.findByTestId('deploy-button').should('have.attr', 'aria-disabled', 'true');
     });
   });
+
+  describe('Kueue managed project', () => {
+    beforeEach(() => {
+      initIntercepts({ disableKueue: false });
+    });
+
+    it('should show positive Kueue indicator when project is Kueue-managed and feature is enabled', () => {
+      const kueueManagedProject = mockProjectK8sResource({ enableKueue: true });
+      cy.interceptK8s(ProjectModel, kueueManagedProject);
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([kueueManagedProject]));
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.KUEUE]: { managementState: 'Managed' },
+          },
+        }),
+      );
+
+      projectDetails.visit('test-project');
+      cy.findByTestId('kueue-managed-alert-project-details').should('be.visible');
+      cy.findByTestId('kueue-disabled-alert-project-details').should('not.exist');
+    });
+  });
 });
