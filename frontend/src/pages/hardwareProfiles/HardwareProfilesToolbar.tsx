@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import FilterToolbar from '#~/components/FilterToolbar';
 import {
   HardwareProfileEnableType,
@@ -11,7 +12,6 @@ import {
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { AccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 import { HardwareProfileModel } from '#~/api';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { HardwareProfileFeatureVisibilityTitles } from './manage/const';
 
 type HardwareProfilesToolbarProps = {

@@ -5,7 +5,7 @@ import { Flex, Label, Popover } from '@patternfly/react-core';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
 import { ProjectDeploymentsTable } from './ProjectDeploymentsTable';

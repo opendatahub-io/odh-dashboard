@@ -1,6 +1,5 @@
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { getPipelineServerName } from '#~/concepts/pipelines/context/PipelinesContext';
-import { ProjectKind } from '#~/k8sTypes';
-
 // Mock the k8s utils function
 jest.mock('#~/concepts/k8s/utils', () => ({
   getDisplayNameFromK8sResource: jest.fn(),

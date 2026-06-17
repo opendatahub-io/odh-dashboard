@@ -6,6 +6,7 @@ import {
   k8sPatchResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { DataSciencePipelineApplicationModel } from '#~/api/models';
 import {
   DSPipelineKind,
@@ -13,7 +14,6 @@ import {
   DSPipelineManagedPipelinesKind,
   K8sAPIOptions,
   RouteKind,
-  SecretKind,
 } from '#~/k8sTypes';
 import { getRoute } from '#~/api/k8s/routes';
 import { getSecret } from '#~/api/k8s/secrets';

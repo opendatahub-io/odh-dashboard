@@ -18,7 +18,8 @@ import {
   mockServingRuntimeTemplateK8sResource,
   mockStandardModelServingTemplateK8sResources,
 } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { IdentifierResourceType, ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,

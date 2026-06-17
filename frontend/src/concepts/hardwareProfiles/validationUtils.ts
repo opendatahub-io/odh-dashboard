@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import {
   CPU_UNITS,
   isCpuLimitLarger,
@@ -8,8 +10,6 @@ import {
   ValueUnitCPU,
   ValueUnitString,
 } from '#~/utilities/valueUnits';
-import { HardwareProfileKind } from '#~/k8sTypes';
-import { IdentifierResourceType } from '#~/types';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 import { formatResourceValue } from './utils';
 

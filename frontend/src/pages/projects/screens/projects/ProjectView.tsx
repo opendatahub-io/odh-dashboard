@@ -1,7 +1,7 @@
 import * as React from 'react';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAccessReview } from '#~/api';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';

@@ -11,7 +11,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { getModelServingPVCAnnotations } from '#~/pages/modelServing/utils';
 import {
   getModelPathFromUri,

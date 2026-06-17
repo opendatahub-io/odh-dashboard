@@ -6,7 +6,7 @@ import {
   DescriptionListTerm,
 } from '@patternfly/react-core';
 
-import { ContainerResources } from '#~/types';
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
 import { formatMemory } from '#~/utilities/valueUnits';
 
 type NotebookSizeDetailsProps = {
