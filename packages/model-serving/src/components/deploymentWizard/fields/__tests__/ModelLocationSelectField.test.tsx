@@ -9,8 +9,8 @@ import {
   Connection,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
-import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
-import type { IsAreaAvailableStatus } from '@odh-dashboard/internal/concepts/areas/types';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
 import { ModelLocationData, ModelLocationType } from '../../types';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';

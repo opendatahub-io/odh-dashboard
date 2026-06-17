@@ -26,7 +26,7 @@ import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points'
 import {
   DataScienceStackComponent,
   SupportedArea,
-} from '@odh-dashboard/internal/concepts/areas/index';
+} from '@odh-dashboard/plugin-core/areas';
 import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentMethodSelectField';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';

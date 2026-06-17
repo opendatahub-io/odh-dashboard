@@ -1,4 +1,5 @@
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+// eslint-disable-next-line no-restricted-syntax
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type {
   AreaExtension,
   NavExtension,

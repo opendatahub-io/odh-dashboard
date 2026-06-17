@@ -1,4 +1,4 @@
-import type { SupportedComponentFlagValue } from '@odh-dashboard/internal/concepts/areas/types';
+import type { SupportedComponentFlagValue } from '../areas/types';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 
 /**
