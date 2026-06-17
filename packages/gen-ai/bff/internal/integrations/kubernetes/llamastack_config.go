@@ -432,7 +432,14 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 	// Create provider config
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
-	providerConfig["max_tokens"] = fmt.Sprintf("${env.VLLM_MAX_TOKENS_%d:=4096}", index+1)
+	// Use user-specified max_tokens as the default fallback value in the env var template.
+	// The actual value is set via the VLLM_MAX_TOKENS_N env var on the OGXServer pod,
+	// but the fallback must also match so LlamaStack uses the correct limit regardless.
+	maxTokensDefault := 4096
+	if maxTokens != nil {
+		maxTokensDefault = *maxTokens
+	}
+	providerConfig["max_tokens"] = fmt.Sprintf("${env.VLLM_MAX_TOKENS_%d:=%d}", index+1, maxTokensDefault)
 	providerConfig["api_token"] = fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", index+1)
 	providerConfig["tls_verify"] = "${env.VLLM_TLS_VERIFY:=true}"
 

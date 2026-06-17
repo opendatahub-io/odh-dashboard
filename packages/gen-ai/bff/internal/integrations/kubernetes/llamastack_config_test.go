@@ -1107,7 +1107,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		assert.NotNil(t, foundModel.MaxTokens, "MaxTokens should be set")
 		assert.Equal(t, 8192, *foundModel.MaxTokens)
 
-		// Verify provider-level max_tokens uses indexed env var (actual value comes from deployment env var)
+		// Verify provider-level max_tokens uses indexed env var with user-specified default
 		var foundProvider *Provider
 		for i := range parsedConfig.Providers.Inference {
 			if parsedConfig.Providers.Inference[i].ProviderID == "test-provider" {
@@ -1118,7 +1118,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		require.NotNil(t, foundProvider, "Provider should be found in parsed config")
 		providerMaxTokens, ok := foundProvider.Config["max_tokens"]
 		require.True(t, ok, "Provider config should contain max_tokens")
-		assert.Equal(t, "${env.VLLM_MAX_TOKENS_1:=4096}", providerMaxTokens)
+		assert.Equal(t, "${env.VLLM_MAX_TOKENS_1:=8192}", providerMaxTokens)
 	})
 
 	t.Run("should not include max_tokens in model configuration when not provided", func(t *testing.T) {
@@ -1148,7 +1148,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		assert.Nil(t, foundModel.MaxTokens, "MaxTokens should be nil when not provided")
 	})
 
-	t.Run("should use per-provider indexed env var for max_tokens in provider config", func(t *testing.T) {
+	t.Run("should use per-provider indexed env var for max_tokens in provider config with user value as default", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens := 2048
 		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens, nil)
@@ -1156,12 +1156,12 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
 
-		// Provider config should reference indexed env var, not shared one
-		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}")
+		// Provider config should reference indexed env var with user-specified default, not hardcoded 4096
+		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_1:=2048}")
 		assert.NotContains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS:=4096}")
 	})
 
-	t.Run("should use different indexed env vars for multiple providers", func(t *testing.T) {
+	t.Run("should use different indexed env vars for multiple providers with respective defaults", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens1 := 4096
 		maxTokens2 := 16384
@@ -1171,9 +1171,9 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
 
-		// Each provider should have its own indexed env var
+		// Each provider should have its own indexed env var with the user-specified default
 		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}")
-		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_2:=4096}")
+		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_2:=16384}")
 	})
 
 	t.Run("should support multiple models with different max_tokens values", func(t *testing.T) {
