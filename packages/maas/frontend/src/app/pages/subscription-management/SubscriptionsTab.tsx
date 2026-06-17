@@ -92,9 +92,11 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
       {deleteSubscription && (
         <DeleteSubscriptionModal
           subscription={deleteSubscription}
-          onClose={() => {
+          onClose={(deleted?: boolean) => {
             setDeleteSubscription(undefined);
-            refresh();
+            if (deleted) {
+              refresh();
+            }
           }}
         />
       )}
