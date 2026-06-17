@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Bullseye,
   Drawer,
+  DrawerActions,
   DrawerCloseButton,
   DrawerContent,
   DrawerContentBody,
@@ -68,7 +69,9 @@ const TracePanel: React.FC<TracePanelProps> = ({
         <Title headingLevel="h3" size="lg">
           Trace Details
         </Title>
-        <DrawerCloseButton onClick={onClose} />
+        <DrawerActions>
+          <DrawerCloseButton onClick={onClose} />
+        </DrawerActions>
       </DrawerHead>
       <div style={{ height: '100%', overflow: 'auto' }}>
         <React.Suspense
