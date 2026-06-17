@@ -402,6 +402,9 @@ var _ = Describe("LlamaStackCreateVectorStoreHandler", func() {
 			if rr.Code == http.StatusCreated {
 				break
 			}
+			if rr.Code != http.StatusBadGateway {
+				break
+			}
 			if attempt < 5 {
 				time.Sleep(2 * time.Second)
 			}
@@ -449,6 +452,9 @@ var _ = Describe("LlamaStackCreateVectorStoreHandler", func() {
 			rr = httptest.NewRecorder()
 			app.LlamaStackCreateVectorStoreHandler(rr, req, nil)
 			if rr.Code == http.StatusCreated {
+				break
+			}
+			if rr.Code != http.StatusBadGateway {
 				break
 			}
 			if attempt < 5 {
