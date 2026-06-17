@@ -73,18 +73,16 @@ func main() {
 		applicationsNamespace = operatorNamespace
 	}
 
-	// Disable HTTP/2 to mitigate CVE-2023-44487 (rapid reset attack).
-	tlsOpts := []func(*tls.Config){
-		func(c *tls.Config) {
-			c.NextProtos = []string{"http/1.1"}
-		},
-	}
-
 	metricsOpts := metricsserver.Options{BindAddress: metricsAddr}
 	if secureMetrics {
 		metricsOpts.SecureServing = true
 		metricsOpts.CertDir = "/tmp/k8s-metrics-server/serving-certs"
-		metricsOpts.TLSOpts = tlsOpts
+		metricsOpts.TLSOpts = []func(*tls.Config){
+			func(c *tls.Config) {
+				c.MinVersion = tls.VersionTLS12
+				c.NextProtos = []string{"http/1.1"}
+			},
+		}
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

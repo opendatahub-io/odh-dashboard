@@ -322,5 +322,5 @@ Each certificate includes DNS names for in-cluster service discovery:
 | `--health-probe-bind-address` | `:8081` | Health probe bind address |
 | `--leader-elect` | `false` | Enable leader election |
 | `--secure-metrics` | `true` | Serve metrics over HTTPS |
-| `--namespace` | (required) | Operator deployment namespace |
+| `--namespace` | (env fallback) | Operator deployment namespace (required unless `OPERATOR_NAMESPACE` is set) |
 | `--webhook-port` | `9443` | Webhook server port |

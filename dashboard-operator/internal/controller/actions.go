@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -41,6 +42,9 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 
 	if len(manifests) > 0 {
 		modArchPath := filepath.Join(manifests[0].Path, "modular-architecture")
+		if _, err := os.Stat(modArchPath); os.IsNotExist(err) {
+			return fmt.Errorf("modular-architecture directory not found at %s", modArchPath)
+		}
 		params := readExistingParams(modArchPath + "/params.env")
 		maps.Copy(params, computed)
 		if err := writeParamsEnv(modArchPath, params); err != nil {

@@ -600,9 +600,9 @@ func TestReconcile_StatusContract(t *testing.T) {
 		name            string
 		manifestsBase   func(t *testing.T) string
 		extraObjects    func(t *testing.T) []client.Object
+		wantErr         bool
 		wantReady       bool
 		wantProvisioned bool
-		wantDegraded    bool
 		wantPhase       common.Phase
 	}{
 		{
@@ -615,7 +615,6 @@ func TestReconcile_StatusContract(t *testing.T) {
 			},
 			wantReady:       true,
 			wantProvisioned: true,
-			wantDegraded:    false,
 			wantPhase:       common.PhaseReady,
 		},
 		{
@@ -623,9 +622,9 @@ func TestReconcile_StatusContract(t *testing.T) {
 			manifestsBase: func(t *testing.T) string {
 				return "/nonexistent/path"
 			},
+			wantErr:         true,
 			wantReady:       false,
 			wantProvisioned: false,
-			wantDegraded:    false,
 			wantPhase:       common.PhaseNotReady,
 		},
 		{
@@ -635,7 +634,6 @@ func TestReconcile_StatusContract(t *testing.T) {
 			},
 			wantReady:       false,
 			wantProvisioned: true,
-			wantDegraded:    false,
 			wantPhase:       common.PhaseNotReady,
 		},
 	}
@@ -672,9 +670,14 @@ func TestReconcile_StatusContract(t *testing.T) {
 				ApplicationsNamespace: testNamespace,
 			}
 
-			_, _ = r.Reconcile(context.Background(), ctrl.Request{
+			_, err := r.Reconcile(context.Background(), ctrl.Request{
 				NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
 			})
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 
 			updated := &v1alpha1.Dashboard{}
 			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
