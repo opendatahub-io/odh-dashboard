@@ -487,6 +487,32 @@ describe('createConfigureSchema', () => {
       }
     });
 
+    it('should reject multiclass-only metric for binary task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_BINARY,
+        eval_metric: 'roc_auc_ovo',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('eval_metric');
+      }
+    });
+
+    it('should reject binary-only metric for multiclass task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_MULTICLASS,
+        eval_metric: 'roc_auc',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('eval_metric');
+      }
+    });
+
     it('should reject classification metric for regression task type', () => {
       const result = schema.full.safeParse({
         ...baseData,
