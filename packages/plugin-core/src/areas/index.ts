@@ -2,10 +2,7 @@
 export { AreaContext } from './AreaContext';
 export type { AreaContextState } from './AreaContext';
 export { default as useIsAreaAvailable } from './useIsAreaAvailable';
-export {
-  DataScienceStackComponent,
-  SupportedArea,
-} from './types';
+export { DataScienceStackComponent, SupportedArea } from './types';
 export type {
   FeatureFlag,
   IsAreaAvailableStatus,
