@@ -1,4 +1,4 @@
-import type { DataScienceClusterInitializationKindStatus } from '@odh-dashboard/internal/k8sTypes';
+import type { DataScienceClusterInitializationKindStatus } from '@odh-dashboard/k8s-core';
 import { isMonitoringStackAvailable, getMonitoringStatus } from '../monitoringStackStatus';
 
 describe('isMonitoringStackAvailable', () => {

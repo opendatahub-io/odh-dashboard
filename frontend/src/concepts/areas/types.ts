@@ -1,12 +1,13 @@
-import type { DashboardCommonConfig, DashboardConfigKind } from '@odh-dashboard/k8s-core';
-import { EitherOrBoth } from '#~/typeHelpers';
-import {
+import { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
+import type {
+  DashboardCommonConfig,
+  DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
-  DataScienceStackComponent,
-} from '#~/types-core';
+} from '@odh-dashboard/k8s-core';
+import { EitherOrBoth } from '#~/typeHelpers';
 
-export { DataScienceStackComponent } from '#~/types-core';
+export { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
 
 export type FeatureFlag = keyof DashboardCommonConfig;
 
