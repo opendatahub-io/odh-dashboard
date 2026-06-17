@@ -16,7 +16,10 @@ const (
 	labelFramework   = "kagenti.io/framework"
 	labelManagedBy   = "app.kubernetes.io/managed-by"
 	labelAppName     = "app.kubernetes.io/name"
+	labelComponent   = "app.kubernetes.io/component"
 	managedByValue   = "odh-dashboard"
+	componentValue   = "agent"
+	containerName    = "agent"
 	defaultPort      int32 = 8000
 	defaultSvcPort   int32 = 8080
 	injectEnabled    = "enabled"
@@ -52,18 +55,25 @@ func buildDeployment(params *agents.DeployAgentParams) *appsv1.Deployment {
 		containerPort = params.ServicePorts[0].TargetPort
 	}
 
+	envVars := buildEnvVars(params)
+
 	container := corev1.Container{
-		Name:  params.Name,
-		Image: image,
+		Name:            containerName,
+		Image:           image,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Ports: []corev1.ContainerPort{
 			{
+				Name:          "http",
 				ContainerPort: containerPort,
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		Env: buildEnvVars(params.EnvVars),
+		Env: envVars,
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: "cache", MountPath: "/app/.cache"},
+			{Name: "shared-data", MountPath: "/shared"},
+		},
 		SecurityContext: &corev1.SecurityContext{
-			RunAsNonRoot:             boolPtr(true),
 			AllowPrivilegeEscalation: boolPtr(false),
 			Capabilities: &corev1.Capabilities{
 				Drop: []corev1.Capability{"ALL"},
@@ -93,9 +103,7 @@ func buildDeployment(params *agents.DeployAgentParams) *appsv1.Deployment {
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					labelAppName: params.Name,
-				},
+				MatchLabels: selectorLabels(params.Name),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -107,6 +115,10 @@ func buildDeployment(params *agents.DeployAgentParams) *appsv1.Deployment {
 					ImagePullSecrets:   imagePullSecrets,
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: boolPtr(true),
+					},
+					Volumes: []corev1.Volume{
+						{Name: "cache", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
+						{Name: "shared-data", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
 					},
 				},
 			},
@@ -125,16 +137,16 @@ func buildService(params *agents.DeployAgentParams) *corev1.Service {
 			Name:      params.Name,
 			Namespace: params.Namespace,
 			Labels: map[string]string{
-				labelManagedBy: managedByValue,
-				labelAppName:   params.Name,
+				agents.LabelAgentType:    agents.AgentTypeAgent,
+				labelManagedBy:           managedByValue,
+				labelAppName:             params.Name,
+				agents.LabelProtocolPrefix + params.Protocol: "true",
 			},
 		},
 		Spec: corev1.ServiceSpec{
-			Type: corev1.ServiceTypeClusterIP,
-			Selector: map[string]string{
-				labelAppName: params.Name,
-			},
-			Ports: ports,
+			Type:     corev1.ServiceTypeClusterIP,
+			Selector: selectorLabels(params.Name),
+			Ports:    ports,
 		},
 	}
 }
@@ -206,12 +218,20 @@ func buildRoute(name, namespace string, port int32) *unstructured.Unstructured {
 	}
 }
 
+func selectorLabels(name string) map[string]string {
+	return map[string]string{
+		agents.LabelAgentType: agents.AgentTypeAgent,
+		labelAppName:          name,
+	}
+}
+
 func buildDeploymentLabels(params *agents.DeployAgentParams) map[string]string {
 	labels := map[string]string{
 		agents.LabelAgentType:    agents.AgentTypeAgent,
 		agents.LabelWorkloadType: agents.WorkloadTypeDeployment,
 		labelAppName:             params.Name,
 		labelManagedBy:           managedByValue,
+		labelComponent:           componentValue,
 	}
 
 	if params.AuthBridgeEnabled {
@@ -219,7 +239,7 @@ func buildDeploymentLabels(params *agents.DeployAgentParams) map[string]string {
 	}
 
 	if params.Protocol != "" {
-		labels[agents.LabelProtocolPrefix+params.Protocol] = ""
+		labels[agents.LabelProtocolPrefix+params.Protocol] = "true"
 	}
 
 	if params.Framework != "" {
@@ -229,12 +249,21 @@ func buildDeploymentLabels(params *agents.DeployAgentParams) map[string]string {
 	return labels
 }
 
-func buildEnvVars(envVars []agents.AgentEnvVar) []corev1.EnvVar {
-	if len(envVars) == 0 {
-		return nil
+func agentEndpointURL(name, namespace string, port int32) string {
+	return fmt.Sprintf("http://%s.%s.svc.cluster.local:%d/", name, namespace, port)
+}
+
+func buildEnvVars(params *agents.DeployAgentParams) []corev1.EnvVar {
+	svcPort := defaultSvcPort
+	if len(params.ServicePorts) > 0 && params.ServicePorts[0].Port > 0 {
+		svcPort = params.ServicePorts[0].Port
 	}
-	result := make([]corev1.EnvVar, 0, len(envVars))
-	for _, ev := range envVars {
+
+	result := []corev1.EnvVar{
+		{Name: "AGENT_ENDPOINT", Value: agentEndpointURL(params.Name, params.Namespace, svcPort)},
+	}
+
+	for _, ev := range params.EnvVars {
 		result = append(result, corev1.EnvVar{
 			Name:  ev.Name,
 			Value: ev.Value,

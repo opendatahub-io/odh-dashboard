@@ -39,6 +39,7 @@ func TestBuildDeployment(t *testing.T) {
 				agents.LabelWorkloadType: agents.WorkloadTypeDeployment,
 				labelAppName:             "my-agent",
 				labelManagedBy:           managedByValue,
+				labelComponent:           componentValue,
 			},
 			wantImage:       "quay.io/example/agent",
 			wantPort:        defaultPort,
@@ -78,7 +79,7 @@ func TestBuildDeployment(t *testing.T) {
 				Framework:      "langgraph",
 			},
 			wantLabels: map[string]string{
-				agents.LabelProtocolPrefix + "a2a": "",
+				agents.LabelProtocolPrefix + "a2a": "true",
 				labelFramework:                     "langgraph",
 			},
 			wantPort: defaultPort,
@@ -134,10 +135,13 @@ func TestBuildDeployment(t *testing.T) {
 			assert.Len(t, deployment.Spec.Template.Spec.ImagePullSecrets, tt.wantPullSecrets)
 
 			container := deployment.Spec.Template.Spec.Containers[0]
+			assert.Equal(t, containerName, container.Name)
 			require.NotNil(t, container.SecurityContext)
-			assert.True(t, *container.SecurityContext.RunAsNonRoot)
 			assert.False(t, *container.SecurityContext.AllowPrivilegeEscalation)
 			assert.Contains(t, container.SecurityContext.Capabilities.Drop, corev1.Capability("ALL"))
+
+			require.NotNil(t, deployment.Spec.Template.Spec.SecurityContext)
+			assert.True(t, *deployment.Spec.Template.Spec.SecurityContext.RunAsNonRoot)
 		})
 	}
 }
@@ -158,11 +162,13 @@ func TestBuildDeploymentEnvVars(t *testing.T) {
 	require.Len(t, deployment.Spec.Template.Spec.Containers, 1)
 
 	envVars := deployment.Spec.Template.Spec.Containers[0].Env
-	require.Len(t, envVars, 2)
-	assert.Equal(t, "API_KEY", envVars[0].Name)
-	assert.Equal(t, "secret", envVars[0].Value)
-	assert.Equal(t, "LOG_LEVEL", envVars[1].Name)
-	assert.Equal(t, "debug", envVars[1].Value)
+	require.Len(t, envVars, 3)
+	assert.Equal(t, "AGENT_ENDPOINT", envVars[0].Name)
+	assert.Equal(t, "http://my-agent.test-ns.svc.cluster.local:8080/", envVars[0].Value)
+	assert.Equal(t, "API_KEY", envVars[1].Name)
+	assert.Equal(t, "secret", envVars[1].Value)
+	assert.Equal(t, "LOG_LEVEL", envVars[2].Name)
+	assert.Equal(t, "debug", envVars[2].Value)
 }
 
 func TestBuildService(t *testing.T) {
