@@ -287,6 +287,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   }, []);
 
   const handleOpenAgentCancel = React.useCallback(() => {
+    // Cancel navigates away — just close without setting a mode
     setShowOpenAgentModal(false);
   }, []);
 

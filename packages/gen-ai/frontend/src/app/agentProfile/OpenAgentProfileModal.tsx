@@ -35,7 +35,7 @@ const OpenAgentProfileModal: React.FC<OpenAgentProfileModalProps> = ({
   return (
     <Modal
       isOpen
-      onClose={onCancel}
+      onClose={onPreview}
       variant="small"
       aria-labelledby="open-agent-profile-modal-title"
       data-testid="open-agent-profile-modal"

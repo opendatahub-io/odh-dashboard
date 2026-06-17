@@ -284,4 +284,19 @@ describe('SubscriptionDropdown', () => {
 
     expect(screen.getByTestId('help-label-icon')).toBeInTheDocument();
   });
+
+  it('should disable the toggle when isDisabled is true', () => {
+    const model = createMaaSModel({
+      id: 'test-model',
+      subscriptions: [{ name: 'sub-1', displayName: 'Sub One' }],
+    });
+
+    render(
+      <TestWrapper maasModels={[model]}>
+        <SubscriptionDropdown {...defaultProps} selectedSubscription="sub-1" isDisabled />
+      </TestWrapper>,
+    );
+
+    expect(screen.getByRole('button', { name: /sub one/i })).toBeDisabled();
+  });
 });
