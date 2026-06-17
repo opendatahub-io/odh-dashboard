@@ -108,6 +108,76 @@ describe('applyConnectionData', () => {
       expect(model?.storageUri).toBeUndefined();
     });
 
+    it('should fall back to nameDesc.name when secretName is empty string', () => {
+      const createConnectionData: CreateConnectionData = {
+        nameDesc: mockNameDesc('fallback-name'),
+      };
+
+      const result = applyConnectionData(
+        baseInferenceService,
+        createConnectionData,
+        s3ModelLocationData,
+        false,
+        '',
+      );
+
+      const { model } = result.spec.predictor;
+      expect(model?.storage).toEqual({
+        key: 'fallback-name',
+        path: 'models/my-model',
+      });
+    });
+
+    it('should reject model paths containing path traversal segments', () => {
+      const createConnectionData: CreateConnectionData = {
+        nameDesc: mockNameDesc('my-s3-connection'),
+      };
+
+      const traversalModelLocationData: ModelLocationData = {
+        type: 'new' as ModelLocationData['type'],
+        connectionTypeObject: s3ConnectionTypeObject,
+        additionalFields: {
+          modelPath: '../sensitive-data',
+        },
+        fieldValues: {},
+      };
+
+      expect(() =>
+        applyConnectionData(
+          baseInferenceService,
+          createConnectionData,
+          traversalModelLocationData,
+          false,
+          undefined,
+        ),
+      ).toThrow('Invalid model path: path traversal segments are not allowed');
+    });
+
+    it('should reject model paths with embedded path traversal segments', () => {
+      const createConnectionData: CreateConnectionData = {
+        nameDesc: mockNameDesc('my-s3-connection'),
+      };
+
+      const traversalModelLocationData: ModelLocationData = {
+        type: 'new' as ModelLocationData['type'],
+        connectionTypeObject: s3ConnectionTypeObject,
+        additionalFields: {
+          modelPath: 'models/../../other-bucket/data',
+        },
+        fieldValues: {},
+      };
+
+      expect(() =>
+        applyConnectionData(
+          baseInferenceService,
+          createConnectionData,
+          traversalModelLocationData,
+          false,
+          undefined,
+        ),
+      ).toThrow('Invalid model path: path traversal segments are not allowed');
+    });
+
     it('should NOT set storage when dryRun is true', () => {
       const createConnectionData: CreateConnectionData = {
         nameDesc: mockNameDesc('my-s3-connection'),

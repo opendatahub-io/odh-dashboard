@@ -321,7 +321,7 @@ export const applyConnectionData = (
     // Apply connection name to the annotations
     if (!dryRun) {
       result.metadata.annotations[MetadataAnnotation.ConnectionName] =
-        secretName ?? createConnectionData.nameDesc?.name ?? '';
+        secretName || createConnectionData.nameDesc?.name || '';
     }
     // Apply connection path to the annotations if the connection type is S3ObjectStorage
     if (
@@ -337,11 +337,15 @@ export const applyConnectionData = (
       };
       // Set model storage for S3 connections so KServe can download the model
       if (!dryRun && result.spec.predictor.model) {
-        const connectionName = secretName ?? createConnectionData.nameDesc?.name ?? '';
+        const connectionName = secretName || createConnectionData.nameDesc?.name || '';
+        const { modelPath } = modelLocationData.additionalFields;
+        if (/(^|\/)\.\.($|\/)/.test(modelPath)) {
+          throw new Error(`Invalid model path: path traversal segments are not allowed`);
+        }
         delete result.spec.predictor.model.storageUri;
         result.spec.predictor.model.storage = {
           key: connectionName,
-          path: modelLocationData.additionalFields.modelPath,
+          path: modelPath,
         };
       }
     } else {
