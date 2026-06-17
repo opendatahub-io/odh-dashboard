@@ -46,4 +46,20 @@ describe('roleTemplateCatalog', () => {
       }
     }
   });
+
+  it('should not grant create or delete on notebooks in updater template', () => {
+    const updater = ROLE_TEMPLATE_CATALOG.flatMap((c) => c.templates).find(
+      (t) => t.id === 'workbench-updater',
+    );
+    expect(updater).toBeDefined();
+    if (!updater) {
+      return;
+    }
+    const notebookRules = updater.rules.filter((r) => r.resources?.includes('notebooks'));
+    for (const rule of notebookRules) {
+      expect(rule.verbs).not.toContain('*');
+      expect(rule.verbs).not.toContain('create');
+      expect(rule.verbs).not.toContain('delete');
+    }
+  });
 });

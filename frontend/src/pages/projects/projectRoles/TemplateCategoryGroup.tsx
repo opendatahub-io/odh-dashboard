@@ -38,6 +38,7 @@ const TemplateCategoryGroup: React.FC<TemplateCategoryGroupProps> = ({
       <DataListItemRow>
         <DataListToggle
           id={`toggle-${category.id}`}
+          aria-controls={`content-${category.id}`}
           onClick={() => setIsExpanded((prev) => !prev)}
           isExpanded={isExpanded}
           aria-label={`Toggle ${category.name}`}
@@ -76,7 +77,9 @@ const TemplateCategoryGroup: React.FC<TemplateCategoryGroupProps> = ({
                               <Content component="p">{template.name}</Content>
                             </FlexItem>
                             <FlexItem>
-                              <Content component="small">{template.description}</Content>
+                              <Content component="p" className="pf-v6-u-color-200">
+                                {template.description}
+                              </Content>
                             </FlexItem>
                           </Flex>
                         </SplitItem>

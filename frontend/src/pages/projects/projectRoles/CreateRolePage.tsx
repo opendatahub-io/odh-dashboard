@@ -16,7 +16,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAccessReview } from '#~/api/useAccessReview';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { isValidK8sLabelKeyValue } from '#~/concepts/k8s/utils';
+import { isValidK8sLabelKeyValue, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { RoleKind } from '#~/k8sTypes';
 import { createRole } from '#~/api';
@@ -89,10 +89,17 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
   const isFormDirty = React.useMemo(
     () =>
       k8sNameDescriptionData.data.name !== '' ||
+      k8sNameDescriptionData.data.k8sName.state.touched ||
       description !== '' ||
       labels.length > 0 ||
       rules.length > 0,
-    [k8sNameDescriptionData.data.name, description, labels.length, rules.length],
+    [
+      k8sNameDescriptionData.data.name,
+      k8sNameDescriptionData.data.k8sName.state.touched,
+      description,
+      labels.length,
+      rules.length,
+    ],
   );
 
   const handleSelectTemplateClick = React.useCallback(() => {
@@ -109,6 +116,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
 
   const handleDiscardConfirm = React.useCallback(() => {
     if (templateModal.type === 'discardConfirm') {
+      k8sNameDescriptionData.onDataChange('k8sName', '');
       k8sNameDescriptionData.onDataChange('name', '');
       setDescription('');
       setLabels([]);
@@ -126,6 +134,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
 
       if (templateModal.type === 'selectTemplate' && templateModal.mode === 'select') {
         k8sNameDescriptionData.onDataChange('name', template.name);
+        k8sNameDescriptionData.onDataChange('k8sName', translateDisplayNameForK8s(template.name));
         setDescription(template.description);
         setLabels([]);
         setRules(templateRules);

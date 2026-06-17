@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { DataList, SearchInput } from '@patternfly/react-core';
+import { DataList, Flex, SearchInput } from '@patternfly/react-core';
 import ContentModal from '#~/components/modals/ContentModal';
 import { ROLE_TEMPLATE_CATALOG, type RoleTemplate } from './roleTemplateCatalog';
 import TemplateCategoryGroup from './TemplateCategoryGroup';
@@ -52,10 +52,9 @@ const SelectTemplateModal: React.FC<SelectTemplateModalProps> = ({
       variant="medium"
       dataTestId="select-template-modal"
       onClose={onClose}
-      bodyClassName=""
       contents={
         <>
-          <div className="pf-v6-u-py-md pf-v6-u-px-lg">
+          <Flex className="pf-v6-u-py-md pf-v6-u-px-lg">
             <SearchInput
               placeholder="Find by name"
               value={searchValue}
@@ -64,7 +63,7 @@ const SelectTemplateModal: React.FC<SelectTemplateModalProps> = ({
               data-testid="template-search-input"
               aria-label="Search templates by name"
             />
-          </div>
+          </Flex>
           <DataList aria-label="Role template categories" isCompact>
             {filteredCategories.map((category) => (
               <TemplateCategoryGroup

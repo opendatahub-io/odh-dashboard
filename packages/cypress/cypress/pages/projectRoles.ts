@@ -215,7 +215,7 @@ class ProjectRolesTab {
   }
 
   findTemplateSearchInput() {
-    return cy.findByTestId('select-template-modal').findByPlaceholderText('Find by name');
+    return cy.findByTestId('template-search-input').find('input');
   }
 
   findDiscardChangesModal() {
