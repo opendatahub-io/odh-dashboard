@@ -8,7 +8,7 @@ describe('PhaseLabel', () => {
     render(<PhaseLabel phase="Active" resourceType={PhaseResourceType.SUBSCRIPTION} />);
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
-    expect(label.textContent).toContain('Active');
+    expect(label.textContent).toContain('Ready');
   });
 
   it('should render Ready phase with correct text', () => {

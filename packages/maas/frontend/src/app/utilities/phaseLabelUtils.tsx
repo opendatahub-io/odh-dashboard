@@ -59,6 +59,9 @@ export const normalizePhase = (phase: string | undefined): string => {
   if (normalized === PhaseStatus.UNHEALTHY) {
     return PhaseStatus.UNAVAILABLE;
   }
+  if (normalized === PhaseStatus.ACTIVE) {
+    return PhaseStatus.READY;
+  }
   return normalized || PhaseStatus.UNKNOWN;
 };
 

@@ -1,5 +1,6 @@
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
 
 export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
   {
@@ -13,7 +14,7 @@ export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
     field: 'phase',
     width: 15,
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
-      (a.phase ?? '').localeCompare(b.phase ?? ''),
+      normalizePhase(a.phase).localeCompare(normalizePhase(b.phase)),
   },
   {
     label: 'Groups',

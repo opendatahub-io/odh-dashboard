@@ -1,5 +1,6 @@
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
+import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
 
 export const authPoliciesColumns: SortableData<MaaSAuthPolicy>[] = [
   {
@@ -13,7 +14,7 @@ export const authPoliciesColumns: SortableData<MaaSAuthPolicy>[] = [
     field: 'phase',
     width: 10,
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>
-      (a.phase ?? '').localeCompare(b.phase ?? ''),
+      normalizePhase(a.phase).localeCompare(normalizePhase(b.phase)),
   },
   {
     label: 'Groups',
