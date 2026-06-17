@@ -708,11 +708,15 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			return
 		}
 
-		// Extract usage and process citations from completed event
+		// Extract usage, process citations, and set span outputs from completed event
 		if streamingEvent.Type == "response.completed" {
 			usage = extractUsageFromEvent(event)
 			if streamingEvent.Response != nil {
 				processResponseCitations(streamingEvent.Response)
+				if span := trace.SpanFromContext(ctx); span.IsRecording() && len(streamingEvent.Response.Output) > 0 {
+					outputJSON, _ := json.Marshal(streamingEvent.Response.Output)
+					span.SetAttributes(attribute.String("mlflow.spanOutputs", string(outputJSON)))
+				}
 			}
 		}
 
