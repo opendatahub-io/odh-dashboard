@@ -138,8 +138,7 @@ func buildService(params *agents.DeployAgentParams) *corev1.Service {
 			Namespace: params.Namespace,
 			Labels: map[string]string{
 				agents.LabelAgentType:    agents.AgentTypeAgent,
-				labelManagedBy:           managedByValue,
-				labelAppName:             params.Name,
+								labelAppName:             params.Name,
 				agents.LabelProtocolPrefix + params.Protocol: "true",
 			},
 		},
@@ -229,7 +228,6 @@ func buildDeploymentLabels(params *agents.DeployAgentParams) map[string]string {
 		agents.LabelAgentType:    agents.AgentTypeAgent,
 		agents.LabelWorkloadType: agents.WorkloadTypeDeployment,
 		labelAppName:             params.Name,
-		labelManagedBy:           managedByValue,
 		labelComponent:           componentValue,
 	}
 

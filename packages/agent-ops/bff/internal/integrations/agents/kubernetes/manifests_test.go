@@ -38,7 +38,6 @@ func TestBuildDeployment(t *testing.T) {
 				agents.LabelAgentType:    agents.AgentTypeAgent,
 				agents.LabelWorkloadType: agents.WorkloadTypeDeployment,
 				labelAppName:             "my-agent",
-				labelManagedBy:           managedByValue,
 				labelComponent:           componentValue,
 			},
 			wantImage:       "quay.io/example/agent",
