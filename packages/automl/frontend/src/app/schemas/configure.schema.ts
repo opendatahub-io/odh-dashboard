@@ -1,6 +1,8 @@
 /* eslint-disable camelcase */
 import * as z from 'zod';
 import {
+  PRESETS,
+  PRESET_FASTER,
   ALL_EVAL_METRICS,
   DEFAULT_EVAL_METRIC_BY_TASK,
   EVAL_METRICS_BY_TASK_TYPE,
@@ -40,6 +42,7 @@ function createConfigureSchema() {
       train_data_secret_name: z.string().min(1).default(''),
       train_data_bucket_name: z.string().min(1).default(''),
       train_data_file_key: z.string().min(1).default(''),
+      preset: z.enum(PRESETS).default(PRESET_FASTER),
       eval_metric: z.enum(ALL_EVAL_METRICS).optional(),
       top_n: z.int().min(MIN_TOP_N, `Minimum number of top models is ${MIN_TOP_N}`).default(3),
 
