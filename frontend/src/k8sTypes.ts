@@ -24,6 +24,25 @@ import type { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { ImageStreamStatusTagCondition, ImageStreamStatusTagItem } from './types';
 
+// Re-export types from k8s-core that are used throughout the application
+export { KnownLabels, MetadataAnnotation, ContainerResourceAttributes };
+export type {
+  DisplayNameAnnotations,
+  K8sCondition,
+  PodSpec,
+  SupportedModelFormats,
+  SecretKind,
+  ContainerResources,
+  NodeSelector,
+  PodAffinity,
+  PodContainer,
+  Toleration,
+  Volume,
+  VolumeMount,
+  HardwareProfileBindingAnnotations,
+  AccessReviewResourceAttributes,
+};
+
 export type ModelRegistry = {
   name: string;
   displayName: string;
