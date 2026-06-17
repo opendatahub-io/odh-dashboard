@@ -1973,3 +1973,60 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
 	})
 }
+
+func TestPgvectorConnectionFromConfig(t *testing.T) {
+	t.Run("empty host returns unconfigured connection", func(t *testing.T) {
+		cfg := config.EnvConfig{}
+		conn := pgvectorConnectionFromConfig(cfg)
+		assert.False(t, conn.IsConfigured())
+	})
+
+	t.Run("host set returns configured connection with defaults", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "pg.svc.cluster.local",
+		}
+		conn := pgvectorConnectionFromConfig(cfg)
+		assert.True(t, conn.IsConfigured())
+		assert.Equal(t, "pg.svc.cluster.local", conn.Host)
+		assert.Equal(t, 5432, conn.Port)
+		assert.Equal(t, "vectordb", conn.DB)
+		assert.Equal(t, "vectoruser", conn.User)
+		assert.Nil(t, conn.PasswordSecret)
+	})
+
+	t.Run("custom values override defaults", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "custom-host",
+			PgvectorPort: 5433,
+			PgvectorDB:   "mydb",
+			PgvectorUser: "myuser",
+		}
+		conn := pgvectorConnectionFromConfig(cfg)
+		assert.Equal(t, "custom-host", conn.Host)
+		assert.Equal(t, 5433, conn.Port)
+		assert.Equal(t, "mydb", conn.DB)
+		assert.Equal(t, "myuser", conn.User)
+	})
+
+	t.Run("password secret ref is set when secret name provided", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost:               "pg.svc",
+			PgvectorPasswordSecretName: "pg-creds",
+			PgvectorPasswordSecretKey:  "pg-password",
+		}
+		conn := pgvectorConnectionFromConfig(cfg)
+		require.NotNil(t, conn.PasswordSecret)
+		assert.Equal(t, "pg-creds", conn.PasswordSecret.Name)
+		assert.Equal(t, "pg-password", conn.PasswordSecret.Key)
+	})
+
+	t.Run("password secret key defaults to 'password'", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost:               "pg.svc",
+			PgvectorPasswordSecretName: "pg-creds",
+		}
+		conn := pgvectorConnectionFromConfig(cfg)
+		require.NotNil(t, conn.PasswordSecret)
+		assert.Equal(t, "password", conn.PasswordSecret.Key)
+	})
+}
