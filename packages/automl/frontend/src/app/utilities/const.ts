@@ -62,6 +62,15 @@ export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, re
     s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
   };
 
+export const PRESET_FASTER = 'speed';
+export const PRESET_BETTER_QUALITY = 'balanced';
+export const PRESETS = [PRESET_FASTER, PRESET_BETTER_QUALITY] as const;
+
+export const PRESET_LABELS: Record<string, string> = {
+  [PRESET_FASTER]: 'Faster',
+  [PRESET_BETTER_QUALITY]: 'Better quality',
+};
+
 /* eslint-disable camelcase */
 // Timeseries metrics use uppercase API names (e.g. MASE) while model result data
 // uses snake_case keys (e.g. mean_absolute_scaled_error). This map bridges the two.

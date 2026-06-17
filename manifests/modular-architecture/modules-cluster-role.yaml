@@ -28,3 +28,37 @@ rules:
       - create
     resources:
       - subjectaccessreviews
+  # Impersonate dashboard users when AUTH_METHOD=internal (Kubeflow headers)
+  - apiGroups:
+      - ""
+    verbs:
+      - impersonate
+    resources:
+      - users
+      - groups
+      - serviceaccounts
+  # Agent Ops — AgentRuntime card discovery
+  - apiGroups:
+      - agent.kagenti.dev
+    verbs:
+      - get
+      - list
+    resources:
+      - agentruntimes
+  # Agent Ops — OpenShift Route lookup for external agent card URL
+  - apiGroups:
+      - route.openshift.io
+    verbs:
+      - get
+      - list
+    resources:
+      - routes
+  # Agent Ops — MCP tool connection discovery (optional CRD)
+  - apiGroups:
+      - mcp.kuadrant.io
+      - mcp.kagenti.com
+    verbs:
+      - get
+      - list
+    resources:
+      - mcpserverregistrations
