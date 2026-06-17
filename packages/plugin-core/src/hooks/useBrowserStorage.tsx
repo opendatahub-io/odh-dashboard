@@ -1,20 +1,54 @@
 import * as React from 'react';
-import { useEventListener } from '#~/utilities/useEventListener';
-import {
-  BrowserStorageContext,
-  type BrowserStorageContextType,
-} from '@odh-dashboard/plugin-core/utilities';
-
-export { useBrowserStorage, BrowserStorageContext } from '@odh-dashboard/plugin-core/utilities';
-export type {
-  SetBrowserStorageHook,
-  BrowserStorageContextType,
-} from '@odh-dashboard/plugin-core/utilities';
+import { useDeepCompareMemoize } from './useDeepCompareMemoize';
+import { useEventListener } from './useEventListener';
 
 type ValueMap = { [storageKey: string]: unknown };
+export type BrowserStorageContextType = {
+  getValue: (storageKey: string, parseJSON: boolean, isSessionStorage?: boolean) => unknown;
+  setJSONValue: (storageKey: string, value: unknown, isSessionStorage?: boolean) => boolean;
+  setStringValue: (storageKey: string, value: string, isSessionStorage?: boolean) => void;
+};
 
-type BrowserStorageContextProviderProps = {
-  children: React.ReactNode;
+export const BrowserStorageContext = React.createContext<BrowserStorageContextType>({
+  getValue: () => null,
+  setJSONValue: () => false,
+  setStringValue: () => undefined,
+});
+
+export type SetBrowserStorageHook<T> = (value: T) => boolean;
+
+/**
+ * useBrowserStorage will handle all the effort behind managing localStorage or sessionStorage.
+ */
+export const useBrowserStorage = <T,>(
+  storageKey: string,
+  defaultValue: T,
+  jsonify = true,
+  isSessionStorage = false,
+): [T, SetBrowserStorageHook<T>] => {
+  const { getValue, setJSONValue, setStringValue } = React.useContext(BrowserStorageContext);
+
+  const setValue = React.useCallback<SetBrowserStorageHook<T>>(
+    (value) => {
+      if (jsonify) {
+        return setJSONValue(storageKey, value, isSessionStorage);
+      }
+      if (typeof value === 'string') {
+        setStringValue(storageKey, value, isSessionStorage);
+        return true;
+      }
+      /* eslint-disable-next-line no-console */
+      console.error('Was not a string value provided, cannot stringify');
+      return false;
+    },
+    [isSessionStorage, jsonify, setJSONValue, setStringValue, storageKey],
+  );
+
+  const value = useDeepCompareMemoize(
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    (getValue(storageKey, jsonify, isSessionStorage) as T) ?? defaultValue,
+  );
+  return [value, setValue];
 };
 
 const getStorage = (isSessionStorage: boolean): Storage => {
@@ -28,18 +62,12 @@ const getStorage = (isSessionStorage: boolean): Storage => {
 /**
  * @see useBrowserStorage
  */
-export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProviderProps> = ({
+export const BrowserStorageContextProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [values, setValues] = React.useState<ValueMap>({});
 
-  /**
-   * Only listen to other storage changes (windows/tabs) -- which are localStorage.
-   * Session storage does not have cross instance storages.
-   * See MDN for more: https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage
-   */
   useEventListener(window, 'storage', () => {
-    // Another browser tab has updated storage, sync up the data
     const keys = Object.keys(values);
     setValues(
       keys.reduce((acc, key) => {
@@ -99,7 +127,6 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
 
   const contextValue = React.useMemo(
     () => ({ getValue, setJSONValue, setStringValue }),
-    // Also trigger a context update if `values` changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [getValue, setJSONValue, setStringValue, values],
   );
