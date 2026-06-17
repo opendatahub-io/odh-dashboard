@@ -89,6 +89,7 @@ type DashboardFeatureFlags struct {
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
+	IaRedesign                   bool `json:"iaRedesign"`
 }
 
 type NotebookController struct {
@@ -178,6 +179,7 @@ var BlankDashboardCR = DashboardConfig{
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
+			IaRedesign:                   false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,
