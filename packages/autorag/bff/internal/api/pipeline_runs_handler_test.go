@@ -33,6 +33,16 @@ func withDiscoveredPipeline(req *http.Request) *http.Request {
 	return req.WithContext(ctx)
 }
 
+const genericNotFoundMessage = "the requested resource could not be found"
+
+func assertNotFoundMessage(t *testing.T, rr *httptest.ResponseRecorder, message string) {
+	t.Helper()
+	var response ErrorEnvelope
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, message, response.Error.Message)
+}
+
 func TestPipelineRunsHandler_Success(t *testing.T) {
 	app := newTestApp(t)
 
@@ -684,6 +694,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 
 		// Should return 404 because run belongs to different pipeline
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, genericNotFoundMessage)
 	})
 
 	t.Run("should return 404 when no discovered pipeline in context", func(t *testing.T) {
@@ -711,6 +722,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 
 		// With no discovered pipeline, the ownership check fails and returns 404
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, repositories.ManagedPipelinesNotFoundMessage)
 	})
 
 	t.Run("should return 404 not 500 when no discovered pipeline and GetRun would fail", func(t *testing.T) {
@@ -736,6 +748,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		app.PipelineRunHandler(rr, req, params)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, repositories.ManagedPipelinesNotFoundMessage)
 	})
 
 	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
@@ -773,6 +786,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 
 		// Should return 404 for security (data integrity issue)
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, genericNotFoundMessage)
 	})
 
 	t.Run("should accept run from different version of same pipeline", func(t *testing.T) {
@@ -1129,6 +1143,7 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 		app.TerminatePipelineRunHandler(rr, req, params)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, repositories.ManagedPipelinesNotFoundMessage)
 	})
 
 	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
@@ -1538,6 +1553,7 @@ func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
 		app.RetryPipelineRunHandler(rr, req, params)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, repositories.ManagedPipelinesNotFoundMessage)
 	})
 
 	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
