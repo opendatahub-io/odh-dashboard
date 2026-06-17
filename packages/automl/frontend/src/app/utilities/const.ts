@@ -41,7 +41,7 @@ export const TASK_TYPE_MULTICLASS = 'multiclass';
 export const TASK_TYPE_REGRESSION = 'regression';
 export const TASK_TYPE_TIMESERIES = 'timeseries';
 
-export const DEFAULT_EVAL_METRIC_BY_TASK: Record<string, EvalMetric> = {
+export const DEFAULT_EVAL_METRIC_BY_TASK: Partial<Record<string, EvalMetric>> = {
   [TASK_TYPE_BINARY]: 'accuracy',
   [TASK_TYPE_MULTICLASS]: 'accuracy',
   [TASK_TYPE_REGRESSION]: 'r2',
@@ -158,14 +158,28 @@ export const EVAL_METRICS_TIMESERIES = [
   'WAPE',
 ] as const;
 
+// These metrics are registered aliases in AutoGluon that map to the same underlying computation
+// as their canonical counterparts. We accept them from existing runs but don't show them in the UI.
+export const EVAL_METRICS_OTHER = ['roc_auc_ovo_macro', 'roc_auc_ovr_macro'] as const;
+
 export const ALL_EVAL_METRICS = [
   ...EVAL_METRICS_BINARY,
   ...EVAL_METRICS_MULTICLASS,
   ...EVAL_METRICS_REGRESSION,
   ...EVAL_METRICS_TIMESERIES,
+  ...EVAL_METRICS_OTHER,
 ] as const;
 
 export type EvalMetric = (typeof ALL_EVAL_METRICS)[number];
+
+// Maps alias metrics from EVAL_METRICS_OTHER to their canonical equivalents
+// so reconfiguring a job swaps them to the metric shown in the UI.
+/* eslint-disable camelcase */
+export const EVAL_METRIC_ALIASES: Record<string, EvalMetric> = {
+  roc_auc_ovo_macro: 'roc_auc_ovo',
+  roc_auc_ovr_macro: 'roc_auc_ovr',
+};
+/* eslint-enable camelcase */
 
 export const EVAL_METRICS_BY_TASK_TYPE: Partial<Record<string, readonly EvalMetric[]>> = {
   [TASK_TYPE_BINARY]: EVAL_METRICS_BINARY,
@@ -220,5 +234,7 @@ export const EVAL_METRIC_DESCRIPTIONS: Record<EvalMetric, string> = {
   RMSSE: 'Root mean squared scaled error — RMSE-style error scaled similarly to MASE',
   SMAPE: 'Symmetric mean absolute percentage error on point forecasts',
   WAPE: 'Weighted absolute percentage error — scale-dependent aggregate error across series',
+  roc_auc_ovo_macro: 'One-vs-one ROC AUC, macro-averaged across pairs',
+  roc_auc_ovr_macro: 'One-vs-rest ROC AUC, macro-averaged across classes',
 };
 /* eslint-enable camelcase */

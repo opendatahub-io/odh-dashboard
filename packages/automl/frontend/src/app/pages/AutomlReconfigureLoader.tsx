@@ -17,6 +17,7 @@ import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
   REQUIRED_CONNECTION_SECRET_KEYS,
   DEFAULT_EVAL_METRIC_BY_TASK,
+  EVAL_METRIC_ALIASES,
 } from '~/app/utilities/const';
 import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
 import AutomlConfigurePage from './AutomlConfigurePage';
@@ -187,16 +188,16 @@ function AutomlReconfigureLoader(): React.JSX.Element {
 
   /* eslint-disable camelcase */
   const resolvedTaskType = taskType ?? parsed.task_type;
+  const resolvedEvalMetric = parsed.eval_metric
+    ? (EVAL_METRIC_ALIASES[parsed.eval_metric] ?? parsed.eval_metric)
+    : DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType ?? ''];
   const initialValues: Partial<ConfigureSchema> = {
     ...parsed,
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
     target_column: targetColumn,
     ...(parsed.preset != null && { preset: parsed.preset }),
-    ...(parsed.eval_metric === undefined &&
-      resolvedTaskType != null && {
-        eval_metric: DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType],
-      }),
+    ...(resolvedEvalMetric !== undefined && { eval_metric: resolvedEvalMetric }),
   };
   /* eslint-enable camelcase */
 
