@@ -284,8 +284,7 @@ jobs:
           # Target namespaces with the dashboard label (added by Cypress createOpenShiftProject)
           # This is more precise than pattern matching and catches all test projects
           echo "🔍 Scanning for test projects with label 'opendatahub.io/dashboard=true'..."
-          oc get projects -l opendatahub.io/dashboard=true -o json | jq -r '.items[] |
-            "\(.metadata.name)|\(.metadata.creationTimestamp)|\(.status.phase // \"Unknown\")"' | while IFS='|' read -r project_name creation_time phase; do
+          oc get projects -l opendatahub.io/dashboard=true -o json | jq -r '.items[] | "\(.metadata.name)|\(.metadata.creationTimestamp)|\(.status.phase // "Unknown")"' | while IFS='|' read -r project_name creation_time phase; do
 
             # Convert creation timestamp to epoch seconds
             PROJECT_TIME=$(date -u -d "$creation_time" +%s 2>/dev/null || date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$creation_time" +%s 2>/dev/null)
