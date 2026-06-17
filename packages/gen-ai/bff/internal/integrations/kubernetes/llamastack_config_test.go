@@ -1214,6 +1214,58 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		assert.True(t, model1Found, "Model 1 should be found")
 		assert.True(t, model2Found, "Model 2 should be found")
 	})
+
+	t.Run("should fall back to default 4096 when maxTokens is zero or negative", func(t *testing.T) {
+		// Test zero value
+		zeroTokens := 0
+		configZero := NewDefaultLlamaStackConfig()
+		configZero.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &zeroTokens, nil)
+
+		yamlStr, err := configZero.ToYAML()
+		require.NoError(t, err)
+
+		// Provider-level should use default 4096, not 0
+		assert.Contains(t, yamlStr, "${env.VLLM_MAX_TOKENS_1:=4096}")
+
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		var foundModel *Model
+		for i := range parsedConfig.RegisteredResources.Models {
+			if parsedConfig.RegisteredResources.Models[i].ModelID == "test-model" {
+				foundModel = &parsedConfig.RegisteredResources.Models[i]
+				break
+			}
+		}
+		require.NotNil(t, foundModel, "Model should be found in parsed config")
+		assert.Nil(t, foundModel.MaxTokens, "MaxTokens should be nil when zero is provided")
+
+		// Test negative value
+		negativeTokens := -1
+		configNeg := NewDefaultLlamaStackConfig()
+		configNeg.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &negativeTokens, nil)
+
+		yamlStr, err = configNeg.ToYAML()
+		require.NoError(t, err)
+
+		// Provider-level should use default 4096, not -1
+		assert.Contains(t, yamlStr, "${env.VLLM_MAX_TOKENS_1:=4096}")
+
+		var parsedConfigNeg LlamaStackConfig
+		err = parsedConfigNeg.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		var foundModelNeg *Model
+		for i := range parsedConfigNeg.RegisteredResources.Models {
+			if parsedConfigNeg.RegisteredResources.Models[i].ModelID == "test-model" {
+				foundModelNeg = &parsedConfigNeg.RegisteredResources.Models[i]
+				break
+			}
+		}
+		require.NotNil(t, foundModelNeg, "Model should be found in parsed config")
+		assert.Nil(t, foundModelNeg.MaxTokens, "MaxTokens should be nil when negative value is provided")
+	})
 }
 
 func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
