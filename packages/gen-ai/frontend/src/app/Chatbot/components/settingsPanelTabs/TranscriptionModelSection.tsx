@@ -25,6 +25,7 @@ import {
   selectSelectedAsrModel,
   selectIsAsrModelEnabled,
   selectSelectedModel,
+  selectIsPreview,
 } from '~/app/Chatbot/store';
 
 interface TranscriptionModelSectionProps {
@@ -40,6 +41,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
   const selectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(configId));
   const isAsrModelEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(configId));
   const selectedMainModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
   const updateSelectedAsrModel = useChatbotConfigStore((s) => s.updateSelectedAsrModel);
   const updateAsrModelEnabled = useChatbotConfigStore((s) => s.updateAsrModelEnabled);
 
@@ -136,7 +138,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
         variant="link"
         icon={<PlusCircleIcon />}
         onClick={handleEnable}
-        isAriaDisabled={noModelsAvailable}
+        isAriaDisabled={noModelsAvailable || isPreview}
         data-testid="add-transcription-model-btn"
         aria-label="Add audio transcription model"
         style={noModelsAvailable ? disabledLinkStyle : undefined}
@@ -227,7 +229,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
               ref={toggleRef}
               onClick={() => setIsOpen(!isOpen)}
               isExpanded={isOpen}
-              isDisabled={asrModels.length === 0}
+              isDisabled={asrModels.length === 0 || isPreview}
               isFullWidth
               data-testid="asr-model-selector-toggle"
               aria-label="Select a transcription model"
@@ -259,6 +261,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
         className="pf-v6-u-mt-sm"
         data-testid="remove-transcription-model-btn"
         aria-label="Remove transcription model"
+        isDisabled={isPreview}
       >
         Remove
       </Button>

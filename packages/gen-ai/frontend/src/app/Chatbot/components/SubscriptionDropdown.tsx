@@ -9,12 +9,14 @@ interface SubscriptionDropdownProps {
   selectedModel: string;
   selectedSubscription: string;
   onSubscriptionChange: (subscription: string) => void;
+  isDisabled?: boolean;
 }
 
 const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> = ({
   selectedModel,
   selectedSubscription,
   onSubscriptionChange,
+  isDisabled = false,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const { maasModels } = React.useContext(ChatbotContext);
@@ -83,6 +85,7 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
             ref={toggleRef}
             onClick={() => setIsOpen(!isOpen)}
             isExpanded={isOpen}
+            isDisabled={isDisabled}
             style={{ width: '100%' }}
             data-testid="subscription-selector-toggle"
           >
