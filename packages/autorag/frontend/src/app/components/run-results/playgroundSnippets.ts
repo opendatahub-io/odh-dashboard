@@ -8,10 +8,10 @@ type SnippetParams = {
 
 export const generateCurlSnippet = ({ template, secretName, namespace }: SnippetParams): string => {
   const body = JSON.stringify(template, null, 2);
-  return `OGX_CLIENT_BASE_URL=$(kubectl get secret ${secretName} -n ${namespace} \\
-  -o jsonpath='{.data.OGX_CLIENT_BASE_URL}' | base64 --decode)
-OGX_CLIENT_API_KEY=$(kubectl get secret ${secretName} -n ${namespace} \\
-  -o jsonpath='{.data.OGX_CLIENT_API_KEY}' | base64 --decode)
+  return `OGX_CLIENT_BASE_URL=$(oc get secret ${secretName} -n ${namespace} \\
+  -o jsonpath='{.data.OGX_CLIENT_BASE_URL}' | base64 -d)
+OGX_CLIENT_API_KEY=$(oc get secret ${secretName} -n ${namespace} \\
+  -o jsonpath='{.data.OGX_CLIENT_API_KEY}' | base64 -d)
 
 curl -X POST "\${OGX_CLIENT_BASE_URL}/v1/responses" \\
   -H "Content-Type: application/json" \\
@@ -25,6 +25,7 @@ export const generateNodeSnippet = ({ template, secretName, namespace }: Snippet
     .map((line, i) => (i === 0 ? line : `  ${line}`))
     .join('\n');
   return `// Prerequisites: npm install openai @kubernetes/client-node
+// Save as .mjs or add "type": "module" to package.json
 import OpenAI from "openai";
 import * as k8s from "@kubernetes/client-node";
 
