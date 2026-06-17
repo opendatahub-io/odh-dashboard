@@ -9,8 +9,7 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { ImportIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { TableBase } from '#~/components/table';
-import useTableColumnSort from '#~/components/table/useTableColumnSort';
+import { TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 import SimpleSelect from '#~/components/SimpleSelect';
 
 import AddRuleModal from './AddRuleModal';

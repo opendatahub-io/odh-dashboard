@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { getNotebookStatusPriority } from '#~/pages/projects/utils';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
