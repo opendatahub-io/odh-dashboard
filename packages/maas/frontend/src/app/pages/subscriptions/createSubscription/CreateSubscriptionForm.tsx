@@ -500,8 +500,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
                 ? 'Saving...'
                 : 'Save'
               : isSubmitting
-                ? 'Creating...'
-                : 'Create subscription'}
+              ? 'Creating...'
+              : 'Create subscription'}
           </Button>
           <Button
             variant="link"
