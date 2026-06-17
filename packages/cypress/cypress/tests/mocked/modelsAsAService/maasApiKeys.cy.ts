@@ -956,8 +956,8 @@ describe('API keys (mySubscriptions feature flag)', () => {
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Basic Team');
 
-    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '10+ keys');
-    subscriptionsTab.findSubscriptionRows().eq(1).should('contain.text', '5 keys');
+    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '10+ active keys');
+    subscriptionsTab.findSubscriptionRows().eq(1).should('contain.text', '5 active keys');
 
     subscriptionsTab.findSearchInput().type('Premium');
     subscriptionsTab.findSubscriptionRows().should('have.length', 1);
