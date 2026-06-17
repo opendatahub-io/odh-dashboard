@@ -42,6 +42,16 @@ func withDiscoveredPipelinesAutoML(req *http.Request) *http.Request {
 	return req.WithContext(ctx)
 }
 
+const genericNotFoundMessage = "the requested resource could not be found"
+
+func assertNotFoundMessage(t *testing.T, rr *httptest.ResponseRecorder, message string) {
+	t.Helper()
+	var response ErrorEnvelope
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, message, response.Error.Message)
+}
+
 func TestPipelineRunsHandler_Success(t *testing.T) {
 	app := newTestApp(t)
 
@@ -216,7 +226,7 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
-	t.Run("should return empty runs list when no AutoML pipelines discovered", func(t *testing.T) {
+	t.Run("should return 404 when no AutoML pipelines discovered", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
@@ -228,20 +238,48 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		// Empty pipelines map — no AutoML pipelines discovered
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
 		req = req.WithContext(ctx)
 
 		app.PipelineRunsHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-		var response struct {
-			Data models.PipelineRunsData `json:"data"`
-		}
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var response ErrorEnvelope
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.NotNil(t, response.Data.Runs)
-		assert.Len(t, response.Data.Runs, 0)
+		assert.Equal(t, repositories.ManagedPipelinesNotFoundMessage, response.Error.Message)
+	})
+
+	t.Run("should return 404 when only one AutoML pipeline is discovered", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		tsIDs := psmocks.DeriveMockIDs("test-namespace")
+		partial := map[string]*repositories.DiscoveredPipeline{
+			constants.PipelineTypeTimeSeries: {
+				PipelineID:        tsIDs.PipelineID,
+				PipelineVersionID: tsIDs.LatestVersionID,
+				PipelineName:      "autogluon-timeseries-training-pipeline",
+			},
+		}
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, partial)
+		req = req.WithContext(ctx)
+
+		app.PipelineRunsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var response ErrorEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, repositories.ManagedPipelinesNotFoundMessage, response.Error.Message)
 	})
 
 	t.Run("should reject invalid pageSize", func(t *testing.T) {
@@ -774,6 +812,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		app.PipelineRunHandler(rr, req, params)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, genericNotFoundMessage)
 	})
 
 	t.Run("should return 404 when no pipelines discovered", func(t *testing.T) {
@@ -799,6 +838,67 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		app.PipelineRunHandler(rr, req, params)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, repositories.ManagedPipelinesNotFoundMessage)
+	})
+
+	t.Run("should return 404 not 500 when no pipelines discovered and GetRun would fail", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "server-error-run-id"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, repositories.ManagedPipelinesNotFoundMessage)
+	})
+
+	t.Run("should return 404 when only one AutoML pipeline is discovered", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "server-error-run-id"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		tsIDs := psmocks.DeriveMockIDs("test-namespace")
+		partial := map[string]*repositories.DiscoveredPipeline{
+			constants.PipelineTypeTimeSeries: {
+				PipelineID:        tsIDs.PipelineID,
+				PipelineVersionID: tsIDs.LatestVersionID,
+				PipelineName:      "autogluon-timeseries-training-pipeline",
+			},
+		}
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, partial)
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, repositories.ManagedPipelinesNotFoundMessage)
 	})
 
 	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
@@ -826,6 +926,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		app.PipelineRunHandler(rr, req, params)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, genericNotFoundMessage)
 	})
 
 	t.Run("should accept run from different version of same pipeline", func(t *testing.T) {
@@ -1108,6 +1209,7 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 		app.TerminatePipelineRunHandler(rr, req, params)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, repositories.ManagedPipelinesNotFoundMessage)
 	})
 }
 
@@ -1480,5 +1582,6 @@ func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
 		app.RetryPipelineRunHandler(rr, req, params)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assertNotFoundMessage(t, rr, repositories.ManagedPipelinesNotFoundMessage)
 	})
 }
