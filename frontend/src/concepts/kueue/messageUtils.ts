@@ -30,6 +30,8 @@ export const getHumanReadableKueueMessage = (
       return 'Paused by a higher-priority job';
     case KueueWorkloadStatus.Evicted:
       return getEvictedMessage(message);
+    case KueueWorkloadStatus.Requeued:
+      return message ? `Re-queued: ${message}` : 'Re-queued, waiting to retry';
     case KueueWorkloadStatus.Inadmissible:
       return getInadmissibleMessage(message, queue);
     default:

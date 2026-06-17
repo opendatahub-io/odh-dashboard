@@ -203,6 +203,20 @@ describe('getHumanReadableKueueMessage', () => {
     });
   });
 
+  describe('Requeued status', () => {
+    it('should return requeued message with raw message when provided', () => {
+      expect(
+        getHumanReadableKueueMessage(KueueWorkloadStatus.Requeued, 'Pods were not ready in time'),
+      ).toBe('Re-queued: Pods were not ready in time');
+    });
+
+    it('should return generic requeued message when no raw message', () => {
+      expect(getHumanReadableKueueMessage(KueueWorkloadStatus.Requeued)).toBe(
+        'Re-queued, waiting to retry',
+      );
+    });
+  });
+
   describe('other statuses', () => {
     it('should return raw message for Running status', () => {
       expect(getHumanReadableKueueMessage(KueueWorkloadStatus.Running, 'All pods are ready')).toBe(
