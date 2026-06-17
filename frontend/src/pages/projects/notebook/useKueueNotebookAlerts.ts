@@ -85,7 +85,7 @@ const useKueueNotebookAlerts = (
       for (const state of notebookStates) {
         const { name } = state.notebook.metadata;
         const current = snapshot[name];
-        if (!(name in prevStatusRef.current)) {
+        if (!Object.prototype.hasOwnProperty.call(prevStatusRef.current, name)) {
           continue;
         }
 

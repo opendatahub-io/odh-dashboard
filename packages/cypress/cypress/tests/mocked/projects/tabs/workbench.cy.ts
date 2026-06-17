@@ -2778,7 +2778,9 @@ describe('Workbench page', () => {
     });
 
     it('displays Evicted when workload has Evicted condition with non-preemption reason', () => {
-      initKueueWorkloadStatus(WorkloadStatusType.Evicted);
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted, {
+        evictionReason: 'ClusterQueueStopped',
+      });
       workbenchPage.visit('test-project');
       workbenchPage
         .getNotebookRow('Test Notebook')
