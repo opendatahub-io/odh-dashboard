@@ -1,7 +1,6 @@
+import type { DashboardCommonConfig, DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { EitherOrBoth } from '#~/typeHelpers';
 import {
-  DashboardCommonConfig,
-  DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
   DataScienceStackComponent,

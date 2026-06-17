@@ -1,6 +1,6 @@
 import React from 'react';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { getHardwareProfile } from '#~/api';
-import { HardwareProfileKind } from '#~/k8sTypes';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,

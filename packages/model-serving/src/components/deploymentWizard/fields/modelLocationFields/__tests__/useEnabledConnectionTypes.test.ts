@@ -1,5 +1,5 @@
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeFieldType,

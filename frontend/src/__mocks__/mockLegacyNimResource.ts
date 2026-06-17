@@ -1,12 +1,10 @@
-import {
-  ConfigMapKind,
-  InferenceServiceKind,
+import type {
   PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
-  ServingRuntimeKind,
   TemplateKind,
-} from '#~/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+import { ConfigMapKind, InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockConfigMap } from './mockConfigMap';

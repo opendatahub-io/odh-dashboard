@@ -1,13 +1,13 @@
-import { HardwareProfileKind } from '#~/k8sTypes';
 import {
-  Identifier,
   IdentifierResourceType,
-  NodeSelector,
   SchedulingType,
-  Toleration,
   TolerationEffect,
   TolerationOperator,
-} from '#~/types';
+  type HardwareProfileKind,
+  type Identifier,
+  type NodeSelector,
+  type Toleration,
+} from '@odh-dashboard/k8s-core';
 import { WarningNotification } from '#~/concepts/hardwareProfiles/types';
 import { genUID } from './mockUtils';
 

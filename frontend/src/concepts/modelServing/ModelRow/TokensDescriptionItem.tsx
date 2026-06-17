@@ -1,6 +1,6 @@
 import React from 'react';
 import { HelperText, HelperTextItem } from '@patternfly/react-core';
-import type { SecretKind } from '#~/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { Table, SortableData } from '#~/components/table';
 import { ColumnField } from '#~/pages/modelServing/screens/global/data';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';

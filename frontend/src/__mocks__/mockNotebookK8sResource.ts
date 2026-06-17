@@ -1,14 +1,15 @@
 import * as _ from 'lodash-es';
-import { KnownLabels, NotebookKind } from '#~/k8sTypes';
-import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/projects/screens/spawner/const';
 import {
-  ContainerResources,
-  EnvironmentVariable,
+  KnownLabels,
   TolerationEffect,
   TolerationOperator,
-  Volume,
-  VolumeMount,
-} from '#~/types';
+  type ContainerResources,
+  type EnvironmentVariable,
+  type Volume,
+  type VolumeMount,
+} from '@odh-dashboard/k8s-core';
+import { NotebookKind } from '#~/k8sTypes';
+import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/projects/screens/spawner/const';
 import { genUID } from '#~/__mocks__/mockUtils';
 import { RecursivePartial } from '#~/typeHelpers';
 import { EnvironmentFromVariable } from '#~/pages/projects/types';

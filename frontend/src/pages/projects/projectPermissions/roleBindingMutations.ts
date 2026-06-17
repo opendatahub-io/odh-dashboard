@@ -1,3 +1,4 @@
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import type { RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import {
   createRoleBinding,
@@ -5,7 +6,6 @@ import {
   generateRoleBindingPermissions,
   patchRoleBindingSubjects,
 } from '#~/api';
-import { KnownLabels } from '#~/k8sTypes';
 import type { RoleRef, SupportedSubjectKind } from '#~/concepts/permissions/types';
 import { roleBindingHasSubject } from '#~/concepts/permissions/utils.ts';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
