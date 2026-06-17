@@ -1,5 +1,6 @@
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { mockStorageClasses } from '#~/__mocks__/mockStorageClasses.ts';
-import { AccessModeSettings, MetadataAnnotation } from '#~/k8sTypes.ts';
+import { AccessModeSettings } from '#~/k8sTypes';
 import {
   AccessMode,
   StorageProvisioner,

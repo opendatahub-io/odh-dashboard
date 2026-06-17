@@ -1,7 +1,7 @@
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { mock409Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { K8sStatusError } from '@odh-dashboard/internal/api/errorUtils';
-import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import {
   createNIMSecret,
   createNIMAccount,

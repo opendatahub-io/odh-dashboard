@@ -1,5 +1,5 @@
+import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import {
-  DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
 } from '#~/k8sTypes';

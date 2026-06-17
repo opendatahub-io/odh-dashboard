@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { DashboardConfigKind, StorageClassKind } from '#~/k8sTypes';
+import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
+import { StorageClassKind } from '#~/k8sTypes';
 import { BuildStatus } from '#~/types';
 
 type AppContextProps = {

@@ -23,15 +23,17 @@ import {
 import { addOwnerReference } from '@odh-dashboard/internal/api/k8sUtils';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import {
+  KnownLabels,
+  MetadataAnnotation,
   SecretKind,
+  SupportedModelFormats,
+} from '@odh-dashboard/k8s-core';
+import {
   K8sAPIOptions,
   RoleBindingKind,
   InferenceServiceKind,
   ServiceAccountKind,
   RoleKind,
-  SupportedModelFormats,
-  MetadataAnnotation,
-  KnownLabels,
 } from '@odh-dashboard/internal/k8sTypes';
 import { getTokenNames } from '@odh-dashboard/model-serving/concepts/auth';
 import {
