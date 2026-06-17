@@ -1,16 +1,18 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
-import {
-  GroupKind,
+import type {
   HardwareProfileKind,
-  InferenceServiceKind,
-  LocalQueueKind,
   PersistentVolumeClaimKind,
   ProjectKind,
-  RoleBindingKind,
   SecretKind,
-  ServingRuntimeKind,
   TemplateKind,
+} from '@odh-dashboard/k8s-core';
+import {
+  GroupKind,
+  InferenceServiceKind,
+  LocalQueueKind,
+  RoleBindingKind,
+  ServingRuntimeKind,
 } from '#~/k8sTypes';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {

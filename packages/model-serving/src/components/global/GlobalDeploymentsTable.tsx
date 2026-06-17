@@ -10,7 +10,7 @@ import { Label } from '@patternfly/react-core';
 import { namespaceToProjectDisplayName } from '@odh-dashboard/internal/concepts/projects/utils';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import GlobalModelsToolbar from './GlobalModelsToolbar';
 import DeploymentsTable from '../deployments/DeploymentsTable';
 import {

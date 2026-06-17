@@ -2,7 +2,7 @@ import React from 'react';
 import { FormSection, Flex, FlexItem, Button, Alert, AlertVariant } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
-import { Identifier, IdentifierResourceType } from '#~/types';
+import { type Identifier, IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import NodeResourceTable from '#~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
 import ManageNodeResourceModal from '#~/pages/hardwareProfiles/nodeResource/ManageNodeResourceModal';
 import {

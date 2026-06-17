@@ -18,8 +18,8 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { type Toleration, TolerationEffect, TolerationOperator } from '@odh-dashboard/k8s-core';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
-import { Toleration, TolerationEffect, TolerationOperator } from '#~/types';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import SimpleSelect from '#~/components/SimpleSelect';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';

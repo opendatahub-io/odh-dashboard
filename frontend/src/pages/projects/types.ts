@@ -1,5 +1,11 @@
-import { ImageStreamAndVersion, KeyValuePair, Volume, VolumeMount } from '#~/types';
-import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type {
+  EnvironmentFromVariable,
+  Volume,
+  VolumeMount,
+  PersistentVolumeClaimKind,
+} from '@odh-dashboard/k8s-core';
+import { ImageStreamAndVersion, KeyValuePair } from '#~/types';
+import { NotebookKind } from '#~/k8sTypes';
 import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { Connection } from '#~/concepts/connectionTypes/types.ts';
@@ -93,18 +99,8 @@ export type StartNotebookData = {
   mlflowEnabled?: boolean;
 };
 
-export type SecretRef = {
-  secretRef: {
-    name: string;
-  };
-};
-export type ConfigMapRef = {
-  configMapRef: {
-    name: string;
-  };
-};
-
-export type EnvironmentFromVariable = Partial<SecretRef> & Partial<ConfigMapRef>;
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
+export type { SecretRef, ConfigMapRef, EnvironmentFromVariable } from '@odh-dashboard/k8s-core';
 
 export type AWSDataEntry = { key: AwsKeys; value: string }[];
 

@@ -17,7 +17,7 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon, DownloadIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { LogViewer } from '@patternfly/react-log-viewer';
-import { PodKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
 import { getPodContainerLogText } from '@odh-dashboard/internal/api/k8s/pods';
 import { downloadString } from '@odh-dashboard/internal/utilities/string';
 import { getDefaultPodContainerName } from './utils';
