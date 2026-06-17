@@ -744,7 +744,7 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		req := newValidTabularRequest()
 		taskType := "multiclass"
 		req.TaskType = &taskType
-		metric := "roc_auc"
+		metric := "roc_auc_ovo"
 		req.EvalMetric = &metric
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
 		assert.NoError(t, err)
@@ -766,6 +766,30 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		req.EvalMetric = &metric
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
 		assert.NoError(t, err)
+	})
+
+	t.Run("should reject multiclass-only eval_metric for binary classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "binary"
+		req.TaskType = &taskType
+		metric := "roc_auc_ovo"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "binary")
+	})
+
+	t.Run("should reject binary-only eval_metric for multiclass classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "multiclass"
+		req.TaskType = &taskType
+		metric := "roc_auc"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "multiclass")
 	})
 
 	t.Run("should reject regression eval_metric for binary classification", func(t *testing.T) {

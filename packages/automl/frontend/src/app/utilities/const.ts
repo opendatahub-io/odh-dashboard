@@ -41,7 +41,7 @@ export const TASK_TYPE_MULTICLASS = 'multiclass';
 export const TASK_TYPE_REGRESSION = 'regression';
 export const TASK_TYPE_TIMESERIES = 'timeseries';
 
-export const DEFAULT_EVAL_METRIC_BY_TASK: Record<string, EvalMetric> = {
+export const DEFAULT_EVAL_METRIC_BY_TASK: Partial<Record<string, EvalMetric>> = {
   [TASK_TYPE_BINARY]: 'accuracy',
   [TASK_TYPE_MULTICLASS]: 'accuracy',
   [TASK_TYPE_REGRESSION]: 'r2',
@@ -90,7 +90,7 @@ export const METRIC_ALIASES: Readonly<Record<string, string>> = {
 /* eslint-enable camelcase */
 
 // Eval metric enums per task type
-export const EVAL_METRICS_CLASSIFICATION = [
+export const EVAL_METRICS_BINARY = [
   'accuracy',
   'balanced_accuracy',
   'log_loss',
@@ -99,19 +99,34 @@ export const EVAL_METRICS_CLASSIFICATION = [
   'f1_micro',
   'f1_weighted',
   'roc_auc',
-  'roc_auc_ovo',
-  'roc_auc_ovo_macro',
-  'roc_auc_ovo_weighted',
-  'roc_auc_ovr',
-  'roc_auc_ovr_macro',
-  'roc_auc_ovr_micro',
-  'roc_auc_ovr_weighted',
   'average_precision',
   'precision',
   'precision_macro',
   'precision_micro',
   'precision_weighted',
   'recall',
+  'recall_macro',
+  'recall_micro',
+  'recall_weighted',
+  'mcc',
+  'pac_score',
+] as const;
+
+export const EVAL_METRICS_MULTICLASS = [
+  'accuracy',
+  'balanced_accuracy',
+  'log_loss',
+  'f1_macro',
+  'f1_micro',
+  'f1_weighted',
+  'roc_auc_ovo',
+  'roc_auc_ovo_weighted',
+  'roc_auc_ovr',
+  'roc_auc_ovr_micro',
+  'roc_auc_ovr_weighted',
+  'precision_macro',
+  'precision_micro',
+  'precision_weighted',
   'recall_macro',
   'recall_micro',
   'recall_weighted',
@@ -143,66 +158,83 @@ export const EVAL_METRICS_TIMESERIES = [
   'WAPE',
 ] as const;
 
+// These metrics are registered aliases in AutoGluon that map to the same underlying computation
+// as their canonical counterparts. We accept them from existing runs but don't show them in the UI.
+export const EVAL_METRICS_OTHER = ['roc_auc_ovo_macro', 'roc_auc_ovr_macro'] as const;
+
 export const ALL_EVAL_METRICS = [
-  ...EVAL_METRICS_CLASSIFICATION,
+  ...EVAL_METRICS_BINARY,
+  ...EVAL_METRICS_MULTICLASS,
   ...EVAL_METRICS_REGRESSION,
   ...EVAL_METRICS_TIMESERIES,
+  ...EVAL_METRICS_OTHER,
 ] as const;
 
 export type EvalMetric = (typeof ALL_EVAL_METRICS)[number];
 
+// Maps alias metrics from EVAL_METRICS_OTHER to their canonical equivalents
+// so reconfiguring a job swaps them to the metric shown in the UI.
+/* eslint-disable camelcase */
+export const EVAL_METRIC_ALIASES: Record<string, EvalMetric> = {
+  roc_auc_ovo_macro: 'roc_auc_ovo',
+  roc_auc_ovr_macro: 'roc_auc_ovr',
+};
+/* eslint-enable camelcase */
+
 export const EVAL_METRICS_BY_TASK_TYPE: Partial<Record<string, readonly EvalMetric[]>> = {
-  [TASK_TYPE_BINARY]: EVAL_METRICS_CLASSIFICATION,
-  [TASK_TYPE_MULTICLASS]: EVAL_METRICS_CLASSIFICATION,
+  [TASK_TYPE_BINARY]: EVAL_METRICS_BINARY,
+  [TASK_TYPE_MULTICLASS]: EVAL_METRICS_MULTICLASS,
   [TASK_TYPE_REGRESSION]: EVAL_METRICS_REGRESSION,
   [TASK_TYPE_TIMESERIES]: EVAL_METRICS_TIMESERIES,
 };
 
 /* eslint-disable camelcase */
 export const EVAL_METRIC_DESCRIPTIONS: Record<EvalMetric, string> = {
-  accuracy: 'Overall correctness of predictions',
-  balanced_accuracy: 'Average recall per class — good for imbalanced data',
-  log_loss: 'Penalizes confident wrong predictions',
-  f1: 'Harmonic mean of precision and recall',
-  f1_macro: 'Unweighted mean of per-class F1 scores',
-  f1_micro: 'F1 computed on aggregate true/false positives',
-  f1_weighted: 'Weighted mean of per-class F1 scores',
-  roc_auc: 'Area under the ROC curve — best for imbalanced classes',
-  roc_auc_ovo: 'ROC AUC using one-vs-one strategy',
-  roc_auc_ovo_macro: 'Macro-averaged one-vs-one ROC AUC',
-  roc_auc_ovo_weighted: 'Weighted one-vs-one ROC AUC',
-  roc_auc_ovr: 'ROC AUC using one-vs-rest strategy',
-  roc_auc_ovr_macro: 'Macro-averaged one-vs-rest ROC AUC',
-  roc_auc_ovr_micro: 'Micro-averaged one-vs-rest ROC AUC',
-  roc_auc_ovr_weighted: 'Weighted one-vs-rest ROC AUC',
-  average_precision: 'Area under precision-recall curve',
-  precision: 'Accuracy of positive predictions',
-  precision_macro: 'Unweighted mean of per-class precision',
-  precision_micro: 'Precision computed on aggregate counts',
-  precision_weighted: 'Weighted mean of per-class precision',
-  recall: 'Coverage of actual positives',
-  recall_macro: 'Unweighted mean of per-class recall',
-  recall_micro: 'Recall computed on aggregate counts',
-  recall_weighted: 'Weighted mean of per-class recall',
-  mcc: 'Matthews correlation coefficient — balanced measure for binary classes',
-  pac_score: 'Probabilistic accuracy score',
-  root_mean_squared_error: 'Square root of mean squared differences',
-  mean_squared_error: 'Average of squared differences between actual and predicted',
-  mean_absolute_error: 'Average of absolute differences between actual and predicted',
-  median_absolute_error: 'Median of absolute differences — robust to outliers',
-  mean_absolute_percentage_error: 'Average percentage error — avoid if targets can be zero',
-  r2: 'Proportion of variance explained by the model',
-  symmetric_mean_absolute_percentage_error: 'Symmetric version of MAPE — handles near-zero values',
-  SQL: 'Scaled quantile loss — evaluates quantile forecasts',
-  WQL: 'Weighted quantile loss — weighted average across quantiles',
-  MAE: 'Mean absolute error for time series',
-  MAPE: 'Mean absolute percentage error for time series',
-  MASE: 'Mean absolute scaled error — scale-independent accuracy measure',
-  MSE: 'Mean squared error for time series',
-  RMSE: 'Root mean squared error for time series',
-  RMSLE: 'Root mean squared logarithmic error — useful for heavy-tailed targets',
-  RMSSE: 'Root mean squared scaled error — normalized by naive baseline',
-  SMAPE: 'Symmetric mean absolute percentage error for time series',
-  WAPE: 'Weighted absolute percentage error — handles zero actuals gracefully',
+  accuracy: 'Fraction of labels predicted correctly',
+  balanced_accuracy: 'Average recall per class, accounting for class imbalance',
+  log_loss: 'Logarithmic loss (cross-entropy) on predicted probabilities',
+  f1: 'F1 score for the positive class',
+  f1_macro: 'F1 averaged unweighted across classes',
+  f1_micro: 'F1 computed globally over all TP / FP / FN',
+  f1_weighted: 'F1 averaged weighted by support per class',
+  roc_auc: 'Area under the ROC curve for the positive class',
+  roc_auc_ovo: 'ROC AUC with one-vs-one multiclass strategy, macro-averaged across pairs',
+  roc_auc_ovo_weighted: 'One-vs-one ROC AUC, weighted by class prevalence',
+  roc_auc_ovr: 'ROC AUC with one-vs-rest multiclass strategy, macro-averaged across classes',
+  roc_auc_ovr_micro: 'One-vs-rest ROC AUC, micro-averaged',
+  roc_auc_ovr_weighted: 'One-vs-rest ROC AUC, weighted by class prevalence',
+  average_precision: 'Area under the precision-recall curve',
+  precision: 'Precision for the positive class',
+  precision_macro: 'Precision, macro average',
+  precision_micro: 'Precision, micro average',
+  precision_weighted: 'Precision, weighted by support',
+  recall: 'Recall for the positive class',
+  recall_macro: 'Recall, macro average',
+  recall_micro: 'Recall, micro average',
+  recall_weighted: 'Recall, weighted by support',
+  mcc: 'Matthews correlation coefficient (-1 to +1)',
+  pac_score: 'Probabilistic accuracy score (PAC)',
+  root_mean_squared_error: 'Square root of mean squared error',
+  mean_squared_error: 'Mean squared error of predictions',
+  mean_absolute_error: 'Mean absolute error of predictions',
+  median_absolute_error: 'Median absolute error (robust to outliers)',
+  mean_absolute_percentage_error:
+    'MAPE: mean absolute percentage error (avoid if targets can be zero)',
+  r2: 'Coefficient of determination (R²)',
+  symmetric_mean_absolute_percentage_error: 'Symmetric MAPE variant (sMAPE-style behavior)',
+  SQL: 'Scaled quantile loss — scale-normalized quantile loss across the horizon',
+  WQL: 'Weighted quantile loss — distributional forecast accuracy over quantiles',
+  MAE: 'Mean absolute error on point forecasts',
+  MAPE: 'Mean absolute percentage error on point forecasts',
+  MASE: 'Mean absolute scaled error — error scaled by a seasonal naive baseline',
+  MSE: 'Mean squared error on point forecasts',
+  RMSE: 'Root mean squared error on point forecasts',
+  RMSLE:
+    'Root mean squared logarithmic error — RMSE in log space (useful for heavy-tailed targets)',
+  RMSSE: 'Root mean squared scaled error — RMSE-style error scaled similarly to MASE',
+  SMAPE: 'Symmetric mean absolute percentage error on point forecasts',
+  WAPE: 'Weighted absolute percentage error — scale-dependent aggregate error across series',
+  roc_auc_ovo_macro: 'One-vs-one ROC AUC, macro-averaged across pairs',
+  roc_auc_ovr_macro: 'One-vs-rest ROC AUC, macro-averaged across classes',
 };
 /* eslint-enable camelcase */

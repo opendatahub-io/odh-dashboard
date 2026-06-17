@@ -637,7 +637,7 @@ paths:
                   label_column: "segment"
                   task_type: "multiclass"
                   preset: "balanced"
-                  eval_metric: "roc_auc"
+                  eval_metric: "roc_auc_ovo"
                   top_n: 5
               tabular-regression:
                 summary: Tabular regression pipeline request
@@ -1280,10 +1280,8 @@ components:
             - f1_weighted
             - roc_auc
             - roc_auc_ovo
-            - roc_auc_ovo_macro
             - roc_auc_ovo_weighted
             - roc_auc_ovr
-            - roc_auc_ovr_macro
             - roc_auc_ovr_micro
             - roc_auc_ovr_weighted
             - average_precision
