@@ -2,7 +2,7 @@ import * as React from 'react';
 import type {
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
-} from '@odh-dashboard/internal/types-core';
+} from '@odh-dashboard/k8s-core';
 import type { IsAreaAvailableStatus, SupportedAreaType } from './types';
 
 export type AreaContextState = {
