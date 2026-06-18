@@ -311,21 +311,22 @@ func (m *mockFactoryForEmptyKey) IsTargetConfigured(target bffclient.BFFTarget) 
 }
 
 // TestMaaSBFFAPIKeyResponseContract verifies that Gen AI BFF correctly unmarshals
-// the flat response from MaaS BFF POST /api/v1/api-keys endpoint.
+// the envelope-wrapped response from MaaS BFF POST /api/v1/api-keys endpoint.
 //
-// This test catches the envelope mismatch issue identified in code review:
-// MaaS BFF OpenAPI spec documents a flat response object, not an envelope wrapper.
+// Per modular architecture standard, MaaS BFF wraps responses in {"data": {...}}.
 func TestMaaSBFFAPIKeyResponseContract(t *testing.T) {
-	t.Run("should unmarshal flat MaaS BFF response (not envelope)", func(t *testing.T) {
-		// This is what MaaS BFF actually returns per openapi.yaml lines 367-388:
-		// A flat object with key, keyPrefix, id, name, createdAt, expiresAt
+	t.Run("should unmarshal envelope-wrapped MaaS BFF response", func(t *testing.T) {
+		// This is what MaaS BFF actually returns per OpenAPI spec:
+		// An envelope wrapper with data containing key, keyPrefix, id, name, createdAt, expiresAt
 		maasBFFResponse := `{
-			"key": "sk-oai-test-123456",
-			"keyPrefix": "sk-oai-test",
-			"id": "test-id-789",
-			"name": "genai-ephemeral-1234567890",
-			"createdAt": "2026-06-16T10:00:00Z",
-			"expiresAt": "2026-06-16T11:00:00Z"
+			"data": {
+				"key": "sk-oai-test-123456",
+				"keyPrefix": "sk-oai-test",
+				"id": "test-id-789",
+				"name": "genai-ephemeral-1234567890",
+				"createdAt": "2026-06-16T10:00:00Z",
+				"expiresAt": "2026-06-16T11:00:00Z"
+			}
 		}`
 
 		// Create a mock BFF client that returns the flat response
@@ -359,7 +360,7 @@ func TestMaaSBFFAPIKeyResponseContract(t *testing.T) {
 		app.MaaSIssueTokenHandler(rr, req, nil)
 
 		// Should successfully unmarshal and return 201
-		assert.Equal(t, http.StatusCreated, rr.Code, "Handler should succeed with flat response")
+		assert.Equal(t, http.StatusCreated, rr.Code, "Handler should succeed with envelope-wrapped response")
 
 		defer rr.Result().Body.Close()
 		body, err := io.ReadAll(rr.Result().Body)
@@ -369,27 +370,25 @@ func TestMaaSBFFAPIKeyResponseContract(t *testing.T) {
 		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
 
-		// Verify the key from the flat MaaS response was correctly extracted
+		// Verify the key from the envelope-wrapped MaaS response was correctly extracted
 		assert.Equal(t, "sk-oai-test-123456", responseEnvelope.Data.Key, "Key should match MaaS BFF response")
 		assert.Equal(t, "2026-06-16T11:00:00Z", responseEnvelope.Data.ExpiresAt, "ExpiresAt should match MaaS BFF response")
 	})
 
-	t.Run("should reject old envelope format from MaaS BFF", func(t *testing.T) {
-		// If MaaS BFF were to return the old envelope format, Gen AI BFF should handle it gracefully
+	t.Run("should reject flat (old) format from MaaS BFF", func(t *testing.T) {
+		// If MaaS BFF were to return the old flat format, Gen AI BFF should handle it gracefully
 		// or fail explicitly rather than silently returning empty data
-		maasBFFEnvelopeResponse := `{
-			"data": {
-				"key": "sk-oai-test-123456",
-				"keyPrefix": "sk-oai-test",
-				"id": "test-id-789",
-				"name": "genai-ephemeral-1234567890",
-				"createdAt": "2026-06-16T10:00:00Z",
-				"expiresAt": "2026-06-16T11:00:00Z"
-			}
+		maasBFFFlatResponse := `{
+			"key": "sk-oai-test-123456",
+			"keyPrefix": "sk-oai-test",
+			"id": "test-id-789",
+			"name": "genai-ephemeral-1234567890",
+			"createdAt": "2026-06-16T10:00:00Z",
+			"expiresAt": "2026-06-16T11:00:00Z"
 		}`
 
 		mockClient := &mockBFFClientForContract{
-			response: maasBFFEnvelopeResponse,
+			response: maasBFFFlatResponse,
 		}
 
 		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -420,18 +419,16 @@ func TestMaaSBFFAPIKeyResponseContract(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 
-		// With the old envelope format, the key field would be empty because
-		// it's nested under "data" but we're trying to unmarshal at the top level
+		// With the old flat format, the key field would be empty because
+		// the data is at the top level but we expect it nested under "data"
 		var responseEnvelope Envelope[models.MaaSTokenResponse, None]
 		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
 
-		// This assertion documents the current behavior - if envelope format is returned,
-		// the key will be empty (silent failure). The fix should either:
-		// 1. Correctly unmarshal flat format (preferred), or
-		// 2. Return explicit error when key is empty
+		// The handler validates that the key is not empty and returns 500 if it is
+		// So if we get here with an empty key, it means validation failed
 		if responseEnvelope.Data.Key == "" {
-			t.Log("WARNING: Envelope format resulted in empty key - this is the bug we're fixing")
+			t.Log("WARNING: Flat format resulted in empty key - handler should have returned 500")
 		}
 	})
 }

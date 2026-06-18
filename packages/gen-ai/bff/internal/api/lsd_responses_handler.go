@@ -894,12 +894,14 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 		return ""
 	}
 
-	// Build MaaS BFF API key request (flat object per OpenAPI spec)
+	// Build MaaS BFF API key request (envelope wrapper per OpenAPI spec)
 	bffRequest := models.MaaSBFFAPIKeyRequest{
-		Name:         fmt.Sprintf("genai-inference-%d", time.Now().Unix()),
-		ExpiresIn:    constants.MaaSTokenTTLString,
-		Subscription: subscription,
-		Ephemeral:    true,
+		Data: models.MaaSBFFAPIKeyRequestData{
+			Name:         fmt.Sprintf("genai-inference-%d", time.Now().Unix()),
+			ExpiresIn:    constants.MaaSTokenTTLString,
+			Subscription: subscription,
+			Ephemeral:    true,
+		},
 	}
 
 	// Call MaaS BFF to create API key
@@ -911,17 +913,17 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	}
 
 	// Validate that MaaS BFF returned a non-empty key
-	if bffResponse.Key == "" {
+	if bffResponse.Data.Key == "" {
 		app.logger.Warn("MaaS BFF returned empty key in response", "model", modelID)
 		return ""
 	}
 
 	// Map BFF response to internal format
 	tokenResponse := &models.MaaSTokenResponse{
-		Key: bffResponse.Key,
+		Key: bffResponse.Data.Key,
 	}
-	if bffResponse.ExpiresAt != nil {
-		tokenResponse.ExpiresAt = *bffResponse.ExpiresAt
+	if bffResponse.Data.ExpiresAt != nil {
+		tokenResponse.ExpiresAt = *bffResponse.Data.ExpiresAt
 	}
 
 	// Compute cache TTL from the key's actual expiry, with a safety buffer

@@ -55,18 +55,20 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 		keyName = fmt.Sprintf("genai-ephemeral-%d", time.Now().Unix())
 	}
 
-	// Build MaaS BFF API key request (flat object per OpenAPI spec)
+	// Build MaaS BFF API key request (envelope wrapper per OpenAPI spec)
 	bffRequest := models.MaaSBFFAPIKeyRequest{
-		Name:         keyName,
-		Description:  tokenRequest.Description,
-		ExpiresIn:    tokenRequest.ExpiresIn, // Forward TTL if provided
-		Subscription: subscription,           // Use trimmed value
-		Ephemeral:    true,                   // Always ephemeral for playground sessions
+		Data: models.MaaSBFFAPIKeyRequestData{
+			Name:         keyName,
+			Description:  tokenRequest.Description,
+			ExpiresIn:    tokenRequest.ExpiresIn, // Forward TTL if provided
+			Subscription: subscription,           // Use trimmed value
+			Ephemeral:    true,                   // Always ephemeral for playground sessions
+		},
 	}
 
 	// Call MaaS BFF to create API key
-	// Per MaaS BFF OpenAPI spec, POST /api/v1/api-keys returns a flat object:
-	// {"key": "...", "keyPrefix": "...", "id": "...", "expiresAt": "...", ...}
+	// Per MaaS BFF OpenAPI spec, POST /api/v1/api-keys returns an envelope wrapper:
+	// {"data": {"key": "...", "keyPrefix": "...", "id": "...", "expiresAt": "...", ...}}
 	var bffResponse models.MaaSBFFAPIKeyResponse
 	err := maasClient.Call(ctx, "POST", "/api-keys", bffRequest, &bffResponse)
 	if err != nil {
@@ -75,19 +77,19 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 	}
 
 	// Validate that MaaS BFF returned a non-empty key
-	if bffResponse.Key == "" {
+	if bffResponse.Data.Key == "" {
 		app.serverErrorResponse(w, r, fmt.Errorf("MaaS BFF returned empty key in response"))
 		return
 	}
 
 	// Map MaaS BFF response to Gen AI format
 	genAIResponse := models.MaaSTokenResponse{
-		Key: bffResponse.Key,
+		Key: bffResponse.Data.Key,
 	}
 
 	// Map expiresAt from pointer to string
-	if bffResponse.ExpiresAt != nil {
-		genAIResponse.ExpiresAt = *bffResponse.ExpiresAt
+	if bffResponse.Data.ExpiresAt != nil {
+		genAIResponse.ExpiresAt = *bffResponse.Data.ExpiresAt
 	}
 
 	// Return response in Gen AI envelope format

@@ -79,10 +79,8 @@ type MaaSBFFModelsResponse struct {
 	Data MaaSBFFModelsData `json:"data"`
 }
 
-// MaaSBFFAPIKeyRequest represents the MaaS BFF API key creation request.
-// Per MaaS BFF OpenAPI spec (packages/maas/bff/openapi.yaml lines 327-346),
-// POST /api/v1/api-keys expects a flat object with top-level fields.
-type MaaSBFFAPIKeyRequest struct {
+// MaaSBFFAPIKeyRequestData represents the payload inside the envelope for API key creation.
+type MaaSBFFAPIKeyRequestData struct {
 	Name         string `json:"name"`
 	Description  string `json:"description,omitempty"`
 	ExpiresIn    string `json:"expiresIn,omitempty"`
@@ -90,14 +88,24 @@ type MaaSBFFAPIKeyRequest struct {
 	Ephemeral    bool   `json:"ephemeral"`
 }
 
-// MaaSBFFAPIKeyResponse represents the MaaS BFF API key response.
-// Per MaaS BFF OpenAPI spec (packages/maas/bff/openapi.yaml lines 367-388),
-// POST /api/v1/api-keys returns a flat object, not an envelope wrapper.
-type MaaSBFFAPIKeyResponse struct {
+// MaaSBFFAPIKeyRequest represents the MaaS BFF API key creation request.
+// Per MaaS BFF OpenAPI spec, POST /api/v1/api-keys expects an envelope wrapper {"data": {...}}.
+type MaaSBFFAPIKeyRequest struct {
+	Data MaaSBFFAPIKeyRequestData `json:"data"`
+}
+
+// MaaSBFFAPIKeyResponseData represents the payload inside the envelope for API key response.
+type MaaSBFFAPIKeyResponseData struct {
 	Key       string  `json:"key"`
 	KeyPrefix string  `json:"keyPrefix,omitempty"`
 	ID        string  `json:"id,omitempty"`
 	Name      string  `json:"name,omitempty"`
 	CreatedAt *string `json:"createdAt,omitempty"`
 	ExpiresAt *string `json:"expiresAt,omitempty"`
+}
+
+// MaaSBFFAPIKeyResponse represents the MaaS BFF API key response.
+// Per MaaS BFF OpenAPI spec, POST /api/v1/api-keys returns an envelope wrapper {"data": {...}}.
+type MaaSBFFAPIKeyResponse struct {
+	Data MaaSBFFAPIKeyResponseData `json:"data"`
 }
