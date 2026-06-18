@@ -175,9 +175,13 @@ func (c *HTTPBFFClient) handleErrorResponse(statusCode int, body []byte) error {
 		return NewServerUnavailableError(c.target)
 	default:
 		if statusCode >= 500 {
-			return NewServerUnavailableError(c.target)
+			// Preserve original 5xx status code for proper error propagation
+			// MaaS-only requests need to distinguish between 500, 502, 503, 504, etc.
+			return NewBFFClientErrorWithTarget(ErrCodeServerUnavailable, http.StatusText(statusCode), c.target, statusCode)
 		}
-		return NewBFFClientErrorWithTarget(ErrCodeInternalError, message, c.target, statusCode)
+		// For other 4xx errors, sanitize message to avoid leaking internal details
+		// Use only HTTP status text instead of forwarding raw upstream response body
+		return NewBFFClientErrorWithTarget(ErrCodeInternalError, http.StatusText(statusCode), c.target, statusCode)
 	}
 }
 
