@@ -22,13 +22,17 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   onUpdate,
   onRemove,
 }) => (
-  <FormGroup isRequired label="Variable type" fieldId="environment-variable-type-select">
+  <FormGroup
+    isRequired
+    label="Variable type"
+    fieldId={`environment-variable-type-select-${instanceId}`}
+  >
     <Split data-testid="environment-variable-field">
       <SplitItem isFilled>
         <Stack hasGutter>
           <StackItem data-testid="environment-variable-type-select">
             <SimpleSelect
-              toggleProps={{ id: 'environment-variable-type-select' }}
+              toggleProps={{ id: `environment-variable-type-select-${instanceId}` }}
               popperProps={{ appendTo: getDashboardMainContainer() }}
               isFullWidth
               value={envVariable.type ?? undefined}

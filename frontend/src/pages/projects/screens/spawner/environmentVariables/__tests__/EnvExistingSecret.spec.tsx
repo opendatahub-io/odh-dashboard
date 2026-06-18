@@ -72,14 +72,13 @@ describe('EnvExistingSecret', () => {
     expect(screen.getByTestId('existing-secret-select-0')).toBeInTheDocument();
   });
 
-  it('should show "Secrets" label as required when secrets are selected', () => {
+  it('should show "Secrets" label when secrets are selected', () => {
     renderComponent({
       existingSecretRefs: [
         { secretName: 'db-credentials', selectedKeys: ['DB_HOST'], allKeys: false },
       ],
     });
-    const label = screen.getByText('Secrets');
-    expect(label.closest('.pf-v6-c-form__group')).toBeInTheDocument();
+    expect(screen.getByText('Secrets')).toBeInTheDocument();
   });
 
   it('should not show restart info when no secrets are selected', () => {

@@ -113,10 +113,11 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
     (secretName: string, checked: boolean) => {
       const secret = secretsByName.get(secretName);
       const allKeys = secret?.keys ?? [];
+      const shouldSelectAll = checked && allKeys.length > 0;
       onUpdate(
         existingSecretRefs.map((r) =>
           r.secretName === secretName
-            ? { ...r, allKeys: checked, selectedKeys: checked ? allKeys : [] }
+            ? { ...r, allKeys: shouldSelectAll, selectedKeys: shouldSelectAll ? allKeys : [] }
             : r,
         ),
       );
