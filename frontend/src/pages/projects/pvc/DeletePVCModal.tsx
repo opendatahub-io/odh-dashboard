@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { deletePvc, removeNotebookPVC } from '#~/api';
 import {
   useRelatedNotebooks,
@@ -7,7 +8,6 @@ import {
 } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import ConnectedResourcesDeleteModal from '#~/pages/projects/components/ConnectedResourcesDeleteModal';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 
 type DeletePVCModalProps = {

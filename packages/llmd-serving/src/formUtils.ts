@@ -1,4 +1,4 @@
-import { type RecursivePartial } from '@odh-dashboard/ui-core/utilities';
+import type { RecursivePartial } from '@odh-dashboard/k8s-core';
 import { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import ConfirmStopModal from '#~/pages/projects/components/ConfirmStopModal.tsx';
 import NotebookRouteLink from './NotebookRouteLink';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';

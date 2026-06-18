@@ -7,9 +7,13 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type { ProjectKind, SecretKind, SupportedModelFormats } from '@odh-dashboard/k8s-core';
+import type {
+  ProjectKind,
+  RecursivePartial,
+  SecretKind,
+  SupportedModelFormats,
+} from '@odh-dashboard/k8s-core';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import type { RecursivePartial } from '@odh-dashboard/ui-core/utilities';
 import type { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import type {
   ModelServerOption,

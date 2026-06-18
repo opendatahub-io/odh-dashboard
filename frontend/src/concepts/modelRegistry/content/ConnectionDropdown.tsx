@@ -8,8 +8,8 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import React from 'react';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import { ModelLocationType } from '#~/concepts/modelRegistry/types';
 

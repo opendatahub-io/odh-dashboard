@@ -21,7 +21,7 @@ import {
   getModelServingCompatibility,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import { isGeneratedSecretName } from '@odh-dashboard/k8s-core';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';

@@ -22,8 +22,7 @@ import {
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
-import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import { getResourceNameFromK8sResource, isGeneratedSecretName } from '@odh-dashboard/k8s-core';
 import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import NewConnectionField from './modelLocationFields/NewConnectionField';

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import ServingRuntimeTokenDisplay from './ServingRuntimeTokenDisplay';
 
 type ServingRuntimeTokenTableRowProps = {

@@ -18,6 +18,11 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
+  getDisplayNameFromK8sResource,
+  translateDisplayNameForK8s,
+  translateDisplayNameForK8sAndReport,
+} from '@odh-dashboard/k8s-core';
+import {
   createNIMPVC,
   createNIMSecret,
   getSubmitInferenceServiceResourceFn,
@@ -39,11 +44,6 @@ import NIMModelListSection from '#~/pages/modelServing/screens/projects/nim/NIMS
 import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
-import {
-  getDisplayNameFromK8sResource,
-  translateDisplayNameForK8s,
-  translateDisplayNameForK8sAndReport,
-} from '#~/concepts/k8s/utils';
 import { getSecret, updatePvc, useAccessReview, patchInferenceServiceStoppedStatus } from '#~/api';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection, {
