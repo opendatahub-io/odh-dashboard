@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import { StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
 import { FetchStateRefreshPromise } from '#~/utilities/useFetchState';
 import { getStorageClassConfig, setDefaultStorageClass } from './utils';
 

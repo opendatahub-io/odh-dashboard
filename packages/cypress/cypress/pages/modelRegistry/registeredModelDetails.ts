@@ -64,13 +64,16 @@ class RegisteredModelDetails {
   }
 
   shouldHaveCustomProperty(key: string, value: string) {
-    // Wait for the expandable section to contain a visible table
-    // The table is conditionally rendered only when properties exist
-    this.findPropertiesExpandableSection().within(() => {
-      cy.findByTestId('properties-table', { timeout: 10000 }).should('be.visible');
-      cy.contains(key).should('be.visible');
-      cy.contains(value).should('be.visible');
-    });
+    this.ensurePropertiesExpanded();
+    // Avoid .within() — the table can remount after save/navigation causing a stale
+    // DOM reference. Chaining from the expandable section lets Cypress retry against
+    // the live DOM until the property text appears.
+    this.findPropertiesExpandableSection()
+      .contains('td', key, { timeout: 15000 })
+      .should('be.visible');
+    this.findPropertiesExpandableSection()
+      .contains('td', value, { timeout: 15000 })
+      .should('be.visible');
     return this;
   }
 

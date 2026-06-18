@@ -30,6 +30,7 @@ import {
 import {
   computeEmbeddingModelStatus,
   convertMaaSModelToAIModel,
+  isASROnlyModel,
   isPlaygroundModelMatchForAIModel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
@@ -106,9 +107,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     [maasModels],
   );
 
-  // Merge all models and MaaS models for display
+  // Merge all models, excluding ASR-only models (not usable in the playground)
   const allModels = React.useMemo(
-    () => [...aiModels, ...maasAsAIModels],
+    () => [...aiModels, ...maasAsAIModels].filter((model) => !isASROnlyModel(model)),
     [aiModels, maasAsAIModels],
   );
 
@@ -119,18 +120,17 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       );
 
       if (extraSelectedModels && extraSelectedModels.length > 0) {
-        const extraSelectedModelsSet = new Set(
-          extraSelectedModels.map((model) => model.model_name),
-        );
+        const filteredExtra = extraSelectedModels.filter((model) => !isASROnlyModel(model));
+        const extraSelectedModelsSet = new Set(filteredExtra.map((model) => model.model_name));
         const merged = [
-          ...extraSelectedModels,
+          ...filteredExtra,
           ...existingAIModels.filter((model) => !extraSelectedModelsSet.has(model.model_name)),
         ];
         return merged;
       }
       return existingAIModels;
     }
-    return extraSelectedModels ?? allModels;
+    return extraSelectedModels?.filter((model) => !isASROnlyModel(model)) ?? allModels;
   }, [existingModels, extraSelectedModels, allModels]);
 
   const availableModels = React.useMemo(

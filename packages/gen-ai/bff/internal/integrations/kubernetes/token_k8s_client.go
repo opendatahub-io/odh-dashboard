@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -48,6 +49,8 @@ import (
 	// Import TrustyAI GuardrailsOrchestrator types
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 )
+
+var ErrSecretKeyNotFound = errors.New("secret key not found")
 
 const (
 	// GenAIAssetLabelKey is the label key used to identify GenAI assets
@@ -854,6 +857,38 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 	return allAAModels, nil
 }
 
+// parseModelCapabilities extracts recognised capabilities from the JSON
+// annotation value.  Returns a copy of DefaultCapabilities when the value
+// is empty, malformed, or yields no valid capabilities.
+func parseModelCapabilities(annotationValue string) []string {
+	if annotationValue == "" {
+		return constants.DefaultCapabilities()
+	}
+	var raw []interface{}
+	if err := json.Unmarshal([]byte(annotationValue), &raw); err != nil {
+		slog.Warn("malformed model-capabilities annotation, defaulting",
+			"value", annotationValue, "error", err)
+		return constants.DefaultCapabilities()
+	}
+	var caps []string
+	for _, v := range raw {
+		s, ok := v.(string)
+		if !ok {
+			slog.Warn("non-string value in model-capabilities, skipping", "value", v)
+			continue
+		}
+		if constants.IsAllowedCapability(s) {
+			caps = append(caps, s)
+		} else {
+			slog.Warn("unknown capability value dropped", "value", s)
+		}
+	}
+	if len(caps) == 0 {
+		return constants.DefaultCapabilities()
+	}
+	return caps
+}
+
 func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.Context, namespace string, labelSelector labels.Selector) ([]models.AAModel, error) {
 	var llmInferenceServiceList kservev1alpha1.LLMInferenceServiceList
 	listOptions := &client.ListOptions{
@@ -883,6 +918,10 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 		if llmSvc.Spec.Model.Name != nil && strings.TrimSpace(*llmSvc.Spec.Model.Name) != "" {
 			modelID = *llmSvc.Spec.Model.Name
 		}
+		if _, ok := llmSvc.Annotations[constants.ModelCapabilitiesAnnotationKey]; !ok {
+			slog.Debug("LLMInferenceService missing model-capabilities annotation, using defaults",
+				"name", llmSvc.Name, "namespace", llmSvc.Namespace)
+		}
 		aaModel := models.AAModel{
 			ModelName:       llmSvc.Name,
 			ModelID:         modelID,
@@ -894,6 +933,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			Status:          kc.extractStatusFromLLMInferenceService(&llmSvc),
 			DisplayName:     kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
+			Capabilities:    parseModelCapabilities(llmSvc.Annotations[constants.ModelCapabilitiesAnnotationKey]),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -929,6 +969,10 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			kc.Logger.Warn("failed to fetch ServingRuntime", "error", err, "servingRuntime", servingRuntimeName)
 		}
 
+		if _, ok := isvc.Annotations[constants.ModelCapabilitiesAnnotationKey]; !ok {
+			slog.Debug("InferenceService missing model-capabilities annotation, using defaults",
+				"name", isvc.Name, "namespace", isvc.Namespace)
+		}
 		aaModel := models.AAModel{
 			ModelName:       isvc.Name,
 			ModelID:         isvc.Name,
@@ -941,6 +985,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			Status:          kc.extractStatusFromInferenceService(&isvc),
 			DisplayName:     kc.extractDisplayNameFromInferenceService(&isvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
+			Capabilities:    parseModelCapabilities(isvc.Annotations[constants.ModelCapabilitiesAnnotationKey]),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -1052,12 +1097,6 @@ func ExtractStatusFromInferenceService(isvc *kservev1beta1.InferenceService) str
 		}
 	}
 	return "Stop"
-}
-
-// ConstructLLMInferenceServiceURL constructs the internal URL for an LLMInferenceService
-// This function is exported for testing purposes
-func ConstructLLMInferenceServiceURL(scheme, serviceName, namespace string, port int32) string {
-	return fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/v1", scheme, serviceName, namespace, port)
 }
 
 // EnsureV1Suffix ensures that the URL ends with /v1 suffix
@@ -1318,6 +1357,20 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			useCases = model.Metadata.CustomGenAI.UseCases
 		}
 
+		caps := constants.DefaultCapabilities()
+		if len(model.Metadata.Capabilities) > 0 {
+			filtered := make([]string, 0, len(model.Metadata.Capabilities))
+			for _, c := range model.Metadata.Capabilities {
+				if constants.IsAllowedCapability(c) {
+					filtered = append(filtered, c)
+				} else {
+					kc.Logger.Warn("unknown external model capability dropped", "modelID", model.ModelID, "capability", c)
+				}
+			}
+			if len(filtered) > 0 {
+				caps = filtered
+			}
+		}
 		aaModel := models.AAModel{
 			ModelName:          model.ModelID,
 			ModelID:            model.ModelID,
@@ -1333,6 +1386,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			ModelSourceType:    models.ModelSourceTypeCustomEndpoint,
 			ModelType:          model.ModelType,
 			EmbeddingDimension: model.Metadata.EmbeddingDimension,
+			Capabilities:       caps,
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -2381,41 +2435,42 @@ func (kc *TokenKubernetesClient) findLLMInferenceServiceByModelName(ctx context.
 	return nil, fmt.Errorf("LLMInferenceService with model name '%s' not found in namespace %s", modelName, namespace)
 }
 
-// extractEndpointFromLLMInferenceService extracts the endpoint URL from LLMInferenceService by constructing internal URL from its Service
-func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(ctx context.Context, llmSvc *kservev1alpha1.LLMInferenceService) (string, error) {
-	// Find services owned by this LLMInferenceService
-	services, err := kc.findServicesForKServeResource(ctx, llmSvc.Namespace, llmSvc)
-	if err != nil {
-		kc.Logger.Error("failed to find services for LLMInferenceService", "name", llmSvc.Name, "error", err)
-		return "", fmt.Errorf("failed to find services for LLMInferenceService '%s': %w", llmSvc.Name, err)
+// extractEndpointFromLLMInferenceService extracts the internal endpoint URL from LLMInferenceService
+// using the standard KServe status.addresses field. This replaces the previous workaround that
+// manually discovered K8s services and constructed URLs, which bypassed llm-d gateway routing.
+func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(_ context.Context, llmSvc *kservev1alpha1.LLMInferenceService) (string, error) {
+	for _, addr := range llmSvc.Status.Addresses {
+		if addr.URL != nil && isInternalClusterHost(addr.URL.Host) {
+			u := addr.URL.String()
+			kc.Logger.Debug("extracted internal URL from LLMInferenceService status.addresses",
+				"llmServiceName", llmSvc.Name,
+				"endpoint", EnsureV1Suffix(u))
+			return EnsureV1Suffix(u), nil
+		}
 	}
-	if len(services) == 0 {
-		kc.Logger.Error("no services found for LLMInferenceService", "name", llmSvc.Name, "namespace", llmSvc.Namespace)
-		return "", fmt.Errorf("no services found for LLMInferenceService '%s' - service may not be ready", llmSvc.Name)
+
+	if llmSvc.Status.Address != nil && llmSvc.Status.Address.URL != nil && isInternalClusterHost(llmSvc.Status.Address.URL.Host) {
+		u := llmSvc.Status.Address.URL.String()
+		kc.Logger.Debug("extracted internal URL from LLMInferenceService status.address (singular fallback)",
+			"llmServiceName", llmSvc.Name,
+			"endpoint", EnsureV1Suffix(u))
+		return EnsureV1Suffix(u), nil
 	}
 
-	// Use the first service to construct internal URL
-	svc := services[0]
-	port := kc.getServingPort(ctx, llmSvc.Namespace, svc.Name)
+	kc.Logger.Error("LLMInferenceService has no internal URL in status",
+		"name", llmSvc.Name, "namespace", llmSvc.Namespace)
+	return "", fmt.Errorf("LLMInferenceService '%s' has no internal URL in status.addresses - service may not be ready", llmSvc.Name)
+}
 
-	// Determine scheme based on authentication annotation
-	var authAnnotation string
-	if llmSvc.Annotations != nil {
-		authAnnotation = llmSvc.Annotations[authAnnotationKey]
+// isInternalClusterHost checks if a host (with optional port) is a cluster-internal address.
+// Validates the hostname suffix rather than substring to prevent spoofing via URL paths.
+func isInternalClusterHost(host string) bool {
+	hostname := host
+	if i := strings.LastIndex(host, ":"); i != -1 {
+		hostname = host[:i]
 	}
-	scheme := DetermineSchemeFromAuth(authAnnotation)
-
-	// Construct internal URL from service name with port
-	// LLMInferenceService workload services (KServe headless mode) always require port
-	internalURL := ConstructLLMInferenceServiceURL(scheme, svc.Name, llmSvc.Namespace, port)
-
-	kc.Logger.Debug("constructed internal URL for LLMInferenceService",
-		"llmServiceName", llmSvc.Name,
-		"k8sServiceName", svc.Name,
-		"port", port,
-		"endpoint", internalURL)
-
-	return internalURL, nil
+	hostname = strings.TrimPrefix(strings.TrimSuffix(hostname, "]"), "[")
+	return strings.HasSuffix(hostname, ".svc.cluster.local")
 }
 
 func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error) {
@@ -2875,7 +2930,7 @@ func (kc *TokenKubernetesClient) GetSecretValue(ctx context.Context, identity *i
 	value, ok := secret.Data[secretKey]
 	if !ok {
 		kc.Logger.Warn("secret key not found in Secret", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)
-		return "", fmt.Errorf("key '%s' not found in Secret '%s'", secretKey, secretName)
+		return "", fmt.Errorf("key '%s' not found in Secret '%s': %w", secretKey, secretName, ErrSecretKeyNotFound)
 	}
 
 	kc.Logger.Debug("successfully retrieved secret value", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)

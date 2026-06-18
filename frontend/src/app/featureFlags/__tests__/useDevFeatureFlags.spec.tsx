@@ -5,9 +5,9 @@ import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { RenderOptions } from '@testing-library/react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
+import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import { definedFeatureFlags } from '#~/concepts/areas/const';
-import { DashboardConfigKind } from '#~/k8sTypes';
 import axios from '#~/utilities/axios';
 import useDevFeatureFlags from '#~/app/featureFlags/useDevFeatureFlags';
 

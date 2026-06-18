@@ -1,6 +1,6 @@
 import { Label, LabelGroup } from '@patternfly/react-core';
 import * as React from 'react';
-import { TemplateKind } from '#~/k8sTypes';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { getEnabledPlatformsFromTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimePlatform } from '#~/types';
 

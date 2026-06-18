@@ -14,8 +14,8 @@ import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import {
-  type TemplateKind,
   type InferenceServiceKind,
   type ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';

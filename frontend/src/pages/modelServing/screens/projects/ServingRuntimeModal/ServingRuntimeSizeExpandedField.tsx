@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Grid } from '@patternfly/react-core';
-import { ContainerResourceAttributes, ContainerResources } from '#~/types';
+import { ContainerResourceAttributes, type ContainerResources } from '@odh-dashboard/k8s-core';
 import { CPUFieldWithCheckbox } from '#~/components/CPUField';
 import { MemoryFieldWithCheckbox } from '#~/components/MemoryField';
 import { useZodFormValidation } from '#~/hooks/useZodFormValidation.ts';

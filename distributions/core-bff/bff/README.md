@@ -8,37 +8,49 @@ Backend-for-frontend providing core endpoints required by the dashboard UI.
 
 ## Scope
 
-This service exposes:
+This service exposes infrastructure endpoints, config/status endpoints, and resource CRUD:
 
-- GET `/healthcheck` - liveness probe (no auth)
-- GET `/api/v1/healthcheck` - health check (with auth middleware)
-- GET `/api/v1/user` - returns the authenticated user
-- GET `/api/v1/namespaces` - list namespaces (available only when DEV_MODE=true or mock k8s enabled)
+**Infrastructure:**
+- `GET /healthcheck` - liveness probe (no auth)
+- `GET /api/v1/healthcheck` - health check (with auth middleware)
+- `GET /api/v1/user` - authenticated user identity
+- `GET /api/v1/namespaces` - list namespaces (dev/mock mode only)
+- `/api/k8s/*` - K8s API pass-through proxy
+- `/wss/k8s/*` - WebSocket watch proxy
+
+**Config & Status:**
+- `GET /api/config` - merged DashboardConfig with defaults
+- `PATCH /api/config` - update DashboardConfig (admin)
+- `GET /api/status` - user session status and cluster info
+- `GET /api/status/:namespace/allowedUsers` - notebook users in a namespace (admin)
+- `GET /api/components` - OdhApplication list (empty when CRD absent)
+- `GET /api/components/remove` - remove app from enabled-apps ConfigMap (admin)
+- `GET/PATCH /api/dashboardConfig/:namespace/:name` - raw DashboardConfig CRUD (admin)
+- `GET/PUT /api/cluster-settings` - cluster settings with validation (admin)
+- `GET /api/connection-types` - list connection-type ConfigMaps
+- `GET /api/connection-types/:name` - get single connection type
+- `POST /api/connection-types` - create connection type (admin)
+- `PUT /api/connection-types/:name` - replace connection type (admin)
+- `PATCH /api/connection-types/:name` - patch connection type (admin)
+- `DELETE /api/connection-types/:name` - delete connection type (admin)
 
 ## Development
 
-Run the following command to build the BFF:
+Build the BFF:
 
 ```shell
 make build
 ```
 
-After building it, you can run our app with:
+Run with mock K8s client:
 
 ```shell
-make run
+make run PORT=4000 MOCK_K8S_CLIENT=true
 ```
 
-If you want to use a different port or mock kubernetes client you can run:
+Run with debug logging:
 
 ```shell
-make run PORT=8000 MOCK_K8S_CLIENT=true
-```
-
-If you want to change the log level on deployment, add the LOG_LEVEL argument when running, supported levels are: ERROR, WARN, INFO, DEBUG. The default level is INFO.
-
-```shell
-# Run with debug logging
 make run LOG_LEVEL=DEBUG
 ```
 
@@ -47,180 +59,118 @@ make run LOG_LEVEL=DEBUG
 | Flag | Env Var | Description |
 |------|---------|-------------|
 | `-port` | `PORT` | Listen port (default 4000) |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `federated` (default `standalone`) |
+| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` (default) or `federated` |
+| `-platform-type` | `ODH_PLATFORM_TYPE` | `OpenShift` (probe cluster info), `XKS` (skip OpenShift detection), empty (auto-detect) |
 | `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
-| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in-memory stub for namespace/user resolution |
+| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in-memory stub for K8s operations |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single-page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
 | `-auth-method` | `AUTH_METHOD` | `user_token` (default) or `disabled` (skips auth) |
 | `-auth-token-header` | `AUTH_TOKEN_HEADER` | Header to read token from (default `x-forwarded-access-token`) |
-| `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default empty; use `Bearer` with standard `Authorization`) |
+| `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default empty) |
 | `-cert-file` | (CLI only) | TLS certificate path (enables TLS when paired with key) |
 | `-key-file` | (CLI only) | TLS key path |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
 | `-mock-bff-clients` | `MOCK_BFF_CLIENTS` | Use mock BFF clients (no real HTTP calls to other BFFs) |
-| `-namespace` | `NAMESPACE` | Kubernetes namespace where the dashboard is deployed (default `opendatahub`) |
+| `-namespace` | `NAMESPACE` / `OC_PROJECT` | K8s namespace for dashboard resources (default `opendatahub`, falls back to `OC_PROJECT`) |
+| `-workbench-namespace` | `WORKBENCH_NAMESPACE` | K8s namespace for workbenches (defaults to dashboard namespace) |
 | `-dashboard-config-name` | `DASHBOARD_CONFIG_NAME` | Name of the OdhDashboardConfig CR (default `odh-dashboard-config`) |
+| `-enabled-apps-cm` | `ENABLED_APPS_CM` | Name of the ConfigMap tracking enabled applications |
 | `-mf-remotes-config` | `MF_REMOTES_CONFIG` | Path to module federation remotes config file |
 
 TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
 
-## Running the linter locally
+## Platform Detection
 
-The BFF directory uses golangci-lint to combine multiple linters for a more comprehensive linting process. To install and run simply use:
+The BFF supports three platform modes via `ODH_PLATFORM_TYPE`:
+
+- **`XKS`** - Generic Kubernetes. Skips all OpenShift API calls at startup and applies XKS feature overrides.
+- **`OpenShift`** - Probes for ClusterVersion (cluster ID) and console-config (branding).
+- **Unset** (default) - Auto-detects by probing the ClusterVersion CRD. If found, behaves as OpenShift. If absent, behaves as XKS. The resolved platform drives both startup behavior and feature overrides.
+
+## Endpoints
+
+### Sample local calls
+
+When running with the mocked K8s client (`MOCK_K8S_CLIENT=true`), the user `user@example.com` has RBAC allowing all endpoints.
+
+```shell
+# Infrastructure
+curl -i localhost:4000/healthcheck
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/v1/user
+
+# Config & Status
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/config
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/status
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/cluster-settings
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/components
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/connection-types
+```
+
+### Admin Routes
+
+Admin endpoints use a `requireAdmin` wrapper that checks SSAR for `patch` on `auths/default-auth`. Non-admin users receive 401. Note: this does not yet fully match Fastify's `secureAdminRoute` semantics (e.g. namespace validation order).
+
+### Privilege Model
+
+The BFF uses two types of K8s clients:
+
+- **Service account clients** (`saDynClient`, `saClientset`) - for reading shared config (DashboardConfig, Auth, Components) and performing admin-gated mutations (connection types, cluster settings). Matches Fastify's privileged watcher model.
+- **Per-request user clients** - for SSAR checks (`IsUserAdmin`, `IsUserAllowed`) and token validation via `SelfSubjectReview`.
+
+### XKS Platform Overrides
+
+When the platform is XKS (explicit or auto-detected), the BFF disables OpenShift-dependent features:
+- `enablement` set to `false`
+- `disableProjects`, `disableBYONImageStream`, `disableISVBadges`, `disableAppLauncher`, `disablePipelines` set to `true`
+- `mlflow` set to `false`
+
+These run after feature lockouts (`disableFineTuning`, `mlflow`) and header overrides, so they take precedence.
+
+### Inter-BFF Communication
+
+The BFF includes a `bffclient` package (`internal/integrations/bffclient/`) for calling other BFF services in a multi-BFF pod deployment.
+
+## Linting
 
 ```shell
 make lint
 ```
 
-For more information on configuring golangci-lint see the [documentation](https://golangci-lint.run/).
+Uses golangci-lint. See the [documentation](https://golangci-lint.run/) for configuration.
 
 ## Building and Deploying
-
-Run the following command to build the BFF:
 
 ```shell
 make build
 ```
 
-The BFF binary will be inside the `bin` directory.
+The binary will be inside the `bin` directory.
 
-You can also build Docker images from the distribution root (`core-bff/`):
+Docker images from the distribution root (`core-bff/`):
 
 ```shell
 cd .. && make docker-build
 ```
 
-## Endpoints
-
-Four JSON endpoints are available plus static asset serving (index.html fallback):
-
-```text
-GET /healthcheck            (no auth)
-GET /api/v1/healthcheck     (with auth middleware)
-GET /api/v1/user
-GET /api/v1/namespaces      (dev / mock mode only)
-```
-
-### Sample local calls
-
-When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all three endpoints.
-
-```shell
-curl -i localhost:4000/healthcheck
-curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/v1/user
-curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/v1/namespaces   # (dev / mock only)
-```
-
-### Inter-BFF Communication
-
-The BFF includes a `bffclient` package (`internal/integrations/bffclient/`) that provides the scaffolding for calling other BFF services in a multi-BFF pod deployment. The package is target-agnostic - teams wire up their own target BFF endpoints on top of this infrastructure.
-
-#### Architecture
-
-```
-+--------------------------------------------------------------+
-|                        ODH Dashboard Pod                     |
-+--------------------------------------------------------------+
-|  +--------------+  +--------------+  +------------------+   |
-|  |  Gen-AI BFF  |--|   MaaS BFF   |--|  Model Registry  |   |
-|  |    :8143     |  |    :8243     |  |   BFF :8043      |   |
-|  +--------------+  +--------------+  +------------------+   |
-|         |                  |                    |            |
-|  +--------------+          |                    |            |
-|  |  MLflow BFF  |----------+--------------------+            |
-|  |    :8343     |     Inter-BFF HTTP Calls                   |
-|  +--------------+  (K8s service DNS or localhost)            |
-+--------------------------------------------------------------+
-```
-
-#### Adding a BFF target
-
-1. Add target-specific config fields to `internal/config/environment.go` (e.g. `BFF<Target>ServiceName`, `BFF<Target>ServicePort`, etc.)
-2. Add corresponding CLI flags to `cmd/main.go`
-3. Apply config overrides in `NewApp()` in `internal/api/app.go`
-4. Create a handler in `internal/api/` using `bffclient.GetClient()` and `bffclient.AttachBFFClient()` middleware
-5. Wire routes in `Routes()`
-
-See the `bffclient` package README and the implementation spec for detailed guidance.
-
 ### Authentication modes
 
 Two modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 
-- **user_token** (default): extracts a bearer token from the configured header (default `x-forwarded-access-token`) and performs SelfSubjectAccessReview. This is the standard authentication method for ODH/RHOAI deployments and is recommended for most use cases including mock/development mode.
-- **disabled**: skips identity extraction entirely. Useful for local development or testing when no real auth is needed.
-
-### Overriding token header / prefix
-
-By default, the BFF expects the token in the `x-forwarded-access-token` header with no prefix. If using the standard `Authorization` header, set the prefix to `Bearer`.
-
-If you're integrating with a proxy or tool that uses a different header, you can override this behavior using environment variables or Makefile arguments.
-
-```shell
-make run AUTH_METHOD=user_token AUTH_TOKEN_HEADER=X-Forwarded-Access-Token AUTH_TOKEN_PREFIX=""
-```
-
-This will configure the BFF to extract the raw token from the following header:
-
-```shell
-X-Forwarded-Access-Token: <your-token>
-```
+- **user_token** (default): extracts a bearer token from the configured header and performs SelfSubjectReview.
+- **disabled**: skips identity extraction entirely. Useful for local development or testing.
 
 ### Enabling CORS
 
-When serving the UI directly from the BFF there is no need for any CORS headers to be served, by default they are turned off for security reasons.
-
-If you need to enable CORS for any reasons you can add origins to the allow-list in several ways:
-
-##### Via the make command
-
-Add the following parameter to your command: `ALLOWED_ORIGINS` this takes a comma separated list of origins to permit serving to, alterantively you can specify the value `*` to allow all origins, **Note this is not recommended in production deployments as it poses a security risk**
-
-Examples:
+CORS is disabled by default. Enable with `ALLOWED_ORIGINS`:
 
 ```shell
-# Allow only the origin http://example.com:8081
-make run ALLOWED_ORIGINS="http://example.com:8081"
-
-# Allow the origins http://example.com and http://very-nice.com
-make run ALLOWED_ORIGINS="http://example.com,http://very-nice.com"
-
-# Allow all origins
-make run ALLOWED_ORIGINS="*"
-
-# Explicitly disable CORS (default behaviour)
-make run ALLOWED_ORIGINS=""
-```
-
-#### Via environment variable
-
-Setting CORS via environment variable follows the same rules as using the Makefile, simply set the environment variable `ALLOWED_ORIGINS` with the same value as above.
-
-#### Via command line argument
-
-Setting CORS via command line arguments follows the same rules as using the Makefile. Simply add the `--allowed-origins=` flag to your command.
-
-Examples:
-
-```shell
-./bff --allowed-origins="http://my-domain.com,http://my-other-domain.com"
+make run ALLOWED_ORIGINS="http://localhost:3000"
+make run ALLOWED_ORIGINS="*"   # allow all (not for production)
 ```
 
 ### Disabling TLS verification (development only)
-
-For local installations with self-signed certificates, you may need to disable TLS certificate verification.
-
-**Kubernetes deployment:**
-
-```yaml
-env:
-  - name: INSECURE_SKIP_VERIFY
-    value: "true"
-```
-
-**Local development:**
 
 ```shell
 ./bin/bff --insecure-skip-verify

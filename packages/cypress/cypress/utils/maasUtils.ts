@@ -221,6 +221,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     display_name: 'Premium Team',
     priority: 10,
     // eslint-disable-next-line camelcase
+    key_count: 10,
+    // eslint-disable-next-line camelcase
     cost_center: 'engineering',
     // eslint-disable-next-line camelcase
     organization_id: 'org-123',
@@ -232,6 +234,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
         display_name: 'Granite 3 8B Instruct',
         source: 'Internal',
         namespace: 'maas-models',
+        description:
+          'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 100000, window: '24h' }],
       },
@@ -241,6 +245,7 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
         display_name: 'Flan T5 Small',
         source: 'External',
         namespace: 'maas-models',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 200000, window: '24h' }],
       },
@@ -255,6 +260,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     display_name: 'Basic Team',
     priority: 1,
     // eslint-disable-next-line camelcase
+    key_count: 5,
+    // eslint-disable-next-line camelcase
     model_refs: [
       {
         name: 'flan-t5-small',
@@ -262,6 +269,7 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
         display_name: 'Flan T5 Small',
         source: 'External',
         namespace: 'maas-models',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 10000, window: '24h' }],
       },

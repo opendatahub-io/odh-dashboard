@@ -1,72 +1,9 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { AIModel } from '~/app/types';
 import AIModelsTableRowInfo from '~/app/AIAssets/components/AIModelsTableRowInfo';
-
-// Mock tracking
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-jest.mock('mod-arch-shared', () => ({
-  ...jest.requireActual('mod-arch-shared'),
-  DashboardPopupIconButton: ({
-    icon,
-    onClick,
-    children,
-    ...props
-  }: {
-    icon: React.ReactNode;
-    onClick?: () => void;
-    children?: React.ReactNode;
-  }) => (
-    <button onClick={onClick} {...props}>
-      {icon}
-      {children}
-    </button>
-  ),
-}));
-
-// Mock ClipboardCopy to trigger onCopy callback
-jest.mock('@patternfly/react-core', () => {
-  const actual = jest.requireActual('@patternfly/react-core');
-  return {
-    ...actual,
-    ClipboardCopy: ({
-      children,
-      onCopy,
-      'data-testid': dataTestId,
-      ...props
-    }: {
-      children: string;
-      onCopy?: (event: React.ClipboardEvent<HTMLDivElement>, text?: React.ReactNode) => void;
-      'data-testid'?: string;
-      [key: string]: unknown;
-    }) => {
-      const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-        if (onCopy) {
-          onCopy(e as unknown as React.ClipboardEvent<HTMLDivElement>, children);
-        }
-      };
-      return (
-        <div data-testid={dataTestId}>
-          <input readOnly value={children} />
-          <button
-            aria-label={(props['aria-label'] as string) || 'Copy to clipboard'}
-            onClick={handleClick}
-            data-testid={dataTestId ? `${dataTestId}-copy-button` : undefined}
-          >
-            Copy
-          </button>
-        </div>
-      );
-    },
-  };
-});
 
 const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
   model_name: 'test-model',
@@ -89,10 +26,6 @@ const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
 });
 
 describe('AIModelsTableRowInfo', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should render model display name', () => {
     const model = createMockAIModel({ display_name: 'My Custom Model' });
     render(<AIModelsTableRowInfo model={model} />);
@@ -100,108 +33,58 @@ describe('AIModelsTableRowInfo', () => {
     expect(screen.getByText('My Custom Model')).toBeInTheDocument();
   });
 
-  it('should render info icon button', () => {
-    const model = createMockAIModel();
-    render(<AIModelsTableRowInfo model={model} />);
-
-    const infoButton = screen.getByTestId('model-id-icon-button');
-    expect(infoButton).toBeInTheDocument();
-  });
-
-  it('should show popover with model ID when info button is clicked', async () => {
-    const user = userEvent.setup();
-    const model = createMockAIModel({ model_id: 'unique-model-id' });
-    render(<AIModelsTableRowInfo model={model} />);
-
-    const infoButton = screen.getByTestId('model-id-icon-button');
-    await user.click(infoButton);
-
-    expect(screen.getByText(/The model ID is a unique identifier required/i)).toBeInTheDocument();
-    expect(screen.getByText('Model ID')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('unique-model-id')).toBeInTheDocument();
-  });
-
-  it('should render ClipboardCopy component with model ID', async () => {
-    const user = userEvent.setup();
-    const model = createMockAIModel({ model_id: 'test-model-id-456' });
-    render(<AIModelsTableRowInfo model={model} />);
-
-    const infoButton = screen.getByTestId('model-id-icon-button');
-    await user.click(infoButton);
-
-    const clipboardInput = screen.getByDisplayValue('test-model-id-456');
-    expect(clipboardInput).toBeInTheDocument();
-  });
-
   it('should render model info with correct structure', () => {
-    const model = createMockAIModel({
-      display_name: 'Test Display',
-      model_id: 'test-id',
-    });
+    const model = createMockAIModel({ display_name: 'Test Display' });
     render(<AIModelsTableRowInfo model={model} />);
 
-    // Check that display name and button are in the same container
     expect(screen.getByText('Test Display')).toBeInTheDocument();
-    expect(screen.getByTestId('model-id-icon-button')).toBeInTheDocument();
   });
 
-  it('should show explanation text in popover', async () => {
-    const user = userEvent.setup();
+  it('should render Embedding badge for embedding models', () => {
+    const model = createMockAIModel({ model_type: 'embedding' });
+    render(<AIModelsTableRowInfo model={model} />);
+
+    expect(screen.getByText('Embedding')).toBeInTheDocument();
+  });
+
+  it('should not render Embedding badge for non-embedding models', () => {
     const model = createMockAIModel();
     render(<AIModelsTableRowInfo model={model} />);
 
-    const infoButton = screen.getByTestId('model-id-icon-button');
-    await user.click(infoButton);
-
-    expect(
-      screen.getByText(/unique identifier required to locate and access this model/i),
-    ).toBeInTheDocument();
+    expect(screen.queryByText('Embedding')).not.toBeInTheDocument();
   });
 
-  describe('Event Tracking', () => {
-    it('should fire Model_ID_Copied event when model ID is copied', async () => {
-      const user = userEvent.setup();
-      const model = createMockAIModel({ model_id: 'test-copy-id' });
+  describe('ASR badge', () => {
+    it('should render ASR badge when model has audio-transcription capability', () => {
+      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
       render(<AIModelsTableRowInfo model={model} />);
 
-      // Open the popover first
-      const infoButton = screen.getByTestId('model-id-icon-button');
-      await user.click(infoButton);
-
-      // Clear the initial tracking event
-      jest.clearAllMocks();
-
-      // Find and click the copy button
-      const copyButton = screen.getByRole('button', { name: /copy model id/i });
-      await user.click(copyButton);
-
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Model Id Copied', {});
-    });
-  });
-
-  describe('Clipboard functionality', () => {
-    let writeTextSpy: jest.SpyInstance;
-
-    beforeEach(() => {
-      writeTextSpy = jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+      expect(screen.getByText('ASR')).toBeInTheDocument();
     });
 
-    afterEach(() => {
-      writeTextSpy.mockRestore();
-    });
-
-    it('should copy model ID to clipboard when copy button is clicked', async () => {
-      const user = userEvent.setup();
-      const model = createMockAIModel({ model_id: 'unique-model-id-789' });
+    it('should render ASR badge with data-testid asr-badge', () => {
+      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
       render(<AIModelsTableRowInfo model={model} />);
 
-      const infoButton = screen.getByTestId('model-id-icon-button');
-      await user.click(infoButton);
+      expect(screen.getByTestId('asr-badge')).toBeInTheDocument();
+    });
 
-      const copyButton = screen.getByTestId('clipboard-copy-model-id-copy-button');
-      await user.click(copyButton);
+    it('should not render ASR badge for standard LLM models', () => {
+      const model = createMockAIModel();
+      render(<AIModelsTableRowInfo model={model} />);
 
-      expect(writeTextSpy).toHaveBeenCalledWith('unique-model-id-789');
+      expect(screen.queryByText('ASR')).not.toBeInTheDocument();
+    });
+
+    it('should render both Embedding and ASR badges if model has both', () => {
+      const model = createMockAIModel({
+        model_type: 'embedding',
+        capabilities: ['audio-transcription'],
+      });
+      render(<AIModelsTableRowInfo model={model} />);
+
+      expect(screen.getByText('Embedding')).toBeInTheDocument();
+      expect(screen.getByText('ASR')).toBeInTheDocument();
     });
   });
 });

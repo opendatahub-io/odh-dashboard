@@ -68,12 +68,70 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	})
 }
 
+// requireAdmin wraps a handler and rejects non-admin users with 401.
+// Uses the SSAR check: patch on auths/default-auth.
+// TODO(task3): replace with secureAdminRoute once the full auth chain is implemented.
+func (app *App) requireAdmin(next httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+		client, err := app.kubernetesClientFactory.GetClient(ctx)
+		if err != nil {
+			app.unauthorizedResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+			return
+		}
+
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+		if !ok || identity == nil {
+			app.unauthorizedResponse(w, r, fmt.Errorf("missing identity"))
+			return
+		}
+
+		isAdmin, err := client.IsUserAdmin(ctx, identity)
+		if err != nil {
+			app.logger.Warn("admin SAR check failed, denying by default", slog.Any("error", err))
+		}
+		if err != nil || !isAdmin {
+			app.unauthorizedResponse(w, r, fmt.Errorf("you lack the sufficient permissions to make this request"))
+			return
+		}
+
+		next(w, r, ps)
+	}
+}
+
+// validateCallerToken verifies the caller's token is valid by performing a SelfSubjectReview.
+// Required for handlers that serve SA-backed data and would otherwise accept garbage tokens.
+func (app *App) validateCallerToken(ctx context.Context) error {
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get Kubernetes client: %w", err)
+	}
+	_, err = client.GetUser(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("invalid or expired token: %w", err)
+	}
+	return nil
+}
+
+// isAllowedNamespace checks if the namespace matches the dashboard or workbench namespace.
+// When WorkbenchNamespace is not configured, it defaults to the dashboard namespace.
+func (app *App) isAllowedNamespace(namespace string) bool {
+	if namespace == app.config.Namespace {
+		return true
+	}
+	wbNS := app.config.WorkbenchNamespace
+	if wbNS == "" {
+		wbNS = app.config.Namespace
+	}
+	return namespace == wbNS
+}
+
 func (app *App) EnableCORS(next http.Handler) http.Handler {
 	if len(app.config.AllowedOrigins) == 0 {
 		return next
 	}
 
-	allowedHeaders := []string{"Content-Type", "Authorization", "X-Forwarded-Access-Token"}
+	allowedHeaders := []string{"Content-Type", "Authorization", "X-Forwarded-Access-Token", "x-odh-feature-flags"}
 	if h := app.config.AuthTokenHeader; h != "" && h != "Authorization" && h != "X-Forwarded-Access-Token" {
 		allowedHeaders = append(allowedHeaders, h)
 	}

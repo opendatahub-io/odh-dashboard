@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { DashboardLabels, DisplayNameAnnotations, SecretKind } from '#~/k8sTypes';
+import type { DashboardLabels, DisplayNameAnnotations, SecretKind } from '@odh-dashboard/k8s-core';
 
 export enum ConnectionTypeFieldType {
   Boolean = 'boolean',

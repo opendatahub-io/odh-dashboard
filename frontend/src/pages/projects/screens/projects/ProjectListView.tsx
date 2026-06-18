@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { Table } from '#~/components/table';
-import { ProjectKind } from '#~/k8sTypes';
 import { getProjectOwner, isAiProject } from '#~/concepts/projects/utils';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import ProjectTableRow from '#~/pages/projects/screens/projects/ProjectTableRow';

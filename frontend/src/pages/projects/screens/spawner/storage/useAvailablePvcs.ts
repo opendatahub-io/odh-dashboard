@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { getDashboardPvcs } from '#~/api';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 

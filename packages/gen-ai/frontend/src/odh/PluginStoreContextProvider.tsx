@@ -2,6 +2,7 @@ import * as React from 'react';
 import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import extensions, {
+  AGENT_PROFILES,
   AI_ASSET_CUSTOM_ENDPOINTS,
   CHAT_PLAYGROUND,
   EXTERNAL_VECTOR_STORES,
@@ -26,6 +27,7 @@ export const PluginStoreContextProvider: React.FC<React.PropsWithChildren> = ({ 
       [EXTERNAL_VECTOR_STORES]: true,
       [AI_ASSET_CUSTOM_ENDPOINTS]: true,
       [TRACING]: true,
+      [AGENT_PROFILES]: false,
     };
 
     const params = new URLSearchParams(window.location.search);

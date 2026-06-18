@@ -31,8 +31,9 @@ import {
 } from './mcpServerCatalogTypes';
 
 export type HardwareConfiguration = {
-  hardware_type: string;
-  cold_start_load_time_seconds: number;
+  gpu_type: string;
+  gpu_count: number;
+  cold_start_time_to_load_seconds: number;
   runtime_command: string;
 };
 
@@ -100,6 +101,7 @@ export enum CatalogArtifactType {
 export enum MetricsType {
   accuracyMetrics = 'accuracy-metrics',
   performanceMetrics = 'performance-metrics',
+  coldStartMetrics = 'cold-start-metrics',
 }
 
 export enum CategoryName {
@@ -162,6 +164,12 @@ export type PerformanceMetricsCustomProperties = {
   // Computed properties when targetRPS is provided
   replicas?: ModelRegistryCustomPropertyInt;
   total_requests_per_second?: ModelRegistryCustomPropertyDouble;
+  // Cold-start sub-type fields (returned by API with metricsType "performance-metrics")
+  performance_sub_type?: ModelRegistryCustomPropertyString;
+  gpu_type?: ModelRegistryCustomPropertyString;
+  gpu_count?: ModelRegistryCustomPropertyInt;
+  cold_start_time_to_load_seconds?: ModelRegistryCustomPropertyDouble;
+  runtime_command?: ModelRegistryCustomPropertyString;
 } & Partial<Record<LatencyPropertyKey, ModelRegistryCustomPropertyDouble>>;
 
 export type AccuracyMetricsCustomProperties = {
@@ -181,9 +189,23 @@ export type CatalogAccuracyMetricsArtifact = Omit<CatalogArtifactBase, 'customPr
   customProperties?: AccuracyMetricsCustomProperties;
 };
 
+export type ColdStartMetricsCustomProperties = {
+  gpu_type?: ModelRegistryCustomPropertyString;
+  gpu_count?: ModelRegistryCustomPropertyInt;
+  cold_start_time_to_load_seconds?: ModelRegistryCustomPropertyDouble;
+  runtime_command?: ModelRegistryCustomPropertyString;
+};
+
+export type CatalogColdStartMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
+  artifactType: CatalogArtifactType.metricsArtifact;
+  metricsType: MetricsType.coldStartMetrics;
+  customProperties?: ColdStartMetricsCustomProperties;
+};
+
 export type CatalogMetricsArtifact =
   | CatalogPerformanceMetricsArtifact
-  | CatalogAccuracyMetricsArtifact;
+  | CatalogAccuracyMetricsArtifact
+  | CatalogColdStartMetricsArtifact;
 
 export type CatalogArtifacts = CatalogModelArtifact | CatalogMetricsArtifact;
 
