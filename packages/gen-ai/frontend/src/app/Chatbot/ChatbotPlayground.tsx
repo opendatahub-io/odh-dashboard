@@ -62,6 +62,7 @@ import {
   selectSelectedAsrModel,
   selectIsAsrModelEnabled,
   selectConfigIds,
+  selectIsPreview,
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
 } from './store';
@@ -96,6 +97,7 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   isActiveConfig,
 }) => {
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   return (
     <ChatbotPane
@@ -108,6 +110,7 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
       isLoading={isLoading}
       isSettingsOpen={isSettingsOpen}
       isActiveConfig={isActiveConfig}
+      isDisabled={isPreview}
     >
       {children}
     </ChatbotPane>
@@ -170,6 +173,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
   const primarySelectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(primaryConfigId));
   const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
+  const primaryIsPreview = useChatbotConfigStore(selectIsPreview(primaryConfigId));
 
   // Workspace capabilities — controls visibility & disable state of multimodal uploads
   const { hasVisionModel, hasASRModel, capabilitiesReady, capabilitiesError } =
@@ -940,6 +944,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   isLoading={loadingStates.get(primaryConfigId)}
                   hasDivider
                   isDarkMode={isDarkMode}
+                  isDisabled={primaryIsPreview}
                 />
               )}
 
