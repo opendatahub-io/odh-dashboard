@@ -1,12 +1,11 @@
 import React from 'react';
+import { HardwareProfileKind, IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import { SortableData } from '#~/components/table';
-import { HardwareProfileKind } from '#~/k8sTypes';
 import {
   HardwareProfileFormData,
   ManageHardwareProfileSectionID,
   ManageHardwareProfileSectionTitlesType,
 } from '#~/pages/hardwareProfiles/manage/types';
-import { IdentifierResourceType } from '#~/types';
 
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {

@@ -23,38 +23,53 @@ const ModelCatalogLabels: React.FC<ModelCatalogLabelsProps> = ({
   provider,
   labels = [],
   numLabels,
-}) => (
-  <LabelGroup numLabels={numLabels} isCompact>
-    {tasks.map((task) => {
-      const isValidatedTask = validatedTasks?.includes(task);
-      return (
-        <Label
-          data-testid="model-catalog-label"
-          key={task}
-          variant="outline"
-          icon={
-            isValidatedTask ? (
-              <Icon status="success" data-testid="validated-task-icon">
-                <CheckCircleIcon />
-              </Icon>
-            ) : undefined
-          }
-        >
-          {getTaskDisplayName(task)}
+}) => {
+  const validatedSet = React.useMemo(() => new Set(validatedTasks ?? []), [validatedTasks]);
+
+  const sortedTasks = React.useMemo(() => {
+    if (!validatedSet.size) {
+      return tasks;
+    }
+    return tasks.toSorted((a, b) => {
+      const aValidated = validatedSet.has(a) ? 0 : 1;
+      const bValidated = validatedSet.has(b) ? 0 : 1;
+      return aValidated - bValidated;
+    });
+  }, [tasks, validatedSet]);
+
+  return (
+    <LabelGroup numLabels={numLabels} isCompact>
+      {sortedTasks.map((task) => {
+        const isValidatedTask = validatedSet.has(task);
+        return (
+          <Label
+            data-testid="model-catalog-label"
+            key={task}
+            variant="outline"
+            icon={
+              isValidatedTask ? (
+                <Icon status="success">
+                  <CheckCircleIcon />
+                </Icon>
+              ) : undefined
+            }
+          >
+            {getTaskDisplayName(task)}
+          </Label>
+        );
+      })}
+      {provider && (
+        <Label isCompact variant="outline">
+          {provider}
         </Label>
-      );
-    })}
-    {provider && (
-      <Label isCompact variant="outline">
-        {provider}
-      </Label>
-    )}
-    {labels.map((label) => (
-      <Label data-testid="model-catalog-label" key={label} variant="outline">
-        {label}
-      </Label>
-    ))}
-  </LabelGroup>
-);
+      )}
+      {labels.map((label) => (
+        <Label data-testid="model-catalog-label" key={label} variant="outline">
+          {label}
+        </Label>
+      ))}
+    </LabelGroup>
+  );
+};
 
 export default ModelCatalogLabels;

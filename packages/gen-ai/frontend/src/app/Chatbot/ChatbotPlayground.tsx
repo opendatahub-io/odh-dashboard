@@ -45,10 +45,7 @@ import useFileManagement from './hooks/useFileManagement';
 import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import ChatbotPaneHeader from './components/ChatbotPaneHeader';
-import ChatbotMessageInput, {
-  ImageUploadState,
-  PendingDocChip,
-} from './components/ChatbotMessageInput';
+import ChatbotMessageInput, { ImageUploadState } from './components/ChatbotMessageInput';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
@@ -268,7 +265,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     fileName: null,
   });
   const [hasImageInConversation, setHasImageInConversation] = React.useState(false);
-  const [pendingDocChips, setPendingDocChips] = React.useState<PendingDocChip[]>([]);
   const [showReplaceMediaModal, setShowReplaceMediaModal] = React.useState(false);
   const pendingReplaceFileRef = React.useRef<File | null>(null);
   const visionXhrRef = React.useRef<XMLHttpRequest | null>(null);
@@ -364,20 +360,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
 
   const hasReadyImage = !!imageUploadState.fileId && !imageUploadState.uploading;
-  const hasReadyDocs = pendingDocChips.some((c) => c.status === 'uploaded');
-  const hasReadyAttachments = hasReadyImage || hasReadyDocs;
 
   const handleSendMessage = React.useCallback(
     (message: string) => {
       let effectiveMessage = message;
-      if (!message.trim() && hasReadyAttachments) {
-        if (hasReadyImage && hasReadyDocs) {
-          effectiveMessage = 'Describe the image and summarize the attached documents';
-        } else if (hasReadyImage) {
-          effectiveMessage = 'Describe the image';
-        } else {
-          effectiveMessage = 'Summarize the attached documents';
-        }
+      if (!message.trim() && hasReadyImage) {
+        effectiveMessage = 'Describe the image';
       }
 
       const compareID = isCompareMode ? getId() : '';
@@ -387,18 +375,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           ? { previewUrl: imageUploadState.previewUrl, fileName: imageUploadState.fileName }
           : undefined;
 
-      const docAttachments = pendingDocChips
-        .filter((c) => c.status === 'uploaded')
-        .map((c) => c.fileName);
-
       messageHooksRef.current.forEach((hook) =>
-        hook.handleMessageSend(
-          effectiveMessage,
-          compareID,
-          fileId,
-          imagePreview,
-          docAttachments.length > 0 ? docAttachments : undefined,
-        ),
+        hook.handleMessageSend(effectiveMessage, compareID, fileId, imagePreview),
       );
       setLastInput(effectiveMessage);
 
@@ -413,7 +391,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         });
       }
 
-      setPendingDocChips([]);
       audioUploadLatchRef.current = false;
       setHasAudioInCurrentMessage(false);
       setMessageBarValue('');
@@ -424,10 +401,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       imageUploadState.fileId,
       imageUploadState.previewUrl,
       imageUploadState.fileName,
-      pendingDocChips,
-      hasReadyAttachments,
       hasReadyImage,
-      hasReadyDocs,
     ],
   );
 
@@ -435,76 +409,17 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     messageHooksRef.current.forEach((hook) => hook.handleStopStreaming());
   }, []);
 
-  React.useEffect(() => {
-    setPendingDocChips((prev) => {
-      const updated = prev.map((chip) => {
-        const match = sourceManagement.filesWithSettings.find((f) => f.file.name === chip.fileName);
-        if (!match) {
-          return chip;
-        }
-        if (match.status === 'uploaded' && chip.status !== 'uploaded') {
-          return { ...chip, status: 'uploaded' as const };
-        }
-        if (match.status === 'failed' && chip.status !== 'failed') {
-          return { ...chip, status: 'failed' as const };
-        }
-        return chip;
-      });
-      // Remove chips whose files were removed from filesWithSettings (e.g. modal cancelled)
-      const filtered = updated.filter(
-        (chip) =>
-          chip.status === 'uploaded' ||
-          chip.status === 'failed' ||
-          sourceManagement.filesWithSettings.some((f) => f.file.name === chip.fileName),
-      );
-      const hasChanges =
-        filtered.length !== prev.length || filtered.some((chip, i) => chip !== prev[i]);
-      return hasChanges ? filtered : prev;
-    });
-  }, [sourceManagement.filesWithSettings]);
-
   const handleAttach = React.useCallback(
     <T extends File>(acceptedFiles: T[], _fileRejections: unknown, event: DropEvent) => {
-      const newChips: PendingDocChip[] = acceptedFiles.map((file) => ({
-        id: crypto.randomUUID(),
-        fileName: file.name,
-        status: 'uploading' as const,
-      }));
-      setPendingDocChips((prev) => [...prev, ...newChips]);
-
       sourceManagement.handleSourceDrop(event, acceptedFiles).catch((error) => {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         alertManagement.onShowErrorAlert(
           `Failed to process files: ${errorMessage}`,
           'File Upload Error',
         );
-        const failedNames = new Set(acceptedFiles.map((f) => f.name));
-        setPendingDocChips((prev) => prev.filter((c) => !failedNames.has(c.fileName)));
       });
     },
     [sourceManagement, alertManagement],
-  );
-
-  const handleRemoveDocChip = React.useCallback(
-    (chipId: string) => {
-      const chip = pendingDocChips.find((c) => c.id === chipId);
-      if (!chip) {
-        return;
-      }
-
-      if (chip.status === 'uploaded') {
-        const matchedFile = fileManagement.files.find((f) => f.filename === chip.fileName);
-        if (matchedFile) {
-          Promise.resolve(fileManagement.deleteFileById(matchedFile.id)).catch(() => {
-            // Best-effort deletion — chip is already removed from UI
-          });
-        }
-      }
-      sourceManagement.removeUploadedSource(chip.fileName);
-
-      setPendingDocChips((prev) => prev.filter((c) => c.id !== chipId));
-    },
-    [pendingDocChips, fileManagement, sourceManagement],
   );
 
   const performImageUpload = React.useCallback(
@@ -796,7 +711,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         messageHooksRef.current.forEach((hook) => hook.clearConversation());
         setHasImageInConversation(false);
         handleRemoveImage();
-        setPendingDocChips([]);
         audioTranscription.abort();
         const { configIds: allCIds, configurations: allConfigs } = useChatbotConfigStore.getState();
         allCIds.forEach((cId) => {
@@ -923,7 +837,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             messageHooksRef.current.forEach((hook) => hook.clearConversation());
             setHasImageInConversation(false);
             handleRemoveImage();
-            setPendingDocChips([]);
             audioTranscription.abort();
             setHasAudioInCurrentMessage(false);
             const { configIds: cIds, configurations: cfgs } = useChatbotConfigStore.getState();
@@ -1026,7 +939,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   !primarySelectedModel ||
                   Array.from(disabledStates.values()).some(Boolean) ||
                   imageUploadState.uploading ||
-                  pendingDocChips.some((c) => c.status === 'uploading') ||
                   audioTranscription.state.phase === 'uploading' ||
                   audioTranscription.state.phase === 'transcribing' ||
                   audioTranscription.state.phase === 'complete'
@@ -1050,9 +962,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 onAudioUpload={handleAudioUpload}
                 audioTranscriptionState={audioTranscription.state}
                 onAudioCancel={handleAudioCancel}
-                pendingDocChips={pendingDocChips}
-                onRemoveDocChip={handleRemoveDocChip}
-                alwaysShowSendButton={hasReadyAttachments}
+                alwaysShowSendButton={hasReadyImage}
                 messageBarValue={messageBarValue}
                 onMessageBarValueChange={setMessageBarValue}
               />

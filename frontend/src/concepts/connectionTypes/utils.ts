@@ -1,4 +1,4 @@
-import { KnownLabels, SecretKind } from '#~/k8sTypes';
+import { KnownLabels, type SecretKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import {
   K8sNameDescriptionFieldData,

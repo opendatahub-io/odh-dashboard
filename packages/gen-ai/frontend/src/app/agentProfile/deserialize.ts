@@ -1,5 +1,6 @@
 import { DEFAULT_CONFIGURATION, ChatbotConfiguration } from '~/app/Chatbot/store/types';
 import { LlamaModel } from '~/app/types';
+import { MCPServerFromAPI } from '~/app/types/mcp';
 import { isMaasLlamaModelId } from '~/app/utilities/utils';
 import { AgentProfile } from './types';
 
@@ -10,6 +11,13 @@ export type AgentProfileDeserializationContext = {
    * selectedModel in the store expects.
    */
   playgroundModels: LlamaModel[];
+  /**
+   * Available MCP servers from useFetchMCPServers. When provided, server ConfigMap key names
+   * are resolved to their runtime URLs so that selectedMcpServerIds and mcpToolsPending keys
+   * use the same URL-based canonical identifier that the rest of the store and serialize layer
+   * expects. When omitted the raw ConfigMap key (server name) is used as a fallback.
+   */
+  mcpServers?: MCPServerFromAPI[];
 };
 
 export type AgentProfilePromptRef = {
@@ -47,7 +55,7 @@ export const deserializeAgentProfile = (
   context: AgentProfileDeserializationContext,
 ): AgentProfileDeserializeResult => {
   const { spec } = profile;
-  const { playgroundModels } = context;
+  const { playgroundModels, mcpServers = [] } = context;
 
   // Resolve AI Asset model_id → Llama Stack runtime ID (LlamaModel.id).
   // Mirrors the isPlaygroundModelMatchForAIModel logic to handle the MaaS provider prefix.
@@ -88,10 +96,18 @@ export const deserializeAgentProfile = (
     config.selectedVectorStoreId = null;
   }
 
-  // MCP servers: restore selected server IDs from ConfigMap key field
+  // MCP servers: restore selected server IDs.
+  // Resolve ConfigMap key (server name) → runtime URL via the mcpServers list so that
+  // selectedMcpServerIds uses the same URL-based canonical identifier that the store,
+  // serialize, and UI layers all expect.  Falls back to the raw key when the server
+  // is not found in the provided list (e.g. in unit tests without a server list).
   if (spec.mcpServers?.length) {
     config.selectedMcpServerIds = spec.mcpServers
-      .map((s) => s.serverRef.key ?? s.serverRef.name)
+      .map((s) => {
+        const key = s.serverRef.key ?? s.serverRef.name;
+        const match = mcpServers.find((ms) => ms.name === key);
+        return match?.url ?? key;
+      })
       .filter(Boolean);
     // mcpToolSelections restored after server list is available (see mcpToolsPending)
     config.mcpToolSelections = {};
@@ -123,14 +139,20 @@ export const deserializeAgentProfile = (
     );
   }
 
-  // MCP tool selections pending: server name → allowed tools.
+  // MCP tool selections pending: server URL → allowed tools.
+  // Keyed by URL (same canonical format as selectedMcpServerIds) so that callers
+  // can write directly to mcpToolSelections without a second name→URL lookup.
   // Filter on !== undefined so allowedTools: [] (block all tools) is preserved;
   // allowedTools: undefined means "all tools allowed" and needs no restriction applied.
   const mcpToolsPending: Record<string, string[]> | undefined = spec.mcpServers?.length
     ? Object.fromEntries(
         spec.mcpServers
           .filter((s) => s.allowedTools !== undefined)
-          .map((s) => [s.serverRef.key ?? s.serverRef.name, s.allowedTools ?? []]),
+          .map((s) => {
+            const key = s.serverRef.key ?? s.serverRef.name;
+            const match = mcpServers.find((ms) => ms.name === key);
+            return [match?.url ?? key, s.allowedTools ?? []];
+          }),
       )
     : undefined;
 

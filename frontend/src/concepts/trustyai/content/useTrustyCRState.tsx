@@ -7,12 +7,12 @@ import {
   Split,
   SplitItem,
 } from '@patternfly/react-core';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import useManageTrustyAICR from '#~/concepts/trustyai/useManageTrustyAICR';
 import { useTrustySettingsAccessAllowed } from '#~/concepts/trustyai/content/useTrustySettingsAccessAllowed';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import TrustyAIInstalledState from '#~/concepts/trustyai/content/statusStates/TrustyAIInstalledState';
 import TrustyAIUninstalledState from '#~/concepts/trustyai/content/statusStates/TrustyAIUninstalledState';
-import { ProjectKind } from '#~/k8sTypes';
 
 type UseTrustyCRState = {
   action: React.ReactNode;

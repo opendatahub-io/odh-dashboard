@@ -1,5 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/types-core';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import type { NavItemProperties } from './navigation';
 import type { ComponentCodeRef } from '../core/types';
 

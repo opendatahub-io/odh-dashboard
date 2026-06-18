@@ -10,6 +10,7 @@ type SubscriptionTableProps = {
   toolbarContent?: React.ReactElement;
   onClearFilters: () => void;
   setDeleteSubscription: (subscription: MaaSSubscription) => void;
+  returnTo?: string;
 };
 
 export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
@@ -17,6 +18,7 @@ export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
   toolbarContent,
   onClearFilters,
   setDeleteSubscription,
+  returnTo,
 }): React.ReactNode => (
   <Table
     data-testid="subscriptions-table"
@@ -28,6 +30,7 @@ export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
         key={subscription.name}
         subscription={subscription}
         setDeleteSubscription={setDeleteSubscription}
+        returnTo={returnTo}
       />
     )}
     emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}

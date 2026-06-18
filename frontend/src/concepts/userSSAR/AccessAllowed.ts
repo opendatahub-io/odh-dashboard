@@ -1,5 +1,5 @@
 import React from 'react';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { useAccessAllowed } from './useAccessAllowed';
 
 type AccessAllowedProps = {

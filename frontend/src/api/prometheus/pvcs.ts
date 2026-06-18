@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { PrometheusQueryResponse } from '#~/types';
 import { POLL_INTERVAL } from '#~/utilities/const';
 import usePrometheusQuery from './usePrometheusQuery';

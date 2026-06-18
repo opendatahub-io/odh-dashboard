@@ -2,6 +2,7 @@ import React, { act } from 'react';
 import { fireEvent, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
+import type { PersistentVolumeClaimKind, SecretKind } from '@odh-dashboard/k8s-core';
 import { useUser } from '#~/redux/selectors';
 import SpawnerFooter from '#~/pages/projects/screens/spawner/SpawnerFooter';
 import {
@@ -11,7 +12,7 @@ import {
 } from '#~/__mocks__/mockStartNotebookData';
 import { useAppContext } from '#~/app/AppContext';
 import { mockDashboardConfig, mockNotebookK8sResource } from '#~/__mocks__';
-import { ConfigMapKind, NotebookKind, PersistentVolumeClaimKind, SecretKind } from '#~/k8sTypes';
+import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { ConfigMapModel, NotebookModel, PVCModel, SecretModel } from '#~/api';
 import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 import { mockConnection } from '#~/__mocks__/mockConnection';
