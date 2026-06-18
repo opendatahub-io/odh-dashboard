@@ -34,7 +34,7 @@ import {
 import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
-import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
+
 import OpenAgentProfileModal, {
   OPEN_AGENT_MODAL_DISMISSED_KEY,
 } from '~/app/agentProfile/OpenAgentProfileModal';
@@ -248,8 +248,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isFilesLoading: fileManagement.isLoading,
   });
 
-  // Load AgentProfile from URL query param (?agentProfileId=<uuid>)
-  useAgentProfileUrlParam({ mcpServers, mcpServersLoaded });
+  // AgentProfile URL param is handled in ChatbotMain (so the ApplicationsPage spinner covers the fetch)
 
   // Open-agent modal — shown once after a profile is loaded from the URL param
   const [searchParams] = useSearchParams();
@@ -673,6 +672,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // Effects
   React.useEffect(() => {
+    // When loading an agent profile the profile itself is the configuration source of truth —
+    // skip location.state pre-population so it doesn't overwrite the just-applied profile.
+    if (agentProfileIdParam) {
+      return undefined;
+    }
     const preSelectMcp = openSettingsToTab !== 'mcp' ? mcpServersFromRoute : [];
     useChatbotConfigStore.getState().resetConfiguration({
       selectedMcpServerIds: preSelectMcp,
@@ -680,7 +684,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     return () => {
       useChatbotConfigStore.getState().resetConfiguration();
     };
-  }, [mcpServersFromRoute, selectedAAModel, openSettingsToTab]);
+  }, [agentProfileIdParam, mcpServersFromRoute, selectedAAModel, openSettingsToTab]);
 
   React.useEffect(() => {
     const shouldClear = Boolean(
