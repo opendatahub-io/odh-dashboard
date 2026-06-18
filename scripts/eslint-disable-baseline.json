@@ -1,102 +1,110 @@
 {
-  "timestamp": "2026-05-15T13:00:21.241Z",
-  "commit": "5b81697a1",
+  "timestamp": "2026-06-18T20:03:45.321Z",
+  "commit": "b65c45933",
   "summary": {
-    "totalDirectives": 1354,
-    "totalFiles": 787,
-    "withDescription": 99,
-    "withoutDescription": 1255
+    "totalDirectives": 1525,
+    "totalFiles": 876,
+    "withDescription": 121,
+    "withoutDescription": 1404
   },
   "byType": {
-    "eslint-disable-next-line-scoped": 803,
+    "eslint-disable-next-line-scoped": 898,
     "eslint-disable-next-line-bare": 2,
-    "eslint-disable-block-scoped": 433,
+    "eslint-disable-block-scoped": 495,
     "eslint-disable-block-bare": 1,
-    "eslint-disable-line-scoped": 68,
+    "eslint-disable-line-scoped": 76,
     "eslint-disable-line-bare": 1,
-    "ts-ignore": 32,
+    "ts-ignore": 36,
     "ts-expect-error": 9,
-    "ts-nocheck": 5
+    "ts-nocheck": 7
   },
   "byRule": [
     {
       "rule": "camelcase",
-      "count": 620
+      "count": 690
     },
     {
       "rule": "@typescript-eslint/no-unnecessary-condition",
-      "count": 93
+      "count": 100
     },
     {
       "rule": "@typescript-eslint/consistent-type-assertions",
-      "count": 84
-    },
-    {
-      "rule": "react-hooks/exhaustive-deps",
-      "count": 67
+      "count": 90
     },
     {
       "rule": "@typescript-eslint/no-explicit-any",
-      "count": 57
+      "count": 72
     },
     {
-      "rule": "@typescript-eslint/ban-ts-comment",
-      "count": 39
-    },
-    {
-      "rule": "@typescript-eslint/no-namespace",
-      "count": 38
+      "rule": "react-hooks/exhaustive-deps",
+      "count": 66
     },
     {
       "rule": "@odh-dashboard/no-restricted-imports",
-      "count": 32
+      "count": 63
+    },
+    {
+      "rule": "@typescript-eslint/ban-ts-comment",
+      "count": 45
+    },
+    {
+      "rule": "@typescript-eslint/no-namespace",
+      "count": 44
     },
     {
       "rule": "no-restricted-syntax",
-      "count": 31
-    },
-    {
-      "rule": "cypress/no-unnecessary-waiting",
-      "count": 28
+      "count": 32
     },
     {
       "rule": "@typescript-eslint/no-unused-vars",
-      "count": 25
+      "count": 27
     },
     {
-      "rule": "no-barrel-files/no-barrel-files",
-      "count": 19
-    },
-    {
-      "rule": "@typescript-eslint/naming-convention",
-      "count": 18
+      "rule": "cypress/no-unnecessary-waiting",
+      "count": 27
     },
     {
       "rule": "@typescript-eslint/no-unsafe-function-type",
-      "count": 16
+      "count": 20
+    },
+    {
+      "rule": "no-barrel-files/no-barrel-files",
+      "count": 20
     },
     {
       "rule": "@typescript-eslint/method-signature-style",
-      "count": 14
+      "count": 18
+    },
+    {
+      "rule": "@typescript-eslint/naming-convention",
+      "count": 17
     },
     {
       "rule": "@typescript-eslint/no-empty-function",
-      "count": 12
+      "count": 16
     },
     {
       "rule": "import/first",
-      "count": 12
+      "count": 13
     },
     {
       "rule": "no-param-reassign",
-      "count": 10
+      "count": 13
+    },
+    {
+      "rule": "@typescript-eslint/no-require-imports",
+      "count": 12
+    },
+    {
+      "rule": "no-relative-import-paths/no-relative-import-paths",
+      "count": 12
     },
     {
       "rule": "no-restricted-properties",
       "count": 10
     },
     {
-      "rule": "@typescript-eslint/no-require-imports",
+      "rule": "@typescript-eslint/explicit-module-boundary-types",
       "count": 9
     },
     {
@@ -104,12 +112,8 @@
       "count": 9
     },
     {
-      "rule": "@typescript-eslint/explicit-module-boundary-types",
-      "count": 8
-    },
-    {
-      "rule": "no-relative-import-paths/no-relative-import-paths",
-      "count": 8
+      "rule": "@typescript-eslint/no-non-null-assertion",
+      "count": 7
     },
     {
       "rule": "@typescript-eslint/restrict-template-expressions",
@@ -117,10 +121,6 @@
     },
     {
       "rule": "@cspell/spellchecker",
-      "count": 6
-    },
-    {
-      "rule": "@typescript-eslint/no-non-null-assertion",
       "count": 6
     },
     {
@@ -137,7 +137,7 @@
     },
     {
       "rule": "@typescript-eslint/no-shadow",
-      "count": 3
+      "count": 4
     },
     {
       "rule": "@typescript-eslint/no-unused-expressions",
@@ -156,10 +156,6 @@
       "count": 3
     },
     {
-      "rule": "@typescript-eslint/consistent-type-imports",
-      "count": 2
-    },
-    {
       "rule": "@typescript-eslint/no-base-to-string",
       "count": 2
     },
@@ -172,16 +168,16 @@
       "count": 2
     },
     {
-      "rule": "jsx-a11y/aria-role",
-      "count": 2
-    },
-    {
       "rule": "prefer-destructuring",
       "count": 2
     },
     {
       "rule": "prettier/prettier",
       "count": 2
+    },
+    {
+      "rule": "@typescript-eslint/consistent-type-imports",
+      "count": 1
     },
     {
       "rule": "@typescript-eslint/default-param-last",
@@ -197,6 +193,10 @@
     },
     {
       "rule": "import/order",
+      "count": 1
+    },
+    {
+      "rule": "jsx-a11y/aria-role",
       "count": 1
     },
     {
@@ -218,6 +218,10 @@
     {
       "rule": "react/display-name",
       "count": 1
+    },
+    {
+      "rule": "react/no-unused-prop-types",
+      "count": 1
     }
   ],
   "byFile": [
@@ -226,11 +230,11 @@
       "count": 32
     },
     {
-      "file": "packages/model-registry/upstream/frontend/src/app/api/__tests__/updateTimestamps.test.ts",
-      "count": 16
+      "file": "packages/cypress/cypress/utils/maasUtils.ts",
+      "count": 18
     },
     {
-      "file": "packages/cypress/cypress/utils/maasUtils.ts",
+      "file": "packages/autorag/frontend/src/app/components/run-results/AutoragLeaderboard.tsx",
       "count": 13
     },
     {
@@ -238,8 +242,12 @@
       "count": 12
     },
     {
-      "file": "packages/autorag/frontend/src/app/components/run-results/AutoragLeaderboard.tsx",
-      "count": 11
+      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragVectorStoreSelector.spec.tsx",
+      "count": 10
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/utils/buildEvaluationRequest.ts",
+      "count": 10
     },
     {
       "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/tests/mocked/workspaces/secretsAttach.cy.ts",
@@ -250,12 +258,12 @@
       "count": 9
     },
     {
-      "file": "packages/eval-hub/frontend/src/app/utils/buildEvaluationRequest.ts",
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/__tests__/AIAssetsModelsTab.spec.tsx",
       "count": 9
     },
     {
-      "file": "packages/gen-ai/frontend/src/app/AIAssets/__tests__/AIAssetsModelsTab.spec.tsx",
-      "count": 9
+      "file": "packages/automl/frontend/src/app/hooks/__tests__/queries.spec.tsx",
+      "count": 8
     },
     {
       "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragEvaluationSelect.spec.tsx",
@@ -310,10 +318,6 @@
       "count": 6
     },
     {
-      "file": "packages/automl/frontend/src/app/hooks/__tests__/queries.spec.tsx",
-      "count": 6
-    },
-    {
       "file": "packages/automl/frontend/src/app/topology/__tests__/utils.spec.ts",
       "count": 6
     },
@@ -326,7 +330,7 @@
       "count": 6
     },
     {
-      "file": "packages/autorag/frontend/src/app/components/run-results/PatternDetailsModal.tsx",
+      "file": "packages/autorag/frontend/src/app/hooks/useAutoragResults.ts",
       "count": 6
     },
     {
@@ -335,6 +339,10 @@
     },
     {
       "file": "packages/autorag/frontend/src/app/topology/__tests__/utils.spec.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/modelsAsAService/maasApiKeys.cy.ts",
       "count": 6
     },
     {
@@ -366,6 +374,10 @@
       "count": 6
     },
     {
+      "file": "packages/mlflow/contract-tests/__tests__/testMlflowContract.test.ts",
+      "count": 6
+    },
+    {
       "file": "packages/mlflow/frontend/src/__tests__/cypress/cypress.config.ts",
       "count": 6
     },
@@ -382,11 +394,15 @@
       "count": 6
     },
     {
-      "file": "packages/automl/frontend/src/app/hooks/useAutomlResults.ts",
+      "file": "packages/automl/frontend/src/app/context/AutomlResultsContext.ts",
       "count": 5
     },
     {
-      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragVectorStoreSelector.spec.tsx",
+      "file": "packages/automl/frontend/src/app/hooks/queries.ts",
+      "count": 5
+    },
+    {
+      "file": "packages/automl/frontend/src/app/pages/__tests__/AutomlResultsPage.spec.tsx",
       "count": 5
     },
     {
@@ -394,7 +410,7 @@
       "count": 5
     },
     {
-      "file": "packages/autorag/frontend/src/app/hooks/useAutoragResults.ts",
+      "file": "packages/autorag/frontend/src/app/pages/__tests__/AutoragResultsPage.spec.tsx",
       "count": 5
     },
     {
@@ -414,8 +430,28 @@
       "count": 5
     },
     {
+      "file": "packages/eval-hub/frontend/src/app/pages/__tests__/ChooseCompareBenchmarksPage.spec.tsx",
+      "count": 5
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/ChatbotMessageInput.tsx",
+      "count": 5
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useSyncPreferredNamespace.spec.ts",
       "count": 5
+    },
+    {
+      "file": "packages/mlflow-embedded/experiments/MlflowExperimentsPage.tsx",
+      "count": 5
+    },
+    {
+      "file": "distributions/core-bff/frontend/src/__tests__/cypress/cypress.config.ts",
+      "count": 4
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/ManagePipelineServerModal.tsx",
+      "count": 4
     },
     {
       "file": "frontend/src/concepts/pipelines/content/tables/__tests__/utils.spec.ts",
@@ -426,15 +462,15 @@
       "count": 4
     },
     {
-      "file": "packages/automl/frontend/src/app/context/AutomlResultsContext.ts",
+      "file": "frontend/src/types.ts",
       "count": 4
     },
     {
-      "file": "packages/automl/frontend/src/app/hooks/queries.ts",
+      "file": "packages/agent-ops/frontend/src/__tests__/cypress/cypress.config.ts",
       "count": 4
     },
     {
-      "file": "packages/automl/frontend/src/app/pages/__tests__/AutomlResultsPage.spec.tsx",
+      "file": "packages/automl/frontend/src/app/hooks/useAutomlResults.ts",
       "count": 4
     },
     {
@@ -450,7 +486,7 @@
       "count": 4
     },
     {
-      "file": "packages/autorag/frontend/src/app/pages/__tests__/AutoragResultsPage.spec.tsx",
+      "file": "packages/autorag/frontend/src/app/components/run-results/PatternDetailsModal/tabs/PatternInformationTab.tsx",
       "count": 4
     },
     {
@@ -482,6 +518,18 @@
       "count": 4
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/promptManagementModal/usePromptQueries.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/EmbeddableChatbotPlayground.tsx",
+      "count": 4
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/utilities/__tests__/errorClassifier.spec.ts",
+      "count": 4
+    },
+    {
       "file": "packages/jest-config/src/hooks.ts",
       "count": 4
     },
@@ -494,7 +542,7 @@
       "count": 4
     },
     {
-      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/utils/useFilterState.ts",
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/utils/modelCatalogUtils.ts",
       "count": 4
     },
     {
@@ -508,6 +556,14 @@
     {
       "file": "packages/plugin-core/src/testing/__tests__/utils.spec.ts",
       "count": 4
+    },
+    {
+      "file": "distributions/core-bff/frontend/src/__tests__/cypress/cypress/support/commands/application.ts",
+      "count": 3
+    },
+    {
+      "file": "distributions/core-bff/frontend/src/__tests__/unit/testUtils/hooks.ts",
+      "count": 3
     },
     {
       "file": "frontend/src/__mocks__/mockRegisteredModelsList.ts",
@@ -538,15 +594,19 @@
       "count": 3
     },
     {
-      "file": "frontend/src/types.ts",
-      "count": 3
-    },
-    {
       "file": "frontend/src/utilities/__tests__/imageStreamUtils.spec.ts",
       "count": 3
     },
     {
       "file": "frontend/src/utilities/imageStreamUtils.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/agent-ops/frontend/src/__tests__/cypress/cypress/support/commands/application.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/agent-ops/frontend/src/__tests__/unit/testUtils/hooks.ts",
       "count": 3
     },
     {
@@ -570,11 +630,19 @@
       "count": 3
     },
     {
+      "file": "packages/automl/frontend/src/app/utilities/const.ts",
+      "count": 3
+    },
+    {
       "file": "packages/autorag/frontend/src/__tests__/cypress/cypress/support/commands/application.ts",
       "count": 3
     },
     {
       "file": "packages/autorag/frontend/src/__tests__/unit/testUtils/hooks.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/PatternDetailsModal/PatternDetailsModal.tsx",
       "count": 3
     },
     {
@@ -610,6 +678,14 @@
       "count": 3
     },
     {
+      "file": "packages/eval-hub/frontend/src/app/hooks/useConnectionValidation.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/utilities/__tests__/compareEvaluationsUtils.spec.ts",
+      "count": 3
+    },
+    {
       "file": "packages/eval-hub/frontend/src/app/utilities/evaluationUtils.ts",
       "count": 3
     },
@@ -630,7 +706,15 @@
       "count": 3
     },
     {
-      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/promptManagementModal/usePromptQueries.ts",
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/__tests__/ChatbotMessagesList.spec.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/chatbotConfiguration/__tests__/ChatbotConfigurationCollectionsTable.spec.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/settingsPanelTabs/__tests__/KnowledgeTabContent.spec.tsx",
       "count": 3
     },
     {
@@ -686,6 +770,10 @@
       "count": 3
     },
     {
+      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelLocationInputFields.tsx",
+      "count": 3
+    },
+    {
       "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/unit/testUtils/hooks.ts",
       "count": 3
     },
@@ -699,6 +787,10 @@
     },
     {
       "file": "backend/src/routes/wss/k8s/index.ts",
+      "count": 2
+    },
+    {
+      "file": "distributions/core-bff/frontend/src/bootstrap.tsx",
       "count": 2
     },
     {
@@ -770,6 +862,10 @@
       "count": 2
     },
     {
+      "file": "frontend/src/concepts/pipelines/content/__tests__/ManagePipelineServerModal.spec.tsx",
+      "count": 2
+    },
+    {
       "file": "frontend/src/concepts/pipelines/content/tables/__tests__/RunStartTimestamp.spec.tsx",
       "count": 2
     },
@@ -814,6 +910,14 @@
       "count": 2
     },
     {
+      "file": "packages/agent-ops/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/agent-ops/frontend/src/bootstrap.tsx",
+      "count": 2
+    },
+    {
       "file": "packages/automl/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
       "count": 2
     },
@@ -842,7 +946,7 @@
       "count": 2
     },
     {
-      "file": "packages/automl/frontend/src/app/topology/__tests__/useAutoMLTaskTopology.spec.ts",
+      "file": "packages/automl/frontend/src/app/topology/__tests__/useAutomlTaskTopology.spec.ts",
       "count": 2
     },
     {
@@ -874,11 +978,23 @@
       "count": 2
     },
     {
+      "file": "packages/autorag/frontend/src/app/components/run-results/PatternDetailsModal/components/ScoresList.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/pages/AutoragResultsPage.tsx",
+      "count": 2
+    },
+    {
       "file": "packages/autorag/frontend/src/app/topology/__tests__/parseUtils.spec.ts",
       "count": 2
     },
     {
-      "file": "packages/autorag/frontend/src/app/topology/__tests__/useAutoRAGTaskTopology.spec.ts",
+      "file": "packages/autorag/frontend/src/app/topology/__tests__/useAutoragTaskTopology.spec.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/utilities/pipelineRunUtils.ts",
       "count": 2
     },
     {
@@ -926,6 +1042,10 @@
       "count": 2
     },
     {
+      "file": "packages/eval-hub/frontend/src/app/components/__tests__/EvaluationsTable.spec.tsx",
+      "count": 2
+    },
+    {
       "file": "packages/eval-hub/frontend/src/app/components/__tests__/EvaluationsTableRow.spec.tsx",
       "count": 2
     },
@@ -934,11 +1054,19 @@
       "count": 2
     },
     {
+      "file": "packages/eval-hub/frontend/src/app/pages/useStartEvaluationRunForm.ts",
+      "count": 2
+    },
+    {
       "file": "packages/eval-hub/frontend/src/bootstrap.tsx",
       "count": 2
     },
     {
       "file": "packages/feature-store/src/api/custom.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/feature-store/src/FeatureStoreCoreLoader.tsx",
       "count": 2
     },
     {
@@ -958,7 +1086,11 @@
       "count": 2
     },
     {
-      "file": "packages/gen-ai/frontend/src/app/Chatbot/ChatbotMessagesList.tsx",
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/__tests__/ChatbotPlayground.spec.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/ChatbotConfigInstance.tsx",
       "count": 2
     },
     {
@@ -967,6 +1099,10 @@
     },
     {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/components/promptManagementModal/createPrompt.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useChatbotMessages.spec.ts",
       "count": 2
     },
     {
@@ -982,7 +1118,15 @@
       "count": 2
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/store/useChatbotConfigStore.ts",
+      "count": 2
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useFetchMaaSModels.spec.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/utilities/errorClassifier.ts",
       "count": 2
     },
     {
@@ -998,7 +1142,11 @@
       "count": 2
     },
     {
-      "file": "packages/mlflow-embedded/experiments/MlflowExperimentsPage.tsx",
+      "file": "packages/mlflow-embedded/prompts/MlflowPromptManagementPage.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/mlflow-embedded/shared/MLflowNotConfigured.tsx",
       "count": 2
     },
     {
@@ -1014,7 +1162,15 @@
       "count": 2
     },
     {
-      "file": "packages/model-registry/upstream/frontend/src/app/api/updateTimestamps.ts",
+      "file": "packages/model-registry/upstream/frontend/src/app/modelCatalogTypes.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/components/globalFilters/LatencyFilter.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/screens/PerformanceInsightsView.tsx",
       "count": 2
     },
     {
@@ -1034,11 +1190,11 @@
       "count": 2
     },
     {
-      "file": "packages/model-serving/modelRegistry/useExtractFormDataFromRegistry.ts",
+      "file": "packages/model-serving/extension-points/index.ts",
       "count": 2
     },
     {
-      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelLocationInputFields.tsx",
+      "file": "packages/model-serving/modelRegistry/useExtractFormDataFromRegistry.ts",
       "count": 2
     },
     {
@@ -1071,6 +1227,22 @@
     },
     {
       "file": "backend/src/server.ts",
+      "count": 1
+    },
+    {
+      "file": "distributions/base/src/bootstrap.tsx",
+      "count": 1
+    },
+    {
+      "file": "distributions/core-bff/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+      "count": 1
+    },
+    {
+      "file": "distributions/core-bff/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "distributions/core-bff/frontend/src/__tests__/unit/jest.d.ts",
       "count": 1
     },
     {
@@ -1138,15 +1310,15 @@
       "count": 1
     },
     {
+      "file": "frontend/src/__mocks__/mockLegacyNimResource.ts",
+      "count": 1
+    },
+    {
       "file": "frontend/src/__mocks__/mockModelArtifactList.ts",
       "count": 1
     },
     {
       "file": "frontend/src/__mocks__/mockModelVersionList.ts",
-      "count": 1
-    },
-    {
-      "file": "frontend/src/__mocks__/mockNimResource.ts",
       "count": 1
     },
     {
@@ -1346,10 +1518,6 @@
       "count": 1
     },
     {
-      "file": "frontend/src/concepts/pipelines/content/__tests__/ManagePipelineServerModal.spec.tsx",
-      "count": 1
-    },
-    {
       "file": "frontend/src/concepts/pipelines/content/__tests__/PipelineDetailsTitle.spec.tsx",
       "count": 1
     },
@@ -1410,6 +1578,10 @@
       "count": 1
     },
     {
+      "file": "frontend/src/concepts/pipelines/content/pipelineSelector/__tests__/CustomPipelineRunToolbarSelect.spec.tsx",
+      "count": 1
+    },
+    {
       "file": "frontend/src/concepts/pipelines/content/pipelineSelector/utils.ts",
       "count": 1
     },
@@ -1419,6 +1591,10 @@
     },
     {
       "file": "frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/utils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow.tsx",
       "count": 1
     },
     {
@@ -1646,6 +1822,14 @@
       "count": 1
     },
     {
+      "file": "frontend/src/pages/projects/types.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/storageClasses/storageEnums.ts",
+      "count": 1
+    },
+    {
       "file": "frontend/src/plugins/extensions/navigation.ts",
       "count": 1
     },
@@ -1703,6 +1887,14 @@
     },
     {
       "file": "frontend/src/utilities/useWatchBuildStatus.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/agent-ops/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/agent-ops/frontend/src/__tests__/unit/jest.d.ts",
       "count": 1
     },
     {
@@ -1770,7 +1962,7 @@
       "count": 1
     },
     {
-      "file": "packages/automl/frontend/src/app/components/configure/__tests__/AutomlExperimentSettings.spec.tsx",
+      "file": "packages/automl/frontend/src/app/components/configure/__tests__/OptimizationMetricModal.spec.tsx",
       "count": 1
     },
     {
@@ -1867,6 +2059,10 @@
     },
     {
       "file": "packages/automl/frontend/src/app/types.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/utilities/__tests__/columnUtils.spec.ts",
       "count": 1
     },
     {
@@ -1970,7 +2166,23 @@
       "count": 1
     },
     {
+      "file": "packages/autorag/frontend/src/app/components/run-results/__tests__/PlaygroundDrawerPanel.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/__tests__/playgroundSnippets.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/__tests__/ViewCodeModal.spec.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/autorag/frontend/src/app/components/run-results/AutoragResults.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/PatternDetailsModal/components/__tests__/KeyValueList.spec.ts",
       "count": 1
     },
     {
@@ -2011,6 +2223,10 @@
     },
     {
       "file": "packages/autorag/frontend/src/app/schemas/__tests__/configure.schema.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/utilities/__tests__/pipelineRunUtils.spec.ts",
       "count": 1
     },
     {
@@ -2098,11 +2314,11 @@
       "count": 1
     },
     {
-      "file": "packages/cypress/cypress/tests/e2e/gen-ai/testGenAi.cy.ts",
+      "file": "packages/cypress/cypress/tests/e2e/settings/clusterSettings/testAdminClusterSettings.cy.ts",
       "count": 1
     },
     {
-      "file": "packages/cypress/cypress/tests/e2e/settings/clusterSettings/testAdminClusterSettings.cy.ts",
+      "file": "packages/cypress/cypress/tests/mocked/featureStore/connectedWorkbenchesModal.cy.ts",
       "count": 1
     },
     {
@@ -2143,10 +2359,6 @@
     },
     {
       "file": "packages/cypress/cypress/tests/mocked/modelRegistry/modelDetailsEditing.cy.ts",
-      "count": 1
-    },
-    {
-      "file": "packages/cypress/cypress/tests/mocked/modelsAsAService/maasApiKeys.cy.ts",
       "count": 1
     },
     {
@@ -2222,10 +2434,6 @@
       "count": 1
     },
     {
-      "file": "packages/cypress/cypress/utils/oc_commands/genAi.ts",
-      "count": 1
-    },
-    {
       "file": "packages/cypress/cypress/utils/oc_commands/imageStreams.ts",
       "count": 1
     },
@@ -2287,6 +2495,18 @@
     },
     {
       "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/compareFlow/chooseCompareBenchmarks.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/compareFlow/compareEvaluations.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/compareFlow/compareRunsPage.cy.ts",
       "count": 1
     },
     {
@@ -2358,6 +2578,10 @@
       "count": 1
     },
     {
+      "file": "packages/eval-hub/frontend/src/app/pages/StartEvaluationRunPage.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/eval-hub/frontend/src/app/utils/__tests__/buildEvaluationRequest.spec.ts",
       "count": 1
     },
@@ -2387,6 +2611,10 @@
     },
     {
       "file": "packages/feature-store/src/__mocks__/mockMetrics.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/__tests__/FeatureStoreContext.test.tsx",
       "count": 1
     },
     {
@@ -2454,7 +2682,7 @@
       "count": 1
     },
     {
-      "file": "packages/feature-store/src/apiHooks/useFeatureStoreEnitites.ts",
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreEntities.ts",
       "count": 1
     },
     {
@@ -2494,6 +2722,10 @@
       "count": 1
     },
     {
+      "file": "packages/feature-store/src/components/ConnectedWorkbenchesModal.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/feature-store/src/components/FeatureStoreFilterToolbar.tsx",
       "count": 1
     },
@@ -2503,6 +2735,10 @@
     },
     {
       "file": "packages/feature-store/src/const.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/FeatureStore.tsx",
       "count": 1
     },
     {
@@ -2527,6 +2763,10 @@
     },
     {
       "file": "packages/feature-store/src/screens/entities/FeatureStoreEntities.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/features/featureDetails/FeatureDetails.tsx",
       "count": 1
     },
     {
@@ -2630,6 +2870,14 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/support/helpers/agentProfiles/agentProfilePlaygroundHelpers.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/support/helpers/agentProfiles/agentProfilesTestHelpers.ts",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/aiAssets/endpointModal.cy.ts",
       "count": 1
     },
@@ -2643,6 +2891,10 @@
     },
     {
       "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/aiAssets/modelTabKebabActions.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/chatbot/agentProfile.cy.ts",
       "count": 1
     },
     {
@@ -2671,6 +2923,18 @@
     },
     {
       "file": "packages/gen-ai/frontend/src/__tests__/unit/jest.d.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/agentProfile/__tests__/deserialize.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/agentProfile/__tests__/roundtrip.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/agentProfile/__tests__/serialize.spec.ts",
       "count": 1
     },
     {
@@ -2710,6 +2974,14 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/components/vectorstores/__tests__/VectorStoreTableRow.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/components/vectorstores/__tests__/VectorStoreTableRowInfo.spec.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/AIAssets/hooks/__tests__/useAIModelsFilter.spec.ts",
       "count": 1
     },
@@ -2718,7 +2990,15 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/__tests__/EmbeddableChatbotPlayground.spec.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/ChatbotMain.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/ChatbotMessagesList.tsx",
       "count": 1
     },
     {
@@ -2735,6 +3015,10 @@
     },
     {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/components/__tests__/ModelDetailsDropdown.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/__tests__/SaveAgentProfileModal.spec.tsx",
       "count": 1
     },
     {
@@ -2766,10 +3050,6 @@
       "count": 1
     },
     {
-      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/ChatbotMessageInput.tsx",
-      "count": 1
-    },
-    {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/components/guardrails/GuardrailsPanel.tsx",
       "count": 1
     },
@@ -2786,6 +3066,14 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/settingsPanelTabs/__tests__/ModelTabContent.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/settingsPanelTabs/__tests__/TranscriptionModelSection.spec.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/components/ViewCodeModal.tsx",
       "count": 1
     },
@@ -2794,15 +3082,23 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/StreamingThinkingSection.spec.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/testUtils.ts",
       "count": 1
     },
     {
-      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useChatbotMessages.spec.ts",
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useChatbotMessagesControls.spec.ts",
       "count": 1
     },
     {
-      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useChatbotMessagesControls.spec.ts",
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useEmbeddedChatbotMessages.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useEmbeddedChatbotMessagesHook.spec.ts",
       "count": 1
     },
     {
@@ -2870,6 +3166,10 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useASRModels.spec.ts",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useFetchLlamaModels.spec.ts",
       "count": 1
     },
@@ -2887,6 +3187,10 @@
     },
     {
       "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useMergedModels.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useWorkspaceCapabilities.spec.ts",
       "count": 1
     },
     {
@@ -2938,6 +3242,10 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/utilities/microcopy.ts",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/utilities/utils.ts",
       "count": 1
     },
@@ -2986,11 +3294,15 @@
       "count": 1
     },
     {
-      "file": "packages/mlflow-embedded/experiments/GlobalMLflowExperimentsRoutes.tsx",
+      "file": "packages/maas/frontend/src/app/pages/keys-and-subs/__tests__/ApiKeysAndSubscriptionsPage.spec.tsx",
       "count": 1
     },
     {
-      "file": "packages/mlflow-embedded/prompts/MlflowPromptManagementPage.tsx",
+      "file": "packages/maas/frontend/src/app/pages/keys-and-subs/__tests__/utils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/mlflow-embedded/experiments/GlobalMLflowExperimentsRoutes.tsx",
       "count": 1
     },
     {
@@ -3118,7 +3430,7 @@
       "count": 1
     },
     {
-      "file": "packages/model-registry/upstream/frontend/src/app/context/mcpCatalog/McpCatalogContext.tsx",
+      "file": "packages/model-registry/upstream/frontend/src/app/context/catalogContext/createCatalogContext.tsx",
       "count": 1
     },
     {
@@ -3146,10 +3458,6 @@
       "count": 1
     },
     {
-      "file": "packages/model-registry/upstream/frontend/src/app/modelCatalogTypes.ts",
-      "count": 1
-    },
-    {
       "file": "packages/model-registry/upstream/frontend/src/app/pages/mcpCatalog/hooks/useMcpUrlSync.ts",
       "count": 1
     },
@@ -3166,15 +3474,19 @@
       "count": 1
     },
     {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/components/ModelCatalogFilters.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/hooks/useCatalogFilterState.ts",
+      "count": 1
+    },
+    {
       "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/mocks/accuracyMetricsMock.ts",
       "count": 1
     },
     {
       "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/mocks/hardwareConfigurationMock.ts",
-      "count": 1
-    },
-    {
-      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/screens/PerformanceInsightsView.tsx",
       "count": 1
     },
     {
@@ -3218,7 +3530,15 @@
       "count": 1
     },
     {
-      "file": "packages/model-registry/upstream/frontend/src/app/shared/components/FilterToolbar.tsx",
+      "file": "packages/model-registry/upstream/frontend/src/app/shared/components/catalog/__tests__/catalogFilterUtils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/shared/components/catalog/hooks/useCatalogFilterConfigs.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/shared/components/catalog/hooks/useStringFilterState.ts",
       "count": 1
     },
     {
@@ -3238,10 +3558,6 @@
       "count": 1
     },
     {
-      "file": "packages/model-serving/extension-points/index.ts",
-      "count": 1
-    },
-    {
       "file": "packages/model-serving/extensions/model-catalog.ts",
       "count": 1
     },
@@ -3254,11 +3570,27 @@
       "count": 1
     },
     {
+      "file": "packages/model-serving/modelRegistry/__tests__/ModelDetailsDeploymentCard.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/modelRegistry/ModelDetailsDeploymentCard.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/model-serving/modelRegistry/PreWizardDeployModal.tsx",
       "count": 1
     },
     {
       "file": "packages/model-serving/modelRegistry/utils/deployUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/components/deployments/__tests__/DeploymentsTableRow.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/components/deployments/row/DeploymentsTableRow.tsx",
       "count": 1
     },
     {
@@ -3274,15 +3606,19 @@
       "count": 1
     },
     {
-      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelServerTemplateSelectField.tsx",
-      "count": 1
-    },
-    {
-      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelTypeSelectField.tsx",
+      "file": "packages/model-serving/src/components/deploymentWizard/ModelDeploymentWizard.tsx",
       "count": 1
     },
     {
       "file": "packages/model-serving/src/components/deploymentWizard/steps/AdvancedOptionsStep.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/concepts/__tests__/deploymentUtils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/concepts/deploymentUtils.ts",
       "count": 1
     },
     {
@@ -3319,6 +3655,14 @@
     },
     {
       "file": "packages/nim-serving/extensions.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/nim-serving/src/api/deployments/status.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/nim-serving/src/pages/deploymentWizard/fields/NIMPVCField.tsx",
       "count": 1
     },
     {
@@ -3362,6 +3706,22 @@
       "count": 1
     },
     {
+      "file": "packages/observability/extensions.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/observability/src/pages/DashboardPage.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/observability/src/perses/embeddable/__tests__/usePersesDashboard.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/observability/src/perses/embeddable/api.ts",
+      "count": 1
+    },
+    {
       "file": "packages/observability/src/perses/perses-client/index.ts",
       "count": 1
     },
@@ -3373,35 +3733,35 @@
   "byPackage": [
     {
       "package": "frontend",
-      "count": 335
+      "count": 345
     },
     {
       "package": "packages/gen-ai",
-      "count": 160
+      "count": 208
     },
     {
       "package": "packages/autorag",
-      "count": 144
+      "count": 165
     },
     {
       "package": "packages/cypress",
-      "count": 143
+      "count": 152
     },
     {
       "package": "packages/automl",
-      "count": 131
+      "count": 139
     },
     {
       "package": "packages/model-registry",
-      "count": 118
+      "count": 108
     },
     {
       "package": "packages/feature-store",
-      "count": 83
+      "count": 89
     },
     {
       "package": "packages/eval-hub",
-      "count": 68
+      "count": 88
     },
     {
       "package": "packages/notebooks",
@@ -3409,15 +3769,27 @@
     },
     {
       "package": "packages/maas",
-      "count": 25
+      "count": 27
     },
     {
       "package": "packages/mlflow",
-      "count": 20
+      "count": 26
     },
     {
       "package": "packages/model-serving",
-      "count": 19
+      "count": 26
+    },
+    {
+      "package": "packages/mlflow-embedded",
+      "count": 17
+    },
+    {
+      "package": "packages/agent-ops",
+      "count": 16
+    },
+    {
+      "package": "root",
+      "count": 16
     },
     {
       "package": "packages/jest-config",
@@ -3428,10 +3800,6 @@
       "count": 13
     },
     {
-      "package": "packages/mlflow-embedded",
-      "count": 11
-    },
-    {
       "package": "packages/model-training",
       "count": 7
     },
@@ -3440,8 +3808,16 @@
       "count": 6
     },
     {
+      "package": "packages/observability",
+      "count": 6
+    },
+    {
       "package": "packages/contract-tests",
       "count": 5
+    },
+    {
+      "package": "packages/nim-serving",
+      "count": 4
     },
     {
       "package": "packages/kserve",
@@ -3450,14 +3826,6 @@
     {
       "package": "packages/model-serving-backport",
       "count": 3
-    },
-    {
-      "package": "packages/nim-serving",
-      "count": 2
-    },
-    {
-      "package": "packages/observability",
-      "count": 2
     },
     {
       "package": "packages/llmd-serving",
