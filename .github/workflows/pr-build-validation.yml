@@ -169,6 +169,12 @@ jobs:
             echo "Workspace directories to check:"
             echo "$WORKSPACE_DIRS"
 
+            # Track failures — missing COPY lines are a hard build failure in Konflux,
+            # not merely a warning. See: opendatahub-io/odh-dashboard#7855 which missed
+            # adding COPY packages/k8s-core/ to production Dockerfiles, causing 35 import
+            # errors in downstream Konflux builds.
+            WORKSPACE_COPY_FAILURES=0
+
             # Check each Dockerfile for missing COPY commands
             while IFS= read -r dockerfile; do
               [ -z "$dockerfile" ] && continue
@@ -192,12 +198,27 @@ jobs:
                   COPY_FOUND=$(grep "COPY.*$ws_dir" "$dockerfile" || true)
 
                   if [ -z "$COPY_FOUND" ]; then
-                    echo "⚠️  WARNING: $dockerfile imports $WS_NAME but doesn't COPY $ws_dir"
-                    echo "   This may cause 'package not found' errors during build"
+                    echo "❌ FAIL: $dockerfile references '@odh-dashboard/$WS_NAME' but is missing:"
+                    echo "   COPY --chown=default:root $ws_dir/ ./$ws_dir/"
+                    echo "   Without this, Konflux builds will fail with module-not-found errors."
+                    echo "   Example import found:"
+                    echo "$IMPORTS" | head -3 | sed 's/^/     /'
+                    WORKSPACE_COPY_FAILURES=$((WORKSPACE_COPY_FAILURES + 1))
                   fi
                 fi
               done <<< "$WORKSPACE_DIRS"
             done < <(find . -name "Dockerfile*" -not -path "*/node_modules/*")
+
+            if [ "$WORKSPACE_COPY_FAILURES" -gt 0 ]; then
+              echo ""
+              echo "❌ TOTAL: $WORKSPACE_COPY_FAILURES Dockerfile(s) are missing COPY instructions for workspace packages they import."
+              echo "   These will cause build failures in Konflux and downstream Dockerfile.konflux.* variants."
+              echo "   Add the missing COPY lines to each Dockerfile listed above."
+              echo "::endgroup::"
+              exit 1
+            fi
+
+            echo "✅ PASS: All Dockerfiles COPY the workspace packages they import"
           else
             echo "⚠️  WARNING: jq not installed, skipping workspace validation"
           fi
