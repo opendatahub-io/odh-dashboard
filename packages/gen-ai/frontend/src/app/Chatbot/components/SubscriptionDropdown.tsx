@@ -37,15 +37,16 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
 
   // Auto-select highest-priority subscription when current selection is empty or invalid.
   // Subscriptions arrive pre-sorted by priority (desc) from the MaaS API.
+  // Skip mutation when the component is disabled (e.g. preview mode).
   React.useEffect(() => {
-    if (subscriptions.length === 0) {
+    if (isDisabled || subscriptions.length === 0) {
       return;
     }
     const isCurrentSelectionValid = subscriptions.some((s) => s.name === selectedSubscription);
     if (!isCurrentSelectionValid) {
       onSubscriptionChange(subscriptions[0].name);
     }
-  }, [subscriptions, selectedSubscription, onSubscriptionChange]);
+  }, [isDisabled, subscriptions, selectedSubscription, onSubscriptionChange]);
 
   if (subscriptions.length === 0) {
     return null;
