@@ -207,7 +207,7 @@ jobs:
                   fi
                 fi
               done <<< "$WORKSPACE_DIRS"
-            done < <(find . -name "Dockerfile*" -not -path "*/node_modules/*")
+            done < <(find . -name "Dockerfile.workspace" -not -path "*/node_modules/*")
 
             if [ "$WORKSPACE_COPY_FAILURES" -gt 0 ]; then
               echo ""
