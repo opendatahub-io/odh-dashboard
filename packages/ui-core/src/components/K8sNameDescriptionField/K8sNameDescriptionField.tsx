@@ -13,7 +13,12 @@ import type {
   UseK8sNameDescriptionDataConfiguration,
   UseK8sNameDescriptionFieldData,
 } from '@odh-dashboard/k8s-core';
-import { handleUpdateLogic, isRouteNameTooLong, setupDefaults } from '@odh-dashboard/k8s-core';
+import {
+  handleUpdateLogic,
+  isRouteNameTooLong,
+  LimitNameResourceType,
+  setupDefaults,
+} from '@odh-dashboard/k8s-core';
 import ResourceNameDefinitionTooltip from './ResourceNameDefinitionTooltip';
 import { HelperTextItemResourceNameTaken } from './HelperTextItemVariants';
 import ResourceNameField from './ResourceNameField';
@@ -27,16 +32,18 @@ export const useK8sNameDescriptionFieldData = (
   );
 
   // Re-sync validation when namespace changes after initial render
-  const { namespace } = configuration;
+  const { namespace, limitNameResourceType } = configuration;
+  const isRouteBased =
+    limitNameResourceType === LimitNameResourceType.WORKBENCH ||
+    limitNameResourceType === LimitNameResourceType.MODEL_DEPLOYMENT;
   React.useEffect(() => {
+    if (!isRouteBased) {
+      return;
+    }
     setData((currentData) => {
       const prevNamespace = currentData.k8sName.state.namespace;
-      // Only update if namespace actually changed and is tracked in state
+      // Only update if namespace actually changed
       if (prevNamespace === namespace) {
-        return currentData;
-      }
-      // If namespace is not tracked (non-route-based), skip
-      if (prevNamespace === undefined && namespace === undefined) {
         return currentData;
       }
       return {
@@ -51,7 +58,7 @@ export const useK8sNameDescriptionFieldData = (
         },
       };
     });
-  }, [namespace]);
+  }, [namespace, isRouteBased]);
 
   const onDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>((key, value) => {
     setData((currentData) => handleUpdateLogic(currentData)(key, value));
