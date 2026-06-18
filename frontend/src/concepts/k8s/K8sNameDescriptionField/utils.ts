@@ -42,6 +42,18 @@ const MAX_RESOURCE_NAME_LENGTH = 253;
 const MAX_PVC_NAME_LENGTH = 63;
 const MAX_MODEL_REGISTRY_NAME_LENGTH = 40;
 
+/**
+ * OpenShift route names are DNS labels and must not exceed 63 characters.
+ * The route name is typically formed as {resourceName}-{namespace}.
+ */
+const MAX_ROUTE_NAME_LENGTH = 63;
+
+/** Resource types that generate OpenShift routes */
+const ROUTE_BASED_RESOURCE_TYPES = new Set([
+  LimitNameResourceType.WORKBENCH,
+  LimitNameResourceType.MODEL_DEPLOYMENT,
+]);
+
 /** KServe InferenceService names must start with a lowercase letter */
 export const INFERENCE_SERVICE_NAME_REGEX = /^[a-z]([-a-z0-9]*[a-z0-9])?$/;
 export const INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE =
@@ -53,6 +65,19 @@ export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
   [LimitNameResourceType.MODEL_DEPLOYMENT]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.PVC]: MAX_PVC_NAME_LENGTH,
   [LimitNameResourceType.MODEL_REGISTRY]: MAX_MODEL_REGISTRY_NAME_LENGTH,
+};
+
+/**
+ * Checks whether a route name ({k8sName}-{namespace}) would exceed the 63-character DNS label limit.
+ * Returns true if it exceeds the limit, false otherwise.
+ */
+export const isRouteNameTooLong = (k8sName: string, namespace?: string): boolean => {
+  if (!namespace || k8sName.length === 0) {
+    return false;
+  }
+  // Route name format: {k8sName}-{namespace}
+  const routeNameLength = k8sName.length + 1 + namespace.length;
+  return routeNameLength > MAX_ROUTE_NAME_LENGTH;
 };
 
 export const isK8sNameDescriptionType = (
@@ -67,6 +92,7 @@ export const setupDefaults = ({
   regexp,
   invalidCharsMessage,
   editableK8sName,
+  namespace,
 }: UseK8sNameDescriptionDataConfiguration): K8sNameDescriptionFieldData => {
   let initialName = '';
   let initialDescription = '';
@@ -87,6 +113,9 @@ export const setupDefaults = ({
     configuredMaxLength = resourceTypeLimits[limitNameResourceType];
   }
 
+  const isRouteBased =
+    limitNameResourceType != null && ROUTE_BASED_RESOURCE_TYPES.has(limitNameResourceType);
+
   return handleUpdateLogic({
     name: initialName,
     description: initialDescription,
@@ -97,6 +126,8 @@ export const setupDefaults = ({
         invalidCharacters: false,
         invalidLength: false,
         maxLength: configuredMaxLength,
+        routeNameTooLong: false,
+        namespace: isRouteBased ? namespace : undefined,
         safePrefix,
         staticPrefix,
         regexp,
@@ -120,7 +151,7 @@ export const handleUpdateLogic =
       case 'name': {
         changedData.name = value;
 
-        const { touched, immutable, maxLength, safePrefix, staticPrefix, regexp } =
+        const { touched, immutable, maxLength, safePrefix, staticPrefix, regexp, namespace } =
           existingData.k8sName.state;
         // When name changes, we want to update resource name if applicable
         if (!touched && !immutable) {
@@ -135,6 +166,7 @@ export const handleUpdateLogic =
             state: {
               invalidCharacters: k8sValue.length > 0 ? !isValidK8sName(k8sValue, regexp) : false,
               invalidLength: k8sValue.length > maxLength,
+              routeNameTooLong: isRouteNameTooLong(k8sValue, namespace),
             },
           };
         }
@@ -146,6 +178,7 @@ export const handleUpdateLogic =
             invalidCharacters:
               value.length > 0 ? !isValidK8sName(value, existingData.k8sName.state.regexp) : false,
             invalidLength: value.length > existingData.k8sName.state.maxLength,
+            routeNameTooLong: isRouteNameTooLong(value, existingData.k8sName.state.namespace),
             touched: true,
           },
           value,
@@ -163,10 +196,14 @@ export const isK8sNameDescriptionDataValid = ({
   name,
   k8sName: {
     value,
-    state: { invalidCharacters, invalidLength, regexp },
+    state: { invalidCharacters, invalidLength, routeNameTooLong, regexp },
   },
 }: K8sNameDescriptionFieldData): boolean =>
-  name.trim().length > 0 && isValidK8sName(value, regexp) && !invalidLength && !invalidCharacters;
+  name.trim().length > 0 &&
+  isValidK8sName(value, regexp) &&
+  !invalidLength &&
+  !invalidCharacters &&
+  !routeNameTooLong;
 
 export const extractK8sNameDescriptionFieldData = (
   k8sNameDesc?: K8sNameDescriptionFieldData,

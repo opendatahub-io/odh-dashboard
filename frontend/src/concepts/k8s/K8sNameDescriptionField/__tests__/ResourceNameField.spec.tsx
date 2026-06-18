@@ -16,6 +16,7 @@ describe('ResourceNameField', () => {
             invalidCharacters: false,
             invalidLength: false,
             maxLength: 0,
+            routeNameTooLong: false,
             touched: false,
           },
         }}
@@ -37,6 +38,7 @@ describe('ResourceNameField', () => {
             invalidCharacters: false,
             invalidLength: false,
             maxLength: 0,
+            routeNameTooLong: false,
             touched: false,
           },
         }}
@@ -58,6 +60,7 @@ describe('ResourceNameField', () => {
             invalidCharacters: false,
             invalidLength: false,
             maxLength: 0,
+            routeNameTooLong: false,
             touched: false,
           },
         }}
@@ -79,6 +82,7 @@ describe('ResourceNameField', () => {
             invalidCharacters: false,
             invalidLength: false,
             maxLength: 0,
+            routeNameTooLong: false,
             touched: false,
             safePrefix: 'wb-',
             staticPrefix: true,

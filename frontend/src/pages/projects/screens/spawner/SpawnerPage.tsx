@@ -97,6 +97,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     limitNameResourceType: LimitNameResourceType.WORKBENCH,
     safePrefix: 'wb-',
     regexp: K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
+    namespace: currentProject.metadata.name,
   });
   const [isAttachStorageModalOpen, setIsAttachStorageModalOpen] = React.useState(false);
   const [isCreateStorageModalOpen, setIsCreateStorageModalOpen] = React.useState(false);

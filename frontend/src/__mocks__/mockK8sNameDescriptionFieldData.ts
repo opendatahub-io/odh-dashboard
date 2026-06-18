@@ -17,6 +17,7 @@ export const mockK8sNameDescriptionFieldData = (
           invalidLength: false,
           invalidCharacters: false,
           maxLength: 253,
+          routeNameTooLong: false,
           touched: false,
         },
       },
