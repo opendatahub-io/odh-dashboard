@@ -3,7 +3,8 @@ import {
   k8sGetResource,
   k8sListResourceItems,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, KnownLabels, RoleKind } from '#~/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { K8sAPIOptions, RoleKind } from '#~/k8sTypes';
 import { RoleModel } from '#~/api/models';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 

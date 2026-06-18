@@ -14,7 +14,9 @@ export enum ModelCatalogStringFilterKey {
 export enum ModelCatalogNumberFilterKey {
   // Performance filter key uses backend format
   MAX_RPS = 'artifacts.requests_per_second.double_value',
-  COLD_START_LATENCY = 'artifacts.cold_start_load_time_seconds.double_value',
+  COLD_START_LOAD_TIME = 'artifacts.cold_start_time_to_load_seconds.double_value',
+  MIN_VRAM = 'min_vram_gb.double_value',
+  IMAGE_SIZE = 'modelcar_image_size.double_value',
 }
 
 /**
@@ -260,7 +262,7 @@ export enum ModelCatalogTensorType {
 
 export const MODEL_CATALOG_POPOVER_MESSAGES = {
   VALIDATED:
-    'Validated models are benchmarked for performance and quality using leading open source evaluation datasets. Some of these include tested runtime arguments for enabling additional capabilities.',
+    'Validated models undergo comprehensive benchmarking to ensure reliable performance and compatibility. Some of these include validated runtime arguments for enabling additional capabilities.',
   RED_HAT: 'Red Hat AI models are provided and supported by Red Hat.',
 } as const;
 
@@ -487,15 +489,16 @@ export const MATCH_ALL_FILTER_KEYS: ModelCatalogStringFilterKey[] = [
 export const DEPLOYMENT_RESOURCE_PREFIXES = ['vllm'];
 
 /**
- * Performance filter keys that are shown when performance view is enabled.
+ * Performance filter keys that are shown as chips in the performance toolbar.
  * These filters should reset to default values (from namedQueries) instead of clearing.
+ * Note: MIN_VRAM and IMAGE_SIZE are sidebar-only filters (not shown as chips on the details page).
  * Note: HARDWARE_CONFIGURATION is NOT included here because it should clear normally
  * like basic filters, not reset to defaults.
  */
 export const PERFORMANCE_FILTER_KEYS: ModelCatalogFilterKey[] = [
   ModelCatalogStringFilterKey.USE_CASE,
   ModelCatalogNumberFilterKey.MAX_RPS,
-  ModelCatalogNumberFilterKey.COLD_START_LATENCY,
+  ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
   ...ALL_LATENCY_FILTER_KEYS,
 ];
 
@@ -520,7 +523,9 @@ export const PERFORMANCE_STRING_FILTER_KEYS: ModelCatalogStringFilterKey[] = [
  */
 export const PERFORMANCE_NUMBER_FILTER_KEYS: ModelCatalogNumberFilterKey[] = [
   ModelCatalogNumberFilterKey.MAX_RPS,
-  ModelCatalogNumberFilterKey.COLD_START_LATENCY,
+  ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
+  ModelCatalogNumberFilterKey.MIN_VRAM,
+  ModelCatalogNumberFilterKey.IMAGE_SIZE,
 ];
 
 /**
@@ -548,7 +553,6 @@ export const getPerformanceFiltersToShow = (
   filterData: Partial<Record<LatencyMetricFieldName, number | undefined>>,
 ): ModelCatalogFilterKey[] => {
   const activeLatencyKeys = ALL_LATENCY_FILTER_KEYS.filter((key) => filterData[key] !== undefined);
-  // Use Set to deduplicate since PERFORMANCE_FILTER_KEYS already includes latency fields
   return [
     ...new Set([
       ...PERFORMANCE_FILTER_KEYS,
@@ -566,12 +570,13 @@ export const getAllFiltersToShow = (
   filterData: Partial<Record<LatencyMetricFieldName, number | undefined>>,
 ): ModelCatalogFilterKey[] => {
   const activeLatencyKeys = ALL_LATENCY_FILTER_KEYS.filter((key) => filterData[key] !== undefined);
-  // Use Set to deduplicate since PERFORMANCE_FILTER_KEYS already includes latency fields
-  // Include HARDWARE_CONFIGURATION which shows in performance toolbar but clears normally
+  // Include MIN_VRAM and IMAGE_SIZE which are sidebar-only filters shown on the landing page
   return [
     ...new Set([
       ...BASIC_FILTER_KEYS,
       ...PERFORMANCE_FILTER_KEYS,
+      ModelCatalogNumberFilterKey.MIN_VRAM,
+      ModelCatalogNumberFilterKey.IMAGE_SIZE,
       ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION,
       ...activeLatencyKeys,
     ]),
@@ -583,7 +588,6 @@ export const getAllFiltersToShow = (
  * Includes all ModelCatalogFilterKeys (ModelCatalogStringFilterKey | ModelCatalogNumberFilterKey | LatencyMetricFieldName).
  */
 export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, string> = {
-  // String filter keys
   [ModelCatalogStringFilterKey.PROVIDER]: 'Provider',
   [ModelCatalogStringFilterKey.LICENSE]: 'License',
   [ModelCatalogStringFilterKey.TASK]: 'Task',
@@ -593,10 +597,10 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
   [ModelCatalogStringFilterKey.USE_CASE]: 'Workload type',
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: 'Tensor type',
   [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: 'Validated arguments',
-  // Number filter keys
   [ModelCatalogNumberFilterKey.MAX_RPS]: 'Max RPS',
-  [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: 'Cold start latency',
-  // Latency field names - all use "Latency" as category name
+  [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: 'Cold start load time',
+  [ModelCatalogNumberFilterKey.MIN_VRAM]: 'Minimum vRAM',
+  [ModelCatalogNumberFilterKey.IMAGE_SIZE]: 'Container size',
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   ...(Object.fromEntries(ALL_LATENCY_FILTER_KEYS.map((field) => [field, 'Latency'])) as Record<
     LatencyMetricFieldName,
@@ -607,7 +611,9 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
 export const MODEL_CATALOG_FILTER_CHIP_PREFIXES = {
   WORKLOAD_TYPE: 'Workload type:',
   MAX_RPS: 'Max RPS:',
-  COLD_START_LATENCY: 'Cold start latency:',
+  COLD_START_LOAD_TIME: 'Cold start load time: ≤',
+  MIN_VRAM: 'Minimum vRAM: ≤',
+  IMAGE_SIZE: 'Container size: ≤',
   LATENCY_METRIC: 'Metric:',
   LATENCY_PERCENTILE: 'Percentile:',
   LATENCY_THRESHOLD: 'Under',

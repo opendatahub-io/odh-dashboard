@@ -29,6 +29,8 @@ type ProxyData = {
   requestData?: string | Buffer;
   /** Option to substitute your own content type for the API call -- defaults to JSON */
   overrideContentType?: string;
+  /** Option to set the Accept header for the outgoing API call */
+  overrideAccept?: string;
 };
 
 /** Ideally these would all be required, but https by node seems to think there are cases when it does not know the code or message */
@@ -44,10 +46,17 @@ export const proxyCall = (
   data: ProxyData,
 ): Promise<[string, ProxyCallStatus]> => {
   return new Promise((resolve, reject) => {
-    const { method, requestData, overrideContentType, url } = data;
+    const { method, requestData, overrideContentType, overrideAccept, url } = data;
 
     getDirectCallOptions(fastify, request, url)
       .then((requestOptions) => {
+        if (overrideAccept) {
+          requestOptions.headers = {
+            ...requestOptions.headers,
+            Accept: overrideAccept,
+          };
+        }
+
         if (requestData) {
           let contentType: string;
           if (overrideContentType) {

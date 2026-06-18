@@ -106,7 +106,7 @@ export const serializeToAgentProfileSpec = (
   if (config.selectedMcpServerIds.length > 0 && mcpConfigMapName) {
     const entries: AgentProfileMcpServer[] = [];
     for (const serverId of config.selectedMcpServerIds) {
-      const server = availableServers.find((s) => s.name === serverId);
+      const server = availableServers.find((s) => s.url === serverId);
       if (!server) {
         continue;
       }

@@ -1,5 +1,11 @@
-import { HardwareProfileFeatureVisibility, HardwareProfileKind, LocalQueueKind } from '#~/k8sTypes';
-import { DisplayNameAnnotation, Identifier, IdentifierResourceType } from '#~/types';
+import {
+  HardwareProfileFeatureVisibility,
+  type HardwareProfileKind,
+  type Identifier,
+  IdentifierResourceType,
+} from '@odh-dashboard/k8s-core';
+import { LocalQueueKind } from '#~/k8sTypes';
+import { DisplayNameAnnotation } from '#~/types';
 import {
   HardwareProfileWarningType,
   WarningNotification,

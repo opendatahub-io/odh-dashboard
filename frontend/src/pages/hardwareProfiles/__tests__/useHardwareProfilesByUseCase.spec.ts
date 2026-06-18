@@ -1,7 +1,10 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import React from 'react';
+import {
+  HardwareProfileFeatureVisibility,
+  type HardwareProfileKind,
+} from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';

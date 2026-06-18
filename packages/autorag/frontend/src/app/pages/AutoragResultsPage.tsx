@@ -45,7 +45,6 @@ type DrawerContentType =
   | { type: 'run-details' }
   | {
       type: 'playground';
-      secretName: string;
       responsesTemplate: ResponsesTemplate;
       patternInfo: PlaygroundPatternInfo;
     };
@@ -204,8 +203,7 @@ function AutoragResultsPage(): React.JSX.Element {
         return;
       }
       const responsesTemplate = pattern.settings?.responses_template;
-      const secretName = contextValue.parameters?.ogx_secret_name;
-      if (!responsesTemplate || !secretName) {
+      if (!responsesTemplate) {
         return;
       }
 
@@ -216,7 +214,6 @@ function AutoragResultsPage(): React.JSX.Element {
       const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
       setDrawerContent({
         type: 'playground',
-        secretName,
         responsesTemplate,
         patternInfo: {
           patternName,
@@ -228,7 +225,7 @@ function AutoragResultsPage(): React.JSX.Element {
         },
       });
     },
-    [patterns, contextValue.parameters?.ogx_secret_name, pipelineRun],
+    [patterns, pipelineRun],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
@@ -262,10 +259,8 @@ function AutoragResultsPage(): React.JSX.Element {
             ) : drawerContent?.type === 'playground' ? (
               <PlaygroundDrawerPanel
                 namespace={namespace ?? ''}
-                secretName={drawerContent.secretName}
                 responsesTemplate={drawerContent.responsesTemplate}
                 patternInfo={drawerContent.patternInfo}
-                patterns={patterns}
                 onClose={handleDrawerClose}
                 onSelectPattern={handleTryPattern}
                 onViewCode={handleViewCode}

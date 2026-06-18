@@ -49,7 +49,9 @@ const INITIAL_FILTERS: ModelCatalogFilterStates = {
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: [],
   [ModelCatalogStringFilterKey.USE_CASE]: [],
   [ModelCatalogNumberFilterKey.MAX_RPS]: undefined,
-  [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: undefined,
+  [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: undefined,
+  [ModelCatalogNumberFilterKey.MIN_VRAM]: undefined,
+  [ModelCatalogNumberFilterKey.IMAGE_SIZE]: undefined,
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: [],
   [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [],
 };
@@ -132,6 +134,8 @@ function useModelCatalogSetup(providerState: CatalogProviderState) {
       baseSetFilterData(latencyKey, undefined);
     });
     baseSetFilterData(ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION, []);
+    baseSetFilterData(ModelCatalogNumberFilterKey.MAX_RPS, undefined);
+    baseSetFilterData(ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME, undefined);
 
     // Then apply all defaults from namedQueries
     const defaultQuery = filterOptions?.namedQueries?.[DEFAULT_PERFORMANCE_FILTERS_QUERY_NAME];
@@ -155,6 +159,8 @@ function useModelCatalogSetup(providerState: CatalogProviderState) {
     baseSetFilterData(ModelCatalogStringFilterKey.LANGUAGE, []);
     baseSetFilterData(ModelCatalogStringFilterKey.TENSOR_TYPE, []);
     baseSetFilterData(ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION, []);
+    baseSetFilterData(ModelCatalogNumberFilterKey.MIN_VRAM, undefined);
+    baseSetFilterData(ModelCatalogNumberFilterKey.IMAGE_SIZE, undefined);
   }, [baseSetFilterData]);
 
   /**

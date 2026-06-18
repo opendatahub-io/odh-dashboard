@@ -7,8 +7,15 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
+import {
+  HardwareProfileFeatureVisibility,
+  IdentifierResourceType,
+  SchedulingType,
+  TolerationEffect,
+  TolerationOperator,
+  type HardwareProfileKind,
+} from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import { HardwareProfileModel } from '#~/api/models';
 import {
   createHardwareProfile,
@@ -18,13 +25,7 @@ import {
   updateHardwareProfile,
 } from '#~/api/k8s/hardwareProfiles';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import {
-  IdentifierResourceType,
-  TolerationEffect,
-  TolerationOperator,
-  SchedulingType,
-  DisplayNameAnnotation,
-} from '#~/types';
+import { DisplayNameAnnotation } from '#~/types';
 import { mock200Status, mock404Error } from '#~/__mocks__';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({

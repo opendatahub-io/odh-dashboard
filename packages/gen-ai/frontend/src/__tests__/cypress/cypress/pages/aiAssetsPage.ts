@@ -28,6 +28,15 @@ class AIAssetsPage {
     this.findMCPServersTab().click();
     this.waitForTabLoad();
   }
+
+  findAgentProfilesTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('ai-assets-tab-agentprofile');
+  }
+
+  switchToAgentProfilesTab(): void {
+    this.findAgentProfilesTab().click();
+    this.waitForTabLoad();
+  }
 }
 
 export const aiAssetsPage = new AIAssetsPage();

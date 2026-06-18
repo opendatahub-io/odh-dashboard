@@ -19,6 +19,7 @@ import {
   DropdownList,
   EmptyState,
   EmptyStateBody,
+  Flex,
   FormHelperText,
   Gallery,
   Grid,
@@ -29,6 +30,7 @@ import {
   MultipleFileUpload,
   MultipleFileUploadMain,
   NumberInput,
+  Radio,
   Select,
   SelectList,
   SelectOption,
@@ -68,6 +70,10 @@ import {
 } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import {
+  PRESET_BETTER_QUALITY,
+  PRESET_FASTER,
+  PRESET_LABELS,
+  DEFAULT_EVAL_METRIC_BY_TASK,
   TASK_TYPE_BINARY,
   TASK_TYPE_LABELS,
   TASK_TYPE_MULTICLASS,
@@ -93,8 +99,10 @@ import {
   TRAINING_DATA_FILE_ACCEPT,
   TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
 } from '~/app/utilities/automlTrainingDataFile';
+import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
 import LoadingFormField from './LoadingFormField';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
+import OptimizationMetricModal from './OptimizationMetricModal';
 import './AutomlConfigure.scss';
 
 const PREDICTION_TYPES: {
@@ -152,6 +160,7 @@ function AutomlConfigure({
     [allConnectionTypes],
   );
   const [isTargetColumnOpen, setIsTargetColumnOpen] = useState(false);
+  const [isMetricModalOpen, setIsMetricModalOpen] = useState(false);
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
@@ -206,6 +215,7 @@ function AutomlConfigure({
     timestampColumn,
     idColumn,
     knownCovariatesNames,
+    evalMetric,
   ] = useWatch({
     control: form.control,
     name: [
@@ -217,6 +227,7 @@ function AutomlConfigure({
       'timestamp_column',
       'id_column',
       'known_covariates_names',
+      'eval_metric',
     ],
   });
   const isTargetColumnSelected = Boolean(targetColumn);
@@ -265,12 +276,17 @@ function AutomlConfigure({
     notification,
   ]);
 
-  // Re-validate top_n when task type changes (max depends on task type)
-  useEffect(() => {
+  // Cast eval_metric to the new task type's key format, or reset to the default if unsupported
+  useReconfigureSafeEffect(() => {
     if (isTaskTypeSelected) {
+      const current = getValues('eval_metric');
+      const equivalent = findEquivalentMetric(current, taskType);
+      setValue('eval_metric', equivalent ?? DEFAULT_EVAL_METRIC_BY_TASK[taskType], {
+        shouldValidate: true,
+      });
       void trigger('top_n');
     }
-  }, [taskType, isTaskTypeSelected, trigger]);
+  }, [taskType, isTaskTypeSelected, getValues, setValue, trigger]);
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
@@ -994,6 +1010,58 @@ function AutomlConfigure({
                     {isTaskTypeSelected && (
                       <StackItem className="automl-configure__form-field">
                         <ConfigureFormGroup
+                          label="Run preset"
+                          description="Choose a predefined resource allocation and optimization strategy for this run."
+                          labelHelp={{
+                            header: 'Run preset',
+                            body: (
+                              <>
+                                <Content component="p">
+                                  Select how to balance training speed and model quality.
+                                </Content>
+                                <Content component="p">
+                                  <strong>Faster:</strong> Uses fewer resources to prioritize speed.
+                                </Content>
+                                <Content component="p">
+                                  <strong>Better quality:</strong> Trains more models with stronger
+                                  ensembling to prioritize accuracy.
+                                </Content>
+                              </>
+                            ),
+                          }}
+                        >
+                          <Controller
+                            control={form.control}
+                            name="preset"
+                            render={({ field }) => (
+                              <Flex direction={{ default: 'column' }}>
+                                {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
+                                  <Radio
+                                    key={preset}
+                                    id={`preset-${preset}`}
+                                    name="preset"
+                                    label={PRESET_LABELS[preset]}
+                                    description={
+                                      preset === PRESET_FASTER
+                                        ? `${isTimeseries ? '4 vCPU, 16 GiB' : '8 vCPU, 32 GiB'} | A good default for most datasets.`
+                                        : `${isTimeseries ? '8 vCPU, 32 GiB' : '16 vCPU, 64 GiB'} | Prioritizes stronger accuracy, but requires longer training.`
+                                    }
+                                    isChecked={field.value === preset}
+                                    isDisabled={formIsSubmitting}
+                                    onChange={() => field.onChange(preset)}
+                                    data-testid={`preset-radio-${preset}`}
+                                  />
+                                ))}
+                              </Flex>
+                            )}
+                          />
+                        </ConfigureFormGroup>
+                      </StackItem>
+                    )}
+
+                    {isTaskTypeSelected && (
+                      <StackItem className="automl-configure__form-field">
+                        <ConfigureFormGroup
                           label="Top models to consider"
                           labelHelp={{
                             header: 'Top models to consider',
@@ -1036,6 +1104,37 @@ function AutomlConfigure({
                           />
                         </ConfigureFormGroup>
                       </StackItem>
+                    )}
+
+                    {isTaskTypeSelected && (
+                      <>
+                        <Divider />
+                        <StackItem>
+                          <Card data-testid="optimization-metric-card">
+                            <CardHeader
+                              actions={{
+                                actions: (
+                                  <Button
+                                    variant="secondary"
+                                    isDisabled={formIsSubmitting}
+                                    onClick={() => setIsMetricModalOpen(true)}
+                                    data-testid="optimization-metric-edit"
+                                  >
+                                    Edit
+                                  </Button>
+                                ),
+                              }}
+                            >
+                              <CardTitle>Optimization Metric</CardTitle>
+                            </CardHeader>
+                            <CardBody>
+                              <Content component="p" data-testid="optimization-metric-value">
+                                {formatMetricName(evalMetric ?? '')}
+                              </Content>
+                            </CardBody>
+                          </Card>
+                        </StackItem>
+                      </>
                     )}
                   </Stack>
                 )}
@@ -1097,6 +1196,14 @@ function AutomlConfigure({
         allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
+      />
+      <OptimizationMetricModal
+        isOpen={isMetricModalOpen}
+        onSave={(metric) => {
+          setValue('eval_metric', metric, { shouldValidate: true });
+          setIsMetricModalOpen(false);
+        }}
+        onCancel={() => setIsMetricModalOpen(false)}
       />
     </>
   );

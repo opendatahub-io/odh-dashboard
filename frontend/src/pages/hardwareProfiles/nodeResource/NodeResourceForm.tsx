@@ -12,7 +12,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { Identifier, IdentifierResourceType } from '#~/types';
+import { type Identifier, IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { UnitOption } from '#~/utilities/valueUnits';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';

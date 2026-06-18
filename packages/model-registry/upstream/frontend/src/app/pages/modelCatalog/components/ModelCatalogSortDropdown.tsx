@@ -52,7 +52,7 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
       return 'Latency (Lowest → Highest)';
     }
     if (sortBy === ModelCatalogSortOption.LOWEST_COLD_START) {
-      return 'Cold start latency (Lowest → Highest)';
+      return 'Cold start load time (Lowest → Highest)';
     }
     return 'Publish date (Newest → Oldest)';
   };
@@ -97,7 +97,7 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
             value={ModelCatalogSortOption.LOWEST_COLD_START}
             data-testid="sort-option-lowest-cold-start"
           >
-            Cold start latency (Lowest → Highest)
+            Cold start load time (Lowest → Highest)
           </SelectOption>
         </SelectList>
       </Select>

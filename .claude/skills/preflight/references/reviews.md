@@ -23,33 +23,32 @@ Available reviewers:
 
 If a reviewer fails, report the failure — don't silently fall back.
 
-## Prior Review Deduplication
+## Prior Preflight Threads
 
-When a PR has prior preflight review threads, classify them to avoid duplicate suggestions on subsequent runs:
+When a PR has prior preflight review threads, classify them and evaluate whether each is still valid:
 
 ```bash
 ${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number" \
   | ${CLAUDE_SKILL_DIR}/scripts/classify-prior-threads.sh --pr-author "$pr_author"
 ```
 
-**Note:** Resolved (collapsed) review threads are excluded upstream by `fetch-review-threads.sh`, which only selects threads where `isResolved == false`. Resolved threads therefore never appear in the classification input and do not need disposition handling.
+**Note:** Resolved (collapsed) threads are excluded by `fetch-review-threads.sh` (`isResolved == false`), so only open threads appear.
 
-The output has two arrays:
+The output has `preflight_threads` (with `disposition`) and `other_threads`. For each preflight thread, read the finding, the current code at that location, any replies, and the PR context (diff, Jira, description) to decide:
 
-- **`preflight_threads`** — threads from prior preflight runs, each with a `disposition`:
-  - `no_reply` — no human replied. The finding is still posted on the PR. **Do not re-post**, but count as an active finding in the checks table.
-  - `author_replied` — the PR author replied. Read the reply content to determine intent:
-    - Dismissed or disagreed ("not applicable", "intentional", "by design", "won't fix") → treat as resolved. **Exclude from findings count** and do not re-post.
-    - Acknowledged ("will fix", "good catch", "thanks") → the original comment stands. Do not re-post.
-    - Asked a question → keep as active finding. Do not re-post.
-  - `reviewer_replied` — a non-author human replied. Read the reply to determine if it reinforces the finding or resolves it. Do not re-post regardless.
-- **`other_threads`** — non-preflight threads (human reviews, CodeRabbit). Handle normally.
+### Still valid → keep as active finding
 
-### Applying deduplication
+The finding still applies to the current code. Do not re-post it (the original comment is visible). Count it as an active finding.
 
-When compiling findings for the checks table and inline comments:
+### No longer valid → resolve (CI only)
 
-1. Match new findings against prior preflight threads by **file path** and **line/issue similarity** (same file + same or adjacent line + same concern).
-2. **Do not re-post** inline comments for any finding that matches a prior preflight thread — the original comment is still visible on the PR.
-3. **Exclude dismissed findings** (author replied with disagreement) from the active findings count in the Review check row.
-4. Findings with no prior match are net-new — post as inline comments and count normally.
+The finding no longer applies — the code was fixed, a reply explains why it doesn't apply, or it's no longer relevant given the current PR state. With `--ci`, resolve the thread:
+
+1. Post a reply explaining why (e.g., "Resolved — addressed in `<short SHA>`.")
+2. Call `resolveReviewThread` GraphQL mutation to collapse it.
+
+Without `--ci`, report what would be resolved but do not call the API.
+
+### Never re-post
+
+Regardless of validity, never re-post a finding that matches a prior preflight thread. The original comment is already on the PR.

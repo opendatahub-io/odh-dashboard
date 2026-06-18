@@ -854,6 +854,38 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 	return allAAModels, nil
 }
 
+// parseModelCapabilities extracts recognised capabilities from the JSON
+// annotation value.  Returns a copy of DefaultCapabilities when the value
+// is empty, malformed, or yields no valid capabilities.
+func parseModelCapabilities(annotationValue string) []string {
+	if annotationValue == "" {
+		return constants.DefaultCapabilities()
+	}
+	var raw []interface{}
+	if err := json.Unmarshal([]byte(annotationValue), &raw); err != nil {
+		slog.Warn("malformed model-capabilities annotation, defaulting",
+			"value", annotationValue, "error", err)
+		return constants.DefaultCapabilities()
+	}
+	var caps []string
+	for _, v := range raw {
+		s, ok := v.(string)
+		if !ok {
+			slog.Warn("non-string value in model-capabilities, skipping", "value", v)
+			continue
+		}
+		if constants.IsAllowedCapability(s) {
+			caps = append(caps, s)
+		} else {
+			slog.Warn("unknown capability value dropped", "value", s)
+		}
+	}
+	if len(caps) == 0 {
+		return constants.DefaultCapabilities()
+	}
+	return caps
+}
+
 func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.Context, namespace string, labelSelector labels.Selector) ([]models.AAModel, error) {
 	var llmInferenceServiceList kservev1alpha1.LLMInferenceServiceList
 	listOptions := &client.ListOptions{
@@ -883,6 +915,10 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 		if llmSvc.Spec.Model.Name != nil && strings.TrimSpace(*llmSvc.Spec.Model.Name) != "" {
 			modelID = *llmSvc.Spec.Model.Name
 		}
+		if _, ok := llmSvc.Annotations[constants.ModelCapabilitiesAnnotationKey]; !ok {
+			slog.Debug("LLMInferenceService missing model-capabilities annotation, using defaults",
+				"name", llmSvc.Name, "namespace", llmSvc.Namespace)
+		}
 		aaModel := models.AAModel{
 			ModelName:       llmSvc.Name,
 			ModelID:         modelID,
@@ -894,7 +930,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			Status:          kc.extractStatusFromLLMInferenceService(&llmSvc),
 			DisplayName:     kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
-			Modality:        llmSvc.Labels[constants.ModalityLabelKey],
+			Capabilities:    parseModelCapabilities(llmSvc.Annotations[constants.ModelCapabilitiesAnnotationKey]),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -930,6 +966,10 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			kc.Logger.Warn("failed to fetch ServingRuntime", "error", err, "servingRuntime", servingRuntimeName)
 		}
 
+		if _, ok := isvc.Annotations[constants.ModelCapabilitiesAnnotationKey]; !ok {
+			slog.Debug("InferenceService missing model-capabilities annotation, using defaults",
+				"name", isvc.Name, "namespace", isvc.Namespace)
+		}
 		aaModel := models.AAModel{
 			ModelName:       isvc.Name,
 			ModelID:         isvc.Name,
@@ -942,7 +982,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			Status:          kc.extractStatusFromInferenceService(&isvc),
 			DisplayName:     kc.extractDisplayNameFromInferenceService(&isvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
-			Modality:        isvc.Labels[constants.ModalityLabelKey],
+			Capabilities:    parseModelCapabilities(isvc.Annotations[constants.ModelCapabilitiesAnnotationKey]),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -1314,6 +1354,20 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			useCases = model.Metadata.CustomGenAI.UseCases
 		}
 
+		caps := constants.DefaultCapabilities()
+		if len(model.Metadata.Capabilities) > 0 {
+			filtered := make([]string, 0, len(model.Metadata.Capabilities))
+			for _, c := range model.Metadata.Capabilities {
+				if constants.IsAllowedCapability(c) {
+					filtered = append(filtered, c)
+				} else {
+					kc.Logger.Warn("unknown external model capability dropped", "modelID", model.ModelID, "capability", c)
+				}
+			}
+			if len(filtered) > 0 {
+				caps = filtered
+			}
+		}
 		aaModel := models.AAModel{
 			ModelName:          model.ModelID,
 			ModelID:            model.ModelID,
@@ -1329,6 +1383,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			ModelSourceType:    models.ModelSourceTypeCustomEndpoint,
 			ModelType:          model.ModelType,
 			EmbeddingDimension: model.Metadata.EmbeddingDimension,
+			Capabilities:       caps,
 		}
 		aaModels = append(aaModels, aaModel)
 	}

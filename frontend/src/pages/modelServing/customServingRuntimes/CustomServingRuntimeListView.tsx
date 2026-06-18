@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, ToolbarItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { TemplateKind } from '#~/k8sTypes';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import useNotification from '#~/utilities/useNotification';
 import { Table } from '#~/components/table';

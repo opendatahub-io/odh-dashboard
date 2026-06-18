@@ -12,7 +12,7 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
-import { ContainerResources, Identifier } from '#~/types';
+import type { ContainerResources, Identifier } from '@odh-dashboard/k8s-core';
 import CPUField from '#~/components/CPUField';
 import MemoryField from '#~/components/MemoryField';
 import NumberInputWrapper from '#~/components/NumberInputWrapper';

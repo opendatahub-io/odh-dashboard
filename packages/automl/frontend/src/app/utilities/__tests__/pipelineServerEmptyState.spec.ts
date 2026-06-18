@@ -13,20 +13,45 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
     mockGetGenericErrorCode.mockReturnValue(undefined);
   });
 
-  it('returns true for 404', () => {
+  it('returns true for missing managed pipelines message with 404', () => {
     mockGetGenericErrorCode.mockReturnValue(404);
-    expect(shouldShowConfigurePipelineServerEmptyState(new Error('any'))).toBe(true);
-  });
-
-  it('returns false when message indicates no AutoML pipelines (auto-creation handles this)', () => {
-    mockGetGenericErrorCode.mockReturnValue(500);
     expect(
       shouldShowConfigurePipelineServerEmptyState(
         new Error(
-          'no AutoML pipelines found in namespace - ensure managed AutoML pipelines are deployed',
+          'required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false for similar managed pipeline message with singular pipeline', () => {
+    expect(
+      shouldShowConfigurePipelineServerEmptyState(
+        new Error(
+          'required managed pipeline not found in namespace - enable AutoML on the pipeline server',
         ),
       ),
     ).toBe(false);
+  });
+
+  it('returns false for 404 when message does not match managed pipelines error', () => {
+    mockGetGenericErrorCode.mockReturnValue(404);
+    expect(
+      shouldShowConfigurePipelineServerEmptyState(
+        new Error('the requested resource could not be found'),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns true for missing managed pipelines message without status code (flattened Error)', () => {
+    mockGetGenericErrorCode.mockReturnValue(undefined);
+    expect(
+      shouldShowConfigurePipelineServerEmptyState(
+        new Error(
+          'required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
+        ),
+      ),
+    ).toBe(true);
   });
 
   it('returns false for unrelated 500 errors', () => {
@@ -34,11 +59,11 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
     expect(shouldShowConfigurePipelineServerEmptyState(new Error('upstream timeout'))).toBe(false);
   });
 
-  it('returns true when status code 404 appears only in the error message', () => {
+  it('returns false when status code 404 appears only in the error message', () => {
     mockGetGenericErrorCode.mockReturnValue(undefined);
     expect(
       shouldShowConfigurePipelineServerEmptyState(new Error('Request failed with status code 404')),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('returns true for no Pipeline Server (DSPipelineApplication) message', () => {

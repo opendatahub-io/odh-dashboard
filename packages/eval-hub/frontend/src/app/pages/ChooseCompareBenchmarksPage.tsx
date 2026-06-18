@@ -16,15 +16,18 @@ import {
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import CompareBenchmarksTable from '~/app/components/compare/CompareBenchmarksTable';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import { EvaluationJob } from '~/app/types';
-import { getEvaluationName } from '~/app/utilities/evaluationUtils';
+import { getBenchmarkDisplayName, getEvaluationName } from '~/app/utilities/evaluationUtils';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   COMPARE_RUNS_PAGE_TITLE,
   buildMlflowCompareSearchParams,
   filterJobsForCompareBenchmarkSearch,
+  getComparableRunsForJob,
   getBenchmarkSelectionsFromKeys,
   parseCsvParam,
   resolveComparableRunsFromSelections,
@@ -83,14 +86,26 @@ const ChooseCompareBenchmarksPage: React.FC = () => {
     }
 
     const jobsById = new Map(selectedJobs.map((job) => [job.resource.id, job]));
-    const selectedRuns = resolveComparableRunsFromSelections(
-      selectedJobs,
-      getBenchmarkSelectionsFromKeys(selectedBenchmarkKeys),
-    );
+    const selections = getBenchmarkSelectionsFromKeys(selectedBenchmarkKeys);
+    const selectedRuns = resolveComparableRunsFromSelections(selectedJobs, selections);
 
     if (selectedRuns.length < 2) {
       return;
     }
+
+    const totalAvailable = selectedJobs.reduce(
+      (sum, job) => sum + getComparableRunsForJob(job).length,
+      0,
+    );
+    const benchmarkNames = [
+      ...new Set(selections.map((s) => getBenchmarkDisplayName(s.benchmarkId))),
+    ];
+
+    fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_BENCHMARK_CHOSEN, {
+      countOfBenchmarks: selections.length,
+      totalAvailable,
+      benchmarkNames: JSON.stringify(benchmarkNames),
+    });
 
     navigate({
       pathname: evaluationCompareRoute(namespace),
