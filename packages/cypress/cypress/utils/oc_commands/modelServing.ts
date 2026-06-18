@@ -290,6 +290,23 @@ export const checkInferenceServiceState = (
   return checkState();
 };
 
+/**
+ * Deletes an LLMInferenceService from the cluster.
+ * Must be called before deleteOpenShiftProject to avoid KServe finalizer hangs
+ * that would time out the after() hook
+ *
+ * @param serviceName - The metadata.name of the LLMInferenceService to delete.
+ * @param namespace - The namespace where the service is deployed.
+ */
+export const cleanupLLMInferenceService = (
+  serviceName: string,
+  namespace: string,
+): Cypress.Chainable<Cypress.Exec> => {
+  const ocCommand = `oc delete LLMInferenceService ${serviceName} -n ${namespace} --ignore-not-found`;
+  cy.log(`Executing delete LLMInferenceService command: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
+};
+
 export const checkLLMInferenceServiceState = (
   serviceName: string,
   namespace: string,
