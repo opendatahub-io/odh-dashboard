@@ -157,7 +157,15 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
   it(
     'Verify User can deploy a model by selecting a MaaS subscription and API key',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent', '@MaaSCI'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet5',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@MaaSCI',
+        `@ModelsAsService`,
+      ],
     },
     () => {
       cy.step('Log into the application as admin');
