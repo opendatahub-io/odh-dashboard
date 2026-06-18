@@ -32,7 +32,7 @@ import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/area
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+} from '@odh-dashboard/plugin-core/model-serving-labels';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import {

@@ -1,5 +1,5 @@
 import type { ServingRuntimeAPIProtocol } from '@odh-dashboard/internal/types';
-import type { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import type { ModelTypeLabel } from '@odh-dashboard/plugin-core/model-serving-labels';
 import { appChrome } from './appChrome';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 

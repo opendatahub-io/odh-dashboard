@@ -2,7 +2,7 @@ import {
   ModelLocationSelectOption,
   ModelStateLabel,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/plugin-core/model-serving-labels';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';

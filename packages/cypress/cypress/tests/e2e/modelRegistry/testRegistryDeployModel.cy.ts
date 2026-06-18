@@ -2,7 +2,7 @@ import {
   ModelLocationSelectOption,
   ModelStateLabel,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+} from '@odh-dashboard/plugin-core/model-serving-labels';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
   FormFieldSelector,

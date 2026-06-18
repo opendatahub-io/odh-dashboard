@@ -14,7 +14,7 @@ import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/area
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+} from '@odh-dashboard/plugin-core/model-serving-labels';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import { maasWizardField } from '../../../pages/modelsAsAService';
 import {

@@ -33,7 +33,7 @@ import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects
 import {
   ModelStateToggleLabel,
   ModelStateLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+} from '@odh-dashboard/plugin-core/model-serving-labels';
 import { modelServingGlobal, modelServingSection } from '../../../../pages/modelServing';
 import { projectDetails } from '../../../../pages/projects';
 import { be } from '../../../../utils/should';

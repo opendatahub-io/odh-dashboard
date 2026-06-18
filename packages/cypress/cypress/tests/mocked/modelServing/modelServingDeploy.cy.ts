@@ -29,7 +29,7 @@ import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/plugin-core/model-serving-labels';
 import {
   initMockConnectionSecretIntercepts,
   initMockModelAuthIntercepts,

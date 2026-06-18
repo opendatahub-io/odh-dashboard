@@ -2,7 +2,7 @@ import {
   ModelLocationSelectOption,
   ModelStateLabel,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/plugin-core/model-serving-labels';
 import {
   modelServingGlobal,
   modelServingSection,

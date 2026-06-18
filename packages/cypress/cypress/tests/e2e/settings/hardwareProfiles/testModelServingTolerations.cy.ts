@@ -1,7 +1,7 @@
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+} from '@odh-dashboard/plugin-core/model-serving-labels';
 import type { ModelTolerationsTestData } from '../../../../types';
 import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadModelTolerationsFixture } from '../../../../utils/dataLoader';

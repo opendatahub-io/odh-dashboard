@@ -1,5 +1,5 @@
 import * as yaml from 'js-yaml';
-import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import { ModelLocationSelectOption } from '@odh-dashboard/plugin-core/model-serving-labels';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import type { DataScienceProjectData, ModelCatalogSourceTestData } from '../../../types';
