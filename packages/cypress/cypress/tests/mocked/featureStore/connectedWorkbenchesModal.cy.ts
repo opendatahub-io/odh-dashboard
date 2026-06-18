@@ -306,9 +306,9 @@ describe('Connected Workbenches modal', () => {
     const openModalWithMultiProjectData = () => {
       interceptConnectedWorkbenches(multiProjectResponse);
       featureStoreGlobal.visitEntities(fsProjectName);
+      openConnectedWorkbenchesModalAndWait();
       featureStoreGlobal.findConnectedWorkbenchesModalProjectSelector().click();
       cy.findByRole('menuitem', { name: 'All feature stores' }).click();
-      cy.wait('@getConnectedWorkbenches');
     };
 
     it('should switch filter types and filter by workbench name', () => {
@@ -320,20 +320,30 @@ describe('Connected Workbenches modal', () => {
       cy.findByTestId('filter-type-toggle').should('have.text', 'Workbench name');
 
       cy.findByTestId('workbench-name-filter-input').type('alpha');
-      featureStoreGlobal.findConnectedWorkbenchesTable().find('tbody tr').should('have.length', 1);
-      featureStoreGlobal.findConnectedWorkbenchesTable().should('contain.text', 'wb-alpha');
+      featureStoreGlobal
+        .findConnectedWorkbenchesTable()
+        .find('tbody')
+        .findAllByRole('row')
+        .should('have.length', 1)
+        .first()
+        .should('contain.text', 'wb-alpha');
     });
 
     it('should filter by authorized project and show grouped options', () => {
       openModalWithMultiProjectData();
 
       cy.findByTestId('project-filter-toggle').click();
-      cy.findByText('Projects with connected workbenches').should('be.visible');
-      cy.findByText('Projects without connected workbenches').should('be.visible');
+      cy.findByTestId('project-group-header-with').should('be.visible');
+      cy.findByTestId('project-group-header-without').should('be.visible');
 
       cy.findByTestId('project-option-proj-a').click();
-      featureStoreGlobal.findConnectedWorkbenchesTable().find('tbody tr').should('have.length', 1);
-      featureStoreGlobal.findConnectedWorkbenchesTable().should('contain.text', 'wb-alpha');
+      featureStoreGlobal
+        .findConnectedWorkbenchesTable()
+        .find('tbody')
+        .findAllByRole('row')
+        .should('have.length', 1)
+        .first()
+        .should('contain.text', 'wb-alpha');
     });
 
     it('should filter by permission', () => {
@@ -344,16 +354,26 @@ describe('Connected Workbenches modal', () => {
       cy.findByTestId('permission-filter-toggle').click();
       cy.findByTestId('permission-option-Delete').click();
 
-      featureStoreGlobal.findConnectedWorkbenchesTable().find('tbody tr').should('have.length', 1);
-      featureStoreGlobal.findConnectedWorkbenchesTable().should('contain.text', 'Delete');
+      featureStoreGlobal
+        .findConnectedWorkbenchesTable()
+        .find('tbody')
+        .findAllByRole('row')
+        .should('have.length', 1)
+        .first()
+        .should('contain.text', 'Delete');
     });
 
     it('should hide projects with connected workbenches using the toggle', () => {
       openModalWithMultiProjectData();
 
       cy.findByTestId('hide-connected-workbenches-switch').click();
-      featureStoreGlobal.findConnectedWorkbenchesTable().find('tbody tr').should('have.length', 1);
-      featureStoreGlobal.findConnectedWorkbenchesTable().should('contain.text', k8sNamespace);
+      featureStoreGlobal
+        .findConnectedWorkbenchesTable()
+        .find('tbody')
+        .findAllByRole('row')
+        .should('have.length', 1)
+        .first()
+        .should('contain.text', k8sNamespace);
     });
   });
 });

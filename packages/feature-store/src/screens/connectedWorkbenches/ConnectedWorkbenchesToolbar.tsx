@@ -5,7 +5,7 @@ import {
   DropdownList,
   MenuToggle,
   SearchInput,
-  // eslint-disable-next-line no-restricted-imports -- grouped multi-select with custom toggle; MultiSelection does not support SelectGroup
+  // eslint-disable-next-line no-restricted-imports -- custom toggle with Badge count and Divider separators between option groups; wrapper components (MultiSelection, SimpleSelect) do not support this layout
   Select,
   Divider,
   SelectList,
@@ -170,7 +170,6 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
                   isDisabled
                   value="header-with-connected"
                   data-testid="project-group-header-with"
-                  style={{ color: 'var(--pf-t--global--text--color--disabled)' }}
                 >
                   Projects with connected workbenches
                 </SelectOption>
@@ -196,7 +195,6 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
                   isDisabled
                   value="header-without-connected"
                   data-testid="project-group-header-without"
-                  style={{ color: 'var(--pf-t--global--text--color--disabled)' }}
                 >
                   Projects without connected workbenches
                 </SelectOption>
