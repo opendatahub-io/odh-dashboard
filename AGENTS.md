@@ -40,7 +40,7 @@ odh-dashboard/
 
 - **Node.js**: >= 22.0.0
 - **npm**: >= 10.0.0
-- **Go**: >= 1.24 (for packages with BFF), >= 1.25 (for dashboard-operator)
+- **Go**: >= 1.26 (for packages with BFF), >= 1.25 (for dashboard-operator)
 
 ## Key Technologies
 
