@@ -39,6 +39,7 @@ export const FineTunedModelNewConnectionContext =
           invalidCharacters: false,
           invalidLength: false,
           maxLength: 0,
+          routeNameTooLong: false,
           touched: false,
         },
       },

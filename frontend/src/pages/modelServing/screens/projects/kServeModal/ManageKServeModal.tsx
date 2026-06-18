@@ -128,19 +128,20 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       paths: INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
     });
 
+  const currentProjectName = projectContext?.currentProject.metadata.name;
+  const namespace = currentProjectName || createDataInferenceService.project;
+
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
     limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
     regexp: INFERENCE_SERVICE_NAME_REGEX,
     invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+    namespace,
   });
 
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
   const [hasReplicaValidationErrors, setHasReplicaValidationErrors] = React.useState(false);
-
-  const currentProjectName = projectContext?.currentProject.metadata.name;
-  const namespace = currentProjectName || createDataInferenceService.project;
 
   const pvcs = usePvcs(namespace);
 

@@ -109,13 +109,21 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             {!showK8sField && !k8sName.state.immutable && (
               <>
                 {k8sName.value && (
-                  <HelperTextItem variant={k8sName.state.invalidCharacters ? 'error' : 'default'}>
+                  <HelperTextItem
+                    variant={
+                      k8sName.state.invalidCharacters || k8sName.state.routeNameTooLong
+                        ? 'error'
+                        : 'default'
+                    }
+                  >
                     The resource name will be <b>{k8sName.value}</b>.
                     {k8sName.state.invalidCharacters &&
                       ` ${
                         k8sName.state.invalidCharsMessage ||
                         'Must start and end with a letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).'
                       }`}
+                    {k8sName.state.routeNameTooLong &&
+                      ' Resource name and project name combined cannot exceed 63 characters.'}
                   </HelperTextItem>
                 )}
                 <HelperTextItem>

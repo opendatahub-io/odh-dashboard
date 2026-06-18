@@ -24,6 +24,25 @@ export const HelperTextItemMaxLength: HelperTextItemType = ({ k8sName }) => {
   );
 };
 
+export const HelperTextItemRouteNameTooLong: HelperTextItemType = ({ k8sName }) => {
+  if (!k8sName.state.namespace) {
+    return null;
+  }
+
+  let variant: Variants = 'indeterminate';
+  if (k8sName.state.routeNameTooLong) {
+    variant = 'error';
+  } else if (k8sName.value.trim().length > 0) {
+    variant = 'success';
+  }
+
+  return (
+    <HelperTextItem variant={variant}>
+      Resource name and project name combined cannot exceed 63 characters
+    </HelperTextItem>
+  );
+};
+
 export const HelperTextItemValidCharacters: HelperTextItemType = ({ k8sName }) => {
   let variant: Variants = 'indeterminate';
   if (k8sName.state.invalidCharacters) {

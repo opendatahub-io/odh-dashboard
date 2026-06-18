@@ -210,6 +210,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
                     invalidCharacters: false,
                     invalidLength: false,
                     maxLength: 0,
+                    routeNameTooLong: false,
                     touched: false,
                   },
                 },
