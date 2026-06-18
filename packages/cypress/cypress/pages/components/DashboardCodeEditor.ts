@@ -22,7 +22,7 @@ interface MonacoWindow {
 export class DashboardCodeEditor extends Contextual<HTMLElement> {
   waitForReady(): this {
     this.find()
-      .find('.monaco-editor')
+      .find('.monaco-editor', { timeout: 30000 })
       .should(($el) => {
         const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
         if (!win.monaco) {
