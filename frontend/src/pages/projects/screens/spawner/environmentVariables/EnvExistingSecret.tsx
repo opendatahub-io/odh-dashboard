@@ -268,7 +268,7 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
       {existingSecretRefs.length > 0 && (
         <StackItem>
           <HelperText>
-            <HelperTextItem variant="indeterminate">{RESTART_INFO}</HelperTextItem>
+            <HelperTextItem>{RESTART_INFO}</HelperTextItem>
           </HelperText>
         </StackItem>
       )}
