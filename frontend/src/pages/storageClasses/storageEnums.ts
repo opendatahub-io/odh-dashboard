@@ -1,3 +1,6 @@
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
+import { AccessMode } from '@odh-dashboard/k8s-core';
+
 // list of storage provisioners
 // reference docs:
 // 1. https://github.com/openshift/console/blob/1b1c0b8832b523f958e3a4a196677e3c227b8166/frontend/public/components/storage/shared.ts#L33
@@ -31,13 +34,7 @@ export enum StorageProvisioner {
   RBD_CSI_ODF = 'openshift-storage.rbd.csi.ceph.com',
 }
 
-// list of access modes
-export enum AccessMode {
-  RWO = 'ReadWriteOnce',
-  RWX = 'ReadWriteMany',
-  ROX = 'ReadOnlyMany',
-  RWOP = 'ReadWriteOncePod',
-}
+export { AccessMode };
 
 export const AccessModeLabelMap: Record<AccessMode, string> = {
   [AccessMode.RWO]: 'RWO',

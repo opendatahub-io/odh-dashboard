@@ -1,23 +1,14 @@
 import React from 'react';
-import {
-  Alert,
-  Stack,
-  StackItem,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
-} from '@patternfly/react-core';
+import { Alert, Stack, StackItem, Checkbox } from '@patternfly/react-core';
 import { getPipelinesCR, toggleInstructLabState } from '#~/api';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
   NotificationWatcherResponse,
 } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
-import InstructLabPipelineEnablement from '#~/concepts/pipelines/content/configurePipelinesServer/InstructLabPipelineEnablement';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { DSPipelineManagedPipelinesKind } from '#~/k8sTypes';
+import { DSPipelineManagedPipelinesInstructLabKind } from '#~/k8sTypes';
 import { ILAB_PIPELINE_NAME } from '#~/pages/pipelines/global/modelCustomization/const';
 import useNotification from '#~/utilities/useNotification';
 
@@ -38,9 +29,12 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
     refreshAllAPI,
   } = usePipelinesAPI();
   const [isSubmitting, setSubmitting] = React.useState(false);
-  const isInstructLabEnabled = managedPipelines?.instructLab?.state === 'Managed';
+  const isInstructLabEnabled =
+    managedPipelines != null &&
+    'instructLab' in managedPipelines &&
+    managedPipelines.instructLab?.state === 'Managed';
   const [checked, setChecked] = React.useState(isInstructLabEnabled);
-  const instructLabStatus: DSPipelineManagedPipelinesKind = {
+  const instructLabStatus: DSPipelineManagedPipelinesInstructLabKind = {
     instructLab: { state: checked ? 'Managed' : 'Removed' },
   };
   const notification = useNotification();
@@ -61,7 +55,11 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
       managedPipelines ? { ...managedPipelines, ...instructLabStatus } : instructLabStatus,
     )
       .then((dspa) => {
-        const isEnabled = dspa.spec.apiServer?.managedPipelines?.instructLab?.state === 'Managed';
+        const managedPipelinesResult = dspa.spec.apiServer?.managedPipelines;
+        const isEnabled =
+          managedPipelinesResult != null &&
+          'instructLab' in managedPipelinesResult &&
+          managedPipelinesResult.instructLab?.state === 'Managed';
         if (isEnabled) {
           notification.info('Restarting pipeline server');
         } else {
@@ -120,62 +118,74 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
       .finally(() => setSubmitting(false));
   };
 
-  return (
-    <Modal
-      isOpen
-      variant="small"
-      onClose={() => onClose()}
-      data-testid="manage-sample-pipelines-modal"
-    >
-      <ModalHeader
-        title="Manage preconfigured pipelines"
-        description={
-          <>
-            Select a preconfigured pipeline to install it on your project and enable automatic
-            updates. After installation, you can deselect the pipeline to disable automatic updates.
-            <br />
-            <br />
-            Note: You can manually delete preconfigured pipelines after installation.
-          </>
-        }
-      />
-      <ModalBody>
-        <Stack hasGutter>
-          <StackItem>
-            <InstructLabPipelineEnablement isEnabled={checked} setEnabled={setChecked} />
-          </StackItem>
-          {!isInstructLabEnabled && checked ? (
-            <StackItem>
-              <Alert
-                isInline
-                variant="warning"
-                title="Installing the InstructLab pipeline will cause the pipeline server to restart."
-              />
-            </StackItem>
-          ) : null}
-          {isInstructLabEnabled && !checked ? (
-            <StackItem>
-              <Alert
-                isInline
-                variant="warning"
-                title="If you want to remove the InstructLab pipeline, you must manually delete it."
-              />
-            </StackItem>
-          ) : null}
-        </Stack>
-      </ModalBody>
-      <ModalFooter>
-        <DashboardModalFooter
-          onCancel={() => onClose()}
-          onSubmit={onSubmit}
-          submitLabel="Apply"
-          isSubmitLoading={isSubmitting}
-          isSubmitDisabled={checked === isInstructLabEnabled}
-          error={error}
-          alertTitle="Error managing sample pipelines"
+  const buttonActions: ButtonAction[] = [
+    {
+      label: 'Apply',
+      onClick: onSubmit,
+      variant: 'primary',
+      isLoading: isSubmitting,
+      isDisabled: checked === isInstructLabEnabled,
+    },
+    {
+      label: 'Cancel',
+      onClick: onClose,
+      variant: 'link',
+    },
+  ];
+
+  const description = (
+    <>
+      Select a preconfigured pipeline to install it on your project and enable automatic updates.
+      After installation, you can deselect the pipeline to disable automatic updates.
+      <br />
+      <br />
+      Note: You can manually delete preconfigured pipelines after installation.
+    </>
+  );
+
+  const contents = (
+    <Stack hasGutter>
+      <StackItem>
+        <Checkbox
+          id="instructlab-pipeline-checkbox"
+          label="InstructLab pipeline"
+          isChecked={checked}
+          onChange={(_event, isChecked) => setChecked(isChecked)}
         />
-      </ModalFooter>
-    </Modal>
+      </StackItem>
+      {!isInstructLabEnabled && checked ? (
+        <StackItem>
+          <Alert
+            isInline
+            variant="warning"
+            title="Installing the InstructLab pipeline will cause the pipeline server to restart."
+          />
+        </StackItem>
+      ) : null}
+      {isInstructLabEnabled && !checked ? (
+        <StackItem>
+          <Alert
+            isInline
+            variant="warning"
+            title="If you want to remove the InstructLab pipeline, you must manually delete it."
+          />
+        </StackItem>
+      ) : null}
+    </Stack>
+  );
+
+  return (
+    <ContentModal
+      onClose={onClose}
+      title="Manage preconfigured pipelines"
+      description={description}
+      contents={contents}
+      buttonActions={buttonActions}
+      variant="small"
+      dataTestId="manage-sample-pipelines-modal"
+      error={error}
+      alertTitle="Error managing sample pipelines"
+    />
   );
 };
 

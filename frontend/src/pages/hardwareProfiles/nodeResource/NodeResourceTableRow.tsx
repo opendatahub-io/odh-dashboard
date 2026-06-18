@@ -10,7 +10,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
-import { Identifier } from '#~/types';
+import type { Identifier } from '@odh-dashboard/k8s-core';
 import { isHardwareProfileIdentifierValid } from '#~/pages/hardwareProfiles/utils';
 import { formatResourceValue } from '#~/concepts/hardwareProfiles/utils';
 

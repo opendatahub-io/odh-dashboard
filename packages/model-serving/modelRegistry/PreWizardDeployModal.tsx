@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router';
 import projectImg from '@odh-dashboard/internal/images/UI_icon-Red_Hat-Folder-RGB.svg';
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import ProjectSelector from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';

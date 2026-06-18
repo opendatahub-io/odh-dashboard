@@ -5,6 +5,10 @@ import { Drawer, DrawerContent } from '@patternfly/react-core';
 import PlaygroundDrawerPanel from '~/app/components/run-results/PlaygroundDrawerPanel';
 import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPattern';
 import type { PlaygroundPatternInfo } from '~/app/components/run-results/PlaygroundDrawerPanel';
+import {
+  AutoragResultsContext,
+  type AutoragResultsContextProps,
+} from '~/app/context/AutoragResultsContext';
 
 jest.mock('~/app/components/EmbeddedPlayground', () => {
   const MockPlayground: React.FC = () => (
@@ -66,6 +70,11 @@ const mockPatterns: Record<string, AutoragPattern> = {
   } as AutoragPattern,
 };
 
+const mockContextValue: AutoragResultsContextProps = {
+  patterns: mockPatterns,
+  parameters: { ogx_secret_name: 'test-secret' },
+};
+
 const defaultProps = {
   namespace: 'test-ns',
   secretName: 'test-secret',
@@ -79,11 +88,13 @@ const defaultProps = {
 
 const renderInDrawer = (props = defaultProps) =>
   render(
-    <Drawer isExpanded>
-      <DrawerContent panelContent={<PlaygroundDrawerPanel {...props} />}>
-        <div>Main content</div>
-      </DrawerContent>
-    </Drawer>,
+    <AutoragResultsContext.Provider value={mockContextValue}>
+      <Drawer isExpanded>
+        <DrawerContent panelContent={<PlaygroundDrawerPanel {...props} />}>
+          <div>Main content</div>
+        </DrawerContent>
+      </Drawer>
+    </AutoragResultsContext.Provider>,
   );
 
 describe('PlaygroundDrawerPanel', () => {

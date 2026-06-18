@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { K8sCondition, ProjectKind, K8sDspaConditionReason } from '#~/k8sTypes';
+import type { K8sCondition, ProjectKind } from '@odh-dashboard/k8s-core';
+import { K8sDspaConditionReason } from '#~/k8sTypes';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_grpc_web_pb';

@@ -1,8 +1,13 @@
 import React, { useRef } from 'react';
-import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
+import {
+  HardwareProfileFeatureVisibility,
+  type HardwareProfileKind,
+  ContainerResources,
+  NodeSelector,
+  Toleration,
+} from '@odh-dashboard/k8s-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
-import { ContainerResources, NodeSelector, Toleration } from '#~/types';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '#~/utilities/valueUnits';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';

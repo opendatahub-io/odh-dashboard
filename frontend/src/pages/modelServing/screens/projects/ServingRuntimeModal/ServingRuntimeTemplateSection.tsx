@@ -12,9 +12,10 @@ import {
   Skeleton,
   Truncate,
 } from '@patternfly/react-core';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
-import { ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
+import { ServingRuntimeKind } from '#~/k8sTypes';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,

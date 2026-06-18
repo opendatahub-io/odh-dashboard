@@ -1,5 +1,5 @@
 import { IAction } from '@patternfly/react-table';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { useAccessAllowed } from '#~/concepts/userSSAR/useAccessAllowed';
 
 const tooltipArgs = (text: string): Partial<IAction> => ({

@@ -38,6 +38,9 @@ jq -c --arg pr_author "$pr_author" '
     | select(is_preflight)
     | non_bot_replies as $nbr
     | {
+        thread_id,
+        database_id,
+        created_at,
         path,
         line,
         author,

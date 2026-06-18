@@ -150,6 +150,10 @@ func (c *testK8sClient) GetUser(_ *kubernetes.RequestIdentity) (string, error) {
 	return "test-user@example.com", nil
 }
 
+func (c *testK8sClient) GetEvalHubDiscoveryURL(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (string, error) {
+	return "", nil
+}
+
 func (c *testK8sClient) CanListEvalHubInstances(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (bool, error) {
 	return true, nil
 }

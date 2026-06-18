@@ -1,4 +1,4 @@
-import { MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { isPVCUri } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import type { LLMdDeployment } from '../types';
 
