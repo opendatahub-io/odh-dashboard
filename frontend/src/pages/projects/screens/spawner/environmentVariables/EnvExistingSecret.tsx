@@ -201,22 +201,47 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
       </StackItem>
       {existingSecretRefs.map((ref) => {
         const secret = secretsByName.get(ref.secretName);
+        const secretMissing = secretsLoaded && !secret;
         const keys = secret?.keys ?? [];
         const allKeysId = `existing-secret-${instanceId}-${ref.secretName}-all-keys`;
         const isExpanded = expandedSecrets.has(ref.secretName);
 
         return (
           <StackItem key={ref.secretName} data-testid={`existing-secret-row-${ref.secretName}`}>
+            {secretMissing && (
+              <Alert
+                variant="danger"
+                isInline
+                isPlain
+                title={`Secret "${ref.secretName}" was not found. This workbench cannot start until the missing secret is restored or removed.`}
+                data-testid={`existing-secret-missing-${ref.secretName}`}
+                actionLinks={
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => handleRemoveSecret(ref.secretName)}
+                  >
+                    Remove this reference
+                  </Button>
+                }
+              />
+            )}
             <Split>
               <SplitItem isFilled>
                 <ExpandableSection
                   toggleContent={
                     <>
                       <b>{ref.secretName}</b>{' '}
-                      <Label isCompact>
-                        {ref.selectedKeys.length} of {keys.length} key
-                        {keys.length !== 1 ? 's' : ''}
-                      </Label>
+                      {secretMissing ? (
+                        <Label isCompact color="red">
+                          not found
+                        </Label>
+                      ) : (
+                        <Label isCompact>
+                          {ref.selectedKeys.length} of {keys.length} key
+                          {keys.length !== 1 ? 's' : ''}
+                        </Label>
+                      )}
                     </>
                   }
                   isExpanded={isExpanded}

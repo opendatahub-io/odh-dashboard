@@ -23,7 +23,7 @@ const getSourcesFromEnvVariables = (envVariables: EnvVariable[]): EnvVarSource[]
         ...acc,
         ...refs.map((r) => ({
           name: `Secret "${r.secretName}"`,
-          keys: r.selectedKeys,
+          keys: r.selectedKeys.map((k) => r.keyAliases?.[k] ?? k),
         })),
       ];
     }

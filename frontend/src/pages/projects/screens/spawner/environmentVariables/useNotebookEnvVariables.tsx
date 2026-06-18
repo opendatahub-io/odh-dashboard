@@ -34,22 +34,26 @@ export const getSecretKeyRef = (
 
 export const parseExistingSecretKeyRefs = (notebook: NotebookKind): EnvVariable[] => {
   const envList = notebook.spec.template.spec.containers[0]?.env ?? [];
-  const grouped = new Map<string, string[]>();
+  const grouped = new Map<string, { keys: string[]; aliases: Record<string, string> }>();
 
   for (const entry of envList) {
     const ref = getSecretKeyRef(entry.valueFrom);
     if (ref && !RESERVED_ENV_NAMES.has(entry.name)) {
-      const keys = grouped.get(ref.name) ?? [];
-      keys.push(ref.key);
-      grouped.set(ref.name, keys);
+      const group = grouped.get(ref.name) ?? { keys: [], aliases: {} };
+      group.keys.push(ref.key);
+      if (entry.name !== ref.key) {
+        group.aliases[ref.key] = entry.name;
+      }
+      grouped.set(ref.name, group);
     }
   }
 
   const refs = [...grouped.entries()].map(
-    ([secretName, keys]): ExistingSecretRef => ({
+    ([secretName, { keys, aliases }]): ExistingSecretRef => ({
       secretName,
       selectedKeys: keys,
       allKeys: false,
+      ...(Object.keys(aliases).length > 0 ? { keyAliases: aliases } : {}),
     }),
   );
 

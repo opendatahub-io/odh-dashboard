@@ -126,6 +126,7 @@ export type ExistingSecretRef = {
   secretName: string;
   selectedKeys: string[];
   allKeys: boolean;
+  keyAliases?: Record<string, string>;
 };
 
 export type EnvVariable = {
