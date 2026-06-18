@@ -65,7 +65,7 @@ func TestMaaSModelsHandler(t *testing.T) {
 
 		// Verify mock returns 5 models
 		assert.Equal(t, "list", response.Object)
-		assert.Len(t, response.Data, 5)
+		assert.Len(t, response.Data, 6)
 
 		// Verify the structure of returned models
 		firstModel := response.Data[0]

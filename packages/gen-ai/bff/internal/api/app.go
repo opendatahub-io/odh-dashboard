@@ -448,7 +448,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.OGXServerStatusPath, app.AttachNamespace(app.LlamaStackDistributionStatusHandler))
 
 	// OGX server install endpoint (URL remains /lsd/install)
-	apiRouter.POST(constants.OGXServerInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
+	apiRouter.POST(constants.OGXServerInstallPath, app.AttachBFFMaaSClient(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
 
 	// OGX server delete endpoint (URL remains /lsd/delete)
 	apiRouter.DELETE(constants.OGXServerDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
