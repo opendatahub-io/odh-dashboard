@@ -32,6 +32,9 @@ jobs:
         with:
           go-version-file: dashboard-operator/go.mod
 
+      - name: Install Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4
+
       - name: Lint
         working-directory: dashboard-operator
         run: make lint
@@ -43,6 +46,10 @@ jobs:
       - name: Test
         working-directory: dashboard-operator
         run: make test
+
+      - name: Validate Helm chart
+        working-directory: dashboard-operator
+        run: make chart-validate
 
       - name: Check if there are uncommitted file changes
         working-directory: dashboard-operator
