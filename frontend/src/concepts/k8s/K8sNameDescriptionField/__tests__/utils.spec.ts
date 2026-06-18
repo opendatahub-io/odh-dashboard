@@ -535,6 +535,40 @@ describe('setupDefaults with namespace', () => {
     });
     expect(result.k8sName.state.namespace).toBe('my-project');
   });
+
+  it('should initialize routeNameTooLong to true when prefilled k8sName + namespace exceeds 63 chars', () => {
+    // k8sName (30 chars) + '-' (1 char) + namespace (33 chars) = 64 > 63
+    const longK8sName = 'a'.repeat(30);
+    const longNamespace = 'b'.repeat(33);
+    const result = setupDefaults({
+      initialData: {
+        name: 'Display Name',
+        k8sName: longK8sName,
+        description: 'test',
+      },
+      limitNameResourceType: LimitNameResourceType.WORKBENCH,
+      namespace: longNamespace,
+    });
+    expect(result.k8sName.state.routeNameTooLong).toBe(true);
+    expect(result.k8sName.state.namespace).toBe(longNamespace);
+    expect(result.k8sName.value).toBe(longK8sName);
+  });
+
+  it('should initialize routeNameTooLong to false when prefilled k8sName + namespace is within 63 chars', () => {
+    const shortK8sName = 'my-workbench';
+    const shortNamespace = 'my-project';
+    const result = setupDefaults({
+      initialData: {
+        name: 'Display Name',
+        k8sName: shortK8sName,
+        description: 'test',
+      },
+      limitNameResourceType: LimitNameResourceType.WORKBENCH,
+      namespace: shortNamespace,
+    });
+    expect(result.k8sName.state.routeNameTooLong).toBe(false);
+    expect(result.k8sName.state.namespace).toBe(shortNamespace);
+  });
 });
 
 describe('handleUpdateLogic with namespace (route name validation)', () => {

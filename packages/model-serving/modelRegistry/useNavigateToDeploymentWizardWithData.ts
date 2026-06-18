@@ -65,6 +65,7 @@ export const useNavigateToDeploymentWizardWithData = (
             invalidCharacters: false,
             invalidLength: false,
             maxLength,
+            routeNameTooLong: false,
             touched: false,
           },
         },

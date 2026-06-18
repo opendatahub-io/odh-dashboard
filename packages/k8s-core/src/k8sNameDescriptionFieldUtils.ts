@@ -115,6 +115,7 @@ export const setupDefaults = ({
 
   const isRouteBased =
     limitNameResourceType != null && ROUTE_BASED_RESOURCE_TYPES.has(limitNameResourceType);
+  const effectiveNamespace = isRouteBased ? namespace : undefined;
 
   return handleUpdateLogic({
     name: initialName,
@@ -126,8 +127,8 @@ export const setupDefaults = ({
         invalidCharacters: false,
         invalidLength: false,
         maxLength: configuredMaxLength,
-        routeNameTooLong: false,
-        namespace: isRouteBased ? namespace : undefined,
+        routeNameTooLong: isRouteNameTooLong(initialK8sNameValue, effectiveNamespace),
+        namespace: effectiveNamespace,
         safePrefix,
         staticPrefix,
         regexp,

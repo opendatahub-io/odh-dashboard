@@ -89,6 +89,7 @@ export {
   setupDefaults,
   handleUpdateLogic,
   isK8sNameDescriptionDataValid,
+  isRouteNameTooLong,
   extractK8sNameDescriptionFieldData,
 } from './k8sNameDescriptionFieldUtils';
 
