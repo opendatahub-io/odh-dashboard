@@ -31,7 +31,7 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 
 	// Get MaaS BFF client from context (attached by AttachBFFMaaSClient middleware)
 	// BFF client can be nil if MaaS BFF is not available - will be validated later if MaaS models are requested
-	bffClient, _ := ctx.Value(constants.BFFMaaSClientKey).(bffclient.BFFClientInterface)
+	bffClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
 
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
