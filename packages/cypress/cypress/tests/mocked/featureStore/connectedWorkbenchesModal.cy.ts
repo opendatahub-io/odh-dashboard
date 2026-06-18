@@ -366,7 +366,7 @@ describe('Connected Workbenches modal', () => {
     it('should hide projects with connected workbenches using the toggle', () => {
       openModalWithMultiProjectData();
 
-      cy.findByTestId('hide-connected-workbenches-switch').click();
+      cy.pfSwitch('hide-connected-workbenches-switch').click();
       featureStoreGlobal
         .findConnectedWorkbenchesTable()
         .find('tbody')
