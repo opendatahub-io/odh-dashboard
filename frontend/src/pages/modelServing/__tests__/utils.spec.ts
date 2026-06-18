@@ -1,3 +1,4 @@
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
 import {
   getInferenceServiceSizeOrReturnEmpty,
   getServingRuntimeOrReturnEmpty,
@@ -14,7 +15,6 @@ import {
 } from '#~/pages/modelServing/utils';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
-import { ContainerResources } from '#~/types';
 import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
 import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {

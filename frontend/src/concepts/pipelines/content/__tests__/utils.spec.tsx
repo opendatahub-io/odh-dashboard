@@ -10,6 +10,7 @@ import {
   PendingIcon,
 } from '@patternfly/react-icons';
 import React from 'react';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
 import {
   PipelineRunKF,
   StorageStateKF,
@@ -21,7 +22,6 @@ import {
   getStatusFromCondition,
   messageForCondition,
 } from '#~/concepts/pipelines/content/utils';
-import { K8sCondition } from '#~/k8sTypes';
 import { StatusType } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
 
 const run: PipelineRunKF = {

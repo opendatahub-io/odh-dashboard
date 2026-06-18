@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import useFetch, {
   NotReadyError,
   type FetchOptions,
@@ -31,7 +31,13 @@ export const getTokenNames = (
   return { serviceAccountName, roleName, roleBindingName };
 };
 
-export const isDeploymentAuthEnabled = (deployment: Deployment): boolean => {
+export const isDeploymentAuthEnabled = (
+  deployment: Deployment,
+  platformAuthCheck?: (deployment: Deployment) => boolean,
+): boolean => {
+  if (platformAuthCheck) {
+    return platformAuthCheck(deployment);
+  }
   const annotation = deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'];
   return annotation !== 'false';
 };

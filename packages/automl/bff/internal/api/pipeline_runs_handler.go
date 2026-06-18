@@ -31,7 +31,8 @@ type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 //
 // Error Responses:
 //   - 400: Invalid query parameters
-//   - 500: No AutoML pipelines discovered or Pipeline Server error
+//   - 404: Required managed AutoML pipelines not found on the pipeline server
+//   - 500: Pipeline Server error
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -48,14 +49,8 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
 		return
 	}
-	if len(discoveredPipelines) == 0 {
-		// No pipelines discovered — return empty runs list.
-		// Pipelines will be auto-created when the user submits their first experiment.
-		if err := app.WriteJSON(w, http.StatusOK, PipelineRunsEnvelope{
-			Data: &models.PipelineRunsData{Runs: []models.PipelineRun{}},
-		}, nil); err != nil {
-			app.serverErrorResponse(w, r, err)
-		}
+	if !repositories.HasAllRequiredAutoMLPipelines(discoveredPipelines) {
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return
 	}
 
@@ -190,6 +185,16 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 
+	discoveredPipelines, dpOk := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !dpOk {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines missing from context: check middleware configuration"))
+		return nil, nil, false
+	}
+	if !repositories.HasAllRequiredAutoMLPipelines(discoveredPipelines) {
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
+		return nil, nil, false
+	}
+
 	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
 	if err != nil {
 		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
@@ -205,11 +210,6 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 
-	discoveredPipelines, dpOk := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
-	if !dpOk {
-		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines missing from context: check middleware configuration"))
-		return nil, nil, false
-	}
 	matchedPipelineType := ""
 	for pipelineType, discovered := range discoveredPipelines {
 		if run.PipelineVersionReference.PipelineID == discovered.PipelineID {

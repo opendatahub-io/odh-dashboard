@@ -1,7 +1,11 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type {
+  HardwareProfileKind,
+  ContainerResources,
+  Toleration,
+  NodeSelector,
+} from '@odh-dashboard/k8s-core';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import { HardwareProfileKind } from '#~/k8sTypes';
-import type { ContainerResources, Toleration, NodeSelector } from '#~/types';
 import { applyHardwareProfileConfig } from '#~/concepts/hardwareProfiles/utils';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
 import type { CrPathConfig } from '#~/concepts/hardwareProfiles/types';

@@ -1,5 +1,11 @@
 import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import type {
+  Volume,
+  VolumeMount,
+  PersistentVolumeClaimKind,
+  SecretKind,
+} from '@odh-dashboard/k8s-core';
 import {
   assembleConfigMap,
   assembleSecret,
@@ -12,7 +18,6 @@ import {
   replaceSecret,
   updatePvc,
 } from '#~/api';
-import { Volume, VolumeMount } from '#~/types';
 import {
   ConfigMapCategory,
   EnvironmentFromVariable,
@@ -23,7 +28,7 @@ import {
 } from '#~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '#~/pages/projects/pvc/const';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import { ConfigMapKind, NotebookKind, PersistentVolumeClaimKind, SecretKind } from '#~/k8sTypes';
+import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { isPvcUpdateRequired } from '#~/pages/projects/screens/detail/storage/utils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';

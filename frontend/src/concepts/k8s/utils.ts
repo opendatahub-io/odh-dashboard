@@ -1,5 +1,5 @@
 import { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sCondition, K8sDSGResource } from '#~/k8sTypes';
+import type { K8sCondition, K8sDSGResource } from '@odh-dashboard/k8s-core';
 import { genRandomChars } from '#~/utilities/string';
 
 export const PreInstalledName = 'Pre-installed';

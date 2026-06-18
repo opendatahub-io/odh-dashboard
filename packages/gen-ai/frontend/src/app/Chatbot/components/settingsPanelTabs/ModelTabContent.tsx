@@ -1,11 +1,14 @@
 import * as React from 'react';
 import { Form, FormGroup, Switch } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
+import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import ModelParameterFormGroup from '~/app/Chatbot/components/ModelParameterFormGroup';
 import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
 import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
 import TranscriptionModelSection from '~/app/Chatbot/components/settingsPanelTabs/TranscriptionModelSection';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
 interface ModelTabContentProps {
   temperature: number;
@@ -32,51 +35,71 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
   selectedSubscription,
   onSubscriptionChange,
   configId,
-}) => (
-  <TabContentWrapper title={title}>
-    <Form>
-      <FormGroup fieldId="model-selector">
-        <ModelDetailsDropdown
-          selectedModel={selectedModel}
-          onModelChange={onModelChange}
-          style={{ width: '100%' }}
-          testId="settings-model-selector-toggle"
-        />
-      </FormGroup>
-      <SubscriptionDropdown
-        selectedModel={selectedModel}
-        selectedSubscription={selectedSubscription}
-        onSubscriptionChange={onSubscriptionChange}
-      />
-      <ModelParameterFormGroup
-        fieldId="temperature"
-        label="Temperature: 0 - 2"
-        helpText="Controls randomness in the output. Lower values make the output more focused and deterministic, while higher values increase creativity and diversity."
-        value={temperature}
-        onChange={(value) => {
-          onTemperatureChange(value);
-          fireMiscTrackingEvent('Playground Model Parameter Changed', {
-            parameter: 'temperature',
-            value,
-          });
-        }}
-        max={2}
-        showPopoverCloseButton={false}
-      />
+}) => {
+  const { aiModels, aiModelsLoaded, aiModelsError, maasModelsLoaded } =
+    React.useContext(ChatbotContext);
 
-      <FormGroup fieldId="streaming" data-testid="streaming-section">
-        <Switch
-          id="streaming-switch"
-          label="Streaming"
-          isChecked={isStreamingEnabled}
-          onChange={(_event, checked) => onStreamingToggle(checked)}
-          aria-label="Toggle streaming responses"
-          data-testid="streaming-toggle"
+  const { hasASRModel, capabilitiesReady, capabilitiesError } = useWorkspaceCapabilities(
+    aiModels,
+    aiModelsLoaded,
+    maasModelsLoaded,
+    aiModelsError,
+  );
+
+  React.useEffect(() => {
+    if (capabilitiesReady && !capabilitiesError && !hasASRModel) {
+      const store = useChatbotConfigStore.getState();
+      store.updateAsrModelEnabled(configId, false);
+      store.updateSelectedAsrModel(configId, '');
+    }
+  }, [capabilitiesReady, capabilitiesError, hasASRModel, configId]);
+
+  return (
+    <TabContentWrapper title={title}>
+      <Form>
+        <FormGroup fieldId="model-selector">
+          <ModelDetailsDropdown
+            selectedModel={selectedModel}
+            onModelChange={onModelChange}
+            style={{ width: '100%' }}
+            testId="settings-model-selector-toggle"
+          />
+        </FormGroup>
+        <SubscriptionDropdown
+          selectedModel={selectedModel}
+          selectedSubscription={selectedSubscription}
+          onSubscriptionChange={onSubscriptionChange}
         />
-      </FormGroup>
-      <TranscriptionModelSection configId={configId} />
-    </Form>
-  </TabContentWrapper>
-);
+        <ModelParameterFormGroup
+          fieldId="temperature"
+          label="Temperature: 0 - 2"
+          helpText="Controls randomness in the output. Lower values make the output more focused and deterministic, while higher values increase creativity and diversity."
+          value={temperature}
+          onChange={(value) => {
+            onTemperatureChange(value);
+            fireMiscTrackingEvent('Playground Model Parameter Changed', {
+              parameter: 'temperature',
+              value,
+            });
+          }}
+          max={2}
+          showPopoverCloseButton={false}
+        />
+
+        <FormGroup fieldId="streaming" data-testid="streaming-section">
+          <Switch
+            id="streaming-switch"
+            label="Streaming"
+            isChecked={isStreamingEnabled}
+            onChange={(_event, checked) => onStreamingToggle(checked)}
+            aria-label="Toggle streaming responses"
+            data-testid="streaming-toggle"
+          />
+        </FormGroup>
+        {hasASRModel && <TranscriptionModelSection configId={configId} />}
+      </Form>
+    </TabContentWrapper>
+  );
+};
 
 export default ModelTabContent;

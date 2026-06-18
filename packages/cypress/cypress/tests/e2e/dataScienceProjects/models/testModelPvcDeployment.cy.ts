@@ -23,7 +23,10 @@ import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import type { DataScienceProjectData, PVCLoaderPodReplacements } from '../../../../types';
 import { clusterStorage, addClusterStorageModal } from '../../../../pages/clusterStorage';
 import { createS3LoaderPod } from '../../../../utils/oc_commands/pvcLoaderPod';
-import { waitForPodCompletion } from '../../../../utils/oc_commands/baseCommands';
+import {
+  waitForPodCompletion,
+  ensureAdminOcSession,
+} from '../../../../utils/oc_commands/baseCommands';
 import { skipSuiteIfBYOIDC, isBYOIDCCluster } from '../../../../utils/skipUtils';
 import { stubClipboard, verifyClipboardContent } from '../../../../utils/clipboardUtils';
 
@@ -78,7 +81,9 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
       cy.log('Skipping cleanup - tests were skipped on BYOIDC cluster');
       return;
     }
-    // Delete provisioned Project
+    // The test switches the oc session to a contributor user via visitWithLogin.
+    // Restore admin before cleanup so oc delete project has the required permissions.
+    ensureAdminOcSession();
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
   it(
