@@ -3,6 +3,7 @@ import * as React from 'react';
 // load this component via Module Federation without going through App.tsx,
 // which is where the chatbot stylesheet is normally imported.
 import '@patternfly/chatbot/dist/css/main.css';
+import '~/app/app.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   ModularArchConfig,
