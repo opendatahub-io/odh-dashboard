@@ -82,6 +82,29 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   const [showCustomTypeSelect, setShowCustomTypeSelect] = React.useState(false);
   const [typeOptions, setTypeOptions] = React.useState<ConnectionTypeConfigMapObj[]>([]);
 
+  // Cache the latest NEW model location data per connection family to restore when user switches back
+  const cachedNewModelLocationDataRef = React.useRef<
+    Partial<Record<ModelServingCompatibleTypes, ModelLocationData>>
+  >({});
+  if (modelLocationData?.type === ModelLocationType.NEW) {
+    if (modelLocationData.connectionTypeObject) {
+      for (const compatType of Object.values(ModelServingCompatibleTypes)) {
+        if (isModelServingCompatible(modelLocationData.connectionTypeObject, compatType)) {
+          cachedNewModelLocationDataRef.current[compatType] = modelLocationData;
+        }
+      }
+    } else if (modelLocationData.connection) {
+      const matchedConnection = connections.find(
+        (c) => c.metadata.name === modelLocationData.connection,
+      );
+      if (matchedConnection) {
+        for (const compatType of getModelServingCompatibility(matchedConnection)) {
+          cachedNewModelLocationDataRef.current[compatType] = modelLocationData;
+        }
+      }
+    }
+  }
+
   // Compute selectedKey from connectionTypeObject when available (for prefilled data)
   const computeSelectedOption = React.useMemo<{ key: string; label: string } | undefined>(() => {
     if (modelLocationData?.connectionTypeObject && modelLocation === ModelLocationType.NEW) {
@@ -300,70 +323,93 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                   });
                   setUserSelectedOption(newOption);
                 } else {
+                  const getRestoredData = (
+                    compatibleType: ModelServingCompatibleTypes,
+                  ): ModelLocationData | undefined =>
+                    cachedNewModelLocationDataRef.current[compatibleType];
+
                   switch (key) {
-                    case s3Option.key:
+                    case s3Option.key: {
                       setUserSelectedOption({ key: s3Option.key, label: s3Option.label });
+                      const restored = getRestoredData(ModelServingCompatibleTypes.S3ObjectStorage);
                       if (s3ConnectionTypes.length > 1) {
                         setShowCustomTypeSelect(true);
                         setTypeOptions(s3ConnectionTypes);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: undefined,
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
+                        setModelLocationData(
+                          restored ?? {
+                            type: ModelLocationType.NEW,
+                            connectionTypeObject: undefined,
+                            fieldValues: {},
+                            additionalFields: {},
+                          },
+                        );
                       } else {
                         setShowCustomTypeSelect(false);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: s3ConnectionTypes[0],
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
+                        setModelLocationData(
+                          restored ?? {
+                            type: ModelLocationType.NEW,
+                            connectionTypeObject: s3ConnectionTypes[0],
+                            fieldValues: {},
+                            additionalFields: {},
+                          },
+                        );
                       }
                       break;
-                    case ociOption.key:
+                    }
+                    case ociOption.key: {
                       setUserSelectedOption({ key: ociOption.key, label: ociOption.label });
+                      const restored = getRestoredData(ModelServingCompatibleTypes.OCI);
                       if (ociConnectionTypes.length > 1) {
                         setShowCustomTypeSelect(true);
                         setTypeOptions(ociConnectionTypes);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: undefined,
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
+                        setModelLocationData(
+                          restored ?? {
+                            type: ModelLocationType.NEW,
+                            connectionTypeObject: undefined,
+                            fieldValues: {},
+                            additionalFields: {},
+                          },
+                        );
                       } else {
                         setShowCustomTypeSelect(false);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: ociConnectionTypes[0],
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
+                        setModelLocationData(
+                          restored ?? {
+                            type: ModelLocationType.NEW,
+                            connectionTypeObject: ociConnectionTypes[0],
+                            fieldValues: {},
+                            additionalFields: {},
+                          },
+                        );
                       }
                       break;
-                    case uriOption.key:
+                    }
+                    case uriOption.key: {
                       setUserSelectedOption({ key: uriOption.key, label: uriOption.label });
+                      const restored = getRestoredData(ModelServingCompatibleTypes.URI);
                       if (uriConnectionTypes.length > 1) {
                         setShowCustomTypeSelect(true);
                         setTypeOptions(uriConnectionTypes);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: undefined,
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
+                        setModelLocationData(
+                          restored ?? {
+                            type: ModelLocationType.NEW,
+                            connectionTypeObject: undefined,
+                            fieldValues: {},
+                            additionalFields: {},
+                          },
+                        );
                       } else {
                         setShowCustomTypeSelect(false);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: uriConnectionTypes[0],
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
+                        setModelLocationData(
+                          restored ?? {
+                            type: ModelLocationType.NEW,
+                            connectionTypeObject: uriConnectionTypes[0],
+                            fieldValues: {},
+                            additionalFields: {},
+                          },
+                        );
                       }
                       break;
+                    }
                   }
                 }
               }}
