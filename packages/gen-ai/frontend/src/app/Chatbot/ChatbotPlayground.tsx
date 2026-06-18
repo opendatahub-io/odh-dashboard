@@ -264,12 +264,18 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const modalShownForProfileRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
+    let isDismissed = false;
+    try {
+      isDismissed = !!localStorage.getItem(OPEN_AGENT_MODAL_DISMISSED_KEY);
+    } catch {
+      // SecurityError in private browsing — treat as not dismissed
+    }
     if (
       profileApplied &&
       loadedProfileId &&
       loadedProfileId === agentProfileIdParam &&
       modalShownForProfileRef.current !== loadedProfileId &&
-      !localStorage.getItem(OPEN_AGENT_MODAL_DISMISSED_KEY)
+      !isDismissed
     ) {
       modalShownForProfileRef.current = loadedProfileId;
       setShowOpenAgentModal(true);

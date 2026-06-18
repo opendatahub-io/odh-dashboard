@@ -28,7 +28,11 @@ const OpenAgentProfileModal: React.FC<OpenAgentProfileModalProps> = ({
 
   const persist = () => {
     if (doNotShow) {
-      localStorage.setItem(OPEN_AGENT_MODAL_DISMISSED_KEY, 'true');
+      try {
+        localStorage.setItem(OPEN_AGENT_MODAL_DISMISSED_KEY, 'true');
+      } catch {
+        // Silently ignore SecurityError / QuotaExceededError (private browsing, full storage)
+      }
     }
   };
 
