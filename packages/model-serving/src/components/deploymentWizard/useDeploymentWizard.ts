@@ -103,6 +103,7 @@ export const useModelDeploymentWizard = (
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
     editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
     limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+    namespace: project.projectName ?? undefined,
     regexp: INFERENCE_SERVICE_NAME_REGEX,
     invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   });
