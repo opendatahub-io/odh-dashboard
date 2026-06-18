@@ -17,6 +17,7 @@ import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitio
 import {
   handleUpdateLogic,
   isRouteNameTooLong,
+  LimitNameResourceType,
   setupDefaults,
 } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { HelperTextItemResourceNameTaken } from './HelperTextItemVariants';
@@ -31,16 +32,18 @@ export const useK8sNameDescriptionFieldData = (
   );
 
   // Re-sync validation when namespace changes after initial render
-  const { namespace } = configuration;
+  const { namespace, limitNameResourceType } = configuration;
+  const isRouteBased =
+    limitNameResourceType === LimitNameResourceType.WORKBENCH ||
+    limitNameResourceType === LimitNameResourceType.MODEL_DEPLOYMENT;
   React.useEffect(() => {
+    if (!isRouteBased) {
+      return;
+    }
     setData((currentData) => {
       const prevNamespace = currentData.k8sName.state.namespace;
-      // Only update if namespace actually changed and is tracked in state
+      // Only update if namespace actually changed
       if (prevNamespace === namespace) {
-        return currentData;
-      }
-      // If namespace is not tracked (non-route-based), skip
-      if (prevNamespace === undefined && namespace === undefined) {
         return currentData;
       }
       return {
@@ -55,7 +58,7 @@ export const useK8sNameDescriptionFieldData = (
         },
       };
     });
-  }, [namespace]);
+  }, [namespace, isRouteBased]);
 
   const onDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>((key, value) => {
     setData((currentData) => handleUpdateLogic(currentData)(key, value));
