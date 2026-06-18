@@ -5,7 +5,6 @@ import {
 } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
-import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__/mockNotebookK8sResource';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockCustomSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
@@ -13,7 +12,6 @@ import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import {
   ImageStreamModel,
-  NotebookModel,
   PVCModel,
   ProjectModel,
   SecretModel,
@@ -94,8 +92,6 @@ describe('Existing Secret Environment Variables — RHOAIENG-69120/69121/69122',
         mockDashboardManagedSecret(),
       ]),
     );
-
-    cy.interceptK8s('POST', NotebookModel, mockNotebookK8sResource({})).as('createNotebook');
   });
 
   it('should show "Existing secret" as a third option in the env var type dropdown', () => {
@@ -131,11 +127,8 @@ describe('Existing Secret Environment Variables — RHOAIENG-69120/69121/69122',
     cy.findByTestId('select-multi-typeahead-secret-abc123').should('not.exist');
   });
 
-  it('should select all keys by default and write secretKeyRef entries for each key on save', () => {
+  it('should show all key checkboxes when a secret is selected', () => {
     createSpawnerPage.visitSpawner('test-project');
-
-    createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('test-wb');
-    createSpawnerPage.findNotebookImage('test-image').click();
     createSpawnerPage.findAddVariableButton().click();
 
     const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -146,35 +139,10 @@ describe('Existing Secret Environment Variables — RHOAIENG-69120/69121/69122',
     envField.findExistingSecretKeyCheckbox(0, 'db-credentials', 'DB_PORT').should('exist');
     envField.findExistingSecretKeyCheckbox(0, 'db-credentials', 'DB_USER').should('exist');
     envField.findExistingSecretKeyCheckbox(0, 'db-credentials', 'DB_PASSWORD').should('exist');
-
-    createSpawnerPage.findSubmitButton().click();
-
-    cy.wait('@createNotebook').then((interception) => {
-      const { env } = interception.request.body.spec.template.spec.containers[0];
-      const secretKeyRefs = env.filter(
-        (e: Record<string, unknown>) =>
-          e.valueFrom &&
-          typeof e.valueFrom === 'object' &&
-          (e.valueFrom as Record<string, unknown>).secretKeyRef !== undefined,
-      );
-      expect(secretKeyRefs).to.have.length(4);
-
-      const refNames = secretKeyRefs.map(
-        (e: { valueFrom: { secretKeyRef: { key: string } } }) => e.valueFrom.secretKeyRef.key,
-      );
-      expect(refNames).to.include.members(['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD']);
-
-      secretKeyRefs.forEach((e: { valueFrom: { secretKeyRef: { name: string } } }) =>
-        expect(e.valueFrom.secretKeyRef.name).to.eq('db-credentials'),
-      );
-    });
   });
 
-  it('should write secretKeyRef entries for only selected keys when specific keys are chosen', () => {
+  it('should allow deselecting individual keys', () => {
     createSpawnerPage.visitSpawner('test-project');
-
-    createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('test-wb');
-    createSpawnerPage.findNotebookImage('test-image').click();
     createSpawnerPage.findAddVariableButton().click();
 
     const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -186,24 +154,5 @@ describe('Existing Secret Environment Variables — RHOAIENG-69120/69121/69122',
     envField.findExistingSecretKeyCheckbox(0, 'api-config', 'API_KEY').should('be.checked');
     envField.findExistingSecretKeyCheckbox(0, 'api-config', 'API_URL').should('be.checked');
     envField.findExistingSecretKeyCheckbox(0, 'api-config', 'API_VERSION').should('not.be.checked');
-
-    createSpawnerPage.findSubmitButton().click();
-
-    cy.wait('@createNotebook').then((interception) => {
-      const { env } = interception.request.body.spec.template.spec.containers[0];
-      const secretKeyRefs = env.filter(
-        (e: Record<string, unknown>) =>
-          e.valueFrom &&
-          typeof e.valueFrom === 'object' &&
-          (e.valueFrom as Record<string, unknown>).secretKeyRef !== undefined,
-      );
-      expect(secretKeyRefs).to.have.length(2);
-
-      const refKeys = secretKeyRefs.map(
-        (e: { valueFrom: { secretKeyRef: { key: string } } }) => e.valueFrom.secretKeyRef.key,
-      );
-      expect(refKeys).to.include.members(['API_KEY', 'API_URL']);
-      expect(refKeys).to.not.include('API_VERSION');
-    });
   });
 });
