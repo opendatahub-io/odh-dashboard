@@ -17,8 +17,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo/nemomocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
@@ -68,7 +66,6 @@ type App struct {
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
 	nemoClientFactory       nemopkg.NemoClientFactory
-	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
 	mlflowExternalURL       string
@@ -153,13 +150,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	// Initialize MaaS client factory - clients will be created per request
-	var maasClientFactory maas.MaaSClientFactory
 	if cfg.MockMaaSClient {
 		logger.Info("Using mock MaaS client factory")
-		maasClientFactory = maasmocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real MaaS client factory", "url", cfg.MaaSURL)
-		maasClientFactory = maas.NewRealClientFactory()
 	}
 
 	// Initialize OpenAPI handler
@@ -324,7 +318,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: llamaStackClientFactory,
 		nemoClientFactory:       nemoClientFactory,
-		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowFactory,
 		mlflowExternalURL:       mlflowExternalURL,
@@ -395,7 +388,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackModelsHandler))))
 
 	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
-	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
+	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
 
 	// Responses passthrough — forwards pre-built OGX API request bodies as-is.
 	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).
