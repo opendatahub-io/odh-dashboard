@@ -150,13 +150,15 @@ describe('Import rules from template (toolbar button)', () => {
     projectRoles.visitCreateRole(NAMESPACE);
 
     projectRoles.findAddRuleButton().click();
-    cy.findByTestId('add-rule-modal').should('exist');
-    cy.findByTestId('rule-api-groups-toggle').click();
-    cy.findByTestId('rule-api-groups-toggle').parent().find('input').type('apps{enter}');
-    cy.findByTestId('rule-resource-types-toggle').click();
-    cy.findByTestId('rule-resource-types-toggle').parent().find('input').type('deployments{enter}');
-    cy.findByTestId('add-rule-modal').findByTestId('verb-checkbox-get').click();
-    cy.findByTestId('modal-submit-button').click();
+    projectRoles.findAddRuleModal().should('exist');
+    projectRoles.findRuleApiGroupsToggle().click();
+    projectRoles.findRuleApiGroupsToggle().parent().find('input').type('apps');
+    cy.contains('Use custom API group "apps"').click();
+    projectRoles.findRuleResourceTypesToggle().click();
+    projectRoles.findRuleResourceTypesToggle().parent().find('input').type('deployments');
+    cy.contains('Use custom resource type "deployments"').click();
+    projectRoles.findVerbCheckbox('get').click();
+    projectRoles.findRuleSaveButton().click();
 
     projectRoles.findImportTemplateButton().click();
     projectRoles.findDiscardChangesModal().should('not.exist');
