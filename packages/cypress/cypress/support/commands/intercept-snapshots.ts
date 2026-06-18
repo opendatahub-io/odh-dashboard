@@ -7,7 +7,7 @@ declare global {
   namespace Cypress {
     interface Chainable {
       interceptSnapshot: InterceptSnapshot;
-      waitSnapshot: (alias: string) => Chainable<Interception>;
+      waitSnapshot: (alias: `@${string}`) => Chainable<Interception>;
       readSnapshot: (path: string) => Cypress.Chainable<{ [key: string]: Snapshot }>;
     }
   }

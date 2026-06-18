@@ -22,7 +22,7 @@ This project is a web application built with a modular architecture. It consists
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) (v20 or later)
-- [Go](https://golang.org/) (v1.23.5 or later)
+- [Go](https://golang.org/) (v1.26 or later)
 - [Docker](https://www.docker.com/) (for containerized deployment)
 
 ## Project Structure
@@ -270,7 +270,7 @@ The Dockerfile supports the following build arguments:
 - `UI_SOURCE_CODE`: Path to the frontend source code (default: `./frontend`)
 - `BFF_SOURCE_CODE`: Path to the BFF source code (default: `./bff`)
 - `NODE_BASE_IMAGE`: Base image for Node.js build (default: `node:20`)
-- `GOLANG_BASE_IMAGE`: Base image for Go build (default: `golang:1.24.3`)
+- `GOLANG_BASE_IMAGE`: Base image for Go build (default: `golang:1.26`)
 - `DISTROLESS_BASE_IMAGE`: Base image for the final stage (default: `gcr.io/distroless/static:nonroot`)
 - `TARGETOS`: Target OS for Go build
 - `TARGETARCH`: Target architecture for Go build
@@ -280,7 +280,7 @@ Example with custom build arguments:
 ```bash
 docker build \
   --build-arg NODE_BASE_IMAGE=node:20-alpine \
-  --build-arg GOLANG_BASE_IMAGE=golang:1.24.3-alpine \
+  --build-arg GOLANG_BASE_IMAGE=golang:1.26-alpine \
   -t gen-ai:custom .
 ```
 

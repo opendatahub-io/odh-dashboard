@@ -5,7 +5,6 @@ import type {
   ResolvedExtension,
   ExtensionPredicate,
 } from '@openshift/dynamic-plugin-sdk';
-import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
 import { resolveCodeRefValues } from './internal/coderefs';
 import { useExtensions } from './useExtensions';
 
@@ -69,15 +68,14 @@ export const useResolvedExtensions = <TExtension extends Extension>(
     const allResolutionErrors: unknown[] = [];
     const failedExtensionUIDs: string[] = [];
 
-    allSettledPromises(
+    Promise.all(
       extensions.map((e) =>
         resolveCodeRefValues(e, (resolutionErrors: unknown[]) => {
           allResolutionErrors.push(...resolutionErrors);
           failedExtensionUIDs.push(e.uid);
         }),
       ),
-    ).then(([results]) => {
-      const fulfilledValues = results.map((r) => r.value);
+    ).then((fulfilledValues) => {
       if (allResolutionErrors.length > 0) {
         // eslint-disable-next-line no-console
         console.error(

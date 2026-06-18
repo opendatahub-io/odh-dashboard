@@ -1,10 +1,13 @@
-import { EitherOrBoth } from '#~/typeHelpers';
-import {
+import { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
+import type {
   DashboardCommonConfig,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
-} from '#~/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+import { EitherOrBoth } from '#~/typeHelpers';
+
+export { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
 
 export type FeatureFlag = keyof DashboardCommonConfig;
 
@@ -66,6 +69,7 @@ export enum SupportedArea {
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
+  MAAS_SETTINGS_IA_REDESIGN = 'maas-settings-ia-redesign',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
@@ -112,26 +116,6 @@ export enum SupportedArea {
 }
 
 export type SupportedAreaType = SupportedArea | string;
-
-/** The possible V2 component names that are used as keys in the `components` object of the DSC Status.
- * Each component's key (e.g., 'kserve', 'dashboard', etc.) maps to a specific component status.
- **/
-export enum DataScienceStackComponent {
-  DASHBOARD = 'dashboard',
-  DS_PIPELINES = 'aipipelines',
-  K_SERVE = 'kserve',
-  KUEUE = 'kueue',
-  MODEL_REGISTRY = 'modelregistry',
-  FEAST_OPERATOR = 'feastoperator',
-  RAY = 'ray',
-  TRAINING_OPERATOR = 'trainingoperator',
-  TRUSTY_AI = 'trustyai',
-  WORKBENCHES = 'workbenches',
-  LLAMA_STACK_OPERATOR = 'llamastackoperator',
-  OGX_OPERATOR = 'ogx',
-  TRAINER = 'trainer',
-  MLFLOW = 'mlflowoperator',
-}
 
 /**
  * Capabilities of the Operator. Part of the DSCI Status.

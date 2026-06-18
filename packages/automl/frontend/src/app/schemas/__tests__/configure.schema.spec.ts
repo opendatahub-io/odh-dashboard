@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import {
+  PRESET_FASTER,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
@@ -18,6 +19,10 @@ describe('createConfigureSchema', () => {
     it('should not default to any valid prediction type', () => {
       const validTypes: string[] = [...TASK_TYPES];
       expect(validTypes).not.toContain(schema.defaults.task_type);
+    });
+
+    it('should default preset to faster', () => {
+      expect(schema.defaults.preset).toBe(PRESET_FASTER);
     });
   });
 
@@ -448,7 +453,7 @@ describe('createConfigureSchema', () => {
       const result = schema.full.safeParse({
         ...baseData,
         task_type: TASK_TYPE_MULTICLASS,
-        eval_metric: 'roc_auc',
+        eval_metric: 'roc_auc_ovo',
       });
       expect(result.success).toBe(true);
     });
@@ -479,6 +484,32 @@ describe('createConfigureSchema', () => {
         ...baseData,
         task_type: TASK_TYPE_BINARY,
         eval_metric: 'r2',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('eval_metric');
+      }
+    });
+
+    it('should reject multiclass-only metric for binary task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_BINARY,
+        eval_metric: 'roc_auc_ovo',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('eval_metric');
+      }
+    });
+
+    it('should reject binary-only metric for multiclass task type', () => {
+      const result = schema.full.safeParse({
+        ...baseData,
+        task_type: TASK_TYPE_MULTICLASS,
+        eval_metric: 'roc_auc',
       });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -590,6 +621,38 @@ describe('createConfigureSchema', () => {
         expect(result.data.target).toBe('forecast_val');
         expect(result.data).not.toHaveProperty('target_column');
         expect(result.data).not.toHaveProperty('label_column');
+      }
+    });
+
+    it('should pass preset value through without transformation', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'col1',
+        preset: 'speed',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.preset).toBe('speed');
+      }
+
+      const balancedResult = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'col1',
+        preset: 'balanced',
+      });
+      expect(balancedResult.success).toBe(true);
+      if (balancedResult.success) {
+        expect(balancedResult.data.preset).toBe('balanced');
       }
     });
   });

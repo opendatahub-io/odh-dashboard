@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { useAccessAllowed } from '#~/concepts/userSSAR/useAccessAllowed';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
 import NotFound from '#~/pages/NotFound';
 
 /**

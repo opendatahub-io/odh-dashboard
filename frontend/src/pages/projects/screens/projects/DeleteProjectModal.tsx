@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ProjectKind } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { deleteProject } from '#~/api';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';

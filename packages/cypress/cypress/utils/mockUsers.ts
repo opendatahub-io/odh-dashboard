@@ -1,6 +1,6 @@
 import { mock403Error, mockDashboardConfig, mockStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
-import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { ODHDashboardConfigModel, SelfSubjectAccessReviewModel } from './models';
 
 // Establish a user before applying any test specific intercepts.
