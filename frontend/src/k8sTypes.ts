@@ -4,23 +4,27 @@ import {
   KnownLabels,
   MetadataAnnotation,
   ContainerResourceAttributes,
-  type DisplayNameAnnotations,
-  type K8sCondition,
-  type PodSpec,
-  type SupportedModelFormats,
-  type SecretKind,
-  type ContainerResources,
-  type NodeSelector,
-  type PodAffinity,
-  type PodContainer,
-  type Toleration,
-  type Volume,
-  type VolumeMount,
-  type HardwareProfileBindingAnnotations,
-  type AccessReviewResourceAttributes,
+  DataScienceStackComponent,
+} from '@odh-dashboard/k8s-core';
+import type {
+  DisplayNameAnnotations,
+  K8sCondition,
+  PodSpec,
+  SupportedModelFormats,
+  SecretKind,
+  ContainerResources,
+  NodeSelector,
+  PodAffinity,
+  PodContainer,
+  Toleration,
+  Volume,
+  VolumeMount,
+  HardwareProfileBindingAnnotations,
+  AccessReviewResourceAttributes,
+  ManagementState,
+  DataScienceClusterKindStatus,
 } from '@odh-dashboard/k8s-core';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
-import type { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { ImageStreamStatusTagCondition, ImageStreamStatusTagItem } from './types';
 
@@ -1197,8 +1201,6 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
   };
 };
 
-export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
-
 /** Represents a component in the DataScienceCluster. */
 export type DataScienceClusterComponent = {
   /**
@@ -1242,64 +1244,6 @@ export type DataScienceClusterKind = K8sResourceCommon & {
     };
   };
   status?: DataScienceClusterKindStatus;
-};
-
-/** Represents the status of a component in the DataScienceCluster. */
-export type DataScienceClusterComponentStatus = {
-  /**
-   * The management state of the component (e.g., Managed, Removed).
-   * Indicates whether the component is being actively managed or not.
-   */
-  managementState?: ManagementState;
-
-  /**
-   * List of releases for the component.
-   * Each release includes the name, the URL of the repository, and the version number.
-   */
-  releases?: Array<{
-    name: string; // Name of the release (e.g., "Kubeflow Pipelines")
-    repoUrl?: string; // URL of the repository hosting the release (e.g., GitHub URL)
-    version?: string; // Version of the release (e.g., "2.2.0")
-  }>;
-};
-
-/** We don't need or should ever get the full kind, this is the status section */
-export type DataScienceClusterKindStatus = {
-  /**
-   * Status information for individual components within the cluster.
-   *
-   * This field maps each component of the Data Science Cluster to its corresponding status.
-   * The majority of components use `DataScienceClusterComponentStatus`, which includes
-   * management state and release details. However, some components require additional
-   * specialized fields, such as `modelregistry` and `workbenches`.
-   */
-  components?: {
-    [key in DataScienceStackComponent]?: DataScienceClusterComponentStatus;
-  } & {
-    /** Status of Model Registry, including its namespace configuration. */
-    [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentStatus & {
-      registriesNamespace?: string;
-    };
-    [DataScienceStackComponent.WORKBENCHES]?: DataScienceClusterComponentStatus & {
-      workbenchNamespace?: string;
-    };
-  };
-  conditions: K8sCondition[];
-  phase?: string;
-  release?: {
-    name: string;
-    version: string;
-  };
-};
-
-export type DataScienceClusterInitializationKindStatus = {
-  conditions: K8sCondition[];
-  release?: {
-    name?: string;
-    version?: string;
-  };
-  components?: Record<string, never>;
-  phase?: string;
 };
 
 export type ModelRegistryKind = K8sResourceCommon & {
