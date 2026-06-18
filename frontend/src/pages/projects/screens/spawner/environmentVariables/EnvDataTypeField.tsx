@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import IndentSection from '#~/pages/projects/components/IndentSection';
-import { getDashboardMainContainer } from '#~/utilities/utils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 
 type EnvDataTypeFieldProps = {
@@ -14,7 +13,6 @@ const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelectio
   <Stack hasGutter>
     <StackItem data-testid="env-data-type-field">
       <SimpleSelect
-        popperProps={{ appendTo: getDashboardMainContainer() }}
         isFullWidth
         placeholder="Select one"
         value={selection}

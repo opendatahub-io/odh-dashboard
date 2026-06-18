@@ -3,7 +3,7 @@ import { Button, FormGroup, Split, SplitItem, Stack, StackItem } from '@patternf
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { EnvironmentVariableType, EnvVariable } from '#~/pages/projects/types';
 import IndentSection from '#~/pages/projects/components/IndentSection';
-import { asEnumMember, getDashboardMainContainer } from '#~/utilities/utils';
+import { asEnumMember } from '#~/utilities/utils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import EnvTypeSwitch from './EnvTypeSwitch';
 
@@ -25,7 +25,6 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
           <StackItem data-testid="environment-variable-type-select">
             <SimpleSelect
               toggleProps={{ id: 'environment-variable-type-select' }}
-              popperProps={{ appendTo: getDashboardMainContainer() }}
               isFullWidth
               value={envVariable.type ?? undefined}
               placeholder="Select environment variable type"

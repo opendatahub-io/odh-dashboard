@@ -78,6 +78,9 @@ const encodeOptionIdForDom = (optionId: number | string): string =>
 const MODAL_OVERFLOW_UNLOCK_COUNT_ATTR = 'data-multiselection-overflow-unlock-count';
 const MODAL_OVERFLOW_ORIGINAL_ATTR = 'data-multiselection-overflow-original';
 
+const createOptionElementId = (instanceId: string, optionId: number | string): string =>
+  `${instanceId}-option-${encodeOptionIdForDom(optionId)}`;
+
 export const MultiSelection: React.FC<MultiSelectionProps> = ({
   value = [],
   groupedValues = [],
@@ -108,8 +111,6 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const generatedInstanceId = React.useId().replace(/:/g, '');
   const instanceId = id ?? `multi-select-${generatedInstanceId}`;
   const listboxId = `${instanceId}-listbox`;
-  const createOptionElementId = (optionId: number | string) =>
-    `${instanceId}-option-${encodeOptionIdForDom(optionId)}`;
 
   const getModalDialog = () => textInputRef.current?.closest<HTMLElement>('[role="dialog"]');
 
@@ -196,7 +197,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const setActiveAndFocusedItem = (itemIndex: number) => {
     const focusedItem = visibleOptions[itemIndex];
     setFocusedItemIndex(itemIndex);
-    setActiveItemId(createOptionElementId(focusedItem.id));
+    setActiveItemId(createOptionElementId(instanceId, focusedItem.id));
   };
 
   const openMenu = (focusFirstOption = false) => {
@@ -215,6 +216,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   React.useEffect(() => {
     if (inputValue) {
       setIsOpen(true);
+      resetActiveAndFocusedItem();
     }
   }, [inputValue]);
 
@@ -257,6 +259,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       return;
     }
 
+    if (key !== 'ArrowUp' && key !== 'ArrowDown') {
+      return;
+    }
+
     let indexToFocus = 0;
 
     if (key === 'ArrowUp') {
@@ -265,14 +271,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       } else {
         indexToFocus = focusedItemIndex - 1;
       }
-    }
-
-    if (key === 'ArrowDown') {
-      if (focusedItemIndex === null || focusedItemIndex === optionsLength - 1) {
-        indexToFocus = 0;
-      } else {
-        indexToFocus = focusedItemIndex + 1;
-      }
+    } else if (focusedItemIndex === null || focusedItemIndex === optionsLength - 1) {
+      indexToFocus = 0;
+    } else {
+      indexToFocus = focusedItemIndex + 1;
     }
 
     setActiveAndFocusedItem(indexToFocus);
@@ -342,7 +344,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   ) => (
     <SelectOption
       key={String(option.id)}
-      id={createOptionElementId(option.id)}
+      id={createOptionElementId(instanceId, option.id)}
       {...(showCheckbox && hasCheckbox ? { hasCheckbox: true } : {})}
       isFocused={focusedItemIndex === visibleIndexById.get(option.id)}
       data-testid={getOptionTestId(option.name)}

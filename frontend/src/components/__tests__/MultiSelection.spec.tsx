@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, screen, within } from '@testing-library/react';
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 
 const defaultOptions: SelectionOptions[] = [
@@ -9,6 +9,10 @@ const defaultOptions: SelectionOptions[] = [
 ];
 
 describe('MultiSelection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should wire combobox aria-activedescendant to option ids per PatternFly typeahead pattern', async () => {
     render(
       <MultiSelection
@@ -99,9 +103,15 @@ describe('MultiSelection', () => {
     const combobox = screen.getByRole('combobox', { name: 'Connections' });
 
     await act(async () => {
-      fireEvent.keyDown(combobox, { key: 'Enter' });
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
+    const enterEvent = createEvent.keyDown(combobox, { key: 'Enter', cancelable: true });
+    await act(async () => {
+      fireEvent(combobox, enterEvent);
+    });
+
+    expect(enterEvent.defaultPrevented).toBe(true);
     expect(onSubmit).not.toHaveBeenCalled();
   });
 

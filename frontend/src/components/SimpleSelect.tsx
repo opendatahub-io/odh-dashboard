@@ -58,6 +58,10 @@ type SimpleSelectProps = {
   'isOpen' | 'toggle' | 'dropdownItems' | 'onChange' | 'selected'
 >;
 
+// Same ref-count attrs as MultiSelection so mixed selects in one modal share overflow state.
+const MODAL_OVERFLOW_UNLOCK_COUNT_ATTR = 'data-multiselection-overflow-unlock-count';
+const MODAL_OVERFLOW_ORIGINAL_ATTR = 'data-multiselection-overflow-original';
+
 const SimpleSelect: React.FC<SimpleSelectProps> = ({
   isDisabled,
   onChange,
@@ -77,6 +81,9 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
+  const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
+
+  const getModalDialog = () => menuToggleRef.current?.closest<HTMLElement>('[role="dialog"]');
 
   const groupedOptionsFlat = React.useMemo(
     () =>
@@ -97,7 +104,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
 
   const singleOptionKey =
     totalOptions.length === 1 ? totalOptions[0].optionKey || totalOptions[0].key : null;
-  // If there is only one option, call the onChange function
+
   React.useEffect(() => {
     if (singleOptionKey && !isSkeleton && autoSelectOnlyOption) {
       onChange(totalOptions[0].key, false);
@@ -105,6 +112,34 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
     // We don't want the callback function to be a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [singleOptionKey, isSkeleton, autoSelectOnlyOption]);
+
+  // Modal boxes use overflow:auto; unlock while open so the portaled menu is not clipped.
+  React.useLayoutEffect(() => {
+    if (!open) {
+      return;
+    }
+    const dialog = getModalDialog();
+    if (!dialog) {
+      return;
+    }
+    const unlockCount = Number(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR) ?? '0');
+    if (unlockCount === 0) {
+      dialog.setAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR, dialog.style.overflow);
+    }
+    dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(unlockCount + 1));
+    dialog.style.overflow = 'visible';
+    return () => {
+      const currentCount = Number(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR) ?? '1');
+      const nextCount = currentCount - 1;
+      if (nextCount <= 0) {
+        dialog.style.overflow = dialog.getAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR) ?? '';
+        dialog.removeAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR);
+        dialog.removeAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR);
+      } else {
+        dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(nextCount));
+      }
+    };
+  }, [open]);
 
   if (isSkeleton) {
     return <Skeleton style={{ minWidth: 100 }} />;
@@ -128,35 +163,42 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
         }}
         onOpenChange={setOpen}
         toggle={(toggleRef) => (
-          <MenuToggle
-            ref={toggleRef}
-            data-testid={dataTestId}
-            aria-label="Options menu"
-            onClick={() => setOpen(!open)}
-            icon={icon}
-            isExpanded={open}
-            isDisabled={
-              totalOptions.length === 0 ||
-              (totalOptions.length === 1 && autoSelectOnlyOption) ||
-              isDisabled
-            }
-            isFullWidth={isFullWidth}
-            {...toggleProps}
-          >
-            {/* Plain text: MenuToggle's .pf-v6-c-menu-toggle__text handles truncation. Using Truncate
-                caused Safari flex layout bugs (labels clipped when space was available). */}
-            {(() => {
-              const displayedLabel = toggleLabel ?? selectedLabel;
-              return (
-                <span title={typeof displayedLabel === 'string' ? displayedLabel : undefined}>
-                  {displayedLabel}
-                </span>
-              );
-            })()}
-          </MenuToggle>
+          <div ref={menuToggleRef} style={{ display: 'contents' }}>
+            <MenuToggle
+              innerRef={toggleRef}
+              data-testid={dataTestId}
+              aria-label="Options menu"
+              onClick={() => setOpen(!open)}
+              icon={icon}
+              isExpanded={open}
+              isDisabled={
+                totalOptions.length === 0 ||
+                (totalOptions.length === 1 && autoSelectOnlyOption) ||
+                isDisabled
+              }
+              isFullWidth={isFullWidth}
+              {...toggleProps}
+            >
+              {/* Plain text: MenuToggle's .pf-v6-c-menu-toggle__text handles truncation. Using Truncate
+                  caused Safari flex layout bugs (labels clipped when space was available). */}
+              {(() => {
+                const displayedLabel = toggleLabel ?? selectedLabel;
+                return (
+                  <span title={typeof displayedLabel === 'string' ? displayedLabel : undefined}>
+                    {displayedLabel}
+                  </span>
+                );
+              })()}
+            </MenuToggle>
+          </div>
         )}
         shouldFocusToggleOnSelect
-        popperProps={{ maxWidth: 'trigger', ...popperProps }}
+        popperProps={{
+          maxWidth: 'trigger',
+          ...popperProps,
+          // Portal into the modal dialog so VoiceOver can reach options inside aria-modal.
+          appendTo: popperProps?.appendTo ?? (() => getModalDialog() ?? document.body),
+        }}
       >
         {groupedOptions?.map((group, index) => (
           <React.Fragment key={group.key}>
