@@ -1,14 +1,17 @@
 import React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
-import { URL_PREFIX } from '~/app/utilities/const';
+import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import PolicyForm from './policyForm/PolicyForm';
 
 const EditAuthPolicyPage: React.FC = () => {
   const { authPolicyName = '' } = useParams<{ authPolicyName: string }>();
+  const { state, pathname } = useLocation();
+  const base = getBackUrl(pathname, state, 'auth-policies');
+  const returnTo = base;
   const [policyInfo, policyLoaded, policyError] = useGetPolicyInfo(authPolicyName);
   const [formData, formLoaded, formError] = useSubscriptionPolicyFormData();
 
@@ -22,9 +25,7 @@ const EditAuthPolicyPage: React.FC = () => {
       description="Update groups, models, and metadata for this authorization policy."
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies</Link>}
-          />
+          <BreadcrumbItem render={() => <Link to={base}>Authorization policies</Link>} />
           <BreadcrumbItem isActive>{displayName || authPolicyName}</BreadcrumbItem>
         </Breadcrumb>
       }
@@ -38,6 +39,7 @@ const EditAuthPolicyPage: React.FC = () => {
           key={policyInfo.policy.name}
           formData={formData}
           initialPolicy={policyInfo.policy}
+          returnTo={returnTo}
         />
       )}
     </ApplicationsPage>

@@ -50,15 +50,24 @@ var ValidTimeseriesPresets = map[string]bool{
 	"balanced": true,
 }
 
-// ValidClassificationEvalMetrics lists valid eval_metric values for binary and multiclass classification.
-var ValidClassificationEvalMetrics = map[string]bool{
+// ValidBinaryEvalMetrics lists valid eval_metric values for binary classification.
+var ValidBinaryEvalMetrics = map[string]bool{
 	"accuracy": true, "balanced_accuracy": true, "log_loss": true,
 	"f1": true, "f1_macro": true, "f1_micro": true, "f1_weighted": true,
-	"roc_auc": true, "roc_auc_ovo": true, "roc_auc_ovo_macro": true, "roc_auc_ovo_weighted": true,
-	"roc_auc_ovr": true, "roc_auc_ovr_macro": true, "roc_auc_ovr_micro": true, "roc_auc_ovr_weighted": true,
-	"average_precision": true,
-	"precision":         true, "precision_macro": true, "precision_micro": true, "precision_weighted": true,
+	"roc_auc": true, "average_precision": true,
+	"precision": true, "precision_macro": true, "precision_micro": true, "precision_weighted": true,
 	"recall": true, "recall_macro": true, "recall_micro": true, "recall_weighted": true,
+	"mcc": true, "pac_score": true,
+}
+
+// ValidMulticlassEvalMetrics lists valid eval_metric values for multiclass classification.
+var ValidMulticlassEvalMetrics = map[string]bool{
+	"accuracy": true, "balanced_accuracy": true, "log_loss": true,
+	"f1_macro": true, "f1_micro": true, "f1_weighted": true,
+	"roc_auc_ovo": true, "roc_auc_ovo_weighted": true,
+	"roc_auc_ovr": true, "roc_auc_ovr_micro": true, "roc_auc_ovr_weighted": true,
+	"precision_macro": true, "precision_micro": true, "precision_weighted": true,
+	"recall_macro": true, "recall_micro": true, "recall_weighted": true,
 	"mcc": true, "pac_score": true,
 }
 

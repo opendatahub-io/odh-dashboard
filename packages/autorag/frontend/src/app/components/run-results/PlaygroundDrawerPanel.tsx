@@ -24,7 +24,8 @@ import {
 } from '@patternfly/react-core';
 import { CodeIcon } from '@patternfly/react-icons';
 import React from 'react';
-import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { formatPatternName } from '~/app/utilities/utils';
 import './PlaygroundDrawerPanel.scss';
 
@@ -40,10 +41,8 @@ type PlaygroundPatternInfo = {
 
 type PlaygroundDrawerPanelProps = {
   namespace: string;
-  secretName: string;
   responsesTemplate: ResponsesTemplate;
   patternInfo: PlaygroundPatternInfo;
-  patterns: Record<string, AutoragPattern>;
   onClose: () => void;
   onSelectPattern: (patternName: string) => void;
   onViewCode: (patternName: string) => void;
@@ -51,14 +50,14 @@ type PlaygroundDrawerPanelProps = {
 
 const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   namespace,
-  secretName,
   responsesTemplate,
   patternInfo,
-  patterns,
   onClose,
   onSelectPattern,
   onViewCode,
 }) => {
+  const { parameters, patterns } = useAutoragResultsContext();
+  const secretName = parameters?.ogx_secret_name ?? '';
   const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
 
   return (

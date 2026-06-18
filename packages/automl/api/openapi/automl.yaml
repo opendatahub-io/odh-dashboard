@@ -597,7 +597,8 @@ paths:
       description: >-
         Returns merged pipeline runs from all auto-discovered AutoML pipelines (time-series
         and tabular). Runs are sorted by creation time descending and paginated using
-        page/pageSize. Returns 500 if no managed AutoML pipelines are found in the namespace.
+        page/pageSize. Returns 404 Not Found if no managed AutoML pipelines are found in the
+        namespace, or if only one of the required tabular and timeseries pipelines is present.
     post:
       tags:
         - PipelineOperation
@@ -636,7 +637,7 @@ paths:
                   label_column: "segment"
                   task_type: "multiclass"
                   preset: "balanced"
-                  eval_metric: "roc_auc"
+                  eval_metric: "roc_auc_ovo"
                   top_n: 5
               tabular-regression:
                 summary: Tabular regression pipeline request
@@ -699,12 +700,19 @@ paths:
           task_type (required, must be "timeseries"),
           prediction_length (optional, default: 1), known_covariates_names (optional array)
 
+
+        Returns 404 Not Found if required managed AutoML pipelines are unavailable in the
+        namespace (both tabular and timeseries must be present).
+
   /api/v1/pipeline-runs/{runId}:
     summary: Get a single pipeline run by ID
     description: >-
       Retrieves a single pipeline run by its unique identifier from the
       Pipeline Server in the specified namespace. The Pipeline Server
       (DSPipelineApplication) and AutoML managed pipeline are automatically discovered.
+      The run is validated to ensure it belongs to one of the discovered AutoML pipelines
+      before being returned. Returns 404 if the run doesn't exist, belongs to a different
+      pipeline, or required managed AutoML pipelines are unavailable in the namespace.
     get:
       tags:
         - PipelineOperation
@@ -736,7 +744,10 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
       operationId: getPipelineRunById
       summary: Get Pipeline Run by ID
-      description: Returns a single pipeline run by its unique identifier
+      description: >-
+        Returns a single pipeline run by its unique identifier if it belongs to one of the
+        discovered AutoML managed pipelines. Returns 404 if the run doesn't exist, belongs to a
+        different pipeline, or required managed AutoML pipelines are unavailable in the namespace.
     delete:
       tags:
         - PipelineOperation
@@ -773,6 +784,8 @@ paths:
         that the run belongs to one of the discovered AutoML managed pipelines in the namespace and
         that it is in a deletable state (SUCCEEDED, FAILED, or CANCELED) before deleting it.
         This prevents users from deleting runs from other pipelines in the same namespace.
+        Returns 404 if the run doesn't exist, belongs to a different pipeline, or required
+        managed AutoML pipelines are unavailable.
 
   /api/v1/pipeline-runs/{runId}/terminate:
     summary: Terminate an active pipeline run
@@ -780,8 +793,8 @@ paths:
       Terminates an active pipeline run, cancelling all running tasks and transitioning the run
       to CANCELING and then CANCELED state. The run must be in an active state (PENDING, RUNNING,
       PAUSED, or CANCELING) and belong to one of the discovered AutoML pipelines in the namespace.
-      Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist or
-      belongs to a different pipeline.
+      Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist,
+      belongs to a different pipeline, or required managed AutoML pipelines are unavailable.
     post:
       tags:
         - PipelineOperation
@@ -818,7 +831,9 @@ paths:
         CANCELED state. The run must be in an active state (PENDING, RUNNING, PAUSED, or
         CANCELING). The BFF validates that the run belongs to one of the discovered AutoML
         managed pipelines in the namespace and that it is in a terminatable state before
-        proceeding. Returns 400 if the run is not in a terminatable state.
+        proceeding. Returns 400 if the run is not in a terminatable state, or 404 if the run
+        doesn't exist, belongs to a different pipeline, or required managed AutoML pipelines are
+        unavailable.
 
   /api/v1/pipeline-runs/{runId}/retry:
     summary: Retry a failed or canceled pipeline run
@@ -826,7 +841,8 @@ paths:
       Re-initiates a failed or canceled pipeline run from the point of failure. The run must
       belong to one of the discovered AutoML pipelines in the namespace and must be in FAILED or
       CANCELED state. Returns 400 if the run is not in a retryable state, or 404 if the run
-      doesn't exist or belongs to a different pipeline.
+      doesn't exist, belongs to a different pipeline, or required managed AutoML pipelines are
+      unavailable.
     post:
       tags:
         - PipelineOperation
@@ -862,7 +878,9 @@ paths:
         Re-initiates a failed or canceled AutoML pipeline run. The BFF validates that the run
         belongs to one of the discovered AutoML managed pipelines in the namespace and that it
         is in a retryable state (FAILED or CANCELED) before retrying it. This prevents users
-        from retrying runs from other pipelines in the same namespace.
+        from retrying runs from other pipelines in the same namespace. Returns 404 if the run
+        doesn't exist, belongs to a different pipeline, or required managed AutoML pipelines are
+        unavailable.
 
 components:
   schemas:
@@ -1262,10 +1280,8 @@ components:
             - f1_weighted
             - roc_auc
             - roc_auc_ovo
-            - roc_auc_ovo_macro
             - roc_auc_ovo_weighted
             - roc_auc_ovr
-            - roc_auc_ovr_macro
             - roc_auc_ovr_micro
             - roc_auc_ovr_weighted
             - average_precision
@@ -1915,10 +1931,21 @@ components:
                 properties:
                   code:
                     type: string
-                    example: "404"
                   message:
                     type: string
-                    example: "Resource not found"
+          examples:
+            managed-pipeline-unavailable:
+              summary: Required managed pipelines are not provisioned
+              value:
+                error:
+                  code: "404"
+                  message: "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
+            resource-not-found:
+              summary: Requested resource does not exist
+              value:
+                error:
+                  code: "404"
+                  message: "the requested resource could not be found"
 
     Conflict:
       description: >-
