@@ -155,6 +155,14 @@ export function useComponentStatuses(
   const [isLoading, setIsLoading] = React.useState(false);
 
   React.useEffect(() => {
+    completedRef.current.clear();
+    statusCacheRef.current.clear();
+    errorsRef.current.clear();
+    setStatusFiles(new Map());
+    setErrors([]);
+  }, [runId]);
+
+  React.useEffect(() => {
     if (!runId || !namespace || !componentStageMap) {
       return;
     }
