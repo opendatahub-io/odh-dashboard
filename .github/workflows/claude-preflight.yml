@@ -3,11 +3,11 @@ name: ODH Dashboard Agent
 # Preflight checks on PRs using Claude Code.
 #
 # Triggers:
-#   issue_comment    — @odh-dashboard-agent preflight check|fix
-#   schedule (30min) — polls agent-managed/agent-check-only labeled PRs
+#   pull_request_target — auto-runs on PR open/reopen (forks + internal)
+#   issue_comment       — @odh-dashboard-agent preflight (org members only)
 #
-# Only org members can trigger via comments.
-# Cron runs from main — scans labeled PRs for new reviews/CI/comments.
+# Fork PRs are gated by GitHub's "Require approval for all external
+# contributors" setting — a maintainer must approve the workflow run.
 #
 # Required Secrets:
 #   CLAUDE_APP_ID, CLAUDE_APP_PRIVATE_KEY, GCP_CREDENTIALS_JSON,
@@ -15,10 +15,10 @@ name: ODH Dashboard Agent
 #   MLFLOW_EXPERIMENT_NAME, MLFLOW_WORKSPACE
 
 on:
+  pull_request_target:
+    types: [opened, reopened]
   issue_comment:
     types: [created]
-  schedule:
-    - cron: "17,47 * * * *"
 
 permissions:
   contents: read
@@ -39,9 +39,24 @@ jobs:
       issues: write
       checks: read
     outputs:
-      matrix: ${{ steps.comment.outputs.matrix || steps.cron.outputs.matrix || '[]' }}
+      matrix: ${{ steps.pr.outputs.matrix || steps.comment.outputs.matrix || '[]' }}
 
     steps:
+      - name: Route pull_request_target
+        id: pr
+        if: github.event_name == 'pull_request_target'
+        env:
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          echo "→ Preflight for PR #$PR_NUMBER (pull_request_target)"
+          MATRIX=$(jq -nc --arg n "$PR_NUMBER" --arg s "$HEAD_SHA" --arg r "$HEAD_REF" --arg h "$HEAD_REPO" \
+            '[{"pr_number":$n,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
       - name: Route issue_comment
         id: comment
         if: github.event_name == 'issue_comment'
@@ -65,15 +80,8 @@ jobs:
             echo "Skipping: not a PR"; exit 0
           fi
 
-          MODE=""
-          if echo "$COMMENT_BODY" | grep -qi "@odh-dashboard-agent.*preflight.*fix"; then
-            MODE=managed
-          elif echo "$COMMENT_BODY" | grep -qi "@odh-dashboard-agent.*preflight"; then
-            MODE=check-only
-          fi
-
-          if [ -z "$MODE" ]; then
-            echo "Skipping: no @odh-dashboard-agent command found"; exit 0
+          if ! echo "$COMMENT_BODY" | grep -qi "@odh-dashboard-agent.*preflight"; then
+            echo "Skipping: no @odh-dashboard-agent preflight command found"; exit 0
           fi
 
           gh api "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content="+1" --silent || true
@@ -82,72 +90,10 @@ jobs:
           SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
           REF=$(echo "$PR_DATA" | jq -r '.headRefName')
           HR=$(echo "$PR_DATA" | jq -r 'if .headRepository.owner then .headRepository.owner.login + "/" + .headRepository.name else empty end')
-          echo "→ Preflight $MODE for PR #$ISSUE_NUMBER"
-          MATRIX=$(jq -nc --arg n "$ISSUE_NUMBER" --arg m "$MODE" --arg s "$SHA" --arg r "$REF" --arg h "${HR:-$REPO}" \
-            '[{"pr_number":$n,"mode":$m,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')
+          echo "→ Preflight for PR #$ISSUE_NUMBER (comment)"
+          MATRIX=$(jq -nc --arg n "$ISSUE_NUMBER" --arg s "$SHA" --arg r "$REF" --arg h "${HR:-$REPO}" \
+            '[{"pr_number":$n,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
-
-      - name: Route schedule
-        id: cron
-        if: github.event_name == 'schedule'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-        run: |
-          PRS=$(gh pr list --repo "$REPO" --state open \
-            --json number,labels,headRefOid,headRefName,headRepository \
-            --jq '.[] | select(.labels | map(.name) | (index("agent-managed") or index("agent-check-only")))' 2>/dev/null)
-
-          if [ -z "$PRS" ]; then
-            echo "No labeled PRs"; exit 0
-          fi
-
-          MATRIX="[]"
-          while IFS= read -r pr_json; do
-            NUM=$(echo "$pr_json" | jq -r '.number')
-            SHA=$(echo "$pr_json" | jq -r '.headRefOid')
-            REF=$(echo "$pr_json" | jq -r '.headRefName')
-            HR=$(echo "$pr_json" | jq -r 'if .headRepository.owner then .headRepository.owner.login + "/" + .headRepository.name else empty end')
-            HR="${HR:-$REPO}"
-            LABELS=$(echo "$pr_json" | jq -r '[.labels[].name] | join(",")')
-
-            # Dual-label guard
-            if echo "$LABELS" | grep -q "agent-managed" && echo "$LABELS" | grep -q "agent-check-only"; then
-              echo "PR #$NUM: has both labels, skipping"; continue
-            fi
-
-            LAST=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
-              --jq '.check_runs[] | select(.name == "ODH Dashboard Agent") | .completed_at' 2>/dev/null | head -1)
-
-            NEEDS_RUN=false
-            if [ -z "$LAST" ]; then
-              echo "PR #$NUM: no previous run"
-              NEEDS_RUN=true
-            else
-              REVIEW=$(gh api "repos/$REPO/pulls/$NUM/reviews?per_page=1" --jq '.[0].submitted_at // empty' 2>/dev/null)
-              COMMENT=$(gh api "repos/$REPO/issues/$NUM/comments?sort=created&direction=desc&per_page=1" --jq '.[0].created_at // empty' 2>/dev/null)
-              CI=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
-                --jq '[.check_runs[] | select(.name != "ODH Dashboard Agent") | .completed_at // empty] | map(select(. != "")) | sort | last // empty' 2>/dev/null)
-
-              for ts in "$REVIEW" "$COMMENT" "$CI"; do
-                if [ -n "$ts" ] && [[ "$ts" > "$LAST" ]]; then
-                  echo "PR #$NUM: new activity"
-                  NEEDS_RUN=true; break
-                fi
-              done
-            fi
-
-            if [ "$NEEDS_RUN" = "true" ]; then
-              echo "$LABELS" | grep -q "agent-managed" && MODE=managed || MODE=check-only
-              echo "→ Preflight $MODE for PR #$NUM (cron)"
-              MATRIX=$(echo "$MATRIX" | jq -c --arg n "$NUM" --arg m "$MODE" --arg s "$SHA" --arg r "$REF" --arg h "$HR" \
-                '. + [{"pr_number":$n,"mode":$m,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')
-            fi
-          done <<< "$PRS"
-
-          if [ "$MATRIX" != "[]" ]; then
-            echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
-          fi
 
   # ------------------------------------------------------------------ #
   #  Preflight                                                          #
@@ -167,7 +113,6 @@ jobs:
 
     env:
       PR_NUMBER: ${{ matrix.pr_number }}
-      MODE: ${{ matrix.mode }}
       HEAD_SHA: ${{ matrix.head_sha }}
       HEAD_REF: ${{ matrix.head_ref }}
       HEAD_REPO: ${{ matrix.head_repo }}
@@ -176,17 +121,8 @@ jobs:
       CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS: "30000"
 
     steps:
-      - name: Generate GitHub App token (managed)
-        if: matrix.mode == 'managed'
-        id: app-token-managed
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
-        with:
-          app-id: ${{ secrets.CLAUDE_APP_ID }}
-          private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
-
-      - name: Generate GitHub App token (check-only)
-        if: matrix.mode == 'check-only'
-        id: app-token-readonly
+      - name: Generate GitHub App token
+        id: app-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ secrets.CLAUDE_APP_ID }}
@@ -194,11 +130,6 @@ jobs:
           permission-contents: read
           permission-pull-requests: write
           permission-checks: write
-
-      - name: Resolve token
-        id: app-token
-        run: |
-          echo "token=${{ steps.app-token-managed.outputs.token || steps.app-token-readonly.outputs.token }}" >> "$GITHUB_OUTPUT"
 
       - name: Create check run
         id: check-run
@@ -212,7 +143,7 @@ jobs:
             -f "head_sha=$HEAD_SHA" \
             -f "status=in_progress" \
             -f "output[title]=Preflight running..." \
-            -f "output[summary]=**Mode:** $MODE | **PR:** #$PR_NUMBER | **Trigger:** $EVENT_NAME" \
+            -f "output[summary]=**PR:** #$PR_NUMBER | **Trigger:** $EVENT_NAME" \
             --jq '.id')
           echo "id=$CHECK_RUN_ID" >> "$GITHUB_OUTPUT"
 
@@ -239,9 +170,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
 
-      # ── Check (read-only) ──
       - name: Preflight check
-        if: matrix.mode == 'check-only'
         uses: anthropics/claude-code-action@787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251 # v1
         with:
           github_token: ${{ steps.app-token.outputs.token }}
@@ -266,46 +195,10 @@ jobs:
             --permission-mode acceptEdits
             --allowedTools "Bash(gh *)"
             --allowedTools "Bash(git *)"
-            --allowedTools "Bash(npm *)"
-            --allowedTools "Bash(npx *)"
             --allowedTools "Bash(bash *)"
             --allowedTools "mcp__jira__*"
             --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian==0.21.1"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
           prompt: "/preflight ${{ env.PR_NUMBER }} --skip-review coderabbit --ci"
-
-      # ── Fix (iterative) ──
-      - name: Preflight fix
-        if: matrix.mode == 'managed'
-        uses: anthropics/claude-code-action@787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251 # v1
-        with:
-          github_token: ${{ steps.app-token.outputs.token }}
-          use_vertex: "true"
-          settings: |
-            {
-              "env": {
-                "MLFLOW_CLAUDE_TRACING_ENABLED": "true",
-                "MLFLOW_TRACKING_URI": "${{ secrets.MLFLOW_TRACKING_URI }}",
-                "MLFLOW_TRACKING_TOKEN": "${{ secrets.MLFLOW_TRACKING_TOKEN }}",
-                "MLFLOW_EXPERIMENT_NAME": "${{ secrets.MLFLOW_EXPERIMENT_NAME }}",
-                "MLFLOW_WORKSPACE": "${{ secrets.MLFLOW_WORKSPACE }}"
-              },
-              "hooks": {
-                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}],
-                "StopFailure": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}]
-              }
-            }
-          claude_args: >-
-            --max-turns 200
-            --model "claude-sonnet-4-6[1m]"
-            --permission-mode acceptEdits
-            --allowedTools "Bash(gh *)"
-            --allowedTools "Bash(git *)"
-            --allowedTools "Bash(npm *)"
-            --allowedTools "Bash(npx *)"
-            --allowedTools "Bash(bash *)"
-            --allowedTools "mcp__jira__*"
-            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian==0.21.1"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
-          prompt: "/preflight ${{ env.PR_NUMBER }} --fix --skip-review coderabbit --ci"
 
       # ── Tag trace with PR context ──
       - name: Tag preflight trace
@@ -377,7 +270,7 @@ jobs:
           gh api "repos/$REPO/check-runs/$CHECK_RUN_ID" \
             -X PATCH \
             -f "status=completed" -f "conclusion=success" \
-            -f "output[title]=Preflight passed ($MODE)" \
+            -f "output[title]=Preflight passed" \
             -f "output[summary]=See PR review for full report."
 
       - name: Update check run (failure)
@@ -391,7 +284,7 @@ jobs:
           gh api "repos/$REPO/check-runs/$CHECK_RUN_ID" \
             -X PATCH \
             -f "status=completed" -f "conclusion=failure" \
-            -f "output[title]=Preflight failed ($MODE)" \
+            -f "output[title]=Preflight failed" \
             -f "output[summary]=Check the [workflow run]($RUN_URL)."
 
       - name: Update check run (cancelled)
@@ -404,5 +297,5 @@ jobs:
           gh api "repos/$REPO/check-runs/$CHECK_RUN_ID" \
             -X PATCH \
             -f "status=completed" -f "conclusion=cancelled" \
-            -f "output[title]=Preflight cancelled ($MODE)" \
+            -f "output[title]=Preflight cancelled" \
             -f "output[summary]=Superseded by a newer run."
