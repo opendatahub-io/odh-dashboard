@@ -9,7 +9,7 @@ import {
 import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 
 const createK8sName = (
-  overrides: Partial<K8sNameDescriptionFieldData['k8sName']> & {
+  overrides: Omit<Partial<K8sNameDescriptionFieldData['k8sName']>, 'state'> & {
     state?: Partial<K8sNameDescriptionFieldData['k8sName']['state']>;
   } = {},
 ): K8sNameDescriptionFieldData['k8sName'] => ({
