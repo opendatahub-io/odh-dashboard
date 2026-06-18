@@ -141,7 +141,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
     <Modal
       isOpen
       onClose={onClose}
-      variant="medium"
+      variant="large"
       aria-labelledby="connected-workbenches-modal-title"
     >
       <ModalHeader

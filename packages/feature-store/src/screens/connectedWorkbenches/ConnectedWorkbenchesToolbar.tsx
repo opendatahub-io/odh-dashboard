@@ -7,7 +7,7 @@ import {
   SearchInput,
   // eslint-disable-next-line no-restricted-imports -- grouped multi-select with custom toggle; MultiSelection does not support SelectGroup
   Select,
-  SelectGroup,
+  Divider,
   SelectList,
   SelectOption,
   Switch,
@@ -163,9 +163,17 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
           )}
           popperProps={{ appendTo: 'inline' }}
         >
-          {projectOptions.withConnected.length > 0 ? (
-            <SelectGroup label="Projects with connected workbenches">
-              <SelectList isAriaMultiselectable>
+          <SelectList isAriaMultiselectable>
+            {projectOptions.withConnected.length > 0 ? (
+              <>
+                <SelectOption
+                  isDisabled
+                  value="header-with-connected"
+                  data-testid="project-group-header-with"
+                  style={{ color: 'var(--pf-t--global--text--color--disabled)' }}
+                >
+                  Projects with connected workbenches
+                </SelectOption>
                 {projectOptions.withConnected.map((project) => (
                   <SelectOption
                     key={project}
@@ -176,12 +184,22 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
                     {project}
                   </SelectOption>
                 ))}
-              </SelectList>
-            </SelectGroup>
-          ) : null}
-          {projectOptions.withoutConnected.length > 0 ? (
-            <SelectGroup label="Projects without connected workbenches">
-              <SelectList isAriaMultiselectable>
+              </>
+            ) : null}
+            {projectOptions.withConnected.length > 0 &&
+            projectOptions.withoutConnected.length > 0 ? (
+              <Divider />
+            ) : null}
+            {projectOptions.withoutConnected.length > 0 ? (
+              <>
+                <SelectOption
+                  isDisabled
+                  value="header-without-connected"
+                  data-testid="project-group-header-without"
+                  style={{ color: 'var(--pf-t--global--text--color--disabled)' }}
+                >
+                  Projects without connected workbenches
+                </SelectOption>
                 {projectOptions.withoutConnected.map((project) => (
                   <SelectOption
                     key={project}
@@ -192,9 +210,9 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
                     {project}
                   </SelectOption>
                 ))}
-              </SelectList>
-            </SelectGroup>
-          ) : null}
+              </>
+            ) : null}
+          </SelectList>
         </Select>
       </ToolbarFilter>
 
