@@ -209,7 +209,7 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           )
         }
-        loadError={lsdStatusError || aiModelsError}
+        loadError={lsdStatusError || aiModelsError || profileLoadError}
         headerAction={
           hasNoModelsOrSelectedModelDisabled ? undefined : (
             <ChatbotHeaderActions
