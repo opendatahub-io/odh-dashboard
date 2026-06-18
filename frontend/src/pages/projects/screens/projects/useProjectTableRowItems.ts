@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TooltipProps } from '@patternfly/react-core';
-import { ProjectKind } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import {
   useProjectAccessReview,
   useProjectPermissionsAccessReview,

@@ -16,10 +16,13 @@ import {
 import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import {
+  type HardwareProfileKind,
+  HardwareProfileFeatureVisibility,
+} from '@odh-dashboard/k8s-core';
 import { relativeTime } from '#~/utilities/time';
 import { TableRowTitleDescription } from '#~/components/table';
 import HardwareProfileEnableToggle from '#~/pages/hardwareProfiles/HardwareProfileEnableToggle';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import NodeResourceTable from '#~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
 import NodeSelectorTable from '#~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
 import TolerationTable from '#~/pages/hardwareProfiles/toleration/TolerationTable';

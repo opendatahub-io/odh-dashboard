@@ -7,6 +7,9 @@ import (
 )
 
 const (
+	// AuthMethodDisabled authentication is disabled, useful for testing and mock-only local dev.
+	AuthMethodDisabled = "disabled"
+
 	// AuthMethodInternal uses the credentials of the running backend.
 	// If running inside the cluster, it uses the pod's service account.
 	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
@@ -44,10 +47,11 @@ func (d *DeploymentMode) Set(value string) error {
 	switch strings.ToLower(value) {
 	case "federated":
 		*d = DeploymentModeFederated
-	case "standalone":
+	case "standalone", "kubeflow":
+		// kubeflow is accepted as an alias for standalone (legacy Makefile / frontend naming).
 		*d = DeploymentModeStandalone
 	default:
-		return fmt.Errorf("invalid deployment mode: %s (must be federated or standalone)", value)
+		return fmt.Errorf("invalid deployment mode: %s (must be federated, standalone, or kubeflow)", value)
 	}
 	return nil
 }
@@ -81,7 +85,7 @@ type EnvConfig struct {
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
-	// Valid values: "internal" or "user_token"
+	// Valid values: "internal", "user_token", or "disabled"
 	AuthMethod string
 
 	// Header used to extract the authentication token.
@@ -102,6 +106,11 @@ type EnvConfig struct {
 	// MockBFFClients enables mock mode for BFF inter-communication clients.
 	// When true, BFF clients return mock responses instead of making real HTTP calls.
 	MockBFFClients bool
+
+	// MockAgentClient enables mock mode for the agent data source client.
+	// When true, agent APIs return built-in demo data instead of querying the cluster.
+	// Local development only — routes are live with no RBAC gate; do not enable in staging or production.
+	MockAgentClient bool
 
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility

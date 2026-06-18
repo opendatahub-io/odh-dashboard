@@ -12,7 +12,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { z } from 'zod';
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
-import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   getPVCNameFromURI,
   isPVCUri,

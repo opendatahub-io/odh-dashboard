@@ -1,6 +1,7 @@
 PORT ?= 4000
 MOCK_K8S_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false
+MOCK_AGENT_CLIENT ?= false
 DEV_MODE ?= false
 DEV_MODE_CLIENT_PORT ?= 8080
 DEPLOYMENT_MODE ?= kubeflow
@@ -63,7 +64,12 @@ endif
 run: fmt vet envtest ## Runs the project.
 	trap 'exit 0' INT; \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
-	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY)
+	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --mock-agent-client=$(MOCK_AGENT_CLIENT) --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY)
+
+.PHONY: dev-bff
+dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev)
+	trap 'exit 0' INT; \
+	make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_AGENT_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone AUTH_METHOD=user_token
 
 ##@ Dependencies
 

@@ -102,7 +102,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
     properties: {
       id: 'maas-tokens-subscriptions-view',
-      title: 'API keys and subscriptions',
+      title: 'API keys',
       href: '/maas/keys-and-subs',
       section: 'gen-ai-studio',
       path: '/maas/keys-and-subs/*',

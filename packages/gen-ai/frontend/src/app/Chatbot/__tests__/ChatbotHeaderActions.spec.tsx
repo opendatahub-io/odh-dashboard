@@ -55,6 +55,7 @@ describe('ChatbotHeaderActions', () => {
     onDeletePlayground: jest.fn(),
     onNewChat: jest.fn(),
     onCompareChat: jest.fn(),
+    onSave: jest.fn(),
     onSaveAs: jest.fn(),
     onSettingsClick: jest.fn(),
     isSettingsOpen: false,

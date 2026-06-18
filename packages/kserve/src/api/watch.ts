@@ -1,9 +1,8 @@
 import { PodModel } from '@odh-dashboard/internal/api/models/index';
-import {
+import type { PodKind, ProjectKind } from '@odh-dashboard/k8s-core';
+import type {
   InferenceServiceKind,
   K8sAPIOptions,
-  PodKind,
-  ProjectKind,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
@@ -12,7 +11,7 @@ import {
   InferenceServiceModel,
   ServingRuntimeModel,
 } from '@odh-dashboard/internal/api/models/kserve';
-import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 
 export const useWatchInferenceServices = (
   project?: ProjectKind,

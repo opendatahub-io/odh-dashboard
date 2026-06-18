@@ -1,6 +1,6 @@
 import { testHook, standardUseFetchStateObject } from '@odh-dashboard/jest-config/hooks';
 import { fetchDashboardConfig } from '@odh-dashboard/internal/services/dashboardConfigService';
-import { DashboardConfigKind } from '@odh-dashboard/internal/k8sTypes';
+import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { useModelServingClusterSettings } from '../useModelServingClusterSettings';
 
 jest.mock('@odh-dashboard/internal/services/dashboardConfigService');

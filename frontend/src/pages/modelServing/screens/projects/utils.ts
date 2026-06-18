@@ -1,10 +1,8 @@
 import * as React from 'react';
+import type { PersistentVolumeClaimKind, ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
 import {
   ConfigMapKind,
   InferenceServiceKind,
-  PersistentVolumeClaimKind,
-  ProjectKind,
-  SecretKind,
   ServingContainer,
   ServingRuntimeKind,
 } from '#~/k8sTypes';

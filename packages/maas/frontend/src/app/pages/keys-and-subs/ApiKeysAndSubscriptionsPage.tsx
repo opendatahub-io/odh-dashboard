@@ -1,7 +1,7 @@
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
-import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
+import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApiKeysPageLoad } from '~/app/hooks/useApiKeysPageLoad';
@@ -44,10 +44,7 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={
-        <TitleWithIcon title="API keys and subscriptions" objectType={ProjectObjectType.apiKeys} />
-      }
-      description="Manage your API keys and view your subscription access."
+      title={<TitleWithIcon title="API keys" objectType={ProjectObjectType.apiKeys} />}
       loaded={isPageLoaded}
       empty={false}
       loadError={pageLoadError}
@@ -67,11 +64,13 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
           aria-label="API keys tab"
           data-testid="api-keys-tab"
         >
-          <PageSection isFilled>
-            {!showApiKeysLoadError && (
-              <ApiKeysTab pageState={apiKeysPageState} subscriptions={subscriptions} />
-            )}
-          </PageSection>
+          {!showApiKeysLoadError && (
+            <ApiKeysTab
+              pageState={apiKeysPageState}
+              subscriptions={subscriptions}
+              showDescription
+            />
+          )}
         </Tab>
         <Tab
           eventKey={SUBSCRIPTIONS_TAB}
