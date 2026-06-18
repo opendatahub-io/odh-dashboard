@@ -679,16 +679,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     // When loading an agent profile the profile itself is the configuration source of truth —
     // skip location.state pre-population so it doesn't overwrite the just-applied profile.
     if (agentProfileIdParam) {
-      return undefined;
+      return;
     }
-    const preSelectMcp = openSettingsToTab !== 'mcp' ? mcpServersFromRoute : [];
     useChatbotConfigStore.getState().resetConfiguration({
-      selectedMcpServerIds: preSelectMcp,
+      selectedMcpServerIds: mcpServersFromRoute,
     });
-    return () => {
-      useChatbotConfigStore.getState().resetConfiguration();
-    };
-  }, [agentProfileIdParam, mcpServersFromRoute, selectedAAModel, openSettingsToTab]);
+  }, [agentProfileIdParam, mcpServersFromRoute, selectedAAModel]);
 
   React.useEffect(() => {
     const shouldClear = Boolean(
