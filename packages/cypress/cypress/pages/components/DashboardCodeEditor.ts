@@ -1,7 +1,7 @@
 import { Contextual } from './Contextual';
 
 interface MonacoWindow {
-  monaco: {
+  monaco?: {
     editor: {
       getEditors: () => Array<{
         getModel: () => { getValue: () => string; setValue: (value: string) => void } | null;
@@ -21,13 +21,13 @@ interface MonacoWindow {
  */
 export class DashboardCodeEditor extends Contextual<HTMLElement> {
   waitForReady(): this {
-    // cy.wait is required for the Monaco editor to be fully mounted and ready to accept input.
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(1000);
     this.find()
       .find('.monaco-editor')
       .should(($el) => {
         const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
+        if (!win.monaco) {
+          throw new Error('Monaco editor not yet loaded');
+        }
         const editors = win.monaco.editor.getEditors();
         expect(editors).to.have.length.greaterThan(0);
         expect(editors[0].getModel()).to.not.equal(null);
@@ -61,7 +61,7 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
       .find('.monaco-editor')
       .then(($el) => {
         const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
-        const model = win.monaco.editor.getEditors()[0]?.getModel();
+        const model = win.monaco?.editor.getEditors()[0]?.getModel();
         if (!model) {
           throw new Error('No Monaco editor model found');
         }
@@ -74,7 +74,7 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
       .find('.monaco-editor')
       .then(($el) => {
         const win = $el[0].ownerDocument.defaultView as unknown as MonacoWindow;
-        const model = win.monaco.editor.getEditors()[0]?.getModel();
+        const model = win.monaco?.editor.getEditors()[0]?.getModel();
         if (!model) {
           throw new Error('No Monaco editor model found');
         }
