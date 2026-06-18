@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import ProjectNavigatorLink from '@odh-dashboard/internal/concepts/projects/ProjectNavigatorLink';
 import { IconSize } from '@odh-dashboard/internal/types';
 import {
+  Alert,
   Bullseye,
   Content,
   EmptyState,
@@ -12,41 +13,44 @@ import {
   EmptyStateVariant,
   Flex,
   FlexItem,
-  Stack,
-  StackItem,
-  Toolbar,
-  ToolbarContent,
+  Spinner,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
+import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 import AgentDeploymentsEmptyState from './AgentDeploymentsEmptyState';
+import AgentRuntimesTable from './agentRuntimes/AgentRuntimesTable';
 import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
-
-const selectProjectEmptyState = (
-  <EmptyState
-<<<<<<< HEAD
-<<<<<<< HEAD
-    headingLevel="h2"
-=======
->>>>>>> cbf3a4842 (agent list page skeleton)
-=======
-    headingLevel="h2"
->>>>>>> 806204188 (address comments)
-    icon={CubesIcon}
-    titleText="Select a project"
-    variant={EmptyStateVariant.lg}
-    data-testid="agent-deployments-select-project"
-  >
-    <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
-  </EmptyState>
-);
 
 const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
+  const navigate = useNavigate();
+
+  const [runtimes, loaded, loadError] = useListAgentRuntimes(namespace);
+
+  // When landing on /deployments with no namespace selected, auto-redirect to the first
+  // namespace found in the agent runtimes list.  This way the URL always reflects the
+  // active project and the project selector shows a meaningful selection on first load.
+  React.useEffect(() => {
+    if (!namespace && loaded && !loadError && runtimes.length > 0) {
+      navigate(agentOpsDeploymentsRoute(runtimes[0].namespace), { replace: true });
+    }
+  }, [namespace, loaded, loadError, runtimes, navigate]);
+
   const [filterText, setFilterText] = React.useState('');
+  const clearFilters = React.useCallback(() => setFilterText(''), []);
+
+  const filteredRuntimes = React.useMemo(() => {
+    if (!filterText) {
+      return runtimes;
+    }
+    const lower = filterText.toLowerCase();
+    return runtimes.filter((r) => r.name.toLowerCase().includes(lower));
+  }, [runtimes, filterText]);
 
   const noProjectSelected = !namespace;
+  const isEmpty = !noProjectSelected && loaded && !loadError && runtimes.length === 0;
 
   const headerContent = (
     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -54,15 +58,7 @@ const AgentDeploymentListPage: React.FC = () => {
       <FlexItem>
         <Content component="p">Project</Content>
       </FlexItem>
-<<<<<<< HEAD
-<<<<<<< HEAD
       <FlexItem data-testid="agent-ops-project-selector">
-=======
-      <FlexItem>
->>>>>>> cbf3a4842 (agent list page skeleton)
-=======
-      <FlexItem data-testid="agent-ops-project-selector">
->>>>>>> 806204188 (address comments)
         <AgentOpsProjectSelector namespace={namespace} getRedirectPath={agentOpsDeploymentsRoute} />
       </FlexItem>
       {namespace && (
@@ -73,36 +69,77 @@ const AgentDeploymentListPage: React.FC = () => {
     </Flex>
   );
 
+  const tableContent = () => {
+    if (noProjectSelected) {
+      if (!loaded) {
+        return <Spinner aria-label="Loading agent deployments" />;
+      }
+      return (
+        <EmptyState
+          headingLevel="h2"
+          icon={CubesIcon}
+          titleText="Select a project"
+          variant={EmptyStateVariant.lg}
+          data-testid="agent-deployments-select-project"
+        >
+          <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
+        </EmptyState>
+      );
+    }
+
+    if (!loaded) {
+      return <Spinner aria-label="Loading agent deployments" />;
+    }
+
+    if (loadError) {
+      return (
+        <Alert variant="danger" isInline title="Error loading agent deployments">
+          {loadError.message}
+        </Alert>
+      );
+    }
+
+    if (isEmpty) {
+      return <AgentDeploymentsEmptyState />;
+    }
+
+    return (
+      <AgentRuntimesTable
+        runtimes={filteredRuntimes}
+        onClearFilters={clearFilters}
+        toolbarContent={
+          <AgentRuntimesToolbar filterText={filterText} onFilterChange={setFilterText} />
+        }
+      />
+    );
+  };
+
   return (
     <ApplicationsPage
-      noTitle
+      noTitle // rendered inside a TabRoutePage which provides the title and tabs
       description="View and manage agent deployments across your fleet."
       headerContent={headerContent}
-      loaded
-      empty={false}
+      loadError={noProjectSelected ? undefined : loadError}
+      loaded={noProjectSelected ? true : loaded}
+      empty={noProjectSelected || isEmpty}
+      emptyStatePage={
+        noProjectSelected ? (
+          <EmptyState
+            headingLevel="h2"
+            icon={CubesIcon}
+            titleText="Select a project"
+            variant={EmptyStateVariant.lg}
+            data-testid="agent-deployments-select-project"
+          >
+            <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
+          </EmptyState>
+        ) : (
+          <AgentDeploymentsEmptyState />
+        )
+      }
       provideChildrenPadding
-      removeChildrenTopPadding
     >
-      {noProjectSelected ? (
-        <Bullseye>{selectProjectEmptyState}</Bullseye>
-      ) : (
-        <Stack hasGutter>
-          <StackItem>
-<<<<<<< HEAD
-            <Toolbar inset={{ default: 'insetNone' }}>
-=======
-            <Toolbar inset={{ default: 'insetNone' }} className="pf-v6-u-w-100">
->>>>>>> cbf3a4842 (agent list page skeleton)
-              <ToolbarContent>
-                <AgentRuntimesToolbar filterText={filterText} onFilterChange={setFilterText} />
-              </ToolbarContent>
-            </Toolbar>
-          </StackItem>
-          <StackItem>
-            <AgentDeploymentsEmptyState />
-          </StackItem>
-        </Stack>
-      )}
+      {noProjectSelected || isEmpty ? <Bullseye>{tableContent()}</Bullseye> : tableContent()}
     </ApplicationsPage>
   );
 };
