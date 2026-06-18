@@ -10,6 +10,7 @@ import EnvTypeSwitch from './EnvTypeSwitch';
 type EnvTypeSelectFieldProps = {
   instanceId: number;
   envVariable: EnvVariable;
+  existingSecretInUse: boolean;
   onUpdate: (envVariable: EnvVariable) => void;
   onRemove: () => void;
 };
@@ -17,6 +18,7 @@ type EnvTypeSelectFieldProps = {
 const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   instanceId,
   envVariable,
+  existingSecretInUse,
   onUpdate,
   onRemove,
 }) => (
@@ -31,12 +33,20 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
               isFullWidth
               value={envVariable.type ?? undefined}
               placeholder="Select environment variable type"
-              options={Object.values(EnvironmentVariableType).map(
-                (type): SimpleSelectOption => ({
+              options={Object.values(EnvironmentVariableType).map((type): SimpleSelectOption => {
+                const isExistingSecretDisabled =
+                  type === EnvironmentVariableType.EXISTING_SECRET &&
+                  existingSecretInUse &&
+                  envVariable.type !== EnvironmentVariableType.EXISTING_SECRET;
+                return {
                   key: type,
                   label: type,
-                }),
-              )}
+                  isAriaDisabled: isExistingSecretDisabled,
+                  description: isExistingSecretDisabled
+                    ? 'Existing secrets are already configured above. Scroll up to manage them.'
+                    : undefined,
+                };
+              })}
               onChange={(value) => {
                 const enumValue = asEnumMember(value, EnvironmentVariableType);
                 if (enumValue !== null) {
