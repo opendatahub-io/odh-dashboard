@@ -552,12 +552,36 @@ class SubscriptionTableRow extends TableRow {
     return this.find().find('[data-label="Groups"]');
   }
 
+  findGroupsExpandBtn(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-groups-expand-btn');
+  }
+
   findModels(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Models"]');
   }
 
+  findModelsExpandBtn(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-models-expand-btn');
+  }
+
   findPriority(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Priority"]');
+  }
+
+  findGroupsExpandedPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-groups-expanded-panel');
+  }
+
+  findModelsExpandedPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-models-expanded-panel');
+  }
+
+  findExpandedGroupItems(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findGroupsExpandedPanel().find('[data-testid="expanded-group-item"]');
+  }
+
+  findExpandedModelRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelsExpandedPanel().find('[data-testid="expanded-subscription-model-row"]');
   }
 }
 
@@ -1005,8 +1029,32 @@ class AuthPolicyTableRow extends TableRow {
     return this.find().find('[data-label="Groups"]');
   }
 
+  findGroupsExpandBtn(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('auth-policy-groups-expand-btn');
+  }
+
   findModels(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Models"]');
+  }
+
+  findModelsExpandBtn(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('auth-policy-models-expand-btn');
+  }
+
+  findGroupsExpandedPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('auth-policy-groups-expanded-panel');
+  }
+
+  findModelsExpandedPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('auth-policy-models-expanded-panel');
+  }
+
+  findExpandedGroupItems(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findGroupsExpandedPanel().find('[data-testid="expanded-group-item"]');
+  }
+
+  findExpandedModelRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelsExpandedPanel().find('[data-testid="expanded-auth-policy-model-row"]');
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
