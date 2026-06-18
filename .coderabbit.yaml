@@ -78,8 +78,14 @@ reviews:
         1. Co-locate tests with source: MyComponent.test.tsx next to MyComponent.tsx
            (or in __tests__/ subdirectory).
         2. Follow conventions in .claude/rules/unit-tests.md.
-        3. (Suppression) Mock secrets, fixture tokens, and example credentials
-           in test code are intentional. Do not flag as security issues.
+        3. (Suppression) Clearly synthetic credentials in test code are intentional.
+           Suppress only values that are obviously fake: placeholder strings
+           (e.g. "my-secret", "12345"), K8s Secret field-name references
+           (e.g. accessKey: 'AWS_ACCESS_KEY_ID'), base64-encoded empty or
+           placeholder data, or values from mock factory functions.
+           Still flag any value matching a real credential format (40-char hex,
+           AWS AKIA keys, GitHub ghp_/gho_ PATs, JWTs with valid structure, etc.)
+           even in test code.
         4. (Suppression) Do not flag conditional test logic (if/else in test
            bodies) unless it causes a test to silently pass with zero assertions.
            Conditional setup for different environments is intentional.
@@ -162,10 +168,17 @@ reviews:
         2. Avoid cy.wait(ms) with fixed delays — use cy.intercept() for API readiness.
         3. Follow conventions in .claude/rules/cypress-e2e.md and .claude/rules/cypress-mock.md.
         4. (Suppression) Fixture credentials and test tokens in fixtures/ and
-           intercepts/ are controlled test data. Do not flag as security issues.
-        5. (Suppression) Do not flag cy.exec() shell commands in test utilities
-           as injection risks (CWE-78). These run in controlled CI environments
-           with trusted inputs from fixtures, not user-supplied data.
+           intercepts/ are controlled test data. Suppress only clearly synthetic
+           values (placeholder strings, mock factory output, K8s field-name
+           references). Still flag values matching real credential formats
+           (AKIA keys, PATs, JWTs, 40-char hex strings, etc.).
+        5. (Suppression) Do not flag cy.exec() shell commands as injection
+           risks (CWE-78) when the command string is composed from controlled
+           sources: Cypress.env() CI variables, hardcoded fixture values, K8s
+           API response fields (resource names, namespaces), or literal strings.
+           DO still flag cy.exec() calls that incorporate user-facing input
+           (form field values, URL parameters from the app under test, or
+           unvalidated external API responses).
         6. (Suppression) Do not suggest restructuring test isolation patterns,
            extracting shared beforeEach blocks, or changing import boundaries
            across test files. Test architecture is intentional.
@@ -176,8 +189,10 @@ reviews:
         PACKAGE CYPRESS TESTS:
         Same conventions as the shared Cypress framework (packages/cypress).
         Use data-testid selectors, cy.intercept() instead of cy.wait(), and ensure idempotency.
-        Same suppressions apply: do not flag fixture credentials, do not flag
-        cy.exec() as injection, do not suggest restructuring test isolation
+        Same suppressions apply: do not flag clearly synthetic fixture
+        credentials (but still flag real credential formats), do not flag
+        cy.exec() as injection when inputs come from controlled sources
+        (CI env, fixtures, K8s API), do not suggest restructuring test isolation
         or import boundaries.
 
     # ── Contract tests ────────────────────────────────────────────
