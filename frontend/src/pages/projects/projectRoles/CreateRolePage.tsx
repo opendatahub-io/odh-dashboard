@@ -184,7 +184,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
         empty={false}
       >
         <PageSection hasBodyWrapper={false} isFilled data-testid="create-role-page">
-          {viewMode === 'form' ? (
+          <div hidden={viewMode !== 'form'}>
             <CreateRoleForm
               nameDescriptionData={k8sNameDescriptionData}
               description={description}
@@ -194,7 +194,8 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
               rules={rules}
               onRulesChange={handleRulesChange}
             />
-          ) : (
+          </div>
+          <div hidden={viewMode !== 'yaml'}>
             <CreateRoleYamlView
               namespace={namespace}
               k8sName={k8sNameDescriptionData.data.k8sName.value}
@@ -205,7 +206,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
               rules={rules}
               labels={labels}
             />
-          )}
+          </div>
         </PageSection>
         <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
           <CreateRoleFooter

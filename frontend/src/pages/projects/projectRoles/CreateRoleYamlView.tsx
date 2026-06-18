@@ -10,8 +10,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { Language } from '@patternfly/react-code-editor';
-import { CompressArrowsAltIcon } from '@patternfly/react-icons/dist/esm/icons/compress-arrows-alt-icon';
-import { ExpandArrowsAltIcon } from '@patternfly/react-icons/dist/esm/icons/expand-arrows-alt-icon';
+import { CompressArrowsAltIcon, ExpandArrowsAltIcon } from '@patternfly/react-icons';
 import YAML from 'yaml';
 import DashboardCodeEditor from '#~/concepts/dashboard/codeEditor/DashboardCodeEditor';
 import assembleRole from './assembleRole';
@@ -56,7 +55,7 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
 
   React.useEffect(() => {
     const handleFullScreenChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
+      setIsFullScreen(document.fullscreenElement === editorContainerRef.current);
     };
     document.addEventListener('fullscreenchange', handleFullScreenChange);
     return () => {
@@ -67,7 +66,7 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
   const onFullScreenToggle = () => {
     if (!isFullScreen) {
       editorContainerRef.current?.requestFullscreen();
-    } else if (document.fullscreenElement) {
+    } else if (document.fullscreenElement === editorContainerRef.current) {
       document.exitFullscreen();
     }
   };
@@ -105,6 +104,7 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
         </Content>
       </StackItem>
       <StackItem isFilled>
+        {/* PF gap: no pf-v6-u-background-color-100 equivalent in v6 — remove when added */}
         <div
           ref={editorContainerRef}
           data-testid="yaml-editor-container"
@@ -118,7 +118,8 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
             isDownloadEnabled
             downloadFileName={`${k8sName || 'untitled-role'}.yaml`}
             language={Language.yaml}
-            codeEditorHeight={isFullScreen ? '100vh' : '500px'}
+            height={isFullScreen ? '100%' : undefined}
+            codeEditorHeight={isFullScreen ? 'calc(100vh - 66px)' : '500px'}
             testId="yaml-code-editor"
             customControls={customControls}
           />

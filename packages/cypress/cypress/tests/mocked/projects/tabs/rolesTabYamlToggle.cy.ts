@@ -44,15 +44,15 @@ describe('Create Role - Form/YAML toggle', () => {
   });
 
   it('should have Form selected by default', () => {
-    projectRoles.findFormViewToggle().find('button').should('have.class', 'pf-m-selected');
+    projectRoles.findFormViewToggle().find('button').should('have.attr', 'aria-pressed', 'true');
     projectRoles.findCreateRoleForm().should('exist');
   });
 
   it('should switch to YAML view when YAML toggle is clicked', () => {
     projectRoles.findYamlViewToggle().click();
 
-    projectRoles.findYamlView().should('exist');
-    projectRoles.findCreateRoleForm().should('not.exist');
+    projectRoles.findYamlView().should('be.visible');
+    projectRoles.findCreateRoleForm().should('not.be.visible');
   });
 
   it('should display title and description in YAML view', () => {
@@ -94,10 +94,10 @@ describe('Create Role - Form/YAML toggle', () => {
     projectRoles.findDescriptionTextarea().type('Preserved description');
 
     projectRoles.findYamlViewToggle().click();
-    projectRoles.findYamlView().should('exist');
+    projectRoles.findYamlView().should('be.visible');
 
     projectRoles.findFormViewToggle().click();
-    projectRoles.findCreateRoleForm().should('exist');
+    projectRoles.findCreateRoleForm().should('be.visible');
 
     projectRoles.findRoleNameInput().should('have.value', 'preserved-role');
     projectRoles.findDescriptionTextarea().should('have.value', 'Preserved description');
