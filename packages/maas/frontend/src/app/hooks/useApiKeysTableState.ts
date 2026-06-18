@@ -10,7 +10,7 @@ import {
   APIKeyListResponse,
 } from '~/app/types/api-key';
 import { ApiKeySortField } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
-import { applyInactiveFilter } from '~/app/utilities/apiKeys';
+import { applyInactiveFilter, isKeyInactive as isKeyInactiveUtil } from '~/app/utilities/apiKeys';
 import { useFetchApiKeys } from './useFetchApiKeys';
 
 type SortDirection = 'asc' | 'desc';
@@ -53,6 +53,11 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   const [localUsername, setLocalUsername] = React.useState('');
   const [isFetching, setIsFetching] = React.useState(false);
 
+  // The API has no concept of "inactive" — it only knows active | revoked | expired.
+  // "Inactive" is a client-side display status for active keys whose subscription was
+  // deleted.  When the user selects the "Inactive" filter we must still request
+  // "active" keys from the server (they are the superset that includes inactive ones),
+  // then narrow the results client-side via applyInactiveFilter.
   const apiFilterStatuses: APIKeyStatus[] = React.useMemo(() => {
     const hasInactive = filterData.statuses.includes('inactive');
     const result = filterData.statuses.filter((s): s is APIKeyStatus => s !== 'inactive');
@@ -86,11 +91,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   const [rawResponse, loaded, error, refresh] = useFetchApiKeys(searchRequest);
 
   const isKeyInactive = React.useCallback(
-    (key: APIKey): boolean =>
-      key.status === 'active' &&
-      !!key.subscription &&
-      rawResponse.subscriptionDetails != null &&
-      !(key.subscription in rawResponse.subscriptionDetails),
+    (key: APIKey): boolean => isKeyInactiveUtil(key, rawResponse.subscriptionDetails),
     [rawResponse.subscriptionDetails],
   );
 

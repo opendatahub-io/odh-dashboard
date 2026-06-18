@@ -49,61 +49,57 @@ const formatDate = (dateString?: string, fallback = '—'): string => {
 const getDisplayStatus = (apiKey: APIKey, isInactive: boolean): APIKeyDisplayStatus =>
   isInactive ? 'inactive' : apiKey.status;
 
-const renderApiKeyCell = (
-  col: ApiKeyColumn,
-  apiKey: APIKey,
-  subscriptionDetail: SubscriptionDetail | undefined,
-  isInactive: boolean,
-): React.ReactNode => {
-  switch (col.field) {
-    case 'name':
-      return (
-        <TableRowTitleDescription
-          title={apiKey.name}
-          description={apiKey.description}
-          truncateDescriptionLines={2}
-        />
-      );
-    case 'status': {
-      const displayStatus = getDisplayStatus(apiKey, isInactive);
-      const { variant, ...labelProps } = getApiKeyStatusProps(displayStatus);
-      const label = (
-        <Label variant={variant ?? 'outline'} {...labelProps}>
-          {capitalize(displayStatus)}
-        </Label>
-      );
+type CellRenderContext = {
+  apiKey: APIKey;
+  subscriptionDetail: SubscriptionDetail | undefined;
+  isInactive: boolean;
+};
 
-      if (displayStatus !== 'inactive') {
-        return label;
-      }
+type CellRenderer = (ctx: CellRenderContext) => React.ReactNode;
 
-      return (
-        <Popover
-          headerContent="Subscription unavailable"
-          bodyContent="The subscription this key was created for has been deleted or is not ready. The key itself has not been revoked, but it cannot authenticate requests until the subscription is restored."
-        >
-          <span style={{ cursor: 'pointer' }}>{label}</span>
-        </Popover>
-      );
+const cellRenderers: Record<string, CellRenderer> = {
+  name: ({ apiKey }) => (
+    <TableRowTitleDescription
+      title={apiKey.name}
+      description={apiKey.description}
+      truncateDescriptionLines={2}
+    />
+  ),
+
+  status: ({ apiKey, isInactive }) => {
+    const displayStatus = getDisplayStatus(apiKey, isInactive);
+    const { variant, ...labelProps } = getApiKeyStatusProps(displayStatus);
+    const label = (
+      <Label variant={variant ?? 'outline'} {...labelProps}>
+        {capitalize(displayStatus)}
+      </Label>
+    );
+
+    if (displayStatus !== 'inactive') {
+      return label;
     }
-    case 'subscription':
-      return (
-        <SubscriptionCell
-          subscriptionName={apiKey.subscription}
-          subscriptionDetail={subscriptionDetail}
-        />
-      );
-    case 'username':
-      return apiKey.username ?? '—';
-    case 'creationDate':
-      return formatDate(apiKey.creationDate, '—');
-    case 'lastUsedAt':
-      return formatDate(apiKey.lastUsedAt, 'Never');
-    case 'expirationDate':
-      return formatDate(apiKey.expirationDate, 'Never');
-    default:
-      return null;
-  }
+
+    return (
+      <Popover
+        headerContent="Subscription unavailable"
+        bodyContent="The subscription this key was created for has been deleted or is not ready. The key itself has not been revoked, but it cannot authenticate requests until the subscription is restored."
+      >
+        <span style={{ cursor: 'pointer' }}>{label}</span>
+      </Popover>
+    );
+  },
+
+  subscription: ({ apiKey, subscriptionDetail }) => (
+    <SubscriptionCell
+      subscriptionName={apiKey.subscription}
+      subscriptionDetail={subscriptionDetail}
+    />
+  ),
+
+  username: ({ apiKey }) => apiKey.username ?? '—',
+  creationDate: ({ apiKey }) => formatDate(apiKey.creationDate, '—'),
+  lastUsedAt: ({ apiKey }) => formatDate(apiKey.lastUsedAt, 'Never'),
+  expirationDate: ({ apiKey }) => formatDate(apiKey.expirationDate, 'Never'),
 };
 
 type ApiKeysTableRowProps = {
@@ -120,26 +116,30 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
   subscriptionDetail,
   isInactive,
   onRevokeApiKey,
-}) => (
-  <Tr>
-    {columns.map((col) => (
-      <Td key={col.field} dataLabel={col.label}>
-        {renderApiKeyCell(col, apiKey, subscriptionDetail, isInactive)}
+}) => {
+  const ctx: CellRenderContext = { apiKey, subscriptionDetail, isInactive };
+
+  return (
+    <Tr>
+      {columns.map((col) => (
+        <Td key={col.field} dataLabel={col.label}>
+          {cellRenderers[col.field](ctx)}
+        </Td>
+      ))}
+      <Td isActionCell>
+        <ActionsColumn
+          data-testid="api-key-actions"
+          items={[
+            {
+              title: 'Revoke',
+              onClick: () => onRevokeApiKey(apiKey),
+              isDisabled: apiKey.status !== 'active',
+            },
+          ]}
+        />
       </Td>
-    ))}
-    <Td isActionCell>
-      <ActionsColumn
-        data-testid="api-key-actions"
-        items={[
-          {
-            title: 'Revoke',
-            onClick: () => onRevokeApiKey(apiKey),
-            isDisabled: apiKey.status !== 'active',
-          },
-        ]}
-      />
-    </Td>
-  </Tr>
-);
+    </Tr>
+  );
+};
 
 export default ApiKeysTableRow;
