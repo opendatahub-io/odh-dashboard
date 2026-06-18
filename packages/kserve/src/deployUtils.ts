@@ -331,17 +331,18 @@ export const applyConnectionData = (
         ModelServingCompatibleTypes.S3ObjectStorage,
       )
     ) {
+      const { modelPath } = modelLocationData.additionalFields;
+      if (/(^|\/)\.\.($|\/)/.test(modelPath)) {
+        throw new Error(`Invalid model path: path traversal segments are not allowed`);
+      }
+
       result.metadata.annotations = {
         ...result.metadata.annotations,
-        'opendatahub.io/connection-path': modelLocationData.additionalFields.modelPath,
+        'opendatahub.io/connection-path': modelPath,
       };
       // Set model storage for S3 connections so KServe can download the model
       if (!dryRun && result.spec.predictor.model) {
         const connectionName = secretName || createConnectionData.nameDesc?.name || '';
-        const { modelPath } = modelLocationData.additionalFields;
-        if (/(^|\/)\.\.($|\/)/.test(modelPath)) {
-          throw new Error(`Invalid model path: path traversal segments are not allowed`);
-        }
         delete result.spec.predictor.model.storageUri;
         result.spec.predictor.model.storage = {
           key: connectionName,

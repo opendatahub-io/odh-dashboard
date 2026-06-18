@@ -178,6 +178,31 @@ describe('applyConnectionData', () => {
       ).toThrow('Invalid model path: path traversal segments are not allowed');
     });
 
+    it('should reject model paths containing path traversal segments in dryRun mode', () => {
+      const createConnectionData: CreateConnectionData = {
+        nameDesc: mockNameDesc('my-s3-connection'),
+      };
+
+      const traversalModelLocationData: ModelLocationData = {
+        type: 'new' as ModelLocationData['type'],
+        connectionTypeObject: s3ConnectionTypeObject,
+        additionalFields: {
+          modelPath: '../sensitive-data',
+        },
+        fieldValues: {},
+      };
+
+      expect(() =>
+        applyConnectionData(
+          baseInferenceService,
+          createConnectionData,
+          traversalModelLocationData,
+          true,
+          undefined,
+        ),
+      ).toThrow('Invalid model path: path traversal segments are not allowed');
+    });
+
     it('should NOT set storage when dryRun is true', () => {
       const createConnectionData: CreateConnectionData = {
         nameDesc: mockNameDesc('my-s3-connection'),
