@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { FileDetailsLabel, MessageProps, ToolResponseProps } from '@patternfly/chatbot';
+import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
@@ -63,7 +63,6 @@ export interface UseChatbotMessagesReturn {
     compareID?: string,
     fileId?: string,
     imagePreview?: { previewUrl: string; fileName: string },
-    docAttachments?: string[],
   ) => Promise<void>;
   handleStopStreaming: () => void;
   clearConversation: () => void;
@@ -328,7 +327,6 @@ const useChatbotMessages = ({
     compareID?: string,
     fileId?: string,
     imagePreview?: { previewUrl: string; fileName: string },
-    docAttachments?: string[],
   ) => {
     // Reset streaming content tracker for new message
     streamingReceivedRef.current = false;
@@ -351,20 +349,6 @@ const useChatbotMessages = ({
         },
       });
     }
-    if (docAttachments?.length) {
-      extraContent.afterMainContent = React.createElement(
-        'div',
-        { style: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' } },
-        ...docAttachments.map((fileName, index) =>
-          React.createElement(FileDetailsLabel, {
-            key: `${fileName}-${index}`,
-            fileName,
-            hasTruncation: true,
-          }),
-        ),
-      );
-    }
-
     const userMessage: MessageProps = {
       id: getId(),
       role: 'user',

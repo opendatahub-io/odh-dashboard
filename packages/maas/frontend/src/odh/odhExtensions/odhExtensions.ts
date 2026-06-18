@@ -8,6 +8,7 @@ import {
 export const MODEL_AS_SERVICE_ID = 'modelAsService';
 export const MAAS_AUTH_POLICIES = 'maasAuthPolicies';
 export const MAAS_MY_SUBSCRIPTIONS = 'mySubscriptions';
+export const MAAS_IA_REDESIGN = 'maasSettingsIaRedesign';
 
 export type ODHExtensions = NavExtension | RouteExtension | AreaExtension | TaskItemExtension;
 const ADMIN_USER = 'ADMIN_USER';
@@ -44,9 +45,17 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
   },
   {
+    type: 'app.area',
+    properties: {
+      id: MAAS_IA_REDESIGN,
+      featureFlags: ['maasSettingsIaRedesign'],
+    },
+  },
+  {
     type: 'app.navigation/href',
     flags: {
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
+      disallowed: [MAAS_IA_REDESIGN],
     },
     properties: {
       id: 'maas-subscriptions-view',
@@ -60,6 +69,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     type: 'app.navigation/href',
     flags: {
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER, MAAS_AUTH_POLICIES],
+      disallowed: [MAAS_IA_REDESIGN],
     },
     properties: {
       id: 'maas-auth-policies-view',
@@ -67,6 +77,19 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       href: '/maas/auth-policies',
       section: 'settings',
       path: '/maas/auth-policies/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, ADMIN_USER, MAAS_IA_REDESIGN],
+    },
+    properties: {
+      id: 'maas-subscription-management-view',
+      title: 'Subscription management',
+      href: '/maas/subscription-management',
+      section: 'settings',
+      path: '/maas/subscription-management/*',
     },
   },
   {
@@ -125,6 +148,16 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
     properties: {
       path: '/maas/auth-policies/*',
+      component: () => import('./MaaSWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, ADMIN_USER, MAAS_IA_REDESIGN],
+    },
+    properties: {
+      path: '/maas/subscription-management/*',
       component: () => import('./MaaSWrapper'),
     },
   },

@@ -28,8 +28,9 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
       <ToolbarGroup>
         <ToolbarItem>
           <SearchInput
-            aria-label="Search subscriptions"
-            placeholder="Search..."
+            aria-label="Filter by subscription or model name"
+            placeholder="Filter by subscription or model name"
+            style={{ minWidth: '350px' }}
             data-testid="subscriptions-search-input"
             value={searchValue}
             onChange={(_event, value) => onSearchChange(value)}

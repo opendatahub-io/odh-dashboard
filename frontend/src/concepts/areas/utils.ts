@@ -1,8 +1,8 @@
-import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
-import {
+import type {
+  DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
-} from '#~/k8sTypes';
+} from '@odh-dashboard/k8s-core';
 import { IsAreaAvailableStatus, FeatureFlag, SupportedAreaType } from './types';
 import { definedFeatureFlags, SupportedAreasStateMap } from './const';
 

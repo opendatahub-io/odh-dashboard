@@ -27,7 +27,12 @@ export type {
   VolumeMount,
 } from './types';
 
-export { KnownLabels, MetadataAnnotation, HardwareProfileFeatureVisibility } from './k8sTypes';
+export {
+  KnownLabels,
+  MetadataAnnotation,
+  HardwareProfileFeatureVisibility,
+  DataScienceStackComponent,
+} from './k8sTypes';
 export type {
   K8sVerb,
   AccessReviewResourceAttributes,
@@ -49,4 +54,8 @@ export type {
   HardwareProfileKind,
   DashboardCommonConfig,
   DashboardConfigKind,
+  ManagementState,
+  DataScienceClusterComponentStatus,
+  DataScienceClusterKindStatus,
+  DataScienceClusterInitializationKindStatus,
 } from './k8sTypes';
