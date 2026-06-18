@@ -142,6 +142,17 @@ describe('AutomlInputParametersPanel', () => {
     expect(screen.getByText('Binary classification')).toBeInTheDocument();
   });
 
+  it('should format preset with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'speed',
+      },
+    });
+    expect(screen.getByText('Run preset')).toBeInTheDocument();
+    expect(screen.getByText('Faster')).toBeInTheDocument();
+  });
+
   it('should show loading skeletons when isLoading is true', () => {
     renderPanel({ isLoading: true });
     expect(screen.getByText('Run details')).toBeInTheDocument();

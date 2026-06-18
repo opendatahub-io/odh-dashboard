@@ -30,7 +30,7 @@ const MySubscriptionDetails: React.FC<MySubscriptionDetailsProps> = ({ subscript
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Subscription ID</DescriptionListTerm>
+          <DescriptionListTerm>ID</DescriptionListTerm>
           <DescriptionListDescription>
             <code>{subscription.subscription_id_header}</code>
           </DescriptionListDescription>

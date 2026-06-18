@@ -10,11 +10,22 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type InternalKubernetesClient struct {
 	SharedClientLogic
+	restConfig   *rest.Config
+	sarClientset kubernetes.Interface
+}
+
+func (kc *InternalKubernetesClient) authorizationClient() kubernetes.Interface {
+	if kc.sarClientset != nil {
+		return kc.sarClientset
+	}
+	return kc.Client
 }
 
 // newInternalKubernetesClient creates a Kubernetes client
@@ -42,7 +53,19 @@ func newInternalKubernetesClient(logger *slog.Logger) (KubernetesClientInterface
 			Logger: logger,
 			Token:  NewBearerToken(kubeconfig.BearerToken),
 		},
+		restConfig: rest.CopyConfig(kubeconfig),
 	}, nil
+}
+
+func (kc *InternalKubernetesClient) DynamicClient() (dynamic.Interface, error) {
+	if kc.restConfig == nil {
+		return nil, fmt.Errorf("kubernetes rest config is not configured")
+	}
+	client, err := dynamic.NewForConfig(kc.restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic kubernetes client: %w", err)
+	}
+	return client, nil
 }
 
 // Removed service discovery and service-level access checks for starter template.
@@ -116,7 +139,7 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 						},
 					}
 
-					response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+					response, err := kc.authorizationClient().AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 
 					select {
 					case <-ctx.Done():
@@ -212,4 +235,35 @@ func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (b
 func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, error) {
 	// On internal client, we can use the identity from request directly
 	return identity.UserID, nil
+}
+
+func (kc *InternalKubernetesClient) CanListServicesInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	for _, verb := range []string{"get", "list"} {
+		sar := &authv1.SubjectAccessReview{
+			Spec: authv1.SubjectAccessReviewSpec{
+				User:   identity.UserID,
+				Groups: identity.Groups,
+				ResourceAttributes: &authv1.ResourceAttributes{
+					Verb:      verb,
+					Resource:  "services",
+					Namespace: namespace,
+				},
+			},
+		}
+
+		response, err := kc.authorizationClient().AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+		if err != nil {
+			return false, fmt.Errorf("SAR failed: %w", err)
+		}
+
+		if !response.Status.Allowed {
+			kc.Logger.Warn("access denied", "user", identity.UserID, "verb", verb, "resource", "services", "namespace", namespace)
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

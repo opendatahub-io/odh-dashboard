@@ -270,7 +270,7 @@ jobs:
             --allowedTools "Bash(npx *)"
             --allowedTools "Bash(bash *)"
             --allowedTools "mcp__jira__*"
-            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
+            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian==0.21.1"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
           prompt: "/preflight ${{ env.PR_NUMBER }} --skip-review coderabbit --ci"
 
       # ── Fix (iterative) ──
@@ -304,8 +304,67 @@ jobs:
             --allowedTools "Bash(npx *)"
             --allowedTools "Bash(bash *)"
             --allowedTools "mcp__jira__*"
-            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
+            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian==0.21.1"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
           prompt: "/preflight ${{ env.PR_NUMBER }} --fix --skip-review coderabbit --ci"
+
+      # ── Tag trace with PR context ──
+      - name: Tag preflight trace
+        if: always() && env.HEAD_REPO == github.repository
+        continue-on-error: true
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+          MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
+          MLFLOW_WORKSPACE: "odh-dashboard-tracing"
+          TAG_COMMIT: ${{ env.HEAD_SHA }}
+          TAG_PR_NUMBER: ${{ env.PR_NUMBER }}
+          TAG_PR_URL: https://github.com/${{ github.repository }}/pull/${{ env.PR_NUMBER }}
+          TRIGGER_ACTOR: ${{ github.event.comment.user.login || github.actor }}
+          TRIGGER_COMMENT_URL: ${{ github.event.comment.html_url }}
+          TRIGGER_COMMENT_ID: ${{ github.event.comment.id }}
+        run: |
+          python3 -c "
+          import mlflow, os, warnings
+          warnings.filterwarnings('ignore')
+
+          commit = os.environ['TAG_COMMIT']
+          pr_number = os.environ['TAG_PR_NUMBER']
+          pr_url = os.environ['TAG_PR_URL']
+
+          traces = mlflow.search_traces(experiment_ids=['1'], return_type='list')
+          match = [t for t in traces if (t.info.request_metadata or {}).get('mlflow.source.git.commit', '').startswith(commit)]
+
+          if not match:
+              print(f'[WARN] No trace found for commit {commit[:12]}')
+              exit(0)
+
+          trace_id = match[0].info.request_id
+          print(f'[TAG] Tagging trace {trace_id[:16]} for PR #{pr_number}')
+
+          mlflow.set_trace_tag(trace_id, 'pr_number', pr_number)
+          mlflow.set_trace_tag(trace_id, 'pr_url', pr_url)
+          mlflow.set_trace_tag(trace_id, 'triggered_by', os.environ.get('TRIGGER_ACTOR', ''))
+          comment_url = os.environ.get('TRIGGER_COMMENT_URL', '')
+          if comment_url:
+              mlflow.set_trace_tag(trace_id, 'trigger_comment_url', comment_url)
+          comment_id = os.environ.get('TRIGGER_COMMENT_ID', '')
+          if comment_id:
+              mlflow.set_trace_tag(trace_id, 'trigger_comment_id', comment_id)
+          "
+
+      # ── Evaluate trace ──
+      - name: Evaluate preflight trace
+        if: always() && env.HEAD_REPO == github.repository
+        continue-on-error: true
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+          MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
+          MLFLOW_WORKSPACE: "odh-dashboard-tracing"
+        run: |
+          python3 .claude/skills/preflight/tests/test_skill.py \
+            .claude/skills/preflight/tests/configs/preflight_check.yaml \
+            --commit "$HEAD_SHA"
 
       # ── Report ──
       - name: Update check run (success)

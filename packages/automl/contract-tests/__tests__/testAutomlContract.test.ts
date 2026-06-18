@@ -1121,7 +1121,8 @@ describe('AutoML API Contract Tests', () => {
             train_data_file_key: 'data/train.csv',
             label_column: 'target',
             task_type: 'multiclass',
-            eval_metric: 'roc_auc',
+            preset: 'speed',
+            eval_metric: 'roc_auc_ovo',
             top_n: 5,
           });
           expect(result).toMatchContract(apiSchema, {
@@ -1167,6 +1168,54 @@ describe('AutoML API Contract Tests', () => {
             train_data_file_key: 'k',
             label_column: 'target',
             task_type: 'unsupervised',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 for invalid preset', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'bad-preset-run',
+            train_data_secret_name: 's',
+            train_data_bucket_name: 'b',
+            train_data_file_key: 'k',
+            label_column: 'target',
+            task_type: 'binary',
+            preset: 'invalid_preset',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 for binary-only eval_metric with multiclass task_type', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'cross-type-metric-run',
+            train_data_secret_name: 's',
+            train_data_bucket_name: 'b',
+            train_data_file_key: 'k',
+            label_column: 'target',
+            task_type: 'multiclass',
+            eval_metric: 'roc_auc',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 for multiclass-only eval_metric with binary task_type', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'cross-type-metric-run',
+            train_data_secret_name: 's',
+            train_data_bucket_name: 'b',
+            train_data_file_key: 'k',
+            label_column: 'target',
+            task_type: 'binary',
+            eval_metric: 'roc_auc_ovo',
           });
           expect(result.success).toBe(false);
           if (!result.success) {
@@ -1241,6 +1290,7 @@ describe('AutoML API Contract Tests', () => {
             timestamp_column: 'date',
             prediction_length: 7,
             known_covariates_names: ['temperature', 'is_holiday'],
+            preset: 'speed',
             eval_metric: 'RMSE',
             top_n: 5,
           });
@@ -1347,6 +1397,7 @@ describe('AutoML API Contract Tests', () => {
       it('should terminate an active pipeline run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-ghi789-jkl012/terminate?namespace=test-namespace',
+          {},
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -1357,6 +1408,7 @@ describe('AutoML API Contract Tests', () => {
       it('should return 400 when attempting to terminate a non-terminatable (SUCCEEDED) run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-abc123-def456/terminate?namespace=test-namespace',
+          {},
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1367,6 +1419,7 @@ describe('AutoML API Contract Tests', () => {
       it('should return 404 for non-existent run ID', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/non-existent-run-id/terminate?namespace=test-namespace',
+          {},
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1379,6 +1432,7 @@ describe('AutoML API Contract Tests', () => {
       it('should retry a failed pipeline run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-mno345-pqr678/retry?namespace=test-namespace',
+          {},
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -1389,6 +1443,7 @@ describe('AutoML API Contract Tests', () => {
       it('should return 400 when attempting to retry a non-retryable (SUCCEEDED) run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-abc123-def456/retry?namespace=test-namespace',
+          {},
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1399,6 +1454,7 @@ describe('AutoML API Contract Tests', () => {
       it('should return 404 for non-existent run ID', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/non-existent-run-id/retry?namespace=test-namespace',
+          {},
         );
         expect(result.success).toBe(false);
         if (!result.success) {

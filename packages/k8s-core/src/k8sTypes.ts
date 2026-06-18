@@ -274,6 +274,7 @@ export type DashboardCommonConfig = {
   promptManagement?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
+  maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
   agentProfileManagement?: boolean;
@@ -303,4 +304,66 @@ export type DashboardConfigKind = K8sResourceCommon & {
       };
     };
   };
+};
+
+export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
+
+/** The possible V2 component names that are used as keys in the `components` object of the DSC Status.
+ * Each component's key (e.g., 'kserve', 'dashboard', etc.) maps to a specific component status.
+ **/
+export enum DataScienceStackComponent {
+  DASHBOARD = 'dashboard',
+  DS_PIPELINES = 'aipipelines',
+  K_SERVE = 'kserve',
+  KUEUE = 'kueue',
+  MODEL_REGISTRY = 'modelregistry',
+  FEAST_OPERATOR = 'feastoperator',
+  RAY = 'ray',
+  TRAINING_OPERATOR = 'trainingoperator',
+  TRUSTY_AI = 'trustyai',
+  WORKBENCHES = 'workbenches',
+  LLAMA_STACK_OPERATOR = 'llamastackoperator',
+  OGX_OPERATOR = 'ogx',
+  TRAINER = 'trainer',
+  MLFLOW = 'mlflowoperator',
+}
+
+/** Represents the status of a component in the DataScienceCluster. */
+export type DataScienceClusterComponentStatus = {
+  managementState?: ManagementState;
+  releases?: Array<{
+    name: string;
+    repoUrl?: string;
+    version?: string;
+  }>;
+};
+
+/** We don't need or should ever get the full kind, this is the status section */
+export type DataScienceClusterKindStatus = {
+  components?: {
+    [key in DataScienceStackComponent]?: DataScienceClusterComponentStatus;
+  } & {
+    [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentStatus & {
+      registriesNamespace?: string;
+    };
+    [DataScienceStackComponent.WORKBENCHES]?: DataScienceClusterComponentStatus & {
+      workbenchNamespace?: string;
+    };
+  };
+  conditions: K8sCondition[];
+  phase?: string;
+  release?: {
+    name: string;
+    version: string;
+  };
+};
+
+export type DataScienceClusterInitializationKindStatus = {
+  conditions: K8sCondition[];
+  release?: {
+    name?: string;
+    version?: string;
+  };
+  components?: Record<string, never>;
+  phase?: string;
 };
