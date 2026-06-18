@@ -152,53 +152,44 @@ jobs:
           set -euo pipefail
 
           echo "::group::Checking workspace dependencies"
-          # Extract workspace scope from package.json
           if command -v jq &> /dev/null; then
-            WORKSPACE_SCOPE=$(jq -r '.name | split("/")[0] | select(startswith("@"))' package.json || echo "")
+            # Only scan direct subdirectories of packages/ — top-level workspaces like
+            # backend/ and frontend/ are not Konflux module builds and must not be checked.
+            WORKSPACE_DIRS=$(find packages -mindepth 1 -maxdepth 1 -type d | sort)
 
-            if [ -z "$WORKSPACE_SCOPE" ]; then
-              echo "ℹ️  No scoped workspace detected, checking for workspace packages"
-              # Get workspace directories from package.json
-              WORKSPACE_DIRS=$(jq -r '.workspaces[]' package.json)
-            else
-              echo "ℹ️  Detected workspace scope: $WORKSPACE_SCOPE"
-              # Find all packages with this scope
-              WORKSPACE_DIRS=$(find packages -name "package.json" -exec dirname {} \;)
-            fi
-
-            echo "Workspace directories to check:"
+            echo "Workspace package directories to check:"
             echo "$WORKSPACE_DIRS"
 
-            # Track failures — missing COPY lines are a hard build failure in Konflux,
-            # not merely a warning. See: opendatahub-io/odh-dashboard#7855 which missed
-            # adding COPY packages/k8s-core/ to production Dockerfiles, causing 35 import
-            # errors in downstream Konflux builds.
+            # Track failures — missing COPY lines are a hard build failure in Konflux.
+            # Lesson from #7855: adding a new shared package requires updating every
+            # Dockerfile.workspace that imports it.
             WORKSPACE_COPY_FAILURES=0
 
-            # Check each Dockerfile for missing COPY commands
+            # Only check Dockerfile.workspace files — those are what upstream Konflux
+            # pipelines reference (verified via .tekton/*-pull-request.yaml).
             while IFS= read -r dockerfile; do
               [ -z "$dockerfile" ] && continue
               echo ""
               echo "Checking $dockerfile..."
-
-              # Extract package imports from source files near this Dockerfile
               DOCKERFILE_DIR=$(dirname "$dockerfile")
 
-              # For each workspace dir, check if it's imported but not COPYed
               while IFS= read -r ws_dir; do
                 if [ -z "$ws_dir" ]; then continue; fi
 
-                WS_NAME=$(basename "$ws_dir")
+                # Read the actual scoped npm package name (e.g. @odh-dashboard/k8s-core)
+                PKG_JSON="$ws_dir/package.json"
+                [ ! -f "$PKG_JSON" ] && continue
+                PKG_NAME=$(jq -r '.name // empty' "$PKG_JSON" 2>/dev/null || true)
+                [ -z "$PKG_NAME" ] && continue
 
-                # Check if this workspace is referenced in source
-                IMPORTS=$(grep -r "from.*$WS_NAME" "$DOCKERFILE_DIR" 2>/dev/null || true)
+                # Match only exact scoped imports — avoids substring false positives
+                # (e.g. "backend" matching unrelated path segments)
+                IMPORTS=$(grep -r "from ['\"]${PKG_NAME}['\"]" "$DOCKERFILE_DIR" 2>/dev/null || true)
 
                 if [ -n "$IMPORTS" ]; then
-                  # Check if Dockerfile COPYs this workspace
                   COPY_FOUND=$(grep "COPY.*$ws_dir" "$dockerfile" || true)
-
                   if [ -z "$COPY_FOUND" ]; then
-                    echo "❌ FAIL: $dockerfile references '@odh-dashboard/$WS_NAME' but is missing:"
+                    echo "❌ FAIL: $dockerfile imports '$PKG_NAME' but is missing:"
                     echo "   COPY --chown=default:root $ws_dir/ ./$ws_dir/"
                     echo "   Without this, Konflux builds will fail with module-not-found errors."
                     echo "   Example import found:"
