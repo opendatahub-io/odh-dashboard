@@ -6,13 +6,14 @@ import {
   k8sPatchResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { DataSciencePipelineApplicationModel } from '#~/api/models';
 import {
   DSPipelineKind,
+  DSPipelineManagedPipelinesInstructLabKind,
   DSPipelineManagedPipelinesKind,
   K8sAPIOptions,
   RouteKind,
-  SecretKind,
 } from '#~/k8sTypes';
 import { getRoute } from '#~/api/k8s/routes';
 import { getSecret } from '#~/api/k8s/secrets';
@@ -67,23 +68,6 @@ export const createPipelinesCR = async (
   );
 };
 
-export const updatePipelineCaching = (
-  namespace: string,
-  cacheEnabled: boolean,
-  name = 'dspa',
-): Promise<DSPipelineKind> =>
-  k8sPatchResource<DSPipelineKind>({
-    model: DataSciencePipelineApplicationModel,
-    queryOptions: { name, ns: namespace },
-    patches: [
-      {
-        op: 'replace',
-        path: '/spec/apiServer/cacheEnabled',
-        value: cacheEnabled,
-      },
-    ],
-  });
-
 export const getPipelinesCR = async (
   namespace: string,
   name: string,
@@ -128,10 +112,15 @@ export const deletePipelineCR = async (
     ),
   );
 
+/**
+ * @deprecated Legacy pattern for InstructLab pipeline management.
+ * Use updatePipelineSettings with the new image-based managedPipelines pattern instead.
+ * This function is kept for backward compatibility with existing InstructLab deployments.
+ */
 export const toggleInstructLabState = (
   namespace: string,
   name: string,
-  managedPipelines: DSPipelineManagedPipelinesKind,
+  managedPipelines: DSPipelineManagedPipelinesInstructLabKind,
 ): Promise<DSPipelineKind> =>
   k8sPatchResource<DSPipelineKind>({
     model: DataSciencePipelineApplicationModel,
@@ -144,3 +133,68 @@ export const toggleInstructLabState = (
       },
     ],
   });
+
+export const updatePipelineSettings = async (
+  namespace: string,
+  settings: {
+    cacheEnabled?: boolean;
+    managedPipelines?: DSPipelineManagedPipelinesKind;
+  },
+  name = 'dspa',
+): Promise<DSPipelineKind> => {
+  const patches: Array<
+    | { op: 'replace'; path: string; value: unknown }
+    | { op: 'add'; path: string; value: unknown }
+    | { op: 'remove'; path: string }
+  > = [];
+
+  // Read current resource to check for existing managedPipelines field
+  const currentResource = await k8sGetResource<DSPipelineKind>({
+    model: DataSciencePipelineApplicationModel,
+    queryOptions: { name, ns: namespace },
+  });
+
+  if (settings.cacheEnabled !== undefined) {
+    patches.push({
+      op: 'replace' as const,
+      path: '/spec/apiServer/cacheEnabled',
+      value: settings.cacheEnabled,
+    });
+  }
+
+  // managedPipelines can be set (with image) or removed (undefined)
+  if (settings.managedPipelines !== undefined) {
+    const existingManagedPipelines = currentResource.spec.apiServer?.managedPipelines;
+
+    if (existingManagedPipelines) {
+      // Field exists, use 'replace' operation
+      patches.push({
+        op: 'replace' as const,
+        path: '/spec/apiServer/managedPipelines',
+        value: settings.managedPipelines,
+      });
+    } else {
+      // Field doesn't exist, use 'add' operation
+      patches.push({
+        op: 'add' as const,
+        path: '/spec/apiServer/managedPipelines',
+        value: settings.managedPipelines,
+      });
+    }
+  } else if ('managedPipelines' in settings) {
+    // Explicitly remove managedPipelines if undefined is passed
+    const existingManagedPipelines = currentResource.spec.apiServer?.managedPipelines;
+    if (existingManagedPipelines) {
+      patches.push({
+        op: 'remove' as const,
+        path: '/spec/apiServer/managedPipelines',
+      });
+    }
+  }
+
+  return k8sPatchResource<DSPipelineKind>({
+    model: DataSciencePipelineApplicationModel,
+    queryOptions: { name, ns: namespace },
+    patches,
+  });
+};

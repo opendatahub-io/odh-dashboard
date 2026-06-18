@@ -16,7 +16,7 @@ import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
 import { getStorageClasses } from '@odh-dashboard/internal/api/k8s/storageClasses';
 import { getDashboardPvcs } from '@odh-dashboard/internal/api/k8s/pvcs';
-import type { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,

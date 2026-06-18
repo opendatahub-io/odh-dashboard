@@ -2,12 +2,12 @@ import * as React from 'react';
 import { Bullseye, Page, Spinner } from '@patternfly/react-core';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isAreaExtension } from '@odh-dashboard/plugin-core/extension-points';
-import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
-import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
-import {
+import type {
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
-} from '#~/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
+import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';

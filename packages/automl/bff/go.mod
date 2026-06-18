@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/automl-library/bff
 
-go 1.26.3
+go 1.26
 
 replace github.com/opendatahub-io/odh-dashboard/packages/autox-core/services => ../../autox-core/services
 

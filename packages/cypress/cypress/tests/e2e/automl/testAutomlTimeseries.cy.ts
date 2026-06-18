@@ -63,6 +63,9 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
       automlConfigurePage.findIdColumnSelect().should('not.be.disabled').click();
       automlConfigurePage.findSelectOption(new RegExp(testData.idColumn as string)).click();
 
+      cy.step('Verify run preset defaults to Faster');
+      automlConfigurePage.findPresetRadio('speed').should('be.checked');
+
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
 

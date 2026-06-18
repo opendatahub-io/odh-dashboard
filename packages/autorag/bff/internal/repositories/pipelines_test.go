@@ -590,8 +590,10 @@ func TestCreateRun(t *testing.T) {
 	t.Run("success delegates to core", func(t *testing.T) {
 		var gotInput *pipelines.CreatePipelineRunInput
 		mock := &mockPipelinesService{
-			ensurePipelineFn: func(ctx context.Context, namespace string, def pipelines.PipelineDefinition) (*pipelines.DiscoveredPipeline, error) {
-				return &pipelines.DiscoveredPipeline{PipelineID: "p1", PipelineVersionID: "v1"}, nil
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeAutoRAG: {PipelineID: "p1", PipelineVersionID: "v1"},
+				}, nil
 			},
 			createPipelineRunFn: func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
 				gotInput = input
@@ -621,9 +623,9 @@ func TestCreateRun(t *testing.T) {
 		}
 	})
 
-	t.Run("ensure pipeline failure", func(t *testing.T) {
+	t.Run("discovery failure", func(t *testing.T) {
 		mock := &mockPipelinesService{
-			ensurePipelineFn: func(ctx context.Context, namespace string, def pipelines.PipelineDefinition) (*pipelines.DiscoveredPipeline, error) {
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
 				return nil, fmt.Errorf("DSPA not found")
 			},
 		}
@@ -632,6 +634,23 @@ func TestCreateRun(t *testing.T) {
 		_, err := repo.CreateRun(context.Background(), "ns", validRequest())
 		if err == nil {
 			t.Fatal("expected error")
+		}
+	})
+
+	t.Run("managed pipeline not found", func(t *testing.T) {
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
+
+		_, err := repo.CreateRun(context.Background(), "ns", validRequest())
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "managed pipelines not found") {
+			t.Errorf("expected managed pipelines error, got: %v", err)
 		}
 	})
 }
@@ -664,40 +683,6 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinition(t *testing.T) {
 	if gotVersion != "2.0" {
 		t.Errorf("version = %q", gotVersion)
 	}
-}
-
-func TestPipelineDefinition(t *testing.T) {
-	repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{
-		AutoRAGPipelineName:    "rag-pipe",
-		DefaultPipelineVersion: "2.0",
-	})
-
-	t.Run("autorag", func(t *testing.T) {
-		def, err := repo.pipelineDefinition()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if def.Name != "rag-pipe" {
-			t.Errorf("Name = %q", def.Name)
-		}
-		if def.Version != "2.0" {
-			t.Errorf("Version = %q", def.Version)
-		}
-		if len(def.FileContent) == 0 {
-			t.Error("FileContent should be loaded from embedded YAML")
-		}
-	})
-
-	t.Run("image override via env var", func(t *testing.T) {
-		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", "quay.io/custom/autorag:latest")
-		def, err := repo.pipelineDefinition()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(def.FileContent) == 0 {
-			t.Error("FileContent should be non-empty")
-		}
-	})
 }
 
 func TestNewPipelinesRepository_DefaultVersion(t *testing.T) {

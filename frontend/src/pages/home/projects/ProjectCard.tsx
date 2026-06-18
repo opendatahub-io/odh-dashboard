@@ -15,7 +15,7 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { ProjectKind } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import TruncatedText from '#~/components/TruncatedText';
 import { SectionType } from '#~/concepts/design/utils';
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';

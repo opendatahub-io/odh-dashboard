@@ -5,16 +5,20 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
-	embeddedpipelines "github.com/opendatahub-io/autorag-library/bff/internal/pipelines"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
+
+// ManagedPipelinesNotFoundMessage is returned when required managed pipelines are missing.
+//
+// NOTE: The frontend matches this message via regex in
+// packages/autorag/frontend/src/app/utilities/pipelineServerEmptyState.ts — update both if changing.
+const ManagedPipelinesNotFoundMessage = "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
 
 var (
 	ErrPipelineRunNotFound = errors.New("pipeline run not found")
@@ -58,38 +62,13 @@ func NewPipelinesRepository(logger *slog.Logger, core pipelines.Service, cfg Pip
 	return &PipelinesRepository{core: core, config: cfg, logger: logger}
 }
 
-// --- Pipeline Discovery & Ensure ---
+// --- Pipeline Discovery ---
 
 func (r *PipelinesRepository) DiscoverNamedPipelines(ctx context.Context, namespace string) (map[string]*pipelines.DiscoveredPipeline, error) {
 	definitions := map[string]string{
 		constants.PipelineTypeAutoRAG: r.config.AutoRAGPipelineName,
 	}
 	return r.core.DiscoverNamedPipelines(ctx, namespace, r.config.DefaultPipelineVersion, definitions)
-}
-
-func (r *PipelinesRepository) EnsurePipeline(ctx context.Context, namespace string) (*pipelines.DiscoveredPipeline, error) {
-	def, err := r.pipelineDefinition()
-	if err != nil {
-		return nil, err
-	}
-	return r.core.EnsurePipeline(ctx, namespace, def)
-}
-
-func (r *PipelinesRepository) pipelineDefinition() (pipelines.PipelineDefinition, error) {
-	yamlBytes, err := embeddedpipelines.GetPipelineYAML(constants.PipelineDirAutoRAG)
-	if err != nil {
-		return pipelines.PipelineDefinition{}, fmt.Errorf("failed to load embedded pipeline YAML %q: %w", constants.PipelineDirAutoRAG, err)
-	}
-
-	if override := os.Getenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE"); override != "" {
-		yamlBytes = embeddedpipelines.ReplaceImageRef(yamlBytes, embeddedpipelines.AutoRAGImagePattern, override)
-	}
-
-	return pipelines.PipelineDefinition{
-		Name:        r.config.AutoRAGPipelineName,
-		Version:     r.config.DefaultPipelineVersion,
-		FileContent: yamlBytes,
-	}, nil
 }
 
 // --- Pipeline Runs: List ---
@@ -168,20 +147,21 @@ func (r *PipelinesRepository) GetManagedRun(ctx context.Context, namespace, runI
 // --- Pipeline Runs: Create ---
 
 // CreateRun validates the request and creates a pipeline run.
-// Always uses EnsurePipeline (not DiscoverNamedPipelines) because it requires the exact
-// DefaultPipelineVersion and creates it if missing. DiscoverNamedPipelines (used by listing)
-// falls back to any version, which would silently skip version creation.
 func (r *PipelinesRepository) CreateRun(ctx context.Context, namespace string, req models.CreateAutoRAGRunRequest) (*models.PipelineRun, error) {
 	if err := ValidateCreateAutoRAGRunRequest(req); err != nil {
 		return nil, err
 	}
 
-	discovered, err := r.EnsurePipeline(ctx, namespace)
+	discovered, err := r.DiscoverNamedPipelines(ctx, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to ensure autorag pipeline: %w", err)
+		return nil, fmt.Errorf("failed to discover pipelines: %w", err)
+	}
+	dp := discovered[constants.PipelineTypeAutoRAG]
+	if dp == nil {
+		return nil, fmt.Errorf("%s", ManagedPipelinesNotFoundMessage)
 	}
 
-	input := BuildPipelineRunInput(req, discovered.PipelineID, discovered.PipelineVersionID)
+	input := BuildPipelineRunInput(req, dp.PipelineID, dp.PipelineVersionID)
 
 	coreRun, err := r.core.CreatePipelineRun(ctx, namespace, input)
 	if err != nil {

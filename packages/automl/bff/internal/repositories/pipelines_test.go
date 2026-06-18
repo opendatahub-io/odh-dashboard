@@ -324,7 +324,7 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 	t.Run("valid eval_metric for multiclass classification", func(t *testing.T) {
 		req := validTabularRequest()
 		req.TaskType = ptr("multiclass")
-		req.EvalMetric = ptr("roc_auc")
+		req.EvalMetric = ptr("roc_auc_ovo")
 		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular); err != nil {
 			t.Fatal(err)
 		}
@@ -799,8 +799,11 @@ func TestCreateRun(t *testing.T) {
 	t.Run("success delegates to core", func(t *testing.T) {
 		var gotInput *pipelines.CreatePipelineRunInput
 		mock := &mockPipelinesService{
-			ensurePipelineFn: func(ctx context.Context, namespace string, def pipelines.PipelineDefinition) (*pipelines.DiscoveredPipeline, error) {
-				return &pipelines.DiscoveredPipeline{PipelineID: "p1", PipelineVersionID: "v1"}, nil
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeTabular:    {PipelineID: "p1", PipelineVersionID: "v1"},
+					constants.PipelineTypeTimeSeries: {PipelineID: "p2", PipelineVersionID: "v2"},
+				}, nil
 			},
 			createPipelineRunFn: func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
 				gotInput = input
@@ -826,9 +829,9 @@ func TestCreateRun(t *testing.T) {
 		}
 	})
 
-	t.Run("ensure pipeline failure", func(t *testing.T) {
+	t.Run("discovery failure", func(t *testing.T) {
 		mock := &mockPipelinesService{
-			ensurePipelineFn: func(ctx context.Context, namespace string, def pipelines.PipelineDefinition) (*pipelines.DiscoveredPipeline, error) {
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
 				return nil, fmt.Errorf("DSPA not found")
 			},
 		}
@@ -839,6 +842,25 @@ func TestCreateRun(t *testing.T) {
 		_, err := repo.CreateRun(context.Background(), "ns", validTabularRequest())
 		if err == nil {
 			t.Fatal("expected error")
+		}
+	})
+
+	t.Run("managed pipelines not found", func(t *testing.T) {
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			TabularPipelineName: "tabular-pipe",
+		})
+
+		_, err := repo.CreateRun(context.Background(), "ns", validTabularRequest())
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "managed pipelines not found") {
+			t.Errorf("expected managed pipelines error, got: %v", err)
 		}
 	})
 }
@@ -869,54 +891,30 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinitions(t *testing.T) {
 	}
 }
 
-func TestPipelineDefinition(t *testing.T) {
-	repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{
-		TimeSeriesPipelineName: "ts-pipe",
-		TabularPipelineName:    "tab-pipe",
-		DefaultPipelineVersion: "2.0",
-	})
-
-	t.Run("tabular", func(t *testing.T) {
-		def, err := repo.pipelineDefinition(constants.PipelineTypeTabular)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if def.Name != "tab-pipe" {
-			t.Errorf("Name = %q", def.Name)
-		}
-		if def.Version != "2.0" {
-			t.Errorf("Version = %q", def.Version)
-		}
-		if len(def.FileContent) == 0 {
-			t.Error("FileContent should be loaded from embedded YAML")
+func TestHasAllRequiredAutoMLPipelines(t *testing.T) {
+	t.Run("nil map", func(t *testing.T) {
+		if HasAllRequiredAutoMLPipelines(nil) {
+			t.Error("expected false for nil map")
 		}
 	})
-
-	t.Run("timeseries", func(t *testing.T) {
-		def, err := repo.pipelineDefinition(constants.PipelineTypeTimeSeries)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if def.Name != "ts-pipe" {
-			t.Errorf("Name = %q", def.Name)
+	t.Run("empty map", func(t *testing.T) {
+		if HasAllRequiredAutoMLPipelines(map[string]*pipelines.DiscoveredPipeline{}) {
+			t.Error("expected false for empty map")
 		}
 	})
-
-	t.Run("unsupported type", func(t *testing.T) {
-		_, err := repo.pipelineDefinition("invalid")
-		if err == nil {
-			t.Error("expected error for unsupported type")
+	t.Run("only tabular", func(t *testing.T) {
+		m := map[string]*pipelines.DiscoveredPipeline{constants.PipelineTypeTabular: {PipelineID: "p1"}}
+		if HasAllRequiredAutoMLPipelines(m) {
+			t.Error("expected false when timeseries is missing")
 		}
 	})
-
-	t.Run("image override via env var", func(t *testing.T) {
-		t.Setenv("RELATED_IMAGE_ODH_AUTOML_IMAGE", "quay.io/custom/automl:latest")
-		def, err := repo.pipelineDefinition(constants.PipelineTypeTabular)
-		if err != nil {
-			t.Fatal(err)
+	t.Run("both present", func(t *testing.T) {
+		m := map[string]*pipelines.DiscoveredPipeline{
+			constants.PipelineTypeTabular:    {PipelineID: "p1"},
+			constants.PipelineTypeTimeSeries: {PipelineID: "p2"},
 		}
-		if len(def.FileContent) == 0 {
-			t.Error("FileContent should be non-empty")
+		if !HasAllRequiredAutoMLPipelines(m) {
+			t.Error("expected true when both are present")
 		}
 	})
 }

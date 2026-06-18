@@ -1,7 +1,8 @@
 // NGC stands for NVIDIA GPU Cloud.
 
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
+import type { ProjectKind, SecretKind, TemplateKind } from '@odh-dashboard/k8s-core';
+import { ServingRuntimeKind } from '#~/k8sTypes';
 import {
   deletePvc,
   deleteSecret,

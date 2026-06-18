@@ -101,8 +101,9 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 //
 // Priority (evaluated per-request):
 //  1. EVAL_HUB_URL env override — used directly; no K8s call needed.
-//  2. CR discovery in the user-selected namespace (from context, if present).
-//  3. Fallback CR discovery in app.dashboardNamespace (covers the health endpoint and cases
+//  2. EvalHubDiscovery ConfigMap in the user's tenant namespace (preferred for multi-tenant).
+//  3. CR discovery in the user-selected namespace (from context, if present).
+//  4. Fallback CR discovery in app.dashboardNamespace (covers the health endpoint and cases
 //     where the CR lives in the platform namespace).
 //
 // Mock mode is NOT handled here; callers must short-circuit before calling this function.
@@ -127,7 +128,20 @@ func (app *App) evalHubServiceURL(ctx context.Context) (serviceURL, authToken st
 		return "", "", false, fmt.Errorf("failed to get Kubernetes client: %w", err)
 	}
 
-	// Try the user-selected namespace first (set by AttachNamespace middleware on API routes).
+	// Try the EvalHubDiscovery ConfigMap in the user's tenant namespace first.
+	// The operator injects this ConfigMap into each tenant namespace so the BFF can resolve
+	// the service URL without needing access to the EvalHub CR in the operator namespace.
+	if userNS, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && userNS != "" {
+		discoveryURL, err := k8sClient.GetEvalHubDiscoveryURL(ctx, identity, userNS)
+		if err != nil {
+			return "", "", false, fmt.Errorf("EvalHubDiscovery ConfigMap lookup failed in namespace %q: %w", userNS, err)
+		}
+		if discoveryURL != "" {
+			return discoveryURL, authToken, false, nil
+		}
+	}
+
+	// Fallback: Try CR discovery in the user-selected namespace.
 	// Permission errors (Forbidden/NotFound) are non-fatal — fall through to the dashboard
 	// namespace where the CR typically lives.  Operational failures (API unavailable, network
 	// errors, etc.) are surfaced immediately so they are not silently masked.

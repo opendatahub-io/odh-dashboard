@@ -4,7 +4,7 @@ import {
   SchedulingType,
   TolerationEffect,
   TolerationOperator,
-} from '#~/types';
+} from '@odh-dashboard/k8s-core';
 import {
   validateDefaultCount,
   validateMaxCount,

@@ -1,6 +1,6 @@
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { StorageProvisioner } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
-import { MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { applyOpenShiftYaml, patchOpenShiftResource } from './baseCommands';
 import type { SCReplacements, CommandLineResult } from '../../types';
 import { replacePlaceholdersInYaml } from '../yaml_files';

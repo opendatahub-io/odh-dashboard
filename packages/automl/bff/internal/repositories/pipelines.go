@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -13,9 +12,14 @@ import (
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
-	embeddedpipelines "github.com/opendatahub-io/automl-library/bff/internal/pipelines"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
+
+// ManagedPipelinesNotFoundMessage is returned when required managed pipelines are missing.
+//
+// NOTE: The frontend matches this message via regex in
+// packages/automl/frontend/src/app/utilities/pipelineServerEmptyState.ts — update both if changing.
+const ManagedPipelinesNotFoundMessage = "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
 
 var (
 	ErrPipelineRunNotFound = errors.New("pipeline run not found")
@@ -60,7 +64,7 @@ func NewPipelinesRepository(logger *slog.Logger, core pipelines.Service, cfg Pip
 	return &PipelinesRepository{core: core, config: cfg, logger: logger}
 }
 
-// --- Pipeline Discovery & Ensure ---
+// --- Pipeline Discovery ---
 
 func (r *PipelinesRepository) DiscoverNamedPipelines(ctx context.Context, namespace string) (map[string]*pipelines.DiscoveredPipeline, error) {
 	definitions := map[string]string{
@@ -70,41 +74,12 @@ func (r *PipelinesRepository) DiscoverNamedPipelines(ctx context.Context, namesp
 	return r.core.DiscoverNamedPipelines(ctx, namespace, r.config.DefaultPipelineVersion, definitions)
 }
 
-func (r *PipelinesRepository) EnsurePipeline(ctx context.Context, namespace, pipelineType string) (*pipelines.DiscoveredPipeline, error) {
-	def, err := r.pipelineDefinition(pipelineType)
-	if err != nil {
-		return nil, err
+// HasAllRequiredAutoMLPipelines reports whether both tabular and timeseries managed pipelines were discovered.
+func HasAllRequiredAutoMLPipelines(discovered map[string]*pipelines.DiscoveredPipeline) bool {
+	if discovered == nil {
+		return false
 	}
-	return r.core.EnsurePipeline(ctx, namespace, def)
-}
-
-func (r *PipelinesRepository) pipelineDefinition(pipelineType string) (pipelines.PipelineDefinition, error) {
-	var name, pipelineDir string
-	switch pipelineType {
-	case constants.PipelineTypeTimeSeries:
-		name = r.config.TimeSeriesPipelineName
-		pipelineDir = constants.PipelineDirTimeSeries
-	case constants.PipelineTypeTabular:
-		name = r.config.TabularPipelineName
-		pipelineDir = constants.PipelineDirTabular
-	default:
-		return pipelines.PipelineDefinition{}, fmt.Errorf("unsupported pipeline type: %s", pipelineType)
-	}
-
-	yamlBytes, err := embeddedpipelines.GetPipelineYAML(pipelineDir)
-	if err != nil {
-		return pipelines.PipelineDefinition{}, fmt.Errorf("failed to load embedded pipeline YAML %q: %w", pipelineDir, err)
-	}
-
-	if override := os.Getenv("RELATED_IMAGE_ODH_AUTOML_IMAGE"); override != "" {
-		yamlBytes = embeddedpipelines.ReplaceImageRef(yamlBytes, embeddedpipelines.AutoMLImagePattern, override)
-	}
-
-	return pipelines.PipelineDefinition{
-		Name:        name,
-		Version:     r.config.DefaultPipelineVersion,
-		FileContent: yamlBytes,
-	}, nil
+	return discovered[constants.PipelineTypeTabular] != nil && discovered[constants.PipelineTypeTimeSeries] != nil
 }
 
 // --- Pipeline Runs: List ---
@@ -198,12 +173,16 @@ func (r *PipelinesRepository) CreateRun(ctx context.Context, namespace string, r
 		return nil, err
 	}
 
-	discovered, err := r.EnsurePipeline(ctx, namespace, pipelineType)
+	discovered, err := r.DiscoverNamedPipelines(ctx, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to ensure %s pipeline: %w", pipelineType, err)
+		return nil, fmt.Errorf("failed to discover pipelines: %w", err)
+	}
+	if !HasAllRequiredAutoMLPipelines(discovered) {
+		return nil, fmt.Errorf("%s", ManagedPipelinesNotFoundMessage)
 	}
 
-	input := BuildPipelineRunInput(req, discovered.PipelineID, discovered.PipelineVersionID, pipelineType)
+	dp := discovered[pipelineType]
+	input := BuildPipelineRunInput(req, dp.PipelineID, dp.PipelineVersionID, pipelineType)
 
 	coreRun, err := r.core.CreatePipelineRun(ctx, namespace, input)
 	if err != nil {
@@ -337,6 +316,7 @@ var commonFields = []fieldCheck{
 	{"train_data_secret_name", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataSecretName != "" }, true},
 	{"train_data_bucket_name", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataBucketName != "" }, true},
 	{"train_data_file_key", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataFileKey != "" }, true},
+	{"preset", func(r models.CreateAutoMLRunRequest) bool { return r.Preset != nil }, false},
 	{"eval_metric", func(r models.CreateAutoMLRunRequest) bool { return r.EvalMetric != nil }, false},
 	{"top_n", func(r models.CreateAutoMLRunRequest) bool { return r.TopN != nil }, false},
 	{"description", func(r models.CreateAutoMLRunRequest) bool { return r.Description != "" }, false},
@@ -418,14 +398,29 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		}
 	}
 
+	if req.Preset != nil {
+		var allowedPresets map[string]bool
+		switch pipelineType {
+		case constants.PipelineTypeTabular:
+			allowedPresets = constants.ValidTabularPresets
+		case constants.PipelineTypeTimeSeries:
+			allowedPresets = constants.ValidTimeseriesPresets
+		}
+		if !allowedPresets[*req.Preset] {
+			return NewValidationError(fmt.Sprintf("invalid preset %q for pipeline type %q", *req.Preset, pipelineType))
+		}
+	}
+
 	if req.EvalMetric != nil {
 		var allowedMetrics map[string]bool
 		switch pipelineType {
 		case constants.PipelineTypeTabular:
 			if req.TaskType != nil {
 				switch *req.TaskType {
-				case constants.TaskTypeBinary, constants.TaskTypeMulticlass:
-					allowedMetrics = constants.ValidClassificationEvalMetrics
+				case constants.TaskTypeBinary:
+					allowedMetrics = constants.ValidBinaryEvalMetrics
+				case constants.TaskTypeMulticlass:
+					allowedMetrics = constants.ValidMulticlassEvalMetrics
 				case constants.TaskTypeRegression:
 					allowedMetrics = constants.ValidRegressionEvalMetrics
 				}
@@ -501,6 +496,9 @@ func BuildPipelineRunInput(req models.CreateAutoMLRunRequest, pipelineID, pipeli
 		}
 	}
 
+	if req.Preset != nil {
+		params["preset"] = *req.Preset
+	}
 	if req.EvalMetric != nil {
 		params["eval_metric"] = *req.EvalMetric
 	}

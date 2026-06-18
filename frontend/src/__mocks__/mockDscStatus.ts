@@ -1,4 +1,4 @@
-import { DataScienceClusterKindStatus, K8sCondition } from '#~/k8sTypes';
+import type { K8sCondition, DataScienceClusterKindStatus } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
 

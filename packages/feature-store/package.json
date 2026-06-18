@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
