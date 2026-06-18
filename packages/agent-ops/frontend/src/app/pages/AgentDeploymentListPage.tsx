@@ -73,7 +73,7 @@ const AgentDeploymentListPage: React.FC = () => {
       ) : (
         <Stack hasGutter>
           <StackItem>
-            <Toolbar inset={{ default: 'insetNone' }} className="pf-v6-u-w-100">
+            <Toolbar inset={{ default: 'insetNone' }}>
               <ToolbarContent>
                 <AgentRuntimesToolbar filterText={filterText} onFilterChange={setFilterText} />
               </ToolbarContent>
