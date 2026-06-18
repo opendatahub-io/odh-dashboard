@@ -255,17 +255,17 @@ jobs:
           path: |
             **/public-cypress
           key: ${{ steps.key.outputs.cypress-cache-key }}
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Module caches
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
       - name: Build for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: npm run cypress:server:build:coverage -- --concurrency=4
