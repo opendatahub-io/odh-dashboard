@@ -102,3 +102,5 @@ vendor/
 # AgentReady reports
 .agentready/
 assessment-output.txt
+.playwright-cli
+playwright-sessions/
