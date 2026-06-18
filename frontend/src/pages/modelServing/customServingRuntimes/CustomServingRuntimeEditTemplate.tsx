@@ -8,7 +8,7 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { TemplateKind } from '#~/k8sTypes';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { getServingRuntimeNameFromTemplate } from './utils';
 import CustomServingRuntimeAddTemplate from './CustomServingRuntimeAddTemplate';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';

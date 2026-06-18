@@ -1,6 +1,6 @@
 import React from 'react';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { checkAccess } from '#~/api';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 
 type AccessReviewCacheData = {

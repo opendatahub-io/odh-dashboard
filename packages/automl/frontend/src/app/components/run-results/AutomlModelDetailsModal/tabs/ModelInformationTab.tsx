@@ -7,6 +7,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
+import { PRESET_LABELS } from '~/app/utilities/const';
 import { formatMetricName, resolveEvalMetric } from '~/app/utilities/utils';
 
 /** Keys excluded from the parameter list (not useful as model-level metadata). */
@@ -38,7 +39,11 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
         {paramEntries.map(([key, value]) => (
           <DescriptionListGroup key={key}>
             <DescriptionListTerm>{formatMetricName(key)}</DescriptionListTerm>
-            <DescriptionListDescription>{String(value)}</DescriptionListDescription>
+            <DescriptionListDescription>
+              {key === 'preset' && typeof value === 'string'
+                ? (PRESET_LABELS[value] ?? String(value))
+                : String(value)}
+            </DescriptionListDescription>
           </DescriptionListGroup>
         ))}
         <DescriptionListGroup>

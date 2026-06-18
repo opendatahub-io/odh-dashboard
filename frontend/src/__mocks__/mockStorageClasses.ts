@@ -1,9 +1,5 @@
-import {
-  K8sResourceListResult,
-  MetadataAnnotation,
-  StorageClassConfig,
-  StorageClassKind,
-} from '#~/k8sTypes';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import { K8sResourceListResult, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
 
 export const mockStorageClassList = (
   storageClasses: StorageClassKind[] = mockStorageClasses,

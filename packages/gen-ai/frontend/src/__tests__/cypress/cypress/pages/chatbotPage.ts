@@ -3,8 +3,11 @@ import { appendFeatureFlagParams } from './appChrome';
 
 class ChatbotPage {
   mcpTab = mcpTab;
-  visit(namespace?: string): void {
-    const path = namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground';
+  visit(namespace?: string, queryParams?: Record<string, string>): void {
+    const qs = queryParams ? `?${new URLSearchParams(queryParams).toString()}` : '';
+    const path = namespace
+      ? `/gen-ai-studio/playground/${namespace}${qs}`
+      : `/gen-ai-studio/playground${qs}`;
     cy.visit(appendFeatureFlagParams(path));
     this.waitForPageLoad();
   }

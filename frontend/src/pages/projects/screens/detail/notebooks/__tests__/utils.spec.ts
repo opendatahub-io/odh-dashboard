@@ -1,4 +1,4 @@
-import { ContainerResources } from '#~/types';
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
 import { extractAcceleratorResources } from '#~/pages/projects/screens/detail/notebooks/utils';
 
 describe('extractAcceleratorResources', () => {
