@@ -9,6 +9,10 @@ import type { BooleanValues, RenderHookResultExt } from '../types';
 // @ts-ignore
 global.TextEncoder = TextEncoder;
 
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = <T>(val: T): T => JSON.parse(JSON.stringify(val));
+}
+
 // Mock webpack-injected global variables
 declare global {
   // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
