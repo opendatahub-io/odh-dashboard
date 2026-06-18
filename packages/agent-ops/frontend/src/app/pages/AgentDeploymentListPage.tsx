@@ -25,6 +25,7 @@ import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
 
 const selectProjectEmptyState = (
   <EmptyState
+    headingLevel="h2"
     icon={CubesIcon}
     titleText="Select a project"
     variant={EmptyStateVariant.lg}
@@ -46,7 +47,7 @@ const AgentDeploymentListPage: React.FC = () => {
       <FlexItem>
         <Content component="p">Project</Content>
       </FlexItem>
-      <FlexItem>
+      <FlexItem data-testid="agent-ops-project-selector">
         <AgentOpsProjectSelector namespace={namespace} getRedirectPath={agentOpsDeploymentsRoute} />
       </FlexItem>
       {namespace && (

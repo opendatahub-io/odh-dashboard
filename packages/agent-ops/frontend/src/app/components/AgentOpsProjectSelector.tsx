@@ -30,21 +30,19 @@ const AgentOpsProjectSelector: React.FC<AgentOpsProjectSelectorProps> = ({
   const isLoading = !namespacesLoaded && !namespacesLoadError;
 
   return (
-    <div data-testid="agent-ops-project-selector">
-      <ProjectSelector
-        {...projectSelectorProps}
-        onSelection={(projectName) => {
-          const match = projectName
-            ? (namespaces.find((n) => n.name === projectName) ?? undefined)
-            : undefined;
-          updatePreferredNamespace(match);
-          navigate(getRedirectPath(projectName));
-        }}
-        namespace={namespace ?? ''}
-        isLoading={isLoading}
-        namespacesOverride={effectiveNamespaces}
-      />
-    </div>
+    <ProjectSelector
+      {...projectSelectorProps}
+      onSelection={(projectName) => {
+        const match = projectName
+          ? (effectiveNamespaces.find((n) => n.name === projectName) ?? undefined)
+          : undefined;
+        updatePreferredNamespace(match);
+        navigate(getRedirectPath(projectName));
+      }}
+      namespace={namespace ?? ''}
+      isLoading={isLoading}
+      namespacesOverride={effectiveNamespaces}
+    />
   );
 };
 
