@@ -8,7 +8,7 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { Link, useNavigate } from 'react-router';
-import { HardwareProfileKind } from '#~/k8sTypes';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { HardwareProfileFormData } from '#~/pages/hardwareProfiles/manage/types';
 import { createHardwareProfile, updateHardwareProfile } from '#~/api';
 import useNotification from '#~/utilities/useNotification';

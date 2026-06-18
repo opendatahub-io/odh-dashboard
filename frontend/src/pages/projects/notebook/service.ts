@@ -1,4 +1,5 @@
-import { NotebookKind, PodKind } from '#~/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
+import { NotebookKind } from '#~/k8sTypes';
 import { getPodsForNotebook } from '#~/api';
 import { NotebookDataState } from './types';
 import { hasStopAnnotation } from './utils';

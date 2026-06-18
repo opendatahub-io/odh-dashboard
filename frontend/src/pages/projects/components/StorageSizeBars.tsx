@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Popover, Spinner, Content, Tooltip, Flex, ContentVariants } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   getEffectiveCapacityGiB,
   getPvcPercentageUsed,

@@ -13,13 +13,31 @@ import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage
 import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
 import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
 import ViewMySubscriptionPage from './pages/keys-and-subs/mySubscriptions/ViewMySubscriptionPage';
+import SubscriptionManagementPage from './pages/subscription-management/SubscriptionManagementPage';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
   const isKeysAndSubs = pathname.startsWith(`${URL_PREFIX}/keys-and-subs`);
   const isSubscriptions = pathname.startsWith(`${URL_PREFIX}/subscriptions`);
   const isAuthPolicies = pathname.startsWith(`${URL_PREFIX}/auth-policies`);
+  const isSubscriptionManagement = pathname.startsWith(`${URL_PREFIX}/subscription-management`);
 
+  if (isSubscriptionManagement) {
+    return (
+      <Routes>
+        <Route path="/" element={<SubscriptionManagementPage />} />
+        <Route path="/:tab" element={<SubscriptionManagementPage />} />
+        <Route path="/subscriptions/create" element={<CreateSubscriptionPage />} />
+        <Route path="/subscriptions/view/:subscriptionName" element={<ViewSubscriptionPage />} />
+        <Route path="/subscriptions/edit/:subscriptionName" element={<EditSubscriptionPage />} />
+        <Route path="/auth-policies/create" element={<CreateAuthPolicyPage />} />
+        <Route path="/auth-policies/view/:authPolicyName" element={<ViewAuthPoliciesPage />} />
+        <Route path="/auth-policies/edit/:authPolicyName" element={<EditAuthPolicyPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    );
+  }
+  // TODO:Remove old routes when preparing feature for release
   if (isAuthPolicies) {
     return (
       <Routes>
@@ -31,6 +49,7 @@ const AppRoutes: React.FC = () => {
       </Routes>
     );
   }
+  // TODO:Remove old routes when preparing feature for release
   if (isSubscriptions) {
     return (
       <Routes>

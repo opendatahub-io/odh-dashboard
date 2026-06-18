@@ -10,10 +10,10 @@ type EvalHubHealthResult = {
   error: Error | undefined;
 };
 
-const useEvalHubHealth = (): EvalHubHealthResult => {
+const useEvalHubHealth = (namespace?: string): EvalHubHealthResult => {
   const callback = React.useCallback<FetchStateCallbackPromise<EvalHubHealthResponse | null>>(
-    (opts: APIOptions) => getEvalHubHealth('')(opts),
-    [],
+    (opts: APIOptions) => getEvalHubHealth('', namespace)(opts),
+    [namespace],
   );
 
   const [data, loaded, error] = useFetchState<EvalHubHealthResponse | null>(callback, null, {
@@ -21,8 +21,6 @@ const useEvalHubHealth = (): EvalHubHealthResult => {
     refreshRate: POLL_INTERVAL,
   });
 
-  // The BFF always returns HTTP 200 for this endpoint.
-  // Use the `available` field to determine actual EvalHub reachability.
   return {
     isHealthy: loaded && !!data && !error && data.available,
     loaded: loaded || !!error,

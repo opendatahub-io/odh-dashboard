@@ -1,4 +1,5 @@
-import { NIMAccountKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
+import type { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
 
 import { VALIDATION_TIMEOUT_MS } from './constants';
 

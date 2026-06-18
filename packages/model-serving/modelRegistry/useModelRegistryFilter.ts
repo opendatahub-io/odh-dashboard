@@ -1,5 +1,5 @@
 import React from 'react';
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { Deployment } from '../extension-points';
 
 /**

@@ -1,6 +1,11 @@
 import React from 'react';
-import { ContainerResources, NodeSelector, Toleration } from '#~/types';
-import { AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
+import type {
+  ContainerResources,
+  NodeSelector,
+  Toleration,
+  HardwareProfileKind,
+} from '@odh-dashboard/k8s-core';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
 import useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';

@@ -10,7 +10,8 @@ import {
   ExpandableSection,
   Spinner,
 } from '@patternfly/react-core';
-import { Notebook, PodContainer } from '#~/types';
+import type { PodContainer } from '@odh-dashboard/k8s-core';
+import { Notebook } from '#~/types';
 import {
   getDescriptionForTag,
   getImageTagByContainer,

@@ -3,7 +3,7 @@ import { Alert, FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/internal/components/TypeaheadSelect';
-import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { getModelServingPVCAnnotations } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
