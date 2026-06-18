@@ -103,7 +103,8 @@ export const blankDashboardCR: DashboardConfig = {
       vLLMDeploymentOnMaaS: false,
       llmGatewayField: false,
       promptManagement: false,
-      mySubscriptions: false,
+      mySubscriptions: true,
+      maasSettingsIaRedesign: false,
     },
     notebookController: {
       enabled: true,

@@ -215,6 +215,169 @@ jobs:
           rm -f /tmp/test-variables.yml
 
   # ---------------------------------------------------------------------------
+  # Cleanup - Remove old test projects and resources (>2 hours old)
+  # ---------------------------------------------------------------------------
+  cleanup-old-resources:
+    needs: [select-cluster]
+    runs-on: self-hosted
+    continue-on-error: true  # Don't fail the entire workflow if cleanup fails
+    env:
+      CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
+    steps:
+      - name: Download test credentials
+        run: |
+          echo "🔧 Downloading test credentials for cleanup..."
+          curl -fk -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+            "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+            -o /tmp/test-variables.yml
+          echo "✅ Downloaded test credentials"
+
+      - name: Login to selected cluster
+        env:
+          OC_SERVER_PRIMARY: ${{ secrets.OC_SERVER_PRIMARY }}
+          OC_SERVER_SECONDARY: ${{ secrets.OC_SERVER }}
+        run: |
+          TEST_VARS_FILE="/tmp/test-variables.yml"
+
+          # Extract credentials
+          OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+          OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+          echo "::add-mask::$OC_PASSWORD"
+          echo "::add-mask::$OC_USERNAME"
+
+          # Determine cluster URL
+          if [ "$CLUSTER_NAME" = "dash-e2e-int" ]; then
+            CLUSTER_URL="$OC_SERVER_PRIMARY"
+          elif [ "$CLUSTER_NAME" = "dash-e2e" ]; then
+            CLUSTER_URL="$OC_SERVER_SECONDARY"
+          else
+            echo "❌ Unknown cluster: $CLUSTER_NAME"
+            exit 1
+          fi
+
+          # Remove stale kubeconfig
+          rm -f "$HOME/.kube/config" 2>/dev/null || true
+
+          # Login
+          echo "🔑 Logging in to $CLUSTER_NAME for cleanup..."
+          oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="$CLUSTER_URL" --insecure-skip-tls-verify > /dev/null 2>&1
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Successfully logged in to $CLUSTER_NAME"
+          else
+            echo "❌ Failed to login - skipping cleanup"
+            exit 1
+          fi
+
+      - name: Cleanup old test projects and resources
+        run: |
+          echo "🧹 Cleaning up old test resources (>2 hours old) on $CLUSTER_NAME..."
+
+          # Calculate timestamp for 2 hours ago in seconds since epoch
+          CUTOFF_TIME=$(date -u -d '2 hours ago' +%s 2>/dev/null || date -u -v-2H +%s 2>/dev/null)
+          echo "📅 Cutoff time: $(date -u -d @${CUTOFF_TIME} 2>/dev/null || date -u -r ${CUTOFF_TIME} 2>/dev/null)"
+
+          DELETED_COUNT=0
+          SKIPPED_COUNT=0
+          STUCK_CLEANED=0
+
+          # Target namespaces with the dashboard label (added by Cypress createOpenShiftProject)
+          # This is more precise than pattern matching and catches all test projects
+          echo "🔍 Scanning for test projects with label 'opendatahub.io/dashboard=true'..."
+          while IFS='|' read -r project_name creation_time phase; do
+
+            # Convert creation timestamp to epoch seconds
+            PROJECT_TIME=$(date -u -d "$creation_time" +%s 2>/dev/null || date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$creation_time" +%s 2>/dev/null)
+
+            if [ -z "$PROJECT_TIME" ]; then
+              echo "  ⚠️  Could not parse timestamp for $project_name - skipping"
+              SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+              continue
+            fi
+
+            # Calculate age in hours
+            AGE_SECONDS=$(($(date -u +%s) - PROJECT_TIME))
+            AGE_HOURS=$((AGE_SECONDS / 3600))
+
+            # Handle stuck terminating namespaces (>2 hours in Terminating state)
+            if [ "$phase" = "Terminating" ] && [ "$PROJECT_TIME" -lt "$CUTOFF_TIME" ]; then
+              echo "  🔧 Force-cleaning stuck terminating namespace: $project_name (age: ${AGE_HOURS}h)..."
+              # Remove finalizers to unstick the namespace
+              oc patch namespace "$project_name" -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null && STUCK_CLEANED=$((STUCK_CLEANED + 1)) || true
+              continue
+            fi
+
+            # Delete active namespaces if older than 2 hours
+            if [ "$phase" = "Active" ] && [ "$PROJECT_TIME" -lt "$CUTOFF_TIME" ]; then
+              echo "  🗑️  Deleting $project_name (age: ${AGE_HOURS}h)..."
+              if oc delete project "$project_name" --wait=false 2>/dev/null; then
+                DELETED_COUNT=$((DELETED_COUNT + 1))
+              else
+                echo "    ⚠️  Failed to delete $project_name"
+              fi
+            else
+              SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+            fi
+          done < <(oc get projects -l opendatahub.io/dashboard=true -o json | jq -r '.items[] | "\(.metadata.name)|\(.metadata.creationTimestamp)|\(.status.phase // "Unknown")"')
+
+          echo ""
+          echo "📊 Project cleanup summary:"
+          echo "   ✅ Deleted: $DELETED_COUNT projects"
+          echo "   🔧 Force-cleaned stuck: $STUCK_CLEANED terminating namespaces"
+          echo "   ⏭️  Skipped: $SKIPPED_COUNT projects (too new)"
+
+          # Cleanup stuck terminating pods (>2 hours in Terminating state)
+          echo ""
+          echo "🧹 Cleaning up stuck terminating pods (>2 hours old)..."
+          PODS_CLEANED=0
+          while IFS='|' read -r ns pod; do
+            echo "  🔧 Force-deleting stuck pod: $pod in $ns..."
+            oc delete pod "$pod" -n "$ns" --grace-period=0 --force 2>/dev/null && PODS_CLEANED=$((PODS_CLEANED + 1)) || true
+          done < <(oc get pods -A -o json | jq -r --arg cutoff "$CUTOFF_TIME" '.items[] |
+            select(.status.phase == "Terminating" or (.metadata.deletionTimestamp != null)) |
+            select((.metadata.creationTimestamp | fromdateiso8601) < ($cutoff | tonumber)) |
+            "\(.metadata.namespace)|\(.metadata.name)"' 2>/dev/null)
+          echo "   ✅ Force-deleted: $PODS_CLEANED stuck terminating pods"
+
+          # Cleanup orphaned PVCs in test namespaces
+          echo ""
+          echo "🧹 Cleaning up orphaned PVCs in test namespaces..."
+          PVC_COUNT=0
+          for ns in $(oc get ns -l opendatahub.io/dashboard=true -o name 2>/dev/null | sed 's|namespace/||'); do
+            OLD_PVCS=$(oc get pvc -n "$ns" -o json 2>/dev/null | jq -r --arg cutoff "$CUTOFF_TIME" '.items[] | select((.metadata.creationTimestamp | fromdateiso8601) < ($cutoff | tonumber)) | .metadata.name' 2>/dev/null || true)
+            if [ -n "$OLD_PVCS" ]; then
+              for pvc in $OLD_PVCS; do
+                echo "  🗑️  Deleting PVC $pvc in $ns..."
+                oc delete pvc "$pvc" -n "$ns" --wait=false 2>/dev/null && PVC_COUNT=$((PVC_COUNT + 1)) || true
+              done
+            fi
+          done
+          echo "   ✅ Deleted: $PVC_COUNT orphaned PVCs"
+
+          # Clean up old DataScienceProjects in test namespaces
+          echo ""
+          echo "🧹 Cleaning up old DataScienceProjects in test namespaces..."
+          DSP_COUNT=0
+          for ns in $(oc get ns -l opendatahub.io/dashboard=true -o name 2>/dev/null | sed 's|namespace/||'); do
+            OLD_DSPS=$(oc get datascienceproject -n "$ns" -o json 2>/dev/null | jq -r --arg cutoff "$CUTOFF_TIME" '.items[] |
+              select((.metadata.creationTimestamp | fromdateiso8601) < ($cutoff | tonumber)) | .metadata.name' 2>/dev/null || true)
+            if [ -n "$OLD_DSPS" ]; then
+              for dsp in $OLD_DSPS; do
+                echo "  🗑️  Deleting DataScienceProject $dsp in $ns..."
+                oc delete datascienceproject "$dsp" -n "$ns" --wait=false 2>/dev/null && DSP_COUNT=$((DSP_COUNT + 1)) || true
+              done
+            fi
+          done
+          echo "   ✅ Deleted: $DSP_COUNT DataScienceProjects"
+
+          echo ""
+          echo "✅ Cleanup complete on $CLUSTER_NAME"
+
+      - name: Cleanup credentials file
+        if: always()
+        run: rm -f /tmp/test-variables.yml
+
+  # ---------------------------------------------------------------------------
   # Status - Set pending status on PR (independent - runs before cluster selection)
   # ---------------------------------------------------------------------------
   set-pending-status:
@@ -238,7 +401,7 @@ jobs:
   # Tag Resolution - Build test matrix from defaults + PR labels/input + auto-detection
   # ---------------------------------------------------------------------------
   get-test-tags:
-    needs: [select-cluster]
+    needs: [select-cluster, cleanup-old-resources]
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.build.outputs.matrix }}

@@ -1,6 +1,6 @@
 import React from 'react';
+import type { Toleration } from '@odh-dashboard/k8s-core';
 import { TableBase } from '#~/components/table';
-import { Toleration } from '#~/types';
 import TolerationTableRow from '#~/pages/hardwareProfiles/toleration/TolerationTableRow';
 import ManageTolerationModal from '#~/pages/hardwareProfiles/toleration/ManageTolerationModal';
 import { tolerationColumns } from './const';

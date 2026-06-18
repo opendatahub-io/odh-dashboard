@@ -1,5 +1,8 @@
 import React from 'react';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import {
+  type HardwareProfileKind,
+  HardwareProfileFeatureVisibility,
+} from '@odh-dashboard/k8s-core';
 import {
   filterRecognizedVisibility,
   isHardwareProfileValid,

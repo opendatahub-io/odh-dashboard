@@ -1,4 +1,5 @@
-import { ConfigMapKind, NotebookKind, SecretKind } from '#~/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
+import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { EnvVariable } from '#~/pages/projects/types';
 
 export const updateArrayValue = <T>(values: T[], index: number, partialValue: Partial<T>): T[] =>

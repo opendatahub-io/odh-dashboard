@@ -12,8 +12,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { formatMemory } from '@odh-dashboard/internal/utilities/valueUnits';
-import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
-import type { ContainerResources } from '@odh-dashboard/internal/types';
+import type { SupportedModelFormats, ContainerResources } from '@odh-dashboard/k8s-core';
 import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';

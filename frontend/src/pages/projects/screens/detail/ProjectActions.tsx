@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Dropdown, DropdownItem, MenuToggle, DropdownList, Divider } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { getDashboardMainContainer } from '#~/utilities/utils';
-import { ProjectKind } from '#~/k8sTypes';
 import DeleteProjectModal from '#~/pages/projects/screens/projects/DeleteProjectModal';
 import ManageProjectModal from '#~/pages/projects/screens/projects/ManageProjectModal';
 import { useProjectAccessReview } from '#~/concepts/projects/accessChecks';

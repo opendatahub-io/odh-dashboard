@@ -7,7 +7,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ContainerResources } from '#~/types';
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
 import MemoryField from '#~/components/MemoryField';
 import CPUField from '#~/components/CPUField';
 import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';

@@ -8,9 +8,9 @@ import {
   K8sResourceCommon,
   k8sListResourceItems,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import {
   K8sAPIOptions,
-  KnownLabels,
   RoleBindingKind,
   RoleBindingRoleRef,
   RoleBindingSubject,

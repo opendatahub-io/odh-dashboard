@@ -13,12 +13,13 @@ import {
   StackItem,
   Truncate,
 } from '@patternfly/react-core';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '#~/types';
 import ExtendedButton from '#~/components/ExtendedButton';
 import GenericSidebar from '#~/components/GenericSidebar';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { HardwareProfileKind, NotebookKind } from '#~/k8sTypes';
+import { NotebookKind } from '#~/k8sTypes';
 import useNotebookImageData from '#~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import NotebookRestartAlert from '#~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '#~/pages/projects/notebook/useWillNotebooksRestart';

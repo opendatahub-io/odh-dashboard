@@ -9,7 +9,7 @@ import {
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
-import { isTabularRun, normalizeMetricKey } from '~/app/utilities/utils';
+import { findTrainingTaskPrefix, isTabularRun, normalizeMetricKey } from '~/app/utilities/utils';
 
 // Timeseries runs return acronym metric keys (e.g. "MAE") while tabular runs
 // return snake_case keys (e.g. "mean_absolute_error"). normalizeMetricsToSnakeCase
@@ -35,11 +35,11 @@ type UseAutomlResultsReturn = {
 /**
  * Custom hook to fetch and process AutoML model results from S3.
  * Models are outputted into the following directory structure
- *      Tabular:     autogluon-tabular-training-pipeline/xxx/autogluon-models-training/yyy/models_artifact/WeightedEnsemble_L5_FULL
- *      Time series: autogluon-timeseries-training-pipeline/xxx/autogluon-timeseries-models-training/yyy/models_artifact/RecursiveTabular_FULL
- * where xxx is the kubeflow pipeline run_id and yyy is a nondeterministic ID.
- * The directory variables used to generate these paths in this file are as follows:
- *      ${rootDir}/xxx/${modelGenerationDir}/yyy/${modelArtifactsDirectory}/${modelName}
+ *      Tabular:     autogluon-tabular-training-pipeline/xxx/<training-task>/yyy/models_artifact/WeightedEnsemble_L5_FULL
+ *      Time series: autogluon-timeseries-training-pipeline/xxx/<training-task>/yyy/models_artifact/RecursiveTabular_FULL
+ * where xxx is the kubeflow pipeline run_id, yyy is a nondeterministic ID, and
+ * <training-task> is discovered dynamically (e.g. autogluon-models-training or
+ * autogluon-models-training-2 depending on preset-based condition branches).
  *
  * ## Testing Strategy
  *
@@ -76,19 +76,42 @@ export function useAutomlResults(
   namespace?: string,
   pipelineRun?: PipelineRun,
 ): UseAutomlResultsReturn {
-  // Step 1: Fetch S3 files when pipeline run is in SUCCEEDED state AND runId exists
+  // Step 0: Discover the training task directory under the run prefix.
+  // The pipeline uses preset-based condition branches that produce different task
+  // names (e.g. "autogluon-models-training" for balanced, "autogluon-models-training-2"
+  // for speed). Instead of hardcoding the exact name, we list all directories at
+  // {rootDir}/{runId}/ and pattern-match for the training task.
   const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED' && Boolean(runId);
   const isTabular = isTabularRun(pipelineRun);
   const rootDir = isTabular
-    ? `autogluon-tabular-training-pipeline`
+    ? 'autogluon-tabular-training-pipeline'
     : 'autogluon-timeseries-training-pipeline';
-  const modelGenerationDir = isTabular
+  const modelGenerationDirPattern = isTabular
     ? 'autogluon-models-training'
     : 'autogluon-timeseries-models-training';
-  const candidateModelsPrefix = shouldFetchS3Files
-    ? `${rootDir}/${runId}/${modelGenerationDir}`
-    : undefined;
+  const runLevelPrefix = shouldFetchS3Files ? `${rootDir}/${runId}` : undefined;
 
+  // Lists all task directories under the run (e.g. automl-data-loader/,
+  // autogluon-models-training-2/, leaderboard-evaluation-2/, etc.).
+  // S3 common_prefixes are the "directory" entries returned by ListObjectsV2
+  // when using a delimiter — each one is a shared key prefix ending in "/".
+  const {
+    data: runLevelFiles,
+    isLoading: isRunLevelLoading,
+    isError: isRunLevelError,
+    refetch: refetchRunLevel,
+  } = useS3ListFilesQuery(namespace, runLevelPrefix);
+
+  // Find the training task directory whose name starts with the expected pattern
+  const candidateModelsPrefix = React.useMemo(
+    () =>
+      runLevelFiles?.common_prefixes.length
+        ? findTrainingTaskPrefix(runLevelFiles.common_prefixes, modelGenerationDirPattern)
+        : undefined,
+    [runLevelFiles, modelGenerationDirPattern],
+  );
+
+  // Step 1: Fetch execution-ID directories under the discovered training task directory
   const {
     data: s3Files,
     isLoading: isS3Loading,
@@ -99,7 +122,7 @@ export function useAutomlResults(
 
   // Only expose modelsBasePath when S3 listing succeeded and returned results
   const modelsBasePath =
-    isS3Loading || isS3Error || !s3Files?.common_prefixes?.length // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- s3Files can be undefined when query is disabled
+    isRunLevelLoading || isS3Loading || isS3Error || !s3Files?.common_prefixes?.length // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- s3Files can be undefined when query is disabled
       ? undefined
       : candidateModelsPrefix;
 
@@ -306,26 +329,30 @@ export function useAutomlResults(
   }, [modelQueries.data, modelQueries.isPending, modelDirectories]);
 
   // Determine overall error state
-  const hasError = isS3Error || modelArtifactQueries.isError || modelQueries.isError;
+  const hasError =
+    isRunLevelError || isS3Error || modelArtifactQueries.isError || modelQueries.isError;
 
   // Determine the first error encountered
   const error = hasError
-    ? (isS3Error ? new Error('Failed to list model directories') : undefined) ||
+    ? (isRunLevelError ? new Error('Failed to discover training task directory') : undefined) ||
+      (isS3Error ? new Error('Failed to list model directories') : undefined) ||
       (modelArtifactQueries.isError ? new Error('Failed to list model artifacts') : undefined) ||
       (modelQueries.isError ? new Error('Failed to fetch model data') : undefined)
     : undefined;
 
   const queryClient = useQueryClient();
   const refetch = React.useCallback(() => {
+    refetchRunLevel();
     refetchS3Files();
     queryClient.invalidateQueries({ queryKey: ['automl', 's3Files', namespace] });
     queryClient.invalidateQueries({ queryKey: ['automl', 's3File', namespace] });
-  }, [refetchS3Files, queryClient, namespace]);
+  }, [refetchRunLevel, refetchS3Files, queryClient, namespace]);
 
   return {
     models,
     failedModels: modelQueries.failedModels,
     isLoading:
+      isRunLevelLoading ||
       isS3Loading ||
       (!s3Files && isS3Fetching) ||
       modelArtifactQueries.isPending ||
