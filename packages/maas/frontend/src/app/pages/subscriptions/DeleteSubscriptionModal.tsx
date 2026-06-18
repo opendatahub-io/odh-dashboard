@@ -33,10 +33,10 @@ const DeleteSubscriptionModal: React.FC<DeleteSubscriptionModalProps> = ({
       deleteName={subscription.displayName || subscription.name}
       error={error}
       genericLabel
-      data-testid="delete-subscription-modal"
+      testId="delete-subscription-modal"
     >
       <Stack hasGutter>
-        <StackItem>
+        <StackItem data-testid="delete-modal-confirmation-message">
           Are you sure you want to delete the Subscription{' '}
           <strong>{subscription.displayName || subscription.name}</strong>?
         </StackItem>

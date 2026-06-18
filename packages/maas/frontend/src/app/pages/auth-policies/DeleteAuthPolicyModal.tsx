@@ -31,7 +31,7 @@ const DeleteAuthPolicyModal: React.FC<DeleteAuthPolicyModalProps> = ({ authPolic
       error={error}
     >
       <Stack hasGutter>
-        <StackItem>
+        <StackItem data-testid="delete-modal-confirmation-message">
           Are you sure you want to delete the Policy{' '}
           <strong>{authPolicy.displayName || authPolicy.name}</strong>?
         </StackItem>
