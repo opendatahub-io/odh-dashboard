@@ -104,6 +104,7 @@ export const blankDashboardCR: DashboardConfig = {
       llmGatewayField: false,
       promptManagement: false,
       mySubscriptions: true,
+      maasSettingsIaRedesign: false,
     },
     notebookController: {
       enabled: true,

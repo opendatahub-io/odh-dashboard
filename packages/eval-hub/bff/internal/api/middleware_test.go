@@ -21,8 +21,10 @@ import (
 // namespaceAwareCRClient returns different CR statuses depending on the namespace queried.
 type namespaceAwareCRClient struct {
 	testK8sClient
-	crByNamespace map[string]*models.EvalHubCRStatus
-	errByNS       map[string]error
+	crByNamespace    map[string]*models.EvalHubCRStatus
+	errByNS          map[string]error
+	discoveryByNS    map[string]string
+	discoveryErrByNS map[string]error
 }
 
 func (c *namespaceAwareCRClient) GetEvalHubCRStatus(_ context.Context, _ *kubernetes.RequestIdentity, namespace string) (*models.EvalHubCRStatus, error) {
@@ -35,6 +37,18 @@ func (c *namespaceAwareCRClient) GetEvalHubCRStatus(_ context.Context, _ *kubern
 		return c.crByNamespace[namespace], nil
 	}
 	return nil, nil
+}
+
+func (c *namespaceAwareCRClient) GetEvalHubDiscoveryURL(_ context.Context, _ *kubernetes.RequestIdentity, namespace string) (string, error) {
+	if c.discoveryErrByNS != nil {
+		if err, ok := c.discoveryErrByNS[namespace]; ok {
+			return "", err
+		}
+	}
+	if c.discoveryByNS != nil {
+		return c.discoveryByNS[namespace], nil
+	}
+	return "", nil
 }
 
 func newTestApp(k8sClient kubernetes.KubernetesClientInterface, dashboardNS string) *App {
@@ -217,6 +231,71 @@ func TestEvalHubServiceURL_EnvOverrideBypassesCRDiscovery(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, crNotFound)
 	assert.Equal(t, "http://override:9090", serviceURL)
+}
+
+func TestEvalHubServiceURL_DiscoveryConfigMapResolvesURL(t *testing.T) {
+	client := &namespaceAwareCRClient{
+		discoveryByNS: map[string]string{
+			"team-a": "https://evalhub.evalhub-ns.svc.cluster.local",
+		},
+		crByNamespace: map[string]*models.EvalHubCRStatus{
+			"redhat-ods-applications": {
+				Name: "evalhub", Namespace: "redhat-ods-applications", Phase: "Ready",
+				URL: "http://evalhub.platform.svc:8080",
+			},
+		},
+	}
+
+	app := newTestApp(client, "redhat-ods-applications")
+	ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "user@test.com", Token: "tok"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "team-a")
+
+	serviceURL, authToken, crNotFound, err := app.evalHubServiceURL(ctx)
+
+	require.NoError(t, err)
+	assert.False(t, crNotFound)
+	assert.Equal(t, "https://evalhub.evalhub-ns.svc.cluster.local", serviceURL)
+	assert.Equal(t, "tok", authToken)
+}
+
+func TestEvalHubServiceURL_DiscoveryConfigMapNotFound_FallsThroughToCR(t *testing.T) {
+	client := &namespaceAwareCRClient{
+		discoveryByNS: map[string]string{},
+		crByNamespace: map[string]*models.EvalHubCRStatus{
+			"team-a": {
+				Name: "evalhub", Namespace: "team-a", Phase: "Ready",
+				URL: "http://evalhub.team-a.svc:8080",
+			},
+		},
+	}
+
+	app := newTestApp(client, "redhat-ods-applications")
+	ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "user@test.com", Token: "tok"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "team-a")
+
+	serviceURL, _, crNotFound, err := app.evalHubServiceURL(ctx)
+
+	require.NoError(t, err)
+	assert.False(t, crNotFound)
+	assert.Equal(t, "http://evalhub.team-a.svc:8080", serviceURL)
+}
+
+func TestEvalHubServiceURL_DiscoveryConfigMapError_SurfacedImmediately(t *testing.T) {
+	client := &namespaceAwareCRClient{
+		discoveryErrByNS: map[string]error{
+			"team-a": fmt.Errorf("failed to read evalhub-discovery ConfigMap: network timeout"),
+		},
+	}
+
+	app := newTestApp(client, "redhat-ods-applications")
+	ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "user@test.com", Token: "tok"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "team-a")
+
+	_, _, _, err := app.evalHubServiceURL(ctx)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "team-a")
+	assert.Contains(t, err.Error(), "network timeout")
 }
 
 func TestAttachNamespace_ValidNamespace(t *testing.T) {
