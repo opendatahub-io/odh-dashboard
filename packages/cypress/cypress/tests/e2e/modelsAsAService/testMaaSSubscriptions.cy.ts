@@ -159,11 +159,12 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
     {
       tags: [
         '@Smoke',
-        '@SmokeSet3',
+        '@SmokeSet5',
         '@Dashboard',
         '@ModelServing',
         '@NonConcurrent',
-        '@MaasSubscriptions',
+        '@MaaSCI',
+        `@MaasSubscriptions`,
       ],
     },
     () => {
