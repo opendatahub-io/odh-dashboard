@@ -10,6 +10,8 @@ automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountT
 {{- end }}
 ---
 {{- if .Values.rbac.create }}
+# IMPORTANT: Keep ClusterRole rules in sync with config/rbac/role.yaml.
+# chart_sync_test.go validates CRD and RBAC drift in CI via `make test`.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

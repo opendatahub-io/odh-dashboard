@@ -188,7 +188,9 @@ CI workflow at `.github/workflows/dashboard-operator-tests.yml` triggers on chan
 2. `make lint`
 3. `make build`
 4. `make test`
-5. Check for uncommitted changes (catches stale generated code)
+5. Install Helm (pinned action SHA)
+6. `make chart-validate`
+7. Check for uncommitted changes (catches stale generated code)
 
 ## Testing
 

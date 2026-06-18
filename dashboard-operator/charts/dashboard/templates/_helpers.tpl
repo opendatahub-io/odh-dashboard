@@ -52,7 +52,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- if .Values.serviceAccount.create }}
 {{- printf "%s%s" .Values.namePrefix (.Values.serviceAccount.name | default "dashboard-operator") }}
 {{- else }}
-{{- .Values.serviceAccount.name | default "default" }}
+{{- required "serviceAccount.name must be set when serviceAccount.create=false" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
 

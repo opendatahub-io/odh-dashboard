@@ -14,7 +14,7 @@ commonLabels:
   components.platform.opendatahub.io/managed-by: opendatahub-operator
 
 image:
-  repository: quay.io/opendatahub/dashboard-operator
+  repository: quay.io/opendatahub/odh-dashboard-operator
   tag: latest
   pullPolicy: IfNotPresent
   pullSecrets: []
@@ -64,6 +64,8 @@ relatedImages:
   RELATED_IMAGE_ODH_MODEL_REGISTRY_JOB_ASYNC_UPLOAD_IMAGE: quay.io/opendatahub/odh-model-registry-job-async-upload:latest
   RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE: quay.io/opendatahub/odh-mod-arch-automl:latest
   RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE: quay.io/opendatahub/odh-mod-arch-autorag:latest
+  RELATED_IMAGE_ODH_AUTOML_IMAGE: quay.io/opendatahub/odh-automl:latest
+  RELATED_IMAGE_ODH_AUTORAG_IMAGE: quay.io/opendatahub/odh-autorag:latest
 
 config:
   name: opendatahub-dashboard-config

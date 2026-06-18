@@ -32,11 +32,34 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "dashboard.serviceAccountName" . }}
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 10
+      volumes:
+        - name: dashboard-operator-sa-token
+          projected:
+            defaultMode: 420
+            sources:
+              - serviceAccountToken:
+                  expirationSeconds: 3607
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+              - downwardAPI:
+                  items:
+                    - path: namespace
+                      fieldRef:
+                        fieldPath: metadata.namespace
       containers:
         - name: manager
           image: {{ include "dashboard.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - name: dashboard-operator-sa-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
           args:
             - --namespace=$(OPERATOR_NAMESPACE)
             - --manifests-base-path={{ .Values.manager.manifestsBasePath }}
