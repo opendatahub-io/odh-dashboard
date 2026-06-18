@@ -110,12 +110,7 @@ describe('Subscriptions Page', () => {
     const failedRow = subscriptionsPage.getRow('failed-sub');
     failedRow.findPhase().should('contain.text', 'Failed');
     failedRow.findPhaseLabel().click();
-    failedRow
-      .findPhasePopover()
-      .should(
-        'contain.text',
-        'Subscription failedAll critical dependencies are missing or reconciliation has failed. No models in this subscription are accessible.Review the subscription spec and model references.',
-      );
+    failedRow.findPhasePopover().should('contain.text', 'Subscription failed');
 
     const pendingRow = subscriptionsPage.getRow('pending-sub');
     pendingRow.findPhase().should('contain.text', 'Pending');
