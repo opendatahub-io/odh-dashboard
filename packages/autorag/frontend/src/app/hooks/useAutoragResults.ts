@@ -307,30 +307,6 @@ export function useAutoragResults(
         return;
       }
 
-      // Normalize responses_template.input from string to array format
-      // The S3 data may contain a plain string for input instead of the expected array
-      // TODO[3.5]: Remove and handle from inside playground - both payloads should be supported
-      // as they are valid open api schema
-      if (
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        patternData.settings &&
-        patternData.settings.responses_template &&
-        typeof patternData.settings.responses_template.input === 'string'
-      ) {
-        patternData.settings.responses_template.input = [
-          {
-            type: 'message',
-            role: 'user',
-            content: [
-              {
-                type: 'input_text',
-                text: patternData.settings.responses_template.input,
-              },
-            ],
-          },
-        ];
-      }
-
       results[patternName] = patternData;
     });
 
