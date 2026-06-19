@@ -28,9 +28,16 @@ const MaxRpsFilter: React.FC = () => {
     [localValue, minValue, maxValue],
   );
 
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     if (isOpen) {
       setLocalValue(rpsFilterValue ?? maxValue);
+      requestAnimationFrame(() => {
+        contentRef.current
+          ?.querySelector<HTMLElement>('input:not([type="hidden"]), [role="slider"], button')
+          ?.focus();
+      });
     }
   }, [isOpen, rpsFilterValue, maxValue]);
 
@@ -71,6 +78,7 @@ const MaxRpsFilter: React.FC = () => {
 
   const filterContent = (
     <Flex
+      ref={contentRef}
       direction={{ default: 'column' }}
       spaceItems={{ default: 'spaceItemsSm' }}
       flexWrap={{ default: 'wrap' }}

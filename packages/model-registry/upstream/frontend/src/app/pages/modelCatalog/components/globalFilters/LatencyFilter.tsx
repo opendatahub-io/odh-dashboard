@@ -112,6 +112,8 @@ const LatencyFilter: React.FC = () => {
     return defaultFilterState;
   });
 
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     if (isOpen) {
       // Use currentActiveFilter or defaultFilterState
@@ -123,6 +125,11 @@ const LatencyFilter: React.FC = () => {
           }
         : defaultFilterState;
       setLocalFilter(initialState);
+      requestAnimationFrame(() => {
+        contentRef.current
+          ?.querySelector<HTMLElement>('input:not([type="hidden"]), [role="slider"], button')
+          ?.focus();
+      });
     }
   }, [isOpen, currentActiveFilter, defaultFilterState]);
 
@@ -220,6 +227,7 @@ const LatencyFilter: React.FC = () => {
 
   const filterContent = (
     <Flex
+      ref={contentRef}
       data-testid="latency-filter-content"
       direction={{ default: 'column' }}
       spaceItems={{ default: 'spaceItemsSm' }}

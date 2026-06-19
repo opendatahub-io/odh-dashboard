@@ -44,9 +44,16 @@ const ColdStartLatencyFilter: React.FC = () => {
     [localValue, minValue, maxValue],
   );
 
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     if (isOpen) {
       setLocalValue(filterValue ?? maxValue);
+      requestAnimationFrame(() => {
+        contentRef.current
+          ?.querySelector<HTMLElement>('input:not([type="hidden"]), [role="slider"], button')
+          ?.focus();
+      });
     }
   }, [isOpen, filterValue, maxValue]);
 
@@ -87,6 +94,7 @@ const ColdStartLatencyFilter: React.FC = () => {
 
   const filterContent = (
     <Flex
+      ref={contentRef}
       direction={{ default: 'column' }}
       spaceItems={{ default: 'spaceItemsSm' }}
       flexWrap={{ default: 'wrap' }}

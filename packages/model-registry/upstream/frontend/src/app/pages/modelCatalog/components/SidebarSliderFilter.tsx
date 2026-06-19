@@ -47,9 +47,16 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
 
   const [localValue, setLocalValue] = React.useState<number>(() => filterValue ?? range.max);
 
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     if (isOpen) {
       setLocalValue(filterValue ?? range.max);
+      requestAnimationFrame(() => {
+        contentRef.current
+          ?.querySelector<HTMLElement>('input:not([type="hidden"]), [role="slider"], button')
+          ?.focus();
+      });
     }
   }, [isOpen, filterValue, range.max]);
 
@@ -101,6 +108,7 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
       shouldFocusToggleOnSelect={false}
     >
       <Flex
+        ref={contentRef}
         direction={{ default: 'column' }}
         spaceItems={{ default: 'spaceItemsSm' }}
         style={{ minWidth: '400px', padding: '16px' }}

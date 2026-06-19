@@ -25,6 +25,17 @@ const HardwareConfigurationFilter: React.FC = () => {
   const { filterOptions } = React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState('');
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      requestAnimationFrame(() => {
+        contentRef.current
+          ?.querySelector<HTMLElement>('input:not([type="hidden"]), [role="slider"], button')
+          ?.focus();
+      });
+    }
+  }, [isOpen]);
 
   // Get hardware configuration options from filterOptions (from API filter_options endpoint)
   // Always use filterOptions - never extract from artifacts per team decision
@@ -78,7 +89,7 @@ const HardwareConfigurationFilter: React.FC = () => {
   );
 
   const filterContent = (
-    <Panel>
+    <Panel ref={contentRef}>
       <PanelMain className="pf-v6-u-p-md" style={{ maxHeight: '300px', overflowY: 'auto' }}>
         <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
           {/* Search input */}
