@@ -1612,6 +1612,9 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 					},
 				},
 			})
+		} else {
+			kc.Logger.Warn("pgvector configured without password mechanism; PostgreSQL auth may fail",
+				"host", conn.Host)
 		}
 		kc.Logger.Info("injected pgvector connection env vars for OGXServer pod",
 			"host", conn.Host, "port", conn.Port, "db", conn.DB)
