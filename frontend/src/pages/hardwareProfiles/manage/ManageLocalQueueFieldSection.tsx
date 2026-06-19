@@ -14,6 +14,7 @@ import {
   LOCAL_QUEUE_FIELD_DESCRIPTION,
   LOCAL_QUEUE_NAMES_CASE_SENSITIVE_HELPER,
 } from '#~/pages/hardwareProfiles/nodeResource/const.ts';
+import { ValidationContext } from '#~/utilities/useValidation';
 
 type ManageLocalQueueFieldSectionProps = {
   localQueueName: string;
@@ -25,36 +26,50 @@ const ManageLocalQueueFieldSection: React.FC<ManageLocalQueueFieldSectionProps> 
   localQueueName,
   setLocalQueueName,
   disabled,
-}) => (
-  <FormGroup
-    label={ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.LOCAL_QUEUE]}
-    fieldId={ManageHardwareProfileSectionID.LOCAL_QUEUE}
-    isRequired
-    labelHelp={
-      <DashboardHelpTooltip content={HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.localQueue} />
-    }
-  >
-    <FormHelperText>
-      <HelperText>
-        <HelperTextItem>{LOCAL_QUEUE_FIELD_DESCRIPTION}</HelperTextItem>
-      </HelperText>
-    </FormHelperText>
-    <TextInput
-      data-testid="local-queue-input"
-      id="local-queue-input"
-      value={localQueueName}
-      onChange={(_, updatedQueueName) => {
-        setLocalQueueName(updatedQueueName);
-      }}
+}) => {
+  const { getAllValidationIssues } = React.useContext(ValidationContext);
+  const localQueueNameIssues = getAllValidationIssues(['scheduling', 'kueue', 'localQueueName']);
+  const validationError =
+    localQueueNameIssues.length > 0 ? localQueueNameIssues[0].message : undefined;
+
+  return (
+    <FormGroup
+      label={ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.LOCAL_QUEUE]}
+      fieldId={ManageHardwareProfileSectionID.LOCAL_QUEUE}
       isRequired
-      isDisabled={disabled}
-    />
-    <FormHelperText>
-      <HelperText>
-        <HelperTextItem>{LOCAL_QUEUE_NAMES_CASE_SENSITIVE_HELPER}</HelperTextItem>
-      </HelperText>
-    </FormHelperText>
-  </FormGroup>
-);
+      labelHelp={
+        <DashboardHelpTooltip content={HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.localQueue} />
+      }
+    >
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>{LOCAL_QUEUE_FIELD_DESCRIPTION}</HelperTextItem>
+        </HelperText>
+      </FormHelperText>
+      <TextInput
+        data-testid="local-queue-input"
+        id="local-queue-input"
+        value={localQueueName}
+        onChange={(_, updatedQueueName) => {
+          setLocalQueueName(updatedQueueName);
+        }}
+        isRequired
+        isDisabled={disabled}
+        validated={validationError ? 'error' : 'default'}
+      />
+      <FormHelperText>
+        <HelperText>
+          {validationError ? (
+            <HelperTextItem variant="error" data-testid="local-queue-name-error">
+              {validationError}
+            </HelperTextItem>
+          ) : (
+            <HelperTextItem>{LOCAL_QUEUE_NAMES_CASE_SENSITIVE_HELPER}</HelperTextItem>
+          )}
+        </HelperText>
+      </FormHelperText>
+    </FormGroup>
+  );
+};
 
 export default ManageLocalQueueFieldSection;

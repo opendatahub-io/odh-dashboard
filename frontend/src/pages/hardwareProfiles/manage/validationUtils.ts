@@ -170,7 +170,13 @@ export const schedulingSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal(SchedulingType.QUEUE),
     kueue: z.object({
-      localQueueName: z.string().min(1, 'Local queue name is required'),
+      localQueueName: z
+        .string()
+        .min(1, 'Local queue name is required')
+        .regex(
+          k8sNameRegex,
+          'Local queue name must consist of lowercase alphanumeric characters or hyphens, and must start and end with an alphanumeric character',
+        ),
       priorityClass: z.string().optional(),
     }),
     node: z.never().optional(),
