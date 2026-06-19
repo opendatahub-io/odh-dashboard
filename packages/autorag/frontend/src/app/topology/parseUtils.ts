@@ -37,7 +37,7 @@ const lowestProgress = (details: TaskDetailKF[]): TaskDetailKF['state'] =>
 
 /**
  * Get the run status of a task from the RunDetailsKF (task_details array).
- * Considers both the main task and its driver task, picking the worst status.
+ * Considers both the main task and its driver task, picking the most-progressed status.
  */
 export const parseRuntimeInfoFromRunDetails = (
   taskId: string,
