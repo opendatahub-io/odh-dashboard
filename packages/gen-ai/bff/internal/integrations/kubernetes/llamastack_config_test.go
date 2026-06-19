@@ -1514,7 +1514,7 @@ func TestSetDefaultPgvectorProvider(t *testing.T) {
 
 		pc := config.Providers.VectorIO[0].Config
 		assert.Equal(t, "${env.PGVECTOR_HOST}", pc["host"])
-		assert.Equal(t, 5432, pc["port"])
+		assert.Equal(t, "${env.PGVECTOR_PORT:=5432}", pc["port"])
 		assert.Equal(t, "${env.PGVECTOR_DB:=mydb}", pc["db"])
 		assert.Equal(t, "${env.PGVECTOR_USER:=myuser}", pc["user"])
 		assert.Equal(t, "${env.PGVECTOR_PASSWORD:=}", pc["password"])

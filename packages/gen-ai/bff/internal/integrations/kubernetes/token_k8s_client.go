@@ -1588,6 +1588,18 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			corev1.EnvVar{Name: pgvector.UserEnvVar, Value: conn.User},
 		)
 		if conn.PasswordSecret != nil {
+			var secret corev1.Secret
+			if err := kc.Client.Get(ctx, types.NamespacedName{
+				Name:      conn.PasswordSecret.Name,
+				Namespace: namespace,
+			}, &secret); err != nil {
+				return nil, fmt.Errorf("pgvector password secret %q not found in namespace %s: %w",
+					conn.PasswordSecret.Name, namespace, err)
+			}
+			if _, ok := secret.Data[conn.PasswordSecret.Key]; !ok {
+				return nil, fmt.Errorf("pgvector password secret %q is missing key %q",
+					conn.PasswordSecret.Name, conn.PasswordSecret.Key)
+			}
 			envVars = append(envVars, corev1.EnvVar{
 				Name: pgvector.PasswordEnvVar,
 				ValueFrom: &corev1.EnvVarSource{
@@ -1596,11 +1608,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 						Key:                  conn.PasswordSecret.Key,
 					},
 				},
-			})
-		} else if conn.Password != "" {
-			envVars = append(envVars, corev1.EnvVar{
-				Name:  pgvector.PasswordEnvVar,
-				Value: conn.Password,
 			})
 		}
 		kc.Logger.Info("injected pgvector connection env vars for OGXServer pod",
@@ -1784,7 +1791,7 @@ func pgvectorConnectionFromConfig(cfg config.EnvConfig) pgvector.Connection {
 	if cfg.PgvectorPasswordSecretName != "" {
 		key := cfg.PgvectorPasswordSecretKey
 		if key == "" {
-			key = "password"
+			key = pgvector.DefaultPasswordKey
 		}
 		conn.PasswordSecret = &pgvector.SecretRef{
 			Name: cfg.PgvectorPasswordSecretName,

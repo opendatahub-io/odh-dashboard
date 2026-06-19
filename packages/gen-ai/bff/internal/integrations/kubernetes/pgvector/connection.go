@@ -1,7 +1,5 @@
 package pgvector
 
-import "fmt"
-
 const (
 	DefaultProviderID = "pgvector"
 	ProviderType      = "remote::pgvector"
@@ -9,6 +7,7 @@ const (
 	DefaultPort           = 5432
 	DefaultDB             = "vectordb"
 	DefaultUser           = "vectoruser"
+	DefaultPasswordKey    = "password"
 	DefaultDistanceMetric = "COSINE"
 
 	HostEnvVar     = "PGVECTOR_HOST"
@@ -25,19 +24,13 @@ type Connection struct {
 	Port           int
 	DB             string
 	User           string
-	Password       string
-	PasswordSecret *SecretRef // when set, password is injected via SecretKeyRef
+	PasswordSecret *SecretRef // password is injected via SecretKeyRef
 }
 
 // SecretRef identifies a key inside a Kubernetes Secret.
 type SecretRef struct {
 	Name string
 	Key  string
-}
-
-// DSN returns a PostgreSQL connection string.
-func (c *Connection) DSN() string {
-	return fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", c.User, c.Password, c.Host, c.Port, c.DB)
 }
 
 // IsConfigured returns true when at least the host is set, indicating

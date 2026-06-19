@@ -17,14 +17,3 @@ func TestConnection_IsConfigured(t *testing.T) {
 		assert.True(t, c.IsConfigured())
 	})
 }
-
-func TestConnection_DSN(t *testing.T) {
-	c := Connection{
-		Host:     "pg.svc.cluster.local",
-		Port:     5432,
-		DB:       "vectordb",
-		User:     "vectoruser",
-		Password: "secret",
-	}
-	assert.Equal(t, "postgresql://vectoruser:secret@pg.svc.cluster.local:5432/vectordb", c.DSN())
-}

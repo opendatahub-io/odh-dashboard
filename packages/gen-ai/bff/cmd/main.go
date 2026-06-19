@@ -15,6 +15,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/api"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -75,7 +76,7 @@ func main() {
 	flag.StringVar(&cfg.PgvectorDB, "pgvector-db", getEnvAsString("PGVECTOR_DB", "vectordb"), "PostgreSQL database name for pgvector")
 	flag.StringVar(&cfg.PgvectorUser, "pgvector-user", getEnvAsString("PGVECTOR_USER", "vectoruser"), "PostgreSQL user for pgvector")
 	flag.StringVar(&cfg.PgvectorPasswordSecretName, "pgvector-password-secret-name", getEnvAsString("PGVECTOR_PASSWORD_SECRET_NAME", ""), "Kubernetes Secret name containing the pgvector password")
-	flag.StringVar(&cfg.PgvectorPasswordSecretKey, "pgvector-password-secret-key", getEnvAsString("PGVECTOR_PASSWORD_SECRET_KEY", "password"), "Key in the pgvector password Secret")
+	flag.StringVar(&cfg.PgvectorPasswordSecretKey, "pgvector-password-secret-key", getEnvAsString("PGVECTOR_PASSWORD_SECRET_KEY", pgvector.DefaultPasswordKey), "Key in the pgvector password Secret")
 
 	// BFF inter-communication configuration
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
