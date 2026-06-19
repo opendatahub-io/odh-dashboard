@@ -201,6 +201,145 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.Contains(t, strings.ToLower(string(body)), "subscription is required")
 	})
 
+	t.Run("should reject expiresIn with invalid pattern", func(t *testing.T) {
+		invalidPatterns := []string{
+			"90d",     // days not allowed
+			"2w",      // weeks not allowed
+			"30",      // missing unit
+			"30mins",  // full word not allowed
+			"1.5h",    // decimal not allowed
+			"invalid", // non-numeric
+			"1h30m",   // compound not allowed (only single unit)
+		}
+
+		for _, invalidValue := range invalidPatterns {
+			t.Run(invalidValue, func(t *testing.T) {
+				tokenRequest := models.MaaSTokenRequest{
+					Subscription: "test-subscription",
+					ExpiresIn:    invalidValue,
+				}
+				requestBody, err := json.Marshal(tokenRequest)
+				assert.NoError(t, err)
+
+				rr := httptest.NewRecorder()
+				req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
+				assert.NoError(t, err)
+				req.Header.Set("Content-Type", "application/json")
+
+				// Simulate AttachBFFMaaSClient middleware
+				maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
+				ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+				req = req.WithContext(ctx)
+
+				app.MaaSIssueTokenHandler(rr, req, nil)
+
+				assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+				defer rr.Result().Body.Close()
+				body, err := io.ReadAll(rr.Result().Body)
+				assert.NoError(t, err)
+				assert.Contains(t, strings.ToLower(string(body)), "expiresin must match pattern")
+			})
+		}
+	})
+
+	t.Run("should reject expiresIn exceeding 1 hour", func(t *testing.T) {
+		invalidValues := []string{
+			"61m",  // 61 minutes > 1h
+			"2h",   // 2 hours > 1h
+			"120m", // 120 minutes > 1h
+		}
+
+		for _, invalidValue := range invalidValues {
+			t.Run(invalidValue, func(t *testing.T) {
+				tokenRequest := models.MaaSTokenRequest{
+					Subscription: "test-subscription",
+					ExpiresIn:    invalidValue,
+				}
+				requestBody, err := json.Marshal(tokenRequest)
+				assert.NoError(t, err)
+
+				rr := httptest.NewRecorder()
+				req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
+				assert.NoError(t, err)
+				req.Header.Set("Content-Type", "application/json")
+
+				// Simulate AttachBFFMaaSClient middleware
+				maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
+				ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+				req = req.WithContext(ctx)
+
+				app.MaaSIssueTokenHandler(rr, req, nil)
+
+				assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+				defer rr.Result().Body.Close()
+				body, err := io.ReadAll(rr.Result().Body)
+				assert.NoError(t, err)
+				assert.Contains(t, strings.ToLower(string(body)), "must not exceed 1h")
+			})
+		}
+	})
+
+	t.Run("should accept valid expiresIn values", func(t *testing.T) {
+		validValues := []string{
+			"30m",
+			"1h",
+			"60m",
+			"15m",
+			"45m",
+		}
+
+		for _, validValue := range validValues {
+			t.Run(validValue, func(t *testing.T) {
+				tokenRequest := models.MaaSTokenRequest{
+					Subscription: "test-subscription",
+					ExpiresIn:    validValue,
+				}
+				requestBody, err := json.Marshal(tokenRequest)
+				assert.NoError(t, err)
+
+				rr := httptest.NewRecorder()
+				req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
+				assert.NoError(t, err)
+				req.Header.Set("Content-Type", "application/json")
+
+				// Simulate AttachBFFMaaSClient middleware
+				maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
+				ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+				req = req.WithContext(ctx)
+
+				app.MaaSIssueTokenHandler(rr, req, nil)
+
+				assert.Equal(t, http.StatusCreated, rr.Code)
+			})
+		}
+	})
+
+	t.Run("should default to 1h when expiresIn is not provided", func(t *testing.T) {
+		tokenRequest := models.MaaSTokenRequest{
+			Subscription: "test-subscription",
+			// ExpiresIn not provided
+		}
+		requestBody, err := json.Marshal(tokenRequest)
+		assert.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Simulate AttachBFFMaaSClient middleware
+		maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
+		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+		req = req.WithContext(ctx)
+
+		app.MaaSIssueTokenHandler(rr, req, nil)
+
+		// Should succeed and default to 1h
+		assert.Equal(t, http.StatusCreated, rr.Code)
+	})
+
 	t.Run("should return 503 when MaaS BFF client is nil", func(t *testing.T) {
 		tokenRequest := models.MaaSTokenRequest{Subscription: "test-subscription"}
 		requestBody, err := json.Marshal(tokenRequest)

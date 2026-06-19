@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,6 +51,37 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
+	// Validate expiresIn pattern and maximum value (per OpenAPI spec: ^[0-9]+(m|h)$, max 1h)
+	// Default to 1h if not provided
+	expiresIn := strings.TrimSpace(tokenRequest.ExpiresIn)
+	if expiresIn == "" {
+		expiresIn = "1h"
+	} else {
+		// Check pattern: must be digits followed by 'm' or 'h'
+		validPattern := regexp.MustCompile(`^[0-9]+(m|h)$`)
+		if !validPattern.MatchString(expiresIn) {
+			app.badRequestResponse(w, r, fmt.Errorf("expiresIn must match pattern ^[0-9]+(m|h)$ (e.g., '30m', '1h'), got %q", expiresIn))
+			return
+		}
+
+		// Parse and validate maximum (1h = 60 minutes)
+		unit := expiresIn[len(expiresIn)-1]
+		valueStr := expiresIn[:len(expiresIn)-1]
+		value, _ := strconv.Atoi(valueStr) // regex already validated this is a number
+
+		var minutes int
+		if unit == 'h' {
+			minutes = value * 60
+		} else {
+			minutes = value
+		}
+
+		if minutes > 60 {
+			app.badRequestResponse(w, r, fmt.Errorf("expiresIn must not exceed 1h for ephemeral keys, got %q (%d minutes)", expiresIn, minutes))
+			return
+		}
+	}
+
 	// Auto-generate ephemeral key name if not provided
 	keyName := tokenRequest.Name
 	if keyName == "" {
@@ -60,9 +93,9 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 		Data: models.MaaSBFFAPIKeyRequestData{
 			Name:         keyName,
 			Description:  tokenRequest.Description,
-			ExpiresIn:    tokenRequest.ExpiresIn, // Forward TTL if provided
-			Subscription: subscription,           // Use trimmed value
-			Ephemeral:    true,                   // Always ephemeral for playground sessions
+			ExpiresIn:    expiresIn,    // Use validated value (defaults to "1h" if not provided)
+			Subscription: subscription, // Use trimmed value
+			Ephemeral:    true,         // Always ephemeral for playground sessions
 		},
 	}
 
