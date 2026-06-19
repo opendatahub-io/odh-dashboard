@@ -30,12 +30,22 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
   });
   const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
 
+  const maxTermWidth = React.useMemo(
+    () => paramEntries.reduce((max, [key]) => Math.max(max, formatMetricName(key).length), 0),
+    [paramEntries],
+  );
+
   return (
     <>
       <Title headingLevel="h3" className="pf-v6-u-mb-lg">
         Experiment parameters
       </Title>
-      <DescriptionList isHorizontal isCompact className="automl-model-info-list">
+      <DescriptionList
+        isHorizontal
+        isCompact
+        className="automl-model-info-list"
+        termWidth={`${maxTermWidth}ch`}
+      >
         {paramEntries.map(([key, value]) => (
           <DescriptionListGroup key={key}>
             <DescriptionListTerm>{formatMetricName(key)}</DescriptionListTerm>
