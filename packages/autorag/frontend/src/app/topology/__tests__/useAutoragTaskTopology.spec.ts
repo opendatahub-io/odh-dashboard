@@ -85,7 +85,7 @@ describe('useAutoragTaskTopology', () => {
     expect(nodes[2].label).toBe('Text Extraction');
   });
 
-  it('should use terminal fallback status when run is succeeded but task has no details', () => {
+  it('should use completed fallback status when run succeeded but task has no details', () => {
     const renderResult = testHook(useAutoragTaskTopology)(mockSpec, undefined, 'SUCCEEDED');
     const nodes = renderResult.result.current;
 
@@ -95,43 +95,34 @@ describe('useAutoragTaskTopology', () => {
     });
   });
 
-  it('should use terminal fallback status when run is failed but task has no details', () => {
+  it('should not apply fallback when run is failed and task has no details', () => {
     const renderResult = testHook(useAutoragTaskTopology)(mockSpec, undefined, 'FAILED');
     const nodes = renderResult.result.current;
 
     nodes.forEach((node) => {
-      expect(node.data?.runStatus).toBe('Failed');
+      expect(node.data?.runStatus).toBeUndefined();
     });
   });
 
-  it('should use terminal fallback status when run is canceled but task has no details', () => {
+  it('should not apply fallback when run is canceled and task has no details', () => {
     const renderResult = testHook(useAutoragTaskTopology)(mockSpec, undefined, 'CANCELED');
     const nodes = renderResult.result.current;
 
     nodes.forEach((node) => {
-      expect(node.data?.runStatus).toBe('Cancelled');
+      expect(node.data?.runStatus).toBeUndefined();
     });
   });
 
-  it('should use terminal fallback status when run is skipped but task has no details', () => {
+  it('should not apply fallback when run is skipped and task has no details', () => {
     const renderResult = testHook(useAutoragTaskTopology)(mockSpec, undefined, 'SKIPPED');
     const nodes = renderResult.result.current;
 
     nodes.forEach((node) => {
-      expect(node.data?.runStatus).toBe('Skipped');
+      expect(node.data?.runStatus).toBeUndefined();
     });
   });
 
-  it('should use terminal fallback status when run is cached but task has no details', () => {
-    const renderResult = testHook(useAutoragTaskTopology)(mockSpec, undefined, 'CACHED');
-    const nodes = renderResult.result.current;
-
-    nodes.forEach((node) => {
-      expect(node.data?.runStatus).toBe('Succeeded');
-    });
-  });
-
-  it('should retain explicit task status instead of terminal fallback', () => {
+  it('should retain explicit task status and leave unexecuted tasks without status', () => {
     const runDetails = {
       task_details: [
         {
@@ -152,12 +143,12 @@ describe('useAutoragTaskTopology', () => {
     expect(nodes[0].id).toBe('test-data-loader');
     expect(nodes[0].data?.runStatus).toBe('Succeeded');
 
-    // Tasks without details fall back to run-level status
-    expect(nodes[1].data?.runStatus).toBe('Failed');
-    expect(nodes[2].data?.runStatus).toBe('Failed');
+    // Tasks without details show no status — they never executed
+    expect(nodes[1].data?.runStatus).toBeUndefined();
+    expect(nodes[2].data?.runStatus).toBeUndefined();
   });
 
-  it('should not apply terminal fallback when run is still running', () => {
+  it('should not apply fallback when run is still running', () => {
     const renderResult = testHook(useAutoragTaskTopology)(mockSpec, undefined, 'RUNNING');
     const nodes = renderResult.result.current;
 

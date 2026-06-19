@@ -2,7 +2,7 @@ import * as React from 'react';
 import { RunStatus } from '@patternfly/react-topology';
 import { PipelineSpecVariable, RunDetailsKF, TaskKF } from '~/app/types/pipeline';
 import { PipelineNodeModelExpanded } from '~/app/types/topology';
-import { isRunInTerminalState } from '~/app/utilities/utils';
+import { isRunCompleted } from '~/app/utilities/utils';
 import { createNode } from './utils';
 import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseUtils';
 
@@ -43,8 +43,8 @@ const topoSort = (tasks: Record<string, TaskKF>): string[] => {
   return result;
 };
 
-const getTerminalFallbackStatus = (runState?: string): RunStatus | undefined => {
-  if (!runState || !isRunInTerminalState(runState)) {
+const getCompletedFallbackStatus = (runState?: string): RunStatus | undefined => {
+  if (!runState || !isRunCompleted(runState)) {
     return undefined;
   }
   return translateStatusForNode(runState);
@@ -70,7 +70,7 @@ export const useAutoragTaskTopology = (
     }
 
     const ordered = topoSort(tasks);
-    const terminalFallback = getTerminalFallbackStatus(runState);
+    const completedFallback = getCompletedFallbackStatus(runState);
 
     return ordered.map((taskId, idx) => {
       const task = tasks[taskId];
@@ -79,7 +79,6 @@ export const useAutoragTaskTopology = (
       const status = parseRuntimeInfoFromRunDetails(taskId, runDetails);
       let runStatus: RunStatus | undefined;
       if (status) {
-        // Task entry exists in run details — translate its state directly
         runStatus = translateStatusForNode(status.state);
         if (runStatus === undefined) {
           if (status.state) {
@@ -89,11 +88,13 @@ export const useAutoragTaskTopology = (
                 'This may indicate a schema mismatch with the backend.',
             );
           }
-          runStatus = terminalFallback;
+          runStatus = completedFallback;
         }
       } else {
-        // No task entry found — infer from overall run state
-        runStatus = terminalFallback;
+        // No task entry — only infer status for completed runs (all tasks must
+        // have succeeded). For failed/canceled runs, tasks without details never
+        // executed and should show no status indicator.
+        runStatus = completedFallback;
       }
       const runAfter = idx > 0 ? [ordered[idx - 1]] : [];
 
