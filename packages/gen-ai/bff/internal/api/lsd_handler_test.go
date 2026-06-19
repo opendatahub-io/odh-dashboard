@@ -870,7 +870,7 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		installCtx = context.WithValue(installCtx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		installCtx = context.WithValue(installCtx, constants.BFFMaaSClientKey, bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
+		installCtx = context.WithValue(installCtx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		installReq = installReq.WithContext(installCtx)
 
 		installRr := httptest.NewRecorder()
