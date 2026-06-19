@@ -103,53 +103,47 @@ describe('useAutomlTaskTopology', () => {
     expect(renderResult.result.current[0].label).toBe('My custom task');
   });
 
-  it('should use terminal fallback status when run is succeeded but task has no details', () => {
-    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'SUCCEEDED');
-    const nodes = renderResult.result.current;
-
-    expect(nodes).toHaveLength(3);
-    nodes.forEach((node) => {
-      expect(node.data?.runStatus).toBe('Succeeded');
-    });
-  });
-
-  it('should use terminal fallback status when run is failed but task has no details', () => {
-    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'FAILED');
+  it('should show no status when no run details are provided', () => {
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;
 
     nodes.forEach((node) => {
-      expect(node.data?.runStatus).toBe('Failed');
+      expect(node.data?.runStatus).toBeUndefined();
     });
   });
 
-  it('should use terminal fallback status when run is canceled but task has no details', () => {
-    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'CANCELED');
+  it('should translate task status from run details', () => {
+    const runDetails = {
+      task_details: [
+        {
+          run_id: 'run-1',
+          task_id: 'test-data-loader',
+          display_name: 'test-data-loader',
+          create_time: '2024-01-01T00:00:00Z',
+          start_time: '2024-01-01T00:00:01Z',
+          end_time: '2024-01-01T00:00:10Z',
+          state: RuntimeStateKF.SUCCEEDED,
+        },
+        {
+          run_id: 'run-1',
+          task_id: 'documents-sampling',
+          display_name: 'documents-sampling',
+          create_time: '2024-01-01T00:00:10Z',
+          start_time: '2024-01-01T00:00:11Z',
+          end_time: '2024-01-01T00:00:20Z',
+          state: RuntimeStateKF.FAILED,
+        },
+      ],
+    };
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, runDetails);
     const nodes = renderResult.result.current;
 
-    nodes.forEach((node) => {
-      expect(node.data?.runStatus).toBe('Cancelled');
-    });
+    expect(nodes[0].data?.runStatus).toBe('Succeeded');
+    expect(nodes[1].data?.runStatus).toBe('Failed');
+    expect(nodes[2].data?.runStatus).toBeUndefined();
   });
 
-  it('should use terminal fallback status when run is skipped but task has no details', () => {
-    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'SKIPPED');
-    const nodes = renderResult.result.current;
-
-    nodes.forEach((node) => {
-      expect(node.data?.runStatus).toBe('Skipped');
-    });
-  });
-
-  it('should use terminal fallback status when run is cached but task has no details', () => {
-    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'CACHED');
-    const nodes = renderResult.result.current;
-
-    nodes.forEach((node) => {
-      expect(node.data?.runStatus).toBe('Succeeded');
-    });
-  });
-
-  it('should retain explicit task status instead of terminal fallback', () => {
+  it('should leave tasks without run details as undefined', () => {
     const runDetails = {
       task_details: [
         {
@@ -163,25 +157,12 @@ describe('useAutomlTaskTopology', () => {
         },
       ],
     };
-    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, runDetails, 'FAILED');
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, runDetails);
     const nodes = renderResult.result.current;
 
-    // Task with explicit status retains its own status
-    expect(nodes[0].id).toBe('test-data-loader');
     expect(nodes[0].data?.runStatus).toBe('Succeeded');
-
-    // Tasks without details fall back to run-level status
-    expect(nodes[1].data?.runStatus).toBe('Failed');
-    expect(nodes[2].data?.runStatus).toBe('Failed');
-  });
-
-  it('should not apply terminal fallback when run is still running', () => {
-    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'RUNNING');
-    const nodes = renderResult.result.current;
-
-    nodes.forEach((node) => {
-      expect(node.data?.runStatus).toBeUndefined();
-    });
+    expect(nodes[1].data?.runStatus).toBeUndefined();
+    expect(nodes[2].data?.runStatus).toBeUndefined();
   });
 
   it('should map title-cased API display name to Model selection via normalized lookup', () => {
