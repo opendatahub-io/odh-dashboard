@@ -72,25 +72,11 @@ export const provisionProjectForAutoX = (
 };
 
 const STUB_PIPELINE_YAML = [
-  'components:',
-  '  comp-noop:',
-  '    executorLabel: exec-noop',
-  'deploymentSpec:',
-  '  executors:',
-  '    exec-noop:',
-  '      container:',
-  '        command:',
-  '          - echo',
-  '          - done',
-  '        image: registry.access.redhat.com/ubi9/ubi-minimal:latest',
+  'pipelineInfo:',
+  '  name: stub-pipeline',
   'root:',
   '  dag:',
-  '    tasks:',
-  '      noop:',
-  '        componentRef:',
-  '          name: comp-noop',
-  '        taskInfo:',
-  '          name: noop',
+  '    tasks: {}',
   'schemaVersion: 2.1.0',
   'sdkVersion: kfp-2.7.0',
 ].join('\\n');
@@ -161,11 +147,13 @@ export const uploadManagedAutoMLPipelines = (namespace: string): void => {
 
         for (const pipelineName of MANAGED_AUTOML_PIPELINES) {
           const uploadCmd = [
-            `printf '${STUB_PIPELINE_YAML}' |`,
-            `curl -ks -o /dev/null -w '%{http_code}'`,
+            `F=$(mktemp /tmp/automl-stub-XXXXXX.yaml) &&`,
+            `printf '${STUB_PIPELINE_YAML}\\n' > "$F" &&`,
+            `CODE=$(curl -ks -o /dev/null -w '%{http_code}'`,
             `-X POST "${baseUrl}/pipelines/upload?name=${pipelineName}&display_name=${pipelineName}"`,
             `-H "Authorization: Bearer ${token}"`,
-            `-F "uploadfile=@-;filename=pipeline.yaml"`,
+            `-F "uploadfile=@$F;filename=pipeline.yaml");`,
+            `rm -f "$F"; echo "$CODE"`,
           ].join(' ');
 
           cy.exec(uploadCmd, { failOnNonZeroExit: false, log: false }).then((uploadResult) => {
