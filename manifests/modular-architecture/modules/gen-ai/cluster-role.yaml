@@ -25,6 +25,7 @@ rules:
       - get
       - list
       - watch
+      - update
     resources:
       - opentelemetrycollectors
   - apiGroups:
