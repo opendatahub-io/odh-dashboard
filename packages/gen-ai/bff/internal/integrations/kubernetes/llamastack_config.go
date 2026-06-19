@@ -563,7 +563,7 @@ func (c *LlamaStackConfig) AddVectorIOProvider(provider Provider) {
 func (c *LlamaStackConfig) SetDefaultPgvectorProvider(conn pgvector.Connection) {
 	providerConfig := map[string]interface{}{
 		"host":            fmt.Sprintf("${env.%s}", pgvector.HostEnvVar),
-		"port":            conn.Port,
+		"port":            fmt.Sprintf("${env.%s:=%d}", pgvector.PortEnvVar, conn.Port),
 		"db":              fmt.Sprintf("${env.%s:=%s}", pgvector.DBEnvVar, conn.DB),
 		"user":            fmt.Sprintf("${env.%s:=%s}", pgvector.UserEnvVar, conn.User),
 		"password":        fmt.Sprintf("${env.%s:=}", pgvector.PasswordEnvVar),

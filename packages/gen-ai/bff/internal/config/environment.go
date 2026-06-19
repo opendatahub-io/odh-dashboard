@@ -128,7 +128,6 @@ type EnvConfig struct {
 	// Default: "" (empty for ODH's x-forwarded-access-token)
 	BFFMaaSAuthTokenPrefix string
 
-	// ─── PGVECTOR (default vector store) ─────────────────────
 	// When PgvectorHost is set, the BFF configures remote::pgvector as the
 	// default vector_io provider instead of inline::milvus.
 	PgvectorHost               string

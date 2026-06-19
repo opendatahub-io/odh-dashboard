@@ -9,6 +9,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
@@ -2020,13 +2021,31 @@ func TestPgvectorConnectionFromConfig(t *testing.T) {
 		assert.Equal(t, "pg-password", conn.PasswordSecret.Key)
 	})
 
-	t.Run("password secret key defaults to 'password'", func(t *testing.T) {
+	t.Run("password secret key defaults to DefaultPasswordKey", func(t *testing.T) {
 		cfg := config.EnvConfig{
 			PgvectorHost:               "pg.svc",
 			PgvectorPasswordSecretName: "pg-creds",
 		}
 		conn := pgvectorConnectionFromConfig(cfg)
 		require.NotNil(t, conn.PasswordSecret)
-		assert.Equal(t, "password", conn.PasswordSecret.Key)
+		assert.Equal(t, pgvector.DefaultPasswordKey, conn.PasswordSecret.Key)
+	})
+
+	t.Run("negative port uses default", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "pg.svc",
+			PgvectorPort: -1,
+		}
+		conn := pgvectorConnectionFromConfig(cfg)
+		assert.Equal(t, -1, conn.Port, "validation is not applied at factory level; port is passed through")
+	})
+
+	t.Run("secret key without secret name does not set PasswordSecret", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost:              "pg.svc",
+			PgvectorPasswordSecretKey: "my-key",
+		}
+		conn := pgvectorConnectionFromConfig(cfg)
+		assert.Nil(t, conn.PasswordSecret, "key alone without name should not create a SecretRef")
 	})
 }
