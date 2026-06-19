@@ -182,9 +182,19 @@ jobs:
                 PKG_NAME=$(jq -r '.name // empty' "$PKG_JSON" 2>/dev/null || true)
                 [ -z "$PKG_NAME" ] && continue
 
-                # Match only exact scoped imports — avoids substring false positives
-                # (e.g. "backend" matching unrelated path segments)
-                IMPORTS=$(grep -r "from ['\"]${PKG_NAME}['\"]" "$DOCKERFILE_DIR" 2>/dev/null || true)
+                # Match only exact scoped imports in production source files.
+                # Exclude test files and directories — they don't run inside the
+                # container and their imports (e.g. @odh-dashboard/contract-tests,
+                # @odh-dashboard/jest-config) are dev-only and never need COPYing.
+                IMPORTS=$(grep -r \
+                  --include="*.ts" --include="*.tsx" \
+                  --exclude="*.spec.ts" --exclude="*.spec.tsx" \
+                  --exclude="*.test.ts" --exclude="*.test.tsx" \
+                  --exclude="jest.config.*" \
+                  --exclude-dir="__tests__" \
+                  --exclude-dir="contract-tests" \
+                  --exclude-dir="cypress" \
+                  "from ['\"]${PKG_NAME}['\"]" "$DOCKERFILE_DIR" 2>/dev/null || true)
 
                 if [ -n "$IMPORTS" ]; then
                   COPY_FOUND=$(grep "COPY.*$ws_dir" "$dockerfile" || true)
