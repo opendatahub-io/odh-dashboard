@@ -1,6 +1,5 @@
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type {
   ModelDetailsDeploymentCardExtension,
   ModelRegistryDeployModalExtension,
@@ -74,8 +73,7 @@ const extensions: (
   {
     type: 'model-registry.registered-models/table-column',
     properties: {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      component: (() => import('../modelRegistry/DeploymentsColumn')) as ComponentCodeRef,
+      component: () => import('../modelRegistry/DeploymentsColumn'),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
