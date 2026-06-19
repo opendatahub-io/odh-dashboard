@@ -779,6 +779,15 @@ class DeleteSubscriptionModal extends DeleteModal {
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByRole('button', { name: /Delete/, hidden: true });
   }
+
+  findConfirmationMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('delete-modal-confirmation-message');
+  }
+
+  shouldShowResourceName(name: string): this {
+    this.findConfirmationMessage().find('strong').should('have.text', name);
+    return this;
+  }
 }
 class ViewSubscriptionPage {
   visit(name: string): void {
@@ -1008,6 +1017,15 @@ class DeleteAuthPolicyModal extends DeleteModal {
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByRole('button', { name: /Delete/, hidden: true });
+  }
+
+  findConfirmationMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('delete-modal-confirmation-message');
+  }
+
+  shouldShowResourceName(name: string): this {
+    this.findConfirmationMessage().find('strong').should('have.text', name);
+    return this;
   }
 }
 
