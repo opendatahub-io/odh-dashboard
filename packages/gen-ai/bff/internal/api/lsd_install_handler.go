@@ -64,7 +64,7 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 		}
 	}
 	if hasMaaSModels && bffClient == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("MaaS BFF client not available but MaaS models were requested. Ensure MaaS BFF is enabled and configured"))
+		app.maasBFFUnavailableResponse(w, r)
 		return
 	}
 
