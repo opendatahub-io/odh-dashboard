@@ -1,5 +1,6 @@
 import {
   ModelLocationSelectOption,
+  ModelStateLabel,
   ModelTypeLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
 import {
@@ -24,16 +25,18 @@ import { clusterStorage, addClusterStorageModal } from '../../../../pages/cluste
 import { createS3LoaderPod } from '../../../../utils/oc_commands/pvcLoaderPod';
 import { waitForPodCompletion } from '../../../../utils/oc_commands/baseCommands';
 import { skipSuiteIfBYOIDC, isBYOIDCCluster } from '../../../../utils/skipUtils';
-import { attemptToClickTooltip } from '../../../../utils/models';
+import { stubClipboard, verifyClipboardContent } from '../../../../utils/clipboardUtils';
 
 let testData: DataScienceProjectData;
 let projectName: string;
 let resourceName: string;
 let modelName: string;
+let resourceType: string;
 let modelFilePath: string;
 let pvStorageName: string;
 let modelFormat: string;
 let servingRuntime: string;
+let servingRuntimeVersionStatus: string;
 let contributor: string;
 const awsBucket = 'BUCKET_1' as const;
 const awsAccessKeyId = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
@@ -59,10 +62,12 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = testData.singleModelName;
+        resourceType = testData.resourceType;
         modelFilePath = testData.modelOpenVinoExamplePath;
         pvStorageName = testData.pvStorageName;
         modelFormat = testData.modelFormat;
         servingRuntime = testData.servingRuntime;
+        servingRuntimeVersionStatus = testData.servingRuntimeVersionStatus;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
 
         if (!projectName) {
@@ -133,7 +138,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
 
       // Verify the pod completes successfully
       cy.step('Verify the pod completes successfully');
-      waitForPodCompletion(podName, '300s', projectName);
+      waitForPodCompletion(podName, '300s', projectName, 30000);
 
       // Verify the S3 copy completed successfully
       cy.step('Verify S3 copy completed');
@@ -190,10 +195,30 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
       // Verify model deployment is ready
       cy.then(() => {
         checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+
+        cy.step('Verify the model is ready in UI');
+        modelServingSection.findModelMetricsLink(modelName);
+        const deploymentRow = modelServingSection.getDeploymentRow(modelName);
+        deploymentRow.findModelResourceNameButton().click();
+        deploymentRow.findModelResourceNameText().should('have.text', resourceName);
+        stubClipboard('copiedText');
+        deploymentRow.findModelResourceNameCopyButton().click();
+        verifyClipboardContent('copiedText', resourceName);
+        deploymentRow.findModelResourceKindText().should('have.text', resourceType);
+        deploymentRow.findServiceRuntime().should('contain', servingRuntime);
+        deploymentRow.findServingRuntimeVersionLabel().should('not.be.empty');
+        deploymentRow
+          .findServingRuntimeVersionStatusLabel()
+          .should('have.text', servingRuntimeVersionStatus);
+        deploymentRow.findHardwareProfileColumn().should('not.be.empty');
+        deploymentRow.findLastDeployedTimestamp().should('not.have.text', '-');
+        deploymentRow.findStatusLabel(ModelStateLabel.READY);
+
+        cy.step('Verify the cluster storage is connected to the model');
+        projectDetails.findClusterStorageTab().click();
+        const clusterStorageRow = clusterStorage.getClusterStorageRow(pvStorageName);
+        clusterStorageRow.findConnectedResources().should('have.text', resourceName);
       });
-      modelServingSection.findModelMetricsLink(modelName);
-      // Note reload is required as status tooltip was not found due to a stale element
-      attemptToClickTooltip();
     },
   );
 });

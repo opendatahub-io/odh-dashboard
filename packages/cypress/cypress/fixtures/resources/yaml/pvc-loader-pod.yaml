@@ -12,6 +12,14 @@ spec:
     - name: s3-downloader
       image: amazon/aws-cli
       command: ["/bin/bash", "-c"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+        capabilities:
+          drop:
+            - ALL
       args:
         - |
           set -e
