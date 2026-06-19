@@ -167,11 +167,13 @@ reviews:
         1. Use data-testid selectors, not CSS classes (resilient to style changes).
         2. Avoid cy.wait(ms) with fixed delays — use cy.intercept() for API readiness.
         3. Follow conventions in .claude/rules/cypress-e2e.md and .claude/rules/cypress-mock.md.
-        4. (Suppression) Fixture credentials and test tokens in fixtures/ and
-           intercepts/ are controlled test data. Suppress only clearly synthetic
-           values (placeholder strings, mock factory output, K8s field-name
-           references). Still flag values matching real credential formats
-           (AKIA keys, PATs, JWTs, 40-char hex strings, etc.).
+        4. (Suppression) Fixtures contain K8s resource manifests (including
+           Secret-type objects with structural field names like secretKey,
+           accessKey) and test configuration — not actual credential values.
+           Suppress false positives on these structural property names and
+           placeholder data values. Still flag any value matching a real
+           credential format (AKIA keys, PATs, JWTs, 40-char hex strings, etc.)
+           — real credentials belong only in test-variables.yml (gitignored).
         5. (Suppression) Do not flag cy.exec() shell commands as injection
            risks (CWE-78) when the command string is composed from controlled
            sources: Cypress.env() CI variables, hardcoded fixture values, K8s
@@ -189,11 +191,11 @@ reviews:
         PACKAGE CYPRESS TESTS:
         Same conventions as the shared Cypress framework (packages/cypress).
         Use data-testid selectors, cy.intercept() instead of cy.wait(), and ensure idempotency.
-        Same suppressions apply: do not flag clearly synthetic fixture
-        credentials (but still flag real credential formats), do not flag
-        cy.exec() as injection when inputs come from controlled sources
-        (CI env, fixtures, K8s API), do not suggest restructuring test isolation
-        or import boundaries.
+        Same suppressions apply: do not flag structural K8s Secret field
+        names or placeholder values (but still flag real credential formats),
+        do not flag cy.exec() as injection when inputs come from controlled
+        sources (CI env, fixtures, K8s API), do not suggest restructuring
+        test isolation or import boundaries.
 
     # ── Contract tests ────────────────────────────────────────────
     - path: "packages/*/contract-tests/**/*.{ts,js}"
