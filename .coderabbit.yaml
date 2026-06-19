@@ -203,7 +203,7 @@ reviews:
         CONTRACT TESTS (BFF API validation):
         Packages with contract tests: automl, autorag, eval-hub, gen-ai, mlflow, model-registry.
         1. Contracts must match the OpenAPI spec in the corresponding api/ directory.
-        2. No mocking of the provider in contract verification (defeats the purpose).
+        2. Contract tests run against the Mock BFF provider patterns defined in the shared framework (.claude/rules/contract-tests.md); do not mock the HTTP layer itself.
         3. Follow conventions in .claude/rules/contract-tests.md.
 
     - path: "packages/contract-tests/**/*.{ts,js}"
