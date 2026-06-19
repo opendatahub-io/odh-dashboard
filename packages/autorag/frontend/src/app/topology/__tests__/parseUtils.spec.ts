@@ -97,7 +97,7 @@ describe('parseRuntimeInfoFromRunDetails', () => {
     expect(result?.state).toBe(RuntimeStateKF.FAILED);
   });
 
-  it('should pick canceled over succeeded when driver is canceled', () => {
+  it('should keep succeeded when paired with canceled driver status', () => {
     const details = makeRunDetails(
       { task_id: 'task-1', display_name: 'task-1', state: RuntimeStateKF.SUCCEEDED },
       { task_id: 'task-1-driver', display_name: 'task-1-driver', state: RuntimeStateKF.CANCELED },
