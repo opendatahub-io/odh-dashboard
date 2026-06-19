@@ -246,7 +246,10 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 				processResponseCitations(streamingEvent.Response)
 				if span := trace.SpanFromContext(ctx); span.IsRecording() && len(streamingEvent.Response.Output) > 0 {
 					outputJSON, _ := json.Marshal(streamingEvent.Response.Output)
-					span.SetAttributes(attribute.String("mlflow.spanOutputs", string(outputJSON)))
+					span.SetAttributes(
+						attribute.String("mlflow.spanOutputs", string(outputJSON)),
+						attribute.String("gen_ai.output.messages", string(outputJSON)),
+					)
 				}
 			}
 		}

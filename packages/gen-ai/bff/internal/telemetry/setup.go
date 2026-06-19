@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -61,6 +62,7 @@ func Setup(logger *slog.Logger) func(context.Context) error {
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
+		sdktrace.WithSpanProcessor(&namespaceSpanProcessor{}),
 	)
 
 	otel.SetTracerProvider(tp)
@@ -173,3 +175,20 @@ func buildResource(ctx context.Context) (*resource.Resource, error) {
 		resource.WithProcess(),
 	)
 }
+
+// namespaceSpanProcessor sets k8s.namespace.name on every span from the
+// request context. This ensures ALL BFF spans (including child spans like
+// the HTTP client span created by otelhttp.NewTransport) carry the
+// namespace attribute, so the collector's span-context routing rule can
+// route the entire trace to the correct per-namespace MLflow exporter.
+type namespaceSpanProcessor struct{}
+
+func (p *namespaceSpanProcessor) OnStart(ctx context.Context, span sdktrace.ReadWriteSpan) {
+	if ns, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && ns != "" {
+		span.SetAttributes(attribute.String("k8s.namespace.name", ns))
+	}
+}
+
+func (p *namespaceSpanProcessor) OnEnd(sdktrace.ReadOnlySpan)      {}
+func (p *namespaceSpanProcessor) Shutdown(context.Context) error   { return nil }
+func (p *namespaceSpanProcessor) ForceFlush(context.Context) error { return nil }

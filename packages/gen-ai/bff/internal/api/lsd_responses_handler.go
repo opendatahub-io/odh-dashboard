@@ -422,10 +422,20 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	// Set input on the BFF root span for MLflow trace display
 	if span := trace.SpanFromContext(ctx); span.IsRecording() {
 		inputJSON, _ := json.Marshal([]map[string]string{{"role": "user", "content": createRequest.Input.Text}})
+		// Set both gen_ai.* (OTel standard) and mlflow.* (direct) attributes;
+		// MLflow's OTLP translator maps gen_ai.* → mlflow.*, but we set both
+		// for compatibility with MLflow versions that lack the translator.
 		span.SetAttributes(
+			attribute.String("gen_ai.input.messages", string(inputJSON)),
+			attribute.String("gen_ai.operation.name", "chat"),
 			attribute.String("mlflow.spanInputs", string(inputJSON)),
 			attribute.String("mlflow.spanType", "CHAIN"),
 		)
+		// Tag BFF spans with the user's namespace so the platform collector's span-context
+		// routing rule can route them to the per-namespace MLflow exporter.
+		if ns, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string); ns != "" {
+			span.SetAttributes(attribute.String("k8s.namespace.name", ns))
+		}
 	}
 
 	// Convert chat context format
@@ -603,7 +613,10 @@ func (app *App) checkInputModeration(ctx context.Context, messages []nemo.Messag
 		app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
 		if span := trace.SpanFromContext(ctx); span.IsRecording() {
 			refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "input blocked by safety guardrails"}})
-			span.SetAttributes(attribute.String("mlflow.spanOutputs", string(refusalJSON)))
+			span.SetAttributes(
+				attribute.String("gen_ai.output.messages", string(refusalJSON)),
+				attribute.String("mlflow.spanOutputs", string(refusalJSON)),
+			)
 		}
 		return true, result.ViolationReason, nil
 	}
@@ -713,7 +726,10 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 				app.logger.Info("Output moderation flagged content", "reason", result.ViolationReason)
 				if span := trace.SpanFromContext(ctx); span.IsRecording() {
 					refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "output blocked by safety guardrails"}})
-					span.SetAttributes(attribute.String("mlflow.spanOutputs", string(refusalJSON)))
+					span.SetAttributes(
+						attribute.String("gen_ai.output.messages", string(refusalJSON)),
+						attribute.String("mlflow.spanOutputs", string(refusalJSON)),
+					)
 				}
 				app.guardrailViolationResponse(w, r, constants.GuardrailOutputViolationCode, "output blocked by safety guardrails")
 				return
@@ -737,7 +753,10 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	if span := trace.SpanFromContext(ctx); span.IsRecording() {
 		if len(responseData.Output) > 0 {
 			outputJSON, _ := json.Marshal(responseData.Output)
-			span.SetAttributes(attribute.String("mlflow.spanOutputs", string(outputJSON)))
+			span.SetAttributes(
+				attribute.String("gen_ai.output.messages", string(outputJSON)),
+				attribute.String("mlflow.spanOutputs", string(outputJSON)),
+			)
 		}
 	}
 

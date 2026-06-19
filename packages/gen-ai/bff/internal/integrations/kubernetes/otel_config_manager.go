@@ -527,8 +527,17 @@ func addNamespaceRoute(cfg map[string]interface{}, namespace string, mlflowEndpo
 	connectors := ensureMap(cfg, "connectors")
 	if routing, ok := connectors[routingConnectorKey].(map[string]interface{}); ok {
 		table := toSlice(routing["table"])
+		// Two routing rules per namespace: "resource" matches OGX spans (namespace
+		// set via OTEL_RESOURCE_ATTRIBUTES on the pod), "span" matches BFF spans
+		// (namespace set as a span attribute per-request, since the BFF is a shared
+		// service that can't use a static resource attribute).
 		table = append(table, map[string]interface{}{
 			"context":   "resource",
+			"condition": fmt.Sprintf(`attributes["k8s.namespace.name"] == "%s"`, namespace),
+			"pipelines": []interface{}{pipelineName},
+		})
+		table = append(table, map[string]interface{}{
+			"context":   "span",
 			"condition": fmt.Sprintf(`attributes["k8s.namespace.name"] == "%s"`, namespace),
 			"pipelines": []interface{}{pipelineName},
 		})

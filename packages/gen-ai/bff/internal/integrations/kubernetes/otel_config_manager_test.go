@@ -120,10 +120,13 @@ func TestAddNamespaceRoute(t *testing.T) {
 	connectors := cfg["connectors"].(map[string]interface{})
 	routing := connectors[routingConnectorKey].(map[string]interface{})
 	table := routing["table"].([]interface{})
-	require.Len(t, table, 1)
-	entry := table[0].(map[string]interface{})
-	assert.Equal(t, "resource", entry["context"])
-	assert.Contains(t, entry["condition"], "chrjones")
+	require.Len(t, table, 2, "should have resource + span routing rules")
+	resourceEntry := table[0].(map[string]interface{})
+	assert.Equal(t, "resource", resourceEntry["context"])
+	assert.Contains(t, resourceEntry["condition"], "chrjones")
+	spanEntry := table[1].(map[string]interface{})
+	assert.Equal(t, "span", spanEntry["context"])
+	assert.Contains(t, spanEntry["condition"], "chrjones")
 
 	svc := cfg["service"].(map[string]interface{})
 	pipelines := svc["pipelines"].(map[string]interface{})
@@ -159,7 +162,7 @@ func TestAddMultipleNamespaceRoutes(t *testing.T) {
 	connectors := cfg["connectors"].(map[string]interface{})
 	routing := connectors[routingConnectorKey].(map[string]interface{})
 	table := routing["table"].([]interface{})
-	assert.Len(t, table, 2)
+	assert.Len(t, table, 4, "2 namespaces × 2 rules each (resource + span)")
 }
 
 func TestRemoveNamespaceRoute(t *testing.T) {
@@ -213,7 +216,7 @@ func TestRemoveOneOfMultipleRoutes(t *testing.T) {
 	connectors := cfg["connectors"].(map[string]interface{})
 	routing := connectors[routingConnectorKey].(map[string]interface{})
 	table := routing["table"].([]interface{})
-	assert.Len(t, table, 1, "only one routing table entry should remain")
+	assert.Len(t, table, 2, "only one namespace's routing rules (resource + span) should remain")
 }
 
 func TestRemoveLastRoute_CleansUpRouting(t *testing.T) {

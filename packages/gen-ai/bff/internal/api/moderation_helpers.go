@@ -30,6 +30,8 @@ func (app *App) checkModerationWithSpan(ctx context.Context, spanName string, me
 		span.SetAttributes(
 			attribute.String("mlflow.spanType", "GUARDRAIL"),
 			attribute.String("mlflow.spanInputs", string(inputJSON)),
+			attribute.String("gen_ai.operation.name", "guardrail"),
+			attribute.String("gen_ai.input.messages", string(inputJSON)),
 		)
 	}
 
@@ -37,13 +39,19 @@ func (app *App) checkModerationWithSpan(ctx context.Context, spanName string, me
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		if outputJSON, merr := json.Marshal(map[string]any{"flagged": false, "error": err.Error()}); merr == nil {
-			span.SetAttributes(attribute.String("mlflow.spanOutputs", string(outputJSON)))
+			span.SetAttributes(
+				attribute.String("mlflow.spanOutputs", string(outputJSON)),
+				attribute.String("gen_ai.output.messages", string(outputJSON)),
+			)
 		}
 		return nil, err
 	}
 
 	if outputJSON, merr := json.Marshal(map[string]any{"flagged": result.Flagged, "reason": result.ViolationReason}); merr == nil {
-		span.SetAttributes(attribute.String("mlflow.spanOutputs", string(outputJSON)))
+		span.SetAttributes(
+			attribute.String("mlflow.spanOutputs", string(outputJSON)),
+			attribute.String("gen_ai.output.messages", string(outputJSON)),
+		)
 	}
 
 	return result, nil
