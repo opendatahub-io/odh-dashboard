@@ -39,12 +39,16 @@ import type {
   RegisteredModel,
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
-import type { DashboardConfigKind, SecretKind, TemplateKind } from '@odh-dashboard/k8s-core';
+import type {
+  DashboardConfigKind,
+  DataScienceClusterInitializationKindStatus,
+  DataScienceClusterKindStatus,
+  SecretKind,
+  TemplateKind,
+} from '@odh-dashboard/k8s-core';
 import type {
   ConfigMapKind,
   ConsoleLinkKind,
-  DataScienceClusterInitializationKindStatus,
-  DataScienceClusterKindStatus,
   FeatureStoreKind,
   ListConfigSecretsResponse,
   ModelRegistry,
