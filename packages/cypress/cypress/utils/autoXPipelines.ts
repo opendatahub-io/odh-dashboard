@@ -113,6 +113,10 @@ const MANAGED_AUTOML_PIPELINES = [
  * Idempotent — silently ignores errors if pipelines already exist.
  */
 export const uploadManagedAutoMLPipelines = (namespace: string): void => {
+  if (!/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(namespace)) {
+    throw new Error(`Invalid namespace: ${namespace}`);
+  }
+
   cy.exec(`oc get route ds-pipeline-dspa -n ${namespace} -o jsonpath='{.spec.host}'`, {
     failOnNonZeroExit: false,
   }).then((routeResult) => {
@@ -159,7 +163,7 @@ export const uploadManagedAutoMLPipelines = (namespace: string): void => {
           const uploadCmd = [
             `printf '${STUB_PIPELINE_YAML}' |`,
             `curl -ks -o /dev/null -w '%{http_code}'`,
-            `-X POST "${baseUrl}/pipelines/upload?name=${pipelineName}"`,
+            `-X POST "${baseUrl}/pipelines/upload?name=${pipelineName}&display_name=${pipelineName}"`,
             `-H "Authorization: Bearer ${token}"`,
             `-F "uploadfile=@-;filename=pipeline.yaml"`,
           ].join(' ');
