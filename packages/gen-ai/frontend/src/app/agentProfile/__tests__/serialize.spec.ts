@@ -259,7 +259,7 @@ describe('serializeToAgentProfileSpec', () => {
       const server = makeMcpServer();
       const config = {
         ...DEFAULT_CONFIGURATION,
-        selectedMcpServerIds: ['weather-server'],
+        selectedMcpServerIds: ['http://weather-mcp.svc/sse'],
         mcpToolSelections: {},
       };
       const result = serializeToAgentProfileSpec(
@@ -281,7 +281,7 @@ describe('serializeToAgentProfileSpec', () => {
       const server = makeMcpServer();
       const config = {
         ...DEFAULT_CONFIGURATION,
-        selectedMcpServerIds: ['weather-server'],
+        selectedMcpServerIds: ['http://weather-mcp.svc/sse'],
         mcpToolSelections: {
           'default-ns': { 'http://weather-mcp.svc/sse': ['get_forecast', 'get_alerts'] },
         },
@@ -310,7 +310,7 @@ describe('serializeToAgentProfileSpec', () => {
     it('should omit mcpServers when mcpConfigMapName is not provided', () => {
       const config = {
         ...DEFAULT_CONFIGURATION,
-        selectedMcpServerIds: ['weather-server'],
+        selectedMcpServerIds: ['http://weather-mcp.svc/sse'],
       };
       const result = serializeToAgentProfileSpec(
         config,

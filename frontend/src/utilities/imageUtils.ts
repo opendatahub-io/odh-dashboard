@@ -1,4 +1,5 @@
 import compareVersions from 'compare-versions';
+import type { PodContainer } from '@odh-dashboard/k8s-core';
 import {
   BuildStatus,
   BuildPhase,
@@ -6,7 +7,6 @@ import {
   ImageSoftwareType,
   ImageTag,
   ImageTagInfo,
-  PodContainer,
 } from '#~/types';
 
 const PENDING_PHASES = [

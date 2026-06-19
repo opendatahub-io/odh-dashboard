@@ -4,7 +4,8 @@ import {
   k8sDeleteResource,
   k8sListResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { NIMAccountKind, SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
+import type { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import { SecretModel } from '@odh-dashboard/internal/api/models';
 import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';

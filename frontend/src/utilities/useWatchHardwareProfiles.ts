@@ -1,4 +1,4 @@
-import { HardwareProfileKind } from '#~/k8sTypes';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { CustomWatchK8sResult } from '#~/types';
 import { groupVersionKind, HardwareProfileModel } from '#~/api';
 import useK8sWatchResourceList from './useK8sWatchResourceList';

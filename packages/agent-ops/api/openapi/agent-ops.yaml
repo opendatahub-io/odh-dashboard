@@ -19,7 +19,7 @@ paths:
         - K8SOperation
       responses:
         "200":
-          description: "Ok"
+          $ref: "#/components/responses/HealthCheckResponse"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: healthcheck
@@ -71,6 +71,69 @@ paths:
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
+  /api/v1/agents/runtimes:
+    summary: List deployed agent runtimes.
+    description: >-
+      Returns deployed agents and tools with runtime status and endpoint details.
+    get:
+      tags:
+        - AgentOperation
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of runtimes to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - name: continueToken
+          in: query
+          required: false
+          description: Opaque token for the next page of runtime results.
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/AgentRuntimesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: listAgentRuntimes
+      summary: List agent runtimes
+      description: Returns deployed agent and tool runtimes.
+  /api/v1/agents/runtimes/{ns}/{name}:
+    summary: Get agent runtime detail.
+    description: >-
+      Returns full agent detail, runtime info, workload status, service endpoints,
+      pod count, and conditions for a single deployed agent.
+    get:
+      tags:
+        - AgentOperation
+      parameters:
+        - $ref: "#/components/parameters/agentNamespace"
+        - $ref: "#/components/parameters/agentName"
+      responses:
+        "200":
+          $ref: "#/components/responses/AgentRuntimeDetailResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getAgentRuntimeDetail
+      summary: Get agent runtime detail
+      description: Returns full runtime detail for a single deployed agent.
+
 components:
   schemas:
     Config:
@@ -85,57 +148,27 @@ components:
         clusterAdmin:
           type: boolean
           example: true
-    BaseResource:
-      allOf:
-        - $ref: "#/components/schemas/BaseResourceCreate"
-        - type: object
-          properties:
-            id:
-              format: int64
-              description: Output only. The unique server generated id of the resource.
-              type: string
-              readOnly: true
-            createTimeSinceEpoch:
-              format: int64
-              description: Output only. Create time of the resource in millisecond since epoch.
-              type: string
-              readOnly: true
-            lastUpdateTimeSinceEpoch:
-              format: int64
-              description: |-
-                Output only. Last update time of the resource since epoch in millisecond
-                since epoch.
-              type: string
-              readOnly: true
-    BaseResourceCreate:
-      allOf:
-        - $ref: "#/components/schemas/BaseResourceUpdate"
-        - type: object
-          properties:
-            name:
-              description: |-
-                The client provided name of the artifact. This field is optional. If set,
-                it must be unique among all the artifacts of the same artifact type within
-                a database instance and cannot be changed once set.
-              type: string
-    BaseResourceUpdate:
+    HealthCheckModel:
       type: object
+      required:
+        - status
+        - system_info
       properties:
-        customProperties:
-          description: User provided custom properties which are not defined by its type.
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/MetadataValue"
-        description:
-          description: |-
-            An optional description about the resource.
+        status:
           type: string
-        externalId:
-          description: |-
-            The external id that come from the clients' system. This field is optional.
-            If set, it must be unique among all resources within a database instance.
+          example: available
+          description: BFF service availability status
+        system_info:
+          $ref: "#/components/schemas/SystemInfo"
+    SystemInfo:
+      type: object
+      required:
+        - version
+      properties:
+        version:
           type: string
-
+          example: "1.0.0"
+          description: BFF version string
     Error:
       description: Error code and message.
       required:
@@ -146,47 +179,387 @@ components:
         code:
           description: Error code
           type: string
+          example: BAD_REQUEST
         message:
           description: Error message
           type: string
-    SortOrder:
-      description: Supported sort direction for ordering result entities.
-      enum:
-        - ASC
-        - DESC
-      type: string
-    OrderByField:
-      description: Supported fields for ordering result entities.
-      enum:
-        - CREATE_TIME
-        - LAST_UPDATE_TIME
-        - Id
-      type: string
-
+          example: invalid request parameters
+    ErrorEnvelope:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: "#/components/schemas/Error"
+    AgentRuntime:
+      description: A deployed agent or tool runtime.
+      required:
+        - name
+        - namespace
+        - status
+        - type
+        - endpointUrl
+        - lastSyncTime
+      type: object
+      properties:
+        name:
+          type: string
+          example: sample-support-agent
+        namespace:
+          type: string
+          example: agent-ops-demo
+        status:
+          type: string
+          description: Normalized deployment status (backend-specific values mapped to strings).
+          example: Ready
+        type:
+          type: string
+          description: Resource type label (e.g. agent, tool).
+          example: agent
+        endpointUrl:
+          type: string
+          format: uri
+          example: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+        lastSyncTime:
+          type: string
+          format: date-time
+          example: "2026-05-26T14:30:00Z"
+    AgentRuntimesList:
+      description: Collection of deployed agent runtimes.
+      required:
+        - runtimes
+      type: object
+      properties:
+        runtimes:
+          type: array
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/AgentRuntime"
+        continueToken:
+          type: string
+          nullable: true
+          description: Opaque token for fetching the next page. Omitted when all results fit in the current page.
+    AgentServiceEndpoint:
+      description: Network endpoint exposed by an agent runtime.
+      required:
+        - name
+        - url
+        - port
+      type: object
+      properties:
+        name:
+          type: string
+          example: http
+        url:
+          type: string
+          format: uri
+          example: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+        port:
+          type: integer
+          example: 8080
+    AgentRuntimeCondition:
+      description: Kubernetes-style condition for an agent runtime.
+      required:
+        - type
+        - status
+        - lastTransitionTime
+      type: object
+      properties:
+        type:
+          type: string
+          example: Ready
+        status:
+          type: string
+          example: "True"
+        reason:
+          type: string
+          example: MinimumReplicasAvailable
+        message:
+          type: string
+          example: Deployment has minimum availability.
+        lastTransitionTime:
+          type: string
+          format: date-time
+          example: "2026-05-26T14:30:00Z"
+    AgentRuntimeDetail:
+      description: Full runtime view for a single deployed agent.
+      required:
+        - name
+        - namespace
+        - description
+        - runtime
+        - workloadStatus
+        - serviceEndpoints
+        - podCount
+        - conditions
+      type: object
+      properties:
+        name:
+          type: string
+          example: sample-support-agent
+        namespace:
+          type: string
+          example: agent-ops-demo
+        description:
+          type: string
+          example: Customer support agent that triages tickets and drafts responses.
+        runtime:
+          $ref: "#/components/schemas/AgentRuntime"
+        workloadStatus:
+          type: string
+          description: High-level workload status from the monitoring backend.
+          example: Available
+        serviceEndpoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentServiceEndpoint"
+        podCount:
+          type: integer
+          example: 2
+        conditions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentRuntimeCondition"
+        agentCard:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/AgentCardDetail"
+    AgentCardProvider:
+      type: object
+      properties:
+        organization:
+          type: string
+          example: Red Hat OpenShift AI
+        url:
+          type: string
+          format: uri
+          example: https://www.redhat.com/en/technologies/cloud-computing/openshift/ai
+    AgentCardSkillParameter:
+      type: object
+      required:
+        - name
+        - required
+      properties:
+        name:
+          type: string
+          example: city
+        type:
+          type: string
+          example: string
+        description:
+          type: string
+          example: City name to get weather for
+        required:
+          type: boolean
+          example: true
+        default:
+          type: string
+    AgentCardSkill:
+      type: object
+      required:
+        - id
+        - name
+        - tags
+        - examples
+        - inputModes
+        - outputModes
+        - parameters
+      properties:
+        id:
+          type: string
+          example: code-generation
+        name:
+          type: string
+          example: Code generation
+        description:
+          type: string
+          example: Generate or refactor code from natural language prompts with repository context.
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["development", "code"]
+        examples:
+          type: array
+          items:
+            type: string
+          example: ["Add unit tests for the auth module"]
+        inputModes:
+          type: array
+          items:
+            type: string
+          example: ["text/plain"]
+        outputModes:
+          type: array
+          items:
+            type: string
+          example: ["text/plain"]
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentCardSkillParameter"
+    AgentCardCapabilities:
+      type: object
+      required:
+        - streaming
+        - pushNotifications
+        - optional
+      properties:
+        streaming:
+          type: boolean
+          example: true
+        pushNotifications:
+          type: boolean
+          example: false
+        optional:
+          type: array
+          items:
+            type: string
+          example: ["Streaming"]
+    AgentCardDetail:
+      description: A2A agent card metadata for the agent detail UI.
+      type: object
+      required:
+        - name
+        - defaultInputModes
+        - defaultOutputModes
+        - capabilities
+      properties:
+        name:
+          type: string
+          example: Claude Code Development Agent
+        description:
+          type: string
+          example: Assists developers with code generation, repository analysis, and test authoring.
+        version:
+          type: string
+          example: "1.2.0"
+        provider:
+          $ref: "#/components/schemas/AgentCardProvider"
+        agentCardUrl:
+          type: string
+          format: uri
+          example: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json
+        externalAgentCardUrl:
+          description: >-
+            Optional public agent card URL from an OpenShift Route targeting the agent Service.
+            Omitted when no matching Route exists or Route lookup is unavailable.
+          type: string
+          format: uri
+          example: https://sample-support-agent.apps.example.com/.well-known/agent-card.json
+        documentationUrl:
+          type: string
+          format: uri
+          example: https://docs.example.com/agents/claude-code
+        iconUrl:
+          type: string
+          format: uri
+        defaultInputModes:
+          type: array
+          items:
+            type: string
+          example: ["text/plain", "application/json"]
+        defaultOutputModes:
+          type: array
+          items:
+            type: string
+          example: ["text/plain", "application/json"]
+        authenticationMethods:
+          type: array
+          default: []
+          items:
+            type: string
+          example: []
+        protocols:
+          type: array
+          default: []
+          items:
+            type: string
+          example: ["A2A", "HTTP"]
+        labels:
+          type: array
+          default: []
+          items:
+            type: string
+          example: ["Anthropic", "Claude Code"]
+        skills:
+          type: array
+          default: []
+          items:
+            $ref: "#/components/schemas/AgentCardSkill"
+        capabilities:
+          $ref: "#/components/schemas/AgentCardCapabilities"
+        toolConnections:
+          type: array
+          default: []
+          items:
+            type: string
+          example: []
+        uuid:
+          type: string
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        spiffeId:
+          type: string
+          example: spiffe://cluster.local/ns/team1/sa/claude-code-development-agent
+        lastFetchTime:
+          type: string
+          format: date-time
+          example: "2026-05-26T14:30:00Z"
+        transportSecurity:
+          type: string
+          enum: [mtls, http]
+          example: http
+        validSignature:
+          type: boolean
+          example: true
+        linkedSkills:
+          type: array
+          default: []
+          items:
+            type: string
+          example: []
   responses:
+    HealthCheckResponse:
+      description: BFF service health status
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HealthCheckModel"
     NotFound:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: The specified resource was not found
     BadRequest:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Bad Request parameters
     Unauthorized:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Unauthorized
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: The caller does not have permission to access the requested agent
+    ServiceUnavailable:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: Upstream Kubernetes or agent data source is unavailable
     InternalServerError:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ErrorEnvelope"
       description: Unexpected internal server error
     ConfigResponse:
       content:
@@ -200,99 +573,133 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
-    ConflictResponse:
+    AgentRuntimesResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
-      description: Conflict - Role Binding with the same name already exists
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/AgentRuntimesList"
+          examples:
+            default:
+              value:
+                metadata:
+                  requestId: req-agent-runtimes-001
+                  status: ok
+                  timestamp: "2026-05-12T16:00:03.214610Z"
+                data:
+                  runtimes:
+                    - name: sample-support-agent
+                      namespace: agent-ops-demo
+                      status: Ready
+                      type: agent
+                      endpointUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                      lastSyncTime: "2026-05-12T16:00:03.214610Z"
+      description: A response containing deployed agent runtimes.
+    AgentRuntimeDetailResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/AgentRuntimeDetail"
+          examples:
+            default:
+              value:
+                metadata:
+                  requestId: req-agent-runtime-detail-001
+                  status: ok
+                  timestamp: "2026-05-12T16:00:03.214610Z"
+                data:
+                  name: sample-support-agent
+                  namespace: agent-ops-demo
+                  description: Customer support agent that triages tickets and drafts responses.
+                  runtime:
+                    name: sample-support-agent
+                    namespace: agent-ops-demo
+                    status: Ready
+                    type: agent
+                    endpointUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                    lastSyncTime: "2026-05-12T16:00:03.214610Z"
+                  workloadStatus: Ready
+                  serviceEndpoints:
+                    - name: http
+                      url: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                      port: 8080
+                  podCount: 2
+                  conditions:
+                    - type: Available
+                      status: "True"
+                      reason: MinimumReplicasAvailable
+                      message: Deployment has minimum availability.
+                      lastTransitionTime: "2026-05-12T16:00:03.214610Z"
+                  agentCard:
+                    name: Sample Support Agent
+                    description: Customer support agent that triages tickets and drafts responses.
+                    version: "1.0.0"
+                    provider:
+                      organization: Red Hat OpenShift AI
+                      url: https://www.redhat.com/en/technologies/cloud-computing/openshift/ai
+                    agentCardUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json
+                    externalAgentCardUrl: https://sample-support-agent.apps.example.com/.well-known/agent-card.json
+                    documentationUrl: https://docs.example.com/agents/sample-support-agent
+                    defaultInputModes: ["text/plain"]
+                    defaultOutputModes: ["text/plain"]
+                    authenticationMethods: ["Bearer"]
+                    protocols: ["A2A", "HTTP"]
+                    labels: ["Red Hat OpenShift AI", "Sample Support Agent"]
+                    skills:
+                      - id: triage-ticket
+                        name: Triage ticket
+                        description: Classify and prioritize incoming support tickets.
+                        tags: ["support"]
+                        examples: ["Triage this customer issue"]
+                        inputModes: ["text/plain"]
+                        outputModes: ["text/plain"]
+                        parameters: []
+                    capabilities:
+                      streaming: true
+                      pushNotifications: false
+                      optional: ["Streaming"]
+                    toolConnections: []
+                    uuid: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                    spiffeId: spiffe://cluster.local/ns/agent-ops-demo/sa/default
+                    lastFetchTime: "2026-05-12T16:00:03.214610Z"
+                    transportSecurity: http
+                    validSignature: true
+                    linkedSkills: ["summarizer"]
+      description: A response containing full agent runtime detail.
+
 
   parameters:
-    id:
-      name: id
-      description: The ID of resource.
+    agentNamespace:
+      name: ns
+      description: Kubernetes namespace of the agent.
       schema:
         type: string
+        pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+        maxLength: 63
       in: path
       required: true
-    name:
-      examples:
-        name:
-          value: entity-name
+      example: agent-ops-demo
+    agentName:
       name: name
-      description: Name of entity to search.
+      description: Name of the agent resource.
       schema:
         type: string
-      in: query
-      required: false
-    externalId:
-      examples:
-        externalId:
-          value: "10"
-      name: externalId
-      description: External ID of entity to search.
-      schema:
-        type: string
-      in: query
-      required: false
-    parentResourceId:
-      examples:
-        parentResourceId:
-          value: "10"
-      name: parentResourceId
-      description: ID of the parent resource to use for search.
-      schema:
-        type: string
-      in: query
-      required: false
-    pageSize:
-      examples:
-        pageSize:
-          value: "100"
-      name: pageSize
-      description: Number of entities in each page.
-      schema:
-        type: string
-      in: query
-      required: false
-    nextPageToken:
-      name: nextPageToken
-      description: Token to use to retrieve next page of results.
-      schema:
-        type: string
-      in: query
-      required: false
-    orderBy:
-      style: form
-      explode: true
-      examples:
-        orderBy:
-          value: Id
-      name: orderBy
-      description: Specifies the order by criteria for listing entities.
-      schema:
-        $ref: "#/components/schemas/OrderByField"
-      in: query
-      required: false
-    sortOrder:
-      style: form
-      explode: true
-      examples:
-        sortOrder:
-          value: DESC
-      name: sortOrder
-      description: "Specifies the sort order for listing entities, defaults to ASC."
-      schema:
-        $ref: "#/components/schemas/SortOrder"
-      in: query
-      required: false
-    namespace:
-      name: namespace
-      description: The namespace to filter resources by.
-      schema:
-        type: string
-      in: query
-      required: false
+        pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+        maxLength: 63
+      in: path
+      required: true
+      example: sample-support-agent
 
   securitySchemes:
     Bearer:
@@ -305,3 +712,5 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: AgentOperation
+    description: Agent runtime operations

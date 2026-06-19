@@ -10,10 +10,10 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import ManageHardwareProfile from '#~/pages/hardwareProfiles/manage/ManageHardwareProfile';
 import useHardwareProfile from '#~/pages/hardwareProfiles/useHardwareProfile';
-import { HardwareProfileKind } from '#~/k8sTypes';
 
 type ManageHardwareProfileWrapperProps = {
   children: (data: HardwareProfileKind) => React.ReactNode;

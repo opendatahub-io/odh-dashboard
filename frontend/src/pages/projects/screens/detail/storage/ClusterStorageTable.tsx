@@ -1,7 +1,8 @@
 import React from 'react';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { Table } from '#~/components/table';
 import { ClusterStorageNotebookSelection } from '#~/pages/projects/types';
-import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { NotebookKind } from '#~/k8sTypes';
 import { MountPathFormat } from '#~/pages/projects/screens/spawner/storage/types';
 import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
 import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';

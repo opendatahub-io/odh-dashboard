@@ -1,0 +1,4 @@
+# AgentReady Configuration for ODH Dashboard
+# Exclude type_annotations - uses TypeScript project references, no root strict config
+excluded_attributes:
+  - type_annotations

@@ -7,7 +7,7 @@ import {
   PendingIcon,
 } from '@patternfly/react-icons';
 import { t_global_color_brand_default as BrandDefaultColor } from '@patternfly/react-tokens';
-import { PodKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
 
 export const getPodStatusIcon = (pod: PodKind): React.ReactElement => {
   const phase = pod.status?.phase ? pod.status.phase.toLowerCase() : '';
