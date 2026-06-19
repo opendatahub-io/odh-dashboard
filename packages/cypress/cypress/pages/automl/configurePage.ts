@@ -1,6 +1,7 @@
 import { automlExperimentsPage } from './experimentsPage';
 import { automlResultsPage } from './resultsPage';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../utils/e2eUsers';
+import { uploadManagedAutoMLPipelines } from '../../utils/autoXPipelines';
 import { waitForDspaReady } from '../../utils/oc_commands/dspa';
 import type { AutomlTestData } from '../../types';
 
@@ -171,6 +172,9 @@ class AutomlConfigurePage {
     cy.step('Login and wait for pipeline server');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     waitForDspaReady(projectName);
+
+    cy.step('Upload managed AutoML pipelines to pipeline server');
+    uploadManagedAutoMLPipelines(projectName);
 
     cy.step('Navigate to AutoML experiments page');
     automlExperimentsPage.visit(projectName);
