@@ -1980,7 +1980,8 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 func TestPgvectorConnectionFromConfig(t *testing.T) {
 	t.Run("empty host returns unconfigured connection", func(t *testing.T) {
 		cfg := config.EnvConfig{}
-		conn := pgvectorConnectionFromConfig(cfg)
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
 		assert.False(t, conn.IsConfigured())
 	})
 
@@ -1988,7 +1989,8 @@ func TestPgvectorConnectionFromConfig(t *testing.T) {
 		cfg := config.EnvConfig{
 			PgvectorHost: "pg.svc.cluster.local",
 		}
-		conn := pgvectorConnectionFromConfig(cfg)
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
 		assert.True(t, conn.IsConfigured())
 		assert.Equal(t, "pg.svc.cluster.local", conn.Host)
 		assert.Equal(t, 5432, conn.Port)
@@ -2004,7 +2006,8 @@ func TestPgvectorConnectionFromConfig(t *testing.T) {
 			PgvectorDB:   "mydb",
 			PgvectorUser: "myuser",
 		}
-		conn := pgvectorConnectionFromConfig(cfg)
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
 		assert.Equal(t, "custom-host", conn.Host)
 		assert.Equal(t, 5433, conn.Port)
 		assert.Equal(t, "mydb", conn.DB)
@@ -2017,7 +2020,8 @@ func TestPgvectorConnectionFromConfig(t *testing.T) {
 			PgvectorPasswordSecretName: "pg-creds",
 			PgvectorPasswordSecretKey:  "pg-password",
 		}
-		conn := pgvectorConnectionFromConfig(cfg)
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
 		require.NotNil(t, conn.PasswordSecret)
 		assert.Equal(t, "pg-creds", conn.PasswordSecret.Name)
 		assert.Equal(t, "pg-password", conn.PasswordSecret.Key)
@@ -2028,18 +2032,30 @@ func TestPgvectorConnectionFromConfig(t *testing.T) {
 			PgvectorHost:               "pg.svc",
 			PgvectorPasswordSecretName: "pg-creds",
 		}
-		conn := pgvectorConnectionFromConfig(cfg)
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
 		require.NotNil(t, conn.PasswordSecret)
 		assert.Equal(t, pgvector.DefaultPasswordKey, conn.PasswordSecret.Key)
 	})
 
-	t.Run("negative port uses default", func(t *testing.T) {
+	t.Run("negative port returns error", func(t *testing.T) {
 		cfg := config.EnvConfig{
 			PgvectorHost: "pg.svc",
 			PgvectorPort: -1,
 		}
-		conn := pgvectorConnectionFromConfig(cfg)
-		assert.Equal(t, -1, conn.Port, "validation is not applied at factory level; port is passed through")
+		_, err := pgvectorConnectionFromConfig(cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid PGVECTOR_PORT")
+	})
+
+	t.Run("port exceeding 65535 returns error", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "pg.svc",
+			PgvectorPort: 70000,
+		}
+		_, err := pgvectorConnectionFromConfig(cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid PGVECTOR_PORT")
 	})
 
 	t.Run("secret key without secret name does not set PasswordSecret", func(t *testing.T) {
@@ -2047,7 +2063,8 @@ func TestPgvectorConnectionFromConfig(t *testing.T) {
 			PgvectorHost:              "pg.svc",
 			PgvectorPasswordSecretKey: "my-key",
 		}
-		conn := pgvectorConnectionFromConfig(cfg)
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
 		assert.Nil(t, conn.PasswordSecret, "key alone without name should not create a SecretRef")
 	})
 }

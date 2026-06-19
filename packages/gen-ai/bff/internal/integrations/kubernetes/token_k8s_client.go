@@ -1580,7 +1580,11 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	}
 
 	// Inject pgvector connection env vars when configured.
-	if conn := pgvectorConnectionFromConfig(kc.EnvConfig); conn.IsConfigured() {
+	conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
+	if err != nil {
+		return nil, fmt.Errorf("invalid pgvector configuration: %w", err)
+	}
+	if conn.IsConfigured() {
 		envVars = append(envVars,
 			corev1.EnvVar{Name: pgvector.HostEnvVar, Value: conn.Host},
 			corev1.EnvVar{Name: pgvector.PortEnvVar, Value: strconv.Itoa(conn.Port)},
@@ -1764,14 +1768,17 @@ func ensureVLLMCompatibleURL(url string) string {
 // pgvectorConnectionFromConfig builds a pgvector.Connection from the BFF's
 // env config. Returns a zero-value Connection (IsConfigured() == false) when
 // PgvectorHost is empty.
-func pgvectorConnectionFromConfig(cfg config.EnvConfig) pgvector.Connection {
+func pgvectorConnectionFromConfig(cfg config.EnvConfig) (pgvector.Connection, error) {
 	if cfg.PgvectorHost == "" {
-		return pgvector.Connection{}
+		return pgvector.Connection{}, nil
 	}
 
 	port := cfg.PgvectorPort
 	if port == 0 {
 		port = pgvector.DefaultPort
+	}
+	if port < 1 || port > 65535 {
+		return pgvector.Connection{}, fmt.Errorf("invalid PGVECTOR_PORT %d: must be between 1 and 65535", port)
 	}
 	db := cfg.PgvectorDB
 	if db == "" {
@@ -1798,7 +1805,7 @@ func pgvectorConnectionFromConfig(cfg config.EnvConfig) pgvector.Connection {
 			Key:  key,
 		}
 	}
-	return conn
+	return conn, nil
 }
 
 // buildEmbeddingModelLookup returns a map from user-supplied embedding_model values
@@ -1835,7 +1842,11 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
 
-	if conn := pgvectorConnectionFromConfig(kc.EnvConfig); conn.IsConfigured() {
+	conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
+	if err != nil {
+		return "", fmt.Errorf("invalid pgvector configuration: %w", err)
+	}
+	if conn.IsConfigured() {
 		config.SetDefaultPgvectorProvider(conn)
 		kc.Logger.Info("using remote::pgvector as default vector_io provider",
 			"host", conn.Host, "port", conn.Port, "db", conn.DB)
