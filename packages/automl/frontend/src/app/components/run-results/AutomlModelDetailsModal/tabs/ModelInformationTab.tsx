@@ -31,7 +31,11 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
   const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
 
   const maxTermWidth = React.useMemo(
-    () => paramEntries.reduce((max, [key]) => Math.max(max, formatMetricName(key).length), 0),
+    () =>
+      paramEntries.reduce(
+        (max, [key]) => Math.max(max, formatMetricName(key).length),
+        'Evaluation metric'.length, // longest hardcoded term
+      ),
     [paramEntries],
   );
 
