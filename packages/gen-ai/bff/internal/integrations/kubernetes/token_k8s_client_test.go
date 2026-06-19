@@ -1851,7 +1851,13 @@ func TestOgxCommand_TracingDisabled(t *testing.T) {
 
 func TestOgxCommand_TracingEnabled(t *testing.T) {
 	cmd := ogxCommand(true)
-	assert.Equal(t, []string{"/opt/app-root/entrypoint.sh"}, cmd)
+	require.Len(t, cmd, 3)
+	assert.Equal(t, "/bin/sh", cmd[0])
+	assert.Equal(t, "-c", cmd[1])
+	assert.Contains(t, cmd[2], "sitecustomize.py")
+	assert.Contains(t, cmd[2], "opentelemetry-instrument")
+	assert.Contains(t, cmd[2], "--traces_exporter=otlp_proto_http")
+	assert.Contains(t, cmd[2], "ogx run /etc/ogx/config.yaml")
 }
 
 func TestOgxEnvVars_TracingDisabled(t *testing.T) {
@@ -1872,12 +1878,13 @@ func TestOgxEnvVars_TracingEnabled(t *testing.T) {
 
 	byName := envVarMap(vars)
 	assert.Equal(t, "val", byName["EXISTING"])
-	assert.Equal(t, "/etc/ogx/config.yaml", byName["RUN_CONFIG_PATH"])
 	assert.Equal(t, "ogx-server", byName["OTEL_SERVICE_NAME"])
 	assert.Equal(t, "http://collector.monitoring.svc:4318", byName["OTEL_EXPORTER_OTLP_ENDPOINT"])
 	assert.Equal(t, "k8s.namespace.name=my-project", byName["OTEL_RESOURCE_ATTRIBUTES"])
 	assert.Equal(t, "http", byName["OTEL_SEMCONV_STABILITY_OPT_IN"])
 	assert.Equal(t, "true", byName["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"])
+	assert.Equal(t, "health,version,metadata", byName["OTEL_PYTHON_FASTAPI_EXCLUDED_URLS"])
+	assert.Equal(t, "sqlite3", byName["OTEL_PYTHON_DISABLED_INSTRUMENTATIONS"])
 }
 
 func TestOgxEnvVars_TracingEnabled_NamespaceInResourceAttributes(t *testing.T) {
