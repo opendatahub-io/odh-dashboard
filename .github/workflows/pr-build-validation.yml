@@ -197,7 +197,7 @@ jobs:
                   "from ['\"]${PKG_NAME}['\"]" "$DOCKERFILE_DIR" 2>/dev/null || true)
 
                 if [ -n "$IMPORTS" ]; then
-                  COPY_FOUND=$(grep "COPY.*$ws_dir" "$dockerfile" || true)
+                  COPY_FOUND=$(grep "COPY.*${ws_dir}/" "$dockerfile" || true)
                   if [ -z "$COPY_FOUND" ]; then
                     echo "❌ FAIL: $dockerfile imports '$PKG_NAME' but is missing:"
                     echo "   COPY --chown=default:root $ws_dir/ ./$ws_dir/"
