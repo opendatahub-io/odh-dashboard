@@ -21,7 +21,12 @@ runs:
     - name: Use pinned npm version
       shell: bash
       run: |
-        npm install -g "$(jq -r .packageManager package.json)" --prefix "$(dirname "$(which node)")/.."
+        pkg_manager="$(jq -r .packageManager package.json)"
+        if [[ ! "$pkg_manager" =~ ^npm@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::Invalid packageManager field: must match npm@MAJOR.MINOR.PATCH"
+          exit 1
+        fi
+        npm install -g "$pkg_manager" --prefix "$(dirname "$(which node)")/.."
         echo "npm: $(npm --version)"
     - name: Root node_modules cache
       id: root-cache
