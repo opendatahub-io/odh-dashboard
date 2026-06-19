@@ -20,6 +20,14 @@ rules:
     resources:
       - ingresses
   - apiGroups:
+      - opentelemetry.io
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - opentelemetrycollectors
+  - apiGroups:
       - authorization.k8s.io
     verbs:
       - create
