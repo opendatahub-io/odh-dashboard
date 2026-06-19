@@ -51,6 +51,28 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
   });
 
+  it('should display a useful error state when the subscriptions search fails', () => {
+    cy.intercept('GET', '/maas/api/v1/all-subscriptions', {
+      statusCode: 500,
+      body: {
+        error: {
+          code: '500',
+          message:
+            'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/all-subscriptions',
+        },
+      },
+    }).as('searchError');
+    subscriptionsPage.visit();
+    cy.wait('@searchError');
+    subscriptionsPage.findErrorState().should('exist');
+    subscriptionsPage
+      .findErrorState()
+      .should(
+        'contain.text',
+        'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/all-subscriptions',
+      );
+  });
+
   it('should display the subscriptions table with correct page content', () => {
     subscriptionsPage.findTitle().should('contain.text', 'Subscriptions');
     subscriptionsPage
@@ -145,8 +167,9 @@ describe('Subscriptions Page', () => {
     ).as('deleteSubscription');
 
     subscriptionsPage.getRow('Premium Team Subscription').findKebabAction('Delete').click();
-    deleteSubscriptionModal.findInput().type('premium-team-sub');
-
+    deleteSubscriptionModal.shouldShowResourceName('Premium Team Subscription');
+    deleteSubscriptionModal.findInput().type('Premium Team Subscription');
+    deleteSubscriptionModal.findSubmitButton().should('be.enabled');
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions().filter((subscription) => subscription.name !== 'premium-team-sub'),
     }).as('getSubscriptions');

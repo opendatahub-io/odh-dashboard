@@ -37,6 +37,14 @@ class PromptManagement {
     return cy.findByTestId('mlflow-unavailable-empty-state');
   }
 
+  findNotConfiguredEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-empty-state');
+  }
+
+  findNotConfiguredAdminEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-admin-empty-state');
+  }
+
   findProjectSelector() {
     return cy.findByTestId('project-selector-toggle', { timeout: 30000 });
   }

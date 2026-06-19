@@ -88,10 +88,29 @@ class ModelCatalog {
   }
 
   expandCardLabelGroup(modelName: string) {
-    this.findModelCatalogCard(modelName)
-      .findAllByTestId('model-catalog-label-group')
-      .find('button')
-      .click();
+    this.findModelCatalogCard(modelName).then(($card) => {
+      const overflowBtn = $card.find('.pf-v6-c-label.pf-m-overflow');
+      if (overflowBtn.length) {
+        cy.wrap(overflowBtn).click();
+      }
+    });
+  }
+
+  expandFirstCardLabelGroup() {
+    this.findFirstModelCatalogCard().then(($card) => {
+      const overflowBtn = $card.find('.pf-v6-c-label.pf-m-overflow');
+      if (overflowBtn.length) {
+        cy.wrap(overflowBtn).click();
+      }
+    });
+  }
+
+  findFirstCardLabelWithIcon(text: string) {
+    return this.findFirstModelCatalogCard().contains('[data-testid="model-catalog-label"]', text);
+  }
+
+  findValidatedTaskIcon() {
+    return this.findFirstModelCatalogCard().findByTestId('validated-task-icon');
   }
 
   findCardLabelByIndex(modelName: string, index: number) {
@@ -171,6 +190,26 @@ class ModelCatalog {
 
   findValidatedModelBenchmarkLink() {
     return cy.findByTestId('validated-model-benchmark-link');
+  }
+
+  findColdStartLoadTimeFilter() {
+    return cy.findByTestId('cold-start-load-time-filter');
+  }
+
+  findMinimumVramFilter() {
+    return cy.findByTestId('minimum-vram-filter');
+  }
+
+  findContainerSizeFilter() {
+    return cy.findByTestId('container-size-filter');
+  }
+
+  findValidatedArgumentsFilter() {
+    return cy.findByTestId('Validated arguments-filter');
+  }
+
+  findValidatedArgumentsFilterCheckbox() {
+    return cy.findByTestId('Validated arguments-tool-calling-checkbox');
   }
 }
 

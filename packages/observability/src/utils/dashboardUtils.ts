@@ -1,5 +1,5 @@
 import type { DashboardResource } from '@perses-dev/core';
-import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { isClusterDetailsVariable } from './variables';
 
 export const BASE_PATH = '/observe-and-monitor/dashboard';
@@ -52,27 +52,38 @@ export const filterDashboardsByThanosNonTenancyAccess = (
 };
 
 /**
- * Filters and sorts dashboards according to user admin status.
+ * Filters and sorts dashboards according to cluster metrics access.
  * - Only includes dashboards with names starting with PERSES_DASHBOARD_PREFIX
- * - Non-admin users are excluded from dashboards ending with PERSES_DASHBOARD_ADMIN_SUFFIX
+ * - Users without cluster metrics access are excluded from dashboards ending with
+ *   PERSES_DASHBOARD_ADMIN_SUFFIX
+ * - Users with cluster metrics access see the `-admin` variant when both `X` and `X-admin` exist
  * - Results are sorted lexicographically by metadata.name
  * @param dashboards - List of dashboard resources
- * @param isAdminUser - Boolean flag indicating if the user is an admin
+ * @param hasClusterMetricsAccess - Whether the user has cluster-scoped metrics access
  * @returns Filtered and sorted dashboards
  */
 export function filterDashboards(
   dashboards: DashboardResource[],
-  isAdminUser: boolean,
+  hasClusterMetricsAccess: boolean,
 ): DashboardResource[] {
-  return dashboards
+  const prefixed = dashboards.filter(({ metadata: { name } }) =>
+    name.startsWith(PERSES_DASHBOARD_PREFIX),
+  );
+
+  if (!hasClusterMetricsAccess) {
+    return prefixed
+      .filter(({ metadata: { name } }) => !name.endsWith(PERSES_DASHBOARD_ADMIN_SUFFIX))
+      .toSorted(({ metadata: { name: a } }, { metadata: { name: b } }) => a.localeCompare(b));
+  }
+
+  const names = new Set(prefixed.map(({ metadata: { name } }) => name));
+
+  return prefixed
     .filter(({ metadata: { name } }) => {
-      if (!name.startsWith(PERSES_DASHBOARD_PREFIX)) {
-        return false;
+      if (name.endsWith(PERSES_DASHBOARD_ADMIN_SUFFIX)) {
+        return true;
       }
-      if (!isAdminUser && name.endsWith(PERSES_DASHBOARD_ADMIN_SUFFIX)) {
-        return false;
-      }
-      return true;
+      return !names.has(`${name}${PERSES_DASHBOARD_ADMIN_SUFFIX}`);
     })
     .toSorted(({ metadata: { name: a } }, { metadata: { name: b } }) => a.localeCompare(b));
 }

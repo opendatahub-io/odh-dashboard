@@ -1,5 +1,5 @@
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import {
   useResolvedExtensions,
@@ -140,7 +140,7 @@ export const mockDeploymentWizardState = (
         modelType: {
           data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
           setData: jest.fn(),
-          externalData: { data: { extraOptions: [] as SimpleSelectOption[] } },
+          externalData: { data: { extraOptions: [] as SimpleSelectOption[], forced: false } },
         },
         modelLocationData: {
           data: undefined,

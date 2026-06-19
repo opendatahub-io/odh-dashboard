@@ -55,6 +55,7 @@ export const mockAPIKeys = (): APIKey[] => [
     expirationDate: '2026-01-13T11:54:34.521671447-05:00',
     status: 'expired',
     username: 'dave',
+    subscription: 'premium-team-sub',
   },
 ];
 
@@ -220,6 +221,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     display_name: 'Premium Team',
     priority: 10,
     // eslint-disable-next-line camelcase
+    key_count: 10,
+    // eslint-disable-next-line camelcase
     cost_center: 'engineering',
     // eslint-disable-next-line camelcase
     organization_id: 'org-123',
@@ -227,13 +230,22 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     model_refs: [
       {
         name: 'granite-3-8b-instruct',
+        // eslint-disable-next-line camelcase
+        display_name: 'Granite 3 8B Instruct',
+        source: 'Internal',
         namespace: 'maas-models',
+        description:
+          'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 100000, window: '24h' }],
       },
       {
         name: 'flan-t5-small',
+        // eslint-disable-next-line camelcase
+        display_name: 'Flan T5 Small',
+        source: 'External',
         namespace: 'maas-models',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 200000, window: '24h' }],
       },
@@ -248,10 +260,16 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     display_name: 'Basic Team',
     priority: 1,
     // eslint-disable-next-line camelcase
+    key_count: 5,
+    // eslint-disable-next-line camelcase
     model_refs: [
       {
         name: 'flan-t5-small',
+        // eslint-disable-next-line camelcase
+        display_name: 'Flan T5 Small',
+        source: 'External',
         namespace: 'maas-models',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 10000, window: '24h' }],
       },
@@ -430,6 +448,7 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   },
   {
     name: 'premium-team-policy',
+    displayName: 'Premium Team Policy',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -459,7 +478,7 @@ export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse
   return {
     policy: {
       ...policy,
-      displayName: `${resolvedName} Display`,
+      displayName: policy.displayName ?? `${resolvedName} Display`,
       description: `Description for ${resolvedName}`,
       creationTimestamp: '2025-03-01T10:00:00Z',
     },

@@ -20,7 +20,7 @@ type BFFClientFactory interface {
 	IsTargetConfigured(target BFFTarget) bool
 }
 
-// RealClientFactory creates real BFF clients with HTTP communication
+// RealClientFactory creates real BFF clients with HTTP communication.
 type RealClientFactory struct {
 	config             *BFFClientConfig
 	rootCAs            *x509.CertPool
@@ -28,7 +28,7 @@ type RealClientFactory struct {
 	logger             *slog.Logger
 }
 
-// NewRealClientFactory creates a factory for real BFF clients
+// NewRealClientFactory creates a factory for real BFF clients.
 func NewRealClientFactory(config *BFFClientConfig, rootCAs *x509.CertPool, insecureSkipVerify bool, logger *slog.Logger) BFFClientFactory {
 	return &RealClientFactory{
 		config:             config,
@@ -60,17 +60,16 @@ func (f *RealClientFactory) CreateClientWithHeaders(target BFFTarget, authToken 
 		"hasAuthToken", authToken != "",
 		"hasHeaders", len(headers) > 0)
 
-	// Pass auth configuration from service config to the client
-	return NewHTTPBFFClientWithConfig(
-		baseURL,
-		target,
-		authToken,
-		headers,
-		serviceConfig.AuthTokenHeader,
-		serviceConfig.AuthTokenPrefix,
-		f.insecureSkipVerify,
-		f.rootCAs,
-	)
+	return newHTTPBFFClient(clientConfig{
+		BaseURL:            baseURL,
+		Target:             target,
+		AuthToken:          authToken,
+		CustomHeaders:      headers,
+		AuthTokenHeader:    serviceConfig.AuthTokenHeader,
+		AuthTokenPrefix:    serviceConfig.AuthTokenPrefix,
+		InsecureSkipVerify: f.insecureSkipVerify,
+		RootCAs:            f.rootCAs,
+	})
 }
 
 // GetConfig returns the configuration for a specific target

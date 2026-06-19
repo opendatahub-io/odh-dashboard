@@ -10,6 +10,9 @@ import React from 'react';
 import AppRoutes from '~/app/AppRoutes';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { registerGenAiRemote } from './registerGenAiRemote';
+
+registerGenAiRemote();
 
 const queryClient = new QueryClient({
   defaultOptions: {

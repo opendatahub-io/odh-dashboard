@@ -1,4 +1,4 @@
-import { VolumeMount, Volume } from '#~/types';
+import type { VolumeMount, Volume } from '@odh-dashboard/k8s-core';
 
 export const getshmVolumeMount = (): VolumeMount => ({
   name: 'shm',

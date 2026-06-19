@@ -85,11 +85,17 @@ export const applyFilterValue = (
   }
 
   // Handle performance number filters
-  // Currently only MAX_RPS, but structured for future extensibility
   if (isPerformanceNumberFilterKey(filterKey)) {
     const numberValue = extractNumberValue(value);
-    // Use explicit key to ensure type safety (MAX_RPS is currently the only performance number filter)
-    setFilterData(ModelCatalogNumberFilterKey.MAX_RPS, numberValue);
+    if (filterKey === ModelCatalogNumberFilterKey.MAX_RPS) {
+      setFilterData(ModelCatalogNumberFilterKey.MAX_RPS, numberValue);
+    } else if (filterKey === ModelCatalogNumberFilterKey.MIN_VRAM) {
+      setFilterData(ModelCatalogNumberFilterKey.MIN_VRAM, numberValue);
+    } else if (filterKey === ModelCatalogNumberFilterKey.IMAGE_SIZE) {
+      setFilterData(ModelCatalogNumberFilterKey.IMAGE_SIZE, numberValue);
+    } else {
+      setFilterData(ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME, numberValue);
+    }
     return;
   }
 
@@ -188,12 +194,18 @@ export const getDefaultFiltersFromNamedQuery = (
     }
 
     // Handle performance number filters
-    // Currently only MAX_RPS, but structured for future extensibility
     if (isPerformanceNumberFilterKey(fieldName)) {
       const resolvedValue = resolveFilterValue(filterOptions, fieldName, fieldFilter.value);
       if (resolvedValue !== undefined) {
-        // Use explicit key to ensure type safety (MAX_RPS is currently the only performance number filter)
-        result[ModelCatalogNumberFilterKey.MAX_RPS] = resolvedValue;
+        if (fieldName === ModelCatalogNumberFilterKey.MAX_RPS) {
+          result[ModelCatalogNumberFilterKey.MAX_RPS] = resolvedValue;
+        } else if (fieldName === ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME) {
+          result[ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME] = resolvedValue;
+        } else if (fieldName === ModelCatalogNumberFilterKey.MIN_VRAM) {
+          result[ModelCatalogNumberFilterKey.MIN_VRAM] = resolvedValue;
+        } else {
+          result[ModelCatalogNumberFilterKey.IMAGE_SIZE] = resolvedValue;
+        }
       }
       return;
     }

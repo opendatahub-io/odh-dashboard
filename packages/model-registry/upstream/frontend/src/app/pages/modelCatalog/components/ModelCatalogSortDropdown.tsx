@@ -18,10 +18,10 @@ type ModelCatalogSortDropdownProps = {
 const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
   performanceViewEnabled,
 }) => {
-  const { sortBy, setSortBy, filterData } = React.useContext(ModelCatalogContext);
+  const { sortBy, setSortBy, filters } = React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const activeLatencyField = getActiveLatencyFieldName(filterData);
+  const activeLatencyField = getActiveLatencyFieldName(filters);
   // Disable latency sort if performance view is disabled or there's no active latency field
   // Without an active latency field, sorting by latency would fallback to sorting by publish date
   const isLatencySortDisabled = !performanceViewEnabled || activeLatencyField === undefined;
@@ -34,7 +34,8 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
   const isValidSortOption = (value: unknown): value is ModelCatalogSortOption =>
     typeof value === 'string' &&
     (value === ModelCatalogSortOption.RECENT_PUBLISH ||
-      value === ModelCatalogSortOption.LOWEST_LATENCY);
+      value === ModelCatalogSortOption.LOWEST_LATENCY ||
+      value === ModelCatalogSortOption.LOWEST_COLD_START);
 
   const handleSelect = (
     _event: React.SyntheticEvent<Element, Event> | undefined,
@@ -49,6 +50,9 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
   const getDisplayValue = (): string => {
     if (sortBy === ModelCatalogSortOption.LOWEST_LATENCY) {
       return 'Latency (Lowest → Highest)';
+    }
+    if (sortBy === ModelCatalogSortOption.LOWEST_COLD_START) {
+      return 'Cold start load time (Lowest → Highest)';
     }
     return 'Publish date (Newest → Oldest)';
   };
@@ -88,6 +92,12 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
             data-testid="sort-option-lowest-latency"
           >
             Latency (Lowest → Highest)
+          </SelectOption>
+          <SelectOption
+            value={ModelCatalogSortOption.LOWEST_COLD_START}
+            data-testid="sort-option-lowest-cold-start"
+          >
+            Cold start load time (Lowest → Highest)
           </SelectOption>
         </SelectList>
       </Select>

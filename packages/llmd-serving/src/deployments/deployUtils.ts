@@ -8,7 +8,8 @@ import {
 import { assembleServiceAccount } from '@odh-dashboard/internal/api/k8s/serviceAccounts';
 import { generateRoleBindingServiceAccount } from '@odh-dashboard/internal/api/k8s/roleBindings';
 import { addOwnerReference } from '@odh-dashboard/internal/api/k8sUtils';
-import { SecretKind, K8sAPIOptions, RoleKind, KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels, SecretKind } from '@odh-dashboard/k8s-core';
+import type { K8sAPIOptions, RoleKind } from '@odh-dashboard/internal/k8sTypes';
 import { getTokenNames } from '@odh-dashboard/model-serving/concepts/auth';
 import {
   createServiceAccountIfMissing,

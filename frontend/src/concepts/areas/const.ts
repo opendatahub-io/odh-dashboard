@@ -1,4 +1,4 @@
-import { DashboardCommonConfig } from '#~/k8sTypes';
+import type { DashboardCommonConfig } from '@odh-dashboard/k8s-core';
 import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from './types';
 
 export const techPreviewFlags = {
@@ -18,7 +18,8 @@ export const techPreviewFlags = {
   vLLMDeploymentOnMaaS: false,
   llmGatewayField: false,
   promptManagement: false,
-  mySubscriptions: false,
+  mySubscriptions: true,
+  maasSettingsIaRedesign: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -28,6 +29,7 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOps: false,
   roleManagement: false,
+  agentProfileManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -259,6 +261,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MY_SUBSCRIPTIONS]: {
     featureFlags: ['mySubscriptions'],
+  },
+  [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
+    featureFlags: ['maasSettingsIaRedesign'],
   },
 };
 

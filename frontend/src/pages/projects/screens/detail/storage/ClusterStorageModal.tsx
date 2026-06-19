@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Stack, FormGroup, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { isEqual } from 'lodash-es';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { StorageData } from '#~/pages/projects/types';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import {

@@ -30,7 +30,9 @@ import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { CatalogArtifactList, CatalogModel } from '~/app/modelCatalogTypes';
 import {
   getLabels,
+  getValueLabels,
   getValidatedOnPlatforms,
+  getValidatedDeploymentResources,
   getCustomPropString,
 } from '~/app/pages/modelRegistry/screens/utils';
 import ModelCatalogLabels from '~/app/pages/modelCatalog/components/ModelCatalogLabels';
@@ -43,10 +45,16 @@ import {
   hasModelArtifacts,
   isModelValidated,
   hasValidatedToolCalling,
+  getToolCallingArgs,
   formatModelTypeDisplay,
+  getModelSizeFromCustomProperties,
+  getMinimumVramFromCustomProperties,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import { CatalogModelCustomPropertyKey } from '~/concepts/modelCatalog/const';
-import { useTempDevFeatureAvailable, TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
+import {
+  CatalogModelCustomPropertyKey,
+  CATALOG_VALUE_LABEL_KEYS,
+} from '~/concepts/modelCatalog/const';
+import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
 import CodeBlockComponent from '~/app/shared/markdown/components/CodeBlockComponent';
 
 type ModelDetailsViewProps = {
@@ -63,11 +71,15 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
   artifactsLoadError,
 }) => {
   const allLabels = model.customProperties ? getLabels(model.customProperties) : [];
+  const valueLabels = model.customProperties
+    ? getValueLabels(model.customProperties, CATALOG_VALUE_LABEL_KEYS)
+    : [];
   const isValidated = isModelValidated(model);
-  const isToolCallingEnabled = useTempDevFeatureAvailable(TempDevFeature.ToolCallingConfiguration);
+  const { toolCalling: isToolCallingEnabled } = useModelRegistryDashboardConfig();
   const isToolCallingValidated = isToolCallingEnabled && hasValidatedToolCalling(model);
 
   const validatedOnPlatforms = getValidatedOnPlatforms(model.customProperties);
+  const validatedDeploymentResources = getValidatedDeploymentResources(model.customProperties);
 
   const modelTypeRaw = model.customProperties
     ? getCustomPropString(model.customProperties, CatalogModelCustomPropertyKey.MODEL_TYPE)
@@ -84,6 +96,8 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
   const size = model.customProperties
     ? getCustomPropString(model.customProperties, CatalogModelCustomPropertyKey.SIZE)
     : '';
+  const modelSize = getModelSizeFromCustomProperties(model.customProperties);
+  const minimumVram = getMinimumVramFromCustomProperties(model.customProperties);
 
   const architectures = React.useMemo(
     () => (artifactLoaded ? getArchitecturesFromArtifacts(artifacts.items) : []),
@@ -138,7 +152,10 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
           <Stack hasGutter>
             {isToolCallingValidated && (
               <StackItem>
-                <Card data-testid="validated-configurations-card">
+                <Card
+                  data-testid="validated-configurations-card"
+                  style={{ contain: 'inline-size' }}
+                >
                   <CardHeader>
                     <Title headingLevel="h2" size="lg">
                       Validated arguments
@@ -165,7 +182,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                       >
                         <Stack>
                           <StackItem>
-                            <Title headingLevel="h3" size="md">
+                            <Title headingLevel="h4" size="md">
                               Tool calling
                             </Title>
                           </StackItem>
@@ -179,9 +196,32 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                       </CardHeader>
                       <CardExpandableContent>
                         <CardBody>
-                          <CodeBlockComponent>
-                            {model.servingConfig?.toolCalling?.args ?? ''}
-                          </CodeBlockComponent>
+                          <Stack hasGutter>
+                            <StackItem>
+                              <CodeBlockComponent>
+                                {getToolCallingArgs(model.servingConfig?.toolCalling)}
+                              </CodeBlockComponent>
+                            </StackItem>
+                            {validatedDeploymentResources.length > 0 && (
+                              <StackItem>
+                                <div className="pf-v6-u-font-weight-bold">
+                                  Validated deployment resources
+                                </div>
+                                <LabelGroup className="pf-v6-u-mt-sm">
+                                  {validatedDeploymentResources.map((resource) => (
+                                    <Label
+                                      key={resource}
+                                      data-testid="validated-deployment-resource-label"
+                                      color="blue"
+                                      isCompact
+                                    >
+                                      {resource}
+                                    </Label>
+                                  ))}
+                                </LabelGroup>
+                              </StackItem>
+                            )}
+                          </Stack>
                         </CardBody>
                       </CardExpandableContent>
                     </Card>
@@ -204,7 +244,10 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                         <ModelCatalogLabels
                           tasks={model.tasks ?? []}
                           validatedTasks={isToolCallingEnabled ? model.validatedTasks : undefined}
-                          labels={allLabels.filter((label) => label !== 'validated')}
+                          labels={[
+                            ...allLabels.filter((label) => label !== 'validated'),
+                            ...valueLabels,
+                          ]}
                           numLabels={isValidated ? 2 : 3}
                         />
                       </DescriptionListDescription>
@@ -220,9 +263,17 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                       <DescriptionListDescription>{tensorType || 'N/A'}</DescriptionListDescription>
                     </DescriptionListGroup>
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Size</DescriptionListTerm>
+                      <DescriptionListTerm>Parameter size</DescriptionListTerm>
                       <DescriptionListDescription>{size || 'N/A'}</DescriptionListDescription>
                     </DescriptionListGroup>
+                    {minimumVram && (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Minimum vRAM</DescriptionListTerm>
+                        <DescriptionListDescription data-testid="minimum-vram">
+                          {minimumVram}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    )}
                     <DescriptionListGroup>
                       <DescriptionListTerm>License</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -264,6 +315,14 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                               </Label>
                             ))}
                           </LabelGroup>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    )}
+                    {modelSize && (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Container size</DescriptionListTerm>
+                        <DescriptionListDescription data-testid="image-size">
+                          {modelSize}
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     )}

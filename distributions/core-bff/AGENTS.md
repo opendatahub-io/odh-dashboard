@@ -57,7 +57,10 @@ core-bff/
 │   └── README.md                # BFF documentation
 ├── contract-tests/              # Contract tests
 │   └── __tests__/
-│       └── testCoreBffContract.test.ts
+│       ├── helpers.ts           # Shared test utilities (API clients, schema, matchers)
+│       ├── foundation/          # Platform-agnostic tests (run on both OpenShift and XKS)
+│       ├── openshift/           # OpenShift-specific tests
+│       └── xks/                 # XKS-specific tests
 ├── frontend/                    # React Frontend
 │   ├── src/
 │   │   ├── app/
@@ -363,9 +366,16 @@ make test   # Run tests
 
 ### Contract Testing
 
+Tests are split by platform. Foundation tests are platform-agnostic and run on both. Platform-specific
+tests validate behavior unique to OpenShift or XKS (e.g., feature flag defaults).
+
 ```bash
-# From the core-bff root
+# Run both platforms (umbrella script)
 npm run test:contract
+
+# Run a single platform
+npm run test:contract:openshift   # foundation + openshift tests
+npm run test:contract:xks         # foundation + xks tests
 ```
 
 ---

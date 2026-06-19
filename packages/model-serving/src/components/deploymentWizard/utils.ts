@@ -1,4 +1,4 @@
-import { MetadataAnnotation, type SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import { MetadataAnnotation, SecretKind } from '@odh-dashboard/k8s-core';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/index';
 import {
   getDisplayNameFromK8sResource,
@@ -49,8 +49,9 @@ export const getExternalRouteFromDeployment = (deployment: Deployment): boolean 
 export const getTokenAuthenticationFromDeployment = (
   deployment: Deployment,
   deploymentSecrets: SecretKind[],
+  platformAuthCheck?: (deployment: Deployment) => boolean,
 ): TokenAuthenticationFieldData => {
-  const isTokenAuthEnabled = isDeploymentAuthEnabled(deployment);
+  const isTokenAuthEnabled = isDeploymentAuthEnabled(deployment, platformAuthCheck);
 
   if (isTokenAuthEnabled) {
     return deploymentSecrets.map((secret) => ({

@@ -14,6 +14,8 @@ export type PassThroughData = {
   url: string;
   /** Option to substitute your own content type for the API call -- defaults to JSON */
   overrideContentType?: string;
+  /** Option to set the Accept header for the outgoing API call */
+  overrideAccept?: string;
 };
 
 export const isK8sStatus = (data: unknown): data is K8sStatus =>

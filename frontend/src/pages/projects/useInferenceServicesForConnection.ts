@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { InferenceServiceKind, MetadataAnnotation, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { MetadataAnnotation, type PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { getPVCNameFromURI } from '#~/pages/modelServing/screens/projects/utils';

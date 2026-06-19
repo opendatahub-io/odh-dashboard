@@ -13,7 +13,8 @@ const (
 	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
 
 	// Subscriptions passthrough (maas-api /v1/subscriptions)
-	SubscriptionsPassthroughPath = ApiPathPrefix + "/subscriptions"
+	SubscriptionsPassthroughPath    = ApiPathPrefix + "/subscriptions"
+	SubscriptionByIDPassthroughPath = ApiPathPrefix + "/subscriptions/:id"
 
 	// General MaaS routes
 	SubscriptionPolicyFormDataPath = ApiPathPrefix + "/subscription-policy-form-data"
@@ -36,4 +37,7 @@ const (
 	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"
 	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
+
+	// Overview routes
+	ModelsOverviewPath = ApiPathPrefix + "/overview/models"
 )

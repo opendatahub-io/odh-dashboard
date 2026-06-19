@@ -1,11 +1,11 @@
 import { AlertVariant } from '@patternfly/react-core';
 import React from 'react';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '#~/concepts/connectionTypes/types';
-import { ProjectKind } from '#~/k8sTypes';
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,

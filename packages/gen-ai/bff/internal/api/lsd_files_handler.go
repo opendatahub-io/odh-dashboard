@@ -2,12 +2,14 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -22,8 +24,15 @@ type FileUploadResponse = llamastack.APIResponse
 func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	err := r.ParseMultipartForm(32 << 20) // 32MB max memory
+	r.Body = http.MaxBytesReader(w, r.Body, constants.FileUploadMaxBodySize)
+
+	err := r.ParseMultipartForm(constants.FileUploadMaxBodySize)
 	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, maxBytesErr.Limit)
+			return
+		}
 		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart form: %w", err))
 		return
 	}
@@ -278,4 +287,93 @@ func (app *App) LlamaStackFileUploadStatusHandler(w http.ResponseWriter, r *http
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// LlamaStackMediaFileUploadHandler handles POST /gen-ai/api/v1/lsd/files/media.
+// Synchronous proxy to OGX Files API for media file uploads (vision images, audio).
+// The required "type" form field drives MIME validation and OGX purpose mapping.
+func (app *App) LlamaStackMediaFileUploadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	start := time.Now()
+
+	// Use the largest configured limit for initial body parsing.
+	// Per-type size validation happens after reading the type field.
+	r.Body = http.MaxBytesReader(w, r.Body, constants.MediaUploadMaxBodySize)
+	if err := r.ParseMultipartForm(constants.MediaUploadMaxBodySize); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, maxBytesErr.Limit)
+			return
+		}
+		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart form: %w", err))
+		return
+	}
+	defer func() {
+		if r.MultipartForm != nil {
+			_ = r.MultipartForm.RemoveAll()
+		}
+	}()
+
+	mediaType := r.FormValue("type")
+	config, exists := constants.MediaTypeConfigs[mediaType]
+	if !exists {
+		app.badRequestResponse(w, r, fmt.Errorf("type is required; must be one of: %v", constants.SupportedMediaTypes()))
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		app.badRequestResponse(w, r, errors.New("file is required"))
+		return
+	}
+	defer file.Close()
+
+	contentType := header.Header.Get("Content-Type")
+	if !config.AllowedMIME[contentType] {
+		allowed := make([]string, 0, len(config.AllowedMIME))
+		for mime := range config.AllowedMIME {
+			allowed = append(allowed, mime)
+		}
+		app.badRequestResponse(w, r, fmt.Errorf("invalid file type '%s' for type '%s'; accepted: %v", contentType, mediaType, allowed))
+		return
+	}
+
+	if header.Size > config.MaxBodySize {
+		app.payloadTooLargeResponse(w, r, config.MaxBodySize)
+		return
+	}
+
+	app.logger.Info("Media file upload started", "type", mediaType, "filename", header.Filename, "size", header.Size, "mime", contentType)
+
+	lsClient, ok := r.Context().Value(constants.LlamaStackClientKey).(llamastack.LlamaStackClientInterface)
+	if !ok || lsClient == nil {
+		app.serviceUnavailableResponse(w, r, errors.New("OGX client not available"))
+		return
+	}
+
+	result, err := lsClient.UploadFile(r.Context(), llamastack.UploadFileParams{
+		Reader:      file,
+		Filename:    header.Filename,
+		ContentType: contentType,
+		Purpose:     config.OGXPurpose,
+	})
+	elapsed := time.Since(start).Milliseconds()
+	if err != nil {
+		app.logger.Error("Media file upload failed", "type", mediaType, "filename", header.Filename, "error", err, "duration_ms", elapsed)
+		app.handleLlamaStackClientError(w, r, err)
+		return
+	}
+
+	app.logger.Info("Media file upload complete", "type", mediaType, "filename", header.Filename, "file_id", result.FileID, "duration_ms", elapsed)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": map[string]interface{}{
+			"id":       result.FileID,
+			"object":   "file",
+			"filename": header.Filename,
+			"type":     mediaType,
+			"status":   "processed",
+		},
+	})
 }

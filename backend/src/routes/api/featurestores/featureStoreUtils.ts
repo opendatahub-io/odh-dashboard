@@ -1,33 +1,12 @@
+import * as https from 'https';
+import * as http from 'http';
+import * as k8s from '@kubernetes/client-node';
 import { KubeFastifyInstance } from '../../../types';
-import { getConfigMap } from '../../../utils/envUtils';
-import { V1ConfigMap } from '@kubernetes/client-node';
-import { groupBy } from 'lodash';
+import { DEV_MODE } from '../../../utils/constants';
+import { isImpersonating, getImpersonateAccessToken } from '../../../devFlags';
+import { getAccessToken } from '../../../utils/directCallUtils';
 
-const DEFAULT_HTTPS_PORT = '443';
-const DEFAULT_HTTP_PORT = '80';
-const FEATURE_STORE_YAML_KEY = 'feature_store.yaml';
 const REGISTRY_CONDITION_TYPE = 'Registry';
-const PROTOCOL_REGEX = /^(https?):\/\//;
-const SERVICE_NAME_REGEX = /feast-(.+)-registry\.(.+)\.svc\.cluster\.local(:\d+)?/;
-
-export interface NamespacesData {
-  namespaces: Record<string, string[]>;
-}
-
-export interface RegistryUrlInfo {
-  serviceName: string;
-  serviceNamespace: string;
-  originalUrl: string;
-  protocol: string;
-  port: string;
-}
-
-export interface ClientConfigInfo {
-  configName: string;
-  namespace: string;
-  registryUrl: string;
-  projectName: string;
-}
 
 export interface FeatureStoreCRD {
   apiVersion: string;
@@ -39,18 +18,62 @@ export interface FeatureStoreCRD {
   };
   spec?: {
     feastProject?: string;
+    services?: {
+      registry?: {
+        local?: {
+          server?: {
+            tls?: {
+              disable?: boolean;
+            };
+          };
+        };
+      };
+    };
+  };
+  status?: {
+    conditions?: Array<{
+      type: string;
+      status: string;
+      lastTransitionTime: string;
+    }>;
   };
 }
 
 export interface FeastProject {
   name?: string;
+  description?: string;
   spec?: {
     name?: string;
+    description?: string;
   };
 }
 
 export interface FeastProjectsResponse {
   projects?: FeastProject[];
+}
+
+export interface FeastIntegrationNotebook {
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: Record<string, string>;
+  };
+}
+
+export interface FeastPermission {
+  spec?: {
+    actions?: string[];
+  };
+}
+
+export interface FeastPermissionsResponse {
+  permissions?: FeastPermission[];
+}
+
+export interface ConnectedWorkbenchEntry {
+  workbenchName: string;
+  workbenchNamespace: string;
+  projectName: string;
 }
 
 export function handleError(fastify: KubeFastifyInstance, error: unknown, context: string): string {
@@ -59,62 +82,349 @@ export function handleError(fastify: KubeFastifyInstance, error: unknown, contex
   return errorMessage;
 }
 
-export const fetchConfigMap = async (
+/**
+ * Build a CustomObjectsApi that authenticates as the requesting user rather than the dashboard service-account. This is required so that K8s RBAC is enforced per-user.
+ */
+function getUserScopedCustomObjectsApi(
   fastify: KubeFastifyInstance,
-  namespace: string,
-  name: string,
-): Promise<V1ConfigMap | null> => {
-  try {
-    const configMap = await getConfigMap(fastify, namespace, name);
-    return configMap;
-  } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
-      fastify.log.warn(`ConfigMap '${name}' not found in namespace '${namespace}'`);
-      return null;
-    }
-    throw error;
-  }
-};
+  kubeHeaders: Record<string, string>,
+) {
+  const baseKc = fastify.kube.config;
+  const cluster = baseKc.getCurrentCluster();
 
-export function parseNamespacesData(configMapData: string): NamespacesData {
+  if (!cluster) {
+    throw new Error('No current cluster configured');
+  }
+
+  let token: string;
+  if (DEV_MODE) {
+    token = isImpersonating() ? getImpersonateAccessToken() : baseKc.getCurrentUser()?.token ?? '';
+  } else {
+    const accessToken = getAccessToken({ headers: kubeHeaders });
+    if (!accessToken) {
+      throw new Error('No access token provided by oauth. Cannot make user-scoped API calls.');
+    }
+    token = accessToken;
+  }
+
+  const userKc = new k8s.KubeConfig();
+  userKc.loadFromClusterAndUser(cluster, { name: 'current-user', token });
+
+  return {
+    api: userKc.makeApiClient(k8s.CustomObjectsApi),
+    opts: { headers: {} },
+  };
+}
+
+/** Lists custom objects cluster-wide or namespace-scoped using the user's token. Returns [] on 403. */
+async function listCustomObjects<T>(
+  fastify: KubeFastifyInstance,
+  kubeHeaders: Record<string, string>,
+  params: {
+    group: string;
+    version: string;
+    plural: string;
+    namespace?: string;
+    labelSelector?: string;
+    errorContext: string;
+  },
+): Promise<T[]> {
   try {
-    const parsed = JSON.parse(configMapData);
-    return {
-      namespaces: parsed.namespaces || {},
-    };
+    const { api, opts } = getUserScopedCustomObjectsApi(fastify, kubeHeaders);
+    const { group, version, plural, namespace, labelSelector } = params;
+
+    const response = namespace
+      ? ((await api.listNamespacedCustomObject(
+          group,
+          version,
+          namespace,
+          plural,
+          undefined,
+          undefined,
+          undefined,
+          labelSelector,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          opts,
+        )) as { body: { items?: T[] } })
+      : ((await api.listClusterCustomObject(
+          group,
+          version,
+          plural,
+          undefined,
+          undefined,
+          undefined,
+          labelSelector,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          opts,
+        )) as { body: { items?: T[] } });
+
+    return response.body.items || [];
   } catch (error) {
-    throw new Error(
-      `Failed to parse namespaces data: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    const statusCode =
+      error && typeof error === 'object' && 'statusCode' in error
+        ? (error as { statusCode: number }).statusCode
+        : undefined;
+
+    if (statusCode === 403) {
+      fastify.log.debug(`Access denied (403): ${params.errorContext} - skipping`);
+      return [];
+    }
+
+    handleError(fastify, error, params.errorContext);
+    return [];
   }
 }
 
-export function extractServiceInfo(registryUrl: string): RegistryUrlInfo {
-  const protocolMatch = registryUrl.match(PROTOCOL_REGEX);
-  const protocol = protocolMatch ? protocolMatch[1] : 'https';
+/**
+ * Lists OpenShift projects accessible to the user with the `opendatahub.io/feast=true` label.
+ * DEV_MODE impersonation headers (Impersonate-User) are forwarded via kubeHeaders.
+ */
+export async function listFeastNamespaces(
+  fastify: KubeFastifyInstance,
+  kubeHeaders: Record<string, string>,
+): Promise<string[]> {
+  const items = await listCustomObjects<{ metadata: { name: string } }>(fastify, kubeHeaders, {
+    group: 'project.openshift.io',
+    version: 'v1',
+    plural: 'projects',
+    labelSelector: 'opendatahub.io/feast=true',
+    errorContext: 'Failed to list Feast namespaces for user',
+  });
+  return items.map((p) => p.metadata.name).filter(Boolean);
+}
 
-  const urlWithoutProtocol = registryUrl.replace(PROTOCOL_REGEX, '');
-  const serviceMatch = urlWithoutProtocol.match(SERVICE_NAME_REGEX);
+/**
+ * Lists all OpenShift projects accessible to the user (no label filter).
+ * Used to discover feast-integrated workbenches across namespaces the user can see.
+ */
+export async function listUserOpenShiftProjects(
+  fastify: KubeFastifyInstance,
+  kubeHeaders: Record<string, string>,
+): Promise<string[]> {
+  const items = await listCustomObjects<{ metadata: { name: string } }>(fastify, kubeHeaders, {
+    group: 'project.openshift.io',
+    version: 'v1',
+    plural: 'projects',
+    errorContext: 'Failed to list OpenShift projects for user',
+  });
+  return items.map((p) => p.metadata.name).filter(Boolean);
+}
 
-  if (!serviceMatch) {
-    throw new Error(`Invalid registry URL format: ${registryUrl}`);
+/**
+ * Lists Notebook CRs with `opendatahub.io/feast-integration=true` in a namespace.
+ * Returns [] on 403.
+ */
+export async function listFeastIntegrationNotebooks(
+  fastify: KubeFastifyInstance,
+  namespace: string,
+  kubeHeaders: Record<string, string>,
+): Promise<FeastIntegrationNotebook[]> {
+  return listCustomObjects<FeastIntegrationNotebook>(fastify, kubeHeaders, {
+    group: 'kubeflow.org',
+    version: 'v1',
+    plural: 'notebooks',
+    namespace,
+    labelSelector: 'opendatahub.io/feast-integration=true',
+    errorContext: `Failed to list feast-integrated notebooks in ${namespace}`,
+  });
+}
+
+/**
+ * Lists Feast projects from the registry for a FeatureStore CRD. Returns null on failure.
+ */
+export async function fetchFeastProjectsFromRegistry(
+  fastify: KubeFastifyInstance,
+  crd: FeatureStoreCRD,
+  token: string,
+): Promise<FeastProjectsResponse | null> {
+  try {
+    const { serviceName, namespace, protocol, port } = getServiceFromCRD(crd);
+    const registryUrl = constructRegistryProxyUrl(
+      serviceName,
+      namespace,
+      'api/v1/projects',
+      true,
+      protocol,
+      port,
+    );
+    const { data, statusCode } = await makeAuthenticatedHttpRequest<FeastProjectsResponse>(
+      fastify,
+      registryUrl,
+      token,
+      {},
+    );
+
+    if (statusCode < 200 || statusCode >= 300) {
+      throw new Error(`Registry returned ${statusCode}`);
+    }
+
+    return data;
+  } catch (error) {
+    fastify.log.info(
+      `Projects list for ${crd.metadata.namespace}/${crd.metadata.name}: unavailable ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+    return null;
+  }
+}
+
+/**
+ * Returns whether the user can see the Feast project and its description (one registry call).
+ */
+export async function getFeastProjectRegistryInfo(
+  fastify: KubeFastifyInstance,
+  crd: FeatureStoreCRD,
+  feastProjectName: string,
+  token: string,
+): Promise<{ hasAccess: boolean; description?: string }> {
+  const data = await fetchFeastProjectsFromRegistry(fastify, crd, token);
+  if (!data) {
+    return { hasAccess: false };
   }
 
-  const extractedName = serviceMatch[1];
-  const extractedNamespace = serviceMatch[2];
-  const portMatch = serviceMatch[3];
-
-  const serviceName = `feast-${extractedName}-registry-rest`;
-  // Extract port number, default based on protocol
-  const defaultPort = protocol === 'https' ? DEFAULT_HTTPS_PORT : DEFAULT_HTTP_PORT;
-  const port = portMatch ? portMatch.substring(1) : defaultPort;
+  const project = (data.projects ?? []).find((p) => (p.spec?.name || p.name) === feastProjectName);
+  const rawDescription = project?.spec?.description ?? project?.description;
+  const description = rawDescription?.trim() || undefined;
 
   return {
-    serviceName,
-    serviceNamespace: extractedNamespace,
-    originalUrl: registryUrl,
-    protocol,
-    port,
+    hasAccess: !!project,
+    description,
+  };
+}
+
+export function extractPermissionLevel(data: FeastPermissionsResponse): string[] {
+  const actions = new Set<string>();
+  for (const permission of data.permissions ?? []) {
+    for (const action of permission.spec?.actions ?? []) {
+      actions.add(action);
+    }
+  }
+  return [...actions];
+}
+
+/**
+ * Maps feast project name → workbenches that reference it via the feast-config annotation.
+ */
+export function buildWorkbenchesByFeastProjectMap(
+  notebooks: FeastIntegrationNotebook[],
+): Map<string, ConnectedWorkbenchEntry[]> {
+  const map = new Map<string, ConnectedWorkbenchEntry[]>();
+
+  for (const notebook of notebooks) {
+    const feastConfig = notebook.metadata.annotations?.['opendatahub.io/feast-config'];
+    if (!feastConfig) {
+      continue;
+    }
+
+    const workbenchNamespace = notebook.metadata.namespace;
+    const entry: ConnectedWorkbenchEntry = {
+      workbenchName: notebook.metadata.name,
+      workbenchNamespace,
+      projectName: workbenchNamespace,
+    };
+
+    feastConfig
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean)
+      .forEach((feastProjectName) => {
+        const existing = map.get(feastProjectName) ?? [];
+        existing.push(entry);
+        map.set(feastProjectName, existing);
+      });
+  }
+
+  return map;
+}
+
+/**
+ * Lists FeatureStore CRDs with the `feature-store-ui=enabled` label in a namespace.
+ * Returns [] on 403 so inaccessible namespaces don't break the full listing.
+ */
+export async function listFeastFeatureStoreCRDs(
+  fastify: KubeFastifyInstance,
+  namespace: string,
+  kubeHeaders: Record<string, string>,
+): Promise<FeatureStoreCRD[]> {
+  return listCustomObjects<FeatureStoreCRD>(fastify, kubeHeaders, {
+    group: 'feast.dev',
+    version: 'v1',
+    plural: 'featurestores',
+    namespace,
+    labelSelector: 'feature-store-ui=enabled',
+    errorContext: `Failed to list FeatureStore CRDs in ${namespace}`,
+  });
+}
+
+/**
+ * Fetches a single FeatureStore CRD by name.
+ * Accepts the full kubeHeaders so impersonation headers are forwarded.
+ * Returns null on 403/404.
+ */
+export async function getFeastFeatureStoreCRD(
+  fastify: KubeFastifyInstance,
+  namespace: string,
+  name: string,
+  kubeHeaders: Record<string, string>,
+): Promise<FeatureStoreCRD | null> {
+  try {
+    const { api, opts } = getUserScopedCustomObjectsApi(fastify, kubeHeaders);
+
+    const response = (await api.getNamespacedCustomObject(
+      'feast.dev',
+      'v1',
+      namespace,
+      'featurestores',
+      name,
+      opts,
+    )) as { body: FeatureStoreCRD };
+
+    return response.body;
+  } catch (error) {
+    const statusCode =
+      error && typeof error === 'object' && 'statusCode' in error
+        ? (error as { statusCode: number }).statusCode
+        : undefined;
+
+    if (statusCode === 403 || statusCode === 404) {
+      return null;
+    }
+
+    handleError(fastify, error, `Failed to get FeatureStore CRD ${namespace}/${name}`);
+    return null;
+  }
+}
+
+/**
+ * Returns true if the FeatureStore CRD has a ready Registry condition.
+ */
+export function isRegistryReady(crd: FeatureStoreCRD): boolean {
+  return !!crd.status?.conditions?.find((c) => c.type === 'Registry' && c.status === 'True');
+}
+
+/**
+ * Derives the Feast registry REST service name and namespace from a CRD.
+ * Convention: service name = `feast-{crd.metadata.name}-registry-rest`
+ */
+export function getServiceFromCRD(crd: FeatureStoreCRD): {
+  serviceName: string;
+  namespace: string;
+  protocol: 'http' | 'https';
+  port: string;
+} {
+  const tlsDisabled = crd.spec?.services?.registry?.local?.server?.tls?.disable === true;
+  return {
+    serviceName: `feast-${crd.metadata.name}-registry-rest`,
+    namespace: crd.metadata.namespace,
+    protocol: tlsDisabled ? 'http' : 'https',
+    port: tlsDisabled ? '80' : '443',
   };
 }
 
@@ -148,18 +458,6 @@ export function constructRegistryProxyUrl(
   }
 
   return `${protocol}://${serviceName}.${serviceNamespace}.svc.cluster.local:${port}/${path}`;
-}
-
-export function findRegistryUrlForFeatureStore(
-  featureStoreName: string,
-  registryUrls: ClientConfigInfo[],
-): string | null {
-  for (const registryInfo of registryUrls) {
-    if (registryInfo.projectName === featureStoreName) {
-      return registryInfo.registryUrl;
-    }
-  }
-  return null;
 }
 
 export function createFeatureStoreResponse(
@@ -200,121 +498,6 @@ export function createFeatureStoreResponse(
   };
 }
 
-export function filterEnabledCRDs(crds: FeatureStoreCRD[]): FeatureStoreCRD[] {
-  return crds.filter((crd) => crd.metadata?.labels?.['feature-store-ui'] === 'enabled');
-}
-
-function parseFeatureStoreConfigMap(
-  configMap: V1ConfigMap,
-): { registryUrl: string; projectName: string } | null {
-  if (!configMap.data?.[FEATURE_STORE_YAML_KEY]) {
-    return null;
-  }
-
-  const yamlContent = configMap.data[FEATURE_STORE_YAML_KEY];
-
-  const registryMatch = yamlContent.match(/registry:\s*\n\s*path:\s*(.+)/);
-  if (!registryMatch) {
-    return null;
-  }
-
-  const registryUrl = registryMatch[1].trim();
-  const projectMatch = yamlContent.match(/^project:\s*(.+)$/m);
-  const projectName = projectMatch ? projectMatch[1].trim() : 'unknown';
-
-  return { registryUrl, projectName };
-}
-
-export async function getClientConfigs(
-  fastify: KubeFastifyInstance,
-  namespaces: Record<string, string[]>,
-  labelSelector?: string,
-): Promise<ClientConfigInfo[]> {
-  const clientConfigs: ClientConfigInfo[] = [];
-
-  for (const [ns, configNames] of Object.entries(namespaces)) {
-    if (!Array.isArray(configNames)) continue;
-
-    for (const configName of configNames) {
-      try {
-        const clientConfig = await getConfigMap(fastify, ns, configName);
-
-        if (labelSelector) {
-          const labels = clientConfig.metadata?.labels || {};
-          const [key, value] = labelSelector.split('=');
-          if (labels[key] !== value) {
-            continue;
-          }
-        }
-
-        const parsed = parseFeatureStoreConfigMap(clientConfig);
-        if (!parsed) {
-          continue;
-        }
-
-        clientConfigs.push({
-          configName,
-          namespace: ns,
-          registryUrl: parsed.registryUrl,
-          projectName: parsed.projectName,
-        });
-      } catch (error) {
-        fastify.log.warn(
-          `Failed to process config ${configName} in namespace ${ns}: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-    }
-  }
-
-  return clientConfigs;
-}
-
-export async function fetchFromRegistry(
-  fastify: KubeFastifyInstance,
-  registryUrl: string,
-  userToken?: string,
-): Promise<Array<{ name: string; project?: string }>> {
-  try {
-    const serviceInfo = extractServiceInfo(registryUrl);
-    const { protocol, port } = serviceInfo;
-
-    const directUrl = constructRegistryProxyUrl(
-      serviceInfo.serviceName,
-      serviceInfo.serviceNamespace,
-      'api/v1/projects',
-      false,
-      protocol,
-      port,
-    );
-
-    const { data } = await makeAuthenticatedHttpRequest<FeastProjectsResponse>(
-      fastify,
-      directUrl,
-      userToken,
-      {
-        rejectUnauthorized: false, // Skip TLS verification for internal services
-      },
-    );
-
-    const result =
-      data.projects?.map((project: FeastProject) => ({
-        name: project.name || project.spec?.name || 'unknown',
-        project: project.name || project.spec?.name || 'unknown',
-      })) || [];
-
-    return result;
-  } catch (error) {
-    fastify.log.warn(
-      `Failed to fetch from registry ${registryUrl}: ${
-        error instanceof Error ? error.message : String(error)
-      }. This is expected when running locally or when feast registry is not configured.`,
-    );
-    throw error;
-  }
-}
-
 export async function makeAuthenticatedHttpRequest<T = unknown>(
   fastify: KubeFastifyInstance,
   url: string,
@@ -327,8 +510,6 @@ export async function makeAuthenticatedHttpRequest<T = unknown>(
 ): Promise<{ data: T; statusCode: number }> {
   const { timeout = 60000, rejectUnauthorized = false, agent } = options;
 
-  const https = require('https');
-  const http = require('http');
   const urlObj = new URL(url);
 
   const isHttps = urlObj.protocol === 'https:';
@@ -382,96 +563,4 @@ export async function makeAuthenticatedHttpRequest<T = unknown>(
 
     req.end();
   });
-}
-
-export async function batchFetchConfigMapsByNamespace(
-  fastify: KubeFastifyInstance,
-  clientConfigsData: ClientConfigInfo[],
-): Promise<Map<string, V1ConfigMap>> {
-  const configMapMap = new Map<string, V1ConfigMap>();
-
-  const configsByNamespace = groupBy(clientConfigsData, 'namespace');
-
-  const namespacePromises = Object.entries(configsByNamespace).map(async ([namespace]) => {
-    try {
-      const response = await fastify.kube.coreV1Api.listNamespacedConfigMap(namespace);
-      const configMaps = response.body.items || [];
-
-      configMaps.forEach((configMap) => {
-        const name = configMap.metadata?.name;
-        if (name) {
-          configMapMap.set(`${namespace}/${name}`, configMap);
-        }
-      });
-    } catch (error) {
-      fastify.log.warn(`Failed to list ConfigMaps in namespace ${namespace}: ${error.message}`);
-    }
-  });
-
-  await Promise.all(namespacePromises);
-  return configMapMap;
-}
-
-export async function getClientConfigsBatched(
-  fastify: KubeFastifyInstance,
-  namespaces: Record<string, string[]>,
-  labelSelector?: string,
-): Promise<ClientConfigInfo[]> {
-  const clientConfigs: ClientConfigInfo[] = [];
-
-  const allConfigs: ClientConfigInfo[] = [];
-  for (const [ns, configNames] of Object.entries(namespaces)) {
-    if (!Array.isArray(configNames)) continue;
-    for (const configName of configNames) {
-      allConfigs.push({
-        configName,
-        namespace: ns,
-        registryUrl: '',
-        projectName: '',
-      });
-    }
-  }
-
-  const configMapMap = await batchFetchConfigMapsByNamespace(fastify, allConfigs);
-
-  for (const config of allConfigs) {
-    try {
-      const clientConfig = configMapMap.get(`${config.namespace}/${config.configName}`);
-
-      if (!clientConfig) {
-        fastify.log.warn(
-          `ConfigMap ${config.configName} not found in namespace ${config.namespace}`,
-        );
-        continue;
-      }
-
-      if (labelSelector) {
-        const labels = clientConfig.metadata?.labels || {};
-        const [key, value] = labelSelector.split('=');
-        if (labels[key] !== value) {
-          continue;
-        }
-      }
-
-      const parsed = parseFeatureStoreConfigMap(clientConfig);
-      if (!parsed) {
-        continue;
-      }
-
-      clientConfigs.push({
-        configName: config.configName,
-        namespace: config.namespace,
-        registryUrl: parsed.registryUrl,
-        projectName: parsed.projectName,
-      });
-    } catch (error) {
-      fastify.log.warn(
-        `Failed to process config ${config.configName} in namespace ${config.namespace}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
-  }
-
-  return clientConfigs;
 }

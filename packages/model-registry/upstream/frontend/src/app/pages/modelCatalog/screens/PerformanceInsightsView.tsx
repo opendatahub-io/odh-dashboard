@@ -29,11 +29,10 @@ import {
 import {
   decodeParams,
   getActiveLatencyFieldName,
+  filterRegularPerformanceArtifacts,
+  resolveHardwareConfigurations,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import {
-  applyFilterValue,
-  getDefaultFiltersFromNamedQuery,
-} from '~/app/pages/modelCatalog/utils/performanceFilterUtils';
+import { getDefaultFiltersFromNamedQuery } from '~/app/pages/modelCatalog/utils/performanceFilterUtils';
 import TensorTypeComparisonCard from './TensorTypeComparisonCard';
 
 const HARDWARE_CONFIG_PAGE_SIZE = 20;
@@ -46,10 +45,10 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ model
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const {
-    filterData,
+    filters,
     filterOptions,
     filterOptionsLoaded,
-    setFilterData,
+    setFilters,
     setLastViewedModelName,
     setPerformanceFiltersChangedOnDetailsPage,
   } = React.useContext(ModelCatalogContext);
@@ -62,16 +61,21 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ model
     }
 
     // Check if any performance filter already has a value
-    const hasUseCaseValue = filterData[ModelCatalogStringFilterKey.USE_CASE].length > 0;
-    const hasRpsValue = filterData[ModelCatalogNumberFilterKey.MAX_RPS] !== undefined;
-    const hasLatencyValue = getActiveLatencyFieldName(filterData) !== undefined;
+    const hasUseCaseValue = filters[ModelCatalogStringFilterKey.USE_CASE].length > 0;
+    const hasRpsValue = filters[ModelCatalogNumberFilterKey.MAX_RPS] !== undefined;
+    const hasLatencyValue = getActiveLatencyFieldName(filters) !== undefined;
 
     // If no performance filters are set, apply defaults
     if (!hasUseCaseValue && !hasRpsValue && !hasLatencyValue) {
       const defaultQuery = filterOptions.namedQueries[DEFAULT_PERFORMANCE_FILTERS_QUERY_NAME];
       const defaults = getDefaultFiltersFromNamedQuery(filterOptions, defaultQuery);
-      Object.entries(defaults).forEach(([filterKey, value]) => {
-        applyFilterValue(setFilterData, filterKey, value);
+      setFilters((prev) => {
+        const next = { ...prev };
+        Object.entries(defaults).forEach(([filterKey, value]) => {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- dynamic filter key from namedQueries
+          (next as Record<string, unknown>)[filterKey] = value;
+        });
+        return next;
       });
     }
     // Only run on mount when filterOptions become available
@@ -79,10 +83,10 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ model
   }, [filterOptionsLoaded]);
 
   // Get performance-specific filter params for the /performance_artifacts endpoint
-  const targetRPS = filterData[ModelCatalogNumberFilterKey.MAX_RPS];
+  const targetRPS = filters[ModelCatalogNumberFilterKey.MAX_RPS];
 
   // Get full filter key and convert to short property key for the catalog API
-  const latencyFieldName = getActiveLatencyFieldName(filterData);
+  const latencyFieldName = getActiveLatencyFieldName(filters);
 
   const latencyProperty = latencyFieldName
     ? parseLatencyFilterKey(latencyFieldName).propertyKey
@@ -107,7 +111,7 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ model
       orderBy: tableSort.orderBy,
       sortOrder: tableSort.sortOrder,
     },
-    filterData,
+    filters,
     filterOptions,
   );
 
@@ -126,6 +130,16 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ model
     setLastViewedModelName,
     model.name,
   ]);
+
+  const regularPerformanceArtifacts = React.useMemo(
+    () => filterRegularPerformanceArtifacts(performanceArtifacts.items),
+    [performanceArtifacts.items],
+  );
+
+  const hardwareConfigurations = React.useMemo(
+    () => resolveHardwareConfigurations(performanceArtifacts.items, model.customProperties),
+    [performanceArtifacts.items, model.customProperties],
+  );
 
   if (performanceArtifactsError) {
     return (
@@ -160,7 +174,8 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ model
               </FlexItem>
               <FlexItem>
                 <HardwareConfigurationTable
-                  performanceArtifacts={performanceArtifacts.items}
+                  performanceArtifacts={regularPerformanceArtifacts}
+                  hardwareConfigurations={hardwareConfigurations}
                   isLoading={!performanceArtifactsLoaded && performanceArtifacts.items.length === 0}
                   onSortChange={setTableSort}
                 />

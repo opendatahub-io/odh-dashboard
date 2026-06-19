@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Content, ContentVariants, Timestamp, Flex, FlexItem } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { ProjectKind } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import useProjectTableRowItems from '#~/pages/projects/screens/projects/useProjectTableRowItems';
 import { getProjectOwner, isAiProject } from '#~/concepts/projects/utils';
 import { TableRowTitleDescription } from '#~/components/table';

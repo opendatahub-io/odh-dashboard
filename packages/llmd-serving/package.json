@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/llmd-serving",
   "description": "Support for LLM-d model serving deployments via kserve",
   "version": "0.0.0",
+  "e2eCiTags": ["@LLMDServingCI"],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -19,11 +20,21 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/kserve": "*",
     "@odh-dashboard/model-serving": "*",
-    "@odh-dashboard/kserve": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-core": "^6",
+    "react": "^18",
+    "react-dom": "^18"
   }
 }

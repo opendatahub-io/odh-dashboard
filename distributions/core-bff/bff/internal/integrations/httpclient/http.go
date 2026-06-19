@@ -1,4 +1,5 @@
-package mrserver
+// Package httpclient provides an HTTP client for upstream service communication.
+package httpclient
 
 import (
 	"context"
@@ -11,17 +12,19 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	helper "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 )
 
 const maxResponseBodySize = 10 << 20 // 10 MB
 
+// HTTPClientInterface defines the interface for HTTP client operations.
 type HTTPClientInterface interface {
 	GET(ctx context.Context, url string) ([]byte, error)
 	POST(ctx context.Context, url string, body io.Reader) ([]byte, error)
 	PATCH(ctx context.Context, url string, body io.Reader) ([]byte, error)
 }
 
+// HTTPClient implements HTTPClientInterface for making HTTP requests.
 type HTTPClient struct {
 	client    *http.Client
 	baseURL   string
@@ -30,11 +33,13 @@ type HTTPClient struct {
 	Headers   http.Header
 }
 
+// ErrorResponse represents an HTTP error response body.
 type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
+// HTTPError represents an HTTP error with status code and error details.
 type HTTPError struct {
 	StatusCode int `json:"-"`
 	ErrorResponse
@@ -44,13 +49,17 @@ func (e *HTTPError) Error() string {
 	return fmt.Sprintf("HTTP %d: %s - %s", e.StatusCode, e.Code, e.Message)
 }
 
-func NewHTTPClient(logger *slog.Logger, RequestID string, baseURL string, headers http.Header, insecureSkipVerify bool) (HTTPClientInterface, error) {
+// NewHTTPClient creates a new HTTP client instance.
+func NewHTTPClient(logger *slog.Logger, requestID string, baseURL string, headers http.Header, insecureSkipVerify bool) (HTTPClientInterface, error) {
 	return &HTTPClient{
 		client: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify}, //nolint:gosec // G402: controlled by CLI flag, dev-only
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				InsecureSkipVerify: insecureSkipVerify, //nolint:gosec // G402: controlled by CLI flag, dev-only
+			},
 		}},
 		baseURL:   baseURL,
-		RequestID: RequestID,
+		RequestID: requestID,
 		logger:    logger,
 		Headers:   headers,
 	}, nil
@@ -95,7 +104,7 @@ func (c *HTTPClient) doRequest(ctx context.Context, method, url string, body io.
 	defer response.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBodySize))
-	logUpstreamResp(c.logger, requestID, response, respBody)
+	logUpstreamResp(c.logger, requestID, response)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
@@ -141,10 +150,10 @@ func (c *HTTPClient) applyHeaders(req *http.Request) {
 	}
 }
 
-func logUpstreamReq(logger *slog.Logger, reqId string, req *http.Request) {
-	logger.Debug("Making upstream HTTP request", slog.String("request_id", reqId), slog.Any("request", helper.RequestLogValuer{Request: req}))
+func logUpstreamReq(logger *slog.Logger, reqID string, req *http.Request) {
+	logger.Debug("Making upstream HTTP request", slog.String("request_id", reqID), slog.Any("request", helpers.RequestLogValuer{Request: req}))
 }
 
-func logUpstreamResp(logger *slog.Logger, reqId string, resp *http.Response, body []byte) {
-	logger.Debug("Received upstream HTTP response", slog.String("request_id", reqId), slog.Any("response", helper.ResponseLogValuer{Response: resp}))
+func logUpstreamResp(logger *slog.Logger, reqID string, resp *http.Response) {
+	logger.Debug("Received upstream HTTP response", slog.String("request_id", reqID), slog.Any("response", helpers.ResponseLogValuer{Response: resp}))
 }
