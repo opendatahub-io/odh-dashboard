@@ -29,13 +29,11 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
     return !Array.isArray(value) || value.length > 0;
   });
   const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
+  paramEntries.push(['Evaluation metric', formatMetricName(evalMetric)]);
+  paramEntries.push(['Created on', createdAt ? new Date(createdAt).toLocaleString() : '-']);
 
   const maxTermWidth = React.useMemo(
-    () =>
-      paramEntries.reduce(
-        (max, [key]) => Math.max(max, formatMetricName(key).length),
-        'Evaluation metric'.length, // longest hardcoded term
-      ),
+    () => paramEntries.reduce((max, [key]) => Math.max(max, formatMetricName(key).length), 0),
     [paramEntries],
   );
 
@@ -60,16 +58,6 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
             </DescriptionListDescription>
           </DescriptionListGroup>
         ))}
-        <DescriptionListGroup>
-          <DescriptionListTerm>Evaluation metric</DescriptionListTerm>
-          <DescriptionListDescription>{formatMetricName(evalMetric)}</DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Created on</DescriptionListTerm>
-          <DescriptionListDescription>
-            {createdAt ? new Date(createdAt).toLocaleString() : '-'}
-          </DescriptionListDescription>
-        </DescriptionListGroup>
       </DescriptionList>
     </>
   );
