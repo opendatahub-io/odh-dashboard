@@ -28,6 +28,14 @@ rules:
     resources:
       - opentelemetrycollectors
   - apiGroups:
+      - mlflow.kubeflow.org
+    verbs:
+      - get
+      - list
+      - create
+    resources:
+      - experiments
+  - apiGroups:
       - authorization.k8s.io
     verbs:
       - create
