@@ -199,6 +199,8 @@ Run whichever the user picks. If a reviewer fails (e.g. CR CLI not installed or 
 
 Read [references/checks.md](references/checks.md) for the full list of checks and how to run each one in each context (PR synced, PR not synced, no PR).
 
+**Downstream Dockerfile Sync** — only evaluate this check when `Dockerfile.workspace` files appear in the changed-files list from Step 1. If no Dockerfile.workspace files were changed, report ➖ and move on — do not run any diff commands for this check.
+
 Statuses:
 - ✅ passed · ❌ failed · ⚠️ warning · ⏭️ covered by CI (same commit) · ➖ not applicable
 

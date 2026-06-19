@@ -34,6 +34,7 @@ The review `body` field contains the full preflight report. Format:
 | Jira | ❌ | No Jira key found |
 | Test Coverage | ⚠️ | No test files added |
 | PR Body | ⚠️ | Minimal — missing template sections |
+| Downstream Sync | ⚠️ | New package COPY: `k8s-core`; Go version bump `1.24`→`1.26`. Update downstream `Dockerfile.konflux.*` |
 | Review | 🟡 3 minor · 🧹 2 nits | See inline comments + nits below |
 
 </details>
