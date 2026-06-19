@@ -46,7 +46,7 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
-            - containerPort: 8080
+            - containerPort: 8443
               name: metrics
               protocol: TCP
             - containerPort: 8081
@@ -55,6 +55,9 @@ spec:
           volumeMounts:
             - name: webhook-certs
               mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
+            - name: metrics-certs
+              mountPath: /tmp/k8s-metrics-server/serving-certs
               readOnly: true
             - name: odh-trusted-ca-bundle
               mountPath: /etc/pki/tls/custom-certs
@@ -82,6 +85,9 @@ spec:
         - name: webhook-certs
           secret:
             secretName: dashboard-operator-webhook-tls
+        - name: metrics-certs
+          secret:
+            secretName: dashboard-operator-metrics-tls
         - name: odh-trusted-ca-bundle
           configMap:
             name: odh-trusted-ca-bundle
