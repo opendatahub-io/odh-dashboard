@@ -17,7 +17,14 @@ function NoPipelineServer({ namespace }: NoPipelineServerProps): React.JSX.Eleme
   return (
     <EmptyDetailsView
       title="Configure a compatible pipeline server"
-      description="To use AutoML, you need access to a pipeline server with AutoML and AutoRAG enabled. Create or edit a pipeline server on the Pipelines page."
+      description={
+        <>
+          To use AutoML, go to the <strong>Pipelines</strong> page, then create a new pipeline
+          server or edit an existing one using <strong>Manage pipeline server configuration</strong>
+          . Under <strong>Advanced settings</strong>, check the{' '}
+          <strong>Enable AutoML and AutoRAG pipelines</strong> option.
+        </>
+      }
       iconImage={typedEmptyImage(ProjectObjectType.pipeline, 'MissingModel')}
       imageAlt=""
       createButton={
