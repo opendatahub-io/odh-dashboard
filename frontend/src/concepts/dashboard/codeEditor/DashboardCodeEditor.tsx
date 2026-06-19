@@ -7,6 +7,8 @@ import './DashboardCodeEditor.scss';
 import { useThemeContext } from '#~/app/ThemeContext';
 
 loader.config({ monaco });
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+(window as any).monaco = monaco; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 type DashboardCodeEditorProps = Omit<CodeEditorProps, 'ref'> & {
   testId?: string;
