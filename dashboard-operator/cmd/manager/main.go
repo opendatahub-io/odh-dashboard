@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"os"
@@ -39,14 +40,16 @@ func main() {
 		metricsAddr       string
 		healthProbeAddr   string
 		leaderElect       bool
+		secureMetrics     bool
 		operatorNamespace string
 		webhookPort       int
 	)
 
 	flag.StringVar(&manifestsBasePath, "manifests-base-path", "/opt/manifests/dashboard", "Base path for dashboard manifests")
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "Address the metrics endpoint binds to")
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "Address the metrics endpoint binds to")
 	flag.StringVar(&healthProbeAddr, "health-probe-bind-address", ":8081", "Address the health probe endpoint binds to")
 	flag.BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager")
+	flag.BoolVar(&secureMetrics, "secure-metrics", true, "Serve metrics over HTTPS using cert-manager certificates")
 	flag.StringVar(&operatorNamespace, "namespace", "", "Namespace where the operator is deployed")
 	flag.IntVar(&webhookPort, "webhook-port", 9443, "Port the webhook server binds to")
 
@@ -70,9 +73,21 @@ func main() {
 		applicationsNamespace = operatorNamespace
 	}
 
+	metricsOpts := metricsserver.Options{BindAddress: metricsAddr}
+	if secureMetrics {
+		metricsOpts.SecureServing = true
+		metricsOpts.CertDir = "/tmp/k8s-metrics-server/serving-certs"
+		metricsOpts.TLSOpts = []func(*tls.Config){
+			func(c *tls.Config) {
+				c.MinVersion = tls.VersionTLS12
+				c.NextProtos = []string{"http/1.1"}
+			},
+		}
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
-		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
+		Metrics:                metricsOpts,
 		HealthProbeBindAddress: healthProbeAddr,
 		LeaderElection:         leaderElect,
 		LeaderElectionID:       "dashboard.components.platform.opendatahub.io",
