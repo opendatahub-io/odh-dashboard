@@ -3,11 +3,41 @@
  * Only handles task nodes -- no artifact nodes.
  */
 import { RunStatus } from '@patternfly/react-topology';
-import { RuntimeStateKF, RunDetailsKF } from '~/app/types/pipeline';
+import { RuntimeStateKF, RunDetailsKF, TaskDetailKF } from '~/app/types/pipeline';
 import { PipelineTaskRunStatus } from '~/app/types/topology';
+
+const statusWeight = (status?: RuntimeStateKF): number => {
+  switch (status) {
+    case RuntimeStateKF.PENDING:
+      return 10;
+    case RuntimeStateKF.RUNNING:
+      return 20;
+    case RuntimeStateKF.SKIPPED:
+      return 30;
+    case RuntimeStateKF.PAUSED:
+      return 40;
+    case RuntimeStateKF.CANCELED:
+      return 51;
+    case RuntimeStateKF.CANCELING:
+      return 59;
+    case RuntimeStateKF.SUCCEEDED:
+      return 60;
+    case RuntimeStateKF.FAILED:
+      return 70;
+    case RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED:
+    default:
+      return 0;
+  }
+};
+
+const lowestProgress = (details: TaskDetailKF[]): TaskDetailKF['state'] =>
+  details.toSorted(
+    ({ state: stateA }, { state: stateB }) => statusWeight(stateB) - statusWeight(stateA),
+  )[0].state;
 
 /**
  * Get the run status of a task from the RunDetailsKF (task_details array).
+ * Considers both the main task and its driver task, picking the worst status.
  */
 export const parseRuntimeInfoFromRunDetails = (
   taskId: string,
@@ -17,19 +47,20 @@ export const parseRuntimeInfoFromRunDetails = (
     return undefined;
   }
 
-  const taskDetail = runDetails.task_details.find(
-    (td) => td.display_name === taskId || td.task_id === taskId,
+  const nameVariants = [taskId, `${taskId}-driver`];
+  const matchingDetails = runDetails.task_details.filter(
+    (td) => nameVariants.includes(td.display_name ?? '') || nameVariants.includes(td.task_id),
   );
 
-  if (!taskDetail) {
+  if (matchingDetails.length === 0) {
     return undefined;
   }
 
   return {
-    startTime: taskDetail.start_time,
-    completeTime: taskDetail.end_time,
-    state: taskDetail.state,
-    taskId: taskDetail.task_id,
+    startTime: matchingDetails[0].start_time,
+    completeTime: matchingDetails[0].end_time,
+    state: lowestProgress(matchingDetails),
+    taskId: matchingDetails[0].task_id,
   };
 };
 
