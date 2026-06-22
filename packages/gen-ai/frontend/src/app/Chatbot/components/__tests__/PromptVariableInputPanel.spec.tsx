@@ -118,4 +118,13 @@ describe('PromptVariableInputPanel', () => {
     expect(screen.getByPlaceholderText('Enter value for role')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Enter value for topic')).toBeInTheDocument();
   });
+
+  it('should disable all variable inputs when isDisabled is true', () => {
+    render(<PromptVariableInputPanel {...defaultProps} isDisabled />);
+
+    const inputs = screen.getAllByRole('textbox');
+    inputs.forEach((input) => {
+      expect(input).toBeDisabled();
+    });
+  });
 });

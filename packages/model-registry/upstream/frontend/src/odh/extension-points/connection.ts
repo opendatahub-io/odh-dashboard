@@ -1,4 +1,5 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 import type {
   ModelLocationType,
   RegistrationCommonFormData,
@@ -25,7 +26,7 @@ export type AutofillConnectionButtonExtension = Extension<
   }
 >;
 
-export const isAutofillConnectionButtonExtension = (
-  extension: Extension,
-): extension is AutofillConnectionButtonExtension =>
-  extension.type === 'model-registry.register/autofill-connection';
+export const isAutofillConnectionButtonExtension =
+  createExtensionGuard<AutofillConnectionButtonExtension>(
+    'model-registry.register/autofill-connection',
+  );
