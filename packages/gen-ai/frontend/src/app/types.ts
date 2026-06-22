@@ -350,6 +350,7 @@ export type LlamaStackDistributionModel = {
     }>;
     availableDistributions: Record<string, string>;
   };
+  tracingEnabled?: boolean;
 };
 
 export type BFFConfig = {

@@ -129,6 +129,8 @@ type ChatbotPlaygroundProps = {
   setIsDrawerExpanded?: (expanded: boolean) => void;
   welcomeContent?: React.ReactNode;
   placeholderBotContent?: string;
+  /** Whether the current playground was created with tracing enabled */
+  lsdTracingEnabled?: boolean;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -145,6 +147,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setIsDrawerExpanded: setIsDrawerExpandedProp,
   welcomeContent,
   placeholderBotContent,
+  lsdTracingEnabled,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -890,7 +893,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           configIndex={isCompareMode ? index + 1 : 0}
           isCompareMode={isCompareMode}
           hasImagesInConversation={hasImageInConversation}
-          onViewTrace={setSelectedTraceId}
+          onViewTrace={lsdTracingEnabled ? setSelectedTraceId : undefined}
         />
       </ChatbotContent>
     </Chatbot>

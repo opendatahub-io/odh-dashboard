@@ -275,6 +275,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               hasConversationMessagesRef={hasConversationMessagesRef}
               isDrawerExpanded={isDrawerExpanded}
               setIsDrawerExpanded={setIsDrawerExpanded}
+              lsdTracingEnabled={lsdStatus?.tracingEnabled}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (

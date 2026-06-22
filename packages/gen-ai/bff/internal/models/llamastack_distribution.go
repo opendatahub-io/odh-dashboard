@@ -11,6 +11,7 @@ type OGXServerModel struct {
 	Phase              string                 `json:"phase"`
 	Version            string                 `json:"version"`
 	DistributionConfig map[string]interface{} `json:"distributionConfig"`
+	TracingEnabled     bool                   `json:"tracingEnabled"`
 }
 
 // OGXServerResponse represents the response envelope for OGX server status.

@@ -7,6 +7,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type OGXServerRepository struct{}
@@ -48,9 +49,23 @@ func (r *OGXServerRepository) GetOGXServerStatus(
 		Phase:              phase,
 		Version:            version,
 		DistributionConfig: distributionConfig,
+		TracingEnabled:     ogxServer.Spec.Workload.Overrides != nil && hasOTelEnvVar(ogxServer.Spec.Workload.Overrides.Env),
 	}
 
 	return ogxModel, nil
+}
+
+// hasOTelEnvVar infers whether the OGXServer was created with tracing enabled
+// by checking for OTel env vars in the workload overrides. This avoids a CR
+// schema change; if the tracing env var setup changes in ogxEnvVars(), this
+// check must be updated to match.
+func hasOTelEnvVar(envs []corev1.EnvVar) bool {
+	for _, e := range envs {
+		if e.Name == "OTEL_SERVICE_NAME" {
+			return true
+		}
+	}
+	return false
 }
 
 // InstallOGXServer installs an OGXServer with the specified models.
