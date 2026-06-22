@@ -4,6 +4,7 @@
   "description": "Gen AI",
   "license": "MIT",
   "private": true,
+  "packageManager": "npm@11.8.0",
   "overrides": {
     "axios": "^1.16.1",
     "csstype": "3.2.3",
@@ -145,6 +146,5 @@
     "junit-report-merger": "^7.0.1",
     "serve": "^14.2.5",
     "ts-jest": "^29.2.5"
-  },
-  "packageManager": "npm@10.9.2"
+  }
 }

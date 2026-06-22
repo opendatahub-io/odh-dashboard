@@ -2,6 +2,12 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
+import {
+  KnownLabels,
+  SchedulingType,
+  type HardwareProfileKind,
+  type ProjectKind,
+} from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import {
@@ -10,8 +16,6 @@ import {
 } from '#~/pages/projects/ProjectDetailsContext';
 import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { HardwareProfileKind, ProjectKind, KnownLabels } from '#~/k8sTypes';
-import { SchedulingType } from '#~/types';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
 import {

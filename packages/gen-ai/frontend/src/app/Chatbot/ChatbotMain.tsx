@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import {
@@ -16,13 +17,12 @@ import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
-import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
-import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
-import { isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
+import SaveAgentProfileModal from './components/SaveAgentProfileModal';
 import {
   useChatbotConfigStore,
   selectConfigIds,
@@ -49,8 +49,11 @@ const ChatbotMain: React.FunctionComponent = () => {
     modelsError,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
-  const { api } = useGenAiAPI();
-  const { data: mcpServers = [] } = useFetchMCPServers();
+  const {
+    data: mcpServers = [],
+    configMapName: mcpConfigMapName,
+    loaded: mcpServersLoaded,
+  } = useFetchMCPServers();
   const { data: bffConfig } = useFetchBFFConfig();
   const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
   const [existingCollections] = useFetchVectorStores();
@@ -71,6 +74,16 @@ const ChatbotMain: React.FunctionComponent = () => {
   const hasConversationMessagesRef = React.useRef<(() => boolean) | null>(null);
 
   // Derive compare mode from Zustand store (configIds.length > 1)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const agentProfileId = searchParams.get('agentProfileId');
+
+  // Load agent profile from URL param — lives here so the ApplicationsPage spinner covers the fetch
+  const { error: profileLoadError } = useAgentProfileUrlParam({ mcpServers, mcpServersLoaded });
+  const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
+  // Ready when: no profile to load, fetch errored (show error state), or profile applied for this ID
+  const profileReady =
+    !agentProfileId || !!profileLoadError || (profileApplied && loadedProfileId === agentProfileId);
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
@@ -89,35 +102,33 @@ const ChatbotMain: React.FunctionComponent = () => {
     fireMiscTrackingEvent('Playground Compare Mode Exited', { success: true });
   }, []);
 
-  // Temp: serializer test — will be updated before feature delivery
-  const handleSaveAsAgentProfile = React.useCallback(() => {
-    const config = useChatbotConfigStore.getState().configurations[primaryConfigId];
-    if (!config || !namespace?.name) {
-      return;
-    }
-    const llamaModel = models.find((m) => m.id === config.selectedModel);
-    const model = llamaModel
-      ? aiModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai))
-      : undefined;
-    const displayName = `Agent Profile - ${new Date().toISOString()}`;
-    const spec = serializeToAgentProfileSpec(config, displayName, 'Test description', {
-      model,
-      mcpServers,
-      mcpConfigMapName: 'gen-ai-aa-mcp-servers',
-    });
-    api
-      .createAgentProfile({ spec })
-      .then((response) => {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[AgentProfile] Created: http://localhost:4010/gen-ai-studio/playground/${namespace.name}?agentProfileId=${response.profileId}`,
-        );
-      })
-      .catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error('[AgentProfile] Create failed:', err);
-      });
-  }, [primaryConfigId, namespace?.name, models, aiModels, mcpServers, api]);
+  const [saveModalMode, setSaveModalMode] = React.useState<'save' | 'save-as' | null>(null);
+
+  const handleOpenSave = React.useCallback(() => setSaveModalMode('save'), []);
+  const handleOpenSaveAs = React.useCallback(() => setSaveModalMode('save-as'), []);
+  const handleCloseSaveModal = React.useCallback(() => setSaveModalMode(null), []);
+
+  const handleProfileSaved = React.useCallback(
+    (profileId: string, displayName: string, description: string) => {
+      const currentConfig = useChatbotConfigStore.getState().configurations[primaryConfigId];
+      if (!currentConfig) {
+        return;
+      }
+      useChatbotConfigStore
+        .getState()
+        .applyAgentProfile(currentConfig, profileId, displayName, description);
+      // Keep the URL in sync so a page refresh reloads the saved profile
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('agentProfileId', profileId);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [primaryConfigId, setSearchParams],
+  );
 
   // Handle compare chat confirmation - clears messages and enters compare mode
   const handleCompareConfirm = React.useCallback(() => {
@@ -147,7 +158,8 @@ const ChatbotMain: React.FunctionComponent = () => {
           lsdStatusLoaded &&
           (aiModelsLoaded || !!aiModelsError) &&
           (maasModelsLoaded || !!maasModelsError) &&
-          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError)
+          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError) &&
+          profileReady
         }
         empty={!lsdStatus}
         emptyStatePage={
@@ -197,11 +209,12 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           )
         }
-        loadError={lsdStatusError || aiModelsError}
+        loadError={lsdStatusError || aiModelsError || profileLoadError}
         headerAction={
           hasNoModelsOrSelectedModelDisabled ? undefined : (
             <ChatbotHeaderActions
-              onSaveAs={handleSaveAsAgentProfile}
+              onSave={handleOpenSave}
+              onSaveAs={handleOpenSaveAs}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
                 fireSimpleTrackingEvent('Playground View Code Selected');
@@ -319,6 +332,15 @@ const ChatbotMain: React.FunctionComponent = () => {
         variant="compare"
       />
       {isPromptManagementModalOpen && <PromptManagementModal />}
+      {saveModalMode && (
+        <SaveAgentProfileModal
+          mode={saveModalMode}
+          mcpServers={mcpServers}
+          mcpConfigMapName={mcpConfigMapName}
+          onClose={handleCloseSaveModal}
+          onSaved={handleProfileSaved}
+        />
+      )}
     </>
   );
 };

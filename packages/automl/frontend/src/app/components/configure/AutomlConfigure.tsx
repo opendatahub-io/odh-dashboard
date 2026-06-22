@@ -19,6 +19,7 @@ import {
   DropdownList,
   EmptyState,
   EmptyStateBody,
+  Flex,
   FormHelperText,
   Gallery,
   Grid,
@@ -29,6 +30,7 @@ import {
   MultipleFileUpload,
   MultipleFileUploadMain,
   NumberInput,
+  Radio,
   Select,
   SelectList,
   SelectOption,
@@ -68,6 +70,9 @@ import {
 } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import {
+  PRESET_BETTER_QUALITY,
+  PRESET_FASTER,
+  PRESET_LABELS,
   DEFAULT_EVAL_METRIC_BY_TASK,
   TASK_TYPE_BINARY,
   TASK_TYPE_LABELS,
@@ -1000,6 +1005,58 @@ function AutomlConfigure({
                         isFileSelected={isFileSelected}
                         formIsSubmitting={formIsSubmitting}
                       />
+                    )}
+
+                    {isTaskTypeSelected && (
+                      <StackItem className="automl-configure__form-field">
+                        <ConfigureFormGroup
+                          label="Run preset"
+                          description="Choose a predefined resource allocation and optimization strategy for this run."
+                          labelHelp={{
+                            header: 'Run preset',
+                            body: (
+                              <>
+                                <Content component="p">
+                                  Select how to balance training speed and model quality.
+                                </Content>
+                                <Content component="p">
+                                  <strong>Faster:</strong> Uses fewer resources to prioritize speed.
+                                </Content>
+                                <Content component="p">
+                                  <strong>Better quality:</strong> Trains more models with stronger
+                                  ensembling to prioritize accuracy.
+                                </Content>
+                              </>
+                            ),
+                          }}
+                        >
+                          <Controller
+                            control={form.control}
+                            name="preset"
+                            render={({ field }) => (
+                              <Flex direction={{ default: 'column' }}>
+                                {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
+                                  <Radio
+                                    key={preset}
+                                    id={`preset-${preset}`}
+                                    name="preset"
+                                    label={PRESET_LABELS[preset]}
+                                    description={
+                                      preset === PRESET_FASTER
+                                        ? `${isTimeseries ? '4 vCPU, 16 GiB' : '8 vCPU, 32 GiB'} | A good default for most datasets.`
+                                        : `${isTimeseries ? '8 vCPU, 32 GiB' : '16 vCPU, 64 GiB'} | Prioritizes stronger accuracy, but requires longer training.`
+                                    }
+                                    isChecked={field.value === preset}
+                                    isDisabled={formIsSubmitting}
+                                    onChange={() => field.onChange(preset)}
+                                    data-testid={`preset-radio-${preset}`}
+                                  />
+                                ))}
+                              </Flex>
+                            )}
+                          />
+                        </ConfigureFormGroup>
+                      </StackItem>
                     )}
 
                     {isTaskTypeSelected && (

@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { HardwareProfileKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
+import { ServingRuntimeKind } from '#~/k8sTypes';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
 import { MODEL_SERVING_VISIBILITY } from '#~/concepts/hardwareProfiles/const';

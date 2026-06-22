@@ -268,23 +268,14 @@ export function useStartEvaluationRunForm({
       if (modelSelection === 'cluster') {
         return !!selectedInferenceService;
       }
-      if (modelName.trim() === '' || !!endpointUrlError) {
-        return false;
-      }
-      return connectionValidation.status === 'success';
+      return modelName.trim() !== '' && !endpointUrlError;
     }
 
     if (sourceMode === 'agent') {
-      if (agentName.trim() === '' || !!endpointUrlError) {
-        return false;
-      }
-      return connectionValidation.status === 'success';
+      return agentName.trim() !== '' && !endpointUrlError;
     }
 
-    if (sourceName.trim() === '' || !!datasetUrlError) {
-      return false;
-    }
-    return connectionValidation.status === 'success';
+    return sourceName.trim() !== '' && !datasetUrlError;
   }, [
     evaluationName,
     hasBenchmarks,
@@ -297,7 +288,6 @@ export function useStartEvaluationRunForm({
     endpointUrlError,
     datasetUrlError,
     sourceName,
-    connectionValidation.status,
   ]);
 
   const canVerifyConnection = React.useMemo(() => {

@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/plugin-core": "*",
     "lodash-es": "^4.18.1",

@@ -8,7 +8,7 @@ import {
   isGeneratedSecretName,
   getGeneratedSecretName,
 } from '@odh-dashboard/internal/api/index';
-import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
 import {
   assembleConnectionSecret,

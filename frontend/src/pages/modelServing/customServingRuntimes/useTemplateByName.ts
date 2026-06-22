@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { TemplateKind } from '#~/k8sTypes';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { useTemplates } from '#~/api';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { findTemplateByName } from './utils';
