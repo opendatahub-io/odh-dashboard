@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -22,7 +21,7 @@ import (
 
 const (
 	readinessPollInterval = 2 * time.Second
-	readinessTimeout      = 60 * time.Second
+	readinessTimeout      = 22 * time.Second
 	rollbackMaxRetries    = 3
 	rollbackRetryDelay    = 500 * time.Millisecond
 )
@@ -36,9 +35,6 @@ type Options struct {
 	OGXServerLabelSelector map[string]string
 	// Logger for diagnostic output. If nil, a default logger is used.
 	Logger *slog.Logger
-	// ReadinessTimeout overrides the default timeout for waiting on pgvector
-	// Deployment readiness. Zero means use the default (60s).
-	ReadinessTimeout time.Duration
 }
 
 func (o Options) logger() *slog.Logger {
@@ -104,7 +100,15 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	}
 	created = append(created, secret)
 
-	// 2. PVC
+	// 2. Init ConfigMap (creates the pgvector extension on first boot)
+	initCM := buildInitConfigMap(namespace)
+	if err := c.Create(ctx, initCM); err != nil {
+		rollback()
+		return nil, fmt.Errorf("failed to create pgvector init ConfigMap: %w", err)
+	}
+	created = append(created, initCM)
+
+	// 3. PVC
 	pvc := buildPVC(namespace)
 	if err := c.Create(ctx, pvc); err != nil {
 		rollback()
@@ -112,7 +116,7 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	}
 	created = append(created, pvc)
 
-	// 3. Deployment
+	// 4. Deployment
 	deploy := buildDeployment(namespace, opts.Image)
 	if err := c.Create(ctx, deploy); err != nil {
 		rollback()
@@ -120,7 +124,7 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	}
 	created = append(created, deploy)
 
-	// 4. Service
+	// 5. Service
 	svc := buildService(namespace)
 	if err := c.Create(ctx, svc); err != nil {
 		rollback()
@@ -128,22 +132,23 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	}
 	created = append(created, svc)
 
-	// 5. NetworkPolicy
+	// 6. NetworkPolicy
 	netpol := buildNetworkPolicy(namespace, opts.OGXServerLabelSelector)
 	if err := c.Create(ctx, netpol); err != nil {
 		rollback()
 		return nil, fmt.Errorf("failed to create pgvector NetworkPolicy: %w", err)
 	}
+	created = append(created, netpol)
 
-	// Wait for the Deployment to have at least one ready replica so the
-	// OGXServer doesn't connect to a pgvector that isn't accepting connections.
-	timeout := opts.ReadinessTimeout
-	if timeout == 0 {
-		timeout = readinessTimeout
-	}
-	if err := waitForReady(ctx, c, namespace, timeout, log); err != nil {
-		log.Warn("pgvector Deployment created but not yet ready; OGXServer may retry on connect",
-			"error", err, "namespace", namespace)
+	// Best-effort wait for pgvector to accept connections. On warm starts (PVC
+	// already bound) this completes in ~15s and prevents OGXServer crash-loops.
+	// On cold starts the 22s budget may not suffice — we log a warning and
+	// continue; the OGXServer's own restart logic handles the race.
+	if err := waitForReady(ctx, c, namespace, readinessTimeout, log); err != nil {
+		log.Warn("pgvector not ready within timeout; OGXServer may retry on connect",
+			"timeout", readinessTimeout, "error", err, "namespace", namespace)
+	} else {
+		log.Info("pgvector provisioned and ready", "namespace", namespace)
 	}
 
 	return &Connection{
@@ -184,6 +189,9 @@ func DeletePostgresResources(ctx context.Context, c client.Client, namespace str
 	if err := c.DeleteAllOf(ctx, &corev1.Secret{}, opts...); err != nil {
 		errs = append(errs, fmt.Errorf("Secret: %w", err))
 	}
+	if err := c.DeleteAllOf(ctx, &corev1.ConfigMap{}, opts...); err != nil {
+		errs = append(errs, fmt.Errorf("ConfigMap: %w", err))
+	}
 
 	if len(errs) > 0 {
 		return fmt.Errorf("failed to delete pgvector resources: %v", errs)
@@ -210,6 +218,9 @@ func connectionFromExisting(ctx context.Context, c client.Client, namespace stri
 	}, nil
 }
 
+func int32Ptr(v int32) *int32 { return &v }
+func int64Ptr(v int64) *int64 { return &v }
+
 func generatePassword() (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
@@ -227,6 +238,21 @@ func buildSecret(namespace, password string) *corev1.Secret {
 		},
 		Data: map[string][]byte{
 			DefaultPasswordKey: []byte(password),
+		},
+	}
+}
+
+func buildInitConfigMap(namespace string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      InitConfigMapName,
+			Namespace: namespace,
+			Labels:    managedLabels(),
+		},
+		Data: map[string]string{
+			"enable-pgvector.sh": `#!/bin/bash
+psql -U postgres -d "${POSTGRESQL_DATABASE}" -c "CREATE EXTENSION IF NOT EXISTS vector;"
+`,
 		},
 	}
 }
@@ -305,24 +331,37 @@ func buildDeployment(namespace, image string) *appsv1.Deployment {
 									Name:      "pgdata",
 									MountPath: "/var/lib/pgsql/data",
 								},
+								{
+									Name:      "init-scripts",
+									MountPath: "/opt/app-root/src/postgresql-start",
+									ReadOnly:  true,
+								},
+							},
+							StartupProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									Exec: &corev1.ExecAction{
+										Command: []string{"pg_isready", "-U", DefaultUser, "-d", DefaultDB},
+									},
+								},
+								InitialDelaySeconds: 10,
+								PeriodSeconds:       5,
+								FailureThreshold:    18,
 							},
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
-									TCPSocket: &corev1.TCPSocketAction{
-										Port: intstr.FromInt32(int32(DefaultPort)),
+									Exec: &corev1.ExecAction{
+										Command: []string{"pg_isready", "-U", DefaultUser, "-d", DefaultDB},
 									},
 								},
-								InitialDelaySeconds: 5,
-								PeriodSeconds:       10,
+								PeriodSeconds: 10,
 							},
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
-									TCPSocket: &corev1.TCPSocketAction{
-										Port: intstr.FromInt32(int32(DefaultPort)),
+									Exec: &corev1.ExecAction{
+										Command: []string{"pg_isready", "-U", DefaultUser, "-d", DefaultDB},
 									},
 								},
-								InitialDelaySeconds: 15,
-								PeriodSeconds:       20,
+								PeriodSeconds: 20,
 							},
 						},
 					},
@@ -332,6 +371,15 @@ func buildDeployment(namespace, image string) *appsv1.Deployment {
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: StoragePVCName,
+								},
+							},
+						},
+						{
+							Name: "init-scripts",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{Name: InitConfigMapName},
+									DefaultMode:          int32Ptr(0755),
 								},
 							},
 						},
@@ -368,9 +416,8 @@ func buildService(namespace string) *corev1.Service {
 }
 
 // waitForReady polls the pgvector Deployment until at least one replica is
-// ready or the timeout elapses. Returns nil on success, error on timeout.
-// A timeout is logged as a warning but does not fail provisioning -- the
-// OGXServer's own connection retry logic handles the race.
+// ready or the timeout elapses. This ensures the OGXServer is never created
+// against a database that isn't accepting connections.
 func waitForReady(ctx context.Context, c client.Client, namespace string, timeout time.Duration, log *slog.Logger) error {
 	deadline := time.Now().Add(timeout)
 	for {
@@ -432,7 +479,7 @@ func checkDefaultStorageClass(ctx context.Context, c client.Client, log *slog.Lo
 }
 
 func buildNetworkPolicy(namespace string, ogxServerLabels map[string]string) *networkingv1.NetworkPolicy {
-	port := intstr.FromString(strconv.Itoa(DefaultPort))
+	port := intstr.FromInt32(int32(DefaultPort))
 	tcp := corev1.ProtocolTCP
 
 	ingress := networkingv1.NetworkPolicyIngressRule{

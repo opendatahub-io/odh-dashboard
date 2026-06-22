@@ -18,6 +18,7 @@ const (
 
 	// Resource names for auto-provisioned pgvector.
 	CredentialsSecretName = "genai-pgvector-credentials"
+	InitConfigMapName     = "genai-pgvector-init"
 	StoragePVCName        = "genai-pgvector-storage"
 	DeploymentName        = "genai-pgvector"
 	ServiceName           = "genai-pgvector"

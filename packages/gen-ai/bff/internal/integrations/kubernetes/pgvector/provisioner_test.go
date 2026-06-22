@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 func testScheme() *runtime.Scheme {
@@ -26,18 +27,33 @@ func testScheme() *runtime.Scheme {
 	return s
 }
 
+// readyDeploymentInterceptor simulates the kubelet marking the pgvector
+// Deployment as ready so waitForReady returns immediately in tests.
+func readyDeploymentInterceptor() interceptor.Funcs {
+	return interceptor.Funcs{
+		Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if err := c.Get(ctx, key, obj, opts...); err != nil {
+				return err
+			}
+			if deploy, ok := obj.(*appsv1.Deployment); ok && key.Name == DeploymentName {
+				deploy.Status.ReadyReplicas = 1
+			}
+			return nil
+		},
+	}
+}
+
 func testOpts() Options {
 	return Options{
 		Image: "registry.example.com/postgresql-16:latest",
 		OGXServerLabelSelector: map[string]string{
 			"app": "lsd-genai-playground",
 		},
-		ReadinessTimeout: 100 * time.Millisecond, // fake client never updates status
 	}
 }
 
 func TestEnsurePostgres_CreatesAllResources(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme()).Build()
+	c := fake.NewClientBuilder().WithScheme(testScheme()).WithInterceptorFuncs(readyDeploymentInterceptor()).Build()
 	ctx := context.Background()
 	ns := "test-ns"
 
@@ -145,7 +161,7 @@ func TestEnsurePostgres_RollbackOnDeploymentFailure(t *testing.T) {
 }
 
 func TestDeletePostgresResources(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme()).Build()
+	c := fake.NewClientBuilder().WithScheme(testScheme()).WithInterceptorFuncs(readyDeploymentInterceptor()).Build()
 	ctx := context.Background()
 	ns := "test-ns"
 
@@ -178,6 +194,25 @@ func TestDeletePostgresResources(t *testing.T) {
 	assert.Empty(t, netpols.Items)
 }
 
+func TestEnsurePostgres_SucceedsEvenIfNotReady(t *testing.T) {
+	// No interceptor — Deployment never becomes ready. EnsurePostgres should
+	// still return a connection (best-effort wait, warn and continue).
+	c := fake.NewClientBuilder().WithScheme(testScheme()).Build()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	ns := "test-ns"
+
+	conn, err := EnsurePostgres(ctx, c, ns, testOpts())
+	require.NoError(t, err)
+	require.NotNil(t, conn)
+	assert.Equal(t, "genai-pgvector.test-ns.svc.cluster.local", conn.Host)
+
+	// Resources should still exist (not rolled back).
+	var deploys appsv1.DeploymentList
+	require.NoError(t, c.List(context.Background(), &deploys, client.InNamespace(ns), client.MatchingLabels(managedLabels())))
+	assert.Len(t, deploys.Items, 1, "Deployment should exist")
+}
+
 func TestDeletePostgresResources_NoopWhenNoneExist(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme()).Build()
 	ctx := context.Background()
@@ -187,7 +222,7 @@ func TestDeletePostgresResources_NoopWhenNoneExist(t *testing.T) {
 }
 
 func TestEnsurePostgres_DeploymentHasCorrectEnvVars(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme()).Build()
+	c := fake.NewClientBuilder().WithScheme(testScheme()).WithInterceptorFuncs(readyDeploymentInterceptor()).Build()
 	ctx := context.Background()
 	ns := "test-ns"
 
@@ -214,7 +249,7 @@ func TestEnsurePostgres_DeploymentHasCorrectEnvVars(t *testing.T) {
 }
 
 func TestEnsurePostgres_PasswordIsRandom(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme()).Build()
+	c := fake.NewClientBuilder().WithScheme(testScheme()).WithInterceptorFuncs(readyDeploymentInterceptor()).Build()
 	ctx := context.Background()
 
 	_, err := EnsurePostgres(ctx, c, "ns1", testOpts())
@@ -223,7 +258,7 @@ func TestEnsurePostgres_PasswordIsRandom(t *testing.T) {
 	var s1 corev1.Secret
 	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: CredentialsSecretName, Namespace: "ns1"}, &s1))
 
-	c2 := fake.NewClientBuilder().WithScheme(testScheme()).Build()
+	c2 := fake.NewClientBuilder().WithScheme(testScheme()).WithInterceptorFuncs(readyDeploymentInterceptor()).Build()
 	_, err = EnsurePostgres(ctx, c2, "ns2", testOpts())
 	require.NoError(t, err)
 

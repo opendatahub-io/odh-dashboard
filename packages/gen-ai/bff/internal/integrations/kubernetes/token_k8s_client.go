@@ -1586,7 +1586,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		opts := pgvector.Options{
 			Image: kc.EnvConfig.PgvectorImage,
 			OGXServerLabelSelector: map[string]string{
-				"ogx.io/server": lsdName,
+				"app.kubernetes.io/instance": lsdName,
 			},
 			Logger: kc.Logger,
 		}
