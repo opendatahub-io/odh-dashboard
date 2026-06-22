@@ -122,7 +122,7 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 
 	// Network connectivity
 	if s3.IsConnectivityError(err) {
-		app.serviceUnavailableResponseWithMessage(w, r, err,
+		app.badGatewayResponseWithMessage(w, r, err,
 			"Unable to connect to the S3 storage endpoint. Verify the endpoint URL in your data connection secret points to a reachable storage service.")
 		return
 	}

@@ -1,4 +1,5 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 
 export type DeployPrefillData = {
@@ -21,7 +22,7 @@ export type NavigateToDeploymentWizardWithDataExtension = Extension<
   }
 >;
 
-export const isNavigateToDeploymentWizardWithDataExtension = (
-  extension: Extension,
-): extension is NavigateToDeploymentWizardWithDataExtension =>
-  extension.type === 'model-catalog.deployment/navigate-wizard';
+export const isNavigateToDeploymentWizardWithDataExtension =
+  createExtensionGuard<NavigateToDeploymentWizardWithDataExtension>(
+    'model-catalog.deployment/navigate-wizard',
+  );

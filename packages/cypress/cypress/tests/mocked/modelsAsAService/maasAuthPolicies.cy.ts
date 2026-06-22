@@ -116,8 +116,8 @@ describe('MaaS Auth Policies', () => {
     authPoliciesPage.findTitle().should('contain.text', 'Authorization policies');
     authPoliciesPage.findTable().should('exist');
     authPoliciesPage.findRows().should('have.length', 6);
-    const premiumRow = authPoliciesPage.getRow('premium-team-policy');
-    premiumRow.findName().should('contain.text', 'premium-team-policy');
+    const premiumRow = authPoliciesPage.getRow('Premium Team Policy');
+    premiumRow.findName().should('contain.text', 'Premium Team Policy');
     premiumRow.findPhase().should('contain.text', 'Active');
     premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
@@ -142,9 +142,9 @@ describe('MaaS Auth Policies', () => {
     authPoliciesPage.findKeywordFilterInput().type('premium');
     authPoliciesPage.findRows().should('have.length', 1);
     authPoliciesPage
-      .getRow('premium-team-policy')
+      .getRow('Premium Team Policy')
       .findName()
-      .should('contain.text', 'premium-team-policy');
+      .should('contain.text', 'Premium Team Policy');
 
     authPoliciesPage.clearAllFilters();
     authPoliciesPage.findRows().should('have.length', 6);
@@ -173,8 +173,10 @@ describe('MaaS Auth Policies', () => {
       { path: { name: 'premium-team-policy' } },
       { data: { message: "MaaSAuthPolicy 'premium-team-policy' deleted successfully" } },
     ).as('deleteAuthPolicy');
-    authPoliciesPage.getRow('premium-team-policy').findKebabAction('Delete').click();
-    deleteAuthPolicyModal.findInput().type('premium-team-policy');
+    authPoliciesPage.getRow('Premium Team Policy').findKebabAction('Delete').click();
+    deleteAuthPolicyModal.shouldShowResourceName('Premium Team Policy');
+    deleteAuthPolicyModal.findInput().type('Premium Team Policy');
+    deleteAuthPolicyModal.findSubmitButton().should('be.enabled');
     deleteAuthPolicyModal.findSubmitButton().click();
     cy.wait('@deleteAuthPolicy').then((response) => {
       expect(response.response?.body).to.deep.equal({
@@ -249,6 +251,7 @@ describe('Auth policy create and edit pages', () => {
 
 describe('View Auth Policy Page', () => {
   const policyName = 'premium-team-policy';
+  const policyDisplayName = 'Premium Team Policy';
 
   beforeEach(() => {
     setupAuthPoliciesCommon();
@@ -262,10 +265,10 @@ describe('View Auth Policy Page', () => {
   it('should display the page content with title, breadcrumb, details, groups, and models', () => {
     cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
     authPoliciesPage.visit();
-    authPoliciesPage.getRow(policyName).findKebabAction('View details').click();
+    authPoliciesPage.getRow(policyDisplayName).findKebabAction('View details').click();
     cy.url().should('include', `/maas/auth-policies/view/${policyName}`);
 
-    viewAuthPolicyPage.findTitle().should('contain.text', `${policyName} Display`);
+    viewAuthPolicyPage.findTitle().should('contain.text', policyDisplayName);
 
     viewAuthPolicyPage
       .findDetailsSection()
