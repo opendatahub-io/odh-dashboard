@@ -1,9 +1,9 @@
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
-import { EnvironmentVariableType, SecretCategory } from '#~/pages/projects/types';
+import { EnvironmentVariableType, EnvVariable, SecretCategory } from '#~/pages/projects/types';
 import {
   fetchNotebookEnvVariables,
   parseSecretKeyRefEntries,
-} from '#~/src/pages/projects/screens/spawner/environmentVariables/useNotebookEnvVariables';
+} from '#~/pages/projects/screens/spawner/environmentVariables/useNotebookEnvVariables';
 
 jest.mock('#~/api', () => ({
   getConfigMap: jest.fn(),
@@ -177,7 +177,9 @@ describe('fetchNotebookEnvVariables', () => {
 
     const result = await fetchNotebookEnvVariables(notebook);
 
-    const existingRefs = result.filter((v) => v.values?.category === SecretCategory.EXISTING);
+    const existingRefs = result.filter(
+      (v: EnvVariable) => v.values?.category === SecretCategory.EXISTING,
+    );
     expect(existingRefs).toHaveLength(0);
   });
 
@@ -208,7 +210,9 @@ describe('fetchNotebookEnvVariables', () => {
 
     const result = await fetchNotebookEnvVariables(notebook);
 
-    const existingRefs = result.filter((v) => v.values?.category === SecretCategory.EXISTING);
+    const existingRefs = result.filter(
+      (v: EnvVariable) => v.values?.category === SecretCategory.EXISTING,
+    );
     expect(existingRefs).toHaveLength(1);
     expect(existingRefs[0].existingSecretRefs).toHaveLength(2);
     expect(existingRefs[0].existingSecretRefs).toContainEqual({
