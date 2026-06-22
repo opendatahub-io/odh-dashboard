@@ -1778,7 +1778,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			// Call MaaS BFF /models endpoint using BFF client
 			// The response is envelope-wrapped: {"data": {"object": "list", "data": [...]}}
 			var bffResponse models.MaaSBFFModelsResponse
-			err := bffClient.Call(ctx, "GET", "/models", nil, &bffResponse)
+			err := bffClient.Call(ctx, "GET", "/models?namespace="+namespace, nil, &bffResponse)
 			if err != nil {
 				kc.Logger.Error("failed to list MaaS models via BFF", "error", err)
 				return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)

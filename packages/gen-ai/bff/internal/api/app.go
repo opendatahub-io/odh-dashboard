@@ -149,12 +149,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		nemoClientFactory = nemopkg.NewRealClientFactory()
 	}
 
-	// Initialize MaaS client factory - clients will be created per request
-	if cfg.MockMaaSClient {
-		logger.Info("Using mock MaaS client factory")
-	} else {
-		logger.Info("Using real MaaS client factory", "url", cfg.MaaSURL)
-	}
+	// Note: MaaS client factory removed - Gen AI BFF now communicates with MaaS via inter-BFF
+	// communication through the BFF client factory initialized below
 
 	// Initialize OpenAPI handler
 	openAPIHandler, err := NewOpenAPIHandler(logger)

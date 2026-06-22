@@ -97,7 +97,7 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 		maasModels, err := app.fetchMaaSModels(ctx, namespace)
 		if err != nil {
 			// If only MaaS was requested, return the BFF error (preserves original status code)
-			isMaasOnly := len(requestedSources) == 1 && requestedSources[models.ModelSourceTypeMaaS]
+			isMaasOnly := len(requestedSources) == 1
 			if isMaasOnly {
 				app.handleBFFClientError(w, r, err)
 				return
