@@ -11,8 +11,11 @@ import type { CommandLineResult } from '../../types';
 // ---------------------------------------------------------------------------
 
 const LLM_INFERENCE_SERVICE = 'autorag-llm';
-const MILVUS_DEPLOYMENT = 'milvus';
-const MILVUS_PORT = 19530;
+const PGVECTOR_DEPLOYMENT = 'pgvector';
+const PGVECTOR_PORT = 5432;
+const PGVECTOR_USER = 'testuser'; // notsecret — ephemeral test DB
+const PGVECTOR_PASSWORD = 'testpassword'; // notsecret — ephemeral test DB
+const PGVECTOR_DATABASE = 'testdb';
 const OGX_SERVER_NAME = 'autorag-ogx';
 const OGX_CONFIG_MAP = 'ogx-config';
 const OGX_PORT = 8321;
@@ -20,11 +23,11 @@ const OGX_PORT = 8321;
 const INLINE_EMBEDDING_MODEL_ID = 'sentence-transformers/all-MiniLM-L6-v2';
 const INLINE_EMBEDDING_DIMENSION = 384;
 
-const DEFAULT_MILVUS_IMAGE = 'milvusdb/milvus:v2.5.4';
-const MILVUS_IMAGE_PLACEHOLDER = '{{MILVUS_IMAGE}}';
+const DEFAULT_PGVECTOR_IMAGE = 'quay.io/rh-aiservices-bu/postgresql-15-pgvector-c9s:latest';
+const PGVECTOR_IMAGE_PLACEHOLDER = '{{PGVECTOR_IMAGE}}';
 
-const getMilvusImage = (): string =>
-  (Cypress.env('AUTORAG_MILVUS_IMAGE') as string) || DEFAULT_MILVUS_IMAGE;
+const getPgvectorImage = (): string =>
+  (Cypress.env('AUTORAG_PGVECTOR_IMAGE') as string) || DEFAULT_PGVECTOR_IMAGE;
 
 // ---------------------------------------------------------------------------
 // Self-contained OGX/LlamaStack compatibility helpers
@@ -182,16 +185,16 @@ export const isOgxOperatorManaged = (): Cypress.Chainable<boolean> =>
   );
 
 // ---------------------------------------------------------------------------
-// Milvus provisioning
+// Vector store provisioning
 // ---------------------------------------------------------------------------
 
-const applyMilvusFixture = (namespace: string): Cypress.Chainable<CommandLineResult> =>
-  cy.fixture('resources/autorag/milvus-standalone.yaml').then((content: string) => {
+const applyVectorStoreFixture = (namespace: string): Cypress.Chainable<CommandLineResult> =>
+  cy.fixture('resources/autorag/pgvector-standalone.yaml').then((content: string) => {
     const resolved = content.replace(
-      new RegExp(MILVUS_IMAGE_PLACEHOLDER.replace(/[{}]/g, '\\$&'), 'g'),
-      getMilvusImage(),
+      new RegExp(PGVECTOR_IMAGE_PLACEHOLDER.replace(/[{}]/g, '\\$&'), 'g'),
+      getPgvectorImage(),
     );
-    const tempFile = `/tmp/autorag_milvus_${Date.now()}.yaml`;
+    const tempFile = `/tmp/autorag_vectorstore_${Date.now()}.yaml`;
     cy.writeFile(tempFile, resolved);
     return cy.exec(`oc apply -f "${tempFile}" -n ${namespace}`).then((result) => {
       cy.exec(`rm -f ${tempFile}`);
@@ -199,33 +202,35 @@ const applyMilvusFixture = (namespace: string): Cypress.Chainable<CommandLineRes
     });
   });
 
-const deployMilvus = (namespace: string): Cypress.Chainable<CommandLineResult> => {
-  cy.log(`Deploying Milvus standalone in namespace ${namespace}`);
-  return applyMilvusFixture(namespace);
+const deployVectorStore = (namespace: string): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Deploying vector store in namespace ${namespace}`);
+  return applyVectorStoreFixture(namespace);
 };
 
-const waitForMilvusReady = (
+const waitForVectorStoreReady = (
   namespace: string,
   maxAttempts = 60,
   pollIntervalMs = 5000,
-): Cypress.Chainable<Cypress.Exec> => {
-  const command = `oc get pods -n ${namespace} -l app=milvus -o jsonpath='{.items[0].status.phase}'`;
-  return pollUntilSuccess(
-    `${command} | grep -q Running && ${command}`,
-    `Milvus pod to be Running in ${namespace}`,
+): void => {
+  const readyCmd = `oc get pods -n ${namespace} -l app=pgvector -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}'`;
+  pollUntilSuccess(
+    `${readyCmd} | grep -q True && ${readyCmd}`,
+    `Vector store pod to be Ready in ${namespace}`,
     { maxAttempts, pollIntervalMs },
+  );
+
+  cy.exec(
+    `oc exec deploy/${PGVECTOR_DEPLOYMENT} -n ${namespace} -- ` +
+      `psql -U postgres -d ${PGVECTOR_DATABASE} -c "CREATE EXTENSION IF NOT EXISTS vector"`,
   );
 };
 
-const cleanupMilvus = (namespace: string): void => {
-  cy.log('Cleaning up Milvus');
-  cy.exec(`oc delete deployment ${MILVUS_DEPLOYMENT} -n ${namespace}`, {
+const cleanupVectorStore = (namespace: string): void => {
+  cy.log('Cleaning up vector store');
+  cy.exec(`oc delete deployment ${PGVECTOR_DEPLOYMENT} -n ${namespace}`, {
     failOnNonZeroExit: false,
   });
-  cy.exec(`oc delete service ${MILVUS_DEPLOYMENT} -n ${namespace}`, {
-    failOnNonZeroExit: false,
-  });
-  cy.exec(`oc delete configmap milvus-config -n ${namespace}`, {
+  cy.exec(`oc delete service ${PGVECTOR_DEPLOYMENT} -n ${namespace}`, {
     failOnNonZeroExit: false,
   });
 };
@@ -243,13 +248,13 @@ const cleanupMilvus = (namespace: string): void => {
  * The config registers:
  * - An LLM inference provider (remote::vllm) pointing at the LLM InferenceService
  * - A sentence-transformers provider for inline embedding (runs inside OGX pod, no GPU needed)
- * - A Milvus vector_io provider (remote::milvus) pointing at the Milvus service
+ * - A pgvector vector_io provider (remote::pgvector) pointing at the PostgreSQL service
  * - Registered models for LLM and embedding (inline)
  */
 /* eslint-disable camelcase -- OGX config.yaml requires snake_case keys */
 const buildOgxConfig = (namespace: string): string => {
   const llmUrl = `http://${LLM_INFERENCE_SERVICE}-predictor.${namespace}.svc.cluster.local/v1`;
-  const milvusUri = `http://${MILVUS_DEPLOYMENT}.${namespace}.svc.cluster.local:${MILVUS_PORT}`;
+  const pgHost = `${PGVECTOR_DEPLOYMENT}.${namespace}.svc.cluster.local`;
 
   const config = {
     version: '2',
@@ -288,13 +293,16 @@ const buildOgxConfig = (namespace: string): string => {
       ],
       vector_io: [
         {
-          provider_id: 'milvus-remote',
-          provider_type: 'remote::milvus',
+          provider_id: 'pgvector',
+          provider_type: 'remote::pgvector',
           config: {
-            uri: milvusUri,
-            token: '',
+            host: pgHost,
+            port: PGVECTOR_PORT,
+            db: PGVECTOR_DATABASE,
+            user: PGVECTOR_USER,
+            password: PGVECTOR_PASSWORD,
             persistence: {
-              namespace: 'vector_io::milvus-remote',
+              namespace: 'vector_io::pgvector',
               backend: 'kv_default',
             },
           },
@@ -340,7 +348,7 @@ const buildOgxConfig = (namespace: string): string => {
       },
     },
     vector_stores: {
-      default_provider_id: 'milvus-remote',
+      default_provider_id: 'pgvector',
       default_embedding_model: {
         provider_id: 'sentence-transformers',
         model_id: 'all-MiniLM-L6-v2',
@@ -539,7 +547,6 @@ export const createOgxDistribution = (namespace: string): Cypress.Chainable<Comm
                         value: '/opt/app-root/src/.llama/distributions/rh/',
                       },
                       { name: 'VLLM_TLS_VERIFY', value: 'false' },
-                      { name: 'MILVUS_DB_PATH', value: '~/.llama/milvus.db' },
                     ],
                     name: 'ogx',
                     port: OGX_PORT,
@@ -583,11 +590,11 @@ export const getOgxServiceURL = (namespace: string): Cypress.Chainable<string> =
  * OGX Distribution with config, credentials secret, and network policy.
  */
 export const provisionAutoragInfrastructure = (namespace: string, ogxSecretName: string): void => {
-  cy.step('Deploy Milvus standalone');
-  deployMilvus(namespace);
+  cy.step('Deploy vector store');
+  deployVectorStore(namespace);
 
-  cy.step('Wait for Milvus to be ready');
-  waitForMilvusReady(namespace);
+  cy.step('Wait for vector store to be ready');
+  waitForVectorStoreReady(namespace);
 
   cy.step('Create OGX config ConfigMap');
   createOgxConfigMap(namespace);
@@ -645,6 +652,6 @@ export const cleanupOgxSecret = (namespace: string, secretName: string): void =>
  */
 export const cleanupAutoragInfrastructure = (namespace: string, ogxSecretName: string): void => {
   cleanupOgx(namespace);
-  cleanupMilvus(namespace);
+  cleanupVectorStore(namespace);
   cleanupOgxSecret(namespace, ogxSecretName);
 };

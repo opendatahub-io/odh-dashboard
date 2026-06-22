@@ -73,7 +73,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
             cy.step('Provision project with DSPA');
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
 
-            cy.step('Provision AutoRAG infrastructure (Milvus, OGX)');
+            cy.step('Provision AutoRAG infrastructure (vector store, OGX)');
             provisionAutoragInfrastructure(projectName, testData.ogxSecretName);
           }
         }),
