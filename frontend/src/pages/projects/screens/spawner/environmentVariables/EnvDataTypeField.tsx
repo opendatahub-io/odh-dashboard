@@ -15,6 +15,7 @@ const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelectio
       <SimpleSelect
         isFullWidth
         placeholder="Select one"
+        ariaLabel="Data type"
         value={selection}
         options={Object.keys(options).map(
           (option): SimpleSelectOption => ({

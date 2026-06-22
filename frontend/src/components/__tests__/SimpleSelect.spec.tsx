@@ -24,6 +24,25 @@ describe('SimpleSelect', () => {
     expect(screen.getByRole('button', { name: 'Options menu' })).toBeInTheDocument();
   });
 
+  it('should use an associated label when toggleProps.id is set', () => {
+    render(
+      <>
+        <label htmlFor="environment-variable-type-select">Variable type</label>
+        <SimpleSelect
+          value={undefined}
+          toggleProps={{ id: 'environment-variable-type-select' }}
+          options={[
+            { key: 'config-map', label: 'Config map' },
+            { key: 'secret', label: 'Secret' },
+          ]}
+          onChange={jest.fn()}
+        />
+      </>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Variable type' })).toBeInTheDocument();
+  });
+
   it('should support a custom aria-label', () => {
     render(
       <SimpleSelect
@@ -155,6 +174,31 @@ describe('SimpleSelect', () => {
         options={[
           { key: 'config-map', label: 'Config map' },
           { key: 'secret', label: 'Secret', isAriaDisabled: true },
+        ]}
+        onChange={onChange}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('option', { name: 'Secret' }));
+    });
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('should not select disabled options', async () => {
+    const onChange = jest.fn();
+
+    render(
+      <SimpleSelect
+        value={undefined}
+        options={[
+          { key: 'config-map', label: 'Config map' },
+          { key: 'secret', label: 'Secret', isDisabled: true },
         ]}
         onChange={onChange}
       />,

@@ -74,7 +74,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   isFullWidth,
   icon,
   dataTestId,
-  ariaLabel = 'Options menu',
+  ariaLabel,
   toggleProps,
   previewDescription = true,
   popperProps,
@@ -135,6 +135,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
 
   const displayedLabel = toggleLabel ?? selectedLabel;
   const displayedLabelTitle = typeof displayedLabel === 'string' ? displayedLabel : undefined;
+  const toggleAriaLabel = ariaLabel ?? (toggleProps?.id ? undefined : 'Options menu');
 
   return (
     <>
@@ -145,7 +146,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
         onSelect={(e, selectValue) => {
           const key = String(selectValue);
           const option = findOptionForKey(key);
-          if (option?.isAriaDisabled) {
+          if (option?.isAriaDisabled || option?.isDisabled) {
             return;
           }
 
@@ -158,7 +159,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             <MenuToggle
               innerRef={toggleRef}
               data-testid={dataTestId}
-              aria-label={ariaLabel}
+              {...(toggleAriaLabel ? { 'aria-label': toggleAriaLabel } : {})}
               onClick={() => setOpen(!open)}
               icon={icon}
               isExpanded={open}

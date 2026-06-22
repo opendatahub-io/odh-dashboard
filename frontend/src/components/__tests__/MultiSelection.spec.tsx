@@ -438,6 +438,36 @@ describe('MultiSelection', () => {
       'Pick at least one connection',
     );
     expect(screen.getByTestId('group-selection-error-text').closest('[aria-live]')).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Connections' })).toHaveAttribute(
+      'aria-describedby',
+      'test-select-selection-error',
+    );
+    expect(screen.getByRole('combobox', { name: 'Connections' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
+  });
+
+  it('should skip disabled options when navigating with arrow keys', async () => {
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Connections"
+        value={[
+          { id: 'disabled', name: 'Disabled connection', isDisabled: true },
+          { id: 'connection-1', name: 'Connection 1', selected: false },
+        ]}
+        setValue={jest.fn()}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
   });
 
   it('should portal options into the modal dialog for screen reader access', async () => {

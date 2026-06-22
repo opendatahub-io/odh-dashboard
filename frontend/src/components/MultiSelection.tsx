@@ -115,7 +115,6 @@ const MultiSelectionOption: React.FC<MultiSelectionOptionProps> = ({
     description={option.description}
     isDisabled={option.isDisabled}
     isAriaDisabled={option.isAriaDisabled}
-    ref={null}
   >
     {children ?? option.name}
   </SelectOption>
@@ -152,6 +151,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const generatedInstanceId = React.useId().replace(/:/g, '');
   const instanceId = id ?? `multi-select-${generatedInstanceId}`;
   const listboxId = `${instanceId}-listbox`;
+  const selectionErrorId = `${instanceId}-selection-error`;
 
   useModalOverflowUnlock(isOpen, textInputRef);
 
@@ -243,6 +243,30 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   const selected = React.useMemo(() => allOptions.filter((v) => v.selected), [allOptions]);
 
+  const isOptionKeyboardNavigable = (option: SelectionOptions) => !option.isDisabled;
+
+  const getNextFocusableIndex = (
+    startIndex: number | null,
+    direction: 'up' | 'down',
+  ): number | null => {
+    const optionsLength = visibleOptions.length;
+    if (optionsLength === 0) {
+      return null;
+    }
+
+    let index = startIndex ?? (direction === 'down' ? -1 : optionsLength);
+    for (let step = 0; step < optionsLength; step += 1) {
+      index =
+        direction === 'down'
+          ? (index + 1) % optionsLength
+          : (index - 1 + optionsLength) % optionsLength;
+      if (isOptionKeyboardNavigable(visibleOptions[index])) {
+        return index;
+      }
+    }
+    return null;
+  };
+
   const resetActiveAndFocusedItem = () => {
     setFocusedItemIndex(null);
     setActiveItemId(null);
@@ -256,8 +280,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   const openMenu = (focusFirstOption = false) => {
     setIsOpen(true);
-    if (focusFirstOption && visibleOptions.length > 0) {
-      setActiveAndFocusedItem(0);
+    if (focusFirstOption) {
+      const firstFocusableIndex = getNextFocusableIndex(null, 'down');
+      if (firstFocusableIndex !== null) {
+        setActiveAndFocusedItem(firstFocusableIndex);
+      }
     }
   };
 
@@ -294,21 +321,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       return;
     }
 
-    let indexToFocus = 0;
-
-    if (key === 'ArrowUp') {
-      if (focusedItemIndex === null || focusedItemIndex === 0) {
-        indexToFocus = optionsLength - 1;
-      } else {
-        indexToFocus = focusedItemIndex - 1;
-      }
-    } else if (focusedItemIndex === null || focusedItemIndex === optionsLength - 1) {
-      indexToFocus = 0;
-    } else {
-      indexToFocus = focusedItemIndex + 1;
+    const direction = key === 'ArrowDown' ? 'down' : 'up';
+    const indexToFocus = getNextFocusableIndex(focusedItemIndex, direction);
+    if (indexToFocus !== null) {
+      setActiveAndFocusedItem(indexToFocus);
     }
-
-    setActiveAndFocusedItem(indexToFocus);
   };
 
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -379,6 +396,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   };
 
   const noSelectedItems = allOptions.filter((option) => option.selected).length === 0;
+  const showSelectionError = selectionRequired && noSelectedItems;
 
   const renderSelectOption = (
     option: SelectionOptions,
@@ -422,6 +440,12 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           placeholder={placeholder}
           aria-label={ariaLabel}
           {...(activeItemId && { 'aria-activedescendant': activeItemId })}
+          inputProps={{
+            ...(showSelectionError && {
+              'aria-describedby': selectionErrorId,
+              'aria-invalid': true,
+            }),
+          }}
           role="combobox"
           isExpanded={isOpen}
           aria-controls={listboxId}
@@ -519,9 +543,13 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           ) : null}
         </SelectList>
       </Select>
-      {noSelectedItems && selectionRequired && (
+      {showSelectionError && (
         <HelperText isLiveRegion>
-          <HelperTextItem variant="error" data-testid="group-selection-error-text">
+          <HelperTextItem
+            variant="error"
+            id={selectionErrorId}
+            data-testid="group-selection-error-text"
+          >
             {noSelectedOptionsMessage}
           </HelperTextItem>
         </HelperText>
