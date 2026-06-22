@@ -10,10 +10,7 @@ import {
   MenuToggle,
   MenuToggleElement,
   Popover,
-  /**
-   * The Select component is used to build a typeahead multi-select for existing secrets
-   */
-  // eslint-disable-next-line no-restricted-imports
+  // eslint-disable-next-line no-restricted-imports -- typeahead multi-select requires Select directly
   Select,
   SelectList,
   SelectOption,
@@ -63,6 +60,12 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   const [isOpen, setIsOpen] = React.useState(false);
   const [searchText, setSearchText] = React.useState('');
   const textInputRef = React.useRef<HTMLInputElement>();
+
+  React.useEffect(() => {
+    if (isOpen) {
+      requestAnimationFrame(() => textInputRef.current?.focus());
+    }
+  }, [isOpen]);
 
   const selectedSecretNames = React.useMemo(
     () => new Set(existingSecretRefs.map((ref) => ref.secretName)),
@@ -216,10 +219,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
             <MenuToggle
               ref={toggleRef}
               variant="typeahead"
-              onClick={() => {
-                setIsOpen(!isOpen);
-                setTimeout(() => textInputRef.current?.focus(), 100);
-              }}
+              onClick={() => setIsOpen(!isOpen)}
               isExpanded={isOpen}
               isFullWidth
               data-testid="env-existing-secret-toggle"
