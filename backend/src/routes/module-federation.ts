@@ -16,6 +16,10 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     fastify.log.info(
       `Module federation configured for: ${mfConfig.map((mf) => mf.name).join(', ')}`,
     );
+    // Extended timeout for gen-ai module: AI inference (CPU models, vector stores,
+    // guardrails, tool calls) routinely exceeds undici's default 30s timeout.
+    const GEN_AI_PROXY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
     mfConfig.forEach(({ name, backend, proxyService }) => {
       if (backend) {
         registerProxy(fastify, {
@@ -63,6 +67,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           },
           local: proxy.localService,
           headers: proxy.headers,
+          httpRequestTimeout: name === 'genAi' ? GEN_AI_PROXY_TIMEOUT_MS : undefined,
         });
       });
     });
