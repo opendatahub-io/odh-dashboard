@@ -7,13 +7,13 @@ import {
   type NodeSelector,
   type Toleration,
 } from '@odh-dashboard/k8s-core';
+import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   mockDashboardConfig,
   mockNotebookK8sResource,
   mockInferenceServiceK8sResource,
 } from '#~/__mocks__';
-import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import * as appContext from '#~/app/AppContext';
 import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import * as useHardwareProfileConfigModule from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
