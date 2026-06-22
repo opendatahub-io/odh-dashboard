@@ -28,23 +28,11 @@ import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsArea
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
+import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
 import { isModelLocationType, ModelLocationData, ModelLocationType } from '../types';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 // Component
-
-const s3Option = {
-  key: 'S3',
-  label: 'S3 object storage',
-};
-const ociOption = {
-  key: 'OCI',
-  label: 'OCI compliant registry',
-};
-const uriOption = {
-  key: 'URI',
-  label: 'URI',
-};
 
 type ModelLocationSelectFieldProps = {
   wizardState: UseModelDeploymentWizardState;
@@ -78,9 +66,6 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   // Filtered types for the dropdown so only enabled types are shown
   const { s3ConnectionTypes, ociConnectionTypes, uriConnectionTypes } =
     useEnabledModelServingConnectionTypes(modelServingConnectionTypes);
-
-  const [showCustomTypeSelect, setShowCustomTypeSelect] = React.useState(false);
-  const [typeOptions, setTypeOptions] = React.useState<ConnectionTypeConfigMapObj[]>([]);
 
   // Compute selectedKey from connectionTypeObject when available (for prefilled data)
   const computeSelectedOption = React.useMemo<{ key: string; label: string } | undefined>(() => {
@@ -141,67 +126,6 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
         : undefined),
     [selectedOption, modelLocation],
   );
-
-  // If duplicate connection types are available, show select to pick the specific type
-  React.useEffect(() => {
-    if (!modelLocationData?.connectionTypeObject && !selectedOption) {
-      setShowCustomTypeSelect(false);
-      setTypeOptions([]);
-      return;
-    }
-    if (selectedOption) {
-      if (selectedOption.key === s3Option.key && s3ConnectionTypes.length > 1) {
-        setShowCustomTypeSelect(true);
-        setTypeOptions(s3ConnectionTypes);
-        return;
-      }
-      if (selectedOption.key === ociOption.key && ociConnectionTypes.length > 1) {
-        setShowCustomTypeSelect(true);
-        setTypeOptions(ociConnectionTypes);
-        return;
-      }
-      if (selectedOption.key === uriOption.key && uriConnectionTypes.length > 1) {
-        setShowCustomTypeSelect(true);
-        setTypeOptions(uriConnectionTypes);
-        return;
-      }
-      setShowCustomTypeSelect(false);
-      setTypeOptions([]);
-    } else {
-      setShowCustomTypeSelect(false);
-      setTypeOptions([]);
-    }
-  }, [
-    modelLocationData?.connectionTypeObject,
-    selectedOption,
-    s3ConnectionTypes,
-    ociConnectionTypes,
-    uriConnectionTypes,
-  ]);
-
-  const selectedConnectionType = React.useMemo(() => {
-    if (modelLocationData?.connectionTypeObject) {
-      return modelLocationData.connectionTypeObject;
-    }
-    if (selectedConnection) {
-      const compatibleType = getModelServingCompatibility(selectedConnection)[0];
-      switch (compatibleType) {
-        case ModelServingCompatibleTypes.S3ObjectStorage:
-          return s3ConnectionTypes[0];
-        case ModelServingCompatibleTypes.OCI:
-          return ociConnectionTypes[0];
-        case ModelServingCompatibleTypes.URI:
-          return uriConnectionTypes[0];
-      }
-    }
-    return undefined;
-  }, [
-    modelLocationData,
-    s3ConnectionTypes,
-    ociConnectionTypes,
-    uriConnectionTypes,
-    selectedConnection,
-  ]);
 
   // Makes sure we don't show the existing connection option if we only have generated connections
   const nonGeneratedConnections = React.useMemo(() => {
@@ -300,70 +224,23 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                   });
                   setUserSelectedOption(newOption);
                 } else {
-                  switch (key) {
-                    case s3Option.key:
-                      setUserSelectedOption({ key: s3Option.key, label: s3Option.label });
-                      if (s3ConnectionTypes.length > 1) {
-                        setShowCustomTypeSelect(true);
-                        setTypeOptions(s3ConnectionTypes);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: undefined,
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
-                      } else {
-                        setShowCustomTypeSelect(false);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: s3ConnectionTypes[0],
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
-                      }
-                      break;
-                    case ociOption.key:
-                      setUserSelectedOption({ key: ociOption.key, label: ociOption.label });
-                      if (ociConnectionTypes.length > 1) {
-                        setShowCustomTypeSelect(true);
-                        setTypeOptions(ociConnectionTypes);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: undefined,
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
-                      } else {
-                        setShowCustomTypeSelect(false);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: ociConnectionTypes[0],
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
-                      }
-                      break;
-                    case uriOption.key:
-                      setUserSelectedOption({ key: uriOption.key, label: uriOption.label });
-                      if (uriConnectionTypes.length > 1) {
-                        setShowCustomTypeSelect(true);
-                        setTypeOptions(uriConnectionTypes);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: undefined,
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
-                      } else {
-                        setShowCustomTypeSelect(false);
-                        setModelLocationData({
-                          type: ModelLocationType.NEW,
-                          connectionTypeObject: uriConnectionTypes[0],
-                          fieldValues: {},
-                          additionalFields: {},
-                        });
-                      }
-                      break;
+                  const optionToTypes: Partial<
+                    Record<string, { option: typeof s3Option; types: ConnectionTypeConfigMapObj[] }>
+                  > = {
+                    [s3Option.key]: { option: s3Option, types: s3ConnectionTypes },
+                    [ociOption.key]: { option: ociOption, types: ociConnectionTypes },
+                    [uriOption.key]: { option: uriOption, types: uriConnectionTypes },
+                  };
+
+                  const match = optionToTypes[key];
+                  if (match) {
+                    setUserSelectedOption({ key: match.option.key, label: match.option.label });
+                    setModelLocationData({
+                      type: ModelLocationType.NEW,
+                      connectionTypeObject: match.types.length > 1 ? undefined : match.types[0],
+                      fieldValues: {},
+                      additionalFields: {},
+                    });
                   }
                 }
               }}
@@ -383,14 +260,11 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 connectionTypes={modelServingConnectionTypes}
                 selectedConnection={selectedConnection}
                 setSelectedConnection={setSelectedConnection}
-                selectedConnectionType={selectedConnectionType}
                 setModelLocationData={setModelLocationData}
                 resetModelLocationData={resetModelLocationData}
                 modelLocationData={modelLocationData}
                 pvcs={pvcs}
-                showCustomTypeSelect={showCustomTypeSelect}
-                customTypeOptions={typeOptions}
-                customTypeKey={selectedOption?.label}
+                customTypeOption={selectedOption}
               />
             </StackItem>
           )}
