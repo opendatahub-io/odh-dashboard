@@ -15,6 +15,7 @@ import {
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { FolderIcon } from '@patternfly/react-icons';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import type { AgentProfileSummary } from '~/app/agentProfile/types';
 
 type LoadAgentProfileModalProps = {
@@ -36,6 +37,7 @@ const formatDate = (iso: string): string => {
 
 const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, onSelect }) => {
   const { api, apiAvailable } = useGenAiAPI();
+  const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const [profiles, setProfiles] = React.useState<AgentProfileSummary[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -110,18 +112,21 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
             {paginatedProfiles.map((profile) => (
               <Tr
                 key={profile.profileId}
-                style={{ cursor: 'pointer' }}
+                isClickable={profile.profileId !== loadedProfileId}
+                isRowSelected={profile.profileId === loadedProfileId}
+                tabIndex={profile.profileId !== loadedProfileId ? 0 : undefined}
                 data-testid={`load-agent-profile-row-${profile.profileId}`}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    'var(--pf-t--global--background--color--secondary--default)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '';
-                }}
                 onClick={() => {
-                  onSelect(profile.profileId);
-                  onClose();
+                  if (profile.profileId !== loadedProfileId) {
+                    onSelect(profile.profileId);
+                    onClose();
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && profile.profileId !== loadedProfileId) {
+                    onSelect(profile.profileId);
+                    onClose();
+                  }
                 }}
               >
                 <Td dataLabel="Name">
