@@ -26,7 +26,7 @@ runs:
           echo "::error::Invalid packageManager field: must match npm@MAJOR.MINOR.PATCH"
           exit 1
         fi
-        npm install -g "$pkg_manager"
+        npm install -g "$pkg_manager" --prefix "$(dirname "$(which node)")/.."
         echo "npm: $(npm --version)"
     - name: Root node_modules cache
       id: root-cache
