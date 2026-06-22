@@ -1,35 +1,24 @@
 import type { ColumnSchema } from '~/app/hooks/queries';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import {
-  TASK_TYPE_BINARY,
-  TASK_TYPE_REGRESSION,
-  TASK_TYPE_TIMESERIES,
-} from '~/app/utilities/const';
 
-export const getColumnConstraintTooltip = (
-  taskType: ConfigureSchema['task_type'],
-  selectedColumn: ColumnSchema | undefined,
-): string | undefined => {
-  if (!selectedColumn) {
+/** Distinct value count from schema inference (sample-based). */
+export const getTargetColumnUniqueValueCount = (
+  column: ColumnSchema | undefined,
+): number | undefined => {
+  if (!column) {
     return undefined;
   }
-
-  const isStringColumn = selectedColumn.type === 'string';
-
-  switch (taskType) {
-    case TASK_TYPE_TIMESERIES:
-      return isStringColumn
-        ? 'Time series forecasting requires a numerical target column'
-        : undefined;
-    case TASK_TYPE_BINARY:
-      return selectedColumn.values == null || selectedColumn.values.length > 2
-        ? 'Binary classification requires a target column with at most 2 distinct values'
-        : undefined;
-    case TASK_TYPE_REGRESSION:
-      return isStringColumn ? 'Regression requires a numerical target column' : undefined;
-    default:
-      return undefined;
+  if (column.unique_count != null) {
+    return column.unique_count;
   }
+  return column.values?.length;
+};
+
+export const formatTargetColumnUniqueValuesMessage = (
+  columnName: string,
+  count: number,
+): string => {
+  const label = count === 1 ? 'value' : 'values';
+  return `${count} unique ${label} detected in "${columnName}"`;
 };
 
 const TIMESTAMP_NAME_PATTERNS = [
@@ -40,6 +29,7 @@ const TIMESTAMP_NAME_PATTERNS = [
   /^date$/i,
   /^time$/i,
   /^dt$/i,
+  /^ds$/i,
   /^ts$/i,
   /^created[_-]?at$/i,
   /^updated[_-]?at$/i,
