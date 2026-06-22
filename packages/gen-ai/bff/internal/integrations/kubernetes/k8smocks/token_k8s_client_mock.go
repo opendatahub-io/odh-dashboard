@@ -8,6 +8,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
@@ -614,6 +615,11 @@ func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identit
 	err = m.Client.Delete(ctx, &ogxapi.OGXServer{ObjectMeta: metav1.ObjectMeta{Name: target.Name, Namespace: namespace}})
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete OGXServer: %w", err)
+	}
+
+	// Clean up pgvector resources if SA client is available (mirrors real implementation).
+	if m.SAClient != nil {
+		_ = pgvector.DeletePostgresResources(ctx, m.SAClient, namespace)
 	}
 
 	return target, nil
