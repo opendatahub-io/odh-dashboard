@@ -3,12 +3,14 @@ package pgvector
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,6 +22,7 @@ func testScheme() *runtime.Scheme {
 	_ = corev1.AddToScheme(s)
 	_ = appsv1.AddToScheme(s)
 	_ = networkingv1.AddToScheme(s)
+	_ = storagev1.AddToScheme(s)
 	return s
 }
 
@@ -29,6 +32,7 @@ func testOpts() Options {
 		OGXServerLabelSelector: map[string]string{
 			"app": "lsd-genai-playground",
 		},
+		ReadinessTimeout: 100 * time.Millisecond, // fake client never updates status
 	}
 }
 

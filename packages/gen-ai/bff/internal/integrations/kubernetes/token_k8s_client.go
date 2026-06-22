@@ -1588,6 +1588,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			OGXServerLabelSelector: map[string]string{
 				"ogx.io/server": lsdName,
 			},
+			Logger: kc.Logger,
 		}
 		if opts.Image == "" {
 			opts.Image = pgvector.DefaultImage

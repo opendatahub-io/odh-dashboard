@@ -5,16 +5,26 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"strconv"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	readinessPollInterval = 2 * time.Second
+	readinessTimeout      = 60 * time.Second
+	rollbackMaxRetries    = 3
+	rollbackRetryDelay    = 500 * time.Millisecond
 )
 
 // Options configures the pgvector provisioner.
@@ -24,6 +34,18 @@ type Options struct {
 	// OGXServerLabelSelector is the pod label selector for the OGXServer workload,
 	// used to scope the NetworkPolicy ingress rule.
 	OGXServerLabelSelector map[string]string
+	// Logger for diagnostic output. If nil, a default logger is used.
+	Logger *slog.Logger
+	// ReadinessTimeout overrides the default timeout for waiting on pgvector
+	// Deployment readiness. Zero means use the default (60s).
+	ReadinessTimeout time.Duration
+}
+
+func (o Options) logger() *slog.Logger {
+	if o.Logger != nil {
+		return o.Logger
+	}
+	return slog.Default()
 }
 
 // managedLabels returns the labels applied to every auto-provisioned resource.
@@ -47,6 +69,8 @@ func managedSelector() labels.Selector {
 // Service, NetworkPolicy. If any step fails the resources created so far are
 // rolled back.
 func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts Options) (*Connection, error) {
+	log := opts.logger()
+
 	// Check for an existing pgvector Deployment.
 	var existing appsv1.DeploymentList
 	if err := c.List(ctx, &existing, client.InNamespace(namespace), client.MatchingLabelsSelector{Selector: managedSelector()}); err != nil {
@@ -55,6 +79,9 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	if len(existing.Items) > 0 {
 		return connectionFromExisting(ctx, c, namespace)
 	}
+
+	// Warn if no default StorageClass exists -- the PVC will hang in Pending.
+	checkDefaultStorageClass(ctx, c, log)
 
 	password, err := generatePassword()
 	if err != nil {
@@ -66,7 +93,7 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 
 	rollback := func() {
 		for i := len(created) - 1; i >= 0; i-- {
-			_ = c.Delete(ctx, created[i])
+			rollbackDelete(ctx, c, created[i], log)
 		}
 	}
 
@@ -106,6 +133,17 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	if err := c.Create(ctx, netpol); err != nil {
 		rollback()
 		return nil, fmt.Errorf("failed to create pgvector NetworkPolicy: %w", err)
+	}
+
+	// Wait for the Deployment to have at least one ready replica so the
+	// OGXServer doesn't connect to a pgvector that isn't accepting connections.
+	timeout := opts.ReadinessTimeout
+	if timeout == 0 {
+		timeout = readinessTimeout
+	}
+	if err := waitForReady(ctx, c, namespace, timeout, log); err != nil {
+		log.Warn("pgvector Deployment created but not yet ready; OGXServer may retry on connect",
+			"error", err, "namespace", namespace)
 	}
 
 	return &Connection{
@@ -327,6 +365,70 @@ func buildService(namespace string) *corev1.Service {
 			},
 		},
 	}
+}
+
+// waitForReady polls the pgvector Deployment until at least one replica is
+// ready or the timeout elapses. Returns nil on success, error on timeout.
+// A timeout is logged as a warning but does not fail provisioning -- the
+// OGXServer's own connection retry logic handles the race.
+func waitForReady(ctx context.Context, c client.Client, namespace string, timeout time.Duration, log *slog.Logger) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		var deploy appsv1.Deployment
+		if err := c.Get(ctx, client.ObjectKey{Name: DeploymentName, Namespace: namespace}, &deploy); err != nil {
+			return fmt.Errorf("failed to get pgvector Deployment: %w", err)
+		}
+		if deploy.Status.ReadyReplicas > 0 {
+			log.Info("pgvector Deployment ready", "namespace", namespace,
+				"readyReplicas", deploy.Status.ReadyReplicas)
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("pgvector Deployment not ready after %s", timeout)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(readinessPollInterval):
+		}
+	}
+}
+
+// rollbackDelete attempts to delete a resource with retries on transient failures.
+func rollbackDelete(ctx context.Context, c client.Client, obj client.Object, log *slog.Logger) {
+	for attempt := 1; attempt <= rollbackMaxRetries; attempt++ {
+		if err := c.Delete(ctx, obj); err != nil {
+			log.Warn("rollback delete failed",
+				"resource", fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName()),
+				"attempt", attempt, "error", err)
+			if attempt < rollbackMaxRetries {
+				time.Sleep(rollbackRetryDelay)
+				continue
+			}
+			log.Error("rollback delete exhausted retries, resource may be leaked",
+				"resource", fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName()))
+		}
+		return
+	}
+}
+
+// checkDefaultStorageClass logs a warning if no default StorageClass is
+// configured on the cluster. Without one, PVCs with no explicit
+// storageClassName will hang in Pending indefinitely.
+func checkDefaultStorageClass(ctx context.Context, c client.Client, log *slog.Logger) {
+	var scList storagev1.StorageClassList
+	if err := c.List(ctx, &scList); err != nil {
+		log.Warn("unable to list StorageClasses to check for default", "error", err)
+		return
+	}
+	for i := range scList.Items {
+		annotations := scList.Items[i].Annotations
+		if annotations["storageclass.kubernetes.io/is-default-class"] == "true" ||
+			annotations["storageclass.beta.kubernetes.io/is-default-class"] == "true" {
+			return
+		}
+	}
+	log.Warn("no default StorageClass found; pgvector PVC may hang in Pending")
 }
 
 func buildNetworkPolicy(namespace string, ogxServerLabels map[string]string) *networkingv1.NetworkPolicy {
