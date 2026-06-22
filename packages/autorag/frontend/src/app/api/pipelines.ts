@@ -43,7 +43,7 @@ export async function getPipelineRunsFromBFF(
   if (params.pipelineVersionId) {
     queryParams.pipelineVersionId = params.pipelineVersionId;
   }
-  if (params.page) {
+  if (params.page != null) {
     queryParams.page = String(params.page);
   }
 

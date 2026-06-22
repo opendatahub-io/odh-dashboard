@@ -17,7 +17,7 @@ export type PipelineRunsResult = {
   setPageSize: (pageSize: number) => void;
   loaded: boolean;
   error: Error | undefined;
-  refresh: () => void;
+  refresh: () => Promise<void>;
 };
 
 /**
@@ -69,9 +69,9 @@ export function usePipelineRuns(namespace: string): PipelineRunsResult {
     setPage(1);
   }, []);
 
-  const refreshWrapped = React.useCallback(() => {
+  const refreshWrapped = React.useCallback(async () => {
     if (page === 1) {
-      refresh();
+      await refresh();
     } else {
       setPage(1);
     }
