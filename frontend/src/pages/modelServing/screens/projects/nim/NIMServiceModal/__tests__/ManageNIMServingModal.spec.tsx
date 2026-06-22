@@ -510,7 +510,7 @@ describe('ManageNIMServingModal', () => {
 
   describe('Authentication', () => {
     it('does not show NoAuthAlert when auth is available', () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: true });
 
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
@@ -522,7 +522,7 @@ describe('ManageNIMServingModal', () => {
   describe('Environment Variables', () => {
     it('allows adding environment variables when serving runtime params are enabled', async () => {
       // Mock serving runtime params as enabled
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockImplementation((area: string) => {
         if (area === 'serving-runtime-params') {
           return { status: true };
@@ -561,7 +561,7 @@ describe('ManageNIMServingModal', () => {
 
     it('validates environment variable names correctly', async () => {
       // Mock serving runtime params as enabled
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockImplementation((area: string) => {
         if (area === 'serving-runtime-params') {
           return { status: true };
@@ -599,7 +599,7 @@ describe('ManageNIMServingModal', () => {
 
     it('does not show environment variables section when serving runtime params are disabled', () => {
       // Mock serving runtime params as disabled
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockImplementation((area: string) => {
         if (area === 'serving-runtime-params') {
           return { status: false };
@@ -772,7 +772,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
   describe('Storage Class Configuration Display', () => {
     it('shows disabled select when no ODH storage class configs exist', async () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: true });
       // Mock no ODH configs but OpenShift default available
       mockUseDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
@@ -896,7 +896,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
   describe('Storage Class Loading States', () => {
     it('does not render storage class select when storage classes are not available', () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: false }); // Storage classes not available
 
       mockUseGetStorageClassConfig.mockReturnValue({
@@ -911,7 +911,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     });
 
     it('renders storage class select when storage classes are available', () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
 
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
@@ -928,7 +928,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     });
 
     it('renders storage class skeleton when storage classes are available but not loaded', () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
 
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
