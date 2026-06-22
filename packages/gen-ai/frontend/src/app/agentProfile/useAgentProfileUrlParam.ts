@@ -71,9 +71,15 @@ const useAgentProfileUrlParam = ({
     setLoading(true);
     setError(undefined);
 
+    let cancelled = false;
+
     api
       .getAgentProfile({ id: agentProfileId, namespace: namespace.name })
       .then((profile) => {
+        if (cancelled) {
+          return;
+        }
+
         const { config, promptRef, mcpToolsPending } = deserializeAgentProfile(profile, {
           playgroundModels,
           mcpServers,
@@ -102,6 +108,9 @@ const useAgentProfileUrlParam = ({
           api
             .getMLflowPrompt({ name: promptRef.name, ...versionParam })
             .then((prompt) => {
+              if (cancelled) {
+                return;
+              }
               updateActivePrompt(DEFAULT_CONFIG_ID, prompt);
               const instruction =
                 prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
@@ -117,10 +126,17 @@ const useAgentProfileUrlParam = ({
         setLoading(false);
       })
       .catch((err: Error) => {
+        if (cancelled) {
+          return;
+        }
         appliedProfileId.current = null; // allow retry if caller re-mounts
         setError(err);
         setLoading(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     agentProfileId,
     namespace?.name,
