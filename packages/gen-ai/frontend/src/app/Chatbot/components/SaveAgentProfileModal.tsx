@@ -79,6 +79,13 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
         : undefined,
     [llamaModel, aiModels],
   );
+  const asrModel = React.useMemo(
+    () =>
+      config?.isAsrModelEnabled && config.selectedAsrModel
+        ? aiModels.find((ai) => ai.model_id === config.selectedAsrModel)
+        : undefined,
+    [config?.isAsrModelEnabled, config?.selectedAsrModel, aiModels],
+  );
 
   const externalVectorStoreName = React.useMemo(() => {
     if (
@@ -131,6 +138,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
         description.trim() || undefined,
         {
           model: aiModel,
+          asrModel,
           mcpServers,
           mcpConfigMapName: mcpConfigMapName ?? MCP_CONFIG_MAP_NAME_FALLBACK,
         },

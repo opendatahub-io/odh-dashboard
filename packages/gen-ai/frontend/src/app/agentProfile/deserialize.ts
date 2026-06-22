@@ -116,6 +116,15 @@ export const deserializeAgentProfile = (
     config.mcpToolSelections = {};
   }
 
+  // ASR (transcription) model
+  if (spec.asr?.model) {
+    config.selectedAsrModel = spec.asr.model.id;
+    config.isAsrModelEnabled = true;
+  } else {
+    config.selectedAsrModel = DEFAULT_CONFIGURATION.selectedAsrModel;
+    config.isAsrModelEnabled = DEFAULT_CONFIGURATION.isAsrModelEnabled;
+  }
+
   // Guardrails are intentionally not deserialized — see serialize.ts for the rationale.
   // Any guardrails in the profile are ignored; the Playground starts with guardrails cleared.
   config.guardrail = '';
