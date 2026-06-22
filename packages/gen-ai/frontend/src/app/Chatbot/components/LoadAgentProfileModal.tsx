@@ -50,19 +50,29 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
       setLoading(false);
       return;
     }
+    let cancelled = false;
     setLoading(true);
     setError(null);
     api
       .listAgentProfiles()
       .then((response) => {
-        setProfiles(response.profiles);
+        if (!cancelled) {
+          setProfiles(response.profiles);
+        }
       })
       .catch((err: Error) => {
-        setError(err.message || 'Failed to load agent profiles.');
+        if (!cancelled) {
+          setError(err.message || 'Failed to load agent profiles.');
+        }
       })
       .finally(() => {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       });
+    return () => {
+      cancelled = true;
+    };
   }, [api, apiAvailable]);
 
   const filtered = React.useMemo(() => {
