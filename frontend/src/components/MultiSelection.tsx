@@ -24,6 +24,10 @@ import {
 } from '@patternfly/react-core';
 
 import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
+import {
+  resolveSelectPopperAppendTo,
+  useModalOverflowUnlock,
+} from '#~/utilities/useModalOverflowUnlock';
 
 export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
   id: number | string;
@@ -45,7 +49,7 @@ type MultiSelectionProps = {
   isScrollable?: boolean;
   toggleId?: string;
   inputId?: string;
-  ariaLabel: string;
+  ariaLabel?: string;
   placeholder?: string;
   isDisabled?: boolean;
   selectionRequired?: boolean;
@@ -75,11 +79,47 @@ const encodeOptionIdForDom = (optionId: number | string): string =>
     .replace(/u/g, 'uu')
     .replace(/[^a-zA-Z0-9_-]/g, (ch) => `u${ch.charCodeAt(0)}u`);
 
-const MODAL_OVERFLOW_UNLOCK_COUNT_ATTR = 'data-multiselection-overflow-unlock-count';
-const MODAL_OVERFLOW_ORIGINAL_ATTR = 'data-multiselection-overflow-original';
-
 const createOptionElementId = (instanceId: string, optionId: number | string): string =>
   `${instanceId}-option-${encodeOptionIdForDom(optionId)}`;
+
+const normalizeOptionId = (optionId: number | string): string => String(optionId);
+
+const getOptionTestId = (name: string) => `select-multi-typeahead-${name.replace(/\s+/g, '-')}`;
+
+type MultiSelectionOptionProps = {
+  option: SelectionOptions;
+  children?: React.ReactNode;
+  showCheckbox?: boolean;
+  hasCheckbox: boolean;
+  focusedItemIndex: number | null;
+  visibleIndexById: Map<string, number>;
+  instanceId: string;
+};
+
+const MultiSelectionOption: React.FC<MultiSelectionOptionProps> = ({
+  option,
+  children,
+  showCheckbox = true,
+  hasCheckbox,
+  focusedItemIndex,
+  visibleIndexById,
+  instanceId,
+}) => (
+  <SelectOption
+    id={createOptionElementId(instanceId, option.id)}
+    {...(showCheckbox && hasCheckbox ? { hasCheckbox: true } : {})}
+    isFocused={focusedItemIndex === visibleIndexById.get(normalizeOptionId(option.id))}
+    data-testid={getOptionTestId(option.name)}
+    value={option.id}
+    isSelected={option.selected}
+    description={option.description}
+    isDisabled={option.isDisabled}
+    isAriaDisabled={option.isAriaDisabled}
+    ref={null}
+  >
+    {children ?? option.name}
+  </SelectOption>
+);
 
 export const MultiSelection: React.FC<MultiSelectionProps> = ({
   value = [],
@@ -107,12 +147,26 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const [inputValue, setInputValue] = React.useState<string>('');
   const [focusedItemIndex, setFocusedItemIndex] = React.useState<number | null>(null);
   const [activeItemId, setActiveItemId] = React.useState<string | null>(null);
-  const textInputRef = React.useRef<HTMLInputElement>();
+  const textInputRef = React.useRef<HTMLInputElement | null>(null);
+  const focusTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
   const generatedInstanceId = React.useId().replace(/:/g, '');
   const instanceId = id ?? `multi-select-${generatedInstanceId}`;
   const listboxId = `${instanceId}-listbox`;
 
-  const getModalDialog = () => textInputRef.current?.closest<HTMLElement>('[role="dialog"]');
+  useModalOverflowUnlock(isOpen, textInputRef);
+
+  const getPopperAppendTo = React.useCallback(
+    () => resolveSelectPopperAppendTo(textInputRef.current),
+    [],
+  );
+
+  const mergedPopperProps = React.useMemo(
+    () => ({
+      ...popperProps,
+      appendTo: popperProps?.appendTo ?? getPopperAppendTo,
+    }),
+    [popperProps, getPopperAppendTo],
+  );
 
   const selectGroups = React.useMemo(
     () =>
@@ -182,8 +236,8 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   }, [groupOptions, selectOptions, createOption, isCreateOptionOnTop]);
 
   const visibleIndexById = React.useMemo(() => {
-    const map = new Map<string | number, number>();
-    visibleOptions.forEach((option, index) => map.set(option.id, index));
+    const map = new Map<string, number>();
+    visibleOptions.forEach((option, index) => map.set(normalizeOptionId(option.id), index));
     return map;
   }, [visibleOptions]);
 
@@ -208,46 +262,23 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   };
 
   const closeMenu = () => {
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+      focusTimeoutRef.current = undefined;
+    }
     setIsOpen(false);
     setInputValue('');
     resetActiveAndFocusedItem();
   };
 
-  React.useEffect(() => {
-    if (inputValue) {
-      setIsOpen(true);
-      resetActiveAndFocusedItem();
-    }
-  }, [inputValue]);
-
-  // Modal boxes use overflow:auto; unlock while open so the portaled menu is not clipped.
-  // Ref-count when multiple instances share a dialog (e.g. AddRuleModal).
-  React.useLayoutEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    const dialog = getModalDialog();
-    if (!dialog) {
-      return;
-    }
-    const unlockCount = Number(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR) ?? '0');
-    if (unlockCount === 0) {
-      dialog.setAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR, dialog.style.overflow);
-    }
-    dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(unlockCount + 1));
-    dialog.style.overflow = 'visible';
-    return () => {
-      const currentCount = Number(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR) ?? '1');
-      const nextCount = currentCount - 1;
-      if (nextCount <= 0) {
-        dialog.style.overflow = dialog.getAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR) ?? '';
-        dialog.removeAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR);
-        dialog.removeAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR);
-      } else {
-        dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(nextCount));
+  React.useEffect(
+    () => () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
       }
-    };
-  }, [isOpen]);
+    },
+    [],
+  );
 
   const handleMenuArrowKeys = (key: string) => {
     if (!isOpen) {
@@ -285,7 +316,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     switch (event.key) {
       case 'Enter':
         event.preventDefault();
-        if (isOpen && focusedItem) {
+        if (isOpen && focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled) {
           onSelect(focusedItem);
         }
         if (!isOpen) {
@@ -312,19 +343,33 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     } else {
       closeMenu();
     }
-    setTimeout(() => textInputRef.current?.focus(), 100);
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+    }
+    focusTimeoutRef.current = setTimeout(() => {
+      textInputRef.current?.focus();
+      focusTimeoutRef.current = undefined;
+    }, 100);
   };
 
   const onTextInputChange = (_event: React.FormEvent<HTMLInputElement>, valueOfInput: string) => {
     setInputValue(valueOfInput);
+    if (valueOfInput) {
+      setIsOpen(true);
+    }
     resetActiveAndFocusedItem();
   };
 
   const onSelect = (menuItem?: SelectionOptions) => {
+    if (menuItem?.isAriaDisabled || menuItem?.isDisabled) {
+      return;
+    }
     if (menuItem) {
       setValue(
         allOptions.map((option) =>
-          option.id === menuItem.id ? { ...option, selected: !option.selected } : option,
+          normalizeOptionId(option.id) === normalizeOptionId(menuItem.id)
+            ? { ...option, selected: !option.selected }
+            : option,
         ),
       );
       setInputValue('');
@@ -335,27 +380,22 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   const noSelectedItems = allOptions.filter((option) => option.selected).length === 0;
 
-  const getOptionTestId = (name: string) => `select-multi-typeahead-${name.replace(/\s+/g, '-')}`;
-
   const renderSelectOption = (
     option: SelectionOptions,
     children?: React.ReactNode,
     showCheckbox = true,
   ) => (
-    <SelectOption
-      key={String(option.id)}
-      id={createOptionElementId(instanceId, option.id)}
-      {...(showCheckbox && hasCheckbox ? { hasCheckbox: true } : {})}
-      isFocused={focusedItemIndex === visibleIndexById.get(option.id)}
-      data-testid={getOptionTestId(option.name)}
-      value={option.id}
-      isSelected={option.selected}
-      description={option.description}
-      isAriaDisabled={option.isAriaDisabled}
-      ref={null}
+    <MultiSelectionOption
+      key={normalizeOptionId(option.id)}
+      option={option}
+      hasCheckbox={hasCheckbox}
+      focusedItemIndex={focusedItemIndex}
+      visibleIndexById={visibleIndexById}
+      instanceId={instanceId}
+      showCheckbox={showCheckbox}
     >
-      {children ?? option.name}
-    </SelectOption>
+      {children}
+    </MultiSelectionOption>
   );
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
@@ -364,7 +404,6 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       data-testid={toggleTestId}
       variant="typeahead"
       status={selectionRequired && noSelectedItems ? 'danger' : undefined}
-      aria-label={ariaLabel}
       onClick={onToggleClick}
       innerRef={toggleRef}
       isDisabled={isDisabled}
@@ -388,10 +427,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           aria-controls={listboxId}
         >
           <LabelGroup aria-label="Current selections">
-            {selected.map((selection, index) => (
+            {selected.map((selection) => (
               <Label
                 variant={isDisabled ? 'filled' : 'outline'}
-                key={index}
+                key={normalizeOptionId(selection.id)}
                 closeBtnProps={{ isDisabled }}
                 onClose={(ev) => {
                   ev.stopPropagation();
@@ -406,7 +445,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           </LabelGroup>
         </TextInputGroupMain>
         <TextInputGroupUtilities>
-          {selected.length > 0 && (
+          {selected.length > 0 ? (
             <Button
               icon={<TimesIcon aria-hidden />}
               variant="plain"
@@ -416,9 +455,9 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
                 setValue(allOptions.map((option) => ({ ...option, selected: false })));
                 textInputRef.current?.focus();
               }}
-              aria-label="Clear input value"
+              aria-label="Clear all selections"
             />
-          )}
+          ) : null}
         </TextInputGroupUtilities>
       </TextInputGroup>
     </MenuToggle>
@@ -432,7 +471,9 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         isOpen={isOpen}
         selected={selected}
         onSelect={(ev, selection) => {
-          const selectedOption = allOptions.find((option) => option.id === selection);
+          const selectedOption = allOptions.find(
+            (option) => normalizeOptionId(option.id) === normalizeOptionId(selection),
+          );
           onSelect(selectedOption);
         }}
         onOpenChange={(open) => {
@@ -442,12 +483,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         }}
         toggle={toggle}
         variant="typeahead"
-        popperProps={{
-          ...popperProps,
-          // Portal into the modal dialog (not document.body) so VoiceOver can reach options
-          // inside aria-modal; overflow unlock above lets the menu extend past the dialog edge.
-          appendTo: popperProps?.appendTo ?? (() => getModalDialog() ?? document.body),
-        }}
+        popperProps={mergedPopperProps}
       >
         {/* Single SelectList id for aria-controls; SelectGroup inside matches TypeaheadSelect. */}
         <SelectList

@@ -14,6 +14,10 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import TruncatedText from '#~/components/TruncatedText';
+import {
+  resolveSelectPopperAppendTo,
+  useModalOverflowUnlock,
+} from '#~/utilities/useModalOverflowUnlock';
 
 import './SimpleSelect.scss';
 
@@ -50,6 +54,7 @@ type SimpleSelectProps = {
   isDisabled?: boolean;
   icon?: React.ReactNode;
   dataTestId?: string;
+  ariaLabel?: string;
   previewDescription?: boolean;
   isSkeleton?: boolean;
   autoSelectOnlyOption?: boolean;
@@ -57,10 +62,6 @@ type SimpleSelectProps = {
   React.ComponentProps<typeof Select>,
   'isOpen' | 'toggle' | 'dropdownItems' | 'onChange' | 'selected'
 >;
-
-// Same ref-count attrs as MultiSelection so mixed selects in one modal share overflow state.
-const MODAL_OVERFLOW_UNLOCK_COUNT_ATTR = 'data-multiselection-overflow-unlock-count';
-const MODAL_OVERFLOW_ORIGINAL_ATTR = 'data-multiselection-overflow-original';
 
 const SimpleSelect: React.FC<SimpleSelectProps> = ({
   isDisabled,
@@ -73,6 +74,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   isFullWidth,
   icon,
   dataTestId,
+  ariaLabel = 'Options menu',
   toggleProps,
   previewDescription = true,
   popperProps,
@@ -83,7 +85,21 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   const [open, setOpen] = React.useState(false);
   const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
 
-  const getModalDialog = () => menuToggleRef.current?.closest<HTMLElement>('[role="dialog"]');
+  useModalOverflowUnlock(open, menuToggleRef);
+
+  const getPopperAppendTo = React.useCallback(
+    () => resolveSelectPopperAppendTo(menuToggleRef.current),
+    [],
+  );
+
+  const mergedPopperProps = React.useMemo(
+    () => ({
+      maxWidth: 'trigger' as const,
+      ...popperProps,
+      appendTo: popperProps?.appendTo ?? getPopperAppendTo,
+    }),
+    [popperProps, getPopperAppendTo],
+  );
 
   const groupedOptionsFlat = React.useMemo(
     () =>
@@ -106,44 +122,19 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
     totalOptions.length === 1 ? totalOptions[0].optionKey || totalOptions[0].key : null;
 
   React.useEffect(() => {
-    if (singleOptionKey && !isSkeleton && autoSelectOnlyOption) {
+    if (singleOptionKey && !isSkeleton && autoSelectOnlyOption && value !== totalOptions[0].key) {
       onChange(totalOptions[0].key, false);
     }
     // We don't want the callback function to be a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [singleOptionKey, isSkeleton, autoSelectOnlyOption]);
 
-  // Modal boxes use overflow:auto; unlock while open so the portaled menu is not clipped.
-  React.useLayoutEffect(() => {
-    if (!open) {
-      return;
-    }
-    const dialog = getModalDialog();
-    if (!dialog) {
-      return;
-    }
-    const unlockCount = Number(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR) ?? '0');
-    if (unlockCount === 0) {
-      dialog.setAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR, dialog.style.overflow);
-    }
-    dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(unlockCount + 1));
-    dialog.style.overflow = 'visible';
-    return () => {
-      const currentCount = Number(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR) ?? '1');
-      const nextCount = currentCount - 1;
-      if (nextCount <= 0) {
-        dialog.style.overflow = dialog.getAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR) ?? '';
-        dialog.removeAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR);
-        dialog.removeAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR);
-      } else {
-        dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(nextCount));
-      }
-    };
-  }, [open]);
-
   if (isSkeleton) {
     return <Skeleton style={{ minWidth: 100 }} />;
   }
+
+  const displayedLabel = toggleLabel ?? selectedLabel;
+  const displayedLabelTitle = typeof displayedLabel === 'string' ? displayedLabel : undefined;
 
   return (
     <>
@@ -167,7 +158,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             <MenuToggle
               innerRef={toggleRef}
               data-testid={dataTestId}
-              aria-label="Options menu"
+              aria-label={ariaLabel}
               onClick={() => setOpen(!open)}
               icon={icon}
               isExpanded={open}
@@ -181,24 +172,12 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             >
               {/* Plain text: MenuToggle's .pf-v6-c-menu-toggle__text handles truncation. Using Truncate
                   caused Safari flex layout bugs (labels clipped when space was available). */}
-              {(() => {
-                const displayedLabel = toggleLabel ?? selectedLabel;
-                return (
-                  <span title={typeof displayedLabel === 'string' ? displayedLabel : undefined}>
-                    {displayedLabel}
-                  </span>
-                );
-              })()}
+              <span title={displayedLabelTitle}>{displayedLabel}</span>
             </MenuToggle>
           </div>
         )}
         shouldFocusToggleOnSelect
-        popperProps={{
-          maxWidth: 'trigger',
-          ...popperProps,
-          // Portal into the modal dialog so VoiceOver can reach options inside aria-modal.
-          appendTo: popperProps?.appendTo ?? (() => getModalDialog() ?? document.body),
-        }}
+        popperProps={mergedPopperProps}
       >
         {groupedOptions?.map((group, index) => (
           <React.Fragment key={group.key}>
@@ -208,6 +187,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                 {group.options.map(
                   ({
                     key,
+                    optionKey,
                     label,
                     dropdownLabel,
                     description,
@@ -217,7 +197,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                     dataTestId: optionDataTestId,
                   }) => (
                     <SelectOption
-                      key={key}
+                      key={optionKey ?? key}
                       value={key}
                       description={<TruncatedText maxLines={2} content={description} />}
                       isDisabled={optionDisabled}
@@ -239,6 +219,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             {options.map(
               ({
                 key,
+                optionKey,
                 label,
                 dropdownLabel,
                 description,
@@ -248,7 +229,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                 dataTestId: optionDataTestId,
               }) => (
                 <SelectOption
-                  key={key}
+                  key={optionKey ?? key}
                   value={key}
                   description={<TruncatedText maxLines={2} content={description} />}
                   isFavorited={isFavorited}
