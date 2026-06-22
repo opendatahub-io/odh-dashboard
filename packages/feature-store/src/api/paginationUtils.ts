@@ -47,16 +47,11 @@ export const fetchAllPages = async <T extends PaginatedResponse, TItem>(
     allItems.push(...items);
     allResponses.push(response);
 
-    if (items.length === 0) {
-      hasNext = false;
+    const pag: Record<string, unknown> = response.pagination;
+    if (typeof pag.hasNext === 'boolean') {
+      hasNext = pag.hasNext;
     } else {
-      const pag: Record<string, unknown> = response.pagination;
-      const hasNextField = pag.hasNext ?? pag.has_next;
-      if (typeof hasNextField === 'boolean') {
-        hasNext = hasNextField;
-      } else {
-        hasNext = items.length >= FEATURE_STORE_PAGE_SIZE;
-      }
+      hasNext = items.length >= FEATURE_STORE_PAGE_SIZE;
     }
     page++;
   } while (hasNext && page <= MAX_PAGES);
