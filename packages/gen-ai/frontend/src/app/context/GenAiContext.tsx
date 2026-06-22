@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  BrowserStorageContextProvider,
-  Namespace,
-  useQueryParamNamespaces,
-} from 'mod-arch-core';
+import { BrowserStorageContextProvider, Namespace, useQueryParamNamespaces } from 'mod-arch-core';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import useSyncPreferredNamespace from '~/app/hooks/useSyncPreferredNamespace';
 import useGenAiAPIState, { GenAiAPIState } from '~/app/hooks/useGenAiAPIState';

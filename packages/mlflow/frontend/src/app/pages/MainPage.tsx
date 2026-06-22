@@ -17,7 +17,6 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import {
@@ -25,6 +24,7 @@ import {
   type MlflowExperiment,
   type MlflowSelectorStatus,
 } from '@odh-dashboard/internal/concepts/mlflow';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { WORKSPACE_PARAM } from '~/app/utilities/const';
 
 const BffConnectionAlert: React.FC<{ selectorStatus: MlflowSelectorStatus }> = ({

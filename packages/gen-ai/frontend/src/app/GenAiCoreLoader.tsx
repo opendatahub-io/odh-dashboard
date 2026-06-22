@@ -29,7 +29,8 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
   ...applicationPageProps
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
-  const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelectorWithPersistence();
+  const { namespaces, namespacesLoaded, preferredNamespace } =
+    useNamespaceSelectorWithPersistence();
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (namespaces.length === 0) {

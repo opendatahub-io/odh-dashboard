@@ -10,7 +10,8 @@ import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSel
 
 const NamespaceSelector: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const { namespaces, preferredNamespace, updatePreferredNamespace } = useNamespaceSelectorWithPersistence();
+  const { namespaces, preferredNamespace, updatePreferredNamespace } =
+    useNamespaceSelectorWithPersistence();
 
   const selectedNamespace = preferredNamespace?.name ?? namespaces[0]?.name;
 

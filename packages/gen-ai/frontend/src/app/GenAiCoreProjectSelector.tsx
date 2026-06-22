@@ -1,8 +1,8 @@
 import * as React from 'react';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useNavigate } from 'react-router-dom';
 import { useNamespaceSelectorWithPersistence } from './hooks/useNamespaceSelectorWithPersistence';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 
 type PipelineCoreProjectSelectorProps = {
   namespace?: string;
@@ -15,7 +15,8 @@ const GenAiCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = ({
   ...projectSelectorProps
 }) => {
   const navigate = useNavigate();
-  const { namespaces, updatePreferredNamespace, namespacesLoaded } = useNamespaceSelectorWithPersistence();
+  const { namespaces, updatePreferredNamespace, namespacesLoaded } =
+    useNamespaceSelectorWithPersistence();
 
   return (
     <ProjectSelector
