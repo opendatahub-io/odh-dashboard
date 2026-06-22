@@ -248,6 +248,23 @@ class ChatbotPage {
     return cy.findByTestId('mcp-servers-panel-table');
   }
 
+  // Open-Agent Modal (shown when loading a profile from the URL param)
+  findOpenAgentModal(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('open-agent-profile-modal');
+  }
+
+  clickOpenAgentPreview(): void {
+    cy.findByTestId('open-agent-profile-preview-button').click();
+  }
+
+  clickOpenAgentEdit(): void {
+    cy.findByTestId('open-agent-profile-edit-button').click();
+  }
+
+  clickOpenAgentClose(): void {
+    cy.findByRole('button', { name: 'Close' }).click();
+  }
+
   // Kebab Menu (Actions Menu)
   findKebabMenuButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('header-kebab-menu-toggle');
