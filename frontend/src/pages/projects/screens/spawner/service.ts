@@ -23,6 +23,7 @@ import {
   EnvironmentFromVariable,
   EnvVariable,
   SecretCategory,
+  SecretKeyRefEnvVar,
   StorageData,
   StorageType,
 } from '#~/pages/projects/types';
@@ -106,6 +107,9 @@ const getPromisesForConfigMapsAndSecrets = (
             : replaceSecret(assembleSecret(projectName, dataAsRecord, 'aws', envVar.existingName), {
                 dryRun,
               });
+        case SecretCategory.EXISTING:
+          // Existing secrets are referenced, not created or updated
+          return null;
         case ConfigMapCategory.GENERIC:
         case ConfigMapCategory.UPLOAD:
           return type === 'create'
@@ -143,6 +147,22 @@ const getEnvFromList = (
     return [...acc, envFrom];
   }, initialList);
 
+/**
+ * Generate secretKeyRef env entries from env variables with category EXISTING.
+ * Each ExistingSecretRef produces one env entry per selected key.
+ */
+export const getSecretKeyRefEnvVars = (envVariables: EnvVariable[]): SecretKeyRefEnvVar[] =>
+  envVariables
+    .filter((v) => v.values?.category === SecretCategory.EXISTING)
+    .flatMap((v) =>
+      (v.existingSecretRefs ?? []).flatMap((ref) =>
+        ref.selectedKeys.map((key) => ({
+          name: key,
+          valueFrom: { secretKeyRef: { name: ref.secretName, key } },
+        })),
+      ),
+    );
+
 export const createConfigMapsAndSecretsForNotebook = async (
   projectName: string,
   envVariables: EnvVariable[],
@@ -164,13 +184,18 @@ export const createConfigMapsAndSecretsForNotebook = async (
     });
 };
 
+export type UpdateConfigMapsAndSecretsResult = {
+  envFrom: EnvironmentFromVariable[];
+  secretKeyRefEnvVars: SecretKeyRefEnvVar[];
+};
+
 export const updateConfigMapsAndSecretsForNotebook = async (
   projectName: string,
   notebook: NotebookKind,
   envVariables: EnvVariable[],
   connections?: Connection[],
   dryRun = false,
-): Promise<EnvironmentFromVariable[]> => {
+): Promise<UpdateConfigMapsAndSecretsResult> => {
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
   const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
     notebook,
@@ -178,17 +203,29 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     [...(connections || []).map((connection) => connection.metadata.name)],
   );
 
-  const [oldResources, newResources] = _.partition(envVariables, (envVar) => envVar.existingName);
+  // Filter out EXISTING category env vars for resource management — they don't need
+  // K8s resource creation/update/deletion. They are handled via secretKeyRef entries.
+  const managedEnvVariables = envVariables.filter(
+    (v) => v.values?.category !== SecretCategory.EXISTING,
+  );
+  const managedExistingEnvVars = existingEnvVars.filter(
+    (v) => v.values?.category !== SecretCategory.EXISTING,
+  );
+
+  const [oldResources, newResources] = _.partition(
+    managedEnvVariables,
+    (envVar) => envVar.existingName,
+  );
   const currentNames = oldResources
     .map((envVar) => envVar.existingName)
     .filter((v): v is string => !!v);
 
-  const removeResources = existingEnvVars.filter(
+  const removeResources = managedExistingEnvVars.filter(
     (envVar) => envVar.existingName && !currentNames.includes(envVar.existingName),
   );
 
   const [typeChangeResources, updateResources] = _.partition(oldResources, (envVar) =>
-    existingEnvVars.find(
+    managedExistingEnvVars.find(
       (existingEnvVar) =>
         existingEnvVar.existingName === envVar.existingName &&
         existingEnvVar.values?.category !== envVar.values?.category,
@@ -237,9 +274,14 @@ export const updateConfigMapsAndSecretsForNotebook = async (
 
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
 
-  return getEnvFromList(created, [...envFromList]).filter(
-    (envFrom) =>
-      !(envFrom.secretRef?.name && deletingNames.includes(envFrom.secretRef.name)) &&
-      !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef.name)),
+  const envFrom = getEnvFromList(created, [...envFromList]).filter(
+    (envFromEntry) =>
+      !(envFromEntry.secretRef?.name && deletingNames.includes(envFromEntry.secretRef.name)) &&
+      !(envFromEntry.configMapRef?.name && deletingNames.includes(envFromEntry.configMapRef.name)),
   );
+
+  // Generate secretKeyRef env entries from EXISTING category env vars
+  const secretKeyRefEnvVars = getSecretKeyRefEnvVars(envVariables);
+
+  return { envFrom, secretKeyRefEnvVars };
 };

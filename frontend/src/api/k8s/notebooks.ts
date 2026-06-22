@@ -37,6 +37,7 @@ export const assembleNotebook = (
     projectName,
     notebookData,
     envFrom,
+    secretKeyRefEnvVars,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
@@ -134,6 +135,7 @@ export const assembleNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...(secretKeyRefEnvVars ?? []),
               ],
               envFrom,
               volumeMounts,
@@ -312,6 +314,10 @@ export const updateNotebook = (
   // merging them by array index, which creates corrupted volumes with multiple types
   oldNotebook.spec.template.spec.volumes = [];
   container.volumeMounts = [];
+
+  // Clear old env array so the assembled notebook's env (including secretKeyRef entries)
+  // replaces rather than merges by index
+  container.env = [];
 
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(
