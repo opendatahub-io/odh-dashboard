@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -180,7 +181,7 @@ func (r *DashboardReconciler) reconcile(
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard manifests applied successfully"))
 
-	url, err := extractDashboardURL(ctx, r.Client, r.ApplicationsNamespace, r.Platform)
+	url, err := extractDashboardURL(ctx, r.Client, dashboard, r.ApplicationsNamespace, r.Platform)
 
 	var requeueAfter time.Duration
 
@@ -241,11 +242,52 @@ func (r *DashboardReconciler) reconcile(
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
-// TODO(RHOAIENG-59938): delete Perses monitoring resources in the observability namespace
-// and any SSA-adopted resources not covered by ownerReference GC.
-func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, _ *v1alpha1.Dashboard) error {
+// cleanupCrossNamespaceResources deletes Perses monitoring resources in the
+// observability namespace. OwnerReference GC only works within the same
+// namespace (or for cluster-scoped owners referencing cluster-scoped children),
+// so resources deployed to a different namespace need explicit cleanup.
+func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	logger := log.FromContext(ctx)
-	logger.Info("Cleaning up cross-namespace resources")
+
+	obsNS := ""
+	if dashboard.Spec.Observability != nil &&
+		dashboard.Spec.Observability.PersesService != nil {
+		obsNS = dashboard.Spec.Observability.PersesService.Namespace
+	}
+
+	if obsNS == "" || obsNS == r.ApplicationsNamespace {
+		logger.Info("No cross-namespace resources to clean up")
+		return nil
+	}
+
+	logger.Info("Cleaning up cross-namespace resources", "namespace", obsNS)
+
+	matchLabels := client.MatchingLabels{
+		labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
+	}
+	inNamespace := client.InNamespace(obsNS)
+
+	var svcs corev1.ServiceList
+	if err := r.List(ctx, &svcs, matchLabels, inNamespace); err != nil {
+		return fmt.Errorf("listing services in %s: %w", obsNS, err)
+	}
+	for i := range svcs.Items {
+		logger.Info("Deleting cross-namespace service", "name", svcs.Items[i].Name, "namespace", obsNS)
+		if err := r.Delete(ctx, &svcs.Items[i]); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting service %s/%s: %w", obsNS, svcs.Items[i].Name, err)
+		}
+	}
+
+	var cms corev1.ConfigMapList
+	if err := r.List(ctx, &cms, matchLabels, inNamespace); err != nil {
+		return fmt.Errorf("listing configmaps in %s: %w", obsNS, err)
+	}
+	for i := range cms.Items {
+		logger.Info("Deleting cross-namespace configmap", "name", cms.Items[i].Name, "namespace", obsNS)
+		if err := r.Delete(ctx, &cms.Items[i]); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting configmap %s/%s: %w", obsNS, cms.Items[i].Name, err)
+		}
+	}
 
 	return nil
 }

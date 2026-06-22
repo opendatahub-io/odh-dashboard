@@ -27,6 +27,7 @@
     "@odh-dashboard/feature-store": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/llmd-serving": "*",
+    "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/maas": "*",
     "@odh-dashboard/nim-serving": "*",
     "@odh-dashboard/model-registry": "*",
@@ -58,8 +59,5 @@
     "prettier": "^2.2.1",
     "rimraf": "^3.0.2",
     "ws": "^8.17.1"
-  },
-  "dependencies": {
-    "@odh-dashboard/k8s-core": "*"
   }
 }
