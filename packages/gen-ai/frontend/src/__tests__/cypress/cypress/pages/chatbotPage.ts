@@ -248,6 +248,11 @@ class ChatbotPage {
     return cy.findByTestId('mcp-servers-panel-table');
   }
 
+  openKebabAndClickItem(testId: string): void {
+    this.findKebabMenuButton().click();
+    cy.findByTestId(testId).click();
+  }
+
   // Open-Agent Modal (shown when loading a profile from the URL param)
   findOpenAgentModal(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('open-agent-profile-modal');
