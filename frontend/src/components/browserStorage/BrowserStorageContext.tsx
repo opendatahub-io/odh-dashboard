@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { useEventListener } from '#~/utilities/useEventListener';
 import {
   BrowserStorageContext,
   type BrowserStorageContextType,
 } from '@odh-dashboard/plugin-core/utilities';
+import { useEventListener } from '#~/utilities/useEventListener';
 
 type ValueMap = { [storageKey: string]: unknown };
 
