@@ -18,6 +18,7 @@ jest.mock('~/app/components/SafeNavigationBlocker', () => ({
 jest.mock('~/app/Chatbot/store', () => ({
   useChatbotConfigStore: jest.fn(() => null),
   selectDirtyPrompt: jest.fn(() => () => null),
+  selectIsPreview: jest.fn(() => () => false),
   DEFAULT_CONFIG_ID: 'default',
 }));
 

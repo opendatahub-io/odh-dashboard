@@ -302,4 +302,35 @@ describe('TranscriptionModelSection', () => {
       expect(screen.getByTestId('transcription-model-loading')).toBeInTheDocument();
     });
   });
+
+  describe('preview mode', () => {
+    it('should disable the add button when isPreview is true', () => {
+      useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, true);
+      renderWithContext({ aiModels: [mockChatModel, mockAsrModel] });
+
+      expect(screen.getByTestId('add-transcription-model-btn')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+
+      useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, false);
+    });
+
+    it('should disable the selector and remove button when enabled and isPreview is true', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+        useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, true);
+      });
+
+      renderWithContext({ aiModels: [mockChatModel, mockAsrModel] });
+
+      expect(screen.getByTestId('asr-model-selector-toggle')).toBeDisabled();
+      expect(screen.getByTestId('remove-transcription-model-btn')).toBeDisabled();
+
+      useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, false);
+    });
+  });
 });

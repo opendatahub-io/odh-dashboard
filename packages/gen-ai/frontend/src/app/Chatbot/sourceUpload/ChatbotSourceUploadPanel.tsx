@@ -14,6 +14,7 @@ type ChatbotSourceUploadPanelProps = {
   uploadedFilesCount?: number;
   maxFilesAllowed?: number;
   isFilesLoading?: boolean;
+  isDisabled?: boolean;
 };
 
 const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
@@ -25,6 +26,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   uploadedFilesCount = 0,
   maxFilesAllowed = FILE_UPLOAD_CONFIG.MAX_FILES_IN_VECTOR_STORE,
   isFilesLoading = false,
+  isDisabled = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -32,8 +34,8 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   // Check if we've reached the file limit (only count successfully uploaded files from API)
   const currentFileCount = uploadedFilesCount;
   const isAtLimit = currentFileCount >= maxFilesAllowed;
-  // Disable upload interactions during initial loading or when at limit
-  const isUploadDisabled = isFilesLoading || isAtLimit;
+  // Disable upload interactions during initial loading, when at limit, or in preview mode
+  const isUploadDisabled = isFilesLoading || isAtLimit || isDisabled;
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();

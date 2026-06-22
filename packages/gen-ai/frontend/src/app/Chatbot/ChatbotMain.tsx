@@ -18,6 +18,7 @@ import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfigura
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
@@ -48,7 +49,11 @@ const ChatbotMain: React.FunctionComponent = () => {
     modelsError,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
-  const { data: mcpServers = [], configMapName: mcpConfigMapName } = useFetchMCPServers();
+  const {
+    data: mcpServers = [],
+    configMapName: mcpConfigMapName,
+    loaded: mcpServersLoaded,
+  } = useFetchMCPServers();
   const { data: bffConfig } = useFetchBFFConfig();
   const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
   const [existingCollections] = useFetchVectorStores();
@@ -69,7 +74,16 @@ const ChatbotMain: React.FunctionComponent = () => {
   const hasConversationMessagesRef = React.useRef<(() => boolean) | null>(null);
 
   // Derive compare mode from Zustand store (configIds.length > 1)
-  const [, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const agentProfileId = searchParams.get('agentProfileId');
+
+  // Load agent profile from URL param — lives here so the ApplicationsPage spinner covers the fetch
+  const { error: profileLoadError } = useAgentProfileUrlParam({ mcpServers, mcpServersLoaded });
+  const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
+  // Ready when: no profile to load, fetch errored (show error state), or profile applied for this ID
+  const profileReady =
+    !agentProfileId || !!profileLoadError || (profileApplied && loadedProfileId === agentProfileId);
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
@@ -144,7 +158,8 @@ const ChatbotMain: React.FunctionComponent = () => {
           lsdStatusLoaded &&
           (aiModelsLoaded || !!aiModelsError) &&
           (maasModelsLoaded || !!maasModelsError) &&
-          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError)
+          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError) &&
+          profileReady
         }
         empty={!lsdStatus}
         emptyStatePage={
@@ -194,7 +209,7 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           )
         }
-        loadError={lsdStatusError || aiModelsError}
+        loadError={lsdStatusError || aiModelsError || profileLoadError}
         headerAction={
           hasNoModelsOrSelectedModelDisabled ? undefined : (
             <ChatbotHeaderActions

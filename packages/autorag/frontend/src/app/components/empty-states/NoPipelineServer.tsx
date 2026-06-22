@@ -17,7 +17,7 @@ function NoPipelineServer({ namespace }: NoPipelineServerProps): React.JSX.Eleme
   return (
     <EmptyDetailsView
       title="Configure a compatible pipeline server"
-      description="To use AutoRAG, you need access to a pipeline server. Create or edit a pipeline server on the Pipelines page."
+      description="To use AutoRAG, go to the Pipelines page, then create a new pipeline server or edit an existing one using Manage pipeline server configuration. Under Advanced settings, check the Enable AutoML and AutoRAG pipelines option."
       iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
       imageAlt=""
       createButton={

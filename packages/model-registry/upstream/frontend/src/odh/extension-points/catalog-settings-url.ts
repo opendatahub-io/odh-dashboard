@@ -1,4 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 
 /**
  * Extension point for providing the Model catalog settings URL.
@@ -19,6 +20,6 @@ export type CatalogSettingsUrlExtension = Extension<
   }
 >;
 
-export const isCatalogSettingsUrlExtension = (
-  extension: Extension,
-): extension is CatalogSettingsUrlExtension => extension.type === 'model-catalog.settings/url';
+export const isCatalogSettingsUrlExtension = createExtensionGuard<CatalogSettingsUrlExtension>(
+  'model-catalog.settings/url',
+);

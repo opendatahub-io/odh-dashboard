@@ -43,6 +43,7 @@ import EditRateLimitsModal from './EditRateLimitsModal';
 type CreateSubscriptionFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
   subscriptionInfo?: SubscriptionInfoResponse;
+  returnTo?: string;
 };
 const MAX_PRIORITY = 1000000;
 const MIN_PRIORITY = -1000000;
@@ -77,6 +78,7 @@ const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEn
 const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   formData,
   subscriptionInfo,
+  returnTo,
 }) => {
   const navigate = useNavigate();
   const isEditing = !!subscriptionInfo;
@@ -247,7 +249,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         };
         await createSubscription()(apiOpts, request);
       }
-      navigate(`${URL_PREFIX}/subscriptions`);
+      navigate(returnTo ?? `${URL_PREFIX}/subscriptions`);
     } catch (e) {
       setSubmitError(
         e instanceof Error
@@ -505,7 +507,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(`${URL_PREFIX}/subscriptions`)}
+            onClick={() => navigate(returnTo ?? `${URL_PREFIX}/subscriptions`)}
             isDisabled={isSubmitting}
             data-testid="cancel-subscription-button"
           >
