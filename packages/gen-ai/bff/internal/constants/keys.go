@@ -7,8 +7,6 @@ type contextKey string
 const (
 	LlamaStackClientKey contextKey = "LlamaStackClientKey"
 	NemoClientKey       contextKey = "NemoClientKey"
-	MaaSClientKey       contextKey = "MaaSClientKey" // Deprecated: use BFFClientKey(bffclient.BFFTargetMaaS)
-	BFFMaaSClientKey    contextKey = "BFFMaaSClientKey"
 	MLflowClientKey     contextKey = "MLflowClientKey"
 
 	TraceIdKey     contextKey = "TraceIdKey"
