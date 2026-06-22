@@ -236,8 +236,9 @@ describe('EnvExistingSecretField', () => {
         expect(screen.getByTestId('env-existing-secret-option-db-credentials')).toBeInTheDocument();
       });
 
-      // Click the option text to deselect
-      await user.click(screen.getByText('db-credentials'));
+      // Click the option in the dropdown to deselect
+      const option = screen.getByTestId('env-existing-secret-option-db-credentials');
+      await user.click(within(option).getByText('db-credentials'));
 
       expect(onUpdate).toHaveBeenCalledWith([]);
     });
@@ -335,6 +336,110 @@ describe('EnvExistingSecretField', () => {
       );
 
       expect(mockUseExistingSecrets).toHaveBeenCalledWith('my-project');
+    });
+  });
+
+  describe('collision warning', () => {
+    beforeEach(() => {
+      mockUseExistingSecrets.mockReturnValue({
+        secrets: mockSecrets,
+        loaded: true,
+        canList: true,
+      });
+    });
+
+    it('should not show collision warning when no collisions exist', () => {
+      const existingRefs: ExistingSecretRef[] = [
+        { secretName: 'db-credentials', selectedKeys: ['username'] },
+        { secretName: 'api-key-secret', selectedKeys: ['api-key'] },
+      ];
+
+      render(
+        <EnvExistingSecretField
+          namespace="test-ns"
+          existingSecretRefs={existingRefs}
+          onUpdate={jest.fn()}
+        />,
+      );
+
+      expect(screen.queryByTestId('env-collision-warning')).not.toBeInTheDocument();
+    });
+
+    it('should show singular collision warning for one key collision', () => {
+      const collidingSecrets: ExistingSecretMetadata[] = [
+        { name: 'secret-a', keys: ['SHARED_KEY', 'key-a'] },
+        { name: 'secret-b', keys: ['SHARED_KEY', 'key-b'] },
+      ];
+      mockUseExistingSecrets.mockReturnValue({
+        secrets: collidingSecrets,
+        loaded: true,
+        canList: true,
+      });
+      const existingRefs: ExistingSecretRef[] = [
+        { secretName: 'secret-a', selectedKeys: ['SHARED_KEY', 'key-a'] },
+        { secretName: 'secret-b', selectedKeys: ['SHARED_KEY', 'key-b'] },
+      ];
+
+      render(
+        <EnvExistingSecretField
+          namespace="test-ns"
+          existingSecretRefs={existingRefs}
+          onUpdate={jest.fn()}
+        />,
+      );
+
+      const alert = screen.getByTestId('env-collision-warning');
+      expect(alert).toBeInTheDocument();
+      expect(alert).toHaveTextContent('SHARED_KEY is defined in both secret-a and secret-b.');
+      expect(alert).toHaveTextContent(
+        'Choose one and deselect the duplicate key to resolve the collision.',
+      );
+    });
+
+    it('should show plural collision warning for multiple key collisions', () => {
+      const collidingSecrets: ExistingSecretMetadata[] = [
+        { name: 'secret-a', keys: ['KEY_1', 'KEY_2', 'unique-a'] },
+        { name: 'secret-b', keys: ['KEY_1', 'KEY_2', 'unique-b'] },
+      ];
+      mockUseExistingSecrets.mockReturnValue({
+        secrets: collidingSecrets,
+        loaded: true,
+        canList: true,
+      });
+      const existingRefs: ExistingSecretRef[] = [
+        { secretName: 'secret-a', selectedKeys: ['KEY_1', 'KEY_2', 'unique-a'] },
+        { secretName: 'secret-b', selectedKeys: ['KEY_1', 'KEY_2', 'unique-b'] },
+      ];
+
+      render(
+        <EnvExistingSecretField
+          namespace="test-ns"
+          existingSecretRefs={existingRefs}
+          onUpdate={jest.fn()}
+        />,
+      );
+
+      const alert = screen.getByTestId('env-collision-warning');
+      expect(alert).toBeInTheDocument();
+      expect(alert).toHaveTextContent('Key name collisions across attached secrets');
+      expect(alert).toHaveTextContent('KEY_1 is defined in both secret-a and secret-b.');
+      expect(alert).toHaveTextContent('KEY_2 is defined in both secret-a and secret-b.');
+    });
+
+    it('should not show collision warning when only one secret is selected', () => {
+      const existingRefs: ExistingSecretRef[] = [
+        { secretName: 'db-credentials', selectedKeys: ['username', 'password', 'host'] },
+      ];
+
+      render(
+        <EnvExistingSecretField
+          namespace="test-ns"
+          existingSecretRefs={existingRefs}
+          onUpdate={jest.fn()}
+        />,
+      );
+
+      expect(screen.queryByTestId('env-collision-warning')).not.toBeInTheDocument();
     });
   });
 });

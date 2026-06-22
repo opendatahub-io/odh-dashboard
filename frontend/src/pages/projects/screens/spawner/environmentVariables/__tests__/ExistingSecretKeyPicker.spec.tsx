@@ -229,13 +229,13 @@ describe('ExistingSecretKeyPicker', () => {
     expect(screen.queryByTestId('key-checkbox-large-secret-key-2')).not.toBeInTheDocument();
   });
 
-  it('should not render anything for a secret not in availableSecrets', () => {
+  it('should show deleted secret alert for a secret not in availableSecrets', () => {
     const selectedRefs: ExistingSecretRef[] = [
       { secretName: 'nonexistent-secret', selectedKeys: [] },
     ];
     const onUpdate = jest.fn();
 
-    const { container } = render(
+    render(
       <ExistingSecretKeyPicker
         selectedRefs={selectedRefs}
         availableSecrets={availableSecrets}
@@ -243,9 +243,8 @@ describe('ExistingSecretKeyPicker', () => {
       />,
     );
 
-    expect(
-      container.querySelector('[data-testid="secret-key-section-nonexistent-secret"]'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('secret-key-section-nonexistent-secret')).toBeInTheDocument();
+    expect(screen.getByTestId('env-deleted-secret-alert-nonexistent-secret')).toBeInTheDocument();
   });
 
   it('should render nothing when no selectedRefs', () => {
@@ -261,5 +260,218 @@ describe('ExistingSecretKeyPicker', () => {
 
     expect(screen.queryByTestId('secret-key-section-db-secret')).not.toBeInTheDocument();
     expect(screen.queryByTestId('secret-key-section-api-secret')).not.toBeInTheDocument();
+  });
+
+  describe('deleted secret detection', () => {
+    it('should show danger alert when a referenced secret is not in availableSecrets', () => {
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'deleted-secret', selectedKeys: ['old-key'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={availableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.getByTestId('secret-key-section-deleted-secret')).toBeInTheDocument();
+      expect(screen.getByTestId('env-deleted-secret-alert-deleted-secret')).toBeInTheDocument();
+      expect(screen.getByTestId('deleted-icon-deleted-secret')).toBeInTheDocument();
+    });
+
+    it('should not show key count badge for deleted secret', () => {
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'deleted-secret', selectedKeys: ['old-key'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={availableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.queryByTestId('key-count-badge-deleted-secret')).not.toBeInTheDocument();
+    });
+
+    it('should remove the deleted ref when "Remove this reference" is clicked', () => {
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'deleted-secret', selectedKeys: ['old-key'] },
+        { secretName: 'db-secret', selectedKeys: ['username'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={availableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('remove-deleted-ref-deleted-secret'));
+
+      expect(onUpdate).toHaveBeenCalledWith([
+        { secretName: 'db-secret', selectedKeys: ['username'] },
+      ]);
+    });
+  });
+
+  describe('missing keys detection', () => {
+    it('should show warning alert when selected keys are not in the secret', () => {
+      const secretsWithFewerKeys: ExistingSecretMetadata[] = [
+        { name: 'db-secret', keys: ['username', 'host'] },
+      ];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'db-secret', selectedKeys: ['username', 'password', 'host'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={secretsWithFewerKeys}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.getByTestId('env-missing-keys-alert-db-secret')).toBeInTheDocument();
+      expect(screen.getByTestId('missing-keys-icon-db-secret')).toBeInTheDocument();
+    });
+
+    it('should show singular message for one missing key', () => {
+      const secretsWithFewerKeys: ExistingSecretMetadata[] = [
+        { name: 'db-secret', keys: ['username', 'host'] },
+      ];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'db-secret', selectedKeys: ['username', 'password', 'host'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={secretsWithFewerKeys}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      const alert = screen.getByTestId('env-missing-keys-alert-db-secret');
+      expect(alert).toHaveTextContent('1 previously selected key was not found in this secret');
+      expect(alert).toHaveTextContent('Missing: password');
+    });
+
+    it('should show plural message for multiple missing keys', () => {
+      const secretsWithFewerKeys: ExistingSecretMetadata[] = [
+        { name: 'db-secret', keys: ['host'] },
+      ];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'db-secret', selectedKeys: ['username', 'password', 'host'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={secretsWithFewerKeys}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      const alert = screen.getByTestId('env-missing-keys-alert-db-secret');
+      expect(alert).toHaveTextContent('2 previously selected keys were not found in this secret');
+      expect(alert).toHaveTextContent('Missing: username, password');
+    });
+
+    it('should remove missing keys when "Remove missing keys" is clicked', () => {
+      const secretsWithFewerKeys: ExistingSecretMetadata[] = [
+        { name: 'db-secret', keys: ['username', 'host'] },
+      ];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'db-secret', selectedKeys: ['username', 'password', 'host'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={secretsWithFewerKeys}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('remove-missing-keys-db-secret'));
+
+      expect(onUpdate).toHaveBeenCalledWith([
+        { secretName: 'db-secret', selectedKeys: ['username', 'host'] },
+      ]);
+    });
+
+    it('should not show missing keys warning when all selected keys exist', () => {
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'db-secret', selectedKeys: ['username', 'password'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={availableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.queryByTestId('env-missing-keys-alert-db-secret')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('missing-keys-icon-db-secret')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('collision icons', () => {
+    it('should show collision warning icon on colliding keys', () => {
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'db-secret', selectedKeys: ['username', 'password', 'host'] },
+      ];
+      const onUpdate = jest.fn();
+      const collidingKeys = new Set(['username']);
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={availableSecrets}
+          onUpdate={onUpdate}
+          collidingKeys={collidingKeys}
+        />,
+      );
+
+      expandSection('db-secret');
+
+      expect(screen.getByTestId('collision-icon-db-secret-username')).toBeInTheDocument();
+      expect(screen.queryByTestId('collision-icon-db-secret-password')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('collision-icon-db-secret-host')).not.toBeInTheDocument();
+    });
+
+    it('should not show collision icons when collidingKeys is not provided', () => {
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'db-secret', selectedKeys: ['username', 'password', 'host'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={availableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expandSection('db-secret');
+
+      expect(screen.queryByTestId('collision-icon-db-secret-username')).not.toBeInTheDocument();
+    });
   });
 });
