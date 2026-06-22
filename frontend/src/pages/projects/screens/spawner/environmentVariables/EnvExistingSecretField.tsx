@@ -26,6 +26,7 @@ import {
 import { TimesIcon } from '@patternfly/react-icons';
 import { ExistingSecretRef, ExistingSecretMetadata } from '#~/pages/projects/types';
 import { useExistingSecrets } from './useExistingSecrets';
+import ExistingSecretKeyPicker from './ExistingSecretKeyPicker';
 
 type EnvExistingSecretFieldProps = {
   namespace: string;
@@ -272,6 +273,15 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
           </SelectList>
         </Select>
       </StackItem>
+      {existingSecretRefs.length > 0 ? (
+        <StackItem>
+          <ExistingSecretKeyPicker
+            selectedRefs={existingSecretRefs}
+            availableSecrets={secrets}
+            onUpdate={onUpdate}
+          />
+        </StackItem>
+      ) : null}
     </Stack>
   );
 };

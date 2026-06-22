@@ -32,6 +32,7 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
+  getSecretKeyRefEnvVars,
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
@@ -239,6 +240,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom: [...envFrom],
+      secretKeyRefEnvVars: getSecretKeyRefEnvVars(envVariables),
       connections,
       feastData,
     };
