@@ -6,12 +6,14 @@ interface PromptVariableInputPanelProps {
   systemInstruction: string;
   variableValues: Record<string, string>;
   onVariableValuesChange: (values: Record<string, string>) => void;
+  isDisabled?: boolean;
 }
 
 export default function PromptVariableInputPanel({
   systemInstruction,
   variableValues,
   onVariableValuesChange,
+  isDisabled = false,
 }: PromptVariableInputPanelProps): React.ReactNode {
   const variables = React.useMemo(
     () => extractTemplateVariables(systemInstruction),
@@ -46,6 +48,7 @@ export default function PromptVariableInputPanel({
               onChange={(_event, value) => handleValueChange(name, value)}
               aria-label={`Value for variable ${name}`}
               placeholder={`Enter value for ${name}`}
+              isDisabled={isDisabled}
             />
           </FormGroup>
         </StackItem>

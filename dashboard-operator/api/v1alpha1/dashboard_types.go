@@ -7,7 +7,7 @@ import (
 
 const (
 	DashboardComponentName = "dashboard"
-	DashboardInstanceName  = "default"
+	DashboardInstanceName  = "default-dashboard"
 	DashboardKind          = "Dashboard"
 )
 
@@ -160,7 +160,7 @@ type DashboardStatus struct {
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:validation:XValidation:rule="self.metadata.name == 'default'",message="Dashboard name must be default"
+// +kubebuilder:validation:XValidation:rule="self.metadata.name == 'default-dashboard'",message="Dashboard name must be default-dashboard"
 // +kubebuilder:validation:XValidation:rule="!has(self.spec.observability) || !self.spec.observability.enabled || has(self.spec.observability.persesService)",message="persesService must be specified when observability is enabled"
 
 // Dashboard is the Schema for the dashboards API.

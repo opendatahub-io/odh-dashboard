@@ -167,6 +167,19 @@ func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Reques
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) badGatewayResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) {
+	app.LogError(r, err)
+
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusBadGateway,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusBadGateway),
+			Message: message,
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) serviceUnavailableResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) {
 	app.LogError(r, err)
 
