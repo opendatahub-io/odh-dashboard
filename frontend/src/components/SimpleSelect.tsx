@@ -127,7 +127,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
     }
     // We don't want the callback function to be a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [singleOptionKey, isSkeleton, autoSelectOnlyOption]);
+  }, [singleOptionKey, isSkeleton, autoSelectOnlyOption, value]);
 
   if (isSkeleton) {
     return <Skeleton style={{ minWidth: 100 }} />;
