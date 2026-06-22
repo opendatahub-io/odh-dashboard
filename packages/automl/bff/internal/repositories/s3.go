@@ -17,8 +17,13 @@ import (
 )
 
 // ErrS3Configuration is returned when S3 credentials or storage configuration is
-// missing or invalid (e.g., missing secret fields, missing bucket, bad DSPA spec).
+// missing or invalid (e.g., missing secret fields, missing bucket in a user-provided secret).
 var ErrS3Configuration = errors.New("S3 configuration error")
+
+// ErrDSPAConfiguration is returned when the DSPA object storage spec is
+// incomplete (missing secret name, endpoint, bucket, or required credentials).
+// This is a server-side misconfiguration, not a client error.
+var ErrDSPAConfiguration = errors.New("DSPA configuration error")
 
 // ErrCSVUploadValidation is returned when an upload fails CSV content-type validation.
 var ErrCSVUploadValidation = errors.New("CSV upload validation error")
@@ -117,13 +122,13 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q in namespace %s has no object storage configured", dspa.Name, namespace)
 	}
 	if spec.SecretName == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing a secret name", ErrS3Configuration, dspa.Name)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing a secret name", ErrDSPAConfiguration, dspa.Name)
 	}
 	if spec.EndpointURL == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing an endpoint URL", ErrS3Configuration, dspa.Name)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing an endpoint URL", ErrDSPAConfiguration, dspa.Name)
 	}
 	if spec.Bucket == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing a bucket — contact your administrator", ErrS3Configuration, dspa.Name)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing a bucket — contact your administrator", ErrDSPAConfiguration, dspa.Name)
 	}
 
 	secret, err := r.k8sService.GetSecret(ctx, namespace, spec.SecretName)
@@ -136,7 +141,7 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
 	}
 	if accessKeyID == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q missing required field: %s", ErrS3Configuration, spec.SecretName, spec.AccessKeyField)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q missing required field: %s", ErrDSPAConfiguration, spec.SecretName, spec.AccessKeyField)
 	}
 
 	secretAccessKey, err := kubernetes.LookupSecretValue(secret.Data, spec.SecretKeyField)
@@ -144,7 +149,7 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
 	}
 	if secretAccessKey == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q missing required field: %s", ErrS3Configuration, spec.SecretName, spec.SecretKeyField)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q missing required field: %s", ErrDSPAConfiguration, spec.SecretName, spec.SecretKeyField)
 	}
 
 	region := spec.Region

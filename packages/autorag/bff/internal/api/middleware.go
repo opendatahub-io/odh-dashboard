@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -108,7 +109,14 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 		allowed, err := app.k8sService.CanAccessResource(ctx, namespace, "list",
 			"datasciencepipelinesapplications.opendatahub.io", "datasciencepipelinesapplications", "")
 		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to check permissions: %w", err))
+			switch {
+			case errors.Is(err, kubernetes.ErrUnauthorized):
+				app.unauthorizedResponse(w, r, "access unauthorized")
+			case errors.Is(err, kubernetes.ErrForbidden):
+				app.forbiddenResponse(w, r, "insufficient permissions to check service access")
+			default:
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to check permissions: %w", err))
+			}
 			return
 		}
 

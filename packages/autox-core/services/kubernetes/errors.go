@@ -25,7 +25,10 @@ type NotFoundError struct {
 }
 
 func (e *NotFoundError) Error() string {
-	return fmt.Sprintf("%s not found: %s", e.Resource, e.Name)
+	if e.Name != "" {
+		return fmt.Sprintf("%s %q not found", e.Resource, e.Name)
+	}
+	return fmt.Sprintf("%s not found", e.Resource)
 }
 
 // Unwrap allows errors.Is to match against ErrNotFound
@@ -124,6 +127,12 @@ func TranslateK8sError(err error, resource, action string) error {
 		return err
 	}
 
+	// Extract the resource name from K8s StatusError details when available.
+	var k8sName string
+	if details := statusErr.Status().Details; details != nil {
+		k8sName = details.Name
+	}
+
 	// Translate based on K8s error type
 	switch {
 	case apierrors.IsUnauthorized(statusErr):
@@ -131,9 +140,9 @@ func TranslateK8sError(err error, resource, action string) error {
 	case apierrors.IsForbidden(statusErr):
 		return fmt.Errorf("%w: %v", &ForbiddenError{Resource: resource, Action: action}, err)
 	case apierrors.IsNotFound(statusErr):
-		return fmt.Errorf("%w: %v", &NotFoundError{Resource: resource}, err)
+		return fmt.Errorf("%w: %v", &NotFoundError{Resource: resource, Name: k8sName}, err)
 	case apierrors.IsConflict(statusErr):
-		return fmt.Errorf("%w: %v", &ConflictError{Resource: resource}, err)
+		return fmt.Errorf("%w: %v", &ConflictError{Resource: resource, Name: k8sName}, err)
 	case apierrors.IsInvalid(statusErr), apierrors.IsBadRequest(statusErr):
 		return fmt.Errorf("%w: %v", ErrInvalid, err)
 	default:

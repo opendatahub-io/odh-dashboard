@@ -12,11 +12,21 @@ import (
 )
 
 func TestNotFoundError(t *testing.T) {
-	err := &NotFoundError{Resource: "pods", Name: "my-pod"}
+	t.Run("with name", func(t *testing.T) {
+		err := &NotFoundError{Resource: "pods", Name: "my-pod"}
+		if got := err.Error(); got != `pods "my-pod" not found` {
+			t.Errorf("Error() = %q, want %q", got, `pods "my-pod" not found`)
+		}
+	})
 
-	if got := err.Error(); got != "pods not found: my-pod" {
-		t.Errorf("Error() = %q, want %q", got, "pods not found: my-pod")
-	}
+	t.Run("without name", func(t *testing.T) {
+		err := &NotFoundError{Resource: "pods"}
+		if got := err.Error(); got != "pods not found" {
+			t.Errorf("Error() = %q, want %q", got, "pods not found")
+		}
+	})
+
+	err := &NotFoundError{Resource: "pods", Name: "my-pod"}
 	if !errors.Is(err, ErrNotFound) {
 		t.Error("expected errors.Is(err, ErrNotFound) to be true")
 	}
@@ -156,6 +166,18 @@ func TestTranslateK8sError(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("not found preserves resource name", func(t *testing.T) {
+		k8sErr := apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, "my-secret")
+		got := TranslateK8sError(k8sErr, "secret", "get")
+		var nfe *NotFoundError
+		if !errors.As(got, &nfe) {
+			t.Fatalf("expected *NotFoundError, got %T", got)
+		}
+		if nfe.Name != "my-secret" {
+			t.Errorf("Name = %q, want %q", nfe.Name, "my-secret")
+		}
+	})
 
 	t.Run("unknown k8s error wraps with context", func(t *testing.T) {
 		k8sErr := &apierrors.StatusError{

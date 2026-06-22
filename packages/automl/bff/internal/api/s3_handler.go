@@ -109,7 +109,16 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 		}
 		return
 	}
+	if errors.Is(err, s3.ErrObjectAlreadyExists) {
+		app.conflictResponse(w, r, fmt.Sprintf("object key %q already exists in S3 (upload conflict); retry with a different key", key))
+		return
+	}
 
+	// DSPA server-side misconfiguration (missing bucket, secret name, endpoint, credentials)
+	if errors.Is(err, repositories.ErrDSPAConfiguration) {
+		app.serviceUnavailableResponseWithMessage(w, r, err, err.Error())
+		return
+	}
 	// Credential resolution / validation bad-request errors
 	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) ||
 		errors.Is(err, s3.ErrEndpointValidation) ||
@@ -123,7 +132,11 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 	// Network connectivity
 	if s3.IsConnectivityError(err) {
 		app.badGatewayResponseWithMessage(w, r, err,
-			"Unable to connect to the S3 storage endpoint. Verify the endpoint URL in your data connection secret points to a reachable storage service.")
+			"Unable to connect to the S3 storage endpoint. "+
+				"The endpoint may be unreachable from this cluster. "+
+				"If this is a disconnected or air-gapped environment, "+
+				"verify the S3 endpoint URL in the data connection secret "+
+				"points to a storage service accessible within the cluster network.")
 		return
 	}
 
