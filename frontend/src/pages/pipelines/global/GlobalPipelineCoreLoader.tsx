@@ -6,7 +6,7 @@ import PipelineCoreNoProjects from '#~/pages/pipelines/global/PipelineCoreNoProj
 import { PipelineContextProvider } from '#~/concepts/pipelines/context';
 import InvalidProject from '#~/concepts/projects/InvalidProject';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import { useStoredPreferredProject } from '#~/concepts/projects/useStoredPreferredProject';
+import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 import PipelineCoreProjectSelector from './PipelineCoreProjectSelector';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
@@ -31,7 +31,7 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
-  const storedProject = useStoredPreferredProject(projects);
+  const storedProject = getStoredPreferredProject(projects);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (projects.length === 0) {

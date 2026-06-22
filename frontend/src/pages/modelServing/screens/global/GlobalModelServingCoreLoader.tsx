@@ -6,7 +6,7 @@ import InvalidProject from '#~/concepts/projects/InvalidProject';
 import ModelServingContextProvider from '#~/pages/modelServing/ModelServingContext';
 import ModelServingNoProjects from '#~/pages/modelServing/screens/global/ModelServingNoProjects';
 import ModelServingProjectSelection from '#~/pages/modelServing/screens/global/ModelServingProjectSelection';
-import { useStoredPreferredProject } from '#~/concepts/projects/useStoredPreferredProject';
+import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type EmptyStateProps = 'emptyStatePage' | 'empty';
@@ -22,7 +22,7 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
-  const storedProject = useStoredPreferredProject(projects);
+  const storedProject = getStoredPreferredProject(projects);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (projects.length === 0) {

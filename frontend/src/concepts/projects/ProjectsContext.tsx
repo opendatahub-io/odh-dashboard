@@ -5,8 +5,7 @@ import { FetchState } from '#~/utilities/useFetchState';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { isAvailableProject } from './utils';
-
-const PREFERRED_NAMESPACE_STORAGE_KEY = 'mod-arch.namespace.lastUsed';
+import { PREFERRED_NAMESPACE_STORAGE_KEY } from './getStoredPreferredProject';
 
 const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
   getDisplayNameFromK8sResource(projectA).localeCompare(getDisplayNameFromK8sResource(projectB));
@@ -54,6 +53,7 @@ type ProjectsProviderProps = {
 const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
   const [preferredProject, setPreferredProject] =
     React.useState<ProjectsContextType['preferredProject']>(null);
+  const initializedFromStorage = React.useRef(false);
   const [projectData, loaded, loadError] = useProjects();
   const { dashboardNamespace } = useDashboardNamespace();
 
@@ -61,6 +61,8 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     setPreferredProject(project);
     if (project?.metadata.name) {
       localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, JSON.stringify(project.metadata.name));
+    } else {
+      localStorage.removeItem(PREFERRED_NAMESPACE_STORAGE_KEY);
     }
   }, []);
 
@@ -91,9 +93,10 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
   );
 
   React.useEffect(() => {
-    if (!loaded || preferredProject || projects.length === 0) {
+    if (!loaded || projects.length === 0 || initializedFromStorage.current) {
       return;
     }
+    initializedFromStorage.current = true;
     const raw = localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY);
     if (raw) {
       let stored: string | null = null;
@@ -114,7 +117,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
         }
       }
     }
-  }, [loaded, preferredProject, projects]);
+  }, [loaded, projects]);
 
   const isMounted = React.useRef(true);
   React.useEffect(() => {

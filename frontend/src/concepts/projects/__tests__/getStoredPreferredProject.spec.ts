@@ -1,9 +1,9 @@
 import { mockProjectK8sResource } from '#~/__mocks__';
-import { useStoredPreferredProject } from '#~/concepts/projects/useStoredPreferredProject';
+import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 
 const STORAGE_KEY = 'mod-arch.namespace.lastUsed';
 
-describe('useStoredPreferredProject', () => {
+describe('getStoredPreferredProject', () => {
   const project1 = mockProjectK8sResource({ k8sName: 'project-a', displayName: 'Project A' });
   const project2 = mockProjectK8sResource({ k8sName: 'project-b', displayName: 'Project B' });
   const projects = [project1, project2];
@@ -13,26 +13,26 @@ describe('useStoredPreferredProject', () => {
   });
 
   it('returns undefined when nothing is stored', () => {
-    expect(useStoredPreferredProject(projects)).toBeUndefined();
+    expect(getStoredPreferredProject(projects)).toBeUndefined();
   });
 
   it('returns the matching project when a JSON-stringified name is stored (mod-arch-core format)', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify('project-b'));
-    expect(useStoredPreferredProject(projects)).toBe(project2);
+    expect(getStoredPreferredProject(projects)).toBe(project2);
   });
 
   it('returns the matching project when a raw string name is stored (legacy format)', () => {
     localStorage.setItem(STORAGE_KEY, 'project-a');
-    expect(useStoredPreferredProject(projects)).toBe(project1);
+    expect(getStoredPreferredProject(projects)).toBe(project1);
   });
 
   it('returns undefined when the stored name does not match any project', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify('nonexistent'));
-    expect(useStoredPreferredProject(projects)).toBeUndefined();
+    expect(getStoredPreferredProject(projects)).toBeUndefined();
   });
 
   it('returns undefined when projects list is empty', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify('project-a'));
-    expect(useStoredPreferredProject([])).toBeUndefined();
+    expect(getStoredPreferredProject([])).toBeUndefined();
   });
 });

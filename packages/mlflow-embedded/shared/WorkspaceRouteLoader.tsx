@@ -6,7 +6,7 @@ import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import InvalidProject from '@odh-dashboard/internal/concepts/projects/InvalidProject';
-import { useStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/useStoredPreferredProject';
+import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import PipelineCoreProjectSelector from '@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSelector';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
@@ -53,7 +53,7 @@ const WorkspaceRouteLoader: React.FC<WorkspaceRouteLoaderProps> = ({
   const [searchParams] = useSearchParams();
   const namespace = searchParams.get(WORKSPACE_QUERY_PARAM);
   const { projects, preferredProject, loaded } = React.useContext(ProjectsContext);
-  const storedProject = useStoredPreferredProject(projects);
+  const storedProject = getStoredPreferredProject(projects);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
 

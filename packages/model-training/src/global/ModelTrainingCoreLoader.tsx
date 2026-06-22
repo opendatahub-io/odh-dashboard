@@ -3,7 +3,7 @@ import { Navigate, Outlet, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import InvalidProject from '@odh-dashboard/internal/concepts/projects/InvalidProject';
-import { useStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/useStoredPreferredProject';
+import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
 import { ModelTrainingContextProvider } from './ModelTrainingContext';
 import ModelTrainingNoProjects from '../components/ModelTrainingNoProjects';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
@@ -22,7 +22,7 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
-  const storedProject = useStoredPreferredProject(projects);
+  const storedProject = getStoredPreferredProject(projects);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (projects.length === 0) {

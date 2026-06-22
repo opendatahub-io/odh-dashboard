@@ -14,7 +14,7 @@ import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { useStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/useStoredPreferredProject';
+import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
 import { ModelTrainingContext } from './ModelTrainingContext';
 import ModelTrainingLoading from './ModelTrainingLoading';
 import TrainingJobDetailsDrawer from './trainingJobDetailsDrawer/TrainingJobDetailsDrawer';
@@ -36,7 +36,7 @@ const ModelTraining = (): React.ReactElement => {
   const navigate = useNavigate();
   const { trainJobs, rayJobs, project, preferredProject, projects } =
     React.useContext(ModelTrainingContext);
-  const storedProject = useStoredPreferredProject(projects ?? []);
+  const storedProject = getStoredPreferredProject(projects ?? []);
   const [trainJobData, trainJobLoaded, trainJobLoadError] = trainJobs;
   const [rayJobData, rayJobLoaded, rayJobLoadError] = rayJobs;
   const [selectedJob, setSelectedJob] = React.useState<UnifiedJobKind | undefined>(undefined);

@@ -12,7 +12,7 @@ import { RefreshIntervalTitle } from '#~/concepts/metrics/types';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import { useStoredPreferredProject } from '#~/concepts/projects/useStoredPreferredProject';
+import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 
 const title = 'Workload metrics';
 const description = 'Monitor the metrics of your active resources.';
@@ -28,7 +28,7 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
-  const storedProject = useStoredPreferredProject(projects);
+  const storedProject = getStoredPreferredProject(projects);
 
   if (projects.length === 0) {
     return (

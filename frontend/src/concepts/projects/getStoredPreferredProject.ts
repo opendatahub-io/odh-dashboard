@@ -1,9 +1,14 @@
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 
-const PREFERRED_NAMESPACE_STORAGE_KEY = 'mod-arch.namespace.lastUsed';
+export const PREFERRED_NAMESPACE_STORAGE_KEY = 'mod-arch.namespace.lastUsed';
 
-export const useStoredPreferredProject = (projects: ProjectKind[]): ProjectKind | undefined => {
-  const raw = localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY);
+export const getStoredPreferredProject = (projects: ProjectKind[]): ProjectKind | undefined => {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY);
+  } catch {
+    return undefined;
+  }
   if (!raw) {
     return undefined;
   }
