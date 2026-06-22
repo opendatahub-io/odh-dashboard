@@ -95,13 +95,17 @@ describe('Agent Profile - Playground (Mocked)', () => {
   );
 
   describe('Load Agent Profile Modal', () => {
-    // Use the IDs from the default mockAgentProfiles fixture
-    const LOAD_PROFILE_ID = 'test-uuid-1';
+    // Derive values from fixture so tests stay in sync with mock data automatically
+    const profileList = mockAgentProfiles();
+    const firstProfile = profileList.data.profiles[0];
 
     beforeEach(() => {
-      const profileList = mockAgentProfiles();
       cy.interceptGenAi('GET /api/v1/agent-profiles', profileList).as('listAgentProfiles');
-      interceptExistingAgentProfile(LOAD_PROFILE_ID, 'Coding assistant', TEST_NAMESPACE);
+      interceptExistingAgentProfile(
+        firstProfile.profileId,
+        firstProfile.displayName,
+        TEST_NAMESPACE,
+      );
       chatbotPage.visit(TEST_NAMESPACE);
     });
 
@@ -132,11 +136,11 @@ describe('Agent Profile - Playground (Mocked)', () => {
         cy.wait('@listAgentProfiles');
 
         cy.step('Click the first profile row');
-        cy.findByTestId(`load-agent-profile-row-${LOAD_PROFILE_ID}`).click();
+        cy.findByTestId(`load-agent-profile-row-${firstProfile.profileId}`).click();
 
         cy.step('Load modal closes and agentProfileId appears in URL');
         cy.findByTestId('load-agent-profile-modal').should('not.exist');
-        cy.location('search').should('include', `agentProfileId=${LOAD_PROFILE_ID}`);
+        cy.location('search').should('include', `agentProfileId=${firstProfile.profileId}`);
 
         cy.step('Open-agent modal appears after profile is fetched');
         cy.wait('@getAgentProfile');
