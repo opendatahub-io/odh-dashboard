@@ -40,7 +40,8 @@ export const mockAgentRuntimeDetail = (
   overrides?: Partial<AgentRuntimeDetail>,
 ): AgentRuntimeDetail => {
   const runtime = mockAgentRuntime(overrides?.runtime);
-  const defaultAgentCard = runtime.endpointUrl.trim() === '' ? null : mockAgentCardDetail();
+  const endpointUrl = typeof runtime.endpointUrl === 'string' ? runtime.endpointUrl : '';
+  const defaultAgentCard = endpointUrl.trim() === '' ? null : mockAgentCardDetail();
   return {
     name: runtime.name,
     namespace: runtime.namespace,
@@ -50,7 +51,7 @@ export const mockAgentRuntimeDetail = (
     serviceEndpoints: [
       {
         name: 'http',
-        url: runtime.endpointUrl,
+        url: endpointUrl,
         port: 8080,
       },
     ],

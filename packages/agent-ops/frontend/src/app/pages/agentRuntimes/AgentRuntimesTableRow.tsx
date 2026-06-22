@@ -39,10 +39,8 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }
       </Td>
       <Td dataLabel={agentRuntimesColumns[2].label} data-testid="agent-runtime-endpoint">
         <Button
-          variant="plain"
+          variant="link"
           isInline
-          hasNoPadding
-          className="pf-v6-u-text-color-brand"
           onClick={() => setIsEndpointsModalOpen(true)}
           data-testid="agent-runtime-endpoint-view"
         >

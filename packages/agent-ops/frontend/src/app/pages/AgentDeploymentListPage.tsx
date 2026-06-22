@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import ProjectNavigatorLink from '@odh-dashboard/internal/concepts/projects/ProjectNavigatorLink';
 import { IconSize } from '@odh-dashboard/internal/types';
@@ -14,7 +15,7 @@ import {
   FlexItem,
   Spinner,
 } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
+import { BanIcon, CubesIcon } from '@patternfly/react-icons';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
 import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
@@ -31,7 +32,12 @@ const AgentDeploymentListPage: React.FC = () => {
   const safeRuntimes = React.useMemo(
     () =>
       runtimes.filter(
-        (runtime) => typeof runtime.name === 'string' && typeof runtime.namespace === 'string',
+        (runtime) =>
+          typeof runtime.name === 'string' &&
+          runtime.name !== '' &&
+          typeof runtime.namespace === 'string' &&
+          runtime.namespace !== '' &&
+          typeof runtime.status === 'string',
       ),
     [runtimes],
   );
@@ -57,6 +63,7 @@ const AgentDeploymentListPage: React.FC = () => {
   }, [safeRuntimes, filterText]);
 
   const noProjectSelected = !namespace;
+  const isAccessDenied = !!loadError && getGenericErrorCode(loadError) === 403;
   const isEmpty = !noProjectSelected && loaded && !loadError && safeRuntimes.length === 0;
 
   const headerContent = (
@@ -76,9 +83,25 @@ const AgentDeploymentListPage: React.FC = () => {
     </Flex>
   );
 
+  const accessDeniedState = (
+    <EmptyState
+      headingLevel="h2"
+      icon={BanIcon}
+      titleText="Access permissions needed"
+      variant={EmptyStateVariant.lg}
+      data-testid="agent-deployments-access-denied"
+    >
+      <EmptyStateBody>You do not have permission to view agent deployments.</EmptyStateBody>
+    </EmptyState>
+  );
+
   const tableContent = () => {
     if (!loaded) {
       return <Spinner aria-label="Loading agent deployments" />;
+    }
+
+    if (isAccessDenied) {
+      return accessDeniedState;
     }
 
     if (loadError) {
@@ -105,9 +128,9 @@ const AgentDeploymentListPage: React.FC = () => {
       noTitle // rendered inside a TabRoutePage which provides the title and tabs
       description="View and manage agent deployments across your fleet."
       headerContent={headerContent}
-      loadError={noProjectSelected ? undefined : loadError}
+      loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
       loaded={noProjectSelected ? true : loaded}
-      empty={noProjectSelected || isEmpty}
+      empty={noProjectSelected || (isEmpty && !isAccessDenied)}
       emptyStatePage={
         noProjectSelected ? (
           <EmptyState
