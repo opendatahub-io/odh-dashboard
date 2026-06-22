@@ -51,8 +51,13 @@ const useAgentProfileUrlParam = ({
   const appliedProfileId = React.useRef<string | null>(null);
 
   React.useEffect(() => {
+    if (!agentProfileId) {
+      // URL param cleared (e.g. "New agent configuration") — reset so the same
+      // profile can be re-loaded in a future navigation without being blocked.
+      appliedProfileId.current = null;
+      return;
+    }
     if (
-      !agentProfileId ||
       !namespace?.name ||
       !apiAvailable ||
       !mcpServersLoaded ||

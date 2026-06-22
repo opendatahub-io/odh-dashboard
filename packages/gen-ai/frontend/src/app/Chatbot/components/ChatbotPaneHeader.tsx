@@ -110,10 +110,12 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                     )}
                   </Content>
                 </FlexItem>
-                <Divider
-                  orientation={{ default: 'vertical' }}
-                  style={{ height: '1em', alignSelf: 'center' }}
-                />
+                <FlexItem alignSelf={{ default: 'alignSelfCenter' }}>
+                  <Divider
+                    orientation={{ default: 'vertical' }}
+                    style={{ height: 'var(--pf-t--global--font--size--body--default)' }}
+                  />
+                </FlexItem>
               </>
             )}
             {!isSettingsOpen && (

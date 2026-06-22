@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Alert,
+  Bullseye,
   Button,
   EmptyState,
   EmptyStateBody,
@@ -48,6 +49,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
   React.useEffect(() => {
     if (!apiAvailable) {
       setLoading(false);
+      setError('API is not available. Please try again later.');
       return;
     }
     let cancelled = false;
@@ -93,9 +95,9 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
   const renderBody = () => {
     if (loading) {
       return (
-        <div style={{ textAlign: 'center', padding: 'var(--pf-t--global--spacer--xl)' }}>
+        <Bullseye style={{ minHeight: 'var(--pf-t--global--spacer--2xl)' }}>
           <Spinner aria-label="Loading agent profiles" />
-        </div>
+        </Bullseye>
       );
     }
     if (error) {
@@ -134,7 +136,11 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
                   }
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && profile.profileId !== loadedProfileId) {
+                  if (
+                    (e.key === 'Enter' || e.key === ' ') &&
+                    profile.profileId !== loadedProfileId
+                  ) {
+                    e.preventDefault();
                     onSelect(profile.profileId);
                     onClose();
                   }
