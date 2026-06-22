@@ -8,75 +8,73 @@ import IndentSection from '#~/pages/projects/components/IndentSection';
 import { getDashboardMainContainer } from '#~/utilities/utils';
 import EnvTypeSwitch from './EnvTypeSwitch';
 
-const ENV_VAR_POPPER_PROPS = { appendTo: getDashboardMainContainer() };
-
 type EnvTypeSelectFieldProps = {
   envVariable: EnvVariable;
   onUpdate: (envVariable: EnvVariable) => void;
   onRemove: () => void;
+  namespace: string;
 };
 
 const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   envVariable,
   onUpdate,
   onRemove,
-}) => {
-  const selectId = React.useId().replace(/:/g, '');
-
-  return (
-    <FormGroup isRequired label="Variable type" fieldId={selectId}>
-      <Split data-testid="environment-variable-field">
-        <SplitItem isFilled>
-          <Stack hasGutter>
-            <StackItem data-testid="environment-variable-type-select">
-              <SimpleSelect
-                dataTestId="environment-variable-type-toggle"
-                ariaLabel="Variable type"
-                toggleProps={{ id: selectId }}
-                popperProps={ENV_VAR_POPPER_PROPS}
-                isFullWidth
-                value={envVariable.type ?? undefined}
-                placeholder="Select environment variable type"
-                options={Object.values(EnvironmentVariableType).map(
-                  (type): SimpleSelectOption => ({
-                    key: type,
-                    label: type,
-                  }),
-                )}
-                onChange={(value) => {
-                  const enumValue = asEnumMember(value, EnvironmentVariableType);
-                  if (enumValue !== null) {
-                    onUpdate({
-                      type: enumValue,
-                    });
+  namespace,
+}) => (
+  <FormGroup isRequired label="Variable type" fieldId="environment-variable-type-select">
+    <Split data-testid="environment-variable-field">
+      <SplitItem isFilled>
+        <Stack hasGutter>
+          <StackItem data-testid="environment-variable-type-select">
+            <SimpleSelect
+              toggleProps={{ id: 'environment-variable-type-select' }}
+              popperProps={{ appendTo: getDashboardMainContainer() }}
+              isFullWidth
+              value={envVariable.type ?? undefined}
+              placeholder="Select environment variable type"
+              options={Object.values(EnvironmentVariableType).map(
+                (type): SimpleSelectOption => ({
+                  key: type,
+                  label: type,
+                }),
+              )}
+              onChange={(value) => {
+                const enumValue = asEnumMember(value, EnvironmentVariableType);
+                if (enumValue !== null) {
+                  onUpdate({
+                    type: enumValue,
+                  });
+                }
+              }}
+            />
+          </StackItem>
+          {envVariable.type && (
+            <StackItem>
+              <IndentSection>
+                <EnvTypeSwitch
+                  env={envVariable}
+                  onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
+                  namespace={namespace}
+                  onExistingSecretRefsUpdate={(refs) =>
+                    onUpdate({ ...envVariable, existingSecretRefs: refs })
                   }
-                }}
-              />
+                />
+              </IndentSection>
             </StackItem>
-            {envVariable.type && (
-              <StackItem>
-                <IndentSection>
-                  <EnvTypeSwitch
-                    env={envVariable}
-                    onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
-                  />
-                </IndentSection>
-              </StackItem>
-            )}
-          </Stack>
-        </SplitItem>
-        <SplitItem>
-          <Button
-            variant="plain"
-            data-testid="remove-environment-variable-button"
-            aria-label={`Remove ${envVariable.type ?? 'environment'} variable`}
-            icon={<MinusCircleIcon />}
-            onClick={() => onRemove()}
-          />
-        </SplitItem>
-      </Split>
-    </FormGroup>
-  );
-};
+          )}
+        </Stack>
+      </SplitItem>
+      <SplitItem>
+        <Button
+          variant="plain"
+          data-testid="remove-environment-variable-button"
+          aria-label="Remove environment variable"
+          icon={<MinusCircleIcon />}
+          onClick={() => onRemove()}
+        />
+      </SplitItem>
+    </Split>
+  </FormGroup>
+);
 
 export default EnvTypeSelectField;

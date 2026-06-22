@@ -7,10 +7,12 @@ import EnvTypeSelectField from './EnvTypeSelectField';
 type EnvironmentVariablesProps = {
   envVariables: EnvVariable[];
   setEnvVariables: (envVars: EnvVariable[]) => void;
+  namespace: string;
 };
 const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
   envVariables,
   setEnvVariables,
+  namespace,
 }) => (
   <>
     {envVariables.map((envVariable, i) => (
@@ -27,6 +29,7 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
           onRemove={() =>
             setEnvVariables(envVariables.filter((v, filterIndex) => filterIndex !== i))
           }
+          namespace={namespace}
         />
         {i !== envVariables.length - 1 && <Divider />}
       </React.Fragment>
