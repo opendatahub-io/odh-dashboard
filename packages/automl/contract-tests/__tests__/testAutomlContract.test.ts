@@ -1122,7 +1122,7 @@ describe('AutoML API Contract Tests', () => {
             label_column: 'target',
             task_type: 'multiclass',
             preset: 'speed',
-            eval_metric: 'roc_auc',
+            eval_metric: 'roc_auc_ovo',
             top_n: 5,
           });
           expect(result).toMatchContract(apiSchema, {
@@ -1184,6 +1184,38 @@ describe('AutoML API Contract Tests', () => {
             label_column: 'target',
             task_type: 'binary',
             preset: 'invalid_preset',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 for binary-only eval_metric with multiclass task_type', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'cross-type-metric-run',
+            train_data_secret_name: 's',
+            train_data_bucket_name: 'b',
+            train_data_file_key: 'k',
+            label_column: 'target',
+            task_type: 'multiclass',
+            eval_metric: 'roc_auc',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
+        });
+
+        it('should return 400 for multiclass-only eval_metric with binary task_type', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'cross-type-metric-run',
+            train_data_secret_name: 's',
+            train_data_bucket_name: 'b',
+            train_data_file_key: 'k',
+            label_column: 'target',
+            task_type: 'binary',
+            eval_metric: 'roc_auc_ovo',
           });
           expect(result.success).toBe(false);
           if (!result.success) {

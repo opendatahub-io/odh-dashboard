@@ -463,8 +463,10 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		case constants.PipelineTypeTabular:
 			if req.TaskType != nil {
 				switch *req.TaskType {
-				case constants.TaskTypeBinary, constants.TaskTypeMulticlass:
-					allowedMetrics = constants.ValidClassificationEvalMetrics
+				case constants.TaskTypeBinary:
+					allowedMetrics = constants.ValidBinaryEvalMetrics
+				case constants.TaskTypeMulticlass:
+					allowedMetrics = constants.ValidMulticlassEvalMetrics
 				case constants.TaskTypeRegression:
 					allowedMetrics = constants.ValidRegressionEvalMetrics
 				}
