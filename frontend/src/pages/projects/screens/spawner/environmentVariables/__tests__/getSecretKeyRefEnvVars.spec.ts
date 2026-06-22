@@ -1,5 +1,5 @@
 import { EnvVariable, EnvironmentVariableType, SecretCategory } from '#~/pages/projects/types';
-import { getSecretKeyRefEnvVars } from '#~/src/pages/projects/screens/spawner/service';
+import { getSecretKeyRefEnvVars } from '#~/pages/projects/screens/spawner/service';
 
 describe('getSecretKeyRefEnvVars', () => {
   it('should return empty array for empty input', () => {
