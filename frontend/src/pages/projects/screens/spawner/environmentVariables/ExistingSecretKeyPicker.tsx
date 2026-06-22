@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Badge,
   Button,
   Checkbox,
@@ -7,10 +8,13 @@ import {
   ExpandableSection,
   Flex,
   FlexItem,
+  Icon,
   Stack,
   StackItem,
   TextInput,
+  Tooltip,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { ExistingSecretMetadata, ExistingSecretRef } from '#~/pages/projects/types';
 import './ExistingSecretKeyPicker.scss';
 
@@ -20,25 +24,37 @@ type ExistingSecretKeyPickerProps = {
   selectedRefs: ExistingSecretRef[];
   availableSecrets: ExistingSecretMetadata[];
   onUpdate: (updatedRefs: ExistingSecretRef[]) => void;
+  collidingKeys?: Set<string>;
 };
 
 type SecretKeySectionProps = {
   secretRef: ExistingSecretRef;
   allKeys: string[];
+  isDeleted: boolean;
+  missingKeys: string[];
+  collidingKeys: Set<string>;
   onKeysChange: (selectedKeys: string[]) => void;
+  onRemoveRef: () => void;
+  onRemoveMissingKeys: (keys: string[]) => void;
 };
 
 const SecretKeySection: React.FC<SecretKeySectionProps> = ({
   secretRef,
   allKeys,
+  isDeleted,
+  missingKeys,
+  collidingKeys,
   onKeysChange,
+  onRemoveRef,
+  onRemoveMissingKeys,
 }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(isDeleted || missingKeys.length > 0);
   const [filter, setFilter] = React.useState('');
 
   const { selectedKeys } = secretRef;
   const totalKeys = allKeys.length;
-  const allSelected = selectedKeys.length === totalKeys;
+  const allSelected = !isDeleted && selectedKeys.length === totalKeys;
+  const hasMissingKeys = missingKeys.length > 0;
 
   const visibleKeys = React.useMemo(
     () =>
@@ -66,71 +82,176 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
 
   const entryId = secretRef.secretName.replace(/[^a-zA-Z0-9-_]/g, '-');
 
+  const toggleContent = (
+    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <FlexItem>
+        <strong>{secretRef.secretName}</strong>
+      </FlexItem>
+      {isDeleted ? (
+        <FlexItem>
+          <Tooltip content="This secret was not found.">
+            <Icon isInline status="danger" data-testid={`deleted-icon-${secretRef.secretName}`}>
+              <ExclamationCircleIcon />
+            </Icon>
+          </Tooltip>
+        </FlexItem>
+      ) : null}
+      {!isDeleted && hasMissingKeys ? (
+        <FlexItem>
+          <Tooltip content="Missing keys detected">
+            <Icon
+              isInline
+              status="warning"
+              data-testid={`missing-keys-icon-${secretRef.secretName}`}
+            >
+              <ExclamationTriangleIcon />
+            </Icon>
+          </Tooltip>
+        </FlexItem>
+      ) : null}
+      {!isDeleted ? (
+        <FlexItem>
+          <Badge isRead data-testid={`key-count-badge-${secretRef.secretName}`}>
+            {selectedKeys.length} of {totalKeys} keys
+          </Badge>
+        </FlexItem>
+      ) : null}
+    </Flex>
+  );
+
   return (
     <div
       className="odh-existing-secret-key-picker__section pf-v6-u-pl-md pf-v6-u-ml-sm"
       data-testid={`secret-key-section-${secretRef.secretName}`}
     >
       <ExpandableSection
-        toggleContent={
-          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>
-              <strong>{secretRef.secretName}</strong>
-            </FlexItem>
-            <FlexItem>
-              <Badge isRead data-testid={`key-count-badge-${secretRef.secretName}`}>
-                {selectedKeys.length} of {totalKeys} keys
-              </Badge>
-            </FlexItem>
-          </Flex>
-        }
+        toggleContent={toggleContent}
         isExpanded={isExpanded}
         onToggle={(_event, expanded) => setIsExpanded(expanded)}
         data-testid={`expandable-section-${secretRef.secretName}`}
       >
         <Stack hasGutter>
-          <StackItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <FlexItem>
-                <Button
-                  variant="link"
-                  isInline
-                  onClick={toggleSelectAll}
-                  data-testid={`toggle-select-all-${secretRef.secretName}`}
-                >
-                  {allSelected ? 'Deselect all' : 'Select all'}
-                </Button>
-              </FlexItem>
-              <FlexItem>
-                <Content component="small" className="pf-v6-u-color-200">
-                  {selectedKeys.length} of {totalKeys} keys selected
-                </Content>
-              </FlexItem>
-            </Flex>
-          </StackItem>
-          {totalKeys > FILTER_THRESHOLD ? (
+          {isDeleted ? (
             <StackItem>
-              <TextInput
-                type="search"
-                placeholder="Filter keys"
-                value={filter}
-                onChange={(_event, value) => setFilter(value)}
-                aria-label={`Filter keys for ${secretRef.secretName}`}
-                data-testid={`key-filter-${secretRef.secretName}`}
+              <Alert
+                variant="danger"
+                isInline
+                isPlain
+                title="This secret was not found. This workbench cannot start until the missing secret is restored or removed."
+                actionLinks={
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={onRemoveRef}
+                    data-testid={`remove-deleted-ref-${secretRef.secretName}`}
+                  >
+                    Remove this reference
+                  </Button>
+                }
+                data-testid={`env-deleted-secret-alert-${secretRef.secretName}`}
               />
             </StackItem>
           ) : null}
-          {visibleKeys.map((k) => (
-            <StackItem key={k}>
-              <Checkbox
-                id={`key-${entryId}-${k}`}
-                label={k}
-                isChecked={selectedSet.has(k)}
-                onChange={(_event, checked) => toggleKey(k, checked)}
-                data-testid={`key-checkbox-${secretRef.secretName}-${k}`}
-              />
+          {!isDeleted && hasMissingKeys ? (
+            <StackItem>
+              <Alert
+                variant="warning"
+                isInline
+                isPlain
+                title={`${missingKeys.length} previously selected key${
+                  missingKeys.length > 1 ? 's were' : ' was'
+                } not found in this secret`}
+                actionLinks={
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => onRemoveMissingKeys(missingKeys)}
+                    data-testid={`remove-missing-keys-${secretRef.secretName}`}
+                  >
+                    Remove missing keys
+                  </Button>
+                }
+                data-testid={`env-missing-keys-alert-${secretRef.secretName}`}
+              >
+                <p>
+                  Missing: {missingKeys.join(', ')}. These keys may have been renamed or removed.
+                  Remove missing keys to prevent the workbench from failing to start.
+                </p>
+              </Alert>
             </StackItem>
-          ))}
+          ) : null}
+          {!isDeleted ? (
+            <>
+              <StackItem>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  <FlexItem>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={toggleSelectAll}
+                      data-testid={`toggle-select-all-${secretRef.secretName}`}
+                    >
+                      {allSelected ? 'Deselect all' : 'Select all'}
+                    </Button>
+                  </FlexItem>
+                  <FlexItem>
+                    <Content component="small" className="pf-v6-u-color-200">
+                      {selectedKeys.length} of {totalKeys} keys selected
+                    </Content>
+                  </FlexItem>
+                </Flex>
+              </StackItem>
+              {totalKeys > FILTER_THRESHOLD ? (
+                <StackItem>
+                  <TextInput
+                    type="search"
+                    placeholder="Filter keys"
+                    value={filter}
+                    onChange={(_event, value) => setFilter(value)}
+                    aria-label={`Filter keys for ${secretRef.secretName}`}
+                    data-testid={`key-filter-${secretRef.secretName}`}
+                  />
+                </StackItem>
+              ) : null}
+              {visibleKeys.map((k) => {
+                const isColliding = collidingKeys.has(k);
+                return (
+                  <StackItem key={k}>
+                    <Checkbox
+                      id={`key-${entryId}-${k}`}
+                      label={
+                        isColliding ? (
+                          <Flex
+                            gap={{ default: 'gapSm' }}
+                            alignItems={{ default: 'alignItemsCenter' }}
+                            display={{ default: 'inlineFlex' }}
+                          >
+                            <FlexItem>{k}</FlexItem>
+                            <FlexItem>
+                              <Tooltip content="This key is defined in multiple secrets">
+                                <Icon
+                                  isInline
+                                  status="warning"
+                                  data-testid={`collision-icon-${secretRef.secretName}-${k}`}
+                                >
+                                  <ExclamationTriangleIcon />
+                                </Icon>
+                              </Tooltip>
+                            </FlexItem>
+                          </Flex>
+                        ) : (
+                          k
+                        )
+                      }
+                      isChecked={selectedSet.has(k)}
+                      onChange={(_event, checked) => toggleKey(k, checked)}
+                      data-testid={`key-checkbox-${secretRef.secretName}-${k}`}
+                    />
+                  </StackItem>
+                );
+              })}
+            </>
+          ) : null}
         </Stack>
       </ExpandableSection>
     </div>
@@ -141,6 +262,7 @@ const ExistingSecretKeyPicker: React.FC<ExistingSecretKeyPickerProps> = ({
   selectedRefs,
   availableSecrets,
   onUpdate,
+  collidingKeys = new Set<string>(),
 }) => {
   const secretMap = React.useMemo(() => {
     const map = new Map<string, ExistingSecretMetadata>();
@@ -159,19 +281,49 @@ const ExistingSecretKeyPicker: React.FC<ExistingSecretKeyPickerProps> = ({
     [selectedRefs, onUpdate],
   );
 
+  const handleRemoveRef = React.useCallback(
+    (secretName: string) => {
+      onUpdate(selectedRefs.filter((ref) => ref.secretName !== secretName));
+    },
+    [selectedRefs, onUpdate],
+  );
+
+  const handleRemoveMissingKeys = React.useCallback(
+    (secretName: string, missingKeysList: string[]) => {
+      const missingSet = new Set(missingKeysList);
+      onUpdate(
+        selectedRefs.map((ref) =>
+          ref.secretName === secretName
+            ? { ...ref, selectedKeys: ref.selectedKeys.filter((k) => !missingSet.has(k)) }
+            : ref,
+        ),
+      );
+    },
+    [selectedRefs, onUpdate],
+  );
+
   return (
     <Stack hasGutter data-testid="existing-secret-key-picker">
       {selectedRefs.map((ref) => {
         const secretMeta = secretMap.get(ref.secretName);
-        if (!secretMeta) {
-          return null;
-        }
+        const isDeleted = !secretMeta;
+        const allKeys = secretMeta?.keys ?? [];
+
+        // Detect missing keys: keys in selectedKeys that are not in the secret's actual keys
+        const actualKeySet = new Set(allKeys);
+        const missingKeys = ref.selectedKeys.filter((k) => !actualKeySet.has(k));
+
         return (
           <StackItem key={ref.secretName}>
             <SecretKeySection
               secretRef={ref}
-              allKeys={secretMeta.keys}
+              allKeys={allKeys}
+              isDeleted={isDeleted}
+              missingKeys={missingKeys}
+              collidingKeys={collidingKeys}
               onKeysChange={(newKeys) => handleKeysChange(ref.secretName, newKeys)}
+              onRemoveRef={() => handleRemoveRef(ref.secretName)}
+              onRemoveMissingKeys={(keys) => handleRemoveMissingKeys(ref.secretName, keys)}
             />
           </StackItem>
         );

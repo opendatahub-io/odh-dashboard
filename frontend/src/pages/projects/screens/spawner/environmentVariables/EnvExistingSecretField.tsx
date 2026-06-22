@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Badge,
   Button,
   Content,
@@ -27,6 +28,7 @@ import { TimesIcon } from '@patternfly/react-icons';
 import { ExistingSecretRef, ExistingSecretMetadata } from '#~/pages/projects/types';
 import { useExistingSecrets } from './useExistingSecrets';
 import ExistingSecretKeyPicker from './ExistingSecretKeyPicker';
+import { detectExistingSecretKeyCollisions, getCollidingKeySet } from './existingSecretCollisions';
 
 type EnvExistingSecretFieldProps = {
   namespace: string;
@@ -114,6 +116,13 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
     },
     [isOpen],
   );
+
+  const collisions = React.useMemo(
+    () => detectExistingSecretKeyCollisions(existingSecretRefs),
+    [existingSecretRefs],
+  );
+
+  const collidingKeySet = React.useMemo(() => getCollidingKeySet(collisions), [collisions]);
 
   // RBAC: user cannot list secrets
   if (loaded && !canList) {
@@ -273,12 +282,37 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
           </SelectList>
         </Select>
       </StackItem>
+      {collisions.length > 0 ? (
+        <StackItem>
+          <Alert
+            variant="warning"
+            isInline
+            isPlain
+            title={
+              collisions.length === 1
+                ? `${collisions[0].key} is defined in both ${collisions[0].sources.join(' and ')}.`
+                : 'Key name collisions across attached secrets'
+            }
+            data-testid="env-collision-warning"
+          >
+            {collisions.length > 1
+              ? collisions.map((c) => (
+                  <div key={c.key}>
+                    <strong>{c.key}</strong> is defined in both {c.sources.join(' and ')}.
+                  </div>
+                ))
+              : null}
+            <p>Choose one and deselect the duplicate key to resolve the collision.</p>
+          </Alert>
+        </StackItem>
+      ) : null}
       {existingSecretRefs.length > 0 ? (
         <StackItem>
           <ExistingSecretKeyPicker
             selectedRefs={existingSecretRefs}
             availableSecrets={secrets}
             onUpdate={onUpdate}
+            collidingKeys={collidingKeySet}
           />
         </StackItem>
       ) : null}
