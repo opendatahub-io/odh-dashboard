@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { Bullseye, Page, Spinner } from '@patternfly/react-core';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { AreaContext } from '@odh-dashboard/plugin-core/areas';
-import type {
-  IsAreaAvailableStatus,
-  SupportedComponentFlagValue,
+import {
+  AreaContext,
+  type IsAreaAvailableStatus,
+  type SupportedAreaType,
+  type SupportedComponentFlagValue,
 } from '@odh-dashboard/plugin-core/areas';
 import { isAreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type {
@@ -17,7 +18,6 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useAppContext } from '#~/app/AppContext';
-import type { SupportedAreaType } from '@odh-dashboard/plugin-core/areas';
 import { FlagState, getFlags, isAreaAvailable } from '#~/concepts/areas/utils';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
 
