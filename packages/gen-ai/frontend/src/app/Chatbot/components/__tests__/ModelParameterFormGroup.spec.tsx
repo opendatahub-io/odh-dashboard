@@ -66,4 +66,12 @@ describe('ModelParameterFormGroup', () => {
 
     expect(mockOnChange).toHaveBeenCalled();
   });
+
+  it('should disable both the slider and text input when isDisabled is true', () => {
+    render(<ModelParameterFormGroup {...defaultProps} isDisabled />);
+
+    // PF v6 Slider marks disabled via aria-disabled on the thumb div
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('spinbutton')).toBeDisabled();
+  });
 });

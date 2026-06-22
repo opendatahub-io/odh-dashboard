@@ -19,6 +19,7 @@ interface ModelDetailsDropdownProps {
   onModelChange: (value: string) => void;
   style?: React.CSSProperties;
   testId?: string;
+  isDisabled?: boolean;
 }
 
 const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> = ({
@@ -26,6 +27,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
   onModelChange,
   style,
   testId = 'model-selector-toggle',
+  isDisabled = false,
 }) => {
   const { models, aiModels, maasModels } = React.useContext(ChatbotContext);
   const { data: bffConfig } = useFetchBFFConfig();
@@ -56,7 +58,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
         <MenuToggle
           ref={toggleRef}
-          isDisabled={models.length === 0}
+          isDisabled={models.length === 0 || isDisabled}
           style={style}
           onClick={() => setIsOpen(!isOpen)}
           isExpanded={isOpen}
@@ -69,7 +71,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
     >
       <DropdownList style={{ maxHeight: '300px', overflowY: 'auto' }}>
         {models.map((option) => {
-          const isDisabled = !isLlamaModelEnabled(
+          const isOptionDisabled = !isLlamaModelEnabled(
             option.id,
             aiModels,
             maasModels,
@@ -81,7 +83,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
               key={option.id}
               data-testid={`model-option-${option.id}`}
               actions={
-                isDisabled ? (
+                isOptionDisabled ? (
                   <Tooltip content="This model is unavailable. Check the model's deployment status and resolve any issues. Update the playground's configuration to refresh the list.">
                     <Icon
                       status="danger"
@@ -93,7 +95,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
                   </Tooltip>
                 ) : null
               }
-              isAriaDisabled={isDisabled}
+              isAriaDisabled={isOptionDisabled}
             >
               {getLlamaModelDisplayName(option.id, aiModels)}
             </DropdownItem>
