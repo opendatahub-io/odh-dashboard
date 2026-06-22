@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ExistingSecretMetadata, ExistingSecretRef } from '#~/pages/projects/types';
-import ExistingSecretKeyPicker from '#~/src/pages/projects/screens/spawner/environmentVariables/ExistingSecretKeyPicker';
+import ExistingSecretKeyPicker from '#~/pages/projects/screens/spawner/environmentVariables/ExistingSecretKeyPicker';
 
 describe('ExistingSecretKeyPicker', () => {
   const availableSecrets: ExistingSecretMetadata[] = [

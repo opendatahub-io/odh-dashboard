@@ -4,7 +4,7 @@ import {
   SecretCategory,
   ConfigMapCategory,
 } from '#~/pages/projects/types';
-import { getSecretKeyRefEnvVars } from '#~/src/pages/projects/screens/spawner/service';
+import { getSecretKeyRefEnvVars } from '#~/pages/projects/screens/spawner/service';
 
 describe('getSecretKeyRefEnvVars', () => {
   beforeEach(() => {
