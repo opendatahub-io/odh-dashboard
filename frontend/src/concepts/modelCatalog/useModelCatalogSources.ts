@@ -1,8 +1,7 @@
 import React from 'react';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { getConfigMap, isK8sStatus } from '#~/api';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
-import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 import useFetchState, { NotReadyError, FetchState } from '#~/utilities/useFetchState';
 import { ModelCatalogSource, ModelCatalogSourcesObject } from './types';

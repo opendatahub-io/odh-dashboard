@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
-import { getConfigMap } from '#~/api';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { getConfigMap } from '#~/api';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { useModelCatalogSources } from '#~/concepts/modelCatalog/useModelCatalogSources';
 import {
