@@ -66,7 +66,12 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
 
   return (
     <Tbody isExpanded={isRowExpanded}>
-      <ResourceTr resource={subscriptionResource} isContentExpanded={isRowExpanded} isControlRow>
+      <ResourceTr
+        resource={subscriptionResource}
+        isContentExpanded={isRowExpanded}
+        isControlRow
+        data-testid="subscription-row"
+      >
         <Td dataLabel={subscriptionsColumns[0].label}>
           <TableRowTitleDescription
             title={
@@ -150,22 +155,16 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         </Td>
       </ResourceTr>
       <Tr isExpanded={expandedPanel === 'groups'}>
-        <Td dataLabel="Groups" colSpan={SUBSCRIPTION_COL_SPAN}>
+        <Td colSpan={SUBSCRIPTION_COL_SPAN}>
           <ExpandableRowContent>
-            <ExpandedGroupsPanel
-              groups={subscription.owner.groups}
-              testId="subscription-groups-expanded-panel"
-            />
+            <ExpandedGroupsPanel groups={subscription.owner.groups} />
           </ExpandableRowContent>
         </Td>
       </Tr>
       <Tr isExpanded={expandedPanel === 'models'}>
-        <Td dataLabel="Models" colSpan={SUBSCRIPTION_COL_SPAN}>
+        <Td colSpan={SUBSCRIPTION_COL_SPAN}>
           <ExpandableRowContent>
-            <ExpandedSubscriptionModelsPanel
-              models={subscription.modelRefs}
-              testId="subscription-models-expanded-panel"
-            />
+            <ExpandedSubscriptionModelsPanel models={subscription.modelRefs} />
           </ExpandableRowContent>
         </Td>
       </Tr>

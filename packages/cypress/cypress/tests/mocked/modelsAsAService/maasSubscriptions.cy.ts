@@ -89,8 +89,8 @@ describe('Subscriptions Page', () => {
     const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
     premiumRow.findPhase().should('contain.text', 'Ready');
     premiumRow.findName().should('contain.text', 'Premium Team Subscription');
-    premiumRow.findGroups().should('contain.text', '1 Group');
-    premiumRow.findModels().should('contain.text', '2 Models');
+    premiumRow.findGroups().should('contain.text', '1');
+    premiumRow.findModels().should('contain.text', '2');
     premiumRow.findPriority().should('contain.text', '10');
 
     const basicRow = subscriptionsPage.getRow('Basic Team Subscription');

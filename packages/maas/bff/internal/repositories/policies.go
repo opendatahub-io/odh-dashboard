@@ -30,7 +30,8 @@ func NewPoliciesRepository(logger *slog.Logger, k8sFactory kubernetes.Kubernetes
 	}
 }
 
-// ListPolicies returns all MaaSAuthPolicy resources in the configured namespace.
+// ListPolicies returns all MaaSAuthPolicy resources in the configured namespace,
+// enriched with display name and description from the corresponding MaaSModelRef CRs.
 func (r *PoliciesRepository) ListPolicies(ctx context.Context) ([]models.MaaSAuthPolicy, error) {
 	r.logger.Debug("Listing all policies", slog.String("namespace", r.namespace))
 
@@ -53,6 +54,33 @@ func (r *PoliciesRepository) ListPolicies(ctx context.Context) ([]models.MaaSAut
 			continue
 		}
 		policies = append(policies, *policy)
+	}
+
+	// Fetch MaaSModelRef CRs once and enrich each policy's model refs with
+	// display name and description. Failures here are non-fatal.
+	modelRefList, err := kubeClient.Resource(constants.MaaSModelRefGvr).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		r.logger.Warn("Failed to list MaaSModelRefs for enrichment; returning policies without enrichment", slog.Any("error", err))
+		return policies, nil
+	}
+	summaries := make([]models.MaaSModelRefSummary, 0, len(modelRefList.Items))
+	for _, item := range modelRefList.Items {
+		summary, convErr := convertUnstructuredToModelRefSummary(&item)
+		if convErr != nil {
+			r.logger.Warn("Failed to convert MaaSModelRef", slog.String("name", item.GetName()), slog.Any("error", convErr))
+			continue
+		}
+		summaries = append(summaries, *summary)
+	}
+	idx := buildModelRefSummaryIndex(summaries)
+	for i := range policies {
+		for j := range policies[i].ModelRefs {
+			ref := &policies[i].ModelRefs[j]
+			if summary, ok := idx[ref.Namespace+"/"+ref.Name]; ok {
+				ref.DisplayName = summary.DisplayName
+				ref.Description = summary.Description
+			}
+		}
 	}
 
 	return policies, nil

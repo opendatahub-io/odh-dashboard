@@ -69,7 +69,12 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
 
   return (
     <Tbody isExpanded={isRowExpanded}>
-      <ResourceTr resource={policyResource} isContentExpanded={isRowExpanded} isControlRow>
+      <ResourceTr
+        resource={policyResource}
+        isContentExpanded={isRowExpanded}
+        isControlRow
+        data-testid="auth-policy-row"
+      >
         <Td dataLabel={columns[0].label}>
           <TableRowTitleDescription
             title={
@@ -148,19 +153,16 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         </Td>
       </ResourceTr>
       <Tr isExpanded={expandedPanel === 'groups'}>
-        <Td dataLabel="Groups" colSpan={AUTH_POLICY_COL_SPAN}>
+        <Td colSpan={AUTH_POLICY_COL_SPAN}>
           <ExpandableRowContent>
-            <ExpandedGroupsPanel groups={groups} testId="auth-policy-groups-expanded-panel" />
+            <ExpandedGroupsPanel groups={groups} />
           </ExpandableRowContent>
         </Td>
       </Tr>
       <Tr isExpanded={expandedPanel === 'models'}>
-        <Td dataLabel="Models" colSpan={AUTH_POLICY_COL_SPAN}>
+        <Td colSpan={AUTH_POLICY_COL_SPAN}>
           <ExpandableRowContent>
-            <ExpandedAuthPolicyModelsPanel
-              models={authPolicy.modelRefs}
-              testId="auth-policy-models-expanded-panel"
-            />
+            <ExpandedAuthPolicyModelsPanel models={authPolicy.modelRefs} />
           </ExpandableRowContent>
         </Td>
       </Tr>

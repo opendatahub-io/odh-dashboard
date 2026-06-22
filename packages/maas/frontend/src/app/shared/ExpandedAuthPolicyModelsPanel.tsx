@@ -4,30 +4,49 @@ import { ModelRef } from '~/app/types/subscriptions';
 
 type ExpandedAuthPolicyModelsPanelProps = {
   models: ModelRef[];
-  testId?: string;
 };
 
 const ExpandedAuthPolicyModelsPanel: React.FC<ExpandedAuthPolicyModelsPanelProps> = ({
   models,
-  testId = 'expanded-auth-policy-models-panel',
 }) => (
-  <Table aria-label="Auth policy models" data-testid={testId} variant="compact" borders={false}>
+  <Table
+    aria-label="Auth policy models"
+    data-testid="auth-policy-models-expanded-panel"
+    variant="compact"
+    borders={false}
+  >
     <Thead>
       <Tr>
-        <Th width={50}>Model name</Th>
+        <Th>Model name</Th>
       </Tr>
     </Thead>
     <Tbody>
       {models.length === 0 ? (
         <Tr>
-          <Td colSpan={2} data-testid="no-models-row">
-            No models
-          </Td>
+          <Td data-testid="empty-auth-policy-models-expanded-panel">No models</Td>
         </Tr>
       ) : (
         models.map((model) => (
           <Tr key={`${model.namespace}/${model.name}`} data-testid="expanded-auth-policy-model-row">
-            <Td dataLabel="Model name">{model.name}</Td>
+            <Td dataLabel="Model name">
+              <span
+                className="pf-v6-u-font-weight-bold"
+                data-testid="auth-policy-expanded-model-display-name"
+              >
+                {model.displayName ?? model.name}
+              </span>
+              {model.displayName && model.displayName !== model.name && (
+                <div data-testid="auth-policy-expanded-model-resource-name">{model.name}</div>
+              )}
+              {model.description && (
+                <div
+                  style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+                  data-testid="auth-policy-expanded-model-description"
+                >
+                  {model.description}
+                </div>
+              )}
+            </Td>
           </Tr>
         ))
       )}

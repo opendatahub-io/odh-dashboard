@@ -36,7 +36,8 @@ func NewSubscriptionsRepository(logger *slog.Logger, k8sFactory kubernetes.Kuber
 	}
 }
 
-// ListSubscriptions returns all MaaSSubscription resources in the configured namespace.
+// ListSubscriptions returns all MaaSSubscription resources in the configured namespace,
+// enriched with display name and description from the corresponding MaaSModelRef CRs.
 func (r *SubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]models.MaaSSubscription, error) {
 	r.logger.Debug("Listing all subscriptions", slog.String("namespace", r.namespace))
 
@@ -59,6 +60,24 @@ func (r *SubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]mode
 			continue
 		}
 		subscriptions = append(subscriptions, *sub)
+	}
+
+	// Fetch MaaSModelRef CRs once and enrich each subscription's model refs with
+	// display name and description. Failures here are non-fatal.
+	modelRefSummaries, err := r.listAllModelRefSummaries(ctx, kubeClient)
+	if err != nil {
+		r.logger.Warn("Failed to list MaaSModelRefs for enrichment; returning subscriptions without enrichment", slog.Any("error", err))
+		return subscriptions, nil
+	}
+	idx := buildModelRefSummaryIndex(modelRefSummaries)
+	for i := range subscriptions {
+		for j := range subscriptions[i].ModelRefs {
+			ref := &subscriptions[i].ModelRefs[j]
+			if summary, ok := idx[ref.Namespace+"/"+ref.Name]; ok {
+				ref.DisplayName = summary.DisplayName
+				ref.Description = summary.Description
+			}
+		}
 	}
 
 	return subscriptions, nil
@@ -295,6 +314,17 @@ func (r *SubscriptionsRepository) GetModelRefSummaries(ctx context.Context, refs
 	}
 
 	return result, nil
+}
+
+// --- Enrichment helpers ---
+
+// buildModelRefSummaryIndex returns a lookup map from "namespace/name" to MaaSModelRefSummary
+func buildModelRefSummaryIndex(summaries []models.MaaSModelRefSummary) map[string]models.MaaSModelRefSummary {
+	idx := make(map[string]models.MaaSModelRefSummary, len(summaries))
+	for _, s := range summaries {
+		idx[s.Namespace+"/"+s.Name] = s
+	}
+	return idx
 }
 
 // --- K8s helpers ---
