@@ -12,7 +12,8 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useExtensions: jest.fn(),
 }));
 
-jest.mock('#~/components/browserStorage/BrowserStorageContext', () => ({
+jest.mock('@odh-dashboard/plugin-core/utilities', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/utilities'),
   useBrowserStorage: jest.fn(),
 }));
 
