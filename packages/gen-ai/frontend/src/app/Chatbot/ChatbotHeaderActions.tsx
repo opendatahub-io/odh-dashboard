@@ -195,7 +195,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   New agent configuration
                 </DropdownItem>
               )}
-              {agentProfilesEnabled && <Divider key="agent-divider" />}
+              {!isCompareMode && agentProfilesEnabled && <Divider key="agent-divider" />}
               <DropdownItem
                 onClick={onConfigurePlayground}
                 key="update-configuration"
