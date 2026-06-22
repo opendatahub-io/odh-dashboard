@@ -24,7 +24,7 @@ const STAGE_DISPLAY_NAMES: Record<string, string> = {
   extract_documents: 'Extract documents',
   prepare_search_space: 'Prepare search space',
   write_report: 'Write report',
-  pattern_selection: 'Pattern selection',
+  optimize_templates: 'Optimize templates',
   run_optimization: 'Run optimization',
   write_patterns: 'Write patterns',
   build_requests: 'Build requests',
@@ -32,7 +32,7 @@ const STAGE_DISPLAY_NAMES: Record<string, string> = {
   build_leaderboard: 'Build leaderboard',
 };
 
-const BRANCHING_STAGE_ID = 'pattern_selection';
+const BRANCHING_STAGE_ID = 'optimize_templates';
 
 const SKIP_COMPONENT_IDS = new Set(['publish_component_stage_map']);
 
@@ -220,7 +220,7 @@ export const buildStageMapTopology = (
       pendingRunAfter = [nodeId];
     }
 
-    // Fan out: N branches from pattern_selection
+    // Fan out: N branches from optimize_templates
     const branchSourceNodeId = pendingRunAfter[0];
     const { patterns, isPlaceholder } = getSelectedPatterns(component.stages, maxPatterns);
     const branchTailNodeIds: string[] = [];

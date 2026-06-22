@@ -121,7 +121,7 @@ describe('buildStageMapTopology', () => {
   describe('branching stages', () => {
     const branchingComponent = makeComponent('rag_optimization', [
       makeStage('validate_inputs'),
-      makeStage('pattern_selection', { selected_patterns: ['pattern_a', 'pattern_b'] }),
+      makeStage('optimize_templates', { selected_patterns: ['pattern_a', 'pattern_b'] }),
       makeStage('run_optimization'),
       makeStage('write_patterns'),
       makeStage('build_leaderboard'),
@@ -133,9 +133,9 @@ describe('buildStageMapTopology', () => {
 
       const nodeIds = nodes.map((n) => n.id);
 
-      // Pre-branch: validate_inputs, pattern_selection
+      // Pre-branch: validate_inputs, optimize_templates
       expect(nodeIds).toContain('rag_optimization__validate_inputs');
-      expect(nodeIds).toContain('rag_optimization__pattern_selection');
+      expect(nodeIds).toContain('rag_optimization__optimize_templates');
 
       // Branch pattern name nodes
       expect(nodeIds).toContain('rag_optimization__pattern__branch-0');
@@ -158,15 +158,15 @@ describe('buildStageMapTopology', () => {
       expect(patternNodes[1].label).toBe('pattern_b');
     });
 
-    it('should fan out from pattern_selection node', () => {
+    it('should fan out from optimize_templates node', () => {
       const stageMap = makeStageMap([branchingComponent]);
       const nodes = buildStageMapTopology(stageMap);
 
       const patternNodes = nodes.filter(
         (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
-      expect(patternNodes[0].runAfterTasks).toEqual(['rag_optimization__pattern_selection']);
-      expect(patternNodes[1].runAfterTasks).toEqual(['rag_optimization__pattern_selection']);
+      expect(patternNodes[0].runAfterTasks).toEqual(['rag_optimization__optimize_templates']);
+      expect(patternNodes[1].runAfterTasks).toEqual(['rag_optimization__optimize_templates']);
     });
 
     it('should insert convergence spacer before post-branch stages', () => {
@@ -195,7 +195,7 @@ describe('buildStageMapTopology', () => {
   describe('branching with steps', () => {
     const branchingWithSteps = makeComponent('rag_optimization', [
       makeStage('validate_inputs'),
-      makeStage('pattern_selection', {
+      makeStage('optimize_templates', {
         selected_patterns: ['pattern_a', 'pattern_b'],
         steps: ['chunking', 'embedding', 'retrieval'],
       }),
@@ -226,7 +226,7 @@ describe('buildStageMapTopology', () => {
       const step3 = nodes.find((n) => n.id === 'rag_optimization__step__retrieval__branch-0');
       const pattern = nodes.find((n) => n.id === 'rag_optimization__pattern__branch-0');
 
-      expect(step1?.runAfterTasks).toEqual(['rag_optimization__pattern_selection']);
+      expect(step1?.runAfterTasks).toEqual(['rag_optimization__optimize_templates']);
       expect(step2?.runAfterTasks).toEqual([step1!.id]);
       expect(step3?.runAfterTasks).toEqual([step2!.id]);
       expect(pattern?.runAfterTasks).toEqual([step3!.id]);
@@ -247,7 +247,7 @@ describe('buildStageMapTopology', () => {
 
     it('should use fallback label for unknown step IDs', () => {
       const comp = makeComponent('rag_optimization', [
-        makeStage('pattern_selection', {
+        makeStage('optimize_templates', {
           selected_patterns: ['p1'],
           steps: ['some_custom_step'],
         }),
@@ -264,7 +264,7 @@ describe('buildStageMapTopology', () => {
   describe('placeholder patterns', () => {
     const noPatternsComponent = makeComponent('rag_optimization', [
       makeStage('validate_inputs'),
-      makeStage('pattern_selection'),
+      makeStage('optimize_templates'),
       makeStage('run_optimization'),
       makeStage('write_patterns'),
       makeStage('build_leaderboard'),
@@ -448,7 +448,7 @@ describe('buildStageMapTopology', () => {
     it('should not insert spacer when only one branch', () => {
       const stageMap = makeStageMap([
         makeComponent('rag_optimization', [
-          makeStage('pattern_selection', { selected_patterns: ['pattern_a'] }),
+          makeStage('optimize_templates', { selected_patterns: ['pattern_a'] }),
           makeStage('run_optimization'),
           makeStage('build_leaderboard'),
         ]),
@@ -465,7 +465,7 @@ describe('buildStageMapTopology', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'rag_optimization',
-          [makeStage('pattern_selection'), makeStage('run_optimization')],
+          [makeStage('optimize_templates'), makeStage('run_optimization')],
           { completed_at: '2025-01-01T01:00:00Z' },
         ),
       ]);
