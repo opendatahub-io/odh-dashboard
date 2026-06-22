@@ -173,6 +173,7 @@ export const schedulingSchema = z.discriminatedUnion('type', [
       localQueueName: z
         .string()
         .min(1, 'Local queue name is required')
+        .max(253, 'Local queue name must be 253 characters or fewer')
         .regex(
           k8sNameRegex,
           'Local queue name must consist of lowercase alphanumeric characters or hyphens, and must start and end with an alphanumeric character',

@@ -250,6 +250,17 @@ describe('manageHardwareProfileValidationSchema', () => {
       expect(result.success).toBe(true);
     });
 
+    it('should fail if localQueueName exceeds 253 characters', () => {
+      const result = schedulingSchema.safeParse({
+        type: SchedulingType.QUEUE,
+        kueue: { localQueueName: 'a'.repeat(254) },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toMatch(/253 characters or fewer/);
+      }
+    });
+
     it('should fail if scheduling type is invalid', () => {
       const invalidScheduling = {
         type: 'INVALID_TYPE',

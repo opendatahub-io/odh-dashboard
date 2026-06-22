@@ -266,7 +266,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
 
   React.useEffect(() => {
     setIsLocalQueueWarningDismissed(false);
-  }, [hardwareProfileFormData.selectedProfile?.metadata.name]);
+  }, [
+    hardwareProfileFormData.selectedProfile?.metadata.name,
+    hardwareProfileFormData.selectedProfile?.metadata.namespace,
+  ]);
 
   const isLocalQueueMissing = React.useMemo(() => {
     if (!selectedLocalQueueName || !localQueuesLoaded) {

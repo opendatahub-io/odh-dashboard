@@ -1220,7 +1220,7 @@ describe('Workbench Hardware Profiles', () => {
             ? [mockLocalQueueK8sResource({ name: 'my-local-queue', namespace: 'test-project' })]
             : [],
         ),
-      );
+      ).as('getLocalQueues');
       cy.interceptK8sList(StorageClassModel, mockStorageClassList());
       cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
       cy.interceptK8sList(
@@ -1277,6 +1277,7 @@ describe('Workbench Hardware Profiles', () => {
       projectDetails.findSectionTab('workbenches').click();
       workbenchPage.findCreateButton().click();
       cy.wait('@hardwareProfiles');
+      cy.wait('@getLocalQueues');
 
       createSpawnerPage.findLocalQueueMissingWarning().should('not.exist');
     });
