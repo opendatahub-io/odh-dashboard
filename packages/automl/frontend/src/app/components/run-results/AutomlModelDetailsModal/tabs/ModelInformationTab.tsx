@@ -37,6 +37,12 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
     [paramEntries],
   );
 
+  // Workaround for PF v6.4.0 bug: termWidth prop sets wrong CSS variable name
+  // Should be fixed in future PF version, then we can use: termWidth={`${maxTermWidth}ch`}
+  const customStyle: Record<string, string> = {
+    '--pf-v6-c-description-list__term--width': `${maxTermWidth}ch`,
+  };
+
   return (
     <>
       <Title headingLevel="h3" className="pf-v6-u-mb-lg">
@@ -46,7 +52,7 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
         isHorizontal
         isCompact
         className="automl-model-info-list"
-        termWidth={`${maxTermWidth}ch`}
+        style={customStyle}
       >
         {paramEntries.map(([key, value]) => (
           <DescriptionListGroup key={key}>
