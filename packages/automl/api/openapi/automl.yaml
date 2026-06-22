@@ -1142,6 +1142,12 @@ components:
                       Inferred ML task type for this column based on unique value analysis.
                       Default is binary. Rules: regression if >10 unique values and all numerical;
                       multiclass if >2 unique values; binary otherwise (including 2 unique string values).
+                  unique_count:
+                    type: integer
+                    minimum: 0
+                    description: >-
+                      Number of distinct non-empty values detected in a sample of the column.
+                      Used by the UI to summarize cardinality for prediction type recommendations.
                   values:
                     type: array
                     description: >-
@@ -1157,23 +1163,29 @@ components:
                 - name: "customerID"
                   type: "string"
                   task_type: "multiclass"
+                  unique_count: 482
                 - name: "gender"
                   type: "bool"
                   task_type: "binary"
+                  unique_count: 2
                   values: [0, 1]
                 - name: "status"
                   type: "string"
                   task_type: "multiclass"
+                  unique_count: 3
                   values: ["active", "inactive", "pending"]
                 - name: "age"
                   type: "integer"
                   task_type: "regression"
+                  unique_count: 47
                 - name: "price"
                   type: "double"
                   task_type: "regression"
+                  unique_count: 112
                 - name: "signup_date"
                   type: "timestamp"
                   task_type: "multiclass"
+                  unique_count: 90
             parse_warnings:
               type: integer
               description: Number of rows that failed CSV parsing and were skipped during schema inference

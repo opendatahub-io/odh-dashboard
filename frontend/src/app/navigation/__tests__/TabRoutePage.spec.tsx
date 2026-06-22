@@ -139,6 +139,21 @@ describe('TabRoutePage', () => {
     });
   });
 
+  describe('1 tab with alwaysShowTabBar', () => {
+    it('should render the tab bar when alwaysShowTabBar is enabled', () => {
+      const tab = createTabExtension({ id: 'deployments', title: 'Deployments' });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({ alwaysShowTabBar: true });
+
+      renderWithRouter(extension, '/test/deployments');
+
+      expect(screen.getByTestId('app-tab-page-title')).toHaveTextContent('Test Page');
+      expect(screen.getByTestId('tab-deployments')).toBeInTheDocument();
+      expect(screen.getByTestId('lazy-content')).toBeInTheDocument();
+      expect(screen.getByRole('tablist')).toBeInTheDocument();
+    });
+  });
+
   describe('2+ tabs (multi-tab)', () => {
     const tab1 = createTabExtension({ id: 'tab-a', title: 'Tab A', group: '1_first' });
     const tab2 = createTabExtension({ id: 'tab-b', title: 'Tab B', group: '2_second' });

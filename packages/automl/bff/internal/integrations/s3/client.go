@@ -55,10 +55,11 @@ type ListObjectsOptions struct {
 
 // ColumnSchema represents a column with its name and inferred type.
 type ColumnSchema struct {
-	Name     string        `json:"name"`
-	Type     string        `json:"type"`
-	TaskType string        `json:"task_type"`
-	Values   []interface{} `json:"values,omitempty"`
+	Name        string        `json:"name"`
+	Type        string        `json:"type"`
+	TaskType    string        `json:"task_type"`
+	UniqueCount int           `json:"unique_count"`
+	Values      []interface{} `json:"values,omitempty"`
 }
 
 // CSVSchemaResult contains the schema inference result with parsing metadata.
@@ -476,9 +477,10 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 		uniqueValues := collectUniqueRawValues(dataRows, i)
 		taskType := inferTaskType(uniqueValues)
 		columnSchemas[i] = ColumnSchema{
-			Name:     colName,
-			Type:     inferColumnType(dataRows, i),
-			TaskType: taskType,
+			Name:        colName,
+			Type:        inferColumnType(dataRows, i),
+			TaskType:    taskType,
+			UniqueCount: len(uniqueValues),
 		}
 		if taskType == "binary" || (taskType == "multiclass" && len(uniqueValues) <= maxMulticlassUniqueValues) {
 			columnSchemas[i].Values = toTypedValues(uniqueValues)
