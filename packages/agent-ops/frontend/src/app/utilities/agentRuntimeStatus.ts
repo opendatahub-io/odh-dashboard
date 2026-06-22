@@ -13,6 +13,7 @@ export enum AgentRuntimeDisplayStatus {
   Stopped = 'Stopped',
   Pending = 'Pending',
   Failed = 'Failed',
+  Unknown = 'Unknown',
 }
 
 export type AgentRuntimeStatusMapping = {
@@ -27,6 +28,7 @@ const STATUS_SORT_WEIGHTS: Record<AgentRuntimeDisplayStatus, number> = {
   [AgentRuntimeDisplayStatus.Pending]: 1,
   [AgentRuntimeDisplayStatus.Stopped]: 2,
   [AgentRuntimeDisplayStatus.Failed]: 3,
+  [AgentRuntimeDisplayStatus.Unknown]: 4,
 };
 
 const normalizeAgentRuntimeStatus = (status: string | undefined): string =>
@@ -48,7 +50,7 @@ export const mapAgentRuntimeStatus = (status: string | undefined): AgentRuntimeS
         labelVariant: 'filled',
       };
     default:
-      return { displayStatus: AgentRuntimeDisplayStatus.Stopped, labelColor: 'grey' };
+      return { displayStatus: AgentRuntimeDisplayStatus.Unknown, labelColor: 'grey' };
   }
 };
 

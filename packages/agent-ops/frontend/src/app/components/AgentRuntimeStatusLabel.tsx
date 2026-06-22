@@ -5,6 +5,7 @@ import {
   ExclamationCircleIcon,
   OffIcon,
   PendingIcon,
+  QuestionCircleIcon,
 } from '@patternfly/react-icons';
 import {
   AgentRuntimeDisplayStatus,
@@ -21,6 +22,7 @@ const statusIconMap: Record<AgentRuntimeDisplayStatus, React.ReactNode> = {
   [AgentRuntimeDisplayStatus.Stopped]: <OffIcon />,
   [AgentRuntimeDisplayStatus.Pending]: <PendingIcon />,
   [AgentRuntimeDisplayStatus.Failed]: <ExclamationCircleIcon />,
+  [AgentRuntimeDisplayStatus.Unknown]: <QuestionCircleIcon />,
 };
 
 const AgentRuntimeStatusLabel: React.FC<AgentRuntimeStatusLabelProps> = ({

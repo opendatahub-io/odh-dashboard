@@ -21,7 +21,11 @@ export const getAgentRuntimeEndpointFields = (
 ): AgentRuntimeEndpointField[] => {
   const fields: AgentRuntimeEndpointField[] = [];
 
-  const clusterUrl = trimUrl(detail?.runtime.endpointUrl ?? runtime?.endpointUrl);
+  const detailRuntime = detail?.runtime;
+  const clusterUrl = trimUrl(
+    (detailRuntime && 'endpointUrl' in detailRuntime ? detailRuntime.endpointUrl : undefined) ??
+      runtime?.endpointUrl,
+  );
   if (clusterUrl) {
     fields.push({
       id: 'cluster-url',

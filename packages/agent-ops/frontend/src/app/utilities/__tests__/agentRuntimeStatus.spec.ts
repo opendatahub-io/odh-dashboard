@@ -31,18 +31,18 @@ describe('mapAgentRuntimeStatus', () => {
     });
   });
 
-  it('should map unknown status to Stopped with grey label', () => {
+  it('should map unknown status to Unknown with grey label', () => {
     const result = mapAgentRuntimeStatus('unknown');
     expect(result).toEqual({
-      displayStatus: AgentRuntimeDisplayStatus.Stopped,
+      displayStatus: AgentRuntimeDisplayStatus.Unknown,
       labelColor: 'grey',
     });
   });
 
-  it('should map undefined status to Stopped with grey label', () => {
+  it('should map undefined status to Unknown with grey label', () => {
     const result = mapAgentRuntimeStatus(undefined);
     expect(result).toEqual({
-      displayStatus: AgentRuntimeDisplayStatus.Stopped,
+      displayStatus: AgentRuntimeDisplayStatus.Unknown,
       labelColor: 'grey',
     });
   });
@@ -54,7 +54,7 @@ describe('getAgentRuntimeStatusSortWeight', () => {
     ['Pending', 1],
     ['Stopped', 2],
     ['Failed', 3],
-    ['unknown', 2],
+    ['unknown', 4],
   ] as const)('should return sort weight %i for %s', (status, weight) => {
     expect(getAgentRuntimeStatusSortWeight(status)).toBe(weight);
   });

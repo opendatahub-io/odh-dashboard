@@ -67,7 +67,7 @@ class AgentDeploymentsPage {
   }
 
   findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByText('Error loading agent deployments');
+    return cy.findByTestId('error-empty-state-body');
   }
 
   findTableRows(): Cypress.Chainable<JQuery<HTMLElement>> {

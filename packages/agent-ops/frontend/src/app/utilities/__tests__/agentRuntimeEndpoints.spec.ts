@@ -5,6 +5,18 @@ import {
 import { mockAgentRuntime, mockAgentRuntimeDetail } from '~/__mocks__/mockAgentRuntime';
 
 describe('getAgentRuntimeEndpointFields', () => {
+  it('should not throw when detail.runtime is missing', () => {
+    const runtime = mockAgentRuntime();
+    const fields = getAgentRuntimeEndpointFields(runtime, { agentCard: null } as never);
+
+    expect(fields).toHaveLength(1);
+    expect(fields[0]).toMatchObject({
+      id: 'cluster-url',
+      label: 'Cluster URL',
+      url: runtime.endpointUrl,
+    });
+  });
+
   it('should map BFF detail fields to cluster, local, and external endpoint labels', () => {
     const runtime = mockAgentRuntime();
     const fields = getAgentRuntimeEndpointFields(runtime, mockAgentRuntimeDetail());

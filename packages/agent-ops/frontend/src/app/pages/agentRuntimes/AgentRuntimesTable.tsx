@@ -2,6 +2,7 @@ import * as React from 'react';
 import Table from '@odh-dashboard/internal/components/table/Table';
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
+import { getAgentRuntimeRowKey } from '~/app/utilities/agentRuntimes';
 import { agentRuntimesColumns } from './columns';
 import AgentRuntimesTableRow from './AgentRuntimesTableRow';
 
@@ -22,7 +23,10 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
     columns={agentRuntimesColumns}
     enablePagination
     rowRenderer={(runtime: AgentRuntime) => (
-      <AgentRuntimesTableRow key={`${runtime.namespace}/${runtime.name}`} runtime={runtime} />
+      <AgentRuntimesTableRow
+        key={getAgentRuntimeRowKey(runtime.namespace, runtime.name)}
+        runtime={runtime}
+      />
     )}
     emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
     toolbarContent={toolbarContent}

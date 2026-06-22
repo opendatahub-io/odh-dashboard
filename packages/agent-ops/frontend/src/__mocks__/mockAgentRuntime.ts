@@ -40,6 +40,7 @@ export const mockAgentRuntimeDetail = (
   overrides?: Partial<AgentRuntimeDetail>,
 ): AgentRuntimeDetail => {
   const runtime = mockAgentRuntime(overrides?.runtime);
+  const defaultAgentCard = runtime.endpointUrl.trim() === '' ? null : mockAgentCardDetail();
   return {
     name: runtime.name,
     namespace: runtime.namespace,
@@ -54,7 +55,7 @@ export const mockAgentRuntimeDetail = (
       },
     ],
     podCount: 2,
-    agentCard: mockAgentCardDetail(),
+    agentCard: defaultAgentCard,
     ...overrides,
   };
 };

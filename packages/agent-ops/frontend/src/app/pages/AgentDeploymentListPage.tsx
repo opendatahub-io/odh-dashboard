@@ -6,7 +6,6 @@ import ProjectNavigatorLink from '@odh-dashboard/internal/concepts/projects/Proj
 import { IconSize } from '@odh-dashboard/internal/types';
 import {
   Alert,
-  Bullseye,
   Content,
   EmptyState,
   EmptyStateBody,
@@ -29,28 +28,36 @@ const AgentDeploymentListPage: React.FC = () => {
 
   const [runtimes, loaded, loadError] = useListAgentRuntimes(namespace);
 
+  const safeRuntimes = React.useMemo(
+    () =>
+      runtimes.filter(
+        (runtime) => typeof runtime.name === 'string' && typeof runtime.namespace === 'string',
+      ),
+    [runtimes],
+  );
+
   // When landing on /deployments with no namespace selected, auto-redirect to the first
   // namespace found in the agent runtimes list.  This way the URL always reflects the
   // active project and the project selector shows a meaningful selection on first load.
   React.useEffect(() => {
-    if (!namespace && loaded && !loadError && runtimes.length > 0) {
-      navigate(agentOpsDeploymentsRoute(runtimes[0].namespace), { replace: true });
+    if (!namespace && loaded && !loadError && safeRuntimes.length > 0) {
+      navigate(agentOpsDeploymentsRoute(safeRuntimes[0].namespace), { replace: true });
     }
-  }, [namespace, loaded, loadError, runtimes, navigate]);
+  }, [namespace, loaded, loadError, safeRuntimes, navigate]);
 
   const [filterText, setFilterText] = React.useState('');
   const clearFilters = React.useCallback(() => setFilterText(''), []);
 
   const filteredRuntimes = React.useMemo(() => {
     if (!filterText) {
-      return runtimes;
+      return safeRuntimes;
     }
     const lower = filterText.toLowerCase();
-    return runtimes.filter((r) => r.name.toLowerCase().includes(lower));
-  }, [runtimes, filterText]);
+    return safeRuntimes.filter((runtime) => runtime.name.toLowerCase().includes(lower));
+  }, [safeRuntimes, filterText]);
 
   const noProjectSelected = !namespace;
-  const isEmpty = !noProjectSelected && loaded && !loadError && runtimes.length === 0;
+  const isEmpty = !noProjectSelected && loaded && !loadError && safeRuntimes.length === 0;
 
   const headerContent = (
     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -70,23 +77,6 @@ const AgentDeploymentListPage: React.FC = () => {
   );
 
   const tableContent = () => {
-    if (noProjectSelected) {
-      if (!loaded) {
-        return <Spinner aria-label="Loading agent deployments" />;
-      }
-      return (
-        <EmptyState
-          headingLevel="h2"
-          icon={CubesIcon}
-          titleText="Select a project"
-          variant={EmptyStateVariant.lg}
-          data-testid="agent-deployments-select-project"
-        >
-          <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
-        </EmptyState>
-      );
-    }
-
     if (!loaded) {
       return <Spinner aria-label="Loading agent deployments" />;
     }
@@ -94,13 +84,9 @@ const AgentDeploymentListPage: React.FC = () => {
     if (loadError) {
       return (
         <Alert variant="danger" isInline title="Error loading agent deployments">
-          {loadError.message}
+          Unable to load agent deployments. Please try again later.
         </Alert>
       );
-    }
-
-    if (isEmpty) {
-      return <AgentDeploymentsEmptyState />;
     }
 
     return (
@@ -139,7 +125,7 @@ const AgentDeploymentListPage: React.FC = () => {
       }
       provideChildrenPadding
     >
-      {noProjectSelected || isEmpty ? <Bullseye>{tableContent()}</Bullseye> : tableContent()}
+      {tableContent()}
     </ApplicationsPage>
   );
 };

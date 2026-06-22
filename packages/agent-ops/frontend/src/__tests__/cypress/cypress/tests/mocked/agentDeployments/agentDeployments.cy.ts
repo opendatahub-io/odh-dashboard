@@ -134,6 +134,16 @@ describe('Agent Deployments', () => {
   });
 
   it('should show loading spinner while runtimes are being fetched', () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/namespaces',
+      {
+        path: {
+          apiVersion: CLIENT_API_VERSION,
+        },
+      },
+      [mockNamespace({ name: TEST_NAMESPACE })],
+    );
+
     cy.intercept(
       {
         method: 'GET',
@@ -149,6 +159,16 @@ describe('Agent Deployments', () => {
   });
 
   it('should show error alert when runtimes fail to load', () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/namespaces',
+      {
+        path: {
+          apiVersion: CLIENT_API_VERSION,
+        },
+      },
+      [mockNamespace({ name: TEST_NAMESPACE })],
+    );
+
     cy.intercept(
       {
         method: 'GET',
@@ -158,10 +178,9 @@ describe('Agent Deployments', () => {
         statusCode: 500,
         body: { error: 'Internal Server Error' },
       },
-    ).as('getAgentRuntimesFailed');
+    );
 
     agentDeploymentsPage.visit(TEST_NAMESPACE);
-    cy.wait('@getAgentRuntimesFailed');
     agentDeploymentsPage.findErrorAlert().should('exist');
   });
 
