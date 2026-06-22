@@ -12,12 +12,14 @@ type EnvTypeSelectFieldProps = {
   envVariable: EnvVariable;
   onUpdate: (envVariable: EnvVariable) => void;
   onRemove: () => void;
+  namespace: string;
 };
 
 const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   envVariable,
   onUpdate,
   onRemove,
+  namespace,
 }) => (
   <FormGroup isRequired label="Variable type" fieldId="environment-variable-type-select">
     <Split data-testid="environment-variable-field">
@@ -52,6 +54,10 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
                 <EnvTypeSwitch
                   env={envVariable}
                   onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
+                  namespace={namespace}
+                  onExistingSecretRefsUpdate={(refs) =>
+                    onUpdate({ ...envVariable, existingSecretRefs: refs })
+                  }
                 />
               </IndentSection>
             </StackItem>
