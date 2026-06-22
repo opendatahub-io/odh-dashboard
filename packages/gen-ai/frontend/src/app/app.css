@@ -65,3 +65,21 @@ body,
   padding: var(--pf-t--global--spacer--xs);
 }
 
+/*
+ * Push the scrollbar to the outer edge of the chatbot panel.
+ * Remove the max-width from the scroll container (messagebox) so the
+ * scrollbar sits at the full panel width, then constrain each message
+ * child to the readable width instead.
+ */
+@media screen and (min-width: 64rem) {
+  .pf-chatbot--embedded .pf-chatbot__messagebox {
+    max-width: unset;
+    align-items: center;
+  }
+
+  .pf-chatbot--embedded .pf-chatbot__messagebox > * {
+    max-width: 60rem;
+    width: 100%;
+  }
+}
+
