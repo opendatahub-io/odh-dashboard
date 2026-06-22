@@ -230,7 +230,9 @@ export const buildStageMapTopology = (
 
     for (let patternIdx = 0; patternIdx < patterns.length; patternIdx++) {
       const patternId = patterns[patternIdx];
-      const patternLabel = isPlaceholder ? `Pattern ${patternIdx + 1}` : patternId;
+      const patternLabel = isPlaceholder
+        ? `Pattern ${patternIdx + 1}`
+        : patternId.replace(/(\D)(\d)/, '$1 $2');
       const branchKey = `branch-${patternIdx}`;
 
       // Emit step nodes first in each branch (e.g. chunking → embedding → …)
