@@ -1,13 +1,18 @@
-import type { CodeRef, Extension } from '@openshift/dynamic-plugin-sdk';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import {
+  createExtensionGuard,
+  type DetailCardProperties,
+} from '@odh-dashboard/plugin-core/extension-points';
 
 export type ModelDetailsDeploymentCardExtension = Extension<
   'model-registry.model-details/details-card',
-  {
-    component: CodeRef<React.ComponentType<{ rmId?: string; mrName?: string }>>;
+  Omit<DetailCardProperties, 'component'> & {
+    component: ComponentCodeRef<{ rmId?: string; mrName?: string }>;
   }
 >;
 
-export const isModelDetailsDeploymentCardExtension = (
-  extension: Extension,
-): extension is ModelDetailsDeploymentCardExtension =>
-  extension.type === 'model-registry.model-details/details-card';
+export const isModelDetailsDeploymentCardExtension =
+  createExtensionGuard<ModelDetailsDeploymentCardExtension>(
+    'model-registry.model-details/details-card',
+  );

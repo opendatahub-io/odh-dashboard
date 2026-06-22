@@ -14,7 +14,7 @@ import {
 import { Chatbot, ChatbotContent, ChatbotDisplayMode } from '@patternfly/chatbot';
 // Imported here (not just App.tsx) so the CSS is bundled when loaded via Module Federation
 import '@patternfly/chatbot/dist/css/main.css';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import { useUserContext } from '~/app/context/UserContext';
@@ -34,7 +34,10 @@ import {
 import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
-import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
+
+import OpenAgentProfileModal, {
+  OPEN_AGENT_MODAL_DISMISSED_KEY,
+} from '~/app/agentProfile/OpenAgentProfileModal';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -59,6 +62,7 @@ import {
   selectSelectedAsrModel,
   selectIsAsrModelEnabled,
   selectConfigIds,
+  selectIsPreview,
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
 } from './store';
@@ -93,6 +97,7 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   isActiveConfig,
 }) => {
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   return (
     <ChatbotPane
@@ -105,6 +110,7 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
       isLoading={isLoading}
       isSettingsOpen={isSettingsOpen}
       isActiveConfig={isActiveConfig}
+      isDisabled={isPreview}
     >
       {children}
     </ChatbotPane>
@@ -167,6 +173,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
   const primarySelectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(primaryConfigId));
   const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
+  const primaryIsPreview = useChatbotConfigStore(selectIsPreview(primaryConfigId));
 
   // Workspace capabilities — controls visibility & disable state of multimodal uploads
   const { hasVisionModel, hasASRModel, capabilitiesReady, capabilitiesError } =
@@ -245,8 +252,50 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isFilesLoading: fileManagement.isLoading,
   });
 
-  // Load AgentProfile from URL query param (?agentProfileId=<uuid>)
-  useAgentProfileUrlParam({ mcpServers, mcpServersLoaded });
+  // AgentProfile URL param is handled in ChatbotMain (so the ApplicationsPage spinner covers the fetch)
+
+  // Open-agent modal — shown once after a profile is loaded from the URL param
+  const [searchParams] = useSearchParams();
+  const agentProfileIdParam = searchParams.get('agentProfileId');
+  const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
+  const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
+  const [showOpenAgentModal, setShowOpenAgentModal] = React.useState(false);
+  const modalShownForProfileRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    let isDismissed = false;
+    try {
+      isDismissed = !!localStorage.getItem(OPEN_AGENT_MODAL_DISMISSED_KEY);
+    } catch {
+      // SecurityError in private browsing — treat as not dismissed
+    }
+    if (
+      profileApplied &&
+      loadedProfileId &&
+      loadedProfileId === agentProfileIdParam &&
+      modalShownForProfileRef.current !== loadedProfileId &&
+      !isDismissed
+    ) {
+      modalShownForProfileRef.current = loadedProfileId;
+      setShowOpenAgentModal(true);
+    }
+  }, [profileApplied, loadedProfileId, agentProfileIdParam]);
+
+  const handleOpenAgentPreview = React.useCallback(() => {
+    useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, true);
+    setShowOpenAgentModal(false);
+  }, []);
+
+  const handleOpenAgentEdit = React.useCallback(() => {
+    useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, false);
+    setShowOpenAgentModal(false);
+  }, []);
+
+  const handleOpenAgentCancel = React.useCallback(() => {
+    // Cancel navigates away — just close without setting a mode
+    setShowOpenAgentModal(false);
+  }, []);
 
   // Message hooks tracking
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
@@ -627,14 +676,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // Effects
   React.useEffect(() => {
-    const preSelectMcp = openSettingsToTab !== 'mcp' ? mcpServersFromRoute : [];
+    // When loading an agent profile the profile itself is the configuration source of truth —
+    // skip location.state pre-population so it doesn't overwrite the just-applied profile.
+    if (agentProfileIdParam) {
+      return;
+    }
     useChatbotConfigStore.getState().resetConfiguration({
-      selectedMcpServerIds: preSelectMcp,
+      selectedMcpServerIds: mcpServersFromRoute,
     });
-    return () => {
-      useChatbotConfigStore.getState().resetConfiguration();
-    };
-  }, [mcpServersFromRoute, selectedAAModel, openSettingsToTab]);
+  }, [agentProfileIdParam, mcpServersFromRoute, selectedAAModel]);
 
   React.useEffect(() => {
     const shouldClear = Boolean(
@@ -890,6 +940,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   isLoading={loadingStates.get(primaryConfigId)}
                   hasDivider
                   isDarkMode={isDarkMode}
+                  isDisabled={primaryIsPreview}
                 />
               )}
 
@@ -1008,6 +1059,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             />
           </ModalFooter>
         </Modal>
+      )}
+
+      {showOpenAgentModal && (
+        <OpenAgentProfileModal
+          displayName={loadedProfileDisplayName ?? 'Agent'}
+          onPreview={handleOpenAgentPreview}
+          onEdit={handleOpenAgentEdit}
+          onCancel={handleOpenAgentCancel}
+        />
       )}
 
       {showAudioPerMessageModal && (

@@ -19,6 +19,7 @@ import {
   selectActivePrompt,
   selectDirtyPrompt,
   selectVariableValues,
+  selectIsPreview,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
@@ -60,6 +61,7 @@ export default function PromptAssistantFormGroup({
   const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
   const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
   const [editMode, setEditMode] = React.useState(true);
   const activeTemplate =
     activePrompt?.template ??
@@ -188,18 +190,20 @@ export default function PromptAssistantFormGroup({
             id="system-instructions-input"
             type="text"
             value={systemInstruction}
-            readOnly={!editMode}
+            readOnly={!editMode || isPreview}
             resizeOrientation="vertical"
             onChange={(_event, value) => handleTextChange(value)}
             aria-label="Prompt instructions input"
             rows={18}
             data-testid="system-instructions-input"
+            isDisabled={isPreview}
           />
           {!editMode && (
             <Flex>
               <Button
                 data-testid="prompt-edit-button"
                 variant="primary"
+                isDisabled={isPreview}
                 onClick={() => {
                   setEditMode(true);
                   fireMiscTrackingEvent('Playground Prompt Edit Selected', {
@@ -212,7 +216,7 @@ export default function PromptAssistantFormGroup({
               <Button
                 data-testid="prompt-reset-button"
                 variant="link"
-                isDisabled={!isEdited && !activePrompt}
+                isDisabled={isPreview || (!isEdited && !activePrompt)}
                 onClick={() =>
                   confirm(handleNewPrompt, {
                     ...RESET_CONFIRMATION_CONFIG,
@@ -238,7 +242,7 @@ export default function PromptAssistantFormGroup({
               <Button
                 data-testid="prompt-save-to-registry-button"
                 variant="primary"
-                isDisabled={!isEdited}
+                isDisabled={isPreview || !isEdited}
                 onClick={handleSaveClicked}
               >
                 Save
@@ -247,7 +251,7 @@ export default function PromptAssistantFormGroup({
                 <Button
                   data-testid="prompt-revert-button"
                   variant="link"
-                  isDisabled={!isEdited}
+                  isDisabled={isPreview || !isEdited}
                   onClick={() =>
                     confirm(handleRevert, {
                       ...CONFIRMATION_CONFIG,
@@ -268,7 +272,7 @@ export default function PromptAssistantFormGroup({
                 <Button
                   data-testid="prompt-reset-button"
                   variant="link"
-                  isDisabled={!isEdited}
+                  isDisabled={isPreview || !isEdited}
                   onClick={() =>
                     confirm(handleNewPrompt, {
                       ...RESET_CONFIRMATION_CONFIG,
@@ -295,6 +299,7 @@ export default function PromptAssistantFormGroup({
             systemInstruction={systemInstruction}
             variableValues={variableValues}
             onVariableValuesChange={(values) => updateVariableValues(configId, values)}
+            isDisabled={isPreview}
           />
         </Stack>
       </Panel>

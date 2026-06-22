@@ -11,9 +11,14 @@ const NEW_PROFILE_ID = 'new-profile-uuid-1';
 const EXISTING_PROFILE_ID = 'existing-profile-uuid-1';
 const AGENT_NAME = 'My Coding Agent';
 
+// localStorage key used by OpenAgentProfileModal to persist the "don't show again" preference
+const DISMISSED_KEY = 'gen-ai-agent-open-modal-dismissed';
+
 describe('Agent Profile - Playground (Mocked)', () => {
   beforeEach(() => {
     Cypress.env('_featureFlagParams', 'agentProfileManagement=true');
+    // Ensure the open-agent modal always appears by clearing the dismissed preference
+    cy.clearLocalStorage(DISMISSED_KEY);
   });
 
   afterEach(() => {
@@ -26,7 +31,7 @@ describe('Agent Profile - Playground (Mocked)', () => {
     () => {
       interceptNewAgentProfile(NEW_PROFILE_ID, AGENT_NAME, TEST_NAMESPACE);
 
-      cy.step('Visit playground with agentProfileManagement flag');
+      cy.step('Visit playground with agentProfileManagement flag (no agentProfileId — no modal)');
       chatbotPage.visit(TEST_NAMESPACE);
 
       cy.step('Open Save As modal — no profile loaded yet, name is empty');
@@ -44,6 +49,13 @@ describe('Agent Profile - Playground (Mocked)', () => {
       cy.step('Profile is now active — Save button replaces Save As, URL has profileId');
       cy.findByTestId('save-agent-profile-modal').should('not.exist');
       cy.location('search').should('include', `agentProfileId=${NEW_PROFILE_ID}`);
+
+      cy.step('Open-agent modal appears after Save As sets the profileId in the URL');
+      chatbotPage.findOpenAgentModal().should('be.visible');
+      chatbotPage.clickOpenAgentEdit();
+      chatbotPage.findOpenAgentModal().should('not.exist');
+
+      cy.step('Save button is now visible in edit mode');
       cy.findByTestId('save-agent-profile-button', { timeout: 10000 }).should('be.visible');
 
       cy.step('Open Save modal — name matches the profile that was just saved');
@@ -62,11 +74,14 @@ describe('Agent Profile - Playground (Mocked)', () => {
       cy.step('Visit playground with an existing agentProfileId in the URL');
       chatbotPage.visit(TEST_NAMESPACE, { agentProfileId: EXISTING_PROFILE_ID });
 
-      cy.step('Wait for profile to load and Save button to appear');
+      cy.step('Wait for profile to load, then dismiss open-agent modal via Edit');
       cy.wait('@getAgentProfile');
-      cy.findByTestId('save-agent-profile-button', { timeout: 10000 }).should('be.visible');
+      chatbotPage.findOpenAgentModal().should('be.visible', { timeout: 10000 });
+      chatbotPage.clickOpenAgentEdit();
+      chatbotPage.findOpenAgentModal().should('not.exist');
 
       cy.step('Open Save modal — name is pre-filled from loaded profile');
+      cy.findByTestId('save-agent-profile-button', { timeout: 10000 }).should('be.visible');
       cy.findByTestId('save-agent-profile-button').click();
       cy.findByTestId('save-agent-profile-modal').should('be.visible');
       cy.findByTestId('save-agent-profile-name-input').should('have.value', AGENT_NAME);
@@ -81,4 +96,68 @@ describe('Agent Profile - Playground (Mocked)', () => {
       cy.findByTestId('save-agent-profile-modal').should('not.exist');
     },
   );
+
+  describe('Open-Agent Modal', () => {
+    beforeEach(() => {
+      interceptExistingAgentProfile(EXISTING_PROFILE_ID, AGENT_NAME, TEST_NAMESPACE);
+      chatbotPage.visit(TEST_NAMESPACE, { agentProfileId: EXISTING_PROFILE_ID });
+      cy.wait('@getAgentProfile');
+    });
+
+    it(
+      'should show the modal with the agent name when a profile is loaded from the URL',
+      { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
+      () => {
+        cy.step('Verify modal is visible and contains the agent name');
+        chatbotPage.findOpenAgentModal().should('be.visible', { timeout: 10000 });
+        chatbotPage.findOpenAgentModal().should('contain.text', AGENT_NAME);
+
+        cy.step('Verify Preview and Edit buttons are present');
+        cy.findByTestId('open-agent-profile-preview-button').should('be.visible');
+        cy.findByTestId('open-agent-profile-edit-button').should('be.visible');
+      },
+    );
+
+    it(
+      'should enter preview mode and disable settings controls when Preview is clicked',
+      { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
+      () => {
+        cy.step('Click Preview to enter read-only mode');
+        chatbotPage.findOpenAgentModal().should('be.visible', { timeout: 10000 });
+        chatbotPage.clickOpenAgentPreview();
+        chatbotPage.findOpenAgentModal().should('not.exist');
+
+        cy.step('Streaming toggle should be disabled in preview mode');
+        chatbotPage.findStreamingToggle().should('be.disabled');
+      },
+    );
+
+    it(
+      'should enter edit mode and leave settings controls enabled when Edit is clicked',
+      { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
+      () => {
+        cy.step('Click Edit to keep full configuration access');
+        chatbotPage.findOpenAgentModal().should('be.visible', { timeout: 10000 });
+        chatbotPage.clickOpenAgentEdit();
+        chatbotPage.findOpenAgentModal().should('not.exist');
+
+        cy.step('Streaming toggle should be enabled in edit mode');
+        chatbotPage.findStreamingToggle().should('not.be.disabled');
+      },
+    );
+
+    it(
+      'should enter preview mode when the modal is closed via the X button',
+      { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
+      () => {
+        cy.step('Close modal via X button — enters preview (read-only) mode');
+        chatbotPage.findOpenAgentModal().should('be.visible', { timeout: 10000 });
+        chatbotPage.clickOpenAgentClose();
+        chatbotPage.findOpenAgentModal().should('not.exist');
+
+        cy.step('Streaming toggle should be disabled in preview mode');
+        chatbotPage.findStreamingToggle().should('be.disabled');
+      },
+    );
+  });
 });
