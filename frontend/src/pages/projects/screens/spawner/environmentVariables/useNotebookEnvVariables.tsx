@@ -19,15 +19,26 @@ import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
  * Groups entries by secret name and returns them as ExistingSecretRef objects.
  */
 export const parseSecretKeyRefEntries = (notebook: NotebookKind): ExistingSecretRef[] => {
-  const envList = notebook.spec.template.spec.containers[0].env;
+  const container = notebook.spec.template.spec.containers[0];
+  const envList: {
+    name: string;
+    value?: string;
+    valueFrom?: { secretKeyRef?: { name: string; key: string } };
+  }[] =
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/consistent-type-assertions
+    (container.env as {
+      name: string;
+      value?: string;
+      valueFrom?: { secretKeyRef?: { name: string; key: string } };
+    }[]) ?? [];
   const secretKeyRefMap = new Map<string, string[]>();
 
   envList.forEach((entry) => {
-    const secretKeyRef = entry.valueFrom?.secretKeyRef;
-    if (secretKeyRef?.name && secretKeyRef.key) {
-      const keys = secretKeyRefMap.get(secretKeyRef.name) || [];
-      keys.push(secretKeyRef.key);
-      secretKeyRefMap.set(secretKeyRef.name, keys);
+    const ref = entry.valueFrom?.secretKeyRef;
+    if (ref) {
+      const keys = secretKeyRefMap.get(ref.name) || [];
+      keys.push(ref.key);
+      secretKeyRefMap.set(ref.name, keys);
     }
   });
 
