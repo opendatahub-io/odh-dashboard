@@ -4,3 +4,5 @@ export { default as ShellNav } from './ShellNav';
 export { default as ShellRoutes } from './ShellRoutes';
 export { ThemeProvider, useThemeContext } from './ThemeContext';
 export { ErrorBoundary } from './ErrorBoundary';
+export { createDistribution } from './createDistribution';
+export type { DistributionConfig } from './createDistribution';

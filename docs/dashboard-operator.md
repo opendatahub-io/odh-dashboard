@@ -206,3 +206,121 @@ The operator controller is distinct from BFF (Backend-for-Frontend) services:
 | Build | Standalone binary | Per-package binary |
 
 The operator manages the deployment of BFF containers as part of the Dashboard pod, but does not interact with BFF HTTP APIs at runtime.
+
+## Zero-Downtime Migration (SSA Adoption)
+
+When transitioning from the legacy ODH Operator to the Dashboard Module Controller, existing Kubernetes resources must be adopted without downtime. This is handled automatically by Server-Side Apply (SSA) with `ForceOwnership`.
+
+### How It Works
+
+1. The legacy ODH Operator manages Dashboard resources (Deployments, Services, ConfigMaps, etc.) with its own field manager (e.g., `opendatahub-operator`).
+2. When the Dashboard Module Controller starts reconciling, it applies the same resources via SSA with `client.ForceOwnership` and field owner `dashboard-operator`.
+3. SSA `ForceOwnership` transfers field ownership from the previous manager to `dashboard-operator` without conflicts or resource recreation.
+4. Resources continue running uninterrupted — pods are not restarted unless the spec actually changes.
+
+This behavior is built into the `odh-platform-utilities/pkg/deploy` package, which uses `ForceOwnership` in both `ModePatch` and `ModeSSA` modes. No custom adoption code is required in the controller.
+
+### Cross-Namespace Cleanup
+
+OwnerReference garbage collection only works within the same namespace (or for cluster-scoped owners referencing cluster-scoped children). The Dashboard CR is cluster-scoped, so namespaced resources in the applications namespace are covered. However, Perses proxy resources may be deployed to a separate observability namespace (`spec.observability.persesService.namespace`).
+
+On Dashboard CR deletion, the controller's finalizer explicitly cleans up cross-namespace resources:
+- Lists Services and ConfigMaps in the observability namespace labeled `platform.opendatahub.io/part-of: dashboard`
+- Deletes each resource, ignoring NotFound errors for idempotency
+- Skips cleanup when the observability namespace matches the applications namespace (ownerReference GC handles it)
+
+### Labels
+
+All resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery.
+
+## Status Aggregation
+
+### Platform Auto-Aggregation
+
+The Dashboard CR implements the `PlatformObject` interface from `odh-platform-utilities/api/common`, which enables automatic status aggregation into the parent DataScienceCluster (DSC) resource. The platform infrastructure reads the Dashboard CR's conditions and rolls them up into the DSC's overall component status.
+
+### PlatformObject Contract
+
+The Dashboard type provides five methods:
+
+| Method | Purpose |
+|--------|---------|
+| `GetStatus()` | Returns pointer to embedded `common.Status` |
+| `GetConditions()` | Returns current condition slice |
+| `SetConditions()` | Replaces condition slice |
+| `GetReleaseStatus()` | Returns pointer to embedded `ComponentReleaseStatus` |
+| `SetReleaseStatus()` | Sets release version information |
+
+### Condition Types
+
+| Condition | True Means | False Means |
+|-----------|-----------|-------------|
+| `Ready` | All sub-conditions healthy | One or more sub-conditions unhealthy |
+| `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
+| `Degraded` | (not used as True) | No degradation / route not ready |
+
+The `Ready` condition is a rollup — it is automatically derived by the conditions manager from `ProvisioningSucceeded` and `Degraded`. It is never set explicitly.
+
+### Phase Derivation
+
+`status.phase` is derived from the conditions manager's `IsHappy()` check:
+- `Ready` when all conditions indicate a healthy state
+- `NotReady` otherwise
+
+## TLS Configuration
+
+### cert-manager Integration
+
+The operator uses cert-manager for TLS certificate provisioning with a self-signed issuer. Two sets of certificates are managed:
+
+| Certificate | Secret | Purpose |
+|-------------|--------|---------|
+| `dashboard-operator-webhook-cert` | `dashboard-operator-webhook-tls` | Webhook server HTTPS |
+| `dashboard-operator-metrics-cert` | `dashboard-operator-metrics-tls` | Metrics endpoint HTTPS |
+
+Both certificates reuse the same `selfsigned-issuer` (Issuer kind, namespace-scoped).
+
+### Webhook TLS
+
+The ValidatingWebhookConfiguration uses cert-manager's `inject-ca-from` annotation to inject the CA bundle. The webhook service listens on port 9443 with certificates mounted from the webhook-tls secret.
+
+### Metrics TLS
+
+The metrics endpoint binds to port 8443 with HTTPS enabled by default (`--secure-metrics=true`). Certificates are mounted from the metrics-tls secret at `/tmp/k8s-metrics-server/serving-certs`. HTTP/2 is disabled (via TLS NextProtos) to mitigate CVE-2023-44487 (HTTP/2 rapid reset attack).
+
+### Certificate DNS Names
+
+Each certificate includes DNS names for in-cluster service discovery:
+- `<service-name>.<namespace>.svc`
+- `<service-name>.<namespace>.svc.cluster.local`
+
+## Deployment Prerequisites
+
+### Required
+
+| Prerequisite | Purpose |
+|-------------|---------|
+| cert-manager | TLS certificate provisioning for webhook and metrics |
+| Dashboard CRD | `make manifests` generates it; must be applied before the controller starts |
+| `OPERATOR_NAMESPACE` env var or `--namespace` flag | Identifies the operator's deployment namespace |
+
+### Optional
+
+| Prerequisite | Purpose |
+|-------------|---------|
+| `APPLICATIONS_NAMESPACE` env var | Target namespace for operand resources (defaults to operator namespace) |
+| `ODH_PLATFORM_TYPE` env var | Override automatic platform detection |
+| `RELATED_IMAGE_*` env vars | Container image references (required by Konflux/operator-framework) |
+| `dashboard-operator-config` ConfigMap | Runtime configuration (reconcile interval) |
+
+### Command-Line Flags
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--manifests-base-path` | `/opt/manifests/dashboard` | Base path for dashboard manifests |
+| `--metrics-bind-address` | `:8443` | Metrics endpoint bind address |
+| `--health-probe-bind-address` | `:8081` | Health probe bind address |
+| `--leader-elect` | `false` | Enable leader election |
+| `--secure-metrics` | `true` | Serve metrics over HTTPS |
+| `--namespace` | (env fallback) | Operator deployment namespace (required unless `OPERATOR_NAMESPACE` is set) |
+| `--webhook-port` | `9443` | Webhook server port |
