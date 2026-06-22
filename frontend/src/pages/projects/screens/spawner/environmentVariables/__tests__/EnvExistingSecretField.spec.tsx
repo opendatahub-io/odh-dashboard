@@ -2,8 +2,8 @@ import * as React from 'react';
 import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ExistingSecretRef, ExistingSecretMetadata } from '#~/pages/projects/types';
-import EnvExistingSecretField from '#~/src/pages/projects/screens/spawner/environmentVariables/EnvExistingSecretField';
-import { useExistingSecrets } from '#~/src/pages/projects/screens/spawner/environmentVariables/useExistingSecrets';
+import EnvExistingSecretField from '#~/pages/projects/screens/spawner/environmentVariables/EnvExistingSecretField';
+import { useExistingSecrets } from '#~/pages/projects/screens/spawner/environmentVariables/useExistingSecrets';
 
 jest.mock('../useExistingSecrets');
 

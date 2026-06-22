@@ -2,7 +2,7 @@ import { ExistingSecretRef } from '#~/pages/projects/types';
 import {
   detectExistingSecretKeyCollisions,
   getCollidingKeySet,
-} from '#~/src/pages/projects/screens/spawner/environmentVariables/existingSecretCollisions';
+} from '#~/pages/projects/screens/spawner/environmentVariables/existingSecretCollisions';
 
 describe('detectExistingSecretKeyCollisions', () => {
   it('should return empty array when no refs are provided', () => {
