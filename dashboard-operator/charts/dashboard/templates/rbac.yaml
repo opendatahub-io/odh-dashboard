@@ -1,0 +1,204 @@
+{{- if .Values.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "dashboard.serviceAccountName" . }}
+  namespace: {{ include "dashboard.namespace" . }}
+  labels:
+    {{- include "dashboard.labels" . | nindent 4 }}
+automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+{{- end }}
+---
+{{- if .Values.rbac.create }}
+# IMPORTANT: Keep ClusterRole rules in sync with config/rbac/role.yaml.
+# chart_sync_test.go validates CRD and RBAC drift in CI via `make test`.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "dashboard.clusterRoleName" . }}
+  labels:
+    {{- include "dashboard.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - dashboards
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - dashboards/status
+    verbs:
+      - get
+      - update
+      - patch
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - dashboards/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - secrets
+      - services
+      - serviceaccounts
+      - persistentvolumeclaims
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - routes
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+      - clusterrolebindings
+      - roles
+      - rolebindings
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - networkpolicies
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - oauth.openshift.io
+    resources:
+      - oauthclients
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - catalogsources
+      - operatorconditions
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - console.openshift.io
+    resources:
+      - consolelinks
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "dashboard.clusterRoleBindingName" . }}
+  labels:
+    {{- include "dashboard.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "dashboard.clusterRoleName" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "dashboard.serviceAccountName" . }}
+    namespace: {{ include "dashboard.namespace" . }}
+{{- end }}

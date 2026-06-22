@@ -1,6 +1,7 @@
 import React from 'react';
 import { WatchK8sResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { AccessReviewResourceAttributes, GroupKind } from '#~/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
+import { GroupKind } from '#~/k8sTypes';
 import { GroupModel } from '#~/api/models';
 import { groupVersionKind } from '#~/api/k8sUtils';
 import { useAccessReview } from '#~/api/useAccessReview';

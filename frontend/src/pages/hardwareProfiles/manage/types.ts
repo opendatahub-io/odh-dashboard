@@ -1,4 +1,4 @@
-import { HardwareProfileKind } from '#~/k8sTypes';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 
 export enum ManageHardwareProfileSectionID {
   DETAILS = 'details',

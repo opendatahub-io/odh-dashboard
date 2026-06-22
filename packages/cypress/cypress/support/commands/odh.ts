@@ -40,11 +40,15 @@ import type {
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import type {
-  ConfigMapKind,
-  ConsoleLinkKind,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
+  SecretKind,
+  TemplateKind,
+} from '@odh-dashboard/k8s-core';
+import type {
+  ConfigMapKind,
+  ConsoleLinkKind,
   FeatureStoreKind,
   ListConfigSecretsResponse,
   ModelRegistry,
@@ -52,9 +56,7 @@ import type {
   NotebookKind,
   OdhQuickStart,
   RoleBindingKind,
-  SecretKind,
   ServingRuntimeKind,
-  TemplateKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import type { StartNotebookData } from '@odh-dashboard/internal/pages/projects/types';
 import type { AllowedUser } from '@odh-dashboard/internal/pages/notebookController/screens/admin/types';
@@ -869,6 +871,22 @@ declare global {
                 configName: string;
                 projectName: string;
                 hasAccessToFeatureStore: boolean;
+              }>;
+            }>;
+          }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/projects-with-workbenches',
+          response: OdhResponse<{
+            connectedWorkbenches: Array<{
+              feastProjectName: string;
+              namespace: string;
+              description?: string;
+              permissionLevel: string[];
+              connectedWorkbenches: Array<{
+                workbenchName: string;
+                workbenchNamespace: string;
+                projectName: string;
               }>;
             }>;
           }>,

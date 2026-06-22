@@ -24,3 +24,13 @@ replacements:
           kind: ValidatingWebhookConfiguration
         fieldPaths:
           - webhooks.0.clientConfig.service.namespace
+  - source:
+      kind: Certificate
+      name: dashboard-operator-metrics-cert
+      fieldPath: metadata.namespace
+    targets:
+      - select:
+          kind: Service
+          name: dashboard-operator-metrics-service
+        fieldPaths:
+          - metadata.namespace

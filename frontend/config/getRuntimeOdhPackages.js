@@ -5,12 +5,12 @@
  * packages like eslint-config, jest-config, tsconfig are excluded.
  *
  * @param {Array} packages - Workspace package objects from `npm query .workspace`
- * @param {Object} hostPackageJson - The host's package.json (frontend/src/package.json)
  * @returns {Set<string>} Set of runtime @odh-dashboard/* package names
  */
-const getRuntimeOdhPackages = (packages, hostPackageJson) => {
+const getRuntimeOdhPackages = (packages) => {
   const byName = Object.fromEntries(packages.map((p) => [p.name, p]));
-  const hostDeps = Object.keys(hostPackageJson.dependencies || {});
+  const hostPkg = byName['odh-dashboard-frontend'];
+  const hostDeps = Object.keys(hostPkg?.dependencies || {});
   const seeds = [
     ...hostDeps.filter((n) => n.startsWith('@odh-dashboard/')),
     ...packages.filter((p) => p['module-federation']).map((p) => p.name),

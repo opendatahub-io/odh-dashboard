@@ -3,7 +3,7 @@ import {
   TolerationEffect,
   IdentifierResourceType,
   SchedulingType,
-} from '#~/types';
+} from '@odh-dashboard/k8s-core';
 import {
   manageHardwareProfileValidationSchema,
   nodeSelectorSchema,

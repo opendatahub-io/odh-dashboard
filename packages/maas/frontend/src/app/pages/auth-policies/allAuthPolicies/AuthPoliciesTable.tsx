@@ -10,6 +10,7 @@ type AuthPoliciesTableProps = {
   setDeleteAuthPolicy: (authPolicy: MaaSAuthPolicy) => void;
   toolbarContent?: React.ReactElement;
   onClearFilters: () => void;
+  returnTo?: string;
 };
 
 const AuthPoliciesTable: React.FC<AuthPoliciesTableProps> = ({
@@ -17,6 +18,7 @@ const AuthPoliciesTable: React.FC<AuthPoliciesTableProps> = ({
   setDeleteAuthPolicy,
   toolbarContent,
   onClearFilters,
+  returnTo,
 }) => (
   <Table
     data-testid="auth-policies-table"
@@ -28,6 +30,7 @@ const AuthPoliciesTable: React.FC<AuthPoliciesTableProps> = ({
         authPolicy={authPolicy}
         columns={authPoliciesColumns}
         setDeleteAuthPolicy={setDeleteAuthPolicy}
+        returnTo={returnTo}
       />
     )}
     emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}

@@ -152,6 +152,9 @@ export const createChatbotConfigStore = (
     },
     configIds: ['default'],
     profileApplied: false,
+    loadedProfileId: null,
+    loadedProfileDisplayName: null,
+    loadedProfileDescription: null,
   };
 
   return create<ChatbotConfigStore>()(
@@ -275,6 +278,7 @@ const createStoreActions = (
       selectedAsrModel: sourceConfig.selectedAsrModel,
       isAsrModelEnabled: sourceConfig.isAsrModelEnabled,
       hasVisionImage: sourceConfig.hasVisionImage,
+      isPreview: sourceConfig.isPreview,
     };
 
     set(
@@ -600,6 +604,19 @@ const createStoreActions = (
     );
   },
 
+  updatePreviewMode: (id: string, value: boolean) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.isPreview !== value) {
+          config.isPreview = value;
+        }
+      },
+      false,
+      'updatePreviewMode',
+    );
+  },
+
   updateHasVisionImage: (id: string, value: boolean) => {
     set(
       (state) => {
@@ -631,11 +648,19 @@ const createStoreActions = (
     );
   },
 
-  applyAgentProfile: (config: Partial<ChatbotConfiguration>) => {
+  applyAgentProfile: (
+    config: Partial<ChatbotConfiguration>,
+    profileId?: string,
+    displayName?: string,
+    description?: string,
+  ) => {
     set(
       () => ({
         ...storeInitialState,
         profileApplied: true,
+        loadedProfileId: profileId ?? null,
+        loadedProfileDisplayName: displayName ?? null,
+        loadedProfileDescription: description ?? null,
         configurations: {
           default: {
             ...DEFAULT_CONFIGURATION,

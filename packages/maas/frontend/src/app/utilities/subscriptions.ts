@@ -1,4 +1,4 @@
-import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 
 export const convertSubscriptionToK8sResource = (

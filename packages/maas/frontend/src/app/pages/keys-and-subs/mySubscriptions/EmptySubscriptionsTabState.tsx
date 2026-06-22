@@ -1,6 +1,15 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
+import {
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  List,
+  ListItem,
+  Popover,
+} from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon, SearchIcon } from '@patternfly/react-icons';
+import apiKeysEmptyStateImg from '@odh-dashboard/internal/images/empty-state-api-keys.svg';
 
 type EmptySubscriptionsTabStateProps = {
   hasData: boolean;
@@ -16,15 +25,37 @@ const EmptySubscriptionsTabState: React.FC<EmptySubscriptionsTabStateProps> = ({
       <EmptyState
         data-testid={`empty-${variant}s`}
         headingLevel="h3"
-        titleText={`No ${variant}s`}
+        titleText="Request a subscription"
         variant="sm"
-        icon={SearchIcon}
+        icon={() => <img src={apiKeysEmptyStateImg} alt="Request a subscription" />}
       >
         <EmptyStateBody>
-          {variant === 'subscription'
-            ? 'You don\u2019t have any subscriptions yet.'
-            : 'You don\u2019t have any models available yet.'}
+          Subscriptions give you access to models. To request a subscription, contact your
+          administrator.
         </EmptyStateBody>
+        <EmptyStateFooter>
+          <Popover
+            headerContent="Who's my administrator?"
+            bodyContent={
+              <>
+                Your administrator might be:
+                <List>
+                  <ListItem>
+                    The person who assigned you your username, or who helped you log in for the
+                    first time
+                  </ListItem>
+                  <ListItem>Someone in your IT department or help desk</ListItem>
+                  <ListItem>A project manager or developer</ListItem>
+                  <ListItem>Your professor (at a school)</ListItem>
+                </List>
+              </>
+            }
+          >
+            <Button variant="link" icon={<OutlinedQuestionCircleIcon />}>
+              Who&#39;s my administrator?
+            </Button>
+          </Popover>
+        </EmptyStateFooter>
       </EmptyState>
     );
   }

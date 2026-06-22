@@ -55,6 +55,9 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       cy.step('Select Binary Classification prediction type');
       automlConfigurePage.findTaskTypeCard('binary').click();
 
+      cy.step('Verify run preset defaults to Faster');
+      automlConfigurePage.findPresetRadio('speed').should('be.checked');
+
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
 
@@ -70,7 +73,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
   it(
     'Verify binary classification run completes with leaderboard',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression'], retries: { runMode: 0, openMode: 0 } },
     () => {
       cy.step('Wait for run to complete and verify leaderboard');
       automlResultsPage.waitForRunCompletion();

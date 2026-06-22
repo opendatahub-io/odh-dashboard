@@ -15,6 +15,7 @@ import {
   selectGuardrailUserInputEnabled,
   selectGuardrailModelOutputEnabled,
   selectGuardrailSubscription,
+  selectIsPreview,
 } from '~/app/Chatbot/store';
 import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
 import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
@@ -45,6 +46,7 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
   const updateGuardrailSubscription = useChatbotConfigStore(
     (state) => state.updateGuardrailSubscription,
   );
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   React.useEffect(() => {
     if (modelsLoaded && models.length > 0 && !guardrail) {
@@ -88,6 +90,7 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
           onModelChange={handleModelChange}
           style={{ width: '100%' }}
           testId="guardrail-model-toggle"
+          isDisabled={isPreview}
         />
       </FormGroup>
 
@@ -95,6 +98,7 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
         selectedModel={guardrail}
         selectedSubscription={guardrailSubscription}
         onSubscriptionChange={(value) => updateGuardrailSubscription(configId, value)}
+        isDisabled={isPreview}
       />
 
       <FormGroup fieldId="user-input-guardrails">
@@ -104,6 +108,7 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
           isChecked={userInputEnabled}
           onChange={handleUserInputToggle}
           data-testid="user-input-guardrails-switch"
+          isDisabled={isPreview}
         />
         <FormHelperText>
           <HelperText>
@@ -122,6 +127,7 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
           isChecked={modelOutputEnabled}
           onChange={handleModelOutputToggle}
           data-testid="model-output-guardrails-switch"
+          isDisabled={isPreview}
         />
         <FormHelperText>
           <HelperText>

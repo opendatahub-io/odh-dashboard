@@ -200,6 +200,14 @@ class ManagePipelineServerModal extends Modal {
     return this.find().findByTestId('pipeline-cache-enabling');
   }
 
+  getManagedPipelinesCheckbox() {
+    return this.find().findByTestId('managed-pipelines-checkbox');
+  }
+
+  findSubmitButton() {
+    return this.find().findByTestId('managePipelineServer-modal-saveBtn');
+  }
+
   checkButtonState(name: string, isEnabled: boolean) {
     const id = `managePipelineServer-modal-${name}Btn`;
     const enabledState = isEnabled ? 'be.enabled' : 'be.disabled';
