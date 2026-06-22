@@ -30,6 +30,7 @@ export type ModelTypeField = {
   externalData: {
     data: {
       extraOptions: ModelTypeFieldOverride['extraOption'][];
+      forced: boolean;
     };
   };
 };
@@ -47,19 +48,29 @@ export const useModelTypeField = (
   );
   const modelTypeOverrides = useWizardFieldOverrides(isModelTypeFieldOverride, overrideFormData);
 
-  const [modelType, setModelType] = React.useState<ModelTypeFieldData | undefined>(existingData);
+  const [modelTypeState, setModelTypeState] = React.useState<ModelTypeFieldData | undefined>(
+    existingData,
+  );
+
+  const forcedOverride = modelTypeOverrides.find((o) => o.forced);
+  const modelType = React.useMemo(
+    () =>
+      forcedOverride ? { type: forcedOverride.extraOption.key, legacyVLLM: false } : modelTypeState,
+    [forcedOverride, modelTypeState],
+  );
 
   return React.useMemo(
     () => ({
       data: modelType,
-      setData: setModelType,
+      setData: setModelTypeState,
       externalData: {
         data: {
           extraOptions: modelTypeOverrides.map((override) => override.extraOption),
+          forced: !!forcedOverride,
         },
       },
     }),
-    [modelType, setModelType, modelTypeOverrides],
+    [modelType, setModelTypeState, modelTypeOverrides, forcedOverride],
   );
 };
 
@@ -115,7 +126,7 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
           value={modelType?.type}
           toggleProps={{ style: { minWidth: '300px' } }}
           dataTestId="model-type-select"
-          isDisabled={isEditing || isDisabled}
+          isDisabled={isEditing || isDisabled || externalData.data.forced}
         />
         <ZodErrorHelperText zodIssue={validationIssues} />
       </FormGroup>
@@ -127,7 +138,7 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
           description="Deploy this model using a serving runtime and inference server. This deployment method does not support MaaS."
           isChecked={modelType.legacyVLLM}
           onChange={(_e, checked) => setModelType?.({ ...modelType, legacyVLLM: checked })}
-          isDisabled={isEditing || isDisabled}
+          isDisabled={isEditing || isDisabled || externalData.data.forced}
         />
       )}
     </>

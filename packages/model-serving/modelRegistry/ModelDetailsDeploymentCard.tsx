@@ -17,11 +17,12 @@ import {
 import { ArrowRightIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import TypedObjectIcon from '@odh-dashboard/internal/concepts/design/TypedObjectIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { useModelRegistryFilter } from './useModelRegistryFilter';
 import DeploymentLastDeployed from '../src/components/deployments/DeploymentLastDeployed';
@@ -32,7 +33,10 @@ import {
 import { Deployment, isModelServingMetricsExtension } from '../extension-points';
 import { DeploymentMetricsLink } from '../src/components/metrics/DeploymentMetricsLink';
 import { useDeploymentExtension } from '../src/concepts/extensionUtils';
-import { deploymentLastDeployedSort } from '../src/concepts/deploymentUtils';
+import {
+  deploymentLastDeployedSort,
+  shouldShowDeploymentMetricsLink,
+} from '../src/concepts/deploymentUtils';
 
 const DeploymentCardContent: React.FC<{ deployment: Deployment }> = ({ deployment }) => {
   const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
@@ -51,10 +55,7 @@ const DeploymentCardContent: React.FC<{ deployment: Deployment }> = ({ deploymen
         <SplitItem>
           <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXs' }}>
             <FlexItem>
-              {metricsExtension &&
-              deployment.model.metadata.namespace &&
-              (deployment.status?.stoppedStates?.isRunning ||
-                deployment.status?.stoppedStates?.isStopped) ? (
+              {shouldShowDeploymentMetricsLink(deployment, metricsExtension) ? (
                 <DeploymentMetricsLink deployment={deployment} />
               ) : (
                 <span data-testid="deployed-model-name">

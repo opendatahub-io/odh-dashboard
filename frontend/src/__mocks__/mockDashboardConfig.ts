@@ -1,6 +1,5 @@
-import { DashboardConfigKind, KnownLabels } from '#~/k8sTypes';
+import { type DashboardConfigKind, KnownLabels, NotebookSize } from '@odh-dashboard/k8s-core';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
-import { NotebookSize } from '#~/types';
 
 export type MockDashboardConfigType = {
   disableInfo?: boolean;
@@ -52,6 +51,7 @@ export type MockDashboardConfigType = {
   pvcSize?: string;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
@@ -59,6 +59,10 @@ export type MockDashboardConfigType = {
   llmGatewayField?: boolean;
   promptManagement?: boolean;
   nimWizard?: boolean;
+  mySubscriptions?: boolean;
+  maasSettingsIaRedesign?: boolean;
+  agentOps?: boolean;
+  roleManagement?: boolean;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -99,6 +103,7 @@ export const mockDashboardConfig = ({
   disableDistributedWorkloads = false,
   disableModelCatalog = false,
   mcpCatalog = false,
+  toolCalling = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
   disableServingRuntimeParams = false,
@@ -117,6 +122,10 @@ export const mockDashboardConfig = ({
   llmGatewayField = false,
   promptManagement = false,
   nimWizard = false,
+  mySubscriptions = true,
+  maasSettingsIaRedesign = false,
+  agentOps = false,
+  roleManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
@@ -279,6 +288,7 @@ export const mockDashboardConfig = ({
       disableDistributedWorkloads,
       disableModelCatalog,
       mcpCatalog,
+      toolCalling,
       disableModelRegistry,
       disableModelRegistrySecureDB,
       disableServingRuntimeParams,
@@ -298,6 +308,10 @@ export const mockDashboardConfig = ({
       llmGatewayField,
       promptManagement,
       nimWizard,
+      mySubscriptions,
+      maasSettingsIaRedesign,
+      agentOps,
+      roleManagement,
     },
     notebookController: {
       enabled: !disableNotebookController,

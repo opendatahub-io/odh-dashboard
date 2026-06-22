@@ -33,7 +33,7 @@ import {
 } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
-import { isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import { isPlaygroundModelMatchForAIModel, isASRModel } from '~/app/utilities/utils';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
@@ -46,6 +46,7 @@ type AIModelTableRowProps = {
   playgroundModels: LlamaModel[];
   onDelete?: (modelId: string) => Promise<void>;
   showActionColumn?: boolean;
+  showPlaygroundColumn?: boolean;
   allCollections: ExternalVectorStoreSummary[];
   collectionsLoaded: boolean;
   existingCollections: VectorStore[];
@@ -58,6 +59,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   playgroundModels,
   onDelete,
   showActionColumn = false,
+  showPlaygroundColumn = false,
   allCollections,
   collectionsLoaded,
   existingCollections,
@@ -99,8 +101,10 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         <Td dataLabel="Model">
           <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
           <Truncate
+            data-testid="model-id-text"
             content={model.model_id}
             className="pf-v6-u-font-family-monospace pf-v6-u-font-size-xs pf-v6-u-color-200 pf-v6-u-mt-xs"
+            style={{ userSelect: 'all' }}
           />
           {model.description && (
             <Truncate
@@ -162,65 +166,74 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             </Label>
           )}
         </Td>
-        <Td dataLabel="Playground">
-          {enabledModel ? (
-            <>
-              {model.model_type === 'embedding' && isVectorStoresEnabled ? (
-                <Button
-                  data-testid="see-vector-stores-button"
-                  variant={ButtonVariant.link}
-                  onClick={() => {
-                    fireMiscTrackingEvent('Available Endpoints See Vector Stores Clicked', {
-                      modelId: model.model_id,
-                    });
-                    if (namespace?.name) {
-                      navigate(genAiAiAssetsTabRoute(namespace.name, 'vectorstores'));
+        {showPlaygroundColumn && (
+          <Td dataLabel="Playground">
+            {isASRModel(model) ? (
+              <span
+                className="pf-v6-u-color-200 pf-v6-u-font-size-sm"
+                data-testid="asr-playground-info"
+              >
+                Used in Playground settings
+              </span>
+            ) : enabledModel ? (
+              <>
+                {model.model_type === 'embedding' && isVectorStoresEnabled ? (
+                  <Button
+                    data-testid="see-vector-stores-button"
+                    variant={ButtonVariant.link}
+                    onClick={() => {
+                      fireMiscTrackingEvent('Available Endpoints See Vector Stores Clicked', {
+                        modelId: model.model_id,
+                      });
+                      if (namespace?.name) {
+                        navigate(genAiAiAssetsTabRoute(namespace.name, 'vectorstores'));
+                      }
+                    }}
+                  >
+                    See vector stores
+                  </Button>
+                ) : (
+                  <Button
+                    data-testid="try-playground-button"
+                    variant={ButtonVariant.secondary}
+                    onClick={() => {
+                      fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                        assetType,
+                        assetId: model.model_id,
+                      });
+                      navigate(genAiChatPlaygroundRoute(namespace?.name), {
+                        state: {
+                          model: enabledModel.id,
+                        },
+                      });
+                    }}
+                    // Embedding models cannot be tried in the chat playground (vector output is not supported)
+                    // Custom endpoint models are always available if they're in the list
+                    isDisabled={
+                      model.model_type === 'embedding' ||
+                      (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
                     }
-                  }}
-                >
-                  See vector stores
-                </Button>
-              ) : (
-                <Button
-                  data-testid="try-playground-button"
-                  variant={ButtonVariant.secondary}
-                  onClick={() => {
-                    fireMiscTrackingEvent('Available Endpoints Playground Launched', {
-                      assetType,
-                      assetId: model.model_id,
-                    });
-                    navigate(genAiChatPlaygroundRoute(namespace?.name), {
-                      state: {
-                        model: enabledModel.id,
-                      },
-                    });
-                  }}
-                  // Embedding models cannot be tried in the chat playground (vector output is not supported)
-                  // Custom endpoint models are always available if they're in the list
-                  isDisabled={
-                    model.model_type === 'embedding' ||
-                    (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
-                  }
-                >
-                  Try in playground
-                </Button>
-              )}
-            </>
-          ) : (
-            <Button
-              variant={ButtonVariant.link}
-              icon={<PlusCircleIcon />}
-              onClick={() => setIsConfigurationModalOpen(true)}
-              // Add stays enabled for embedding models (may be used in RAG configurations)
-              // Custom endpoint models are always available if they're in the list
-              isDisabled={
-                model.model_source_type !== 'custom_endpoint' && model.status !== 'Running'
-              }
-            >
-              Add to playground
-            </Button>
-          )}
-        </Td>
+                  >
+                    Try in playground
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Button
+                variant={ButtonVariant.link}
+                icon={<PlusCircleIcon />}
+                onClick={() => setIsConfigurationModalOpen(true)}
+                // Add stays enabled for embedding models (may be used in RAG configurations)
+                // Custom endpoint models are always available if they're in the list
+                isDisabled={
+                  model.model_source_type !== 'custom_endpoint' && model.status !== 'Running'
+                }
+              >
+                Add to playground
+              </Button>
+            )}
+          </Td>
+        )}
         {showActionColumn && (
           <Td isActionCell>
             {model.model_source_type === 'custom_endpoint' && onDelete && (

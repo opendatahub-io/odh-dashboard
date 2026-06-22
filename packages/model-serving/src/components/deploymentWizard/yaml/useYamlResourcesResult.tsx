@@ -1,6 +1,7 @@
 import React from 'react';
 import { parse, stringify } from 'yaml';
-import { DeploymentAssemblyResources, type Deployment } from '../../../../extension-points';
+import { type Deployment } from '../../../../extension-points';
+import { DeploymentAssemblyResources } from '../../../../extension-points/deployment-wizard';
 
 type UseFormYamlResourcesResult = {
   yaml?: string;

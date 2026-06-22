@@ -97,7 +97,7 @@ const RoleDetailsModalDetailsTab: React.FC<RoleDetailsModalDetailsTabProps> = ({
         <DescriptionListGroup>
           <DescriptionListTerm>Rules</DescriptionListTerm>
           <DescriptionListDescription>
-            <RoleRulesTable rules={role.rules} />
+            <RoleRulesTable rules={role.rules ?? []} />
           </DescriptionListDescription>
         </DescriptionListGroup>
       </DescriptionList>

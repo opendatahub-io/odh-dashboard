@@ -1,8 +1,6 @@
 import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import {
-  type SupportedModelFormats,
-  type InferenceServiceKind,
-} from '@odh-dashboard/internal/k8sTypes';
+import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   DeploymentStrategyFieldData,
@@ -18,7 +16,7 @@ import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/
 import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
-import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
+import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,

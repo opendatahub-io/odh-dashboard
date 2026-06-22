@@ -45,7 +45,6 @@ import {
   ToggleGroupItem,
   Tooltip,
   Truncate,
-  type DropEvent,
 } from '@patternfly/react-core';
 import {
   CubesIcon,
@@ -57,6 +56,7 @@ import {
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
+import type { FileRejection } from 'react-dropzone';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
@@ -67,7 +67,7 @@ import type { File as S3File } from '~/app/components/common/FileExplorer/FileEx
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
-import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   ConfigureSchema,
@@ -80,42 +80,24 @@ import { OPTIMIZATION_METRIC_LABELS, REQUIRED_CONNECTION_SECRET_KEYS } from '~/a
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import {
+  AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_MAX_FILES,
+  AUTORAG_UPLOAD_MAX_SIZE_MIB,
+  AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
+  resolveSingleFileDropOutcome,
+} from '~/app/utilities/dropzoneFileUpload';
+import {
+  getInputDataDropRejectedNotification,
+  INPUT_DATA_FILE_ACCEPT,
+  INPUT_DATA_UPLOAD_NATIVE_ACCEPT,
+  isAllowedInputDataUploadFile,
+} from '~/app/utilities/autoragInputDataFile';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
 import './AutoragConfigure.scss';
-
-/** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
-const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
-  'application/pdf': ['.pdf'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-  'text/markdown': ['.md', '.markdown'],
-  'text/html': ['.html', '.htm'],
-  'text/plain': ['.txt'],
-};
-
-const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
-  ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
-].join(',');
-
-/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
-const INPUT_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
-
-/** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
-function isAllowedInputDataUploadFile(file: File): boolean {
-  const dot = file.name.lastIndexOf('.');
-  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
-  if (ext) {
-    for (const allowed of Object.values(INPUT_DATA_FILE_ACCEPT).flat()) {
-      if (allowed.toLowerCase() === ext) {
-        return true;
-      }
-    }
-  }
-  return Boolean(file.type && file.type in INPUT_DATA_FILE_ACCEPT);
-}
 
 const OPTIMIZATION_METRICS: {
   value: ConfigureSchema['optimization_metric'];
@@ -194,7 +176,7 @@ function AutoragConfigure({
   const { isSubmitting } = formState;
 
   const [
-    llamaStackSecretName,
+    ogxSecretName,
     inputDataSecretName,
     inputDataBucketName,
     testDataSecretName,
@@ -203,7 +185,7 @@ function AutoragConfigure({
   ] = useWatch({
     control: form.control,
     name: [
-      'llama_stack_secret_name',
+      'ogx_secret_name',
       'input_data_secret_name',
       'input_data_bucket_name',
       'test_data_secret_name',
@@ -218,14 +200,14 @@ function AutoragConfigure({
     data: allModelsData,
     isError: isModelsError,
     isLoading: isModelsLoading,
-  } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
+  } = useOgxModelsQuery(namespace ?? '', ogxSecretName);
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
   useEffect(() => {
     if (isModelsError) {
       notification.error(
         'Failed to load models',
-        'Check that the LlamaStack secret is valid and try again.',
+        'Check that the Open GenAI Stack secret is valid and try again.',
       );
     }
   }, [isModelsError, notification]);
@@ -235,8 +217,8 @@ function AutoragConfigure({
   useEffect(() => {
     modelsInitialized.current = false;
     setValue('generation_models', []);
-    setValue('embeddings_models', []);
-  }, [llamaStackSecretName, setValue]);
+    setValue('embedding_models', []);
+  }, [ogxSecretName, setValue]);
 
   useEffect(() => {
     // Initialize available generation and embedding models into the form data
@@ -250,7 +232,7 @@ function AutoragConfigure({
           .map((model) => model.id)
           .toSorted((a, b) => a.localeCompare(b)),
         // eslint-disable-next-line camelcase
-        embeddings_models: allModelsData.models
+        embedding_models: allModelsData.models
           .filter((model) => model.type === 'embedding')
           .map((model) => model.id)
           .toSorted((a, b) => a.localeCompare(b)),
@@ -328,8 +310,8 @@ function AutoragConfigure({
       if (!file || !namespace) {
         return;
       }
-      if (file.size > INPUT_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', 'File size must be 32 MiB or less.');
+      if (file.size > AUTORAG_UPLOAD_MAX_BYTES) {
+        notification.error('File too large', AUTORAG_UPLOAD_TOO_LARGE_DETAIL);
         return;
       }
       if (!isAllowedInputDataUploadFile(file)) {
@@ -374,6 +356,28 @@ function AutoragConfigure({
       }
     },
     [inputDataBucketName, inputDataSecretName, namespace, notification, setValue, uploadFileToS3],
+  );
+
+  const handleInputDataDropRejected = useCallback(
+    (fileRejections: FileRejection[]) => {
+      const payload = getInputDataDropRejectedNotification(fileRejections);
+      if (payload) {
+        notification.error(payload.title, payload.description);
+      }
+    },
+    [notification],
+  );
+
+  const processInputDataDropOutcome = useCallback(
+    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
+      if (outcome.kind === 'reject') {
+        handleInputDataDropRejected(outcome.fileRejections);
+      } else if (outcome.kind === 'upload') {
+        void uploadInputDataFile(outcome.file);
+      }
+    },
+    [handleInputDataDropRejected, uploadInputDataFile],
   );
 
   const openInputDataReplaceFileDialog = useCallback(() => {
@@ -473,6 +477,7 @@ function AutoragConfigure({
                           <ToggleGroupItem
                             text="Select file or folder"
                             buttonId="document-input-select"
+                            data-testid="input-data-source-select-toggle"
                             isSelected={inputDataSourceMode === 'select'}
                             isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('select')}
@@ -480,6 +485,7 @@ function AutoragConfigure({
                           <ToggleGroupItem
                             text="Upload file"
                             buttonId="document-input-upload"
+                            data-testid="input-data-source-upload-toggle"
                             isSelected={inputDataSourceMode === 'upload'}
                             isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('upload')}
@@ -502,6 +508,7 @@ function AutoragConfigure({
                             <Button
                               key="select-files"
                               variant="secondary"
+                              data-testid="browse-bucket-button"
                               onClick={() => setFileExplorerMode('input_data')}
                               isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
                             >
@@ -521,7 +528,9 @@ function AutoragConfigure({
                                 <Tbody>
                                   <Tr>
                                     <Td dataLabel="Name">
-                                      <Truncate content={selectedInputDataFile.name} />
+                                      <span title={selectedInputDataFile.path}>
+                                        <Truncate content={selectedInputDataFile.name} />
+                                      </span>
                                     </Td>
                                     <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
                                     <Td isActionCell>
@@ -564,6 +573,7 @@ function AutoragConfigure({
                               ref={inputDataNativeInputRef}
                               type="file"
                               hidden
+                              data-testid="autorag-upload-file-input"
                               accept={INPUT_DATA_UPLOAD_NATIVE_ACCEPT}
                               aria-hidden
                               tabIndex={-1}
@@ -580,23 +590,21 @@ function AutoragConfigure({
                             {showInputDataUploadDropzone && (
                               <MultipleFileUpload
                                 aria-describedby="input-data-upload-description"
-                                onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
-                                  const [file] = droppedFiles;
-                                  void uploadInputDataFile(file);
-                                }}
+                                data-testid="knowledge-upload-zone"
                                 dropzoneProps={{
                                   accept: INPUT_DATA_FILE_ACCEPT,
                                   disabled: isSubmitting || isInputDataFileUploading,
-                                  maxFiles: 1,
-                                  maxSize: INPUT_DATA_UPLOAD_MAX_BYTES,
+                                  maxFiles: AUTORAG_UPLOAD_MAX_FILES,
+                                  maxSize: AUTORAG_UPLOAD_MAX_BYTES,
                                   multiple: false,
+                                  onDrop: processInputDataDropOutcome,
                                 }}
                               >
                                 <MultipleFileUploadMain
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText="Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text. Maximum file size: 32 MiB"
+                                  infoText={`Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text. Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
@@ -616,7 +624,7 @@ function AutoragConfigure({
                                 </Thead>
                                 <Tbody>
                                   <Tr>
-                                    <Td dataLabel="File">
+                                    <Td dataLabel="File" data-testid="uploaded-file-cell">
                                       <Split hasGutter>
                                         {isInputDataFileUploading && (
                                           <SplitItem>
@@ -698,13 +706,13 @@ function AutoragConfigure({
                 {!inputDataKey ? (
                   <EmptyState
                     variant="xs"
-                    titleText="Select an S3 connection or upload a file to get started"
+                    titleText="Select a file from your S3 connection or upload a file to get started"
                     headingLevel="h4"
                     icon={CubesIcon}
                   >
                     <EmptyStateBody>
-                      In order to configure details and run an experiment, add a document or
-                      connection in the widget on the left.
+                      In order to configure details and run an experiment, select a file or upload
+                      one in the Knowledge setup panel.
                     </EmptyStateBody>
                   </EmptyState>
                 ) : (
@@ -938,7 +946,7 @@ function AutoragConfigure({
                                 ) : (
                                   <Watch
                                     control={form.control}
-                                    name="embeddings_models"
+                                    name="embedding_models"
                                     render={(embeddingModels) => (
                                       <Flex
                                         alignItems={{ default: 'alignItemsCenter' }}

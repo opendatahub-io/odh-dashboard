@@ -47,6 +47,7 @@ import './AutoragLeaderboard.scss';
 type LeaderboardEntry = {
   rank: number;
   pattern: string;
+  patternKey: string;
   metrics: Record<string, { mean: number | string }>;
   optimizedMetricValue: number | string;
   chunkingMethod: string;
@@ -306,11 +307,15 @@ const MetricCell: React.FC<{ value: number | string }> = ({ value }) => {
 type AutoragLeaderboardProps = {
   onViewDetails?: (patternName: string) => void;
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
+  onTryPattern?: (patternName: string) => void;
+  onViewCode?: (patternName: string) => void;
 };
 
 function AutoragLeaderboard({
   onViewDetails,
   onSaveNotebook,
+  onTryPattern,
+  onViewCode,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const {
@@ -497,6 +502,7 @@ function AutoragLeaderboard({
 
         return {
           rank: 0, // Will be assigned after sorting by optimized metric initially
+          patternKey: patternName,
           pattern: pattern.name || patternName,
           metrics,
           optimizedMetricValue,
@@ -1009,10 +1015,28 @@ function AutoragLeaderboard({
                 >
                   <ActionsColumn
                     items={[
+                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                      ...(patterns[entry.patternKey].settings?.responses_template && onTryPattern
+                        ? [
+                            {
+                              title: 'Try this pattern',
+                              onClick: () => onTryPattern(entry.patternKey),
+                            },
+                          ]
+                        : []),
                       {
                         title: 'View details',
                         onClick: () => handleViewDetails(entry.pattern),
                       },
+                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                      ...(patterns[entry.patternKey].settings?.responses_template && onViewCode
+                        ? [
+                            {
+                              title: 'View code',
+                              onClick: () => onViewCode(entry.patternKey),
+                            },
+                          ]
+                        : []),
                       {
                         title: 'Save as indexing notebook',
                         onClick: () => onSaveNotebook?.(entry.pattern, 'indexing'),

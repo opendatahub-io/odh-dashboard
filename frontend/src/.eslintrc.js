@@ -26,6 +26,8 @@ module.exports = require('@odh-dashboard/eslint-config')
                 '!@odh-dashboard/tsconfig/**',
                 '!@odh-dashboard/eslint-config',
                 '!@odh-dashboard/eslint-config/**',
+                '!@odh-dashboard/k8s-core',
+                '!@odh-dashboard/k8s-core/**',
                 '!@odh-dashboard/*/extension-points',
                 '@odh-dashboard/**',
               ],

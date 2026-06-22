@@ -1,4 +1,4 @@
-/* eslint-disable camelcase */
+/* eslint-disable camelcase, @typescript-eslint/no-require-imports */
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
@@ -12,16 +12,20 @@ import {
 } from './consts';
 
 // Mock external dependencies
+jest.mock('@patternfly/chatbot', () => ({}));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
-jest.mock('~/app/utilities/utils', () => ({
-  getId: jest.fn(() => 'mock-id'),
-  getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
-  splitLlamaModelId: jest.fn((modelId: string) => ({
-    providerId: 'provider-id',
-    id: modelId,
-  })),
-}));
+jest.mock('~/app/utilities/utils', () => {
+  let idCounter = 0;
+  return {
+    getId: jest.fn(() => `mock-id-${idCounter++}`),
+    getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+    splitLlamaModelId: jest.fn((modelId: string) => ({
+      providerId: 'provider-id',
+      id: modelId,
+    })),
+  };
+});
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
   ToolResponseCardTitle: jest.fn(() => 'ToolResponseCardTitle'),
@@ -67,10 +71,11 @@ const createDefaultHookProps = (overrides?: {
   configId?: string;
   modelId?: string;
   systemInstruction?: string;
-  isRawUploaded?: boolean;
+  isRagEnabled?: boolean;
   isStreamingEnabled?: boolean;
   temperature?: number;
   currentVectorStoreId?: string | null;
+  knowledgeMode?: 'inline' | 'external';
   selectedServerIds?: string[];
   subscription?: string;
 }) => ({
@@ -78,10 +83,11 @@ const createDefaultHookProps = (overrides?: {
   configId: 'default',
   modelId: mockModelId,
   systemInstruction: '',
-  isRawUploaded: true,
+  isRagEnabled: true,
   isStreamingEnabled: false,
   temperature: 0.7,
   currentVectorStoreId: 'test-vector-db',
+  knowledgeMode: 'inline' as const,
   selectedServerIds: [],
   ...overrides,
 });
@@ -114,7 +120,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Hello, bot!');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot
 
       // Test user message - only check what matters
       expect(result.current.messages[0]).toMatchObject({
@@ -185,11 +191,15 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: 'No model or source settings selected',
+        content: '',
         name: 'Bot',
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
@@ -201,7 +211,7 @@ describe('useChatbotMessages', () => {
       const { result } = renderHook(() =>
         useChatbotMessages(
           createDefaultHookProps({
-            isRawUploaded: false,
+            isRagEnabled: false,
           }),
         ),
       );
@@ -210,7 +220,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot response
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: 'This is a bot response',
@@ -233,7 +243,14 @@ describe('useChatbotMessages', () => {
     });
 
     it('should handle API errors', async () => {
-      mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: 'API Error',
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -241,17 +258,28 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: 'API Error',
+        content: '',
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
 
     it('should re-enable send button even when errors occur', async () => {
-      mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: 'API Error',
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -277,11 +305,15 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: 'API is not available',
+        content: '',
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
@@ -289,7 +321,14 @@ describe('useChatbotMessages', () => {
 
     it('should display error message from streaming error', async () => {
       const customErrorMessage = 'Custom streaming error message';
-      mockCreateResponse.mockRejectedValueOnce(new Error(customErrorMessage));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: customErrorMessage,
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -297,11 +336,15 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: customErrorMessage,
+        content: '',
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
@@ -311,12 +354,19 @@ describe('useChatbotMessages', () => {
 
       // Mock streaming response that will error
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           // Simulate some streaming before error
           if (opts?.onStreamData) {
             opts.onStreamData('Hello ');
           }
-          return Promise.reject(new Error(streamingErrorMessage));
+          return Promise.reject({
+            error: {
+              component: 'bff',
+              code: 'streaming_error',
+              message: streamingErrorMessage,
+              retriable: false,
+            },
+          });
         },
       );
 
@@ -328,12 +378,16 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      // Should have user + bot (placeholder removed; bot updated with error, not added separately)
+      // Should have user + bot (updated with error, not added separately)
       expect(result.current.messages).toHaveLength(2);
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: streamingErrorMessage,
+        content: '', // Error happened before streaming content was persisted
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'partial-failure',
+        variant: 'warning',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.isLoading).toBe(false);
@@ -355,7 +409,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot response
       expect(mockCreateResponse).toHaveBeenCalledWith(
         {
           input: 'Test message',
@@ -545,7 +599,7 @@ describe('useChatbotMessages', () => {
       };
 
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           if (opts?.onStreamData) {
             opts.onStreamData('Streaming content');
           }
@@ -600,7 +654,7 @@ describe('useChatbotMessages', () => {
       };
 
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           if (opts?.onStreamData) {
             opts.onStreamData('Streaming content');
           }
@@ -672,6 +726,365 @@ describe('useChatbotMessages', () => {
       });
 
       expect(mockCreateResponse.mock.calls[0][0]).not.toHaveProperty('subscription');
+    });
+  });
+
+  describe('multimodal input (vision)', () => {
+    it('should construct multimodal input when fileId is provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Describe this image', undefined, 'file-vision-123');
+      });
+
+      const payload = mockCreateResponse.mock.calls[0][0];
+      expect(Array.isArray(payload.input)).toBe(true);
+      expect(payload.input).toEqual([
+        { type: 'input_text', text: 'Describe this image' },
+        { type: 'input_image', file_id: 'file-vision-123' },
+      ]);
+    });
+
+    it('should send only input_image when message text is empty', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('', undefined, 'file-vision-456');
+      });
+
+      const payload = mockCreateResponse.mock.calls[0][0];
+      expect(payload.input).toEqual([{ type: 'input_image', file_id: 'file-vision-456' }]);
+    });
+
+    it('should send plain string input when no fileId is provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Plain text message');
+      });
+
+      const payload = mockCreateResponse.mock.calls[0][0];
+      expect(typeof payload.input).toBe('string');
+      expect(payload.input).toBe('Plain text message');
+    });
+
+    it('should preserve multimodal content in chat_context for subsequent turns', async () => {
+      // Need unique IDs so the multimodalContentRef map distinguishes user vs bot messages
+      const mockGetId = jest.requireMock('~/app/utilities/utils').getId as jest.Mock;
+      let idCounter = 0;
+      mockGetId.mockImplementation(() => `msg-${idCounter++}`);
+
+      try {
+        mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+
+        const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+        // First turn: multimodal message with image
+        await act(async () => {
+          await result.current.handleMessageSend(
+            'What is in this image?',
+            undefined,
+            'file-img-789',
+          );
+        });
+
+        // Second turn: plain text follow-up
+        await act(async () => {
+          await result.current.handleMessageSend('Tell me more about it');
+        });
+
+        const secondPayload = mockCreateResponse.mock.calls[1][0];
+        expect(secondPayload.chat_context).toHaveLength(2);
+        expect(secondPayload.chat_context![0]).toMatchObject({
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'What is in this image?' },
+            { type: 'input_image', file_id: 'file-img-789' },
+          ],
+        });
+        expect(secondPayload.chat_context![1]).toMatchObject({
+          role: 'assistant',
+          content: 'This is a bot response',
+        });
+      } finally {
+        let restoreCounter = 0;
+        mockGetId.mockImplementation(() => `mock-id-${restoreCounter++}`);
+      }
+    });
+  });
+
+  describe('inline image rendering', () => {
+    it('should set extraContent.beforeMainContent as img element when imagePreview is provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Describe this image', undefined, 'file-123', {
+          previewUrl: 'blob:http://localhost/abc',
+          fileName: 'photo.png',
+        });
+      });
+
+      const userMessage = result.current.messages[0];
+      expect(userMessage.role).toBe('user');
+      expect(userMessage.content).toBe('Describe this image');
+      expect(userMessage.extraContent).toBeDefined();
+      expect(React.isValidElement(userMessage.extraContent?.beforeMainContent)).toBe(true);
+    });
+
+    it('should not include markdown image syntax in content when imagePreview is provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Describe this image', undefined, 'file-123', {
+          previewUrl: 'blob:http://localhost/abc',
+          fileName: 'photo.png',
+        });
+      });
+
+      const userMessage = result.current.messages[0];
+      expect(userMessage.content).not.toContain('![');
+      expect(userMessage.content).not.toContain('blob:');
+    });
+
+    it('should render content as empty string when only an image (no text) is sent', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('', undefined, 'file-123', {
+          previewUrl: 'blob:http://localhost/abc',
+          fileName: 'photo.png',
+        });
+      });
+
+      const userMessage = result.current.messages[0];
+      expect(userMessage.role).toBe('user');
+      expect(userMessage.content).toBe('');
+      expect(React.isValidElement(userMessage.extraContent?.beforeMainContent)).toBe(true);
+    });
+
+    it('should set content to text message when both image and text are provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('What is this?', undefined, 'file-123', {
+          previewUrl: 'blob:http://localhost/abc',
+          fileName: 'photo.png',
+        });
+      });
+
+      const userMessage = result.current.messages[0];
+      expect(userMessage.content).toBe('What is this?');
+      expect(React.isValidElement(userMessage.extraContent?.beforeMainContent)).toBe(true);
+    });
+
+    it('should not set extraContent when no imagePreview is provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello, bot!');
+      });
+
+      const userMessage = result.current.messages[0];
+      expect(userMessage.content).toBe('Hello, bot!');
+      expect(userMessage.extraContent).toBeUndefined();
+    });
+  });
+
+  describe('thinking collapsible (non-streaming)', () => {
+    it('should set extraContent.beforeMainContent on bot message when reasoningContent exists', async () => {
+      const responseWithReasoning: SimplifiedResponseData = {
+        ...mockSuccessResponse,
+        reasoningContent: 'I need to think about this step by step...',
+      };
+      mockCreateResponse.mockResolvedValueOnce(responseWithReasoning);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Solve this puzzle');
+      });
+
+      const botMessage = result.current.messages[1];
+      expect(botMessage.role).toBe('bot');
+      expect(botMessage.extraContent).toBeDefined();
+      expect(botMessage.extraContent?.beforeMainContent).toBeDefined();
+      expect(botMessage.deepThinking).toBeUndefined();
+    });
+
+    it('should not set extraContent.beforeMainContent when no reasoningContent exists', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello');
+      });
+
+      const botMessage = result.current.messages[1];
+      expect(botMessage.role).toBe('bot');
+      expect(botMessage.extraContent?.beforeMainContent).toBeUndefined();
+      expect(botMessage.deepThinking).toBeUndefined();
+    });
+  });
+
+  describe('streaming thinking collapsible', () => {
+    it('should show reasoning in extraContent.beforeMainContent during streaming (not in content)', async () => {
+      mockCreateResponse.mockImplementation(
+        (
+          _request: CreateResponseRequest,
+          opts?: {
+            onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
+            abortSignal?: AbortSignal;
+          },
+        ) => {
+          if (opts?.onStreamData) {
+            opts.onStreamData('Let me think about this\n', false, true);
+            opts.onStreamData('Step 1: analyze\n', false, true);
+            opts.onStreamData('The answer is 42', false, false);
+          }
+          return Promise.resolve({
+            ...mockSuccessResponse,
+            content: 'The answer is 42',
+            reasoningContent: 'Let me think about this\nStep 1: analyze',
+          });
+        },
+      );
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('What is the meaning of life?');
+      });
+
+      const botMessage = result.current.messages[1];
+      expect(botMessage.role).toBe('bot');
+      expect(botMessage.extraContent?.beforeMainContent).toBeDefined();
+      expect(React.isValidElement(botMessage.extraContent?.beforeMainContent)).toBe(true);
+      expect(botMessage.deepThinking).toBeUndefined();
+    });
+
+    it('should include final answer in content after reasoning completes', async () => {
+      mockCreateResponse.mockImplementation(
+        (
+          _request: CreateResponseRequest,
+          opts?: {
+            onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
+            abortSignal?: AbortSignal;
+          },
+        ) => {
+          if (opts?.onStreamData) {
+            opts.onStreamData('thinking...\n', false, true);
+            opts.onStreamData('The answer is 42', false, false);
+          }
+          return Promise.resolve({
+            ...mockSuccessResponse,
+            content: 'The answer is 42',
+            reasoningContent: 'thinking...',
+          });
+        },
+      );
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Question');
+      });
+
+      const botMessage = result.current.messages[1];
+      expect(botMessage.content).toBe('The answer is 42');
+      expect(botMessage.extraContent?.beforeMainContent).toBeDefined();
+    });
+
+    it('should handle responses with no reasoning (direct answer)', async () => {
+      mockCreateResponse.mockImplementation(
+        (
+          _request: CreateResponseRequest,
+          opts?: {
+            onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
+            abortSignal?: AbortSignal;
+          },
+        ) => {
+          if (opts?.onStreamData) {
+            opts.onStreamData('Hello! How can I help?', false, false);
+          }
+          return Promise.resolve({
+            ...mockSuccessResponse,
+            content: 'Hello! How can I help?',
+          });
+        },
+      );
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hi');
+      });
+
+      const botMessage = result.current.messages[1];
+      expect(botMessage.content).toBe('Hello! How can I help?');
+      expect(botMessage.extraContent?.beforeMainContent).toBeUndefined();
+    });
+
+    it('should handle responses with only reasoning (no answer tokens)', async () => {
+      mockCreateResponse.mockImplementation(
+        (
+          _request: CreateResponseRequest,
+          opts?: {
+            onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
+            abortSignal?: AbortSignal;
+          },
+        ) => {
+          if (opts?.onStreamData) {
+            opts.onStreamData('Deep thoughts...\n', false, true);
+          }
+          return Promise.resolve({
+            ...mockSuccessResponse,
+            content: '',
+            reasoningContent: 'Deep thoughts...',
+          });
+        },
+      );
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Think');
+      });
+
+      const botMessage = result.current.messages[1];
+      expect(botMessage.extraContent?.beforeMainContent).toBeDefined();
+    });
+  });
+
+  describe('reasoning effort in payload', () => {
+    it('reasoning field is never sent in request payload', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello');
+      });
+
+      const payload = mockCreateResponse.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((payload as any).reasoning).toBeUndefined();
     });
   });
 });

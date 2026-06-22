@@ -6,17 +6,29 @@ import {
   restCREATE,
   restDELETE,
   restGET,
+  restUPDATE,
 } from 'mod-arch-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  AgentProfile,
+  AgentProfileCreateRequest,
+  AgentProfileCreateResponse,
+  AgentProfileListResponse,
+  AgentProfileUpdateRequest,
+  AgentProfileUpdateResponse,
+} from '~/app/agentProfile/types';
+import {
+  ApiErrorClass,
   BackendResponseData,
   BFFConfig,
   CodeExportRequest,
   ContentAnnotation,
   CreateResponseRequest,
+  ERROR_COMPONENTS,
   FileCitationAnnotation,
   FileUploadJobResponse,
   FileUploadStatusResponse,
+  isApiError,
   LlamaModel,
   LlamaStackDistributionModel,
   MCPConnectionStatus,
@@ -52,6 +64,7 @@ import {
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
+import { ThinkTagParser } from './thinkTagParser';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -148,6 +161,26 @@ const buildSourcesFromAnnotations = (annotations: FileCitationAnnotation[]): Sou
   }));
 };
 
+export const RAW_TOOL_CALL_WARNING =
+  '⚠️ The model returned a raw tool call instead of generating a response. ' +
+  'This usually indicates that the inference server is not configured to handle tool calling. ' +
+  'Please contact your administrator.\n\nModel response:\n';
+
+export const looksLikeRawToolCall = (text: string): boolean => {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
+    return false;
+  }
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    return (
+      typeof parsed === 'object' && parsed !== null && 'name' in parsed && 'parameters' in parsed
+    );
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Extracts text content from the backend response output array
  * @param output - Array of output items from backend response
@@ -171,6 +204,10 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
     }
   }
 
+  if (looksLikeRawToolCall(content)) {
+    return `${RAW_TOOL_CALL_WARNING}${content}`;
+  }
+
   return content;
 };
 
@@ -181,9 +218,19 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
  */
 const transformBackendResponse = (backendResponse: BackendResponseData): SimplifiedResponseData => {
   const toolCallData = extractMCPToolCallData(backendResponse.output);
-  const content = extractContentFromOutput(backendResponse.output);
+  let content = extractContentFromOutput(backendResponse.output);
   const annotations = extractAnnotationsFromOutput(backendResponse.output);
   const sources = buildSourcesFromAnnotations(annotations);
+
+  // Strip <think>...</think> or bare reasoning (content before </think>) from content
+  let reasoningContent: string | undefined;
+  const thinkMatchFull = content.match(/^<think>([\s\S]*?)<\/think>\s*/);
+  const thinkMatchBare = !thinkMatchFull ? content.match(/^([\s\S]*?)<\/think>\s*/) : null;
+  const thinkMatch = thinkMatchFull || thinkMatchBare;
+  if (thinkMatch) {
+    reasoningContent = (thinkMatchFull ? thinkMatch[1] : thinkMatch[1]).trim();
+    content = content.slice(thinkMatch[0].length);
+  }
 
   return {
     id: backendResponse.id,
@@ -195,6 +242,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     ...(toolCallData && { toolCallData }),
     ...(sources.length > 0 && { sources }),
     ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
+    ...(reasoningContent && { reasoningContent }),
   };
 };
 
@@ -219,7 +267,7 @@ const postCreateResponse = (
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return restCREATE<{ data?: BackendResponseData; error?: { code: string; message: string } }>(
+  return restCREATE<{ data?: BackendResponseData; error?: ApiErrorClass['error'] }>(
     hostPath,
     '/lsd/responses',
     toCreateResponseRecord(request),
@@ -227,10 +275,8 @@ const postCreateResponse = (
     fetchOpts,
   ).then((response) => {
     if (response.error) {
-      const err = Object.assign(new Error(response.error.message), {
-        code: response.error.code,
-      });
-      throw err;
+      // Preserve the full ApiError structure from BFF
+      throw new ApiErrorClass(response.error);
     }
     if (response.data) {
       return transformBackendResponse(response.data);
@@ -243,7 +289,7 @@ const postCreateResponse = (
 const streamCreateResponse = (
   url: string,
   request: CreateResponseRequest,
-  onStreamData: (chunk: string, clearPrevious?: boolean) => void,
+  onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void,
   abortSignal?: AbortSignal,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
@@ -258,17 +304,26 @@ const streamCreateResponse = (
     })
       .then(async (response) => {
         if (!response.ok) {
-          let errorMessage = `HTTP error! status: ${response.status}`;
-          let errorCode: string | undefined;
+          let errorData: unknown = null;
           try {
             const errorBody = await response.text();
-            const errorData = JSON.parse(errorBody);
-            errorMessage = errorData?.error?.message || errorMessage;
-            errorCode = errorData?.error?.code;
+            errorData = JSON.parse(errorBody);
           } catch {
-            // ignore
+            // JSON parsing failed - will use fallback below
           }
-          throw Object.assign(new Error(errorMessage), { code: errorCode });
+
+          if (isApiError(errorData)) {
+            // Preserve the full ApiError structure from BFF
+            throw new ApiErrorClass(errorData.error);
+          }
+
+          // Fallback: no structured error or parsing failed
+          throw new ApiErrorClass({
+            component: ERROR_COMPONENTS.BFF,
+            code: `http_${response.status}`,
+            message: `HTTP error! status: ${response.status}`,
+            retriable: false,
+          });
         }
 
         const reader = response.body?.getReader();
@@ -277,39 +332,56 @@ const streamCreateResponse = (
         }
 
         let fullContent = '';
+        let reasoningContent = '';
         let completeResponseData: BackendResponseData | null = null;
         let metricsData: ResponseMetrics | null = null;
         let receivedRefusal = false;
         const decoder = new TextDecoder();
 
+        const thinkParser = new ThinkTagParser();
+
         try {
           let done = false;
+          let partialLine = '';
           while (!done) {
             const result = await reader.read();
             done = result.done;
 
             if (!done && result.value) {
               const chunk = decoder.decode(result.value, { stream: true });
-              const lines = chunk.split('\n');
+              const parts = (partialLine + chunk).split('\n');
+              partialLine = chunk.endsWith('\n') ? '' : parts.pop()!;
 
-              for (const line of lines) {
+              for (const line of parts) {
                 if (line.startsWith('data: ')) {
                   try {
                     const data = JSON.parse(line.slice(6));
 
                     if (data.error) {
                       await reader.cancel('Streaming error');
-                      const errMsg = data.error.message || 'An error occurred during streaming';
                       if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                       }
-                      reject(Object.assign(new Error(errMsg), { code: data.error.code }));
+                      // Preserve the full ApiError structure from BFF
+                      reject(new ApiErrorClass(data.error));
                       return;
                     }
 
-                    if (data.delta && data.type === 'response.output_text.delta') {
-                      fullContent += data.delta;
-                      onStreamData(data.delta);
+                    if (data.type === 'response.reasoning_text.delta' && data.delta) {
+                      thinkParser.notifyDedicatedReasoningEvent();
+                      reasoningContent += data.delta;
+                      onStreamData(data.delta, false, true);
+                    } else if (data.delta && data.type === 'response.output_text.delta') {
+                      const { delta } = data;
+                      const parsed = thinkParser.processOutputDelta(delta);
+                      if (parsed.reasoning) {
+                        reasoningContent += parsed.reasoning;
+                        onStreamData(parsed.reasoning, false, true);
+                      }
+                      if (parsed.content) {
+                        fullContent += parsed.content;
+                        onStreamData(parsed.content);
+                      }
                     } else if (data.type === 'response.refusal.delta') {
                       if (data.delta) {
                         const isFirstRefusal = !receivedRefusal;
@@ -327,7 +399,6 @@ const streamCreateResponse = (
                       data.type === 'response.metrics' &&
                       isResponseMetrics(data.metrics)
                     ) {
-                      // Capture metrics from the BFF response.metrics event
                       metricsData = data.metrics;
                     }
                   } catch {
@@ -337,8 +408,62 @@ const streamCreateResponse = (
               }
             }
           }
+
+          // Flush any trailing SSE data left in the buffer after the stream ends
+          partialLine += decoder.decode();
+          if (partialLine) {
+            for (const line of partialLine.split('\n')) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.error) {
+                    const errMsg = data.error.message || 'An error occurred during streaming';
+                    if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+                      fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                    }
+                    reject(Object.assign(new Error(errMsg), { code: data.error.code }));
+                    return;
+                  }
+
+                  if (data.delta && data.type === 'response.output_text.delta') {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.refusal.delta') {
+                    if (data.delta) {
+                      const isFirstRefusal = !receivedRefusal;
+                      if (isFirstRefusal) {
+                        receivedRefusal = true;
+                        fullContent = '';
+                        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                      }
+                      fullContent += data.delta;
+                      onStreamData(data.delta, isFirstRefusal);
+                    }
+                  } else if (data.type === 'response.completed' && data.response) {
+                    completeResponseData = data.response;
+                  } else if (data.type === 'response.metrics' && isResponseMetrics(data.metrics)) {
+                    metricsData = data.metrics;
+                  }
+                } catch {
+                  // ignore malformed lines
+                }
+              }
+            }
+          }
         } finally {
           reader.releaseLock();
+        }
+
+        // Flush any remaining buffered partial tag
+        const flushed = thinkParser.flush();
+        if (flushed.reasoning) {
+          reasoningContent += flushed.reasoning;
+          onStreamData(flushed.reasoning, false, true);
+        }
+        if (flushed.content) {
+          fullContent += flushed.content;
+          onStreamData(flushed.content);
         }
 
         const toolCallData = completeResponseData?.output
@@ -350,9 +475,22 @@ const streamCreateResponse = (
           ? extractAnnotationsFromOutput(completeResponseData.output)
           : [];
         const sources = buildSourcesFromAnnotations(annotations);
-        const finalContent = completeResponseData?.output
+        let finalContent = completeResponseData?.output
           ? extractContentFromOutput(completeResponseData.output)
           : fullContent;
+
+        // Strip <think>...</think> or bare reasoning (content before </think>) from final content
+        const thinkMatchFull = finalContent.match(/^<think>([\s\S]*?)<\/think>\s*/);
+        const thinkMatchBare = !thinkMatchFull
+          ? finalContent.match(/^([\s\S]*?)<\/think>\s*/)
+          : null;
+        const thinkMatch = thinkMatchFull || thinkMatchBare;
+        if (thinkMatch) {
+          if (!reasoningContent) {
+            reasoningContent = (thinkMatchFull ? thinkMatch[1] : thinkMatch[1]).trim();
+          }
+          finalContent = finalContent.slice(thinkMatch[0].length);
+        }
 
         resolve({
           id: completeResponseData?.id || 'streaming-response',
@@ -363,6 +501,7 @@ const streamCreateResponse = (
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
           ...(metricsData && { metrics: metricsData }),
+          ...(reasoningContent && { reasoningContent }),
         });
       })
       .catch((error) => {
@@ -371,7 +510,14 @@ const streamCreateResponse = (
           reject(new Error('Response stopped by user'));
           return;
         }
-        reject(error instanceof Error ? error : new Error('Failed to generate streaming response'));
+        // Preserve ApiError instances (class or plain object), wrap everything else
+        if (isApiError(error)) {
+          reject(error);
+        } else {
+          reject(
+            error instanceof Error ? error : new Error('Failed to generate streaming response'),
+          );
+        }
       });
   });
 
@@ -389,7 +535,7 @@ export const createResponse =
   (
     data: CreateResponseRequest,
     opts: APIOptions & {
-      onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
+      onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
       abortSignal?: AbortSignal;
     } = {},
   ): Promise<SimplifiedResponseData> => {
@@ -399,6 +545,187 @@ export const createResponse =
     }
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };
+
+/**
+ * Passthrough request for embedded chatbot mode.
+ * Sends a raw Responses API body directly to the BFF, bypassing the
+ * normal OGX (Open GenAI Stack) flow. The BFF proxies to the OGX instance using
+ * the specified connection secret.
+ *
+ * Always uses streaming (BFF forces stream: true).
+ */
+export const createPassthroughResponse = (
+  bffBasePath: string,
+  namespace: string,
+  secretName: string,
+  body: Record<string, unknown>,
+  onStreamData: (chunk: string, clearPrevious?: boolean) => void,
+  abortSignal?: AbortSignal,
+): Promise<SimplifiedResponseData> => {
+  const trimmed = bffBasePath.replace(/\/+$/, '');
+  const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
+  const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(namespace)}&secretName=${encodeURIComponent(secretName)}`;
+
+  // TODO P2: Display retrieval context (file_search_call.results) alongside responses — see Phase 6.1
+
+  return new Promise((resolve, reject) => {
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(body),
+      signal: abortSignal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          let errorMessage = `HTTP error! status: ${response.status}`;
+          try {
+            const errorBody = await response.text();
+            const errorData = JSON.parse(errorBody);
+            errorMessage = errorData?.error?.message || errorMessage;
+          } catch {
+            // ignore
+          }
+
+          // Differentiated error messages for embedded mode
+          if (response.status === 502 || response.status === 503) {
+            throw new Error(
+              'The OGX instance is not responding. Check that the instance is running and reachable.',
+            );
+          }
+          if (response.status === 404) {
+            throw new Error(
+              `The connection secret '${secretName}' was not found in namespace '${namespace}'.`,
+            );
+          }
+          if (response.status === 403) {
+            throw new Error(
+              'You do not have permission to access this resource. Contact your administrator.',
+            );
+          }
+          throw new Error(errorMessage);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('Unable to read stream');
+        }
+
+        let fullContent = '';
+        let completeResponseData: BackendResponseData | null = null;
+        let metricsData: ResponseMetrics | null = null;
+        const decoder = new TextDecoder();
+
+        try {
+          let done = false;
+          let partialLine = '';
+          while (!done) {
+            const result = await reader.read();
+            done = result.done;
+
+            if (!done && result.value) {
+              const chunk = decoder.decode(result.value, { stream: true });
+              const parts = (partialLine + chunk).split('\n');
+              partialLine = chunk.endsWith('\n') ? '' : parts.pop()!;
+
+              for (const line of parts) {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const data = JSON.parse(line.slice(6));
+
+                    if (data.error) {
+                      await reader.cancel('Streaming error');
+                      reject(new Error(data.error.message || 'An error occurred during streaming'));
+                      return;
+                    }
+
+                    if (data.delta && data.type === 'response.output_text.delta') {
+                      fullContent += data.delta;
+                      onStreamData(data.delta);
+                    } else if (data.type === 'response.refusal.delta' && data.delta) {
+                      fullContent += data.delta;
+                      onStreamData(data.delta);
+                    } else if (data.type === 'response.completed' && data.response) {
+                      completeResponseData = data.response;
+                    } else if (
+                      data.type === 'response.metrics' &&
+                      isResponseMetrics(data.metrics)
+                    ) {
+                      metricsData = data.metrics;
+                    }
+                  } catch {
+                    // ignore malformed lines
+                  }
+                }
+              }
+            }
+          }
+
+          // Flush any trailing SSE data left in the buffer after the stream ends
+          partialLine += decoder.decode();
+          if (partialLine) {
+            for (const line of partialLine.split('\n')) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.error) {
+                    reject(new Error(data.error.message || 'An error occurred during streaming'));
+                    return;
+                  }
+
+                  if (data.delta && data.type === 'response.output_text.delta') {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.refusal.delta' && data.delta) {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.completed' && data.response) {
+                    completeResponseData = data.response;
+                  } else if (data.type === 'response.metrics' && isResponseMetrics(data.metrics)) {
+                    metricsData = data.metrics;
+                  }
+                } catch {
+                  // ignore malformed lines
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+
+        const annotations = completeResponseData?.output
+          ? extractAnnotationsFromOutput(completeResponseData.output)
+          : [];
+        const sources = buildSourcesFromAnnotations(annotations);
+        const finalContent = completeResponseData?.output
+          ? extractContentFromOutput(completeResponseData.output)
+          : fullContent;
+
+        resolve({
+          id: completeResponseData?.id || 'passthrough-response',
+          model: completeResponseData?.model || 'unknown',
+          status: completeResponseData?.status || 'completed',
+          created_at: completeResponseData?.created_at || Date.now(),
+          content: finalContent,
+          ...(sources.length > 0 && { sources }),
+          ...(metricsData && { metrics: metricsData }),
+        });
+      })
+      .catch((error) => {
+        if (error instanceof Error && error.name === 'AbortError') {
+          reject(new Error('Response stopped by user'));
+          return;
+        }
+        reject(
+          error instanceof Error ? error : new Error('Failed to generate passthrough response'),
+        );
+      });
+  });
+};
 
 const modArchRestGET =
   <T>(path: string) =>
@@ -501,6 +828,85 @@ export const uploadSource = (
 export const getFileUploadStatus = modArchRestGET<FileUploadStatusResponse>(
   '/lsd/files/upload/status',
 );
+
+// Media file upload (vision images, audio) -- uses XHR for progress tracking.
+// The `type` field tells the BFF which MIME allowlist to apply.
+export const uploadMediaFile = (
+  url: string,
+  file: File,
+  type: 'vision' | 'audio',
+  onProgress?: (percent: number) => void,
+): { promise: Promise<{ data: { id: string } }>; xhr: XMLHttpRequest } => {
+  const xhr = new XMLHttpRequest();
+  const promise = new Promise<{ data: { id: string } }>((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
+    xhr.open('POST', url);
+    xhr.timeout = 60_000;
+
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const parsed = JSON.parse(xhr.responseText);
+          if (
+            typeof parsed === 'object' &&
+            parsed !== null &&
+            parsed.data &&
+            typeof parsed.data.id === 'string'
+          ) {
+            resolve(parsed);
+          } else {
+            reject(new Error('Invalid response shape: missing data.id'));
+          }
+        } catch {
+          reject(new Error('Invalid response from server'));
+        }
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.ontimeout = () => reject(new Error('Upload timed out'));
+    xhr.onabort = () => reject(new Error('Upload aborted'));
+    xhr.send(formData);
+  });
+  return { promise, xhr };
+};
+
+// Audio transcription via ASR model
+export const transcribeAudio = async (
+  url: string,
+  fileId: string,
+  asrModelId: string,
+  signal?: AbortSignal,
+): Promise<{ text: string }> => {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_id: fileId, asr_model_id: asrModelId }),
+    signal,
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    if (body?.error?.component && body?.error?.code) {
+      throw new ApiErrorClass(body.error);
+    }
+    const message =
+      body?.error?.message || body?.message || `Transcription failed (${response.status})`;
+    throw Object.assign(new Error(message), { status: response.status });
+  }
+  return response.json();
+};
 
 // LSD Models
 export const getLSDModels = modArchRestGET<LlamaModel[]>('/lsd/models');
@@ -704,6 +1110,86 @@ export const listMLflowPromptVersions =
       ),
     ).then((response) => {
       if (isModArchResponse<MLflowPromptVersionsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const listAgentProfiles = modArchRestGET<AgentProfileListResponse>('/agent-profiles');
+
+export const createAgentProfile = modArchRestCREATE<
+  AgentProfileCreateResponse,
+  AgentProfileCreateRequest
+>('/agent-profiles');
+
+export const deleteAgentProfile =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestDELETE<void, { id: string }> =>
+  ({ id }: { id: string }, queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    // BFF returns 204 No Content — parseJSON: false prevents JSON.parse('') from throwing
+    return handleRestFailures(
+      restDELETE<void>(
+        hostPath,
+        path,
+        {},
+        { ...baseQueryParams, ...queryParams },
+        {
+          ...opts,
+          parseJSON: false,
+        },
+      ),
+    ).then(() => undefined);
+  };
+
+export const updateAgentProfile =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ((
+    data: AgentProfileUpdateRequest & { id: string },
+    opts?: APIOptions,
+  ) => Promise<AgentProfileUpdateResponse>) =>
+  (data: AgentProfileUpdateRequest & { id: string }, opts: APIOptions = {}) => {
+    const { id, spec, resourceVersion } = data;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restUPDATE<AgentProfileUpdateResponse>(
+        hostPath,
+        path,
+        { spec, resourceVersion },
+        baseQueryParams,
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<AgentProfileUpdateResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const getAgentProfile =
+  (hostPath: string, baseQueryParams: Record<string, unknown> = {}): ModArchRestGET<AgentProfile> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { id, ...restParams } = queryParams;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restGET<AgentProfile>(hostPath, path, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<AgentProfile>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

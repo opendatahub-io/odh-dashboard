@@ -5,6 +5,9 @@ import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 
 // Mock external dependencies
+jest.mock('@patternfly/chatbot', () => ({
+  FileDetailsLabel: jest.fn(({ fileName }: { fileName: string }) => fileName),
+}));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
@@ -80,20 +83,22 @@ const createDefaultHookProps = (overrides?: {
   configId?: string;
   modelId?: string;
   systemInstruction?: string;
-  isRawUploaded?: boolean;
+  isRagEnabled?: boolean;
   isStreamingEnabled?: boolean;
   temperature?: number;
   currentVectorStoreId?: string | null;
+  knowledgeMode?: 'inline' | 'external';
   selectedServerIds?: string[];
 }) => ({
   ...defaultMcpProps,
   configId: 'default',
   modelId: mockModelId,
   systemInstruction: '',
-  isRawUploaded: true,
+  isRagEnabled: true,
   isStreamingEnabled: false,
   temperature: 0.7,
   currentVectorStoreId: 'test-vector-db',
+  knowledgeMode: 'inline' as const,
   selectedServerIds: [],
   ...overrides,
 });

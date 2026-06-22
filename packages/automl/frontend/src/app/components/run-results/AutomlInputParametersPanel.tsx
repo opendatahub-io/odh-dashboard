@@ -2,18 +2,20 @@ import React from 'react';
 import {
   Button,
   ClipboardCopy,
+  Content,
+  ContentVariants,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Divider,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  Content,
-  Divider,
   Skeleton,
+  Spinner,
   Stack,
   StackItem,
   Title,
@@ -21,8 +23,9 @@ import {
 import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
-import { isTerminalState } from '~/app/hooks/queries';
-import { TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
+import { PRESET_LABELS, TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
+import { formatMetricName, isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+
 import './AutomlInputParametersPanel.scss';
 
 /** Keys excluded from the drawer because they are already shown elsewhere on the page. */
@@ -58,6 +61,8 @@ const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'id_column', label: 'ID column' },
   { key: 'known_covariates_names', label: 'Known covariates' },
   { key: 'prediction_length', label: 'Prediction length' },
+  { key: 'preset', label: 'Run preset' },
+  { key: 'eval_metric', label: 'Optimization metric' },
   { key: 'top_n', label: 'Top models to consider' },
 ];
 
@@ -87,6 +92,12 @@ const formatValue = (key: string, value: unknown): React.ReactNode => {
   }
   if (key === 'task_type' && typeof value === 'string') {
     return TASK_TYPE_LABELS[value] ?? value;
+  }
+  if (key === 'preset' && typeof value === 'string') {
+    return PRESET_LABELS[value] ?? value;
+  }
+  if (key === 'eval_metric' && typeof value === 'string') {
+    return formatMetricName(value);
   }
   if (Array.isArray(value)) {
     return value.join(', ');
@@ -144,6 +155,16 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
     return [...knownEntries, ...unknownEntries];
   }, [parameters]);
 
+  let pipelineServerOutputDirVariant: 'loading' | 'waiting' | 'available' | 'unavailable' =
+    'unavailable';
+  if (modelsBasePath) {
+    pipelineServerOutputDirVariant = 'available';
+  } else if (isRunCompleted(pipelineRun?.state) && !modelsBasePath) {
+    pipelineServerOutputDirVariant = 'loading';
+  } else if (modelsLoading || !pipelineRun?.state || !isRunInTerminalState(pipelineRun.state)) {
+    pipelineServerOutputDirVariant = 'waiting';
+  }
+
   return (
     <DrawerPanelContent minSize="320px" data-testid="run-details-drawer-panel">
       <DrawerHead className="odh-automl-input-parameters-panel__head">
@@ -186,9 +207,22 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
               <DescriptionListGroup data-testid="parameter-output-directory">
                 <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
+                  {pipelineServerOutputDirVariant === 'loading' && (
                     <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
-                  ) : modelsBasePath ? (
+                  )}
+                  {pipelineServerOutputDirVariant === 'waiting' && (
+                    <Content component={ContentVariants.p} aria-live="polite" role="status">
+                      <span className="pf-v6-u-pr-sm">
+                        The output directory will be available once evaluation is complete.
+                      </span>
+                      <Spinner
+                        isInline
+                        size="sm"
+                        aria-label="Spinner for the parameter output directory"
+                      />
+                    </Content>
+                  )}
+                  {pipelineServerOutputDirVariant === 'available' && modelsBasePath && (
                     <ClipboardCopy
                       isReadOnly
                       hoverTip="Copy"
@@ -197,9 +231,8 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                     >
                       {modelsBasePath}
                     </ClipboardCopy>
-                  ) : (
-                    'Not available'
                   )}
+                  {pipelineServerOutputDirVariant === 'unavailable' && 'Not available'}
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>

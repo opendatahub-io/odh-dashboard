@@ -5,7 +5,7 @@ import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 const baseParams = {
   evaluationName: ' My Eval ',
   description: '',
-  inputMode: 'inference' as const,
+  sourceMode: 'model' as const,
   benchmark: undefined as FlatBenchmark | undefined,
   collection: undefined as Collection | undefined,
   modelName: 'llama-7b',
@@ -96,13 +96,48 @@ describe('buildEvaluationRequest', () => {
     });
   });
 
+  describe('agent mode', () => {
+    const agentBase = {
+      ...baseParams,
+      sourceMode: 'agent' as const,
+      modelName: 'my-agent',
+      endpointUrl: 'https://agent.example.com/v1',
+      apiKeySecretRef: 'agent-key',
+    };
+
+    it('should use modelName as model.name and endpointUrl as model.url', () => {
+      const result = buildEvaluationRequest({
+        ...agentBase,
+        benchmark: makeBenchmark(),
+      });
+      expect(result.model.name).toBe('my-agent');
+      expect(result.model.url).toBe('https://agent.example.com/v1');
+    });
+
+    it('should include auth when apiKeySecretRef is provided', () => {
+      const result = buildEvaluationRequest({
+        ...agentBase,
+        benchmark: makeBenchmark(),
+      });
+      expect(result.model.auth).toEqual({ secret_ref: 'agent-key' });
+    });
+
+    it('should not include test_data_ref on benchmarks', () => {
+      const result = buildEvaluationRequest({
+        ...agentBase,
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
+    });
+  });
+
   describe('prerecorded mode', () => {
     const prerecordedBase = {
       ...baseParams,
-      inputMode: 'prerecorded' as const,
-      sourceName: ' gpt-4o ',
-      datasetUrl: ' s3://bucket/data.jsonl ',
-      accessToken: ' tok-123 ',
+      sourceMode: 'prerecorded' as const,
+      sourceName: 'gpt-4o',
+      datasetUrl: 's3://bucket/data.jsonl',
+      accessToken: 'tok-123',
     };
 
     it('should use sourceName as model.name and set url to empty', () => {
@@ -154,6 +189,32 @@ describe('buildEvaluationRequest', () => {
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
+    });
+
+    it('should trim whitespace from datasetUrl and accessToken', () => {
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        datasetUrl: '  s3://bucket/data.jsonl  ',
+        accessToken: '  tok-123  ',
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        s3: {
+          key: 's3://bucket/data.jsonl',
+          secret_ref: 'tok-123',
+        },
+      });
+    });
+
+    it('should omit secret_ref when accessToken is only whitespace', () => {
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        accessToken: '   ',
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        s3: { key: 's3://bucket/data.jsonl' },
+      });
     });
   });
 
@@ -433,6 +494,79 @@ describe('buildEvaluationRequest', () => {
       expect(result.experiment).toEqual({ name: 'my-exp' });
       expect(result).toHaveProperty('custom', { foo: 'bar' });
       expect(result).toHaveProperty('tags', ['perf-test']);
+    });
+  });
+
+  describe('passCriteriaOverride and primaryScoreOverride', () => {
+    it('should use passCriteriaOverride instead of benchmark defaults for single benchmark', () => {
+      const bm = makeBenchmark({ pass_criteria: { threshold: 0.5 } });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: bm,
+        passCriteriaOverride: { threshold: 0.85 },
+      });
+
+      expect(result.benchmarks![0].pass_criteria).toEqual({ threshold: 0.85 });
+    });
+
+    it('should use primaryScoreOverride instead of benchmark defaults for single benchmark', () => {
+      const bm = makeBenchmark({
+        primary_score: { metric: 'accuracy', lower_is_better: false },
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: bm,
+        primaryScoreOverride: { metric: 'perplexity', lower_is_better: true },
+      });
+
+      expect(result.benchmarks![0].primary_score).toEqual({
+        metric: 'perplexity',
+        lower_is_better: true,
+      });
+    });
+
+    it('should fall back to benchmark defaults when overrides are not provided', () => {
+      const bm = makeBenchmark({
+        pass_criteria: { threshold: 0.5 },
+        primary_score: { metric: 'accuracy', lower_is_better: false },
+      });
+      const result = buildEvaluationRequest({ ...baseParams, benchmark: bm });
+
+      expect(result.benchmarks![0].pass_criteria).toEqual({ threshold: 0.5 });
+      expect(result.benchmarks![0].primary_score).toEqual({
+        metric: 'accuracy',
+        lower_is_better: false,
+      });
+    });
+
+    it('should add top-level pass_criteria for collection flow when override is provided', () => {
+      const col = makeCollection();
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        collection: col,
+        passCriteriaOverride: { threshold: 0.7 },
+      });
+
+      expect(result.pass_criteria).toEqual({ threshold: 0.7 });
+    });
+
+    it('should omit top-level pass_criteria for collection flow when override is not provided', () => {
+      const col = makeCollection();
+      const result = buildEvaluationRequest({ ...baseParams, collection: col });
+
+      expect(result).not.toHaveProperty('pass_criteria');
+    });
+
+    it('should not add top-level pass_criteria for single benchmark flow', () => {
+      const bm = makeBenchmark();
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: bm,
+        passCriteriaOverride: { threshold: 0.9 },
+      });
+
+      expect(result).not.toHaveProperty('pass_criteria');
+      expect(result.benchmarks![0].pass_criteria).toEqual({ threshold: 0.9 });
     });
   });
 

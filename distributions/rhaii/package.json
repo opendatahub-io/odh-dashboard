@@ -1,0 +1,53 @@
+{
+  "name": "@odh-dashboard/rhaii-distribution",
+  "version": "0.0.0",
+  "description": "RHAII distribution — composes the base app shell with RHAII-specific plugins",
+  "license": "Apache-2.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "npm run start:dev",
+    "start:dev": "concurrently -k -n bff,shell \"make -C ../core-bff dev-bff\" \"webpack serve --hot --color --config ./config/webpack.dev.js\"",
+    "build": "webpack --config ./config/webpack.prod.js",
+    "build:prod": "webpack --config ./config/webpack.prod.js",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "dependencies": {
+    "@odh-dashboard/plugin-core": "*",
+    "@openshift/dynamic-plugin-sdk": "^5.0.1",
+    "@patternfly/patternfly": "^6.4.0",
+    "@patternfly/react-core": "^6.4.1",
+    "@patternfly/react-icons": "^6.4.0",
+    "@patternfly/react-styles": "^6.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router": "^7.17.0",
+    "react-router-dom": "^7.17.0"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*",
+    "@swc/core": "^1.15.40",
+    "concurrently": "^9.2.1",
+    "css-loader": "^5.2.7",
+    "file-loader": "^6.2.0",
+    "fork-ts-checker-webpack-plugin": "^9.1.0",
+    "html-webpack-plugin": "^5.6.7",
+    "raw-loader": "^4.0.2",
+    "sass": "^1.100.0",
+    "sass-loader": "^13.3.3",
+    "style-loader": "^2.0.0",
+    "svg-url-loader": "^6.0.0",
+    "swc-loader": "^0.2.7",
+    "typescript": "^5.9.3",
+    "url-loader": "^4.1.1",
+    "webpack": "5.107.2",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.2.4",
+    "webpack-merge": "^6.0.1"
+  }
+}

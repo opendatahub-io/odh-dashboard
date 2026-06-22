@@ -37,16 +37,28 @@ class StartEvaluationRunPage {
     return cy.findByTestId('new-experiment-name-input');
   }
 
-  findInputModeInference() {
-    return cy.findByTestId('input-mode-inference');
+  findSourceModeToggle() {
+    return cy.findByTestId('source-mode-toggle');
   }
 
-  findInputModePrerecorded() {
-    return cy.findByTestId('input-mode-prerecorded');
+  findSourceModeSelect() {
+    return cy.findByTestId('source-mode-select');
+  }
+
+  findModelPickerToggle() {
+    return cy.findByTestId('model-picker-toggle');
+  }
+
+  findModelPickerSelect() {
+    return cy.findByTestId('model-picker-select');
   }
 
   findModelNameInput() {
     return cy.findByTestId('model-name-input');
+  }
+
+  findAgentNameInput() {
+    return cy.findByTestId('agent-name-input');
   }
 
   findEndpointUrlInput() {
@@ -67,6 +79,18 @@ class StartEvaluationRunPage {
 
   findAccessTokenInput() {
     return cy.findByTestId('access-token-input');
+  }
+
+  findValidateConnectionButton() {
+    return cy.findByTestId('validate-connection-button');
+  }
+
+  findBenchmarkThreshold() {
+    return cy.findByTestId('benchmark-threshold');
+  }
+
+  findPrimaryScorerMetricToggle() {
+    return cy.findByTestId('primary-scorer-metric-toggle');
   }
 
   findShowAdditionalArgsCheckbox() {

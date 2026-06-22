@@ -3,6 +3,7 @@ package llamastack
 import (
 	"context"
 	"crypto/x509"
+	"io"
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/responses"
@@ -17,12 +18,14 @@ type LlamaStackClientInterface interface {
 	UploadFile(ctx context.Context, params UploadFileParams) (*FileUploadResult, error)
 	ListFiles(ctx context.Context, params ListFilesParams) ([]openai.FileObject, error)
 	GetFile(ctx context.Context, fileID string) (*openai.FileObject, error)
+	GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error)
 	DeleteFile(ctx context.Context, fileID string) error
 	ListVectorStoreFiles(ctx context.Context, vectorStoreID string, params ListVectorStoreFilesParams) ([]openai.VectorStoreFile, error)
 	GetVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) (*openai.VectorStoreFile, error)
 	DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error
 	CreateResponse(ctx context.Context, params CreateResponseParams) (*responses.Response, error)
 	CreateResponseStream(ctx context.Context, params CreateResponseParams) (ResponseStreamIterator, error)
+	CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (ResponseStreamIterator, error)
 	GetResponse(ctx context.Context, responseID string) (*responses.Response, error)
 }
 

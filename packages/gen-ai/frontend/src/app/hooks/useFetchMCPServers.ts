@@ -4,11 +4,13 @@ import { useGenAiAPI } from './useGenAiAPI';
 
 const useFetchMCPServers = (): {
   data: MCPServerFromAPI[];
+  configMapName: string | null;
   loaded: boolean;
   error: Error | undefined;
 } => {
   const { api, apiAvailable } = useGenAiAPI();
   const [data, setData] = React.useState<MCPServerFromAPI[]>([]);
+  const [configMapName, setConfigMapName] = React.useState<string | null>(null);
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
   const fetchAttempted = React.useRef(false);
@@ -20,7 +22,8 @@ const useFetchMCPServers = (): {
       api
         .getMCPServers({})
         .then((response) => {
-          setData(response.servers);
+          setData(response.servers ?? []);
+          setConfigMapName(response.config_map_info?.name ?? null);
           setLoaded(true);
         })
         .catch((err) => {
@@ -33,7 +36,7 @@ const useFetchMCPServers = (): {
     }
   }, [apiAvailable, api]);
 
-  return { data, loaded, error };
+  return { data, configMapName, loaded, error };
 };
 
 export default useFetchMCPServers;

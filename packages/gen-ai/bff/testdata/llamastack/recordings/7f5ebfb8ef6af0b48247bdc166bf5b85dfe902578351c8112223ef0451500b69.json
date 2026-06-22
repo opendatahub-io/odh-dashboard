@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.36.0"
+      "openai_sdk_version": "2.41.1"
     }
   },
   "response": {
@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "The best first message depends entirely on the **context**! Who are you messaging, and why",
+                "content": "The best first message depends entirely on the **context** of the conversation, your **relationship** with the person, and your **goal**.\n\nHere are various examples categorized by common",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -46,12 +46,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 19,
+            "completion_tokens": 36,
             "prompt_tokens": 5,
-            "total_tokens": 1352,
+            "total_tokens": 1249,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +65,7 @@
           "choices": [
             {
               "delta": {
-                "content": "?\n\nTo give you the most helpful options, tell me:\n\n1.  **Who are you messaging?** (e.g., a friend, a colleague, a potential date, a customer support agent, someone you just met, someone",
+                "content": " scenarios:\n\n---\n\n### 1. **Casual/Social (Friends, Acquaintances, Family)**\n\n*   **Simple Check-in:**\n    *   \"Hey [Name], how are you doing?\"\n    *",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -78,12 +79,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 69,
+            "completion_tokens": 85,
             "prompt_tokens": 5,
-            "total_tokens": 1402,
+            "total_tokens": 1298,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -96,7 +98,7 @@
           "choices": [
             {
               "delta": {
-                "content": " you haven't spoken to in a while)\n2.  **What is the purpose of the message?** (e.g., to say hello, ask a question, make plans, introduce yourself, offer help, complain)",
+                "content": "   \"Hi! Hope you're having a good day.\"\n    *   \"What's up, [Name]?\"\n*   **With a specific context:**\n    *   \"Hey, just saw that [movie",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -110,12 +112,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 117,
+            "completion_tokens": 132,
             "prompt_tokens": 5,
-            "total_tokens": 1450,
+            "total_tokens": 1345,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -128,7 +131,7 @@
           "choices": [
             {
               "delta": {
-                "content": "\n3.  **What's the platform?** (e.g., text, email, dating app, LinkedIn, DM)\n4.  **What's your desired tone?** (e.g., casual, formal",
+                "content": "/show/news] and it reminded me of you. Did you see it?\"\n    *   \"Hi [Name]! Long time no talk. How have things been?\"\n    *   \"Hey, I was just thinking about [event",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -142,12 +145,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 165,
+            "completion_tokens": 183,
             "prompt_tokens": 5,
-            "total_tokens": 1498,
+            "total_tokens": 1396,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -160,7 +164,7 @@
           "choices": [
             {
               "delta": {
-                "content": ", witty, serious)\n\nIn the meantime, here are some common first messages for different situations:\n\n---\n\n**General / Casual (Friend, Acquaintance):**\n\n*   \"Hey!\"\n*   \"How's it going",
+                "content": "/memory] and smiled. How's life treating you?\"\n*   **Asking for a quick favor/info:**\n    *   \"Hey, quick question about [topic] when you have a moment.\"\n    *   ",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -174,12 +178,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 215,
+            "completion_tokens": 230,
             "prompt_tokens": 5,
-            "total_tokens": 1548,
+            "total_tokens": 1443,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -192,7 +197,7 @@
           "choices": [
             {
               "delta": {
-                "content": "?\"\n*   \"What's up?\"\n*   \"Long time no talk! How have you been?\"\n*   \"Just thinking about you, hope you're having a good week!\"\n\n**Professional / Work:**\n\n*",
+                "content": "\"Hi! Do you happen to know [piece of information]?\"\n\n---\n\n### 2. **Professional (Work, Networking, New Contact)**\n\n*   **To a colleague/peer you know:**\n    *   \"Hi",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -206,12 +211,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 265,
+            "completion_tokens": 279,
             "prompt_tokens": 5,
-            "total_tokens": 1598,
+            "total_tokens": 1492,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -224,7 +230,7 @@
           "choices": [
             {
               "delta": {
-                "content": "   \"Hi [Name], hope you're having a good week. I had a quick question about [topic].\"\n*   \"Good morning [Name], I'm following up on [previous discussion/email].\"\n*   ",
+                "content": " [Name], hope you're having a productive day. Quick question about [project/topic].\"\n    *   \"Morning [Name]! Just wanted to follow up on [previous discussion/email].\"\n*   **To a new",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -238,12 +244,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 311,
+            "completion_tokens": 328,
             "prompt_tokens": 5,
-            "total_tokens": 1644,
+            "total_tokens": 1541,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -256,7 +263,7 @@
           "choices": [
             {
               "delta": {
-                "content": "\"Hello [Name], I'm [Your Name] from [Company]. [Mutual connection] suggested I reach out to you regarding [topic].\"\n\n**Dating App (to someone you matched with):**\n\n*   \"Hey",
+                "content": " contact/networking (LinkedIn, after an event):**\n    *   \"Hello [Name], I'm [Your Name] from [Your Company/Event]. It was great connecting with you at [Event Name]/I enjoyed your post",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -270,12 +277,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 359,
+            "completion_tokens": 377,
             "prompt_tokens": 5,
-            "total_tokens": 1692,
+            "total_tokens": 1590,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -288,7 +296,7 @@
           "choices": [
             {
               "delta": {
-                "content": " [Name]! Loved your profile \u2013 the photo of you [doing X/at Y place] looked awesome. What was that like?\"\n*   \"Okay, your bio mentioned [specific interest/hobby] \u2013 that's really cool! What",
+                "content": " about [Topic].\"\n    *   \"Hi [Name], I'm reaching out because I saw your work on [Project/Company] and was really impressed. I'd love to learn more about [Specific Area].\"\n*",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -302,12 +310,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 410,
+            "completion_tokens": 425,
             "prompt_tokens": 5,
-            "total_tokens": 1743,
+            "total_tokens": 1638,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -320,7 +329,7 @@
           "choices": [
             {
               "delta": {
-                "content": " got you into that?\"\n*   \"You seem like fun! What's the best thing you've done recently?\"\n*   \"Just wanted to say hi! Your [something specific from their profile] caught my eye.\"\n\n",
+                "content": "   **Requesting information/meeting from someone you don't know well:**\n    *   \"Dear [Name], My name is [Your Name] and I'm a [Your Title] at [Your Company]. I'm reaching",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -334,12 +343,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 458,
+            "completion_tokens": 474,
             "prompt_tokens": 5,
-            "total_tokens": 1791,
+            "total_tokens": 1687,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -352,7 +362,7 @@
           "choices": [
             {
               "delta": {
-                "content": "**Asking for a Favor / Help:**\n\n*   \"Hi [Name], hope you're well. I was wondering if you might be able to help me with something quickly?\"\n*   \"Hey [Name], quick question \u2013",
+                "content": " out regarding [Reason for contact] and was hoping to schedule a brief call/meeting.\"\n\n---\n\n### 3. **Dating Apps (or meeting new people online)**\n\n*   **Referencing their profile (best approach):**\n    ",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -366,12 +376,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 506,
+            "completion_tokens": 523,
             "prompt_tokens": 5,
-            "total_tokens": 1839,
+            "total_tokens": 1736,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -384,7 +395,7 @@
           "choices": [
             {
               "delta": {
-                "content": " would you happen to have a moment to [task]?\"\n\n**Customer Service / Support:**\n\n*   \"Hi, I'm experiencing an issue with my [product/service]. My order number is [XYZ] and the problem",
+                "content": "*   \"Hey [Name]! Your photos from [Location] look amazing \u2013 did you have a good time there?\"\n    *   \"Hi there! I saw you're into [Hobby] \u2013 what's your favorite part about",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -398,12 +409,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 554,
+            "completion_tokens": 574,
             "prompt_tokens": 5,
-            "total_tokens": 1887,
+            "total_tokens": 1787,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -416,7 +428,370 @@
           "choices": [
             {
               "delta": {
-                "content": " is...\"\n*   \"Hello, I need assistance with [specific task]. Can you guide me on how to...?\"\n\n---\n\nOnce you give me more context, I can give you a much more tailored and effective suggestion!",
+                "content": " it?\"\n    *   \"Your bio mentioned [Specific Interest], I'm a big fan of that too! What's your go-to [related item]?\"\n*   **A bit more playful/creative:**\n    ",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 621,
+            "prompt_tokens": 5,
+            "total_tokens": 1834,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": "*   \"Okay, so what's your most controversial opinion about [random topic]?\"\n    *   \"I'm terrible at opening lines, but I really wanted to say hi. How's your [day of week]",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 670,
+            "prompt_tokens": 5,
+            "total_tokens": 1883,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": " going?\"\n*   **Avoid:** Just \"Hey,\" \"Hello,\" \"Hi,\" \"How are you?\" (unless it's paired with something else, as it's too generic and doesn't invite engagement).\n\n---\n\n",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 718,
+            "prompt_tokens": 5,
+            "total_tokens": 1931,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": "### 4. **Asking for Help/Advice**\n\n*   \"Hi [Name], hope you're well! I was wondering if you might have a moment to give me some advice on [topic]?\"\n*   \"Hey",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 767,
+            "prompt_tokens": 5,
+            "total_tokens": 1980,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": " [Name], I'm stuck on [problem] and thought you might be the best person to ask. Do you have any insights?\"\n*   \"Hello [Name], I'm looking for a recommendation for [type of service/product",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 817,
+            "prompt_tokens": 5,
+            "total_tokens": 2030,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": "]. Do you happen to know anyone/any place good?\"\n\n---\n\n### 5. **Group Chat**\n\n*   **General Announcement:**\n    *   \"Hey everyone! Quick update on [topic]: [info].\"\n    *",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 867,
+            "prompt_tokens": 5,
+            "total_tokens": 2080,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": "   \"Hi team, just wanted to share [link/document].\"\n*   **Question to the group:**\n    *   \"Hey all, quick question \u2013 has anyone had experience with [topic]?\"\n    *   \"Morning",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 915,
+            "prompt_tokens": 5,
+            "total_tokens": 2128,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": " everyone! What are we thinking about [plan/event]?\"\n\n---\n\n### Key Principles for a Good First Message:\n\n1.  **Be Clear:** State your purpose or intention clearly, even if it's just to say",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 963,
+            "prompt_tokens": 5,
+            "total_tokens": 2176,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": " hello.\n2.  **Be Concise:** Get to the point without unnecessary fluff.\n3.  **Personalize It:** If you know the person, use their name. If it's a new contact, reference something specific (",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1012,
+            "prompt_tokens": 5,
+            "total_tokens": 2225,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": "their profile, a shared event).\n4.  **Ask an Open-Ended Question:** If you want a reply, give them something easy to respond to. Avoid yes/no questions if you want to foster a conversation.\n5",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1060,
+            "prompt_tokens": 5,
+            "total_tokens": 2273,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": ".  **Consider the Platform:** LinkedIn is more formal than WhatsApp. Instagram DMs are different from a text message.\n6.  **Proofread:** A quick check for typos makes a good impression.\n\nChoose the one that best fits your",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1110,
+            "prompt_tokens": 5,
+            "total_tokens": 2323,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": " situation!",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -430,12 +805,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 601,
+            "completion_tokens": 1112,
             "prompt_tokens": 5,
-            "total_tokens": 1934,
+            "total_tokens": 2325,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

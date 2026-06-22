@@ -1,5 +1,10 @@
-/* eslint-disable camelcase */
+// Modules -------------------------------------------------------------------->
+
 import type { ComponentType, CSSProperties } from 'react';
+import { PipelineSpecVariable, RuntimeStateKF } from '~/app/types/pipeline';
+import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+
+// Types ---------------------------------------------------------------------->
 
 export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string;
@@ -64,9 +69,6 @@ export type PipelineRunError = {
   details?: PipelineRunErrorDetail[];
 };
 
-import type { PipelineSpecVariable } from '~/app/types/pipeline';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-
 export type PipelineSpec = PipelineSpecVariable;
 
 export type PipelineRunTaskDetail = {
@@ -95,7 +97,7 @@ export type PipelineRun = {
   run_id: string;
   display_name: string;
   created_at: string;
-  state: string;
+  state: '' | `${RuntimeStateKF}`;
   experiment_id?: string;
   storage_state?: string;
   description?: string;
@@ -157,6 +159,7 @@ export type S3ListObjectsResponse = {
   next_continuation_token?: string;
   prefix?: string;
 };
+
 export type TaskType = 'binary' | 'multiclass' | 'regression' | 'timeseries';
 
 export type FeatureImportanceData = {

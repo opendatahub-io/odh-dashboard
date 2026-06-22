@@ -1,4 +1,5 @@
 import React from 'react';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { Tab, Tabs, TabTitleText, TabContent, PageSection, Flex } from '@patternfly/react-core';
 import {
@@ -8,6 +9,7 @@ import {
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
 import FeatureStorePageTitle from './components/FeatureStorePageTitle';
 import FeatureStoreWarningAlert from './components/FeatureStoreWarningAlert';
+import ConnectedWorkbenchesLink from './components/ConnectedWorkbenchesLink';
 import { featureStoreRoute } from './routes';
 import { FeatureStoreTabs, FeatureStoreObject } from './const';
 import Metrics from './screens/metrics/Metrics';
@@ -67,11 +69,14 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
       headerContent={
         <Flex direction={{ default: 'column' }}>
           <FeatureStoreWarningAlert />
-          <FeatureStoreProjectSelectorNavigator
-            getRedirectPath={(featureStoreObject, featureStoreProject) =>
-              `${featureStoreRoute(featureStoreObject, featureStoreProject)}`
-            }
-          />
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+            <FeatureStoreProjectSelectorNavigator
+              getRedirectPath={(featureStoreObject, featureStoreProject) =>
+                `${featureStoreRoute(featureStoreObject, featureStoreProject)}`
+              }
+            />
+            <ConnectedWorkbenchesLink />
+          </Flex>
         </Flex>
       }
       loaded
@@ -98,17 +103,7 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
             aria-label="Metrics tab"
             data-testid="metrics-tab"
             tabContentId={`tabContent-${FeatureStoreTabs.METRICS}`}
-          >
-            <TabContent
-              id={`tabContent-${FeatureStoreTabs.METRICS}`}
-              eventKey={FeatureStoreTabs.METRICS}
-              activeKey={activeTabKey}
-              hidden={FeatureStoreTabs.METRICS !== activeTabKey}
-              style={{ height: '100%', marginTop: 'var(--pf-t--global--spacer--md)' }}
-            >
-              <Metrics />
-            </TabContent>
-          </Tab>
+          />
           <Tab
             eventKey={FeatureStoreTabs.LINEAGE}
             title={<TabTitleText>Lineage</TabTitleText>}
@@ -117,6 +112,15 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
             tabContentId={`tabContent-${FeatureStoreTabs.LINEAGE}`}
           />
         </Tabs>
+        <TabContent
+          id={`tabContent-${FeatureStoreTabs.METRICS}`}
+          eventKey={FeatureStoreTabs.METRICS}
+          activeKey={activeTabKey}
+          hidden={FeatureStoreTabs.METRICS !== activeTabKey}
+          style={{ height: '100%', marginTop: 'var(--pf-t--global--spacer--md)' }}
+        >
+          <Metrics />
+        </TabContent>
         <TabContent
           ref={lineageTabRef}
           id={`tabContent-${FeatureStoreTabs.LINEAGE}`}

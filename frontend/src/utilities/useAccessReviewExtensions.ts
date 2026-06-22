@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
-import type { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { AccessReviewContext } from '#~/concepts/userSSAR/AccessReviewContext';
 
 /**

@@ -1,5 +1,7 @@
 /* eslint-disable camelcase */
 import {
+  isRunCompleted,
+  isRunInTerminalState,
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
@@ -7,10 +9,70 @@ import {
   formatMetricName,
   formatMetricValue,
   toNumericMetric,
+  normalizeMetricKey,
   getOptimizedMetricForTask,
+  resolveEvalMetric,
   computeRankMap,
+  findEquivalentMetric,
+  findTrainingTaskPrefix,
   generateReconfigureName,
 } from '~/app/utilities/utils';
+
+describe('isRunCompleted', () => {
+  it('should return true for SUCCEEDED', () => {
+    expect(isRunCompleted('SUCCEEDED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunCompleted('succeeded')).toBe(true);
+    expect(isRunCompleted('Succeeded')).toBe(true);
+  });
+
+  it('should return false for other terminal states', () => {
+    expect(isRunCompleted('FAILED')).toBe(false);
+    expect(isRunCompleted('CANCELED')).toBe(false);
+    expect(isRunCompleted('SKIPPED')).toBe(false);
+    expect(isRunCompleted('CACHED')).toBe(false);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunCompleted('RUNNING')).toBe(false);
+    expect(isRunCompleted('PENDING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunCompleted(undefined)).toBe(false);
+    expect(isRunCompleted('')).toBe(false);
+  });
+});
+
+describe('isRunInTerminalState', () => {
+  it('should return true for all terminal states', () => {
+    expect(isRunInTerminalState('SUCCEEDED')).toBe(true);
+    expect(isRunInTerminalState('FAILED')).toBe(true);
+    expect(isRunInTerminalState('CANCELED')).toBe(true);
+    expect(isRunInTerminalState('SKIPPED')).toBe(true);
+    expect(isRunInTerminalState('CACHED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunInTerminalState('succeeded')).toBe(true);
+    expect(isRunInTerminalState('Failed')).toBe(true);
+    expect(isRunInTerminalState('canceled')).toBe(true);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunInTerminalState('RUNNING')).toBe(false);
+    expect(isRunInTerminalState('PENDING')).toBe(false);
+    expect(isRunInTerminalState('PAUSED')).toBe(false);
+    expect(isRunInTerminalState('CANCELING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunInTerminalState(undefined)).toBe(false);
+    expect(isRunInTerminalState('')).toBe(false);
+  });
+});
 
 describe('isRunTerminatable', () => {
   it('should return true for active states', () => {
@@ -208,6 +270,25 @@ describe('toNumericMetric', () => {
   });
 });
 
+describe('normalizeMetricKey', () => {
+  it('should normalize uppercase timeseries aliases to snake_case', () => {
+    expect(normalizeMetricKey('MASE')).toBe('mean_absolute_scaled_error');
+    expect(normalizeMetricKey('RMSE')).toBe('root_mean_squared_error');
+    expect(normalizeMetricKey('MAE')).toBe('mean_absolute_error');
+  });
+
+  it('should normalize lowercase timeseries keys via toUpperCase lookup', () => {
+    expect(normalizeMetricKey('mase')).toBe('mean_absolute_scaled_error');
+    expect(normalizeMetricKey('rmse')).toBe('root_mean_squared_error');
+  });
+
+  it('should pass through tabular metrics unchanged', () => {
+    expect(normalizeMetricKey('accuracy')).toBe('accuracy');
+    expect(normalizeMetricKey('f1')).toBe('f1');
+    expect(normalizeMetricKey('r2')).toBe('r2');
+  });
+});
+
 describe('getOptimizedMetricForTask', () => {
   it('should return accuracy for binary and multiclass', () => {
     expect(getOptimizedMetricForTask('binary')).toBe('accuracy');
@@ -225,6 +306,66 @@ describe('getOptimizedMetricForTask', () => {
   it('should return Unknown metric for unknown task types', () => {
     expect(getOptimizedMetricForTask('unknown')).toBe('Unknown metric');
     expect(getOptimizedMetricForTask('')).toBe('Unknown metric');
+  });
+});
+
+describe('resolveEvalMetric', () => {
+  it('should normalize and return the provided eval metric', () => {
+    expect(resolveEvalMetric('MSE', 'regression')).toBe('mean_squared_error');
+  });
+
+  it('should fall back to the task-type default when eval metric is undefined', () => {
+    expect(resolveEvalMetric(undefined, 'binary')).toBe('accuracy');
+    expect(resolveEvalMetric(undefined, 'regression')).toBe('r2');
+  });
+
+  it('should fall back to the task-type default when eval metric is empty', () => {
+    expect(resolveEvalMetric('', 'binary')).toBe('accuracy');
+  });
+});
+
+describe('findEquivalentMetric', () => {
+  it('should return the same metric when it exists in the target task type', () => {
+    expect(findEquivalentMetric('accuracy', 'binary')).toBe('accuracy');
+    expect(findEquivalentMetric('r2', 'regression')).toBe('r2');
+    expect(findEquivalentMetric('MASE', 'timeseries')).toBe('MASE');
+  });
+
+  it('should return undefined for metrics not supported by the target task type', () => {
+    expect(findEquivalentMetric('accuracy', 'regression')).toBeUndefined();
+    expect(findEquivalentMetric('r2', 'binary')).toBeUndefined();
+  });
+
+  it('should cast regression snake_case to timeseries acronym', () => {
+    expect(findEquivalentMetric('mean_absolute_error', 'timeseries')).toBe('MAE');
+    expect(findEquivalentMetric('mean_squared_error', 'timeseries')).toBe('MSE');
+    expect(findEquivalentMetric('root_mean_squared_error', 'timeseries')).toBe('RMSE');
+    expect(findEquivalentMetric('symmetric_mean_absolute_percentage_error', 'timeseries')).toBe(
+      'SMAPE',
+    );
+  });
+
+  it('should cast timeseries acronym to regression snake_case', () => {
+    expect(findEquivalentMetric('MAE', 'regression')).toBe('mean_absolute_error');
+    expect(findEquivalentMetric('MSE', 'regression')).toBe('mean_squared_error');
+    expect(findEquivalentMetric('RMSE', 'regression')).toBe('root_mean_squared_error');
+    expect(findEquivalentMetric('SMAPE', 'regression')).toBe(
+      'symmetric_mean_absolute_percentage_error',
+    );
+  });
+
+  it('should return undefined for timeseries-only metrics against regression', () => {
+    expect(findEquivalentMetric('MASE', 'regression')).toBeUndefined();
+    expect(findEquivalentMetric('SQL', 'regression')).toBeUndefined();
+    expect(findEquivalentMetric('WQL', 'regression')).toBeUndefined();
+  });
+
+  it('should return undefined when metric is undefined', () => {
+    expect(findEquivalentMetric(undefined, 'regression')).toBeUndefined();
+  });
+
+  it('should return undefined for unknown task type', () => {
+    expect(findEquivalentMetric('accuracy', 'unknown')).toBeUndefined();
   });
 });
 
@@ -344,6 +485,34 @@ describe('computeRankMap', () => {
       ModelA: 2,
       ModelB: 3,
     });
+  });
+
+  it('should use evalMetric override instead of task-type default', () => {
+    const models = {
+      ModelA: buildModel(0.75),
+      ModelB: buildModel(0.9),
+    };
+    // Both models have accuracy but we rank by f1 via override
+    const modelsWithF1 = {
+      ModelA: { metrics: { test_data: { accuracy: 0.75, f1: 0.88 } } },
+      ModelB: { metrics: { test_data: { accuracy: 0.9, f1: 0.82 } } },
+    };
+
+    // Without override: ranks by accuracy (task default)
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelB: 1, ModelA: 2 });
+
+    // With override: ranks by f1
+    expect(computeRankMap(modelsWithF1, 'binary', 'f1')).toEqual({ ModelA: 1, ModelB: 2 });
+  });
+
+  it('should normalize evalMetric override for timeseries', () => {
+    const models = {
+      ModelA: { metrics: { test_data: { mean_absolute_scaled_error: -0.15 } } },
+      ModelB: { metrics: { test_data: { mean_absolute_scaled_error: -0.05 } } },
+    };
+
+    // 'MASE' normalizes to 'mean_absolute_scaled_error'
+    expect(computeRankMap(models, 'timeseries', 'MASE')).toEqual({ ModelB: 1, ModelA: 2 });
   });
 
   it('should rank models with undefined test_data last', () => {
@@ -477,5 +646,57 @@ describe('generateReconfigureName', () => {
     const hugeNum = '1'.repeat(260); // 260-digit number
     const result = generateReconfigureName(`run - ${hugeNum}`);
     expect(Array.from(result).length).toBeLessThanOrEqual(250);
+  });
+});
+
+describe('findTrainingTaskPrefix', () => {
+  it('should match a directory starting with the pattern', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/automl-data-loader/' },
+      { prefix: 'pipeline/run-id/autogluon-models-training-2/' },
+      { prefix: 'pipeline/run-id/leaderboard-evaluation-2/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBe(
+      'pipeline/run-id/autogluon-models-training-2',
+    );
+  });
+
+  it('should match the exact pattern name without suffix', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/autogluon-models-training/' },
+      { prefix: 'pipeline/run-id/leaderboard-evaluation/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBe(
+      'pipeline/run-id/autogluon-models-training',
+    );
+  });
+
+  it('should return undefined when no directory matches', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/automl-data-loader/' },
+      { prefix: 'pipeline/run-id/leaderboard-evaluation/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBeUndefined();
+  });
+
+  it('should return undefined for an empty array', () => {
+    expect(findTrainingTaskPrefix([], 'autogluon-models-training')).toBeUndefined();
+  });
+
+  it('should match timeseries training pattern', () => {
+    const prefixes = [{ prefix: 'ts-pipeline/run-id/autogluon-timeseries-models-training/' }];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-timeseries-models-training')).toBe(
+      'ts-pipeline/run-id/autogluon-timeseries-models-training',
+    );
+  });
+
+  it('should return the first match when multiple directories match', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/autogluon-models-training/' },
+      { prefix: 'pipeline/run-id/autogluon-models-training-2/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBe(
+      'pipeline/run-id/autogluon-models-training',
+    );
   });
 });

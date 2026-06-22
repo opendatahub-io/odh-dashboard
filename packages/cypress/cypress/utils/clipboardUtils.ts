@@ -42,3 +42,24 @@ export const verifyClipboardHasContent = (
 export const getClipboardContent = (aliasName: string): Cypress.Chainable<string[]> => {
   return cy.get<string[]>(`@${aliasName}`);
 };
+
+/**
+ * Verifies the clipboard contains the expected text at the given index.
+ *
+ * @param aliasName The alias name used in stubClipboard (without @).
+ * @param expectedContent The expected copied text.
+ * @param copyIndex Index in the captured copies array (default: 0).
+ * @returns Cypress chainable with the verified copied text.
+ */
+export const verifyClipboardContent = (
+  aliasName: string,
+  expectedContent: string,
+  copyIndex = 0,
+): Cypress.Chainable<string> => {
+  return getClipboardContent(aliasName)
+    .should((copied: string[]) => {
+      expect(copied).to.have.length.at.least(copyIndex + 1);
+      expect(copied[copyIndex]).to.equal(expectedContent);
+    })
+    .then((copied: string[]) => copied[copyIndex]);
+};

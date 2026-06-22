@@ -4,11 +4,9 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import { type InitialWizardFormData } from './types';
 import { getExternalRouteFromDeployment, getTokenAuthenticationFromDeployment } from './utils';
 import { useWizardFieldExtractors } from './useWizardFieldExtractors';
-import {
-  type Deployment,
-  type ExtractionResult,
-  isModelServingDeploymentFormDataExtension,
-} from '../../../extension-points';
+import { type Deployment, type ExtractionResult } from '../../../extension-points';
+import { isModelServingDeploymentFormDataExtension } from '../../../extension-points/deployment-wizard';
+import { isModelServingAuthExtension } from '../../../extension-points';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 import { useDeploymentAuthTokens } from '../../concepts/auth';
 
@@ -67,6 +65,13 @@ export const useExtractFormDataFromDeployment = (
   const [formDataExtension, formDataExtensionLoaded, formDataExtensionErrors] =
     useResolvedDeploymentExtension(isModelServingDeploymentFormDataExtension, deployment);
 
+  // Resolve platform-specific auth check
+  const [authExtension, authExtensionLoaded] = useResolvedDeploymentExtension(
+    isModelServingAuthExtension,
+    deployment,
+  );
+  const platformAuthCheck = authExtension?.properties.usePlatformAuthEnabled;
+
   // Fetch deployment authentication tokens/secrets
   const {
     data: deploymentSecrets,
@@ -79,7 +84,8 @@ export const useExtractFormDataFromDeployment = (
     useWizardFieldExtractors(deployment);
 
   const loaded =
-    !deployment || (formDataExtensionLoaded && deploymentSecretsLoaded && extractorsLoaded);
+    !deployment ||
+    (formDataExtensionLoaded && deploymentSecretsLoaded && extractorsLoaded && authExtensionLoaded);
 
   // Memoize error computation to prevent unnecessary recalculations
   const loadingError = React.useMemo((): Error | undefined => {
@@ -151,7 +157,11 @@ export const useExtractFormDataFromDeployment = (
       externalRoute: getExternalRouteFromDeployment(deployment),
 
       // Extract token authentication configuration
-      tokenAuthentication: getTokenAuthenticationFromDeployment(deployment, deploymentSecrets),
+      tokenAuthentication: getTokenAuthenticationFromDeployment(
+        deployment,
+        deploymentSecrets,
+        platformAuthCheck,
+      ),
 
       // Include existing authentication tokens
       existingAuthTokens: deploymentSecrets,
@@ -192,6 +202,7 @@ export const useExtractFormDataFromDeployment = (
     loaded,
     loadingError,
     extractedFieldData,
+    platformAuthCheck,
   ]);
 
   // Collect errors from platform-specific extract functions and validation

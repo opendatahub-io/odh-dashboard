@@ -1,3 +1,11 @@
+import {
+  IdentifierResourceType,
+  type HardwareProfileKind,
+  type Identifier,
+  type ContainerResources,
+  type Toleration,
+  type NodeSelector,
+} from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockNotebookK8sResource } from '#~/__mocks__';
 import {
@@ -10,14 +18,6 @@ import {
   formatIdentifierDetails,
   formatResource,
 } from '#~/concepts/hardwareProfiles/utils';
-import { HardwareProfileKind } from '#~/k8sTypes';
-import {
-  Identifier,
-  IdentifierResourceType,
-  ContainerResources,
-  Toleration,
-  NodeSelector,
-} from '#~/types';
 import { UseHardwareProfileConfigResult } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts';
 

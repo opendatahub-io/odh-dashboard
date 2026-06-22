@@ -23,11 +23,14 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-dashboard:odh-stable  
+    value: quay.io/opendatahub/odh-dashboard:odh-stable
   - name: dockerfile
     value: Dockerfile
   - name: path-context
     value: .
+  - name: build-args
+    value:
+    - "BUILD_MODE=RHOAI"
   pipelineRef:
     resolver: git
     params:

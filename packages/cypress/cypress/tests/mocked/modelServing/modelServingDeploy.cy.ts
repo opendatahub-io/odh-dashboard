@@ -6,7 +6,8 @@ import { mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { IdentifierResourceType, ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { IdentifierResourceType, KnownLabels } from '@odh-dashboard/k8s-core';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,
@@ -29,7 +30,6 @@ import {
   ModelLocationSelectOption,
   ModelTypeLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import {
   initMockConnectionSecretIntercepts,
   initMockModelAuthIntercepts,
@@ -1548,12 +1548,7 @@ describe('Model Serving Deploy Wizard', () => {
 
     // Step 2: Model deployment
     hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
-    hardwareProfileSection.findCustomizeButton().should('exist').click();
-    // Wait for the ExpandableSection to be fully expanded before interacting with its contents.
-    // PatternFly v6 overrides display:none on [hidden] elements, so .should('be.visible') passes
-    // even when the section is still collapsed. The aria-expanded attribute is the correct signal
-    // that the React state update has completed and the hidden attribute has been removed.
-    hardwareProfileSection.findCustomizeButton().should('have.attr', 'aria-expanded', 'true');
+    hardwareProfileSection.expandCustomizeSection();
     modelServingWizardEdit.findCPURequestedInput().should('have.value', '6');
     modelServingWizardEdit.findCPULimitInput().should('have.value', '6');
     modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '10');
@@ -1630,7 +1625,18 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizard.visit();
 
-    // Step 1: Model source
+    // Step 1: Preconfigure deployment (shown because no project is pre-selected)
+    modelServingWizard.findPreconfigureStep().should('be.enabled');
+    modelServingWizard.findModelSourceStep().should('be.disabled');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findPreconfigureProjectSelector().click();
+    modelServingWizard
+      .findPreconfigureProjectSelectorOption('Test Project')
+      .should('exist')
+      .click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
@@ -1648,37 +1654,28 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 2: Model deployment
+    // Step 3: Model deployment (project selector hidden, project was selected in preconfigure step)
     modelServingWizard.findModelDeploymentStep().should('be.enabled');
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelDeploymentProjectSelector().should('exist');
-    modelServingWizard
-      .findModelDeploymentProjectSelector()
-      .should('contain.text', 'Select target project');
-    modelServingWizard.findModelDeploymentProjectSelector().click();
-    modelServingWizard
-      .findModelDeploymentProjectSelectorOption('Test Project')
-      .should('exist')
-      .click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
     modelServingWizard.findModelFormatSelect().should('not.exist');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
+    modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
 
     modelServingWizard.findNumReplicasInput().should('exist');
     modelServingWizard.findNumReplicasInputField().should('have.value', '1');
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 3: Advanced Options
+    // Step 4: Advanced Options
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 4: Summary
+    // Step 5: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     cy.wait('@createSecret').then((interception) => {

@@ -46,8 +46,9 @@ type APIKeySearchRequest struct {
 }
 
 type APIKeySearchFilters struct {
-	Username string   `json:"username,omitempty"`
-	Status   []string `json:"status,omitempty"`
+	Username     string   `json:"username,omitempty"`
+	Subscription string   `json:"subscription,omitempty"`
+	Status       []string `json:"status,omitempty"`
 }
 
 type APIKeySearchSort struct {

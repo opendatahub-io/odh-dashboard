@@ -34,6 +34,8 @@ spec:
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
+  - name: pipeline-type
+    value: pull-request
   pipelineRef:
     resolver: git
     params:

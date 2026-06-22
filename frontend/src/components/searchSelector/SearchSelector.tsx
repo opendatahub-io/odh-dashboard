@@ -7,6 +7,7 @@ import {
   Menu,
   MenuContainer,
   MenuContent,
+  MenuFooter,
   MenuList,
   MenuSearch,
   MenuSearchInput,
@@ -28,6 +29,8 @@ type SearchSelectorProps = {
    * Resulting children (React.ReactNode) can be anything that can be rendered inside <MenuList />.
    */
   children: ((opts: ManualSearchSelectorOpts) => React.ReactNode) | React.ReactNode;
+  /** Content rendered after MenuContent (outside the scroll area), e.g. a sticky footer button. */
+  footer?: ((opts: ManualSearchSelectorOpts) => React.ReactNode) | React.ReactNode;
   isLoading?: boolean;
   isDisabled?: boolean;
   isFullWidth?: boolean;
@@ -41,11 +44,14 @@ type SearchSelectorProps = {
   searchValue: string;
   toggleContent: React.ReactNode | string;
   toggleVariant?: React.ComponentProps<typeof MenuToggle>['variant'];
+  toggleAriaLabel?: string;
+  toggleLabelledBy?: string;
   appendTo?: 'inline' | (() => HTMLElement) | HTMLElement;
 };
 
 const SearchSelector: React.FC<SearchSelectorProps> = ({
   children,
+  footer,
   dataTestId,
   isLoading,
   isDisabled,
@@ -59,6 +65,8 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   searchValue,
   toggleContent,
   toggleVariant,
+  toggleAriaLabel,
+  toggleLabelledBy,
   appendTo = 'inline',
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -66,6 +74,17 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   const menuRef = React.useRef(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
   const popperProps = { minWidth, maxWidth: 'trigger', appendTo };
+  const toggleValueId = toggleLabelledBy ? `${dataTestId}-toggle-value` : undefined;
+  const toggleContents =
+    typeof toggleContent !== 'string' ? toggleContent : <Truncate content={toggleContent} />;
+  const labelledToggleContents =
+    toggleValueId !== undefined ? <span id={toggleValueId}>{toggleContents}</span> : toggleContents;
+  const toggleAriaProps =
+    toggleLabelledBy && toggleValueId
+      ? { 'aria-labelledby': `${toggleLabelledBy} ${toggleValueId}` }
+      : toggleAriaLabel
+      ? { 'aria-label': toggleAriaLabel }
+      : undefined;
 
   return (
     <MenuContainer
@@ -94,12 +113,14 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           isFullWidth={isFullWidth}
           data-testid={`${dataTestId}-toggle`}
           variant={toggleVariant}
+          {...toggleAriaProps}
         >
-          {typeof toggleContent !== 'string' ? toggleContent : <Truncate content={toggleContent} />}
+          {labelledToggleContents}
         </MenuToggle>
       }
       menu={
         <Menu
+          className="odh-search-selector__menu"
           data-testid={`${dataTestId}-menu`}
           ref={menuRef}
           isScrollable
@@ -138,6 +159,13 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
                 : children}
             </MenuList>
           </MenuContent>
+          {footer != null && (
+            <MenuFooter>
+              {typeof footer === 'function'
+                ? footer({ menuClose: () => setIsOpen(false) })
+                : footer}
+            </MenuFooter>
+          )}
         </Menu>
       }
     />

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { z } from 'zod';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
@@ -6,14 +7,9 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type {
-  ProjectKind,
-  SecretKind,
-  SupportedModelFormats,
-} from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind, SecretKind, SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
-import type { z } from 'zod';
 import { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect.js';
 import type {
   ModelServerOption,
@@ -85,6 +81,7 @@ export enum ModelStateToggleLabel {
 }
 
 export enum WizardStepTitle {
+  PRECONFIGURE = 'Preconfigure deployment',
   MODEL_DETAILS = 'Model details',
   MODEL_DEPLOYMENT = 'Model deployment',
   ADVANCED_SETTINGS = 'Advanced settings',
@@ -114,7 +111,7 @@ export type ModelLocationData = {
 /**
  * Initial data for the deployment wizard form.
  * Known field data properties are explicitly typed, while dynamic field data
- * (from WizardField2Extension) can be added with any string key.
+ * (from WizardFieldExtension) can be added with any string key.
  */
 export type InitialWizardFormData = {
   // wizard
@@ -201,6 +198,7 @@ export type DeploymentStrategyFieldData = WizardFormData['state']['deploymentStr
 // extensible fields
 
 export type DeploymentWizardFieldId =
+  | 'modelType'
   | 'modelServerTemplate'
   | 'modelAvailability'
   | 'externalRoute'
@@ -317,62 +315,67 @@ export const resolveFieldValue = (
 
 export type ModelTypeFieldOverride = DeploymentWizardFieldBase<'modelType'> & {
   extraOption: SimpleSelectOption;
+  forced?: boolean;
 };
-export type ModelServerTemplateField = DeploymentWizardFieldBase<'modelServerTemplate'> & {
+export type ModelServerTemplateFieldOverride = DeploymentWizardFieldBase<'modelServerTemplate'> & {
   extraOptions?: ModelServerOption[];
   suggestion?: (
     clusterSettings: ModelServingClusterSettings | null | undefined,
   ) => ModelServerOption | undefined;
 };
-export type ModelAvailabilityField = DeploymentWizardFieldBase<'modelAvailability'> & {
+export type ModelAvailabilityFieldOverride = DeploymentWizardFieldBase<'modelAvailability'> & {
   id: 'modelAvailability';
   showSaveAsMaaS?: boolean;
 };
-export type ExternalRouteField = DeploymentWizardFieldBase<'externalRoute'> & {
+export type ExternalRouteFieldOverride = DeploymentWizardFieldBase<'externalRoute'> & {
   isVisible: boolean;
 };
-export type TokenAuthField = DeploymentWizardFieldBase<'tokenAuth'> & {
+export type TokenAuthFieldOverride = DeploymentWizardFieldBase<'tokenAuth'> & {
   initialValue: boolean;
 };
 
 // union type
 
-export type DeploymentWizardField =
+export type DeploymentWizardFieldOverride =
   | ModelTypeFieldOverride
-  | ModelServerTemplateField
-  | ModelAvailabilityField
-  | ExternalRouteField
-  | TokenAuthField
-  | DeploymentStrategyField;
+  | ModelServerTemplateFieldOverride
+  | ModelAvailabilityFieldOverride
+  | ExternalRouteFieldOverride
+  | TokenAuthFieldOverride
+  | DeploymentStrategyFieldOverride;
 
 export const isModelTypeFieldOverride = (
-  field: DeploymentWizardField,
+  field: DeploymentWizardFieldOverride,
 ): field is ModelTypeFieldOverride => {
   return field.id === 'modelType';
 };
-export const isModelServerTemplateField = (
-  field: DeploymentWizardField,
-): field is ModelServerTemplateField => {
+export const isModelServerTemplateFieldOverride = (
+  field: DeploymentWizardFieldOverride,
+): field is ModelServerTemplateFieldOverride => {
   return field.id === 'modelServerTemplate';
 };
-export const isModelAvailabilityField = (
-  field: DeploymentWizardField,
-): field is ModelAvailabilityField => {
+export const isModelAvailabilityFieldOverride = (
+  field: DeploymentWizardFieldOverride,
+): field is ModelAvailabilityFieldOverride => {
   return field.id === 'modelAvailability';
 };
-export const isExternalRouteField = (field: DeploymentWizardField): field is ExternalRouteField => {
+export const isExternalRouteFieldOverride = (
+  field: DeploymentWizardFieldOverride,
+): field is ExternalRouteFieldOverride => {
   return field.id === 'externalRoute';
 };
-export const isTokenAuthField = (field: DeploymentWizardField): field is TokenAuthField => {
+export const isTokenAuthFieldOverride = (
+  field: DeploymentWizardFieldOverride,
+): field is TokenAuthFieldOverride => {
   return field.id === 'tokenAuth';
 };
-export type DeploymentStrategyField = DeploymentWizardFieldBase<'deploymentStrategy'> & {
+export type DeploymentStrategyFieldOverride = DeploymentWizardFieldBase<'deploymentStrategy'> & {
   id: 'deploymentStrategy';
   type: 'modifier';
   isVisible: boolean;
 };
-export const isDeploymentStrategyField = (
-  field: DeploymentWizardField,
-): field is DeploymentStrategyField => {
+export const isDeploymentStrategyFieldOverride = (
+  field: DeploymentWizardFieldOverride,
+): field is DeploymentStrategyFieldOverride => {
   return field.id === 'deploymentStrategy';
 };

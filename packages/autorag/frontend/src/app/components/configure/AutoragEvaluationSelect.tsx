@@ -1,6 +1,7 @@
 import { Flex } from '@patternfly/react-core';
 import { DesktopIcon, StorageDomainIcon } from '@patternfly/react-icons';
-import React, { useState } from 'react';
+import type { FileRejection } from 'react-dropzone';
+import React, { useCallback, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import FileSelector from '~/app/components/common/FileSelector';
@@ -9,6 +10,16 @@ import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useSecretsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_MAX_FILES,
+  AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
+} from '~/app/utilities/dropzoneFileUpload';
+import {
+  EVALUATION_FILE_ACCEPT,
+  getEvaluationDropRejectedNotification,
+  isAllowedEvaluationJsonFile,
+} from '~/app/utilities/autoragEvaluationFile';
 
 function AutoragEvaluationSelect(): React.JSX.Element {
   const { namespace } = useParams();
@@ -29,13 +40,38 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const { data: secrets } = useSecretsQuery(namespace ?? '', 'storage');
   const uploadToStorageMutation = useUploadToStorageMutation(namespace ?? '', testDataSecretName);
 
+  const handleEvaluationDropRejected = useCallback(
+    (fileRejections: FileRejection[]) => {
+      const payload = getEvaluationDropRejectedNotification(fileRejections);
+      if (payload) {
+        notification.error(payload.title, payload.description);
+      }
+    },
+    [notification],
+  );
+
   return (
-    <>
+    <div data-testid="evaluation-file-selector">
       <FileSelector
         id={field.name}
         selected={field.value}
         isDisabled={isSubmitting}
+        onDropRejected={handleEvaluationDropRejected}
         onUpload={async (file, setProgress, setStatus) => {
+          if (file.size > AUTORAG_UPLOAD_MAX_BYTES) {
+            notification.error('File too large', AUTORAG_UPLOAD_TOO_LARGE_DETAIL);
+            setStatus('danger');
+            return;
+          }
+          if (!isAllowedEvaluationJsonFile(file)) {
+            notification.error(
+              'Invalid file type',
+              'Evaluation dataset must be a JSON file (.json).',
+            );
+            setStatus('danger');
+            return;
+          }
+
           let response;
           try {
             response = await uploadToStorageMutation.mutateAsync({ file, onProgress: setProgress });
@@ -58,7 +94,13 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         }}
         onClear={() => field.onChange('')}
         fileUploadProps={{
-          dropzoneProps: { accept: { 'application/json': ['.json'] } },
+          'data-testid': 'evaluation-upload-zone',
+          dropzoneProps: {
+            accept: EVALUATION_FILE_ACCEPT,
+            maxFiles: AUTORAG_UPLOAD_MAX_FILES,
+            maxSize: AUTORAG_UPLOAD_MAX_BYTES,
+            multiple: false,
+          },
           filenamePlaceholder: 'Drag and drop or browse from...',
           // @ts-expect-error: bypass ts error to allow icon
           browseButtonText: (
@@ -95,7 +137,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         selectableExtensions={['json']}
         unselectableReason="You can only select JSON files"
       />
-    </>
+    </div>
   );
 }
 

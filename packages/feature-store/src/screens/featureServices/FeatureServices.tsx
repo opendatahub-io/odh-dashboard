@@ -1,5 +1,5 @@
 import React from 'react';
-import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
+import { EmptyStateBody, EmptyStateVariant, EmptyState, Flex } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -11,10 +11,12 @@ import useFeatureServices from '../../apiHooks/useFeatureServices';
 import { featureStoreRoute } from '../../routes';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
+import { getFeatureStoreObjectDescription } from '../../utils';
+import { FeatureStoreObject } from '../../const';
+import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
 
 const title = 'Feature services';
-const description =
-  'Select a feature store to view its feature services. Feature services are groups of related features from one or more feature views that are designed to be retrieved together for model training, online inference, or GenAI applications like RAG.';
+const description = getFeatureStoreObjectDescription(FeatureStoreObject.FEATURE_SERVICES);
 
 const FeatureServices = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -61,11 +63,14 @@ const FeatureServices = (): React.ReactElement => {
       loadError={featureServicesLoadError}
       loaded={featureServicesLoaded}
       headerContent={
-        <FeatureStoreProjectSelectorNavigator
-          getRedirectPath={(featureStoreObject, featureStoreProject) =>
-            featureStoreRoute(featureStoreObject, featureStoreProject)
-          }
-        />
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          <FeatureStoreProjectSelectorNavigator
+            getRedirectPath={(featureStoreObject, featureStoreProject) =>
+              featureStoreRoute(featureStoreObject, featureStoreProject)
+            }
+          />
+          <ConnectedWorkbenchesLink />
+        </Flex>
       }
       provideChildrenPadding
     >

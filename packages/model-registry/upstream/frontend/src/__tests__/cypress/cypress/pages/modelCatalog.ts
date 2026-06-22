@@ -383,6 +383,37 @@ class ModelCatalog {
     return this;
   }
 
+  // Cold start latency filter helpers
+  findColdStartLatencyFilter() {
+    return cy.findByTestId('cold-start-load-time-filter');
+  }
+
+  openColdStartLatencyFilter() {
+    this.findColdStartLatencyFilter().click();
+    return this;
+  }
+
+  applyColdStartLatencyFilter() {
+    cy.findByTestId('cold-start-load-time-apply-filter').click();
+    return this;
+  }
+
+  resetColdStartLatencyFilter() {
+    cy.findByTestId('cold-start-load-time-reset-filter').click();
+    return this;
+  }
+
+  // Sort dropdown helpers
+  findSortDropdown() {
+    return cy.findByTestId('model-catalog-sort-dropdown');
+  }
+
+  selectSortOption(testId: string) {
+    this.findSortDropdown().click();
+    cy.findByTestId(testId).click();
+    return this;
+  }
+
   // Compression Comparison Card
   findCompressionComparisonCard() {
     return cy.findByTestId('compression-comparison-card');
@@ -453,6 +484,10 @@ class ModelCatalog {
     return cy.get('#tool-calling-toggle');
   }
 
+  findValidatedDeploymentResourceLabels() {
+    return cy.findAllByTestId('validated-deployment-resource-label');
+  }
+
   // Performance Empty State
   findPerformanceEmptyState() {
     return cy.findByTestId('performance-empty-state');
@@ -466,6 +501,14 @@ class ModelCatalog {
     return this.findPerformanceEmptyState().findByRole('button', {
       name: /View all models with performance data/i,
     });
+  }
+
+  findRegisterModelButton() {
+    return cy.findByTestId('register-model-button');
+  }
+
+  findModelTypeSelect() {
+    return cy.findByTestId('register-model-type-select');
   }
 }
 

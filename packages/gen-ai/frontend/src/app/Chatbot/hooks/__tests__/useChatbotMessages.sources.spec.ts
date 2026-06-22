@@ -5,6 +5,9 @@ import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 import { mockModelId, mockSuccessResponse, mockNamespace, defaultMcpProps } from './consts';
 
 // Mock external dependencies
+jest.mock('@patternfly/chatbot', () => ({
+  FileDetailsLabel: jest.fn(({ fileName }: { fileName: string }) => fileName),
+}));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
@@ -60,20 +63,22 @@ const createDefaultHookProps = (overrides?: {
   configId?: string;
   modelId?: string;
   systemInstruction?: string;
-  isRawUploaded?: boolean;
+  isRagEnabled?: boolean;
   isStreamingEnabled?: boolean;
   temperature?: number;
   currentVectorStoreId?: string | null;
+  knowledgeMode?: 'inline' | 'external';
   selectedServerIds?: string[];
 }) => ({
   ...defaultMcpProps,
   configId: 'default',
   modelId: mockModelId,
   systemInstruction: '',
-  isRawUploaded: true,
+  isRagEnabled: true,
   isStreamingEnabled: false,
   temperature: 0.7,
   currentVectorStoreId: 'test-vector-db',
+  knowledgeMode: 'inline' as const,
   selectedServerIds: [],
   ...overrides,
 });
@@ -216,7 +221,8 @@ describe('useChatbotMessages - sources handling', () => {
 
     const botMessage = result.current.messages[1];
 
-    expect(botMessage.content).toBe('API Error');
+    expect(botMessage.content).toBe(''); // Error shown via errorClassification
+    expect(botMessage.errorClassification).toBeDefined();
     expect(botMessage.sources).toBeUndefined();
   });
 

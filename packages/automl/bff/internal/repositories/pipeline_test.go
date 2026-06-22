@@ -5,55 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 )
-
-// conflictVersionMockClient wraps MockPipelineServerClient but returns 409 from UploadPipelineVersion.
-// ListPipelineVersions returns a version matching the expected version name to simulate
-// the version having been created by another instance.
-type conflictVersionMockClient struct {
-	*psmocks.MockPipelineServerClient
-	uploaded    bool
-	versionName string // set by UploadPipelineVersion for ListPipelineVersions to return
-}
-
-func (m *conflictVersionMockClient) UploadPipelineVersion(_ context.Context, _ string, versionName string, _ []byte) (*models.KFPipelineVersion, error) {
-	m.uploaded = true
-	m.versionName = versionName
-	return nil, &ps.HTTPError{StatusCode: 409, Message: "version already exists"}
-}
-
-func (m *conflictVersionMockClient) ListPipelineVersions(_ context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
-	if m.versionName != "" {
-		// After upload attempt, return the version that was uploaded (simulates concurrent creation)
-		return &models.KFPipelineVersionsResponse{
-			PipelineVersions: []models.KFPipelineVersion{
-				{
-					PipelineID:        pipelineID,
-					PipelineVersionID: "conflict-version-id",
-					DisplayName:       m.versionName,
-					CreatedAt:         "2026-04-09T12:00:00Z",
-				},
-			},
-			TotalSize: 1,
-		}, nil
-	}
-	// Before upload: return only an old version so discovery misses the current version
-	return &models.KFPipelineVersionsResponse{
-		PipelineVersions: []models.KFPipelineVersion{
-			{
-				PipelineID:        pipelineID,
-				PipelineVersionID: "old-version-id",
-				DisplayName:       "old-pipeline-3.4.0",
-				CreatedAt:         "2026-01-01T10:00:00Z",
-			},
-		},
-		TotalSize: 1,
-	}, nil
-}
 
 func TestDiscoverNamedPipelines(t *testing.T) {
 	repo := NewPipelineRepository()
@@ -509,87 +464,28 @@ func TestBuildPipelineNameFilter(t *testing.T) {
 	})
 }
 
-func TestEnsurePipeline(t *testing.T) {
-	repo := NewPipelineRepository()
-	ctx := context.Background()
-
-	t.Run("should return existing pipeline when discovery succeeds", func(t *testing.T) {
-		namespace := "test-ns-ensure-1"
-		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
-		ids := psmocks.DeriveMockIDs(mockClient.Namespace)
-
-		def := PipelineDefinition{
-			Name:        "automl",
-			PipelineDir: "autogluon_tabular_training_pipeline",
-		}
-
-		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, discovered)
-		assert.Equal(t, ids.PipelineID, discovered.PipelineID)
-	})
-
-	t.Run("should create pipeline when discovery returns soft miss", func(t *testing.T) {
-		namespace := "test-ns-ensure-2"
-		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
-		mockClient.PipelineNames = []string{"unrelated-pipeline"}
-
-		def := PipelineDefinition{
-			Name:        "autogluon-tabular-training-pipeline",
-			PipelineDir: "autogluon_tabular_training_pipeline",
-		}
-
-		// Clear cache to avoid stale entries
-		repo.InvalidateCache("http://mock-ps", namespace)
-
-		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, discovered)
-		assert.Equal(t, "autogluon-tabular-training-pipeline", discovered.PipelineName)
-	})
-
-	t.Run("should return error when no YAML filename is provided and pipeline not found", func(t *testing.T) {
-		namespace := "test-ns-ensure-3"
-		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
-		mockClient.PipelineNames = []string{"unrelated-pipeline"}
-
-		def := PipelineDefinition{
-			Name:        "nonexistent",
-			PipelineDir: "", // No YAML available
-		}
-
-		repo.InvalidateCache("http://mock-ps", namespace)
-
-		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
-
-		assert.Error(t, err)
-		assert.Nil(t, discovered)
-		assert.Contains(t, err.Error(), "no YAML available")
-	})
-
-	t.Run("should retry discovery on 409 conflict during version upload", func(t *testing.T) {
-		namespace := "test-ns-ensure-4"
-		baseMock := psmocks.NewMockPipelineServerClient("http://mock-ps")
-		// Pipeline exists but version doesn't — CreatePipeline will find it
-		baseMock.PipelineNames = []string{"autogluon-tabular-training-pipeline"}
-		mockClient := &conflictVersionMockClient{MockPipelineServerClient: baseMock}
-
-		def := PipelineDefinition{
-			Name:        "autogluon-tabular-training-pipeline",
-			PipelineDir: "autogluon_tabular_training_pipeline",
-		}
-
-		repo.InvalidateCache("http://mock-ps", namespace)
-
-		// UploadPipelineVersion returns 409; ListPipelineVersions then returns
-		// a version with the correct display name so retry discovery succeeds
-		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, discovered)
-		assert.True(t, mockClient.uploaded, "UploadPipelineVersion should have been called")
-		assert.Equal(t, "autogluon-tabular-training-pipeline", discovered.PipelineName)
+func TestHasAllRequiredAutoMLPipelines(t *testing.T) {
+	t.Run("should require both tabular and timeseries pipelines", func(t *testing.T) {
+		assert.False(t, HasAllRequiredAutoMLPipelines(nil))
+		assert.False(t, HasAllRequiredAutoMLPipelines(map[string]*DiscoveredPipeline{}))
+		assert.False(t, HasAllRequiredAutoMLPipelines(map[string]*DiscoveredPipeline{
+			"tabular": {PipelineName: "autogluon-tabular-training-pipeline"},
+		}))
+		assert.True(t, HasAllRequiredAutoMLPipelines(map[string]*DiscoveredPipeline{
+			"tabular":    {PipelineName: "autogluon-tabular-training-pipeline"},
+			"timeseries": {PipelineName: "autogluon-timeseries-training-pipeline"},
+		}))
+		assert.False(t, HasAllRequiredAutoMLPipelines(map[string]*DiscoveredPipeline{
+			"tabular":    nil,
+			"timeseries": nil,
+		}))
+		assert.False(t, HasAllRequiredAutoMLPipelines(map[string]*DiscoveredPipeline{
+			"tabular":    {PipelineName: "autogluon-tabular-training-pipeline"},
+			"timeseries": nil,
+		}))
+		assert.False(t, HasAllRequiredAutoMLPipelines(map[string]*DiscoveredPipeline{
+			"tabular":    nil,
+			"timeseries": {PipelineName: "autogluon-timeseries-training-pipeline"},
+		}))
 	})
 }

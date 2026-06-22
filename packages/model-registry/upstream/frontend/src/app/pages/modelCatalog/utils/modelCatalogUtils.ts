@@ -1,6 +1,4 @@
-import React from 'react';
 import { capitalize } from '@patternfly/react-core';
-import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import {
   CatalogArtifacts,
   CatalogArtifactType,
@@ -11,15 +9,18 @@ import {
   CatalogModel,
   CatalogModelArtifact,
   CatalogModelDetailsParams,
+  CatalogPerformanceMetricsArtifact,
   CatalogSource,
   CatalogSourceList,
+  HardwareConfiguration,
   ModelCatalogFilterStates,
-  ModelCatalogStringFilterValueType,
   MetricsType,
   ModelCatalogFilterKey,
   SourceLabel,
+  ToolCallingConfig,
 } from '~/app/modelCatalogTypes';
-import { getLabels } from '~/app/pages/modelRegistry/screens/utils';
+import { getLabels, getCustomPropString } from '~/app/pages/modelRegistry/screens/utils';
+import { getDoubleValue } from '~/app/utils';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -42,6 +43,7 @@ import {
   buildCustomPropertiesWithModelType,
   getModelTypeStoredValueFromCustomProperties,
 } from '~/app/pages/modelRegistry/screens/RegisterModel/registerModelTypeUtils';
+import { eqFilter, inFilter, andFilter } from '~/app/shared/components/catalog';
 
 /**
  * Prefix used by the backend for artifact-specific filter options.
@@ -195,47 +197,23 @@ export const shouldShowValidatedInsights = (
 
 export const hasValidatedToolCalling = (model: CatalogModel): boolean =>
   model.validatedTasks?.includes(ModelCatalogTask.TOOL_CALLING) === true &&
-  model.servingConfig?.toolCalling != null;
+  !!model.servingConfig?.toolCalling?.toolCallParser;
 
-export const useCatalogStringFilterState = <K extends ModelCatalogStringFilterKey>(
-  filterKey: K,
-): {
-  isSelected: (value: ModelCatalogStringFilterValueType[K]) => boolean;
-  setSelected: (value: string, selected: boolean) => void;
-} => {
-  type Value = ModelCatalogStringFilterValueType[K];
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const selections: string[] = filterData[filterKey];
-  const isValidStringState = (state: string[]): state is ModelCatalogFilterStates[K] =>
-    Object.values(ModelCatalogStringFilterKey).includes(filterKey);
-  const isSelected = React.useCallback((value: Value) => selections.includes(value), [selections]);
-  const setSelected = (value: string, selected: boolean) => {
-    const nextState = selected
-      ? [...selections, value]
-      : selections.filter((item) => item !== value);
-    if (isValidStringState(nextState)) {
-      setFilterData(filterKey, nextState);
-    }
-  };
-
-  return { isSelected, setSelected };
-};
-
-export const useCatalogNumberFilterState = (
-  filterKey: ModelCatalogNumberFilterKey,
-): {
-  value: number | undefined;
-  setValue: (value: number | undefined) => void;
-} => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const value = filterData[filterKey];
-  const setValue = React.useCallback(
-    (newValue: number | undefined) => {
-      setFilterData(filterKey, newValue);
-    },
-    [filterKey, setFilterData],
-  );
-  return { value, setValue };
+export const getToolCallingArgs = (config?: ToolCallingConfig): string => {
+  const parts: string[] = [];
+  if (config?.enableAutoToolChoice) {
+    parts.push('--enable-auto-tool-choice');
+  }
+  if (config?.toolCallParser) {
+    parts.push(`--tool-call-parser ${config.toolCallParser}`);
+  }
+  if (config?.chatTemplate) {
+    parts.push(`--chat-template ${config.chatTemplate}`);
+  }
+  if (config?.requiredArgs) {
+    parts.push(...config.requiredArgs);
+  }
+  return parts.join(' \\\n');
 };
 
 const isArrayOfSelections = (
@@ -250,6 +228,9 @@ const isArrayOfSelections = (
 const KNOWN_NUMERIC_FILTER_IDS: string[] = [
   ...ALL_LATENCY_FILTER_KEYS,
   ModelCatalogNumberFilterKey.MAX_RPS,
+  ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
+  ModelCatalogNumberFilterKey.MIN_VRAM,
+  ModelCatalogNumberFilterKey.IMAGE_SIZE,
 ];
 
 /**
@@ -276,8 +257,8 @@ const getNumericFilterOperator = (options: CatalogFilterOptionsList, filterId: s
     // Return the operator from the namedQuery (e.g., '<=', '<', '>')
     return fieldFilter.operator;
   }
-  // Fall back to '<' if this filter isn't in the namedQuery
-  return '<';
+  // Fall back to '<=' if this filter isn't in the namedQuery
+  return '<=';
 };
 
 const isFilterIdInMap = (
@@ -334,27 +315,23 @@ export const getSortParams = (
     return recentPublishSort;
   }
 
+  if (effectiveSortBy === ModelCatalogSortOption.LOWEST_COLD_START) {
+    return {
+      orderBy: ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
+      sortOrder: SortOrder.ASC,
+    };
+  }
+
   // effectiveSortBy must be LOWEST_LATENCY at this point
   if (!activeLatencyField) {
-    // Fallback to recent publish if no latency field is available
     return recentPublishSort;
   }
 
-  // activeLatencyField is already in the correct format: artifacts.{metric}_{percentile}.double_value
-  // (e.g., artifacts.ttft_p90.double_value, artifacts.e2e_mean.double_value, artifacts.itl_p95.double_value)
-  // This matches the filter key format used in filterQuery, so we can use it directly
   return {
     orderBy: activeLatencyField,
-    sortOrder: SortOrder.ASC, // Lowest first (ascending)
+    sortOrder: SortOrder.ASC,
   };
 };
-
-const wrapInQuotes = (v: string): string => `'${v.replace(/'/g, "''")}'`;
-
-const eqFilter = (k: string, v: string) => `${k}=${wrapInQuotes(v)}`;
-const inFilter = (k: string, values: string[]) =>
-  `${k} IN (${values.map((v) => wrapInQuotes(v)).join(',')})`;
-const andFilter = (k: string, values: string[]) => values.map((v) => eqFilter(k, v)).join(' AND ');
 
 const isMatchAllFilter = (filterId: string): boolean =>
   MATCH_ALL_FILTER_KEYS.some((key) => key === filterId);
@@ -389,6 +366,8 @@ export type FilterQueryTarget = 'models' | 'artifacts';
  * Determines if a filter should be included based on the target endpoint.
  * - For models: Include all filters except RPS (which is passed as a separate param)
  * - For artifacts: Only include filters that have the artifacts.* prefix
+ * Cold-start load time is excluded from the main AND clause for both targets;
+ * it is placed in the OR clause via buildColdStartOrClause.
  */
 const shouldIncludeFilter = (filterId: string, target: FilterQueryTarget): boolean => {
   // RPS is always passed as a separate param, not in filterQuery
@@ -396,8 +375,13 @@ const shouldIncludeFilter = (filterId: string, target: FilterQueryTarget): boole
     return false;
   }
 
+  // Cold-start filter is excluded from the main AND clause for both targets.
+  // It is placed in the OR clause via buildColdStartOrClause.
+  if (filterId === ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME) {
+    return false;
+  }
+
   if (target === 'models') {
-    // For models, include all filters (except RPS which is already excluded)
     return true;
   }
 
@@ -472,6 +456,8 @@ const serializeFilterEntry = (
  * @param target - The target endpoint:
  *   - 'models': Include all filters (except RPS), use filter keys directly
  *   - 'artifacts': Only include artifact-prefixed filters, strip the prefix in output
+ * @param includeColdStartClause - Whether to append the cold-start OR clause.
+ *   Should be true only when performance view is enabled.
  *
  * Note: RPS is NOT included in filterQuery for either target - it's passed as targetRPS param.
  */
@@ -479,13 +465,55 @@ export const filtersToFilterQuery = (
   filterData: ModelCatalogFilterStates,
   options: CatalogFilterOptionsList,
   target: FilterQueryTarget = 'models',
+  includeColdStartClause = true,
 ): string => {
   const serializedFilters: string[] = Object.entries(filterData)
     .filter(([filterId]) => shouldIncludeFilter(filterId, target))
     .map(([filterId, data]) => serializeFilterEntry(filterId, data, options, target));
 
   const nonEmptyFilters = serializedFilters.filter((v) => !!v);
-  return nonEmptyFilters.length === 0 ? '' : nonEmptyFilters.join(' AND ');
+  if (nonEmptyFilters.length === 0) {
+    return '';
+  }
+
+  const baseQuery = nonEmptyFilters.join(' AND ');
+
+  if (!includeColdStartClause) {
+    return baseQuery;
+  }
+
+  const coldStartClause = buildColdStartOrClause(filterData, options, target);
+  return `${baseQuery} OR ${coldStartClause}`;
+};
+
+/**
+ * Builds the OR clause for cold-start artifacts in the filter query.
+ * Always includes `performance_sub_type.string_value='cold-start'`.
+ * If a cold start load time filter is active, appends it as an AND condition.
+ * Uses the appropriate key format based on target (with artifacts.* prefix for models, stripped for artifacts).
+ */
+const buildColdStartOrClause = (
+  filterData: ModelCatalogFilterStates,
+  options: CatalogFilterOptionsList,
+  target: FilterQueryTarget,
+): string => {
+  const subTypePrefix = target === 'models' ? 'artifacts.' : '';
+  const subTypeFilter = `${subTypePrefix}performance_sub_type.string_value='cold-start'`;
+  const coldStartValue = filterData[ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME];
+
+  if (coldStartValue === undefined || typeof coldStartValue !== 'number') {
+    return subTypeFilter;
+  }
+
+  const operator = getNumericFilterOperator(
+    options,
+    ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
+  );
+  const coldStartKey =
+    target === 'models'
+      ? ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME
+      : stripArtifactsPrefix(ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME);
+  return `${subTypeFilter} AND ${coldStartKey} ${operator} ${coldStartValue}`;
 };
 
 /**
@@ -815,6 +843,122 @@ export const formatModelTypeDisplay = (modelTypeRaw: string | null): string => {
 export const getCatalogModelTypePropertyForRegistration = (
   customProperties?: ModelRegistryCustomProperties,
 ): ModelRegistryCustomProperties => {
-  const stored = getModelTypeStoredValueFromCustomProperties(customProperties);
+  const stored = getModelTypeStoredValueFromCustomProperties(customProperties) ?? ModelType.UNKNOWN;
   return buildCustomPropertiesWithModelType(undefined, stored);
+};
+
+export const getModelSizeFromCustomProperties = (
+  customProperties?: ModelRegistryCustomProperties,
+): string => {
+  if (!customProperties) {
+    return '';
+  }
+  const doubleVal = getDoubleValue(customProperties, 'modelcar_image_size');
+  if (doubleVal > 0) {
+    return `${doubleVal.toFixed(2)} GB`;
+  }
+  return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MODEL_SIZE);
+};
+
+export const getMinimumVramFromCustomProperties = (
+  customProperties?: ModelRegistryCustomProperties,
+): string => {
+  if (!customProperties) {
+    return '';
+  }
+  const doubleVal = getDoubleValue(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
+  if (doubleVal > 0) {
+    return `${doubleVal.toFixed(2)} GB`;
+  }
+  return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
+};
+
+export const getHardwareConfigurationsFromCustomProperties = (
+  customProperties?: ModelRegistryCustomProperties,
+): HardwareConfiguration[] => {
+  if (!customProperties) {
+    return [];
+  }
+  const hwConfigStr = getCustomPropString(
+    customProperties,
+    CatalogModelCustomPropertyKey.HARDWARE_CONFIGURATIONS,
+  );
+  if (!hwConfigStr) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(hwConfigStr);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Identifies whether a performance artifact is a cold-start sub-type.
+ */
+export const isColdStartArtifact = (artifact: CatalogPerformanceMetricsArtifact): boolean => {
+  const subType = artifact.customProperties?.performance_sub_type;
+  return (
+    subType?.metadataType === ModelRegistryMetadataType.STRING &&
+    subType.string_value === 'cold-start'
+  );
+};
+
+/**
+ * Extracts HardwareConfiguration[] from cold-start performance artifacts.
+ * Cold-start artifacts are identified by `performance_sub_type === "cold-start"` in customProperties
+ * and contain gpu_type, gpu_count, cold_start_time_to_load_seconds, and runtime_command.
+ */
+export const getHardwareConfigurationsFromArtifacts = (
+  artifacts: CatalogPerformanceMetricsArtifact[],
+): HardwareConfiguration[] =>
+  artifacts.filter(isColdStartArtifact).map((artifact) => {
+    const props = artifact.customProperties;
+    return {
+      // eslint-disable-next-line camelcase
+      gpu_type: props?.gpu_type?.string_value ?? '',
+      // eslint-disable-next-line camelcase
+      gpu_count: props?.gpu_count?.int_value ? parseInt(props.gpu_count.int_value, 10) : 0,
+      // eslint-disable-next-line camelcase
+      cold_start_time_to_load_seconds: props?.cold_start_time_to_load_seconds?.double_value ?? 0,
+      // eslint-disable-next-line camelcase
+      runtime_command: props?.runtime_command?.string_value ?? '',
+    };
+  });
+
+/**
+ * Filters out cold-start artifacts, returning only regular performance artifacts.
+ */
+export const filterRegularPerformanceArtifacts = (
+  artifacts: CatalogPerformanceMetricsArtifact[],
+): CatalogPerformanceMetricsArtifact[] => artifacts.filter((a) => !isColdStartArtifact(a));
+
+/**
+ * Finds the matching HardwareConfiguration for a given hardware description.
+ * Requires an exact match on both gpu_type and gpu_count; returns undefined otherwise.
+ */
+export const findMatchingHardwareConfig = (
+  configs: HardwareConfiguration[],
+  hwConfig: string,
+  hwType: string,
+  hwCount: number,
+): HardwareConfiguration | undefined =>
+  configs.find(
+    (c) => (hwConfig.startsWith(c.gpu_type) || c.gpu_type === hwType) && c.gpu_count === hwCount,
+  );
+
+/**
+ * Resolves hardware configurations from performance artifacts (cold-start sub-type),
+ * falling back to the model's customProperties when no artifact-based configs exist.
+ */
+export const resolveHardwareConfigurations = (
+  artifacts: CatalogPerformanceMetricsArtifact[],
+  customProperties?: ModelRegistryCustomProperties,
+): HardwareConfiguration[] => {
+  const fromArtifacts = getHardwareConfigurationsFromArtifacts(artifacts);
+  if (fromArtifacts.length > 0) {
+    return fromArtifacts;
+  }
+  return getHardwareConfigurationsFromCustomProperties(customProperties);
 };

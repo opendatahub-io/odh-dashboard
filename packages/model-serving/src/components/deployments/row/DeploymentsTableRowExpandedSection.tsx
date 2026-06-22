@@ -12,8 +12,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { formatMemory } from '@odh-dashboard/internal/utilities/valueUnits';
-import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
-import type { ContainerResources } from '@odh-dashboard/internal/types';
+import type { SupportedModelFormats, ContainerResources } from '@odh-dashboard/k8s-core';
 import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
@@ -21,14 +20,12 @@ import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardw
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
-import {
-  isModelServingDeploymentFormDataExtension,
-  type Deployment,
-} from '../../../../extension-points';
+import { type Deployment, isModelServingAuthExtension } from '../../../../extension-points';
 import {
   ExtractedFieldData,
   useWizardFieldExtractors,
 } from '../../deploymentWizard/useWizardFieldExtractors';
+import { isModelServingDeploymentFormDataExtension } from '../../../../extension-points/deployment-wizard';
 import type { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
 
 const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';
@@ -94,8 +91,20 @@ const ModelSizeItem = ({ resources }: { resources?: ContainerResources }) => {
 };
 
 const TokenAuthenticationItem = ({ deployment }: { deployment: Deployment }) => {
-  const isAuthenticated = isDeploymentAuthEnabled(deployment);
-  const { data: deploymentSecrets, loaded, error } = useDeploymentAuthTokens(deployment);
+  const [authExtension, authExtensionLoaded] = useResolvedDeploymentExtension(
+    isModelServingAuthExtension,
+    deployment,
+  );
+  const isAuthenticated = isDeploymentAuthEnabled(
+    deployment,
+    authExtension?.properties.usePlatformAuthEnabled,
+  );
+  const {
+    data: deploymentSecrets,
+    loaded: secretsLoaded,
+    error,
+  } = useDeploymentAuthTokens(deployment);
+  const loaded = authExtensionLoaded && secretsLoaded;
 
   return (
     <DescriptionList

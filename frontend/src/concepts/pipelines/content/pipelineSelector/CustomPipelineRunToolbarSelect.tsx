@@ -144,7 +144,7 @@ const InnerCustomPipelineRunToolbarSelect = <T extends PipelineVersionKF | Exper
           style={{ minWidth: '300px', maxWidth: '500px' }}
           onClick={() => setOpen(!isOpen)}
           isExpanded={isOpen}
-          isDisabled={!filteredResources.length}
+          isDisabled={!resources.length}
           isFullWidth
           data-testid={toggleTestId}
         >
@@ -153,7 +153,13 @@ const InnerCustomPipelineRunToolbarSelect = <T extends PipelineVersionKF | Exper
       }
       menu={menu}
       menuRef={menuRef}
-      onOpenChange={(open) => setOpen(open)}
+      onOpenChange={(open) => {
+        setOpen(open);
+        if (!open) {
+          doSetSearchDebounced.cancel();
+          setSearch('');
+        }
+      }}
     />
   );
 };

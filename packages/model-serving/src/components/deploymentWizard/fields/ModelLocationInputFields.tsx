@@ -6,18 +6,21 @@ import {
   ConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
+  getModelServingCompatibility,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
   parseConnectionSecretValues,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { z } from 'zod';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
-import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   getPVCNameFromURI,
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
@@ -26,6 +29,8 @@ import { ExistingConnectionField } from './modelLocationFields/ExistingConnectio
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
 import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectField';
+import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
+import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
 import usePvcs from '../../../concepts/usePvcs';
 import { ModelLocationData, ModelLocationType } from '../types';
 import { resolveConnectionType } from '../utils';
@@ -51,9 +56,8 @@ export const useModelLocationData = (
 ): ModelLocationDataField => {
   // Gets all connection types, even disabled ones
   const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
-  const pvcs = usePvcs(projectName);
-  const pvcsLoaded = pvcs.loaded;
   const [connections, connectionsLoaded] = useServingConnections(projectName, true, false);
+  const { data: pvcs, loaded: pvcsLoaded } = usePvcs(projectName);
 
   const [draftModelLocationData, setDraftModelLocationData] = React.useState<
     ModelLocationData | undefined
@@ -157,7 +161,7 @@ export const useModelLocationData = (
     setSelectedConnection: updateSelectedConnection,
     isLoadingSecretData,
     disableInputFields: existingData?.disableInputFields ?? false,
-    pvcs: pvcs.data,
+    pvcs,
   };
 };
 
@@ -261,6 +265,10 @@ export const modelLocationDataSchema = z.object({
   }),
 });
 
+// NIM-specific fields are provided by the nim-serving plugin via WizardField extensions.
+export const hasOnlyExtensionFields = (modelLocation: ModelLocationData['type']): boolean =>
+  modelLocation === ModelLocationType.NIM;
+
 type ModelLocationInputFieldsProps = {
   wizardState: UseModelDeploymentWizardState;
   modelLocation: ModelLocationData['type'];
@@ -268,14 +276,11 @@ type ModelLocationInputFieldsProps = {
   connectionTypes: ConnectionTypeConfigMapObj[];
   selectedConnection: Connection | undefined;
   setSelectedConnection: (connection: Connection) => void;
-  selectedConnectionType: ConnectionTypeConfigMapObj | undefined;
   setModelLocationData: (data: ModelLocationData | undefined) => void;
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
   pvcs: PersistentVolumeClaimKind[];
-  showCustomTypeSelect: boolean;
-  customTypeOptions?: ConnectionTypeConfigMapObj[];
-  customTypeKey: string | undefined;
+  customTypeOption: { key: string; label: string } | undefined;
 };
 
 export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> = ({
@@ -285,15 +290,56 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
   connectionTypes,
   selectedConnection,
   setSelectedConnection,
-  selectedConnectionType,
   setModelLocationData,
   resetModelLocationData,
   modelLocationData,
   pvcs,
-  showCustomTypeSelect,
-  customTypeOptions,
-  customTypeKey,
+  customTypeOption,
 }) => {
+  const { s3ConnectionTypes, ociConnectionTypes, uriConnectionTypes } =
+    useEnabledModelServingConnectionTypes(connectionTypes);
+
+  const selectedConnectionType = React.useMemo(() => {
+    if (modelLocationData?.connectionTypeObject) {
+      return modelLocationData.connectionTypeObject;
+    }
+    if (selectedConnection) {
+      const compatibleType = getModelServingCompatibility(selectedConnection)[0];
+      switch (compatibleType) {
+        case ModelServingCompatibleTypes.S3ObjectStorage:
+          return s3ConnectionTypes[0];
+        case ModelServingCompatibleTypes.OCI:
+          return ociConnectionTypes[0];
+        case ModelServingCompatibleTypes.URI:
+          return uriConnectionTypes[0];
+      }
+    }
+    return undefined;
+  }, [
+    modelLocationData,
+    s3ConnectionTypes,
+    ociConnectionTypes,
+    uriConnectionTypes,
+    selectedConnection,
+  ]);
+
+  const showCustomTypeSelect = !!(
+    (customTypeOption?.key === s3Option.key && s3ConnectionTypes.length > 1) ||
+    (customTypeOption?.key === ociOption.key && ociConnectionTypes.length > 1) ||
+    (customTypeOption?.key === uriOption.key && uriConnectionTypes.length > 1)
+  );
+  const customTypeOptions = React.useMemo(
+    () =>
+      customTypeOption?.key === s3Option.key && s3ConnectionTypes.length > 1
+        ? s3ConnectionTypes
+        : customTypeOption?.key === ociOption.key && ociConnectionTypes.length > 1
+        ? ociConnectionTypes
+        : customTypeOption?.key === uriOption.key && uriConnectionTypes.length > 1
+        ? uriConnectionTypes
+        : [],
+    [customTypeOption?.key, s3ConnectionTypes, ociConnectionTypes, uriConnectionTypes],
+  );
+
   const filteredConnections = React.useMemo(
     () =>
       connections.filter(
@@ -360,7 +406,7 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
         {showCustomTypeSelect ? (
           <CustomTypeSelectField
             isDisabled={modelLocationData?.disableInputFields}
-            typeOptions={customTypeOptions ?? []}
+            typeOptions={customTypeOptions}
             onSelect={(connectionType: ConnectionTypeConfigMapObj) => {
               setModelLocationData({
                 type: ModelLocationType.NEW,
@@ -369,7 +415,7 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
                 additionalFields: {},
               });
             }}
-            typeKey={customTypeKey ?? ''}
+            typeLabel={customTypeOption.label}
             selectedConnectionType={selectedConnectionType}
           />
         ) : null}
@@ -385,7 +431,6 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (modelLocation === ModelLocationType.PVC) {
     return (
       <PvcSelectField
@@ -420,8 +465,8 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (modelLocation === ModelLocationType.NIM) {
-    return 'NIM';
+  if (hasOnlyExtensionFields(modelLocation)) {
+    return null;
   }
 
   return <Alert variant="warning" title="There was a problem fetching connections" />;

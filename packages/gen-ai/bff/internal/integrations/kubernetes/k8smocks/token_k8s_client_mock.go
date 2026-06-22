@@ -36,7 +36,7 @@ func newMockedTokenKubernetesClientFromClientset(ctrlClient client.Client, confi
 			Client: ctrlClient,
 			Logger: logger,
 			Token:  integrations.NewBearerToken(""), // Unused because impersonation is already handled in the client config
-			Config: config,
+			Config: nil,                             // Set to nil for testing to avoid REST API calls
 		},
 	}
 }
@@ -84,6 +84,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "LLM-D Codestral 22B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "llm-d-deepseek-coder-33b",
@@ -99,6 +100,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "LLM-D DeepSeek Coder 33B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 		}
 	case "mock-test-namespace-2", "mock-test-namespace-3":
@@ -118,6 +120,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "Granite 7B code",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "llama-3.1-8b-instruct",
@@ -134,6 +137,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "Llama 3.1 8B instruct",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "mistral-7b-instruct",
@@ -149,6 +153,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Stop",
 				DisplayName:     "Mistral 7B instruct",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "ollama/llama3.2:3b",
@@ -165,6 +170,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "Ollama Llama 3.2 3B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "ollama/all-minilm:l6-v2",
@@ -181,6 +187,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "Ollama All MiniLM L6 v2",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 		}
 
@@ -201,6 +208,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "LLM-D Llama 3.1 70B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "llm-d-mixtral-8x7b",
@@ -217,6 +225,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "LLM-D Mixtral 8x7B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 			{
 				ModelName:      "llm-d-qwen2.5-72b",
@@ -232,6 +241,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				Status:          "Running",
 				DisplayName:     "LLM-D Qwen 2.5 72B",
 				ModelSourceType: models.ModelSourceTypeNamespace,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
 			},
 		}
 
@@ -411,8 +421,8 @@ providers:
     provider_type: remote::vllm
     config:
       base_url: http://mock-model-predictor.` + namespace + `.svc.cluster.local:8080/v1
-      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
-      api_token: ${env.VLLM_API_TOKEN:=fake}
+      max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}
+      api_token: ${env.VLLM_API_TOKEN_1:=fake}
       tls_verify: ${env.VLLM_TLS_VERIFY:=true}
   - provider_id: sentence-transformers
     provider_type: inline::sentence-transformers
@@ -548,7 +558,7 @@ server:
 						{Name: "VLLM_TLS_VERIFY", Value: "false"},
 						{Name: "FAISS_STORE_DIR", Value: "~/.llama/faiss"},
 						{Name: "FMS_ORCHESTRATOR_URL", Value: "http://localhost"},
-						{Name: "VLLM_MAX_TOKENS", Value: "4096"},
+						{Name: "VLLM_MAX_TOKENS_1", Value: "4096"},
 						{Name: "OGX_CONFIG_DIR", Value: "/opt/app-root/src/.ogx/distributions/rh/"},
 					},
 				},
@@ -792,4 +802,35 @@ func (m *TokenKubernetesClientMock) GetInferenceServiceURL(_ context.Context, _ 
 		return url, nil
 	}
 	return "", nil
+}
+
+// ListAgentProfiles lists mock AgentProfile ConfigMaps for testing
+func (m *TokenKubernetesClientMock) ListAgentProfiles(ctx context.Context, namespace string) (*models.AgentProfileListResponse, error) {
+	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
+	return m.TokenKubernetesClient.ListAgentProfiles(ctx, namespace)
+}
+
+// CreateAgentProfile creates a mock AgentProfile ConfigMap for testing
+func (m *TokenKubernetesClientMock) CreateAgentProfile(ctx context.Context, namespace string, profile *models.AgentProfile) (*models.AgentProfileCreateResponse, error) {
+	// Use the embedded TokenKubernetesClient which already has all the validation and logic,
+	// but it will use m.Client (the fake client) for actual operations
+	return m.TokenKubernetesClient.CreateAgentProfile(ctx, namespace, profile)
+}
+
+// GetAgentProfile retrieves a mock AgentProfile ConfigMap for testing
+func (m *TokenKubernetesClientMock) GetAgentProfile(ctx context.Context, namespace string, name string) (*models.AgentProfile, error) {
+	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
+	return m.TokenKubernetesClient.GetAgentProfile(ctx, namespace, name)
+}
+
+// UpdateAgentProfile updates a mock AgentProfile ConfigMap for testing
+func (m *TokenKubernetesClientMock) UpdateAgentProfile(ctx context.Context, namespace string, profileID string, request *models.AgentProfileUpdateRequest) (*models.AgentProfileUpdateResponse, error) {
+	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
+	return m.TokenKubernetesClient.UpdateAgentProfile(ctx, namespace, profileID, request)
+}
+
+// DeleteAgentProfile deletes a mock AgentProfile ConfigMap for testing
+func (m *TokenKubernetesClientMock) DeleteAgentProfile(ctx context.Context, namespace string, profileID string) error {
+	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
+	return m.TokenKubernetesClient.DeleteAgentProfile(ctx, namespace, profileID)
 }

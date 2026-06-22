@@ -7,8 +7,22 @@ import { DataSciencePipelineApplicationModel } from '../utils/models';
 
 export const MLFLOW_BFF_STATUS_URL = '/_bff/mlflow/api/v1/status';
 
+/** Remote entry fetched by `loadRemote('mlflowEmbedded/...')` in the dashboard. */
+export const MLFLOW_EMBEDDED_REMOTE_ENTRY_URL =
+  '/_mf/mlflowEmbedded/mlflow/static-files/federated/remoteEntry.js';
+
 export const interceptMlflowStatus = (configured = true): void => {
   cy.intercept('GET', MLFLOW_BFF_STATUS_URL, { body: { configured } }).as('mlflowStatus');
+};
+
+export const interceptMlflowStatusError = (): void => {
+  cy.intercept('GET', MLFLOW_BFF_STATUS_URL, { statusCode: 500 }).as('mlflowStatusError');
+};
+
+export const interceptMlflowEmbeddedRemoteFailure = (): void => {
+  cy.intercept('GET', MLFLOW_EMBEDDED_REMOTE_ENTRY_URL, { statusCode: 500 }).as(
+    'mlflowEmbeddedRemoteEntry',
+  );
 };
 
 export const interceptDSPAMlflowIntegration = (

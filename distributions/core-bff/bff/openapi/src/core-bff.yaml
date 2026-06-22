@@ -1,0 +1,929 @@
+openapi: '3.0.3'
+info:
+  title: 'Core BFF REST API'
+  version: '1.0.0'
+  description: 'REST API for the Core Backend for Frontend (BFF). Replaces Fastify across RHOAI (sidecar) and RHAII (standalone) deployments.'
+  license:
+    name: 'Apache 2.0'
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
+servers:
+  - url: 'http://localhost:4000'
+    description: 'Local development server'
+
+paths:
+  /healthcheck:
+    summary: BFF service health check (infrastructure)
+    description: >-
+      Health check endpoint for Kubernetes liveness/readiness probes.
+      Not behind authentication middleware.
+    get:
+      tags:
+        - HealthCheck
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthCheckResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: healthcheck
+      summary: BFF Health Check (infrastructure)
+      description: Returns BFF service status and version information. Used by Kubernetes probes.
+      security: []
+
+  /api/v1/healthcheck:
+    summary: BFF service health check (API)
+    description: >-
+      Health check endpoint accessible through the API prefix.
+      Goes through authentication middleware.
+    get:
+      tags:
+        - HealthCheck
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthCheckResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: apiHealthcheck
+      summary: BFF Health Check (API)
+      description: Returns BFF service status and version information. Used by the frontend.
+
+  /api/v1/user:
+    summary: Current user identity
+    description: >-
+      Returns the authenticated user's identity and cluster admin status.
+      Requires authentication.
+    get:
+      tags:
+        - User
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getUser
+      summary: Get current user
+
+  /api/v1/namespaces:
+    summary: Accessible namespaces
+    description: >-
+      Returns the list of Kubernetes namespaces accessible to the authenticated user.
+      Requires authentication.
+    get:
+      tags:
+        - Namespaces
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespacesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getNamespaces
+      summary: List accessible namespaces
+
+  /api/k8s/{path}:
+    summary: Kubernetes API proxy
+    description: >-
+      Proxies requests to the Kubernetes API server. Strips the /api/k8s prefix
+      and forwards the remaining path, query parameters, and body to the upstream API.
+      The Authorization header is injected from the authenticated user's bearer token
+      (RequestIdentity); it is not forwarded from the original request.
+      Proxy-level errors (403 SSRF, 502) are returned as plain text, not JSON.
+      Authentication errors (401) are returned as JSON by the auth middleware.
+      Upstream K8s API responses (including K8s 403/404) are passed through unchanged.
+      Note: /wss/k8s/* WebSocket proxy is not documented here (OpenAPI 3.0.3 has no native WebSocket support).
+    parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+        description: >-
+          Multi-segment Kubernetes API path forwarded to the upstream API server
+          (e.g., api/v1/namespaces, apis/apps/v1/namespaces/test/deployments).
+          OpenAPI 3.0.3 does not support multi-segment path parameters natively;
+          the actual implementation matches the full remaining path after /api/k8s/.
+    get:
+      tags:
+        - Kubernetes Proxy
+      operationId: k8sProxyGet
+      summary: Proxy GET to Kubernetes API
+      responses:
+        '200':
+          $ref: '#/components/responses/K8sProxySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    post:
+      tags:
+        - Kubernetes Proxy
+      operationId: k8sProxyPost
+      summary: Proxy POST to Kubernetes API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          $ref: '#/components/responses/K8sProxySuccess'
+        '201':
+          description: Resource created
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    put:
+      tags:
+        - Kubernetes Proxy
+      operationId: k8sProxyPut
+      summary: Proxy PUT to Kubernetes API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          $ref: '#/components/responses/K8sProxySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    patch:
+      tags:
+        - Kubernetes Proxy
+      operationId: k8sProxyPatch
+      summary: Proxy PATCH to Kubernetes API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          $ref: '#/components/responses/K8sProxySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    delete:
+      tags:
+        - Kubernetes Proxy
+      operationId: k8sProxyDelete
+      summary: Proxy DELETE to Kubernetes API
+      responses:
+        '200':
+          $ref: '#/components/responses/K8sProxySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/config:
+    get:
+      tags:
+        - Config
+      operationId: getConfig
+      summary: Get merged dashboard config
+      description: Returns the OdhDashboardConfig CRD merged with defaults. Supports feature flag overrides via x-odh-feature-flags header.
+      parameters:
+        - name: x-odh-feature-flags
+          in: header
+          required: false
+          schema:
+            type: string
+          description: JSON-encoded feature flag overrides
+      responses:
+        '200':
+          description: Dashboard config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - Config
+      operationId: patchConfig
+      summary: Update dashboard config (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Updated dashboard config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/components:
+    get:
+      tags:
+        - Components
+      operationId: getComponents
+      summary: List OdhApplication components
+      description: Returns OdhApplication CRDs. Returns empty array when CRD is absent (RHAII).
+      parameters:
+        - name: installed
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filter to installed/enabled applications only
+      responses:
+        '200':
+          $ref: '#/components/responses/ComponentsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/components/remove:
+    get:
+      tags:
+        - Components
+      operationId: removeComponent
+      summary: Remove an app from the enabled-apps ConfigMap (admin)
+      parameters:
+        - name: appName
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Removal result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/status/{namespace}/allowedUsers:
+    get:
+      tags:
+        - Status
+      operationId: getAllowedUsers
+      summary: List users with notebook access in a namespace (admin)
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of allowed users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AllowedUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/status:
+    get:
+      tags:
+        - Status
+      operationId: getStatus
+      summary: Get user session status
+      description: Returns user identity, admin status, cluster info, and access status.
+      responses:
+        '200':
+          $ref: '#/components/responses/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/dashboardConfig/{namespace}/{name}:
+    parameters:
+      - name: namespace
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - DashboardConfig
+      operationId: getDashboardConfigByName
+      summary: Get raw dashboard config by namespace/name (admin)
+      responses:
+        '200':
+          description: Raw dashboard config CRD
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - DashboardConfig
+      operationId: patchDashboardConfigByName
+      summary: Patch dashboard config by namespace/name (admin)
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  op:
+                    type: string
+                    enum: [add, remove, replace, move, copy, test]
+                  path:
+                    type: string
+                  from:
+                    type: string
+                  value: {}
+      responses:
+        '200':
+          description: Updated dashboard config CRD
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/cluster-settings:
+    get:
+      tags:
+        - ClusterSettings
+      operationId: getClusterSettings
+      summary: Get cluster settings (admin)
+      responses:
+        '200':
+          description: Cluster settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - ClusterSettings
+      operationId: updateClusterSettings
+      summary: Update cluster settings (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterSettings'
+      responses:
+        '200':
+          description: Update result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/connection-types:
+    get:
+      tags:
+        - ConnectionTypes
+      operationId: listConnectionTypes
+      summary: List connection types
+      description: Returns ConfigMaps with connection-type labels. No admin required.
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionTypesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - ConnectionTypes
+      operationId: createConnectionType
+      summary: Create connection type (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Creation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/connection-types/{name}:
+    parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - ConnectionTypes
+      operationId: getConnectionType
+      summary: Get connection type by name
+      responses:
+        '200':
+          description: Connection type ConfigMap
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - ConnectionTypes
+      operationId: updateConnectionType
+      summary: Replace connection type (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Update result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - ConnectionTypes
+      operationId: patchConnectionType
+      summary: Patch connection type (admin)
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  op:
+                    type: string
+                    enum: [add, remove, replace, move, copy, test]
+                  path:
+                    type: string
+                  from:
+                    type: string
+                  value: {}
+      responses:
+        '200':
+          description: Patch result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - ConnectionTypes
+      operationId: deleteConnectionType
+      summary: Delete connection type (admin)
+      responses:
+        '200':
+          description: Delete result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    HealthCheckResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: 'available'
+          description: 'Service availability status'
+        systemInfo:
+          type: object
+          properties:
+            version:
+              type: string
+              example: '1.0.0'
+              description: 'BFF version'
+
+    User:
+      type: object
+      required:
+        - userId
+        - clusterAdmin
+      properties:
+        userId:
+          type: string
+          example: 'user@example.com'
+          description: 'Authenticated user identifier'
+        clusterAdmin:
+          type: boolean
+          example: false
+          description: 'Whether the user has cluster-admin privileges'
+
+    UserEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/User'
+
+    Namespace:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: 'opendatahub'
+          description: 'Kubernetes namespace name'
+        displayName:
+          type: string
+          example: 'Open Data Hub'
+          description: 'Human-readable namespace display name'
+
+    NamespacesEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Namespace'
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: 'Error code identifier'
+              example: 'INTERNAL_SERVER_ERROR'
+            message:
+              type: string
+              description: 'Human-readable error description'
+              example: 'An unexpected error occurred'
+
+    DashboardConfig:
+      type: object
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          type: object
+          properties:
+            dashboardConfig:
+              type: object
+              description: Feature flags (40+ boolean fields)
+            notebookController:
+              type: object
+            templateOrder:
+              type: array
+              items:
+                type: string
+            modelServing:
+              type: object
+            genAiStudioConfig:
+              type: object
+
+    KubeStatus:
+      type: object
+      properties:
+        currentContext:
+          type: string
+        currentUser:
+          type: object
+          properties:
+            name:
+              type: string
+        namespace:
+          type: string
+        userName:
+          type: string
+        userID:
+          type: string
+        clusterID:
+          type: string
+        clusterBranding:
+          type: string
+        isAdmin:
+          type: boolean
+        isAllowed:
+          type: boolean
+        serverURL:
+          type: string
+        isImpersonating:
+          type: boolean
+
+    StatusEnvelope:
+      type: object
+      required:
+        - kube
+      properties:
+        kube:
+          $ref: '#/components/schemas/KubeStatus'
+
+    ClusterSettings:
+      type: object
+      properties:
+        pvcSize:
+          type: integer
+          example: 20
+        cullerTimeout:
+          type: integer
+          example: 31536000
+        userTrackingEnabled:
+          type: boolean
+        modelServingPlatformEnabled:
+          type: object
+          properties:
+            kServe:
+              type: boolean
+            LLMd:
+              type: boolean
+        isDistributedInferencingDefault:
+          type: boolean
+        defaultDeploymentStrategy:
+          type: string
+
+    AllowedUser:
+      type: object
+      properties:
+        username:
+          type: string
+        privilege:
+          type: string
+          enum: [Admin, User]
+        lastActivity:
+          type: string
+
+    MutationResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+
+  responses:
+    HealthCheckResponse:
+      description: Service is healthy
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HealthCheckResponse'
+          example:
+            status: 'available'
+            systemInfo:
+              version: '1.0.0'
+
+    UserResponse:
+      description: Current user identity
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserEnvelope'
+          example:
+            data:
+              userId: 'user@example.com'
+              clusterAdmin: false
+
+    NamespacesResponse:
+      description: List of accessible namespaces
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespacesEnvelope'
+          example:
+            data:
+              - name: 'opendatahub'
+                displayName: 'Open Data Hub'
+              - name: 'my-project'
+                displayName: 'My Project'
+
+    StatusResponse:
+      description: User session status
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StatusEnvelope'
+
+    ComponentsResponse:
+      description: List of OdhApplication components
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+
+    ConnectionTypesResponse:
+      description: List of connection-type ConfigMaps
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'BAD_REQUEST'
+              message: 'Invalid request parameters'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'UNAUTHORIZED'
+              message: 'Access unauthorized'
+
+    NotFound:
+      description: Resource not found (JSON from upstream K8s API passthrough)
+      content:
+        application/json:
+          schema:
+            type: object
+          example:
+            kind: 'Status'
+            code: 404
+            message: 'the requested resource was not found'
+
+    Forbidden:
+      description: >-
+        Access denied. May be plain text from SSRF protection (redirect to private IP blocked)
+        or JSON from upstream K8s API (RBAC denied).
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: 'Forbidden'
+        application/json:
+          schema:
+            type: object
+          example:
+            kind: 'Status'
+            code: 403
+            message: 'pods is forbidden'
+
+    K8sProxySuccess:
+      description: Successful response from Kubernetes API (passthrough)
+      content:
+        application/json:
+          schema:
+            type: object
+
+    BadGateway:
+      description: Upstream service error (plain text from proxy error handler)
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: 'Bad Gateway'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'INTERNAL_SERVER_ERROR'
+              message: 'An unexpected error occurred'

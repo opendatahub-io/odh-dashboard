@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import {
@@ -16,9 +17,12 @@ import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
+import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
+import SaveAgentProfileModal from './components/SaveAgentProfileModal';
 import {
   useChatbotConfigStore,
   selectConfigIds,
@@ -45,6 +49,11 @@ const ChatbotMain: React.FunctionComponent = () => {
     modelsError,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
+  const {
+    data: mcpServers = [],
+    configMapName: mcpConfigMapName,
+    loaded: mcpServersLoaded,
+  } = useFetchMCPServers();
   const { data: bffConfig } = useFetchBFFConfig();
   const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
   const [existingCollections] = useFetchVectorStores();
@@ -61,8 +70,20 @@ const ChatbotMain: React.FunctionComponent = () => {
 
   // Ref to clear all chat messages (will be set by ChatbotPlayground)
   const clearAllMessagesRef = React.useRef<(() => void) | null>(null);
+  // Ref to check whether any pane has user messages (beyond the initial welcome)
+  const hasConversationMessagesRef = React.useRef<(() => boolean) | null>(null);
 
   // Derive compare mode from Zustand store (configIds.length > 1)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const agentProfileId = searchParams.get('agentProfileId');
+
+  // Load agent profile from URL param — lives here so the ApplicationsPage spinner covers the fetch
+  const { error: profileLoadError } = useAgentProfileUrlParam({ mcpServers, mcpServersLoaded });
+  const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
+  // Ready when: no profile to load, fetch errored (show error state), or profile applied for this ID
+  const profileReady =
+    !agentProfileId || !!profileLoadError || (profileApplied && loadedProfileId === agentProfileId);
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
@@ -80,6 +101,34 @@ const ChatbotMain: React.FunctionComponent = () => {
     setActivePaneConfigId(remainingConfigId || DEFAULT_CONFIG_ID);
     fireMiscTrackingEvent('Playground Compare Mode Exited', { success: true });
   }, []);
+
+  const [saveModalMode, setSaveModalMode] = React.useState<'save' | 'save-as' | null>(null);
+
+  const handleOpenSave = React.useCallback(() => setSaveModalMode('save'), []);
+  const handleOpenSaveAs = React.useCallback(() => setSaveModalMode('save-as'), []);
+  const handleCloseSaveModal = React.useCallback(() => setSaveModalMode(null), []);
+
+  const handleProfileSaved = React.useCallback(
+    (profileId: string, displayName: string, description: string) => {
+      const currentConfig = useChatbotConfigStore.getState().configurations[primaryConfigId];
+      if (!currentConfig) {
+        return;
+      }
+      useChatbotConfigStore
+        .getState()
+        .applyAgentProfile(currentConfig, profileId, displayName, description);
+      // Keep the URL in sync so a page refresh reloads the saved profile
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('agentProfileId', profileId);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [primaryConfigId, setSearchParams],
+  );
 
   // Handle compare chat confirmation - clears messages and enters compare mode
   const handleCompareConfirm = React.useCallback(() => {
@@ -109,7 +158,8 @@ const ChatbotMain: React.FunctionComponent = () => {
           lsdStatusLoaded &&
           (aiModelsLoaded || !!aiModelsError) &&
           (maasModelsLoaded || !!maasModelsError) &&
-          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError)
+          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError) &&
+          profileReady
         }
         empty={!lsdStatus}
         emptyStatePage={
@@ -159,10 +209,12 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           )
         }
-        loadError={lsdStatusError || aiModelsError}
+        loadError={lsdStatusError || aiModelsError || profileLoadError}
         headerAction={
           hasNoModelsOrSelectedModelDisabled ? undefined : (
             <ChatbotHeaderActions
+              onSave={handleOpenSave}
+              onSaveAs={handleOpenSaveAs}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
                 fireSimpleTrackingEvent('Playground View Code Selected');
@@ -174,7 +226,12 @@ const ChatbotMain: React.FunctionComponent = () => {
                 fireSimpleTrackingEvent('Playground New Chat Selected');
               }}
               onCompareChat={() => {
-                setIsCompareChatModalOpen(true);
+                const hasMessages = hasConversationMessagesRef.current?.();
+                if (hasMessages) {
+                  setIsCompareChatModalOpen(true);
+                } else {
+                  handleCompareConfirm();
+                }
               }}
               onSettingsClick={() => setIsDrawerExpanded((prev) => !prev)}
               isSettingsOpen={isDrawerExpanded}
@@ -230,6 +287,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               setActivePaneConfigId={setActivePaneConfigId}
               onClosePane={handleClosePane}
               clearAllMessagesRef={clearAllMessagesRef}
+              hasConversationMessagesRef={hasConversationMessagesRef}
               isDrawerExpanded={isDrawerExpanded}
               setIsDrawerExpanded={setIsDrawerExpanded}
             />
@@ -274,6 +332,15 @@ const ChatbotMain: React.FunctionComponent = () => {
         variant="compare"
       />
       {isPromptManagementModalOpen && <PromptManagementModal />}
+      {saveModalMode && (
+        <SaveAgentProfileModal
+          mode={saveModalMode}
+          mcpServers={mcpServers}
+          mcpConfigMapName={mcpConfigMapName}
+          onClose={handleCloseSaveModal}
+          onSaved={handleProfileSaved}
+        />
+      )}
     </>
   );
 };

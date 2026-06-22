@@ -95,13 +95,13 @@ paths:
           description: >-
             Secret type filter (key matching is case-sensitive, keys must be uppercase):
             - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
-            - 'lls': Filters for Llama Stack secrets (classification keys: LLAMA_STACK_CLIENT_API_KEY, LLAMA_STACK_CLIENT_BASE_URL)
+            - 'ogx': Filters for Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
             - Omit for all secrets
 
             Type Classification Precedence:
             When determining if a secret matches the requested type filter, the following precedence is applied:
             1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation, that annotated type takes precedence for inclusion in ?type= filter results
-            2. Key-based classification (fallback): If no connection-type annotation is present, the type is determined by key-based classification rules (e.g., storage keys like AWS_ACCESS_KEY_ID for ?type=storage, LLS keys like LLAMA_STACK_CLIENT_API_KEY for ?type=lls)
+            2. Key-based classification (fallback): If no connection-type annotation is present, the type is determined by key-based classification rules (e.g., storage keys like AWS_ACCESS_KEY_ID for ?type=storage, OGX keys like OGX_CLIENT_API_KEY for ?type=ogx)
 
             Note: Classification keys are used to identify the secret type. Additional optional keys (like AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets)
             may be present but are not required for type classification. The data field in the response lists all keys
@@ -110,7 +110,7 @@ paths:
             type: string
             enum:
               - storage
-              - lls
+              - ogx
           example: storage
       responses:
         "200":
@@ -136,7 +136,7 @@ paths:
         1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation with a non-empty value, that annotated type is used
         2. Key-based classification (fallback): If no connection-type annotation is present, type is determined by the presence of specific classification keys:
            - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
-           - 'lls': Llama Stack secrets (classification keys: LLAMA_STACK_CLIENT_API_KEY, LLAMA_STACK_CLIENT_BASE_URL)
+           - 'ogx': Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
@@ -145,7 +145,7 @@ paths:
         Type filtering with ?type= parameter:
         When filtering by type, the annotated type (if present) takes precedence over key-based classification for determining inclusion in results.
         - 'storage': Returns only secrets classified as storage types (currently: s3 via key-based classification, or any secret with connection-type annotation matching 'storage')
-        - 'lls': Returns only secrets classified as LLS type (via key-based classification or connection-type annotation)
+        - 'ogx': Returns only secrets classified as OGX type (via key-based classification or connection-type annotation)
         - No type: Returns all secrets with their detected type classification
   # =============================================================================
   # S3 Endpoints
@@ -445,16 +445,16 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
 
   # =============================================================================
-  # LSD ENDPOINTS
+  # OGX ENDPOINTS
   # =============================================================================
 
-  /api/v1/lsd/models:
-    summary: List available LSD models
+  /api/v1/ogx/models:
+    summary: List available OGX models
     description: >-
-      Lists all available models from LlamaStack Distribution (LSD).
+      Lists all available models from Open GenAI Stack Distribution (OGX).
       Returns a flat list of models with their identifiers, types, provider information, and resource paths.
       Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
-      containing LLAMA_STACK_CLIENT_BASE_URL and LLAMA_STACK_CLIENT_API_KEY credentials.
+      containing OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY credentials.
     get:
       tags:
         - Models
@@ -463,23 +463,23 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace containing the LlamaStack credentials secret
+          description: Kubernetes namespace containing the Open GenAI Stack credentials secret
           required: true
           schema:
             type: string
             example: 'default'
         - name: secretName
           in: query
-          description: Name of the Kubernetes secret containing LlamaStack credentials (LLAMA_STACK_CLIENT_BASE_URL and LLAMA_STACK_CLIENT_API_KEY)
+          description: Name of the Kubernetes secret containing Open GenAI Stack credentials (OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
           required: true
           schema:
             type: string
             maxLength: 253
             pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
-            example: 'my-lls-secret'
+            example: 'my-ogx-secret'
       responses:
         "200":
-          $ref: "#/components/responses/LSDModelsResponse"
+          $ref: "#/components/responses/OGXModelsResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -492,18 +492,18 @@ paths:
           $ref: "#/components/responses/InternalServerError"
         "502":
           $ref: "#/components/responses/BadGateway"
-      operationId: getLSDModels
-      summary: Get LSD Models
-      description: Returns available models from LlamaStack Distribution using credentials from a Kubernetes secret
+      operationId: getOGXModels
+      summary: Get OGX Models
+      description: Returns available models from Open GenAI Stack Distribution using credentials from a Kubernetes secret
 
-  /api/v1/lsd/vector-stores:
-    summary: List available LSD vector store providers
+  /api/v1/ogx/vector-stores:
+    summary: List available OGX vector store providers
     description: >-
-      Lists available vector store providers from LlamaStack Distribution (LSD).
+      Lists available vector store providers from Open GenAI Stack Distribution (OGX).
       Calls the native /v1/providers endpoint and filters for vector_io API type.
       Returns provider identifiers and types (e.g., remote::milvus).
       Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
-      containing LLAMA_STACK_CLIENT_BASE_URL and LLAMA_STACK_CLIENT_API_KEY credentials.
+      containing OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY credentials.
     get:
       tags:
         - VectorStores
@@ -512,21 +512,21 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace containing the LlamaStack credentials secret
+          description: Kubernetes namespace containing the Open GenAI Stack credentials secret
           required: true
           schema:
             type: string
             example: 'default'
         - name: secretName
           in: query
-          description: Name of the Kubernetes secret containing LlamaStack credentials (LLAMA_STACK_CLIENT_BASE_URL and LLAMA_STACK_CLIENT_API_KEY)
+          description: Name of the Kubernetes secret containing Open GenAI Stack credentials (OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
           required: true
           schema:
             type: string
-            example: 'my-lls-secret'
+            example: 'my-ogx-secret'
       responses:
         "200":
-          $ref: "#/components/responses/LSDVectorStoresResponse"
+          $ref: "#/components/responses/OGXVectorStoresResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -539,9 +539,9 @@ paths:
           $ref: "#/components/responses/InternalServerError"
         "502":
           $ref: "#/components/responses/BadGateway"
-      operationId: getLSDVectorStoreProviders
-      summary: Get LSD Vector Store Providers
-      description: Returns available vector store providers from LlamaStack Distribution using credentials from a Kubernetes secret
+      operationId: getOGXVectorStoreProviders
+      summary: Get OGX Vector Store Providers
+      description: Returns available vector store providers from Open GenAI Stack Distribution using credentials from a Kubernetes secret
 
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
@@ -579,8 +579,8 @@ paths:
       summary: Get Pipeline Runs
       description: >-
         Returns pipeline runs across all versions of the auto-discovered AutoRAG managed pipeline.
-        The AutoRAG pipeline is automatically discovered in the namespace by name prefix.
-        Returns 500 if no managed AutoRAG pipeline is found in the namespace.
+        The AutoRAG pipeline is automatically discovered in the namespace by display name.
+        Returns 404 Not Found if required managed pipelines are unavailable in the namespace.
     post:
       tags:
         - PipelineOperation
@@ -625,8 +625,8 @@ paths:
         Creates a new AutoRAG pipeline run. The BFF automatically discovers the managed
         AutoRAG pipeline in the namespace and injects the pipeline ID and version ID.
         The optional pipelineType parameter selects which discovered pipeline to use
-        (currently only "autorag" is supported). If no matching AutoRAG pipeline is found,
-        returns a 500 error. The Pipeline Server (DSPipelineApplication) is also
+        (currently only "autorag" is supported). Returns 404 Not Found if required managed
+        pipelines are unavailable in the namespace. The Pipeline Server (DSPipelineApplication) is also
         auto-discovered. The BFF maps AutoRAG-specific parameters to KFP v2beta1 runtime
         config and submits the run.
 
@@ -637,8 +637,8 @@ paths:
       Pipeline Server in the specified namespace. The Pipeline Server
       (DSPipelineApplication) and AutoRAG managed pipeline are automatically discovered.
       The run is validated to ensure it belongs to the discovered AutoRAG pipeline before
-      being returned. Returns 404 if the run doesn't exist or belongs to a different pipeline.
-      Returns 500 if no AutoRAG pipeline is found in the namespace.
+      being returned. Returns 404 if the run doesn't exist, belongs to a different pipeline,
+      or required managed pipelines are unavailable in the namespace.
     get:
       tags:
         - PipelineOperation
@@ -709,7 +709,9 @@ paths:
         Permanently deletes a completed, failed, or canceled AutoRAG pipeline run. The BFF validates
         that the run belongs to the discovered AutoRAG managed pipeline in the namespace and that it
         is in a deletable state (SUCCEEDED, FAILED, or CANCELED) before deleting it. This prevents
-        users from deleting runs from other pipelines in the same namespace.
+        users from deleting runs from other pipelines in the same namespace. Returns 404 if the run
+        doesn't exist, belongs to a different pipeline, or required managed pipelines are
+        unavailable in the namespace.
 
   /api/v1/pipeline-runs/{runId}/terminate:
     summary: Terminate an active pipeline run
@@ -717,8 +719,8 @@ paths:
       Terminates an active pipeline run, cancelling all running tasks and transitioning the run
       to CANCELING and then CANCELED state. The run must be in an active state (PENDING, RUNNING,
       PAUSED, or CANCELING) and belong to the discovered AutoRAG pipeline in the namespace.
-      Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist or
-      belongs to a different pipeline.
+      Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist,
+      belongs to a different pipeline, or required managed pipelines are unavailable in the namespace.
     post:
       tags:
         - PipelineOperation
@@ -755,7 +757,8 @@ paths:
         CANCELED state. The run must be in an active state (PENDING, RUNNING, PAUSED, or
         CANCELING). The BFF validates that the run belongs to the discovered AutoRAG managed
         pipeline in the namespace and that it is in a terminatable state before proceeding.
-        Returns 400 if the run is not in a terminatable state.
+        Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist,
+        belongs to a different pipeline, or required managed pipelines are unavailable in the namespace.
 
   /api/v1/pipeline-runs/{runId}/retry:
     summary: Retry a failed or canceled pipeline run
@@ -763,7 +766,8 @@ paths:
       Re-initiates a failed or canceled pipeline run from the point of failure. The run must
       belong to the discovered AutoRAG pipeline in the namespace and must be in FAILED or
       CANCELED state. Returns 400 if the run is not in a retryable state, or 404 if the run
-      doesn't exist or belongs to a different pipeline.
+      doesn't exist, belongs to a different pipeline, or required managed pipelines are
+      unavailable in the namespace.
     post:
       tags:
         - PipelineOperation
@@ -799,7 +803,9 @@ paths:
         Re-initiates a failed or canceled AutoRAG pipeline run. The BFF validates that the run
         belongs to the discovered AutoRAG managed pipeline in the namespace and that it is in a
         retryable state (FAILED or CANCELED) before retrying it. This prevents users from
-        retrying runs from other pipelines in the same namespace.
+        retrying runs from other pipelines in the same namespace. Returns 404 if the run doesn't
+        exist, belongs to a different pipeline, or required managed pipelines are unavailable
+        in the namespace.
 
 components:
   schemas:
@@ -816,10 +822,10 @@ components:
           type: boolean
           example: true
 
-    # LSD Model Schemas
-    LSDModel:
+    # OGX Model Schemas
+    OGXModel:
       type: object
-      description: Model from LlamaStack Distribution
+      description: Model from Open GenAI Stack Distribution
       required:
         - id
         - type
@@ -842,9 +848,9 @@ components:
           type: string
           description: Full provider resource path
           example: "ollama://models/llama3.2:3b"
-    LSDModelsData:
+    OGXModelsData:
       type: object
-      description: List of all available models from LlamaStack Distribution
+      description: List of all available models from Open GenAI Stack Distribution
       required:
         - models
       properties:
@@ -852,11 +858,11 @@ components:
           type: array
           description: Complete list of all available models
           items:
-            $ref: '#/components/schemas/LSDModel'
+            $ref: '#/components/schemas/OGXModel'
 
-    LSDVectorStoreProvider:
+    OGXVectorStoreProvider:
       type: object
-      description: Vector store provider from LlamaStack Distribution
+      description: Vector store provider from Open GenAI Stack Distribution
       required:
         - provider_id
         - provider_type
@@ -869,9 +875,9 @@ components:
           type: string
           description: Provider implementation type
           example: "remote::milvus"
-    LSDVectorStoreProvidersData:
+    OGXVectorStoreProvidersData:
       type: object
-      description: List of vector store providers from LlamaStack Distribution
+      description: List of vector store providers from Open GenAI Stack Distribution
       required:
         - vector_store_providers
       properties:
@@ -879,7 +885,7 @@ components:
           type: array
           description: List of vector_io providers
           items:
-            $ref: '#/components/schemas/LSDVectorStoreProvider'
+            $ref: '#/components/schemas/OGXVectorStoreProvider'
 
     SecretTypeSchema:
       description: >-
@@ -912,13 +918,13 @@ components:
                   example: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_ENDPOINT"]
                 commonOptionalKeys:
                   example: ["AWS_S3_BUCKET", "AWS_DEFAULT_REGION"]
-        lls:
+        ogx:
           allOf:
             - $ref: '#/components/schemas/SecretTypeSchema'
             - type: object
               properties:
                 classificationKeys:
-                  example: ["LLAMA_STACK_CLIENT_API_KEY", "LLAMA_STACK_CLIENT_BASE_URL"]
+                  example: ["OGX_CLIENT_API_KEY", "OGX_CLIENT_BASE_URL"]
                 commonOptionalKeys:
                   example: []
 
@@ -945,7 +951,7 @@ components:
             1. First priority: The 'opendatahub.io/connection-type' annotation if present and non-empty
             2. Fallback: Key-based type detection (see SecretTypeSchemas):
                - 's3': S3 storage secret (has all required S3 classification keys)
-               - 'lls': Llama Stack secret (has all required LLS classification keys)
+               - 'ogx': Open GenAI Stack secret (has all required OGX classification keys)
 
             When filtering with the ?type= parameter, the annotated type (if present) takes precedence over key-based classification
             for determining inclusion in results. This means a secret with connection-type='storage' will be included in ?type=storage
@@ -1185,7 +1191,7 @@ components:
         - input_data_secret_name
         - input_data_bucket_name
         - input_data_key
-        - llama_stack_secret_name
+        - ogx_secret_name
       properties:
         display_name:
           type: string
@@ -1214,10 +1220,10 @@ components:
         input_data_key:
           type: string
           description: Object key within the input data bucket
-        llama_stack_secret_name:
+        ogx_secret_name:
           type: string
-          description: Name of the K8s secret for LlamaStack access
-        embeddings_models:
+          description: Name of the K8s secret for Open GenAI Stack access
+        embedding_models:
           type: array
           items:
             type: string
@@ -1234,9 +1240,9 @@ components:
             - answer_correctness
             - context_correctness
           description: Metric to optimize (defaults to faithfulness)
-        llama_stack_vector_io_provider_id:
+        vector_io_provider_id:
           type: string
-          description: Pipeline vector store provider ID from the selected LlamaStack provider (e.g. milvus)
+          description: Pipeline vector store provider ID from the selected Open GenAI Stack provider (e.g. milvus)
           example: milvus
         optimization_max_rag_patterns:
           type: integer
@@ -1528,6 +1534,19 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            managed-pipeline-unavailable:
+              summary: Required managed pipelines are not provisioned
+              value:
+                error:
+                  code: "404"
+                  message: "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
+            resource-not-found:
+              summary: Requested resource does not exist
+              value:
+                error:
+                  code: "404"
+                  message: "the requested resource could not be found"
       description: The specified resource was not found
     BadRequest:
       content:
@@ -1586,9 +1605,9 @@ components:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
 
-    # LSD Responses
-    LSDModelsResponse:
-      description: List of available LSD models
+    # OGX Responses
+    OGXModelsResponse:
+      description: List of available OGX models
       content:
         application/json:
           schema:
@@ -1598,7 +1617,7 @@ components:
                 type: object
                 description: Metadata about the response
               data:
-                $ref: '#/components/schemas/LSDModelsData'
+                $ref: '#/components/schemas/OGXModelsData'
           example:
             metadata: {}
             data:
@@ -1620,8 +1639,8 @@ components:
                   provider: "ollama"
                   resource_path: "ollama://models/nomic-embed-text"
 
-    LSDVectorStoresResponse:
-      description: List of available LSD vector store providers
+    OGXVectorStoresResponse:
+      description: List of available OGX vector store providers
       content:
         application/json:
           schema:
@@ -1631,7 +1650,7 @@ components:
                 type: object
                 description: Metadata about the response
               data:
-                $ref: '#/components/schemas/LSDVectorStoreProvidersData'
+                $ref: '#/components/schemas/OGXVectorStoreProvidersData'
           example:
             metadata: {}
             data:
@@ -1670,19 +1689,19 @@ components:
                     type: s3
                     data: {"AWS_ACCESS_KEY_ID": "[REDACTED]", "AWS_DEFAULT_REGION": "[REDACTED]", "AWS_S3_ENDPOINT": "[REDACTED]", "AWS_SECRET_ACCESS_KEY": "[REDACTED]"}
             llsSecrets:
-              summary: Example response with LLS (Llama Stack) secrets
+              summary: Example response with OGX (Open GenAI Stack) secrets
               value:
                 data:
                   - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
-                    name: llama-stack-secret-1
-                    type: lls
-                    data: {"LLAMA_STACK_CLIENT_API_KEY": "[REDACTED]", "LLAMA_STACK_CLIENT_BASE_URL": "[REDACTED]"}
-                    displayName: Development LLS
-                    description: Llama Stack connection for development and testing
+                    name: ogx-secret-1
+                    type: ogx
+                    data: {"OGX_CLIENT_API_KEY": "[REDACTED]", "OGX_CLIENT_BASE_URL": "[REDACTED]"}
+                    displayName: Development OGX
+                    description: Open GenAI Stack connection for development and testing
                   - uuid: d2e3f4a5-b6c7-8901-defa-bc2345678901
-                    name: llama-stack-secret-2
-                    type: lls
-                    data: {"LLAMA_STACK_CLIENT_API_KEY": "[REDACTED]", "LLAMA_STACK_CLIENT_BASE_URL": "[REDACTED]"}
+                    name: ogx-secret-2
+                    type: ogx
+                    data: {"OGX_CLIENT_API_KEY": "[REDACTED]", "OGX_CLIENT_BASE_URL": "[REDACTED]"}
             allSecrets:
               summary: Example response with all secrets (no type filter)
               value:
@@ -1694,10 +1713,10 @@ components:
                     displayName: Production S3 Bucket
                     description: Main S3 bucket for production data storage and backups
                   - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
-                    name: lls-secret
-                    type: lls
-                    data: {"LLAMA_STACK_CLIENT_API_KEY": "[REDACTED]", "LLAMA_STACK_CLIENT_BASE_URL": "[REDACTED]"}
-                    displayName: Development LLS
+                    name: ogx-secret
+                    type: ogx
+                    data: {"OGX_CLIENT_API_KEY": "[REDACTED]", "OGX_CLIENT_BASE_URL": "[REDACTED]"}
+                    displayName: Development OGX
                   - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
                     name: other-secret
                     data: {"password": "[REDACTED]", "username": "[REDACTED]"}
@@ -1775,7 +1794,7 @@ components:
                   input_data_secret_name: "minio-secret"
                   input_data_bucket_name: "autorag"
                   input_data_key: "documents/"
-                  llama_stack_secret_name: "llama-secret"
+                  ogx_secret_name: "ogx-secret"
 
     PipelineRunResponse:
       description: Successful response containing a single pipeline run
@@ -1972,8 +1991,8 @@ tags:
   - name: S3Operation
     description: Operation performed on S3 storage
   - name: Models
-    description: AI model discovery and management from LlamaStack Distribution
+    description: AI model discovery and management from Open GenAI Stack Distribution
   - name: PipelineOperation
     description: Operations for querying Kubeflow Pipeline runs
   - name: VectorStores
-    description: Vector store provider discovery from LlamaStack Distribution
+    description: Vector store provider discovery from Open GenAI Stack Distribution

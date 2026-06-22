@@ -37,7 +37,7 @@
     ]
   },
   "dependencies": {
-    "@odh-dashboard/app-config": "*",
+    "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {

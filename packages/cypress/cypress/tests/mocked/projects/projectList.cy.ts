@@ -3,7 +3,7 @@ import {
   mockProjectsK8sList,
 } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { incrementResourceVersion } from '@odh-dashboard/internal/__mocks__/mockUtils';
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';

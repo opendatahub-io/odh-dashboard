@@ -1,4 +1,4 @@
-import { KnownLabels } from '#~/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 
 export const LABEL_SELECTOR_DASHBOARD_RESOURCE = `${KnownLabels.DASHBOARD_RESOURCE}=true`;
 export const LABEL_SELECTOR_DATA_CONNECTION_AWS = `${KnownLabels.DATA_CONNECTION_AWS}=true`;

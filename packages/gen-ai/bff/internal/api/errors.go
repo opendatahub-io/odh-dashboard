@@ -36,6 +36,12 @@ func (app *App) LogError(r *http.Request, err error) {
 }
 
 func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
+	// Check if err is already an HTTPError with a custom code
+	if httpErr, ok := err.(*integrations.HTTPError); ok && httpErr.Code != "" {
+		app.errorResponse(w, r, httpErr)
+		return
+	}
+
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusBadRequest,
 		ErrorResponse: integrations.ErrorResponse{
@@ -47,14 +53,37 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 }
 
 func (app *App) guardrailViolationResponse(w http.ResponseWriter, r *http.Request, code string, msg string) {
-	httpError := &integrations.HTTPError{
+	frontendErr := &integrations.FrontendErrorResponse{
 		StatusCode: http.StatusBadRequest,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    code,
-			Message: msg,
+		Error: &integrations.ErrorDetail{
+			Component: "guardrails",
+			Code:      code,
+			Message:   msg,
+			Retriable: false,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {
+		app.LogError(r, writeErr)
+		w.WriteHeader(frontendErr.StatusCode)
+	}
+}
+
+func (app *App) guardrailServiceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.LogError(r, err)
+
+	frontendErr := &integrations.FrontendErrorResponse{
+		StatusCode: http.StatusServiceUnavailable,
+		Error: &integrations.ErrorDetail{
+			Component: "guardrails",
+			Code:      constants.GuardrailServiceUnavailableCode,
+			Message:   err.Error(),
+			Retriable: false,
+		},
+	}
+	if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {
+		app.LogError(r, writeErr)
+		w.WriteHeader(frontendErr.StatusCode)
+	}
 }
 
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
@@ -68,9 +97,6 @@ func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err
 	app.errorResponse(w, r, httpError)
 }
 
-// TODO: remove nolint comment below when we use this method
-//
-//nolint:unused
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusForbidden,
@@ -113,6 +139,19 @@ func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Reques
 		ErrorResponse: integrations.ErrorResponse{
 			Code:    constants.GuardrailServiceUnavailableCode,
 			Message: err.Error(),
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) payloadTooLargeResponse(w http.ResponseWriter, r *http.Request, limit int64) {
+	limitMB := float64(limit) / (1 << 20)
+	app.LogError(r, fmt.Errorf("request body exceeds the %.0fMB limit", limitMB))
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusRequestEntityTooLarge,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusRequestEntityTooLarge),
+			Message: fmt.Sprintf("request body exceeds the %.0fMB limit", limitMB),
 		},
 	}
 	app.errorResponse(w, r, httpError)

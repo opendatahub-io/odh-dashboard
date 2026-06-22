@@ -13,6 +13,7 @@ import { MaaSModel } from '~/app/types';
 // Mock dependencies
 jest.mock('react-router-dom', () => ({
   useNavigate: () => jest.fn(),
+  useSearchParams: () => [new URLSearchParams(), jest.fn()],
 }));
 
 jest.mock('~/app/hooks/useFetchBFFConfig');
@@ -24,6 +25,10 @@ jest.mock('~/app/Chatbot/store', () => ({
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
   fireSimpleTrackingEvent: jest.fn(),
+}));
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
 }));
 
 // Mock child components

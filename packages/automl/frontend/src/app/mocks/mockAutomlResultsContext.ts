@@ -43,7 +43,7 @@ const buildLocation = (
   taskId: string,
   modelName: string,
 ): AutomlModel['location'] => {
-  const base = `${pipelineName}/${runId}/autogluon-models-full-refit/${taskId}/model_artifact/${modelName}`;
+  const base = `${pipelineName}/${runId}/autogluon-models-training/${taskId}/models_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
     predictor: `${base}/predictor`,
@@ -68,6 +68,8 @@ const mockPipelineRun: PipelineRun = {
       display_name: 'test-run',
       label_column: 'type',
       task_type: 'multiclass',
+      preset: 'speed',
+      eval_metric: 'accuracy',
       top_n: 3,
       train_data_bucket_name: 'my-automl-bucket',
       train_data_file_key: 'creatures_dataset.csv',
@@ -182,6 +184,8 @@ const mockTimeseriesPipelineRun: PipelineRun = {
       id_column: 'store_id',
       timestamp_column: 'date',
       prediction_length: 7,
+      preset: 'speed',
+      eval_metric: 'MASE',
       top_n: 3,
       train_data_bucket_name: 'my-automl-bucket',
       train_data_file_key: 'store_sales.csv',
@@ -202,7 +206,7 @@ const buildTimeseriesLocation = (
   taskId: string,
   modelName: string,
 ): AutomlModel['location'] => {
-  const base = `autogluon-timeseries-training-pipeline/${runId}/autogluon-timeseries-models-full-refit/${taskId}/model_artifact/${modelName}`;
+  const base = `autogluon-timeseries-training-pipeline/${runId}/autogluon-timeseries-models-training/${taskId}/models_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
     predictor: `${base}/predictor`,

@@ -16,7 +16,6 @@ import {
 } from '../../../../pages/modelServing';
 import {
   checkInferenceServiceState,
-  modelExternalTester,
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
 import type { DeployOCIModelData } from '../../../../types';
@@ -90,7 +89,15 @@ describe(
     it(
       'Verify User Can Create an OCI Connection, Deploy Model with Token Auth, and Verify Token Access',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+        tags: [
+          '@Smoke',
+          '@SmokeSet3',
+          '@Dashboard',
+          '@ModelServing',
+          '@NonConcurrent',
+          '@KServeCI',
+          '@ModelServingCI',
+        ],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -163,7 +170,7 @@ describe(
 
         // Token Authentication Verification
         cy.step('Verify the model is not accessible without a token');
-        modelExternalTester(modelDeploymentName, projectName).then(({ response }) => {
+        verifyModelExternalToken(modelDeploymentName, projectName).then(({ response }) => {
           expect(response.status).to.equal(401);
         });
 

@@ -32,16 +32,16 @@ func newMinimalTestApp() *App {
 
 func validCreateRequest() models.CreateAutoRAGRunRequest {
 	return models.CreateAutoRAGRunRequest{
-		DisplayName:          "test-run",
-		Description:          "a test run",
-		TestDataSecretName:   "test-secret",
-		TestDataBucketName:   "test-bucket",
-		TestDataKey:          "test-key",
-		InputDataSecretName:  "input-secret",
-		InputDataBucketName:  "input-bucket",
-		InputDataKey:         "input-key",
-		LlamaStackSecretName: "llama-secret",
-		OptimizationMetric:   "faithfulness",
+		DisplayName:         "test-run",
+		Description:         "a test run",
+		TestDataSecretName:  "test-secret",
+		TestDataBucketName:  "test-bucket",
+		TestDataKey:         "test-key",
+		InputDataSecretName: "input-secret",
+		InputDataBucketName: "input-bucket",
+		InputDataKey:        "input-key",
+		OGXSecretName:       "ogx-secret",
+		OptimizationMetric:  "faithfulness",
 	}
 }
 
@@ -57,10 +57,23 @@ func newCreateRequest(t *testing.T, body interface{}) *http.Request {
 	return req
 }
 
+func mockDiscoveredAutoRAGPipeline() map[string]*repositories.DiscoveredPipeline {
+	ids := psmocks.DeriveMockIDs("test-namespace")
+	return map[string]*repositories.DiscoveredPipeline{
+		constants.PipelineTypeAutoRAG: {
+			PipelineID:        ids.PipelineID,
+			PipelineVersionID: ids.LatestVersionID,
+			PipelineName:      "documents-rag-optimization-pipeline",
+			Namespace:         "test-namespace",
+		},
+	}
+}
+
 func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterface) *http.Request {
 	ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, client)
 	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 	ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, "mock://test-namespace")
+	ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, mockDiscoveredAutoRAGPipeline())
 	return req.WithContext(ctx)
 }
 
@@ -134,7 +147,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		body := validCreateRequest()
 		body.EmbeddingsModels = []string{"model-a", "model-b"}
 		body.GenerationModels = []string{"gen-model"}
-		body.LlamaStackVectorIOProviderID = "vectordb-1"
+		body.VectorIOProviderID = "vectordb-1"
 		maxPatterns := 10
 		body.OptimizationMaxRagPatterns = &maxPatterns
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
@@ -151,7 +164,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, "PENDING", response.Data.State)
 		assert.NotNil(t, response.Data.PipelineVersionReference)
 		assert.NotNil(t, response.Data.RuntimeConfig)
-		assert.Equal(t, "vectordb-1", response.Data.RuntimeConfig.Parameters["llama_stack_vector_io_provider_id"])
+		assert.Equal(t, "vectordb-1", response.Data.RuntimeConfig.Parameters["vector_io_provider_id"])
 		assert.Equal(t, float64(10), response.Data.RuntimeConfig.Parameters["optimization_max_rag_patterns"])
 	})
 }
@@ -282,7 +295,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
-	t.Run("should fail without pipeline server base URL in context", func(t *testing.T) {
+	t.Run("should fail without discovered pipelines in context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req := newCreateRequest(t, validCreateRequest())
 		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-ns")
@@ -357,7 +370,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.Equal(t, "input-secret", params["input_data_secret_name"])
 		assert.Equal(t, "input-bucket", params["input_data_bucket_name"])
 		assert.Equal(t, "input-key", params["input_data_key"])
-		assert.Equal(t, "llama-secret", params["llama_stack_secret_name"])
+		assert.Equal(t, "ogx-secret", params["ogx_secret_name"])
 		assert.Equal(t, "faithfulness", params["optimization_metric"])
 	})
 
@@ -385,82 +398,23 @@ func (f *failingPipelineServerClient) CreateRun(_ context.Context, _ models.Crea
 	return nil, fmt.Errorf("connection refused")
 }
 
-// oldVersionOnlyClient returns pipelines whose versions don't match DefaultPipelineVersion,
-// forcing EnsurePipeline to create the missing version via UploadPipelineVersion.
-type oldVersionOnlyClient struct {
-	*psmocks.MockPipelineServerClient
-	uploadedVersionName string
-	uploadedCallCount   int
-}
-
-func (m *oldVersionOnlyClient) ListPipelineVersions(_ context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
-	if m.uploadedVersionName != "" {
-		// After upload, return both old and new versions so EnsurePipeline's retry succeeds
-		return &models.KFPipelineVersionsResponse{
-			PipelineVersions: []models.KFPipelineVersion{
-				{PipelineID: pipelineID, PipelineVersionID: "uploaded-version-id", DisplayName: m.uploadedVersionName, CreatedAt: "2026-03-01T10:00:00Z"},
-				{PipelineID: pipelineID, PipelineVersionID: "old-version-id", DisplayName: "documents-rag-optimization-pipeline-3.4.0", CreatedAt: "2026-02-20T10:00:00Z"},
-			},
-			TotalSize: 2,
-		}, nil
-	}
-	return &models.KFPipelineVersionsResponse{
-		PipelineVersions: []models.KFPipelineVersion{
-			{PipelineID: pipelineID, PipelineVersionID: "old-version-id", DisplayName: "documents-rag-optimization-pipeline-3.4.0", CreatedAt: "2026-02-20T10:00:00Z"},
-		},
-		TotalSize: 1,
-	}, nil
-}
-
-func (m *oldVersionOnlyClient) UploadPipelineVersion(_ context.Context, pipelineID string, versionName string, _ []byte) (*models.KFPipelineVersion, error) {
-	m.uploadedCallCount++
-	m.uploadedVersionName = versionName
-	return &models.KFPipelineVersion{
-		PipelineID:        pipelineID,
-		PipelineVersionID: "uploaded-version-id",
-		DisplayName:       versionName,
-		CreatedAt:         "2026-03-01T10:00:00Z",
-	}, nil
-}
-
-func TestCreatePipelineRunHandler_EnsurePipeline(t *testing.T) {
+func TestCreatePipelineRunHandler_ManagedPipelinesNotFound(t *testing.T) {
 	app := newMinimalTestApp()
+	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 
-	t.Run("should create missing default version when only older versions exist", func(t *testing.T) {
-		baseMock := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		client := &oldVersionOnlyClient{MockPipelineServerClient: baseMock}
-
+	t.Run("should return 404 when no managed pipeline is discovered", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), client)
+		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		ctx := context.WithValue(req.Context(), constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
+		req = req.WithContext(ctx)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, 1, client.uploadedCallCount, "EnsurePipeline should have called UploadPipelineVersion exactly once")
-		assert.NotEmpty(t, client.uploadedVersionName, "EnsurePipeline should have uploaded the missing version")
-		assert.Contains(t, client.uploadedVersionName, repositories.DefaultPipelineVersion)
-
-		var response CreatePipelineRunEnvelope
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var response ErrorEnvelope
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "uploaded-version-id", response.Data.PipelineVersionReference.PipelineVersionID,
-			"run should use the newly created version, not the old one")
-	})
-
-	t.Run("should use existing default version without uploading", func(t *testing.T) {
-		baseMock := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		client := &oldVersionOnlyClient{MockPipelineServerClient: baseMock}
-		// Pre-set the uploaded version name so ListPipelineVersions returns the default version
-		client.uploadedVersionName = fmt.Sprintf("documents-rag-optimization-pipeline-%s", repositories.DefaultPipelineVersion)
-
-		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), client)
-
-		prevCount := client.uploadedCallCount
-
-		app.CreatePipelineRunHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, prevCount, client.uploadedCallCount, "should not have called UploadPipelineVersion")
+		assert.Equal(t, "404", response.Error.Code)
+		assert.Equal(t, repositories.ManagedPipelinesNotFoundMessage, response.Error.Message)
 	})
 }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
+import { EmptyStateBody, EmptyStateVariant, EmptyState, Flex } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -11,6 +11,7 @@ import useFeatureStoreDataSources from '../../apiHooks/useFeatureStoreDataSource
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
+import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
 
 const title = 'Data sources';
 const description =
@@ -32,7 +33,7 @@ const DataSources: React.FC = () => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create a data sources in a workbench.
+        Select a different feature store or create a data source in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );
@@ -60,11 +61,14 @@ const DataSources: React.FC = () => {
       loadError={dataSourcesLoadError}
       loaded={dataSourcesLoaded}
       headerContent={
-        <FeatureStoreProjectSelectorNavigator
-          getRedirectPath={(featureStoreObject, featureStoreProject) =>
-            featureStoreRoute(featureStoreObject, featureStoreProject)
-          }
-        />
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          <FeatureStoreProjectSelectorNavigator
+            getRedirectPath={(featureStoreObject, featureStoreProject) =>
+              featureStoreRoute(featureStoreObject, featureStoreProject)
+            }
+          />
+          <ConnectedWorkbenchesLink />
+        </Flex>
       }
       provideChildrenPadding
     >

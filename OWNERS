@@ -21,6 +21,7 @@ filters:
       - automl-approvers
       - eval-hub-approvers
       - mlflow-approvers
+      - distributions-approvers
 
   # Catchall
   '.*':
@@ -34,6 +35,8 @@ filters:
       - area/backend
 
   'docs/.*':
+    reviewers:
+      - platform-reviewers
     labels:
       - area/docs
 
@@ -46,8 +49,19 @@ filters:
       - area/components
 
   'manifests/.*':
+    reviewers:
+      - platform-reviewers
     labels:
       - area/manifests
+
+  # Dashboard Module Controller (operator)
+  'dashboard-operator/.*':
+    approvers:
+      - platform-approvers
+    reviewers:
+      - platform-reviewers
+    labels:
+      - 'area/platform'
 
   # Cypress tests
   'packages/cypress/.*':
@@ -188,6 +202,15 @@ filters:
       - eval-hub-reviewers
     labels:
       - 'area/eval-hub'
+
+  # Distributions
+  'distributions/.*':
+    approvers:
+      - distributions-approvers
+    reviewers:
+      - distributions-reviewers
+    labels:
+      - 'area/distributions'
 
   # MLflow
   'packages/mlflow.*/.*':

@@ -18,6 +18,8 @@ import {
   useChatbotConfigStore,
   selectActivePrompt,
   selectDirtyPrompt,
+  selectVariableValues,
+  selectIsPreview,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
@@ -25,6 +27,7 @@ import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
+import PromptVariableInputPanel from '~/app/Chatbot/components/PromptVariableInputPanel';
 
 type PromptAssistantFormGroupProps = {
   configId?: string;
@@ -56,6 +59,9 @@ export default function PromptAssistantFormGroup({
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
   const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
   const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
+  const variableValues = useChatbotConfigStore(selectVariableValues(configId));
+  const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
   const [editMode, setEditMode] = React.useState(true);
   const activeTemplate =
     activePrompt?.template ??
@@ -163,7 +169,18 @@ export default function PromptAssistantFormGroup({
             <span>Instructions</span>
             <Popover
               headerContent="System instructions"
-              bodyContent="The instructions field is used as a system instruction when chatting with the model in the playground. It guides the model's behavior and response style."
+              bodyContent={
+                <>
+                  <p>
+                    The instructions field is used as a system instruction when chatting with the
+                    model in the playground. It guides the model&apos;s behavior and response style.
+                  </p>
+                  <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                    Wrap variables with double curly braces, e.g. {'{{ name }}'}. Variable slots
+                    appear below the instructions when placeholders are detected.
+                  </p>
+                </>
+              }
             >
               <OutlinedQuestionCircleIcon className="pf-v6-u-color-200" />
             </Popover>
@@ -173,18 +190,20 @@ export default function PromptAssistantFormGroup({
             id="system-instructions-input"
             type="text"
             value={systemInstruction}
-            readOnly={!editMode}
+            readOnly={!editMode || isPreview}
             resizeOrientation="vertical"
             onChange={(_event, value) => handleTextChange(value)}
             aria-label="Prompt instructions input"
             rows={18}
             data-testid="system-instructions-input"
+            isDisabled={isPreview}
           />
           {!editMode && (
             <Flex>
               <Button
                 data-testid="prompt-edit-button"
                 variant="primary"
+                isDisabled={isPreview}
                 onClick={() => {
                   setEditMode(true);
                   fireMiscTrackingEvent('Playground Prompt Edit Selected', {
@@ -197,7 +216,7 @@ export default function PromptAssistantFormGroup({
               <Button
                 data-testid="prompt-reset-button"
                 variant="link"
-                isDisabled={!isEdited && !activePrompt}
+                isDisabled={isPreview || (!isEdited && !activePrompt)}
                 onClick={() =>
                   confirm(handleNewPrompt, {
                     ...RESET_CONFIRMATION_CONFIG,
@@ -223,7 +242,7 @@ export default function PromptAssistantFormGroup({
               <Button
                 data-testid="prompt-save-to-registry-button"
                 variant="primary"
-                isDisabled={!isEdited}
+                isDisabled={isPreview || !isEdited}
                 onClick={handleSaveClicked}
               >
                 Save
@@ -232,7 +251,7 @@ export default function PromptAssistantFormGroup({
                 <Button
                   data-testid="prompt-revert-button"
                   variant="link"
-                  isDisabled={!isEdited}
+                  isDisabled={isPreview || !isEdited}
                   onClick={() =>
                     confirm(handleRevert, {
                       ...CONFIRMATION_CONFIG,
@@ -253,7 +272,7 @@ export default function PromptAssistantFormGroup({
                 <Button
                   data-testid="prompt-reset-button"
                   variant="link"
-                  isDisabled={!isEdited}
+                  isDisabled={isPreview || !isEdited}
                   onClick={() =>
                     confirm(handleNewPrompt, {
                       ...RESET_CONFIRMATION_CONFIG,
@@ -276,6 +295,12 @@ export default function PromptAssistantFormGroup({
               )}
             </Flex>
           )}
+          <PromptVariableInputPanel
+            systemInstruction={systemInstruction}
+            variableValues={variableValues}
+            onVariableValuesChange={(values) => updateVariableValues(configId, values)}
+            isDisabled={isPreview}
+          />
         </Stack>
       </Panel>
     </>

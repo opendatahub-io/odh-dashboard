@@ -4,6 +4,7 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
   isValidK8sName,
+  isValidK8sLabelKeyValue,
   kindApiVersion,
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
@@ -216,5 +217,63 @@ describe('kindApiVersion', () => {
     expect(
       kindApiVersion({ kind: 'bar', apiVersion: 'v1', apiGroup: 'foo.bar.baz.io', plural: 'bars' }),
     ).toBe('foo.bar.baz.io/v1');
+  });
+});
+
+describe('isValidK8sLabelKeyValue', () => {
+  it('should accept valid simple key and value', () => {
+    expect(isValidK8sLabelKeyValue('team', 'platform')).toBe(true);
+  });
+
+  it('should accept key with DNS prefix', () => {
+    expect(isValidK8sLabelKeyValue('app.kubernetes.io/name', 'my-app')).toBe(true);
+  });
+
+  it('should accept empty value', () => {
+    expect(isValidK8sLabelKeyValue('team', '')).toBe(true);
+  });
+
+  it('should accept key/value with dots, dashes, and underscores', () => {
+    expect(isValidK8sLabelKeyValue('my_key.name', 'my-value_1.0')).toBe(true);
+  });
+
+  it('should reject empty key', () => {
+    expect(isValidK8sLabelKeyValue('', 'value')).toBe(false);
+  });
+
+  it('should reject key with spaces', () => {
+    expect(isValidK8sLabelKeyValue('Team Name', 'platform')).toBe(false);
+  });
+
+  it('should reject key starting with a dash', () => {
+    expect(isValidK8sLabelKeyValue('-invalid', 'value')).toBe(false);
+  });
+
+  it('should reject value starting with a dash', () => {
+    expect(isValidK8sLabelKeyValue('key', '-invalid')).toBe(false);
+  });
+
+  it('should reject key with multiple slashes', () => {
+    expect(isValidK8sLabelKeyValue('bad/key/extra', 'value')).toBe(false);
+  });
+
+  it('should reject value longer than 63 characters', () => {
+    const longValue = 'a'.repeat(64);
+    expect(isValidK8sLabelKeyValue('key', longValue)).toBe(false);
+  });
+
+  it('should reject key name longer than 63 characters', () => {
+    const longName = 'a'.repeat(64);
+    expect(isValidK8sLabelKeyValue(longName, 'value')).toBe(false);
+  });
+
+  it('should reject prefix with a DNS segment longer than 63 characters', () => {
+    const segment64 = 'a'.repeat(64);
+    expect(isValidK8sLabelKeyValue(`${segment64}.io/name`, 'value')).toBe(false);
+  });
+
+  it('should reject prefix longer than 253 characters', () => {
+    const longPrefix = `${'a'.repeat(251)}.io`;
+    expect(isValidK8sLabelKeyValue(`${longPrefix}/name`, 'value')).toBe(false);
   });
 });
