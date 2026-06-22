@@ -36,6 +36,7 @@ import {
   selectSelectedSubscription,
   selectRagEnabled,
   selectConfigIds,
+  selectIsPreview,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -108,6 +109,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
   const [agentProfilesEnabled] = useFeatureFlag(AGENT_PROFILES);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   const configIds = useChatbotConfigStore(selectConfigIds);
 
@@ -285,10 +287,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     splitButtonItems={[
                       <MenuToggleAction
                         key="save-action"
-                        onClick={profileApplied ? onSave : onSaveAs}
+                        onClick={profileApplied && !isPreview ? onSave : onSaveAs}
                         data-testid="settings-panel-save-action"
                       >
-                        {profileApplied ? 'Save' : 'Save as'}
+                        {profileApplied && !isPreview ? 'Save' : 'Save as'}
                       </MenuToggleAction>,
                     ]}
                     data-testid="settings-panel-save-toggle"
@@ -296,7 +298,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 )}
               >
                 <DropdownList>
-                  {profileApplied && (
+                  {profileApplied && !isPreview && (
                     <DropdownItem
                       key="save"
                       onClick={onSave}
