@@ -18,10 +18,11 @@ var ErrCSVValidation = errors.New("CSV validation error")
 
 // ColumnSchema represents a column with its name and inferred type.
 type ColumnSchema struct {
-	Name     string        `json:"name"`
-	Type     string        `json:"type"`
-	TaskType string        `json:"task_type"`
-	Values   []interface{} `json:"values,omitempty"`
+	Name        string        `json:"name"`
+	Type        string        `json:"type"`
+	TaskType    string        `json:"task_type"`
+	UniqueCount int           `json:"unique_count"`
+	Values      []interface{} `json:"values,omitempty"`
 }
 
 // CSVSchemaResult contains the schema inference result with parsing metadata.
@@ -105,9 +106,10 @@ func InferCSVSchema(r io.Reader) (CSVSchemaResult, error) {
 		uniqueValues := collectUniqueRawValues(dataRows, i)
 		taskType := inferTaskType(uniqueValues)
 		columnSchemas[i] = ColumnSchema{
-			Name:     colName,
-			Type:     inferColumnType(dataRows, i),
-			TaskType: taskType,
+			Name:        colName,
+			Type:        inferColumnType(dataRows, i),
+			TaskType:    taskType,
+			UniqueCount: len(uniqueValues),
 		}
 		if taskType == "binary" || (taskType == "multiclass" && len(uniqueValues) <= maxMulticlassUniqueValues) {
 			columnSchemas[i].Values = toTypedValues(uniqueValues)
