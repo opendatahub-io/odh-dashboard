@@ -1,4 +1,4 @@
-import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import type { Extension, ExtensionPredicate } from '@openshift/dynamic-plugin-sdk';
 /**
  * Extension point for providing the Model catalog settings URL.
  * This allows ODH to inject its own settings URL for the catalog settings page
@@ -14,4 +14,4 @@ export type CatalogSettingsUrlExtension = Extension<'model-catalog.settings/url'
      */
     title: string;
 }>;
-export declare const isCatalogSettingsUrlExtension: (extension: Extension) => extension is CatalogSettingsUrlExtension;
+export declare const isCatalogSettingsUrlExtension: ExtensionPredicate<CatalogSettingsUrlExtension>;
