@@ -215,6 +215,7 @@ export const registerProxy = async (
     onError,
     rewriteHeaders,
     headers,
+    httpRequestTimeout,
   }: {
     prefix: string;
     rewritePrefix?: string;
@@ -232,6 +233,7 @@ export const registerProxy = async (
     onError?: FastifyHttpProxyOptions['replyOptions']['onError'];
     rewriteHeaders?: FastifyHttpProxyOptions['replyOptions']['rewriteHeaders'];
     headers?: Record<string, string>;
+    httpRequestTimeout?: number;
   },
 ): Promise<void> => {
   const scheme = tls === false ? 'http' : 'https';
@@ -243,6 +245,11 @@ export const registerProxy = async (
     prefix,
     rewritePrefix: rewritePrefix ?? '',
     upstream,
+    ...(httpRequestTimeout !== undefined && {
+      http: {
+        requestOptions: { timeout: httpRequestTimeout },
+      },
+    }),
     replyOptions: {
       getUpstream: () => upstream,
       onError,
