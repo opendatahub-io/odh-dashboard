@@ -47,6 +47,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
 
   React.useEffect(() => {
     if (!apiAvailable) {
+      setLoading(false);
       return;
     }
     setLoading(true);
