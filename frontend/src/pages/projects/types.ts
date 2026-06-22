@@ -85,6 +85,16 @@ export type StorageData = {
   modelPath?: string;
 };
 
+export type SecretKeyRefEnvVar = {
+  name: string;
+  valueFrom: {
+    secretKeyRef: {
+      name: string;
+      key: string;
+    };
+  };
+};
+
 export type StartNotebookData = {
   projectName: string;
   notebookData: K8sNameDescriptionFieldData;
@@ -92,6 +102,7 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
+  secretKeyRefEnvVars?: SecretKeyRefEnvVar[];
   dashboardNamespace?: string;
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
