@@ -11,6 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import InferenceServiceStatus from '#~/pages/modelServing/screens/global/InferenceServiceStatus';
@@ -18,7 +19,6 @@ import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global
 import InferenceServiceEndpoint from '#~/pages/modelServing/screens/global/InferenceServiceEndpoint';
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled.ts';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
 

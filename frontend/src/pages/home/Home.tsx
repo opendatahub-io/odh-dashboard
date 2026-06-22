@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Bullseye, EmptyState, PageSection, PageSectionVariants } from '@patternfly/react-core';
 import { HomeIcon } from '@patternfly/react-icons';
-import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import ProjectsSection from './projects/ProjectsSection';
 import './Home.scss';
 import TaskAssistantSection from './taskAssistant/TaskAssistantSection';

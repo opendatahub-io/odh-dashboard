@@ -9,6 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { ProjectKind, SecretKind, TemplateKind } from '@odh-dashboard/k8s-core';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import {
   DEFAULT_LIST_FETCH_STATE,
@@ -21,7 +22,6 @@ import { FetchStateObject } from '#~/utilities/useFetch';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { conditionalArea } from '#~/concepts/areas';
-import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { useTemplates } from '#~/api';
 import { Connection } from '#~/concepts/connectionTypes/types';

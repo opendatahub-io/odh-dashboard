@@ -11,6 +11,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { HardwareProfileKind, ContainerResources } from '@odh-dashboard/k8s-core';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { HardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import HardwareProfileCustomize from '#~/concepts/hardwareProfiles/HardwareProfileCustomize';

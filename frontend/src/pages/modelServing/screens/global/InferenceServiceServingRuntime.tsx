@@ -1,5 +1,6 @@
 import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ServingRuntimeKind } from '#~/k8sTypes';
 import {
   getDisplayNameFromServingRuntimeTemplate,
@@ -16,7 +17,6 @@ import ScopedLabel from '#~/components/ScopedLabel';
 import { useTemplateByName } from '#~/pages/modelServing/customServingRuntimes/useTemplateByName';
 import ServingRuntimeVersionStatus from '#~/pages/modelServing/screens/ServingRuntimeVersionStatus';
 import { getServingRuntimeVersionStatus } from '#~/pages/modelServing/utils';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;
