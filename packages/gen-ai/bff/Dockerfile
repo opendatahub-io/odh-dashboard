@@ -1,18 +1,20 @@
 # Backend build stage
+# Build from repository root: docker build -f packages/gen-ai/bff/Dockerfile .
 FROM registry.redhat.io/ubi9/go-toolset:1.26 AS builder
 WORKDIR /usr/src/app
-COPY go.mod go.sum ./
+COPY packages/gen-ai/bff/go.mod packages/gen-ai/bff/go.sum ./
+COPY pkg/tls/ /pkg/tls/
 RUN go mod download
-COPY cmd/ cmd/
-COPY internal/ internal/
+COPY packages/gen-ai/bff/cmd/ cmd/
+COPY packages/gen-ai/bff/internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/bff ./cmd
 
 # Final minimal image
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
 WORKDIR /
 COPY --from=builder /tmp/bff ./
-COPY static/ ./static/
-COPY openapi/ ./openapi/
+COPY packages/gen-ai/bff/static/ ./static/
+COPY packages/gen-ai/bff/openapi/ ./openapi/
 
 # OAuth environment variables
 ENV OAUTH_ENABLED=false \

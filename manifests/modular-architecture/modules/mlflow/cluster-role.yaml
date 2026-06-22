@@ -17,3 +17,11 @@ rules:
       - create
     resources:
       - subjectaccessreviews
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get

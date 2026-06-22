@@ -107,6 +107,7 @@ require (
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/opendatahub-io/odh-dashboard/pkg/tls v0.0.0
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -173,3 +174,5 @@ require (
 
 // Replace the upstream ogx-k8s-operator with the Open Data Hub fork
 replace github.com/ogx-ai/ogx-k8s-operator => github.com/opendatahub-io/ogx-k8s-operator v0.0.0-20260512184943-d419c039b7b9
+
+replace github.com/opendatahub-io/odh-dashboard/pkg/tls => ../../../pkg/tls

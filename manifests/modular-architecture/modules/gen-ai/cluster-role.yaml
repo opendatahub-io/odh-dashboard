@@ -15,6 +15,14 @@ rules:
       - config.openshift.io
     verbs:
       - get
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+  - apiGroups:
+      - config.openshift.io
+    verbs:
+      - get
       - list
       - watch
     resources:
