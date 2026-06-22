@@ -17,20 +17,21 @@ jest.mock('~/app/Chatbot/ChatbotMessagesList', () => ({
 }));
 
 let mockMessages: unknown[] = [];
+const mockUseChatbotMessages = jest.fn<Record<string, unknown>, [Record<string, unknown>]>(() => ({
+  get messages() {
+    return mockMessages;
+  },
+  isLoading: false,
+  isStreamingWithoutContent: false,
+  modelDisplayName: '',
+  scrollToBottomRef: { current: null },
+  sendMessage: jest.fn(),
+  stopStreaming: jest.fn(),
+}));
 
 jest.mock('~/app/Chatbot/hooks/useChatbotMessages', () => ({
   __esModule: true,
-  default: () => ({
-    get messages() {
-      return mockMessages;
-    },
-    isLoading: false,
-    isStreamingWithoutContent: false,
-    modelDisplayName: '',
-    scrollToBottomRef: { current: null },
-    sendMessage: jest.fn(),
-    stopStreaming: jest.fn(),
-  }),
+  default: (props: Record<string, unknown>) => mockUseChatbotMessages(props),
 }));
 
 const defaultProps = {
@@ -62,27 +63,6 @@ describe('ChatbotConfigInstance', () => {
       expect(
         useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId,
       ).toBe('vs-inline-abc');
-    });
-
-    it('clears selectedVectorStoreId to null when switching from inline to external while mounted', () => {
-      act(() => {
-        useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'inline');
-        useChatbotConfigStore
-          .getState()
-          .updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, 'vs-inline-abc');
-      });
-
-      const { rerender } = render(<ChatbotConfigInstance {...defaultProps} />);
-
-      act(() => {
-        useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
-      });
-
-      rerender(<ChatbotConfigInstance {...defaultProps} />);
-
-      expect(
-        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId,
-      ).toBeNull();
     });
 
     it('preserves selectedVectorStoreId on remount when knowledgeMode is already external', () => {
@@ -163,6 +143,62 @@ describe('ChatbotConfigInstance', () => {
       mockMessages = [];
       render(<ChatbotConfigInstance {...defaultProps} showWelcomePrompt={false} />);
       expect(screen.queryByTestId('chatbot-welcome-prompt')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('template variable substitution', () => {
+    beforeEach(() => {
+      mockUseChatbotMessages.mockClear();
+    });
+
+    it('passes substituted instruction (not raw template) to useChatbotMessages', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSystemInstruction(DEFAULT_CONFIG_ID, 'Hello {{name}}, welcome to {{project}}');
+        useChatbotConfigStore.getState().updateVariableValues(DEFAULT_CONFIG_ID, {
+          name: 'Alice',
+          project: 'GenAI Studio',
+        });
+      });
+
+      render(<ChatbotConfigInstance {...defaultProps} />);
+
+      const lastCall = mockUseChatbotMessages.mock.calls.at(-1);
+      expect(lastCall?.[0]).toMatchObject({
+        systemInstruction: 'Hello Alice, welcome to GenAI Studio',
+      });
+    });
+
+    it('substitutes unfilled variables to empty string', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSystemInstruction(DEFAULT_CONFIG_ID, 'You are {{role}} for {{company}}');
+        useChatbotConfigStore.getState().updateVariableValues(DEFAULT_CONFIG_ID, {
+          role: 'an assistant',
+        });
+      });
+
+      render(<ChatbotConfigInstance {...defaultProps} />);
+
+      const lastCall = mockUseChatbotMessages.mock.calls.at(-1);
+      expect(lastCall?.[0]).toMatchObject({
+        systemInstruction: 'You are an assistant for ',
+      });
+    });
+
+    it('passes raw instruction unchanged when no variables are present', () => {
+      const instruction = 'You are a helpful assistant.';
+      act(() => {
+        useChatbotConfigStore.getState().updateSystemInstruction(DEFAULT_CONFIG_ID, instruction);
+        useChatbotConfigStore.getState().updateVariableValues(DEFAULT_CONFIG_ID, {});
+      });
+
+      render(<ChatbotConfigInstance {...defaultProps} />);
+
+      const lastCall = mockUseChatbotMessages.mock.calls.at(-1);
+      expect(lastCall?.[0]).toMatchObject({ systemInstruction: instruction });
     });
   });
 });

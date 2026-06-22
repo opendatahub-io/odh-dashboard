@@ -77,6 +77,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         '@Dashboard',
         '@ModelServing',
         '@ModelServingCI',
+        '@KServeCI',
         '@NonConcurrent',
       ],
     },

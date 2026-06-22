@@ -1,7 +1,8 @@
-import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import { Bullseye, Content, ContentVariants, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { type UseApiKeysPageLoadReturn } from '~/app/hooks/useApiKeysPageLoad';
 import { APIKey } from '~/app/types/api-key';
+import { UserSubscription } from '~/app/types/subscriptions';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysTable from './allKeys/ApiKeysTable';
@@ -10,9 +11,11 @@ import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
 
 type ApiKeysTabProps = {
   pageState: UseApiKeysPageLoadReturn;
+  subscriptions: UserSubscription[];
+  showDescription?: boolean;
 };
 
-const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState }) => {
+const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showDescription }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
@@ -35,11 +38,21 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState }) => {
     onUsernameChange,
     onStatusToggle,
     onStatusClear,
+    onSubscriptionChange,
     onSort,
     onSetPage,
     onPerPageSelect,
     onClearFilters,
   } = pageState;
+
+  const subscriptionOptions = React.useMemo(
+    () =>
+      subscriptions.map((sub) => ({
+        name: sub.subscription_id_header,
+        displayName: sub.display_name ?? sub.subscription_id_header,
+      })),
+    [subscriptions],
+  );
 
   const apiKeys = response.data;
   const hasMore = response.has_more;
@@ -84,6 +97,11 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState }) => {
         />
       )}
       <PageSection isFilled>
+        {showDescription && (
+          <Content component={ContentVariants.p}>
+            Manage API keys that can be used to authenticate with model endpoints.
+          </Content>
+        )}
         <ApiKeysTable
           onRevokeApiKey={setRevokeApiKey}
           apiKeys={apiKeys}
@@ -109,6 +127,8 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState }) => {
               onUsernameChange={onUsernameChange}
               onStatusToggle={onStatusToggle}
               onStatusClear={onStatusClear}
+              subscriptions={subscriptionOptions}
+              onSubscriptionChange={onSubscriptionChange}
               activeApiKeys={activeApiKeys}
               refresh={refreshAll}
               onClearFilters={onClearFilters}

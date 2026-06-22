@@ -1,5 +1,5 @@
-import type { CatalogLabelList, CatalogSourceList } from '~/app/modelCatalogTypes';
 import type { ModelCatalogAPIState } from '~/app/hooks/modelCatalog/useModelCatalogAPIState';
+import type { CatalogContextValue } from '~/app/context/catalogContext/createCatalogContext';
 import type {
   McpCatalogFilterOptionsList,
   McpCatalogFiltersState,
@@ -11,7 +11,7 @@ export type McpCatalogPaginationState = {
   totalItems: number;
 };
 
-export type McpCatalogContextType = {
+export type McpCatalogExtension = {
   filters: McpCatalogFiltersState;
   setFilters: (
     filters: McpCatalogFiltersState | ((prev: McpCatalogFiltersState) => McpCatalogFiltersState),
@@ -24,17 +24,8 @@ export type McpCatalogContextType = {
   setPage: (page: number) => void;
   setPageSize: (pageSize: number) => void;
   setTotalItems: (totalItems: number) => void;
-  selectedSourceLabel: string | undefined;
-  setSelectedSourceLabel: (label: string | undefined) => void;
-  clearAllFilters: () => void;
   mcpApiState: ModelCatalogAPIState;
-  catalogSources: CatalogSourceList | null;
-  catalogSourcesLoaded: boolean;
-  catalogSourcesLoadError: Error | undefined;
-  catalogLabels: CatalogLabelList | null;
-  catalogLabelsLoaded: boolean;
-  catalogLabelsLoadError: Error | undefined;
-  filterOptions: McpCatalogFilterOptionsList | null;
-  filterOptionsLoaded: boolean;
-  filterOptionsLoadError: Error | undefined;
 };
+
+export type McpCatalogContextType = CatalogContextValue<McpCatalogFilterOptionsList> &
+  McpCatalogExtension;

@@ -91,5 +91,33 @@ export const selectDirtyPrompt =
   (state: ChatbotConfigStore): MLflowPromptVersion | null =>
     state.configurations[configId]?.dirtyPrompt ?? null;
 
+export const selectVariableValues =
+  (configId: string) =>
+  (state: ChatbotConfigStore): Record<string, string> =>
+    state.configurations[configId]?.variableValues ?? {};
+
+// ASR model selectors
+export const selectSelectedAsrModel =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string =>
+    state.configurations[configId]?.selectedAsrModel ?? DEFAULT_CONFIGURATION.selectedAsrModel;
+
+export const selectIsAsrModelEnabled =
+  (configId: string) =>
+  (state: ChatbotConfigStore): boolean =>
+    state.configurations[configId]?.isAsrModelEnabled ?? DEFAULT_CONFIGURATION.isAsrModelEnabled;
+
+// Vision image selector
+export const selectHasVisionImage =
+  (configId: string) =>
+  (state: ChatbotConfigStore): boolean =>
+    state.configurations[configId]?.hasVisionImage ?? DEFAULT_CONFIGURATION.hasVisionImage;
+
+// Preview mode selector
+export const selectIsPreview =
+  (configId: string) =>
+  (state: ChatbotConfigStore): boolean =>
+    state.configurations[configId]?.isPreview ?? DEFAULT_CONFIGURATION.isPreview;
+
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;

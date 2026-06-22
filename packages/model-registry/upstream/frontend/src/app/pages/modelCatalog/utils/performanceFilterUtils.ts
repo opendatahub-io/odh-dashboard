@@ -89,8 +89,12 @@ export const applyFilterValue = (
     const numberValue = extractNumberValue(value);
     if (filterKey === ModelCatalogNumberFilterKey.MAX_RPS) {
       setFilterData(ModelCatalogNumberFilterKey.MAX_RPS, numberValue);
+    } else if (filterKey === ModelCatalogNumberFilterKey.MIN_VRAM) {
+      setFilterData(ModelCatalogNumberFilterKey.MIN_VRAM, numberValue);
+    } else if (filterKey === ModelCatalogNumberFilterKey.IMAGE_SIZE) {
+      setFilterData(ModelCatalogNumberFilterKey.IMAGE_SIZE, numberValue);
     } else {
-      setFilterData(ModelCatalogNumberFilterKey.COLD_START_LATENCY, numberValue);
+      setFilterData(ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME, numberValue);
     }
     return;
   }
@@ -195,8 +199,12 @@ export const getDefaultFiltersFromNamedQuery = (
       if (resolvedValue !== undefined) {
         if (fieldName === ModelCatalogNumberFilterKey.MAX_RPS) {
           result[ModelCatalogNumberFilterKey.MAX_RPS] = resolvedValue;
+        } else if (fieldName === ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME) {
+          result[ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME] = resolvedValue;
+        } else if (fieldName === ModelCatalogNumberFilterKey.MIN_VRAM) {
+          result[ModelCatalogNumberFilterKey.MIN_VRAM] = resolvedValue;
         } else {
-          result[ModelCatalogNumberFilterKey.COLD_START_LATENCY] = resolvedValue;
+          result[ModelCatalogNumberFilterKey.IMAGE_SIZE] = resolvedValue;
         }
       }
       return;

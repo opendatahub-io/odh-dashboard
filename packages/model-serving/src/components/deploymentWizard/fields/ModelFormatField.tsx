@@ -4,7 +4,7 @@ import { z } from 'zod';
 import SimpleSelect, {
   type SimpleSelectOption,
 } from '@odh-dashboard/internal/components/SimpleSelect';
-import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,

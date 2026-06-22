@@ -1,8 +1,11 @@
 import * as React from 'react';
 import { FormGroup, Stack, StackItem, ExpandableSection } from '@patternfly/react-core';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import {
+  type HardwareProfileKind,
+  HardwareProfileFeatureVisibility,
+  ContainerResources,
+} from '@odh-dashboard/k8s-core';
 import { useValidation, ValidationContext } from '#~/utilities/useValidation';
-import { ContainerResources } from '#~/types';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
 import ProjectScopedPopover from '#~/components/ProjectScopedPopover';

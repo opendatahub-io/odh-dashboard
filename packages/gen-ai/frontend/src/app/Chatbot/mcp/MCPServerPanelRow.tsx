@@ -16,6 +16,7 @@ interface MCPServerPanelRowProps {
   isAuthenticated?: boolean;
   toolsCount?: number;
   isFetchingTools?: boolean;
+  isDisabled?: boolean;
 }
 
 const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
@@ -29,6 +30,7 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
   isAuthenticated = false,
   toolsCount,
   isFetchingTools = false,
+  isDisabled = false,
 }) => {
   const disableToolIcon = isLoading || isStatusLoading || !isAuthenticated;
 
@@ -52,7 +54,7 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
         id={server.id}
         isChecked={isChecked}
         onToggle={onToggleCheck}
-        isDisabled={false}
+        isDisabled={isDisabled}
         data-testid={`mcp-server-checkbox-${server.id}`}
       />
       <Td dataLabel="Name" className="pf-v6-u-align-content-center pf-v6-u-py-sm">
@@ -67,7 +69,7 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
             aria-label={`View tools for ${server.name}`}
             data-testid={`mcp-server-tools-button-${server.id}`}
             className="pf-v6-u-p-xs pf-v6-u-min-height-auto"
-            isAriaDisabled={disableToolIcon}
+            isAriaDisabled={disableToolIcon || isDisabled}
           >
             {isFetchingTools ? (
               <Spinner size="sm" />
@@ -90,7 +92,7 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
           aria-label={`Configure ${server.name}`}
           data-testid={`mcp-server-configure-button-${server.id}`}
           className="pf-v6-u-p-xs"
-          isDisabled={isLoading}
+          isDisabled={isLoading || isDisabled}
         />
       </Td>
     </Tr>

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
@@ -31,7 +30,7 @@ func (app *App) NotImplemented(w http.ResponseWriter, r *http.Request, feature s
 	httpError := &HTTPError{
 		StatusCode: http.StatusNotImplemented,
 		Error: ErrorPayload{
-			Code:    strconv.Itoa(http.StatusNotImplemented),
+			Code:    ErrCodeNotImplemented,
 			Message: fmt.Sprintf("the %s feature is not implemented in this build", feature),
 		},
 	}

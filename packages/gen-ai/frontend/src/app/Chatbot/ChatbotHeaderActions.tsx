@@ -12,7 +12,9 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { CodeIcon, ColumnsIcon, CogIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { AGENT_PROFILES } from '~/odh/extensions';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
 type ChatbotHeaderActionsProps = {
@@ -21,6 +23,8 @@ type ChatbotHeaderActionsProps = {
   onDeletePlayground: () => void;
   onNewChat: () => void;
   onCompareChat: () => void;
+  onSave: () => void;
+  onSaveAs: () => void;
   onSettingsClick: () => void;
   isSettingsOpen: boolean;
   isCompareMode: boolean;
@@ -32,6 +36,8 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onDeletePlayground,
   onNewChat,
   onCompareChat,
+  onSave,
+  onSaveAs,
   onSettingsClick,
   isSettingsOpen,
   isCompareMode,
@@ -42,6 +48,8 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configIds[0]));
   const isViewCodeDisabled = !lastInput || !selectedModel;
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
+  const [agentProfilesEnabled] = useFeatureFlag(AGENT_PROFILES);
+  const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
 
   // Get disabled reason for popover
   const getDisabledReason = () => {
@@ -62,6 +70,30 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
       <ActionListGroup>
         {lsdStatus?.phase === 'Ready' && (
           <>
+            {!isCompareMode && agentProfilesEnabled && profileApplied && (
+              <ActionListItem>
+                <Button
+                  variant="link"
+                  aria-label="Save agent profile"
+                  onClick={onSave}
+                  data-testid="save-agent-profile-button"
+                >
+                  Save
+                </Button>
+              </ActionListItem>
+            )}
+            {!isCompareMode && agentProfilesEnabled && (
+              <ActionListItem>
+                <Button
+                  variant="link"
+                  aria-label="Save as agent profile"
+                  onClick={onSaveAs}
+                  data-testid="save-as-agent-profile-button"
+                >
+                  Save as
+                </Button>
+              </ActionListItem>
+            )}
             {/* Hide compare button when in compare mode - use close button on pane to exit */}
             {!isCompareMode && (
               <ActionListItem>

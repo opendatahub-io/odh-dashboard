@@ -2,6 +2,9 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 
@@ -9,9 +12,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
 var _ = Describe("APIKeysHandlers", Ordered, func() {
@@ -300,7 +305,9 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(first.ModelRefs).NotTo(BeEmpty())
 			Expect(first.ModelRefs[0].DisplayName).To(Equal("Granite 3 8B Instruct"))
 			Expect(first.ModelRefs[0].Description).To(Equal("Granite 3 8B Instruct is a large language model that is used for advanced tasks."))
-			Expect(first.KeyCount).To(BeNumerically(">", 0))
+			// The fake server returns all 75 keys regardless of the per-subscription filter,
+			// so the BFF clamps the count to subscriptionKeyCountCap.
+			Expect(first.KeyCount).To(Equal(int32(subscriptionKeyCountCap)))
 		})
 
 		It("returns 400 when no identity is provided", func() {
@@ -314,6 +321,70 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("returns 200 with KeyCount 0 for all subscriptions when SearchAPIKeys fails", func() {
+			// Fake server that returns subscriptions normally but fails on API key search,
+			// exercising the non-fatal error branch in enrichSubscriptionsWithKeyCount.
+			failSearchServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodPost && r.URL.Path == "/v1/api-keys/search" {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				if r.Method == http.MethodGet && r.URL.Path == "/v1/subscriptions" {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`[{"subscription_id_header":"test-sub","subscription_description":"Test Sub","model_refs":[]}]`))
+					return
+				}
+				w.WriteHeader(http.StatusNotFound)
+			}))
+			defer failSearchServer.Close()
+
+			envConfig := config.EnvConfig{
+				AllowedOrigins:            []string{"*"},
+				AuthMethod:                config.AuthMethodInternal,
+				GatewayNamespace:          "openshift-ingress",
+				GatewayName:               "maas-default-gateway",
+				MockHTTPClient:            true,
+				MaasApiUrl:                failSearchServer.URL,
+				MaaSSubscriptionNamespace: "maas-system",
+			}
+			testLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
+			subsRepo := repositories.NewSubscriptionsRepository(testLogger, k8Factory, envConfig.MaaSSubscriptionNamespace)
+			policiesRepo := repositories.NewPoliciesRepository(testLogger, k8Factory, envConfig.MaaSSubscriptionNamespace)
+			modelRefsRepo := repositories.NewMaaSModelRefsRepository(testLogger, k8Factory)
+			repos, err := repositories.NewRepositories(testLogger, k8Factory, envConfig, subsRepo, policiesRepo, modelRefsRepo)
+			Expect(err).NotTo(HaveOccurred())
+
+			app := &App{
+				config:                  envConfig,
+				kubernetesClientFactory: k8Factory,
+				repositories:            repos,
+				logger:                  testLogger,
+			}
+
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			req, err := http.NewRequest(http.MethodGet, "/api/v1/subscriptions", http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+			req = req.WithContext(context.WithValue(req.Context(), constants.RequestIdentityKey, identity))
+
+			rr := httptest.NewRecorder()
+			app.Routes().ServeHTTP(rr, req)
+			res := rr.Result()
+			defer res.Body.Close()
+
+			Expect(res.StatusCode).To(Equal(http.StatusOK))
+			body, err := io.ReadAll(res.Body)
+			Expect(err).NotTo(HaveOccurred())
+			var actual Envelope[[]models.SubscriptionListItem, None]
+			Expect(json.Unmarshal(body, &actual)).To(Succeed())
+			Expect(actual.Data).NotTo(BeNil())
+			Expect(len(actual.Data)).Should(BeNumerically(">", 0))
+			for _, sub := range actual.Data {
+				Expect(sub.KeyCount).To(Equal(int32(0)), "KeyCount should remain 0 when SearchAPIKeys fails")
+			}
 		})
 	})
 })

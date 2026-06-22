@@ -1,8 +1,10 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
 import { createDataConnection } from './dataConnection';
+import { ensureAdminOcSession } from './baseCommands';
 import { AWS_BUCKETS } from '../s3Buckets';
 import type { DataConnectionReplacements } from '../../types';
 import { createCleanProject } from '../projectChecker';
+import { failOnDeploymentStatus } from '../failEarly';
 
 /**
  * Provision (using oc) a Project in order to make it usable with model seving
@@ -17,6 +19,9 @@ export const provisionProjectForModelServing = (
   bucketKey: 'BUCKET_1' | 'BUCKET_3',
   customDataConnectionYamlPath?: string,
 ): void => {
+  // Project provisioning requires admin privileges (create project, label namespace, apply secrets).
+  // A previous test may have switched the oc session to a non-admin user via visitWithLogin.
+  ensureAdminOcSession();
   cy.log(`Provisioning project with bucket key: ${bucketKey}`);
 
   const bucketConfig = AWS_BUCKETS[bucketKey];
@@ -275,11 +280,31 @@ export const checkInferenceServiceState = (
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(5000).then(() => checkState());
+        return cy.wait(5000).then(() => {
+          failOnDeploymentStatus(serviceName);
+          return checkState();
+        });
       }
     });
 
   return checkState();
+};
+
+/**
+ * Deletes an LLMInferenceService from the cluster.
+ * Must be called before deleteOpenShiftProject to avoid KServe finalizer hangs
+ * that would time out the after() hook
+ *
+ * @param serviceName - The metadata.name of the LLMInferenceService to delete.
+ * @param namespace - The namespace where the service is deployed.
+ */
+export const cleanupLLMInferenceService = (
+  serviceName: string,
+  namespace: string,
+): Cypress.Chainable<Cypress.Exec> => {
+  const ocCommand = `oc delete LLMInferenceService ${serviceName} -n ${namespace} --ignore-not-found`;
+  cy.log(`Executing delete LLMInferenceService command: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
 
 export const checkLLMInferenceServiceState = (
@@ -424,112 +449,15 @@ export const checkLLMInferenceServiceState = (
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(5000).then(() => checkState());
+        return cy.wait(5000).then(() => {
+          failOnDeploymentStatus(serviceName);
+          return checkState();
+        });
       }
     });
 
   return checkState();
 };
-/**
- * Extracts the external URL of a model from its InferenceService and performs a test request.
- * Retries the request every 5 seconds for up to 30 seconds if the initial request fails.
- *
- * @param modelName - The name of the InferenceService/model to test.
- * @param namespace - The namespace where the InferenceService is deployed.
- */
-export const modelExternalTester = (
-  modelName: string,
-  namespace: string,
-  token?: string,
-): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> =>
-  cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
-    const inferenceService = JSON.parse(result.stdout);
-    const { url } = inferenceService.status;
-
-    if (!url) {
-      throw new Error('External URL not found in InferenceService');
-    }
-
-    const makeRequest = (
-      attemptNumber = 1,
-      maxAttempts = 7, // Initial attempt + 6 retries = 30 seconds total
-      waitTime = 5000, // 5 seconds
-    ): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
-      cy.log(`Request attempt ${attemptNumber} of ${maxAttempts}`);
-      cy.log(`Request URL: ${url}/v2/models/${modelName}/infer`);
-      cy.log(`Request method: POST`);
-      cy.log(
-        `Request headers: ${JSON.stringify({
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        })}`,
-      );
-      cy.log(
-        `Request body: ${JSON.stringify({
-          inputs: [
-            {
-              name: 'Func/StatefulPartitionedCall/input/_0:0',
-              shape: [1, 30],
-              datatype: 'FP32',
-              data: Array.from({ length: 30 }, (_, i) => i + 1),
-            },
-          ],
-        })}`,
-      );
-
-      return cy
-        .request({
-          method: 'POST',
-          url: `${url}/v2/models/${modelName}/infer`,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          body: {
-            inputs: [
-              {
-                name: 'Func/StatefulPartitionedCall/input/_0:0',
-                shape: [1, 30],
-                datatype: 'FP32',
-                data: Array.from({ length: 30 }, (_, i) => i + 1),
-              },
-            ],
-          },
-          failOnStatusCode: false,
-        })
-        .then((response) => {
-          cy.log(`Response status: ${response.status}`);
-          cy.log(`Response body: ${JSON.stringify(response.body)}`);
-
-          // If the request is successful (200 status), return the result
-          if (response.status === 200) {
-            return cy.wrap({ url, response });
-          }
-
-          // If we've reached the maximum number of attempts, return the last response
-          if (attemptNumber >= maxAttempts) {
-            cy.log(`Maximum retry attempts (${maxAttempts}) reached, returning last response`);
-            return cy.wrap({ url, response });
-          }
-
-          // Otherwise, wait and retry
-          cy.log(
-            `Request failed with status ${response.status}, retrying in ${
-              waitTime / 1000
-            } seconds...`,
-          );
-
-          // Use Cypress's wait command before making the next attempt
-          return cy
-            .wait(waitTime)
-            .then(() => makeRequest(attemptNumber + 1, maxAttempts, waitTime));
-        });
-    };
-
-    // Start the request chain with the first attempt
-    return makeRequest();
-  });
-
 /**
  * Validates tolerations in a workbench pod
  *

@@ -1,10 +1,9 @@
-import { Content, ContentVariants, Flex, FlexItem, Label } from '@patternfly/react-core';
-import { KeyIcon } from '@patternfly/react-icons';
+import { Content, ContentVariants, Flex, FlexItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { getSourceLabelColor } from '~/app/pages/keys-and-subs/utils';
+import ApiKeyCountLabel from '~/app/components/ApiKeyCountLabel';
 import { ModelGroupEntry } from './SubscriptionsViewTable';
 import { ModelInfoPopover, formatTokenLimit } from './SubscriptionModelsTable';
 import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
@@ -38,13 +37,6 @@ const ModelGroupRow: React.FC<{
                 description={modelGroup.description}
               />
             </FlexItem>
-            {modelGroup.source && (
-              <FlexItem>
-                <Label isCompact color={getSourceLabelColor(modelGroup.source)}>
-                  {modelGroup.source}
-                </Label>
-              </FlexItem>
-            )}
           </Flex>
           {modelGroup.displayName && modelGroup.name !== modelGroup.displayName && (
             <Content component={ContentVariants.small}>{modelGroup.name}</Content>
@@ -82,13 +74,7 @@ const ModelGroupRow: React.FC<{
                         </Link>
                       </Td>
                       <Td dataLabel="API keys">
-                        {sub.keyCount != null && sub.keyCount > 0 ? (
-                          <Label isCompact icon={<KeyIcon />} color="green">
-                            {sub.keyCount} {sub.keyCount === 1 ? 'key' : 'keys'}
-                          </Label>
-                        ) : (
-                          '—'
-                        )}
+                        <ApiKeyCountLabel keyCount={sub.keyCount ?? 0} />
                       </Td>
                       <Td dataLabel="Token limits">{formatTokenLimit(sub.tokenRateLimits)}</Td>
                     </Tr>

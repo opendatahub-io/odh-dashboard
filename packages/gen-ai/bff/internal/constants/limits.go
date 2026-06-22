@@ -1,5 +1,7 @@
 package constants
 
+import "time"
+
 const (
 	// DefaultMaxBodySize is the global safety-net body limit applied via middleware
 	// to all API routes. Individual handlers set tighter limits as needed.
@@ -17,4 +19,21 @@ const (
 	// VisionUploadMaxBodySize caps multipart uploads for vision image files.
 	// Matches frontend VISION_UPLOAD_CONFIG.MAX_FILE_SIZE.
 	VisionUploadMaxBodySize = 10 << 20 // 10MB
+
+	// AudioUploadMaxBodySize caps audio file size for ASR transcription.
+	AudioUploadMaxBodySize = 10 << 20 // 10MB
+
+	// MediaUploadMaxBodySize is the ceiling used by the media upload handler for
+	// initial body parsing. Set to the largest per-type limit (currently 10MB).
+	MediaUploadMaxBodySize = 10 << 20 // 10MB
+
+	// OGXFileRetrievalTimeout is the timeout for retrieving file content from OGX.
+	OGXFileRetrievalTimeout = 10 * time.Second
+
+	// ASRTranscriptionTimeout is the timeout for the ASR model to transcribe audio.
+	ASRTranscriptionTimeout = 90 * time.Second
+
+	// AudioTranscriptionTotalTimeout is the outer timeout budget for the full
+	// audio transcription flow (OGX retrieval + ASR call).
+	AudioTranscriptionTotalTimeout = 100 * time.Second
 )

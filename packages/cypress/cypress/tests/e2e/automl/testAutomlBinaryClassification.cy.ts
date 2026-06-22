@@ -7,6 +7,7 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
 import { automlConfigurePage, automlResultsPage } from '../../../pages/automl';
 import { isAutomlEnabled, setAutomlEnabled } from '../../../utils/oc_commands/autoX';
+import { verifyAndChangeOptimizationMetric } from '../../../utils/automlTestFlows';
 
 const uuid = generateTestUUID();
 
@@ -54,8 +55,17 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       cy.step('Select Binary Classification prediction type');
       automlConfigurePage.findTaskTypeCard('binary').click();
 
+      cy.step('Verify run preset defaults to Faster');
+      automlConfigurePage.findPresetRadio('speed').should('be.checked');
+
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
+
+      verifyAndChangeOptimizationMetric(
+        testData.defaultMetricLabel as string,
+        testData.changedMetricKey as string,
+        testData.changedMetricLabel as string,
+      );
 
       automlConfigurePage.submitRun();
     },
@@ -63,7 +73,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
   it(
     'Verify binary classification run completes with leaderboard',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression'], retries: { runMode: 0, openMode: 0 } },
     () => {
       cy.step('Wait for run to complete and verify leaderboard');
       automlResultsPage.waitForRunCompletion();

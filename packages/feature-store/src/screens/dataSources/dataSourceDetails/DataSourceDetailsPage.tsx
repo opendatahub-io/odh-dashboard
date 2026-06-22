@@ -25,6 +25,7 @@ import { getDataSourceConnectorType } from '../utils';
 import FeatureStoreAccessDenied from '../../../components/FeatureStoreAccessDenied';
 import { isNotFoundError } from '../../../utils';
 import { getFeatureStoreErrorMessage } from '../../../api/errorUtils';
+import ConnectedWorkbenchesLink from '../../../components/ConnectedWorkbenchesLink';
 
 const DataSourceDetailsPage = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -99,6 +100,7 @@ const DataSourceDetailsPage = (): React.ReactElement => {
       loadErrorPage={dataSourceLoadError ? loadErrorState : undefined}
       loaded={dataSourceLoaded}
       provideChildrenPadding
+      headerContent={dataSourceLoaded ? <ConnectedWorkbenchesLink /> : undefined}
       breadcrumb={
         <FeatureStorePageTitle
           isDetailsPage

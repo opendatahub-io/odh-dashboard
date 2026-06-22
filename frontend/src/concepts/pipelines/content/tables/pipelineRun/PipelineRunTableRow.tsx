@@ -21,6 +21,7 @@ import {
   globalArchivedPipelineRunsRoute,
   globalPipelineRunsRoute,
 } from '#~/routes/pipelines/runs';
+import { mlflowCompareRunsRoute } from '#~/routes/pipelines/mlflow';
 import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
 import PipelineRunTableRowMlflowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowMlflowExperiment';
@@ -38,7 +39,7 @@ import {
   FilterOptions,
   LEGACY_EXPERIMENT_FILTER_PARAM,
 } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
-import { isPipelineRunRegistered } from './utils';
+import { getMlflowExperimentId, getMlflowRunId, isPipelineRunRegistered } from './utils';
 
 type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
@@ -150,7 +151,13 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       {
         title: 'Compare runs',
         onClick: () => {
-          navigate(compareRunsRoute(namespace, [run.run_id], contextExperiment?.experiment_id));
+          const mlflowRunId = getMlflowRunId(run);
+          const mlflowExpId = getMlflowExperimentId(run);
+          if (mlflow?.isAvailable && mlflowRunId && mlflowExpId) {
+            navigate(mlflowCompareRunsRoute(namespace, [mlflowRunId], [mlflowExpId]));
+          } else {
+            navigate(compareRunsRoute(namespace, [run.run_id], contextExperiment?.experiment_id));
+          }
         },
       },
       ...(!version ? [] : [duplicateAction]),
@@ -162,10 +169,15 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         onClick: () => setIsArchiveModalOpen(true),
       },
     ];
+    // `run` is used in closures but only specific fields affect the result;
+    // listing them individually avoids re-creating actions on unrelated run changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     runType,
-    run.state,
     run.run_id,
+    run.state,
+    run.plugins_output,
+    run.plugins_input,
     version,
     navigate,
     namespace,
@@ -176,6 +188,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     api,
     refreshAllAPI,
     notification,
+    mlflow?.isAvailable,
   ]);
 
   return (
