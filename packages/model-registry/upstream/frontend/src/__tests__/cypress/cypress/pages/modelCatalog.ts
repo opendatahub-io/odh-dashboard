@@ -507,6 +507,10 @@ class ModelCatalog {
     return cy.findByTestId('register-model-button');
   }
 
+  findRegisterCatalogModelTooltip() {
+    return cy.findByTestId('register-catalog-model-tooltip');
+  }
+
   findModelTypeSelect() {
     return cy.findByTestId('register-model-type-select');
   }
