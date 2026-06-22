@@ -1,6 +1,6 @@
 import * as React from 'react';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
-import { useNamespaceSelector } from 'mod-arch-core';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useNavigate } from 'react-router-dom';
 
 type EvalHubProjectSelectorProps = {
@@ -14,7 +14,7 @@ const EvalHubProjectSelector: React.FC<EvalHubProjectSelectorProps> = ({
   ...projectSelectorProps
 }) => {
   const navigate = useNavigate();
-  const { namespaces, updatePreferredNamespace, namespacesLoaded } = useNamespaceSelector();
+  const { namespaces, updatePreferredNamespace, namespacesLoaded } = useNamespaceSelectorWithPersistence();
 
   return (
     <div data-testid="eval-hub-project-selector">

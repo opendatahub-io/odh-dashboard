@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Content, Flex, FlexItem } from '@patternfly/react-core';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
-import { useNamespaceSelector } from 'mod-arch-core';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
@@ -22,7 +22,7 @@ type ApplicationPageRenderState = Pick<ApplicationPageProps, EmptyStateProps>;
 
 const EvalHubCoreLoader: React.FC<EvalHubCoreLoaderProps> = ({ getInvalidRedirectPath }) => {
   const { namespace } = useParams<{ namespace: string }>();
-  const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelector();
+  const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelectorWithPersistence();
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (namespaces.length === 0) {

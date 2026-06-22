@@ -16,9 +16,9 @@ import {
   DeploymentMode,
   logout,
   useModularArchContext,
-  useNamespaceSelector,
   useSettings,
 } from 'mod-arch-core';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
@@ -34,7 +34,7 @@ const App: React.FC = () => {
     loadError: configError,
   } = useSettings();
 
-  const { namespacesLoaded, namespacesLoadError, initializationError } = useNamespaceSelector();
+  const { namespacesLoaded, namespacesLoadError, initializationError } = useNamespaceSelectorWithPersistence();
 
   const { config } = useModularArchContext();
   const { deploymentMode } = config;

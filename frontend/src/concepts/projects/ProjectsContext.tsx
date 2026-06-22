@@ -6,6 +6,8 @@ import { useDashboardNamespace } from '#~/redux/selectors';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { isAvailableProject } from './utils';
 
+const PREFERRED_NAMESPACE_STORAGE_KEY = 'mod-arch.namespace.lastUsed';
+
 const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
   getDisplayNameFromK8sResource(projectA).localeCompare(getDisplayNameFromK8sResource(projectB));
 
@@ -55,6 +57,13 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
   const [projectData, loaded, loadError] = useProjects();
   const { dashboardNamespace } = useDashboardNamespace();
 
+  const updatePreferredProject = React.useCallback((project: ProjectKind | null) => {
+    setPreferredProject(project);
+    if (project?.metadata.name) {
+      localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, JSON.stringify(project.metadata.name));
+    }
+  }, []);
+
   const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(
     () =>
       projectData.reduce<{
@@ -80,6 +89,32 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       ),
     [projectData, dashboardNamespace],
   );
+
+  React.useEffect(() => {
+    if (!loaded || preferredProject || projects.length === 0) {
+      return;
+    }
+    const raw = localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY);
+    if (raw) {
+      let stored: string | null = null;
+      try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed === 'string') {
+          stored = parsed;
+        }
+      } catch {
+        if (typeof raw === 'string' && raw.length > 0) {
+          stored = raw;
+        }
+      }
+      if (stored) {
+        const match = projects.find(byName(stored));
+        if (match) {
+          setPreferredProject(match);
+        }
+      }
+    }
+  }, [loaded, preferredProject, projects]);
 
   const isMounted = React.useRef(true);
   React.useEffect(() => {
@@ -119,7 +154,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       modelServingProjects: modelServingProjects.toSorted(projectSorter),
       nonActiveProjects: nonActiveProjects.toSorted(projectSorter),
       preferredProject,
-      updatePreferredProject: setPreferredProject,
+      updatePreferredProject,
       loaded,
       loadError,
       waitForProject,
@@ -129,7 +164,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       modelServingProjects,
       nonActiveProjects,
       preferredProject,
-      setPreferredProject,
+      updatePreferredProject,
       loaded,
       loadError,
       waitForProject,

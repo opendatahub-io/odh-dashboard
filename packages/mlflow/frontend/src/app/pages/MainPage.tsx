@@ -17,7 +17,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { useNamespaceSelector } from 'mod-arch-core';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import {
@@ -53,7 +53,7 @@ const MainPage: React.FC = () => {
   const [appliedFilter, setAppliedFilter] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const { namespaces, preferredNamespace, updatePreferredNamespace, namespacesLoaded } =
-    useNamespaceSelector();
+    useNamespaceSelectorWithPersistence();
 
   const excludedNames = new Set(['default', 'system', 'openshift', 'opendatahub']);
   const filteredNamespaces = namespaces.filter(
