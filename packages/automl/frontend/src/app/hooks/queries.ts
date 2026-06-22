@@ -41,6 +41,7 @@ export type ColumnSchema = {
   name: string;
   type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
   task_type: TaskType;
+  unique_count?: number;
   values?: (string | number)[];
 };
 
@@ -53,6 +54,8 @@ const ColumnSchemaArraySchema = z.array(
     type: z.enum(['integer', 'double', 'timestamp', 'bool', 'string']),
     // eslint-disable-next-line camelcase -- matches API response field name
     task_type: z.enum(['binary', 'multiclass', 'regression']),
+    // eslint-disable-next-line camelcase -- matches API response field name
+    unique_count: z.number().int().nonnegative().optional(),
     values: z.array(z.union([z.string(), z.number()])).optional(),
   }),
 );
@@ -310,7 +313,9 @@ export async function fetchS3Json<T>(
       throw new Error(`Invalid JSON structure from S3 file "${key}": ${issues}`);
     }
     throw new Error(
-      `Failed to parse JSON from S3 file "${key}": ${error instanceof Error ? error.message : 'Invalid JSON'}`,
+      `Failed to parse JSON from S3 file "${key}": ${
+        error instanceof Error ? error.message : 'Invalid JSON'
+      }`,
     );
   }
 }
