@@ -246,7 +246,7 @@ export function getOptimizedMetricForTask(taskType: string): string {
   if (!(taskType in DEFAULT_EVAL_METRIC_BY_TASK)) {
     return 'Unknown metric';
   }
-  return normalizeMetricKey(DEFAULT_EVAL_METRIC_BY_TASK[taskType]);
+  return normalizeMetricKey(DEFAULT_EVAL_METRIC_BY_TASK[taskType] ?? '');
 }
 
 /**

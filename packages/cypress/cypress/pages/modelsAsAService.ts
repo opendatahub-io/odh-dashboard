@@ -779,6 +779,15 @@ class DeleteSubscriptionModal extends DeleteModal {
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByRole('button', { name: /Delete/, hidden: true });
   }
+
+  findConfirmationMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('delete-modal-confirmation-message');
+  }
+
+  shouldShowResourceName(name: string): this {
+    this.findConfirmationMessage().find('strong').should('have.text', name);
+    return this;
+  }
 }
 class ViewSubscriptionPage {
   visit(name: string): void {
@@ -1009,6 +1018,15 @@ class DeleteAuthPolicyModal extends DeleteModal {
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByRole('button', { name: /Delete/, hidden: true });
   }
+
+  findConfirmationMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('delete-modal-confirmation-message');
+  }
+
+  shouldShowResourceName(name: string): this {
+    this.findConfirmationMessage().find('strong').should('have.text', name);
+    return this;
+  }
 }
 
 class ViewAuthPolicyPage {
@@ -1129,6 +1147,39 @@ class SubscriptionsTab {
   }
 }
 
+class SubscriptionManagementPage {
+  visit(tab?: string): void {
+    const path = tab ? `/maas/subscription-management/${tab}` : '/maas/subscription-management';
+    cy.visitWithLogin(path);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-description');
+  }
+
+  findOverviewTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('overview-tab');
+  }
+
+  findSubscriptionsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-tab');
+  }
+
+  findAuthPoliciesTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('auth-policies-tab');
+  }
+}
+
 export const maasWizardField = new MaaSWizardField();
 export const apiKeysPage = new APIKeysPage();
 export const subscriptionsTab = new SubscriptionsTab();
@@ -1149,3 +1200,4 @@ export const authPoliciesPage = new AuthPoliciesPage();
 export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();
 export const viewAuthPolicyPage = new ViewAuthPolicyPage();
 export const mySubscriptionsPage = new MySubscriptionsPage();
+export const subscriptionManagementPage = new SubscriptionManagementPage();

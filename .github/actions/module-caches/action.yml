@@ -18,6 +18,16 @@ runs:
     - name: Set Cypress cache to workspace-local path
       shell: bash
       run: echo "CYPRESS_CACHE_FOLDER=${{ github.workspace }}/.cache/Cypress" >> "$GITHUB_ENV"
+    - name: Use pinned npm version
+      shell: bash
+      run: |
+        pkg_manager="$(jq -r .packageManager package.json)"
+        if [[ ! "$pkg_manager" =~ ^npm@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::Invalid packageManager field: must match npm@MAJOR.MINOR.PATCH"
+          exit 1
+        fi
+        npm install -g "$pkg_manager" --prefix "$(dirname "$(which node)")/.."
+        echo "npm: $(npm --version)"
     - name: Root node_modules cache
       id: root-cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4

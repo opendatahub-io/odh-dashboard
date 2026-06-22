@@ -101,7 +101,7 @@ mod-arch-starter/
 
 ### BFF
 
-- **Go**: >= 1.24.3
+- **Go**: >= 1.26
 
 ---
 
@@ -381,7 +381,7 @@ make test   # Run tests
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.24+** for the BFF and **Node 22+** for the frontend
+1. Use **Go 1.26+** for the BFF and **Node 22+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Stick to **PatternFly components** and utilities; Material UI appears only when Kubeflow flavor
    explicitly requires it

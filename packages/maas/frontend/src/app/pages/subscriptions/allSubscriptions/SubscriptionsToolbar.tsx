@@ -15,11 +15,13 @@ type SubscriptionsToolbarProps = {
     key: SubscriptionsFilterOptions,
     value?: string | { label: string; value: string },
   ) => void;
+  returnTo?: string;
 };
 
 const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
   filterData,
   onFilterUpdate,
+  returnTo,
 }) => {
   const navigate = useNavigate();
   return (
@@ -46,7 +48,10 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
           <Button
             variant="primary"
             onClick={() => {
-              navigate(`${URL_PREFIX}/subscriptions/create`);
+              const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
+              navigate(`${base}/create`, {
+                state: returnTo ? { returnTo } : undefined,
+              });
             }}
             data-testid="create-subscription-button"
           >

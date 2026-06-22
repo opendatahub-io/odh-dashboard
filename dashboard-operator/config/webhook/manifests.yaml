@@ -60,3 +60,31 @@ spec:
     kind: Issuer
     name: selfsigned-issuer
   secretName: dashboard-operator-webhook-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-operator-metrics-service
+  namespace: system
+spec:
+  ports:
+    - port: 8443
+      protocol: TCP
+      targetPort: 8443
+      name: https
+  selector:
+    app.kubernetes.io/name: dashboard-operator
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dashboard-operator-metrics-cert
+  namespace: system
+spec:
+  dnsNames:
+    - dashboard-operator-metrics-service.system.svc
+    - dashboard-operator-metrics-service.system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: dashboard-operator-metrics-tls
