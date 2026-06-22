@@ -249,7 +249,11 @@ class ChatbotPage {
   }
 
   openKebabAndClickItem(testId: string): void {
-    this.findKebabMenuButton().click();
+    this.findKebabMenuButton().then(($btn) => {
+      if ($btn.attr('aria-expanded') !== 'true') {
+        cy.wrap($btn).click();
+      }
+    });
     cy.findByTestId(testId).click();
   }
 
