@@ -174,6 +174,7 @@ export function useComponentStatuses(
     );
 
     if (componentsToFetch.length === 0) {
+      setIsLoading(false);
       return;
     }
 
