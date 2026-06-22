@@ -270,6 +270,12 @@
 }
 
 @media print {
+  /* Browser hint to include background graphics on printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   /* Hide everything except the portalled print container */
   body > *:not(.odh-autox-print-only) {
     display: none !important;
@@ -278,6 +284,11 @@
   /* Show the print container */
   .odh-autox-print-only {
     display: block !important;
+  }
+
+  /* Elements not needed in the print container */
+  .odh-autox-print-hide-element {
+    display: none;
   }
 
   .automl-print-header {

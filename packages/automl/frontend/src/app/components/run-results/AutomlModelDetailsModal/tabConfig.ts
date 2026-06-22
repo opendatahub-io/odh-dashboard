@@ -14,6 +14,7 @@ import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 
 export type TabContentProps = {
+  print?: boolean;
   model: AutomlModel;
   taskType: TaskType;
   parameters?: Partial<ConfigureSchema>;
