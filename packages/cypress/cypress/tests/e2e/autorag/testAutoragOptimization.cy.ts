@@ -73,7 +73,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
             cy.step('Provision project with DSPA');
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
 
-            cy.step('Provision AutoRAG infrastructure (models, Milvus, OGX)');
+            cy.step('Provision AutoRAG infrastructure (Milvus, OGX)');
             provisionAutoragInfrastructure(projectName, testData.ogxSecretName);
           }
         }),
@@ -94,11 +94,17 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
-  // CI test: validates the configure + submit flow only.
-  // Add @AutoRAGCI tag once the OGX operator is enabled on the CI cluster.
   it(
     'Can configure and submit an AutoRAG optimization run',
-    { tags: ['@AutoRAG', '@AutoRAGRegression', '@AutoRAGOptimization', '@Featureflagged'] },
+    {
+      tags: [
+        '@AutoRAG',
+        '@AutoRAGCI',
+        '@AutoRAGRegression',
+        '@AutoRAGOptimization',
+        '@Featureflagged',
+      ],
+    },
     () => {
       configureAutoragRun(testData, projectName, uuid);
 

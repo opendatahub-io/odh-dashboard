@@ -4,14 +4,12 @@ import * as yaml from 'js-yaml';
 import { pollUntilSuccess } from './baseCommands';
 import { allowOgxAccess } from './ogxNetworkPolicy';
 import { createOgxSecret } from './ogxSecret';
-import { checkInferenceServiceState } from './modelServing';
 import type { CommandLineResult } from '../../types';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const LLM_SERVING_RUNTIME = 'autorag-vllm-cpu-runtime';
 const LLM_INFERENCE_SERVICE = 'autorag-llm';
 const MILVUS_DEPLOYMENT = 'milvus';
 const MILVUS_PORT = 19530;
@@ -19,38 +17,14 @@ const OGX_SERVER_NAME = 'autorag-ogx';
 const OGX_CONFIG_MAP = 'ogx-config';
 const OGX_PORT = 8321;
 
-// Embedding is handled by OGX's built-in inline::sentence-transformers provider.
-// No external InferenceService needed — it runs inside the OGX pod on CPU.
-// Uses all-MiniLM-L6-v2: public (no HuggingFace auth), small (22M params), 384-dim.
 const INLINE_EMBEDDING_MODEL_ID = 'sentence-transformers/all-MiniLM-L6-v2';
 const INLINE_EMBEDDING_DIMENSION = 384;
 
-// Default images — overridable via CYPRESS_ env vars for disconnected clusters
-const DEFAULT_VLLM_CPU_IMAGE = 'quay.io/rh-aiservices-bu/vllm-cpu-openai-ubi9:0.3';
-const DEFAULT_LLM_MODEL_URI =
-  'oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct';
 const DEFAULT_MILVUS_IMAGE = 'milvusdb/milvus:v2.5.4';
-
-// Placeholder tokens used in YAML fixtures — replaced at runtime
-const VLLM_IMAGE_PLACEHOLDER = '{{VLLM_CPU_IMAGE}}';
 const MILVUS_IMAGE_PLACEHOLDER = '{{MILVUS_IMAGE}}';
-const LLM_MODEL_URI_PLACEHOLDER = '{{LLM_MODEL_URI}}';
 
-// ---------------------------------------------------------------------------
-// Image resolution helpers (disconnected cluster support)
-// ---------------------------------------------------------------------------
-
-/**
- * Resolve an image reference, checking for a CYPRESS_ env var override first.
- * On connected clusters (ODH CI), returns the default.
- * On disconnected clusters (Jenkins), set CYPRESS_AUTORAG_* env vars in the pipeline.
- */
-const getImage = (envKey: string, defaultImage: string): string =>
-  (Cypress.env(envKey) as string) || defaultImage;
-
-const getVllmCpuImage = (): string => getImage('AUTORAG_VLLM_CPU_IMAGE', DEFAULT_VLLM_CPU_IMAGE);
-const getLlmModelUri = (): string => getImage('AUTORAG_LLM_MODEL_URI', DEFAULT_LLM_MODEL_URI);
-const getMilvusImage = (): string => getImage('AUTORAG_MILVUS_IMAGE', DEFAULT_MILVUS_IMAGE);
+const getMilvusImage = (): string =>
+  (Cypress.env('AUTORAG_MILVUS_IMAGE') as string) || DEFAULT_MILVUS_IMAGE;
 
 // ---------------------------------------------------------------------------
 // Self-contained OGX/LlamaStack compatibility helpers
@@ -208,35 +182,53 @@ export const isOgxOperatorManaged = (): Cypress.Chainable<boolean> =>
   );
 
 // ---------------------------------------------------------------------------
-// YAML generation helpers
+// Milvus provisioning
 // ---------------------------------------------------------------------------
 
-/**
- * Replace placeholders in a YAML fixture with resolved image/URI values.
- * Fixtures use {{PLACEHOLDER}} tokens that get replaced at runtime.
- */
-const resolveFixturePlaceholders = (yamlContent: string): string =>
-  yamlContent
-    .replace(new RegExp(VLLM_IMAGE_PLACEHOLDER.replace(/[{}]/g, '\\$&'), 'g'), getVllmCpuImage())
-    .replace(new RegExp(LLM_MODEL_URI_PLACEHOLDER.replace(/[{}]/g, '\\$&'), 'g'), getLlmModelUri())
-    .replace(new RegExp(MILVUS_IMAGE_PLACEHOLDER.replace(/[{}]/g, '\\$&'), 'g'), getMilvusImage());
-
-/**
- * Apply a YAML fixture to a namespace, resolving placeholders with runtime values.
- */
-const applyFixture = (
-  namespace: string,
-  fixturePath: string,
-): Cypress.Chainable<CommandLineResult> =>
-  cy.fixture(fixturePath).then((content: string) => {
-    const resolved = resolveFixturePlaceholders(content);
-    const tempFile = `/tmp/autorag_fixture_${Date.now()}.yaml`;
+const applyMilvusFixture = (namespace: string): Cypress.Chainable<CommandLineResult> =>
+  cy.fixture('resources/autorag/milvus-standalone.yaml').then((content: string) => {
+    const resolved = content.replace(
+      new RegExp(MILVUS_IMAGE_PLACEHOLDER.replace(/[{}]/g, '\\$&'), 'g'),
+      getMilvusImage(),
+    );
+    const tempFile = `/tmp/autorag_milvus_${Date.now()}.yaml`;
     cy.writeFile(tempFile, resolved);
     return cy.exec(`oc apply -f "${tempFile}" -n ${namespace}`).then((result) => {
       cy.exec(`rm -f ${tempFile}`);
       return cy.wrap(result);
     });
   });
+
+const deployMilvus = (namespace: string): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Deploying Milvus standalone in namespace ${namespace}`);
+  return applyMilvusFixture(namespace);
+};
+
+const waitForMilvusReady = (
+  namespace: string,
+  maxAttempts = 60,
+  pollIntervalMs = 5000,
+): Cypress.Chainable<Cypress.Exec> => {
+  const command = `oc get pods -n ${namespace} -l app=milvus -o jsonpath='{.items[0].status.phase}'`;
+  return pollUntilSuccess(
+    `${command} | grep -q Running && ${command}`,
+    `Milvus pod to be Running in ${namespace}`,
+    { maxAttempts, pollIntervalMs },
+  );
+};
+
+const cleanupMilvus = (namespace: string): void => {
+  cy.log('Cleaning up Milvus');
+  cy.exec(`oc delete deployment ${MILVUS_DEPLOYMENT} -n ${namespace}`, {
+    failOnNonZeroExit: false,
+  });
+  cy.exec(`oc delete service ${MILVUS_DEPLOYMENT} -n ${namespace}`, {
+    failOnNonZeroExit: false,
+  });
+  cy.exec(`oc delete configmap milvus-config -n ${namespace}`, {
+    failOnNonZeroExit: false,
+  });
+};
 
 // ---------------------------------------------------------------------------
 // OGX config generation
@@ -390,52 +382,6 @@ const buildOgxConfig = (namespace: string): string => {
   })}`;
 };
 /* eslint-enable camelcase */
-
-// ---------------------------------------------------------------------------
-// Deploy helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Deploy Milvus standalone into the namespace.
- */
-export const deployMilvus = (namespace: string): Cypress.Chainable<CommandLineResult> => {
-  cy.log(`Deploying Milvus standalone in namespace ${namespace}`);
-  return applyFixture(namespace, 'resources/autorag/milvus-standalone.yaml');
-};
-
-/**
- * Wait for the Milvus pod to be ready.
- */
-export const waitForMilvusReady = (
-  namespace: string,
-  maxAttempts = 60,
-  pollIntervalMs = 5000,
-): Cypress.Chainable<Cypress.Exec> => {
-  const command = `oc get pods -n ${namespace} -l app=milvus -o jsonpath='{.items[0].status.phase}'`;
-  return pollUntilSuccess(
-    `${command} | grep -q Running && ${command}`,
-    `Milvus pod to be Running in ${namespace}`,
-    { maxAttempts, pollIntervalMs },
-  );
-};
-
-/**
- * Deploy the LLM serving runtime and InferenceService.
- */
-export const deployLlmModel = (namespace: string): void => {
-  cy.log('Deploying LLM serving runtime and InferenceService');
-  applyFixture(namespace, 'resources/autorag/llm-serving-runtime.yaml');
-  applyFixture(namespace, 'resources/autorag/llm-inference-service.yaml');
-};
-
-/**
- * Wait for the LLM InferenceService to be ready.
- * Embedding is handled inline by OGX (no external InferenceService).
- */
-export const waitForModelsReady = (namespace: string): void => {
-  cy.log('Waiting for LLM InferenceService to be ready');
-  checkInferenceServiceState(LLM_INFERENCE_SERVICE, namespace, { checkReady: true });
-};
 
 // ---------------------------------------------------------------------------
 // OGX Distribution provisioning
@@ -633,26 +579,15 @@ export const getOgxServiceURL = (namespace: string): Cypress.Chainable<string> =
 // ---------------------------------------------------------------------------
 
 /**
- * Provision the full AutoRAG infrastructure in a namespace:
- * Milvus, LLM model, OGX Distribution, credentials secret.
- *
- * @param namespace The project namespace to provision into.
- * @param ogxSecretName The name for the OGX credentials secret.
+ * Provision AutoRAG infrastructure in a namespace:
+ * OGX Distribution with config, credentials secret, and network policy.
  */
 export const provisionAutoragInfrastructure = (namespace: string, ogxSecretName: string): void => {
-  cy.log(`Using vLLM CPU image: ${getVllmCpuImage()}`);
-
   cy.step('Deploy Milvus standalone');
   deployMilvus(namespace);
 
-  cy.step('Deploy LLM model (InferenceService)');
-  deployLlmModel(namespace);
-
   cy.step('Wait for Milvus to be ready');
   waitForMilvusReady(namespace);
-
-  cy.step('Wait for LLM model to be ready');
-  waitForModelsReady(namespace);
 
   cy.step('Create OGX config ConfigMap');
   createOgxConfigMap(namespace);
@@ -666,9 +601,6 @@ export const provisionAutoragInfrastructure = (namespace: string, ogxSecretName:
   cy.step('Discover OGX service URL and create credentials secret');
   getOgxServiceURL(namespace).then((ogxUrl) => {
     cy.log(`OGX service URL: ${ogxUrl}`);
-    // Use a non-empty placeholder for the API key. The upstream pipeline's Python
-    // code gates usage on `if base_url and api_key:` — an empty string is falsy
-    // in Python, causing it to fall into the in-memory code path. "no-auth" is safe.
     createOgxSecret(namespace, ogxSecretName, ogxUrl, 'no-auth');
   });
 
@@ -679,35 +611,6 @@ export const provisionAutoragInfrastructure = (namespace: string, ogxSecretName:
 // ---------------------------------------------------------------------------
 // Cleanup helpers (resilient — each call uses failOnNonZeroExit: false)
 // ---------------------------------------------------------------------------
-
-/**
- * Clean up InferenceServices and their serving runtimes.
- */
-export const cleanupAutoragModels = (namespace: string): void => {
-  cy.log('Cleaning up AutoRAG LLM InferenceService and serving runtime');
-  cy.exec(`oc delete inferenceservice ${LLM_INFERENCE_SERVICE} -n ${namespace}`, {
-    failOnNonZeroExit: false,
-  });
-  cy.exec(`oc delete servingruntime ${LLM_SERVING_RUNTIME} -n ${namespace}`, {
-    failOnNonZeroExit: false,
-  });
-};
-
-/**
- * Clean up Milvus deployment and service.
- */
-export const cleanupMilvus = (namespace: string): void => {
-  cy.log('Cleaning up Milvus');
-  cy.exec(`oc delete deployment ${MILVUS_DEPLOYMENT} -n ${namespace}`, {
-    failOnNonZeroExit: false,
-  });
-  cy.exec(`oc delete service ${MILVUS_DEPLOYMENT} -n ${namespace}`, {
-    failOnNonZeroExit: false,
-  });
-  cy.exec(`oc delete configmap milvus-config -n ${namespace}`, {
-    failOnNonZeroExit: false,
-  });
-};
 
 /**
  * Clean up OGX distribution and its ConfigMap.
@@ -741,7 +644,6 @@ export const cleanupOgxSecret = (namespace: string, secretName: string): void =>
  * Each cleanup is independent and resilient — failure of one doesn't block others.
  */
 export const cleanupAutoragInfrastructure = (namespace: string, ogxSecretName: string): void => {
-  cleanupAutoragModels(namespace);
   cleanupOgx(namespace);
   cleanupMilvus(namespace);
   cleanupOgxSecret(namespace, ogxSecretName);
