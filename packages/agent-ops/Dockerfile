@@ -4,7 +4,7 @@ ARG BFF_SOURCE_CODE=./bff
 
 # Set the base images for the build stages
 ARG NODE_BASE_IMAGE=node:22
-ARG GOLANG_BASE_IMAGE=golang:1.24.3
+ARG GOLANG_BASE_IMAGE=golang:1.25
 ARG DISTROLESS_BASE_IMAGE=gcr.io/distroless/static:nonroot
 
 # UI build stage
@@ -36,6 +36,7 @@ WORKDIR /usr/src/app
 
 # Copy the Go Modules manifests
 COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+COPY pkg/tls/ /pkg/tls/
 
 # Download dependencies
 RUN go mod download

@@ -19,7 +19,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.12
 	github.com/stretchr/testify v1.11.1
 	github.com/trustyai-explainability/trustyai-service-operator v1.38.0
-	golang.org/x/sync v0.18.0
+	golang.org/x/sync v0.20.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.34.3
 	k8s.io/apiextensions-apiserver v0.34.3
@@ -99,6 +99,7 @@ require (
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/opendatahub-io/odh-dashboard/pkg/tls v0.0.0
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -135,14 +136,14 @@ require (
 	go.uber.org/zap v1.27.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.45.0 // indirect
-	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/crypto v0.50.0 // indirect
+	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/oauth2 v0.33.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/term v0.37.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/term v0.42.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
+	golang.org/x/tools v0.43.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/api v0.226.0 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
@@ -168,3 +169,5 @@ require (
 
 // Replace the upstream ogx-k8s-operator with the Open Data Hub fork
 replace github.com/ogx-ai/ogx-k8s-operator => github.com/opendatahub-io/ogx-k8s-operator v0.0.0-20260512184943-d419c039b7b9
+
+replace github.com/opendatahub-io/odh-dashboard/pkg/tls => ../../../pkg/tls

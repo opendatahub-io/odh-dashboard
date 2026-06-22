@@ -12,6 +12,15 @@ rules:
       - watch
     resources:
       - mlflows
+  # TLS security profile discovery (one-shot GET, no cache/informer)
+  - apiGroups:
+      - config.openshift.io
+    verbs:
+      - get
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
   # Cluster domain discovery (gen-ai-ui, maas-ui)
   - apiGroups:
       - config.openshift.io
