@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
+import { QueueSource } from '#~/concepts/hardwareProfiles/const';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   ProjectDetailsContext,
@@ -85,27 +86,12 @@ describe('HardwareProfileDetailsPopover', () => {
   });
 
   describe('Custom scenario (no hardware profile)', () => {
-    it('should display informational message in popover body', async () => {
-      renderWithContext(<HardwareProfileDetailsPopover />);
-
-      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
-
-      const details = screen.getByTestId('hardware-profile-details');
-      expect(details).toHaveTextContent(
-        'No matching hardware profile found, using existing settings. Default, min, and max values are not available.',
-      );
-    });
-
-    it('should display "View details" text in form view', () => {
+    it('should display "View details" trigger and fallback message with no resource details', async () => {
       renderWithContext(<HardwareProfileDetailsPopover />);
 
       expect(screen.getByTestId('hardware-profile-details-popover')).toHaveTextContent(
         'View details',
       );
-    });
-
-    it('should contain only the fallback message with no resource details', async () => {
-      renderWithContext(<HardwareProfileDetailsPopover />);
 
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
@@ -142,5 +128,23 @@ describe('HardwareProfileDetailsPopover', () => {
       expect(details).toHaveTextContent('Workload priority');
       expect(details).toHaveTextContent('high-priority');
     });
+
+    it.each([
+      [QueueSource.HARDWARE_PROFILE, 'test-queue', 'Local queue (via hardware profile)'],
+      [QueueSource.DIRECT, 'gitops-queue', 'Local queue (applied directly)'],
+    ])(
+      'should show correct label for queueSource "%s"',
+      async (queueSource, queueName, expectedLabel) => {
+        renderWithContext(
+          <HardwareProfileDetailsPopover localQueueName={queueName} queueSource={queueSource} />,
+        );
+
+        await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+        const details = screen.getByTestId('hardware-profile-details');
+        expect(details).toHaveTextContent(expectedLabel);
+        expect(details).toHaveTextContent(queueName);
+      },
+    );
   });
 });
