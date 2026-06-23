@@ -31,7 +31,11 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
     });
     const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
     entries.push(['Evaluation metric', formatMetricName(evalMetric)]);
-    entries.push(['Created on', createdAt ? new Date(createdAt).toLocaleString() : '-']);
+
+    const createdDate = createdAt ? new Date(createdAt) : null;
+    const isValidDate = createdDate && !Number.isNaN(createdDate.getTime());
+    entries.push(['Created on', isValidDate ? createdDate.toLocaleString() : '-']);
+
     return entries;
   }, [parameters, taskType, createdAt]);
 
