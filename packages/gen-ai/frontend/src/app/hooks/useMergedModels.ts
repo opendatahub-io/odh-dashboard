@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AIModel } from '~/app/types';
-import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
+import { convertAAModelToAIModel } from '~/app/utilities/utils';
 import useFetchAIModels from './useFetchAIModels';
 import useFetchMaaSModels from './useFetchMaaSModels';
 
@@ -30,7 +30,7 @@ const useMergedModels = (): UseMergedModelsResult => {
   const maasReady = maasLoaded || !!maasError;
 
   const models = React.useMemo(
-    () => [...aiModels, ...maasModels.map(convertMaaSModelToAIModel)],
+    () => [...aiModels, ...maasModels.map(convertAAModelToAIModel)],
     [aiModels, maasModels],
   );
 

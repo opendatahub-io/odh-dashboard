@@ -98,7 +98,7 @@ export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): 
 export const isLlamaModelEnabled = (
   modelId: string,
   aiModels: AIModel[],
-  maasModels: MaaSModel[],
+  maasModels: AAModelResponse[],
   isCustomLSD: boolean,
 ): boolean => {
   if (isCustomLSD) {
@@ -115,9 +115,9 @@ export const isLlamaModelEnabled = (
     );
   }
 
-  const maasModel = maasModels.find((m) => m.id === id);
+  const maasModel = maasModels.find((m) => m.model_id === id);
   if (maasModel) {
-    return maasModel.ready;
+    return maasModel.status === 'Running';
   }
 
   return false;
@@ -242,7 +242,7 @@ export const getSourceLabelColor = (sourceLabel: string): 'blue' | 'green' | 'or
  * @param aaModel - The AAModel to convert (already in correct format from BFF)
  * @returns The AIModel with parsed endpoints
  */
-export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => {
+export const convertAAModelToAIModel = (aaModel: AAModelResponse): AIModel => {
   // Parse endpoints - AAModel already has the correct structure from BFF transformation
   const externalEndpoint = aaModel.endpoints
     .find((ep) => ep.startsWith('external:'))

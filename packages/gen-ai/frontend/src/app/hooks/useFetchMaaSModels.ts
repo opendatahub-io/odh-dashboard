@@ -23,9 +23,10 @@ const useFetchMaaSModels = (): FetchStateObject<AAModelResponse[]> => {
         return Promise.reject(new NotReadyError('API not yet available'));
       }
 
-      const queryParams = opts.queryParams
-        ? { sources: 'maas', ...opts.queryParams }
-        : { sources: 'maas' };
+      const queryParams = {
+        ...opts.queryParams,
+        sources: 'maas', // Always override to ensure we get MaaS models
+      };
       const rawData = await api.getAAModels(queryParams, opts);
       return Array.isArray(rawData) ? rawData : [];
     },
