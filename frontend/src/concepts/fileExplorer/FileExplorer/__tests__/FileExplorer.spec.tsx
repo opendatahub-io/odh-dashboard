@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import * as React from 'react';
-import type { ExplorerFile, Files } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer';
+import type { ExplorerFile, ExplorerFiles } from '#~/concepts/fileExplorer/types';
 import FileExplorer, {
   isFolder,
   sanitizeId,
@@ -83,7 +83,7 @@ describe('FileExplorer', () => {
       expect(onFolderClick).toHaveBeenCalledWith(folder);
     });
     it('should not render hidden files', () => {
-      const files: Files = [
+      const files: ExplorerFiles = [
         mockFile({ name: 'visible.json', path: '/visible.json' }),
         mockFile({ name: 'hidden.json', path: '/hidden.json', hidden: true }),
       ];

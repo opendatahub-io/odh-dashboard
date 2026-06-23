@@ -46,7 +46,6 @@ import {
   EmptyStateBody,
   EmptyStateActions,
   EmptyStateFooter,
-  type EmptyStateProps,
   Flex,
   FlexItem,
   Grid,
@@ -79,10 +78,18 @@ import {
 } from '@patternfly/react-table';
 import { EllipsisVIcon, InfoCircleIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
 import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
+import type {
+  ExplorerFile,
+  ExplorerFiles,
+  FileExplorerEmptyStateConfig,
+  Folder,
+  RenderableDetailValue,
+  Sources,
+  Source,
+} from '#~/concepts/fileExplorer/types';
 
-// TODO [ Gustavo ] This file is ~1,130 lines containing 6+ components, types, helpers, and globals.
+// TODO [ Gustavo ] This file is ~1,130 lines containing 6+ components, helpers, and globals.
 // Consider splitting into:
-//   - FileExplorer.types.ts (Source, ExplorerFile, Folder, FileExplorerEmptyStateConfig, Column)
 //   - FileExplorer.utils.ts (shouldDetailsPanelRender, sanitizeId, defaults, constants)
 //   - components/FilesTable.tsx
 //   - components/PathBreadcrumbs.tsx
@@ -93,46 +100,17 @@ const NOOP = () => null;
 
 // Types ---------------------------------------------------------------------->
 
-/** A data source that the file explorer can browse (e.g. an S3 connection). */
-export interface Source {
-  name: string;
-  bucket?: string;
-  count?: number;
-}
-export type Sources = Source[];
+export type {
+  ExplorerFile,
+  ExplorerFiles,
+  FileExplorerEmptyStateConfig,
+  Folder,
+  RenderableDetailValue,
+  Source,
+  Sources,
+} from '#~/concepts/fileExplorer/types';
 
-/**
- * A single item (file or folder) displayed in the file explorer table.
- * Storage-specific wrappers map their API responses into this shape.
- */
-export interface ExplorerFile {
-  name: string;
-  path: string;
-  size?: string;
-  type: string;
-  items?: number;
-  details?: Record<string, RenderableDetailValue>;
-  hidden?: boolean;
-  selectable?: boolean;
-  forceShowAsSelected?: boolean;
-}
-export type Files<T extends ExplorerFile = ExplorerFile> = T[];
-
-/** A {@link ExplorerFile} whose `type` is `'folder'`, making it navigable in the breadcrumb trail. */
-export interface Folder extends ExplorerFile {
-  type: 'folder';
-  items: number;
-}
 export const isFolder = (file: ExplorerFile): file is Folder => file.type === 'folder';
-
-/** Configuration for the empty-state banner shown when no files are available or an error occurs. */
-export type FileExplorerEmptyStateConfig = Pick<
-  EmptyStateProps,
-  'titleText' | 'headingLevel' | 'icon' | 'variant' | 'status'
-> & {
-  body?: ReactNode;
-  actions?: ReactNode;
-};
 
 interface Column {
   id: string;
@@ -142,7 +120,6 @@ interface Column {
   skeleton?: (index?: number) => ReactNode;
 }
 
-type RenderableDetailValue = string | number | boolean | ReactNode;
 const isRenderableDetailValue = (value: unknown): value is RenderableDetailValue =>
   typeof value === 'string' ||
   typeof value === 'number' ||
@@ -270,8 +247,8 @@ const TABLE_COLUMNS: Record<string, Column> = {
 // Private -------------------------------------------------------------------->
 
 export const shouldDetailsPanelRender = (state: {
-  filesToView: Files | undefined;
-  selectedFiles: Files | undefined;
+  filesToView: ExplorerFiles | undefined;
+  selectedFiles: ExplorerFiles | undefined;
 }): { details: boolean; selected: boolean; panel: boolean } => {
   const { filesToView, selectedFiles } = state;
 
@@ -324,16 +301,16 @@ const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSele
   );
 };
 interface FilesTableProps {
-  files?: Files;
+  files?: ExplorerFiles;
   onSelectFile?: (file: ExplorerFile, selected: boolean) => void;
-  selectedFiles?: Files;
-  setSelectedFiles: (files: Files) => void;
+  selectedFiles?: ExplorerFiles;
+  setSelectedFiles: (files: ExplorerFiles) => void;
   selection?: 'radio' | 'checkbox';
   unselectableReason?: string;
   onFolderClick?: (folder: Folder) => void;
   onViewDetails: (file: ExplorerFile) => void;
   onRemoveSelection: (file: ExplorerFile) => void;
-  filesToView?: Files;
+  filesToView?: ExplorerFiles;
   isEmpty?: boolean;
   emptyStateProps?: FileExplorerEmptyStateConfig;
   loading?: boolean;
@@ -716,8 +693,8 @@ const FileDetails: React.FC<FileDetailsProps> = ({ file }) => (
 );
 
 interface SelectedFilesDataListProps {
-  selectedFiles: Files;
-  filesToView?: Files;
+  selectedFiles: ExplorerFiles;
+  filesToView?: ExplorerFiles;
   onViewDetails: (file: ExplorerFile) => void;
   onRemoveSelection: (file: ExplorerFile) => void;
 }
@@ -829,8 +806,8 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
 };
 
 interface DetailsPanelProps {
-  selectedFiles?: Files;
-  filesToView?: Files;
+  selectedFiles?: ExplorerFiles;
+  filesToView?: ExplorerFiles;
   onViewDetails: (file: ExplorerFile) => void;
   onRemoveSelection: (file: ExplorerFile) => void;
   onClearDetails: () => void;
@@ -916,7 +893,7 @@ interface FileExplorerProps {
   source?: Source;
 
   /** The list of files and folders to display in the table. */
-  files?: Files;
+  files?: ExplorerFiles;
 
   /** Ordered breadcrumb trail representing the current folder path. */
   folders?: Folder[];
@@ -977,7 +954,7 @@ interface FileExplorerProps {
   onPerPageSelect?: (perPage: number) => void;
 
   /** Callback fired when the primary action button is clicked, passing the selected files. */
-  onPrimary: (files: Files) => void;
+  onPrimary: (files: ExplorerFiles) => void;
 
   /** A regex pattern describing the allowed characters in the search input. Characters not matching this pattern are stripped. */
   allowedSearchCharacters?: RegExp;
@@ -1017,8 +994,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 }) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
-  const [selectedFiles, setSelectedFiles] = useState<Files>([]);
-  const [filesToView, setFilesToView] = useState<Files>([]);
+  const [selectedFiles, setSelectedFiles] = useState<ExplorerFiles>([]);
+  const [filesToView, setFilesToView] = useState<ExplorerFiles>([]);
 
   // Consider introducing a FileExplorerContext if prop drilling deepens.
   // Revisit when: a child component needs to pass props through to its own children,

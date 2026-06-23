@@ -21,12 +21,12 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { debounce } from 'lodash-es';
 import FileExplorer, { isFolder } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer.tsx';
 import type {
-  Files,
+  ExplorerFiles,
   Source,
   Folder,
   FileExplorerEmptyStateConfig,
-} from '#~/concepts/fileExplorer/FileExplorer/FileExplorer.tsx';
-import type { S3ListObjectsResponse } from '#~/concepts/fileExplorer/types.ts';
+  S3ListObjectsResponse,
+} from '#~/concepts/fileExplorer/types';
 import { getFiles, type GetFilesOptions } from '#~/concepts/fileExplorer/api/s3.ts';
 import { mapResultToItems } from '#~/concepts/fileExplorer/utils.tsx';
 
@@ -65,7 +65,7 @@ interface S3FileExplorerProps {
   onClose: (_event?: KeyboardEvent | React.MouseEvent) => void;
 
   /** Callback fired when the user confirms a file selection via the primary action. */
-  onSelectFiles: (files: Files) => void;
+  onSelectFiles: (files: ExplorerFiles) => void;
 
   /** The Kubernetes namespace used to scope S3 connection lookups. */
   namespace: string;
@@ -107,7 +107,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   //  into a single reducer. This would make state transitions more predictable and easier to reason about,
   //  especially the "reset" transitions that currently require touching 10+ setState calls.
   //  This should be done once S3FileExplorer finds a common home.
-  const [filesToRender, setFilesToRender] = useState<Files>([]);
+  const [filesToRender, setFilesToRender] = useState<ExplorerFiles>([]);
   const [foldersToRender, setFoldersToRender] = useState<Folder[]>([]);
   const sourceToRender: Source | undefined = useMemo(
     () => (s3SecretName ? { name: s3SecretName, bucket } : undefined),
@@ -414,7 +414,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // Callbacks ---------------------------------------------------------------->
 
-  const handleSelectFile = useCallback((file: Files[number], selected: boolean) => {
+  const handleSelectFile = useCallback((file: ExplorerFiles[number], selected: boolean) => {
     if (selected && isFolder(file)) {
       setSelectedFolder(file);
     } else {

@@ -15,7 +15,7 @@ import {
   FlexItem,
   Switch,
 } from '@patternfly/react-core';
-import type { Files } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer.tsx';
+import type { ExplorerFiles } from '#~/concepts/fileExplorer/types';
 import S3FileExplorer from './S3FileExplorer.tsx';
 
 // Environment ---------------------------------------------------------------->
@@ -78,7 +78,7 @@ const App: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeNamespace, setActiveNamespace] = useState('mock-playground-namespace');
   const [activeSecretName, setActiveSecretName] = useState<string | undefined>(undefined);
-  const [selectedFiles, setSelectedFiles] = useState<Files>([]);
+  const [selectedFiles, setSelectedFiles] = useState<ExplorerFiles>([]);
 
   useEffect(() => {
     const htmlElement = document.documentElement;

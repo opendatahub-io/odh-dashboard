@@ -1,8 +1,7 @@
 import React from 'react';
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { relativeTime } from '#~/utilities/time';
-import type { Files, Folder } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer.tsx';
-import type { S3ListObjectsResponse } from '#~/concepts/fileExplorer/types.ts';
+import type { ExplorerFiles, Folder, S3ListObjectsResponse } from '#~/concepts/fileExplorer/types';
 
 export const formatBytes = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -17,8 +16,8 @@ export const formatBytes = (bytes: number): string => {
 export const mapResultToItems = (
   result: S3ListObjectsResponse,
   options?: { allowFolderSelection?: boolean; selectableExtensions?: string[] },
-): Files => {
-  const items: Files = [];
+): ExplorerFiles => {
+  const items: ExplorerFiles = [];
 
   if (Array.isArray(result.common_prefixes)) {
     for (const cp of result.common_prefixes) {

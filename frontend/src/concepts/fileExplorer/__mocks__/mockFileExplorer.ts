@@ -1,10 +1,10 @@
 import type {
   ExplorerFile,
-  Files,
+  ExplorerFiles,
   Folder,
   Source,
   Sources,
-} from '#~/concepts/fileExplorer/FileExplorer/FileExplorer.tsx';
+} from '#~/concepts/fileExplorer/types';
 
 // Sources -------------------------------------------------------------------->
 
@@ -38,7 +38,7 @@ export const mockFolder = (overrides: Partial<Folder> = {}): Folder => ({
   ...overrides,
 });
 
-export const mockFiles = (count = 5): Files =>
+export const mockFiles = (count = 5): ExplorerFiles =>
   Array.from({ length: count }, (_, i) =>
     mockFile({
       name: `file-${i + 1}.json`,
