@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { TableBase } from '#~/components/table';
-import useTableColumnSort from '#~/components/table/useTableColumnSort';
+import { TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 import type { RoleBindingKind } from '#~/k8sTypes';
 import { RoleAssignment, SupportedSubjectRef } from '#~/concepts/permissions/types';
 import { assigneesColumns } from './columns';

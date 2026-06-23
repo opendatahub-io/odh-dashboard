@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import { getCreatorFromK8sResource, getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
 

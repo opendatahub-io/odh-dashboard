@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -61,9 +61,9 @@ func (r *OGXServerRepository) InstallOGXServer(
 	namespace string,
 	installmodels []models.InstallModel,
 	vectorStores []models.InstallVectorStore,
-	maasClient maas.MaaSClientInterface,
+	bffClient bffclient.BFFClientInterface,
 ) (*models.OGXServerInstallModel, error) {
-	ogxServer, err := client.InstallOGXServer(ctx, identity, namespace, installmodels, vectorStores, maasClient)
+	ogxServer, err := client.InstallOGXServer(ctx, identity, namespace, installmodels, vectorStores, bffClient)
 	if err != nil {
 		return nil, err
 	}

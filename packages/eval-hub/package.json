@@ -46,7 +46,8 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/contract-tests": "*",

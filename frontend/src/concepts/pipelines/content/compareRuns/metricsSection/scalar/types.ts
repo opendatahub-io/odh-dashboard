@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 
 export type XParentLabel = {
   label: string;

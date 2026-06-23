@@ -1,8 +1,11 @@
 import * as React from 'react';
 import { Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import ResourceActionsColumn from '#~/components/ResourceActionsColumn';
-import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
+import {
+  ResourceActionsColumn,
+  ResourceNameTooltip,
+  StateActionToggle,
+} from '@odh-dashboard/ui-core';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 
@@ -12,7 +15,6 @@ import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
-import StateActionToggle from '#~/components/StateActionToggle';
 import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices';
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';

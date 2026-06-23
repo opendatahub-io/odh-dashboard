@@ -2,9 +2,13 @@ import React from 'react';
 import {
   Alert,
   AlertActionCloseButton,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   Flex,
   FlexItem,
   Label,
+  Spinner,
   Stack,
   StackItem,
   Title,
@@ -12,6 +16,7 @@ import {
 import { useParams } from 'react-router';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
+import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
@@ -20,6 +25,7 @@ import {
   computePatternRankMap,
   downloadBlob,
   getOptimizedMetricForRAG,
+  isRunInTerminalState,
   sanitizeFilename,
 } from '~/app/utilities/utils';
 import AutoragLeaderboard from './AutoragLeaderboard';
@@ -34,14 +40,43 @@ type AutoragResultsProps = {
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
-  const { pipelineRun, patterns, ragPatternsBasePath } = useAutoragResultsContext();
+  const {
+    pipelineRun,
+    patterns,
+    ragPatternsBasePath,
+    componentStageMap,
+    componentStageMapLoading,
+    componentStageMapError,
+    parameters,
+  } = useAutoragResultsContext();
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
   const [selectedPatternName, setSelectedPatternName] = React.useState<string | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
-  const nodes = useAutoragTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
+  const stageMapNodes = React.useMemo(
+    () =>
+      componentStageMap
+        ? buildStageMapTopology(
+            componentStageMap,
+            runDetails,
+            pipelineRun?.state,
+            parameters?.optimization_max_rag_patterns,
+          )
+        : [],
+    [componentStageMap, runDetails, pipelineRun?.state, parameters?.optimization_max_rag_patterns],
+  );
+  const fallbackNodes = useAutoragTaskTopology(
+    pipelineRun?.pipeline_spec,
+    runDetails,
+    pipelineRun?.state,
+  );
+  const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
+  const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
+  const useStageMap = hasStageMapTask && !componentStageMapError;
+  const nodes = useStageMap ? stageMapNodes : fallbackNodes;
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);
@@ -151,12 +186,26 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
               </FlexItem>
             )}
           </Flex>
-          <PipelineTopology
-            nodes={nodes}
-            selectedIds={selectedIds}
-            onSelectionChange={setSelectedIds}
-            className="autorag-topology-container"
-          />
+          {useStageMap &&
+          !componentStageMap &&
+          (componentStageMapLoading || !isRunInTerminalState(pipelineRun?.state)) ? (
+            <EmptyState
+              variant={EmptyStateVariant.sm}
+              icon={Spinner}
+              headingLevel="h3"
+              titleText="Preparing the optimization pipeline"
+              className="autorag-topology-container"
+            >
+              <EmptyStateBody>This may take a moment.</EmptyStateBody>
+            </EmptyState>
+          ) : (
+            <PipelineTopology
+              nodes={nodes}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+              className="autorag-topology-container"
+            />
+          )}
         </StackItem>
         <StackItem>
           <AutoragLeaderboard
