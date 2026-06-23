@@ -51,8 +51,13 @@ const useAgentProfileUrlParam = ({
   const appliedProfileId = React.useRef<string | null>(null);
 
   React.useEffect(() => {
+    if (!agentProfileId) {
+      // URL param cleared (e.g. "New agent configuration") — reset so the same
+      // profile can be re-loaded in a future navigation without being blocked.
+      appliedProfileId.current = null;
+      return;
+    }
     if (
-      !agentProfileId ||
       !namespace?.name ||
       !apiAvailable ||
       !mcpServersLoaded ||
@@ -66,9 +71,15 @@ const useAgentProfileUrlParam = ({
     setLoading(true);
     setError(undefined);
 
+    let cancelled = false;
+
     api
       .getAgentProfile({ id: agentProfileId, namespace: namespace.name })
       .then((profile) => {
+        if (cancelled) {
+          return;
+        }
+
         const { config, promptRef, mcpToolsPending } = deserializeAgentProfile(profile, {
           playgroundModels,
           mcpServers,
@@ -97,6 +108,9 @@ const useAgentProfileUrlParam = ({
           api
             .getMLflowPrompt({ name: promptRef.name, ...versionParam })
             .then((prompt) => {
+              if (cancelled) {
+                return;
+              }
               updateActivePrompt(DEFAULT_CONFIG_ID, prompt);
               const instruction =
                 prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
@@ -112,10 +126,17 @@ const useAgentProfileUrlParam = ({
         setLoading(false);
       })
       .catch((err: Error) => {
+        if (cancelled) {
+          return;
+        }
         appliedProfileId.current = null; // allow retry if caller re-mounts
         setError(err);
         setLoading(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     agentProfileId,
     namespace?.name,
