@@ -1,10 +1,10 @@
 import React from 'react';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import {
+  AAModelResponse,
   AIModel,
   LlamaModel,
   LlamaStackDistributionModel,
-  MaaSModel,
   NemoGuardrailsStatus,
 } from '~/app/types';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
@@ -19,7 +19,7 @@ type ChatbotContextProps = {
   aiModels: AIModel[];
   aiModelsLoaded: boolean;
   aiModelsError: Error | undefined;
-  maasModels: MaaSModel[];
+  maasModels: AAModelResponse[];
   maasModelsLoaded: boolean;
   maasModelsError: Error | undefined;
   models: LlamaModel[];

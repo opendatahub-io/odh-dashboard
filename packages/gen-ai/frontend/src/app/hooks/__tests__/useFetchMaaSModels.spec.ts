@@ -32,17 +32,17 @@ describe('useFetchMaaSModels', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseGenAiAPI.mockReturnValue({
-      api: { getMaaSModels: jest.fn() } as never,
+      api: { getAAModels: jest.fn() } as never,
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
     });
   });
 
   it('should return empty array when modelAsService is disabled', async () => {
-    const getMaaSModels = jest.fn();
+    const getAAModels = jest.fn();
     mockUseMaaSEnabled.mockReturnValue(false);
     mockUseGenAiAPI.mockReturnValue({
-      api: { getMaaSModels } as never,
+      api: { getAAModels } as never,
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
     });
@@ -53,13 +53,13 @@ describe('useFetchMaaSModels', () => {
     const fetchCallback = mockUseFetchState.mock.calls[0][0] as () => Promise<unknown>;
     const result = await fetchCallback();
     expect(result).toEqual([]);
-    expect(getMaaSModels).not.toHaveBeenCalled();
+    expect(getAAModels).not.toHaveBeenCalled();
   });
 
   it('should skip fetching when API is not available', async () => {
     mockUseMaaSEnabled.mockReturnValue(true);
     mockUseGenAiAPI.mockReturnValue({
-      api: { getMaaSModels: jest.fn() } as never,
+      api: { getAAModels: jest.fn() } as never,
       apiAvailable: false,
       refreshAllAPI: jest.fn(),
     });
@@ -72,12 +72,28 @@ describe('useFetchMaaSModels', () => {
   });
 
   it('should fetch MaaS models when enabled and API is available', async () => {
-    /* eslint-disable-next-line camelcase */
-    const mockModels = [{ id: 'model-1', object: 'model', created: 1, owned_by: 'maas' }];
-    const getMaaSModels = jest.fn().mockResolvedValue(mockModels);
+    /* eslint-disable camelcase */
+    const mockModels = [
+      {
+        model_name: 'model-1',
+        model_id: 'model-1',
+        serving_runtime: 'MaaS',
+        api_protocol: 'OpenAI',
+        version: '',
+        usecase: 'LLM',
+        description: '',
+        endpoints: [],
+        status: 'Running',
+        display_name: 'model-1',
+        sa_token: { name: '', token_name: '', token: '' },
+        model_source_type: 'maas' as const,
+      },
+    ];
+    /* eslint-enable camelcase */
+    const getAAModels = jest.fn().mockResolvedValue(mockModels);
     mockUseMaaSEnabled.mockReturnValue(true);
     mockUseGenAiAPI.mockReturnValue({
-      api: { getMaaSModels } as never,
+      api: { getAAModels } as never,
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
     });
@@ -89,15 +105,15 @@ describe('useFetchMaaSModels', () => {
       opts: Record<string, unknown>,
     ) => Promise<unknown>;
     const result = await fetchCallback({});
-    expect(getMaaSModels).toHaveBeenCalled();
+    expect(getAAModels).toHaveBeenCalledWith({ sources: 'maas' }, {});
     expect(result).toEqual(mockModels);
   });
 
   it('should return empty array when API returns null', async () => {
-    const getMaaSModels = jest.fn().mockResolvedValue(null);
+    const getAAModels = jest.fn().mockResolvedValue(null);
     mockUseMaaSEnabled.mockReturnValue(true);
     mockUseGenAiAPI.mockReturnValue({
-      api: { getMaaSModels } as never,
+      api: { getAAModels } as never,
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
     });

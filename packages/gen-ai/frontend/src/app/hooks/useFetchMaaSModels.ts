@@ -6,15 +6,15 @@ import {
   APIOptions,
   NotReadyError,
 } from 'mod-arch-core';
-import { MaaSModel } from '~/app/types';
+import { AAModelResponse } from '~/app/types';
 import { useGenAiAPI } from './useGenAiAPI';
 import useAiAssetModelAsServiceEnabled from './useAiAssetModelAsServiceEnabled';
 
-const useFetchMaaSModels = (): FetchStateObject<MaaSModel[]> => {
+const useFetchMaaSModels = (): FetchStateObject<AAModelResponse[]> => {
   const { api, apiAvailable } = useGenAiAPI();
   const maaSEnabled = useAiAssetModelAsServiceEnabled();
 
-  const fetchMaaSModels = React.useCallback<FetchStateCallbackPromise<MaaSModel[]>>(
+  const fetchMaaSModels = React.useCallback<FetchStateCallbackPromise<AAModelResponse[]>>(
     async (opts: APIOptions) => {
       if (!maaSEnabled) {
         return [];
@@ -23,7 +23,10 @@ const useFetchMaaSModels = (): FetchStateObject<MaaSModel[]> => {
         return Promise.reject(new NotReadyError('API not yet available'));
       }
 
-      const rawData = await api.getMaaSModels(opts);
+      const queryParams = opts.queryParams
+        ? { sources: 'maas', ...opts.queryParams }
+        : { sources: 'maas' };
+      const rawData = await api.getAAModels(queryParams, opts);
       return Array.isArray(rawData) ? rawData : [];
     },
     [api, apiAvailable, maaSEnabled],

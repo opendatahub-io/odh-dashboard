@@ -2,12 +2,12 @@
 import { K8sResourceCommon } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  AAModelResponse,
   AIModel,
   LlamaModel,
   TokenInfo,
   MCPServerFromAPI,
   MCPServerConfig,
-  MaaSModel,
 } from '~/app/types';
 
 /**
@@ -238,33 +238,23 @@ export const getSourceLabelColor = (sourceLabel: string): 'blue' | 'green' | 'or
   SOURCE_LABEL_COLORS[sourceLabel] ?? 'grey';
 
 /**
- * Converts a MaaS model to AIModel format
- * @param maasModel - The MaaS model to convert
- * @returns The converted AIModel
+ * Converts an AAModel (from /aaa/models?sources=maas) to AIModel format by parsing endpoints
+ * @param aaModel - The AAModel to convert (already in correct format from BFF)
+ * @returns The AIModel with parsed endpoints
  */
-export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
-  model_name: maasModel.display_name || maasModel.id,
-  model_id: maasModel.id,
-  serving_runtime: 'MaaS',
-  api_protocol: 'OpenAI',
-  version: '',
-  usecase: maasModel.usecase || 'LLM',
-  description: maasModel.description || '',
-  endpoints: maasModel.url ? [`external: ${maasModel.url}`] : [],
-  status: maasModel.ready ? 'Running' : 'Stop',
-  display_name: maasModel.display_name || maasModel.id,
-  sa_token: {
-    name: '',
-    token_name: '',
-    token: '',
-  },
-  model_source_type: 'maas',
-  capabilities: [],
-  externalEndpoint: maasModel.url || undefined,
-  internalEndpoint: undefined,
-  model_type: maasModel.model_type,
-  subscriptions: maasModel.subscriptions,
-});
+export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => {
+  // Parse endpoints - AAModel already has the correct structure from BFF transformation
+  const externalEndpoint = aaModel.endpoints
+    .find((ep) => ep.startsWith('external:'))
+    ?.replace('external: ', '');
+  const internalEndpoint = aaModel.endpoints.find((ep) => !ep.startsWith('external:'));
+
+  return {
+    ...aaModel,
+    externalEndpoint,
+    internalEndpoint,
+  };
+};
 
 /**
  * Properties for clipboard copy tracking events
