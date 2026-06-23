@@ -82,10 +82,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const { error: profileLoadError } = useAgentProfileUrlParam({
     mcpServers,
     mcpServersLoaded,
-    // Mirror the models portion of ApplicationsPage.loaded: allow deserialization when models
-    // have loaded, errored, or won't load because LSD isn't ready (empty list is fine as fallback).
-    playgroundModelsLoaded:
-      Boolean(modelsLoaded) || Boolean(modelsError) || lsdStatus?.phase !== 'Ready',
+    playgroundModelsLoaded: Boolean(modelsLoaded) || Boolean(modelsError),
   });
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
