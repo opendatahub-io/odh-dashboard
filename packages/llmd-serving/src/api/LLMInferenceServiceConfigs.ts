@@ -11,7 +11,13 @@ import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { LLMInferenceServiceConfigModel, type LLMInferenceServiceConfigKind } from '../types';
+import {
+  LLMInferenceServiceConfigModel,
+  CONFIG_TYPE_LABEL,
+  CONFIG_TYPE_ROUTER,
+  type TopologyType,
+  type LLMInferenceServiceConfigKind,
+} from '../types';
 
 export const createLLMInferenceServiceConfig = (
   llmInferenceServiceConfig: LLMInferenceServiceConfigKind,
@@ -114,6 +120,114 @@ export const useWatchLLMInferenceServiceConfigs = (
       isList: true,
       groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
       namespace,
+    },
+    LLMInferenceServiceConfigModel,
+    opts,
+  );
+};
+
+// --- Topology Configuration APIs ---
+
+export const listTopologyConfigs = async (
+  namespace: string,
+  topologyType: TopologyType,
+): Promise<LLMInferenceServiceConfigKind[]> => {
+  return k8sListResourceItems<LLMInferenceServiceConfigKind>({
+    model: LLMInferenceServiceConfigModel,
+    queryOptions: {
+      ns: namespace,
+      queryParams: {
+        labelSelector: `${CONFIG_TYPE_LABEL}=${topologyType}`,
+      },
+    },
+  });
+};
+
+/**
+ * Fetches all configs and filters client-side because topology types use distinct label values
+ * (e.g., workload-single-node, workload-multi-node-data-parallel) that can't be matched
+ * with a single server-side label selector.
+ */
+export const listAllTopologyConfigs = async (
+  namespace: string,
+): Promise<LLMInferenceServiceConfigKind[]> => {
+  const results = await k8sListResourceItems<LLMInferenceServiceConfigKind>({
+    model: LLMInferenceServiceConfigModel,
+    queryOptions: {
+      ns: namespace,
+    },
+  });
+  return results.filter((config) => {
+    const configType = config.metadata.labels?.[CONFIG_TYPE_LABEL];
+    return configType && configType !== CONFIG_TYPE_ROUTER && configType !== 'accelerator';
+  });
+};
+
+export const useFetchTopologyConfigs = (
+  namespace: string,
+): FetchStateObject<LLMInferenceServiceConfigKind[]> => {
+  const fetchCallbackPromise = React.useCallback(async () => {
+    return listAllTopologyConfigs(namespace);
+  }, [namespace]);
+
+  return useFetch(fetchCallbackPromise, []);
+};
+
+export const useWatchTopologyConfigs = (
+  namespace: string,
+  opts?: K8sAPIOptions,
+): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
+  return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
+    {
+      isList: true,
+      groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
+      namespace,
+    },
+    LLMInferenceServiceConfigModel,
+    opts,
+  );
+};
+
+// --- Router Configuration APIs ---
+
+export const listRouterConfigs = async (
+  namespace: string,
+): Promise<LLMInferenceServiceConfigKind[]> => {
+  return k8sListResourceItems<LLMInferenceServiceConfigKind>({
+    model: LLMInferenceServiceConfigModel,
+    queryOptions: {
+      ns: namespace,
+      queryParams: {
+        labelSelector: `${CONFIG_TYPE_LABEL}=${CONFIG_TYPE_ROUTER}`,
+      },
+    },
+  });
+};
+
+export const useFetchRouterConfigs = (
+  namespace: string,
+): FetchStateObject<LLMInferenceServiceConfigKind[]> => {
+  const fetchCallbackPromise = React.useCallback(async () => {
+    return listRouterConfigs(namespace);
+  }, [namespace]);
+
+  return useFetch(fetchCallbackPromise, []);
+};
+
+export const useWatchRouterConfigs = (
+  namespace: string,
+  opts?: K8sAPIOptions,
+): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
+  return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
+    {
+      isList: true,
+      groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
+      namespace,
+      selector: {
+        matchLabels: {
+          [CONFIG_TYPE_LABEL]: CONFIG_TYPE_ROUTER,
+        },
+      },
     },
     LLMInferenceServiceConfigModel,
     opts,
