@@ -22,6 +22,12 @@ func parseListAgentRuntimesOptions(r *http.Request) (models.ListAgentRuntimesOpt
 		ContinueToken: r.URL.Query().Get("continueToken"),
 	}
 
+	if ns := opts.Namespace; ns != "" {
+		if !isValidDNS1123Label(ns) {
+			return models.ListAgentRuntimesOptions{}, fmt.Errorf("namespace must be a valid RFC 1123 label (lowercase alphanumeric and hyphens, max 63 chars)")
+		}
+	}
+
 	limitValue := r.URL.Query().Get("limit")
 	if limitValue == "" {
 		return opts, nil

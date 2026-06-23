@@ -86,6 +86,17 @@ func TestListAgentRuntimesScopedByNamespace(t *testing.T) {
 		assert.Equal(t, "ns-a", result.Runtimes[0].Namespace)
 	})
 
+	t.Run("with namespace propagates ListAgents error", func(t *testing.T) {
+		clientWithErr := agentsmock.NewClient()
+		clientWithErr.ListAgentsErr = errors.New("upstream failure")
+		repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: clientWithErr})
+		_, err := repo.ListAgentRuntimes(context.Background(), models.ListAgentRuntimesOptions{
+			Namespace: "ns-a",
+			Limit:     DefaultAgentRuntimesLimit,
+		})
+		require.Error(t, err)
+	})
+
 	t.Run("with namespace skips ListNamespaces call", func(t *testing.T) {
 		clientWithNsErr := agentsmock.NewClient()
 		clientWithNsErr.ListNamespacesErr = errors.New("should not be called")

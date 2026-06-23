@@ -24,6 +24,18 @@ func TestListAgentRuntimesHandler_InvalidLimit(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
+func TestListAgentRuntimesHandler_WithInvalidNamespace(t *testing.T) {
+	app := &App{
+		repositories: testRepositoriesWithAgents(),
+	}
+
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath+"?namespace=INVALID_NS", nil)
+	rr := httptest.NewRecorder()
+	app.ListAgentRuntimesHandler(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
 func TestListAgentRuntimesHandler_InvalidContinueToken(t *testing.T) {
 	app := &App{
 		repositories: testRepositoriesWithAgents(),
