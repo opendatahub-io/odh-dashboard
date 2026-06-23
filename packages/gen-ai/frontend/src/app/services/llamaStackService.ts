@@ -267,22 +267,22 @@ const postCreateResponse = (
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return restCREATE<{ data?: BackendResponseData; error?: ApiErrorClass['error'] }>(
-    hostPath,
-    '/lsd/responses',
-    toCreateResponseRecord(request),
-    baseQueryParams,
-    fetchOpts,
-  ).then((response) => {
-    if (response.error) {
-      // Preserve the full ApiError structure from BFF
-      throw new ApiErrorClass(response.error);
-    }
-    if (response.data) {
-      return transformBackendResponse(response.data);
-    }
-    throw new Error('Invalid response format');
-  });
+  return restCREATE<{
+    data?: BackendResponseData;
+    error?: ApiErrorClass['error'];
+    trace_id?: string;
+  }>(hostPath, '/lsd/responses', toCreateResponseRecord(request), baseQueryParams, fetchOpts).then(
+    (response) => {
+      if (response.error) {
+        // Preserve the full ApiError structure from BFF
+        throw new ApiErrorClass(response.error, response.trace_id);
+      }
+      if (response.data) {
+        return transformBackendResponse(response.data);
+      }
+      throw new Error('Invalid response format');
+    },
+  );
 };
 
 // Streaming POST path via fetch (SSE text/event-stream)
@@ -316,7 +316,7 @@ const streamCreateResponse = (
 
           if (isApiError(errorData)) {
             // Preserve the full ApiError structure from BFF
-            throw new ApiErrorClass(errorData.error);
+            throw new ApiErrorClass(errorData.error, errorData.trace_id);
           }
 
           // Fallback: no structured error or parsing failed
@@ -365,7 +365,7 @@ const streamCreateResponse = (
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                       }
                       // Preserve the full ApiError structure from BFF
-                      reject(new ApiErrorClass(data.error));
+                      reject(new ApiErrorClass(data.error, data.trace_id));
                       return;
                     }
 

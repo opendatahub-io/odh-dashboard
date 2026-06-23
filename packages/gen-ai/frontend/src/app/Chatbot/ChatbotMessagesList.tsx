@@ -69,16 +69,17 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         );
       }
 
-      // Add metrics and trace link to endContent (if present and no error)
-      if (message.role === 'bot' && metrics && !errorClassification) {
+      // Add metrics and trace link to endContent
+      const traceId = metrics?.trace_id || errorClassification?.traceId;
+      if (message.role === 'bot' && (metrics || traceId)) {
         extraContent.endContent = (
           <>
-            <ChatbotMessagesMetrics metrics={metrics} />
-            {metrics.trace_id && onViewTrace && (
+            {metrics && !errorClassification && <ChatbotMessagesMetrics metrics={metrics} />}
+            {traceId && onViewTrace && (
               <Button
                 variant="link"
                 isInline
-                onClick={() => onViewTrace(metrics.trace_id!)}
+                onClick={() => onViewTrace(traceId)}
                 data-testid="view-trace-link"
               >
                 View trace

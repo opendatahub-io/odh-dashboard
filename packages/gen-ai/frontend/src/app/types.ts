@@ -735,6 +735,7 @@ export interface ClassifiedError {
   description: string;
   details: ErrorDetails;
   isRetriable: boolean;
+  traceId?: string;
 }
 
 export interface ApiError {
@@ -745,6 +746,7 @@ export interface ApiError {
     tool_name?: string;
     retriable: boolean;
   };
+  trace_id?: string;
 }
 
 /**
@@ -755,10 +757,15 @@ export interface ApiError {
 export class ApiErrorClass extends Error implements ApiError {
   error: ApiError['error'];
 
-  constructor(error: ApiError['error']) {
+  // eslint-disable-next-line camelcase
+  trace_id?: string;
+
+  constructor(error: ApiError['error'], traceId?: string) {
     super(error.message);
     this.name = 'ApiError';
     this.error = error;
+    // eslint-disable-next-line camelcase
+    this.trace_id = traceId;
     // Maintains proper prototype chain for instanceof checks
     Object.setPrototypeOf(this, ApiErrorClass.prototype);
   }

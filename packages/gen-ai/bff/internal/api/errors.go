@@ -61,6 +61,7 @@ func (app *App) guardrailViolationResponse(w http.ResponseWriter, r *http.Reques
 			Message:   msg,
 			Retriable: false,
 		},
+		TraceID: otelTraceID(r.Context()),
 	}
 	if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {
 		app.LogError(r, writeErr)
@@ -79,6 +80,7 @@ func (app *App) guardrailServiceUnavailableResponse(w http.ResponseWriter, r *ht
 			Message:   err.Error(),
 			Retriable: false,
 		},
+		TraceID: otelTraceID(r.Context()),
 	}
 	if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {
 		app.LogError(r, writeErr)
