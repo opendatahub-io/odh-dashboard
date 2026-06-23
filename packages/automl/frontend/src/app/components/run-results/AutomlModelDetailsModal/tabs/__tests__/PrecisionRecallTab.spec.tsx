@@ -4,6 +4,10 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import PrecisionRecallTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/PrecisionRecallTab';
+import {
+  mockBinaryCurvesData,
+  mockMulticlassCurvesData,
+} from '~/app/mocks/mockAutomlResultsContext';
 
 jest.mock(
   '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart',
@@ -21,28 +25,34 @@ const buildModel = (name: string): AutomlModel => ({
 
 const defaultProps = {
   taskType: 'multiclass' as const,
+  model: buildModel('TestModel'),
   parameters: { task_type: 'multiclass' as const, label_column: 'label' },
 };
 
 describe('PrecisionRecallTab', () => {
-  it('should render chart for binary task type', () => {
-    const model = buildModel('TestModel');
-    render(<PrecisionRecallTab {...defaultProps} taskType="binary" model={model} />);
+  it('should render chart when curves data is provided', () => {
+    render(
+      <PrecisionRecallTab
+        {...defaultProps}
+        curves={mockMulticlassCurvesData.CatBoost_BAG_L2_FULL}
+      />,
+    );
 
     expect(screen.getByTestId('precision-recall-chart')).toBeInTheDocument();
   });
 
-  it('should render chart for multiclass task type', () => {
-    const model = buildModel('CatBoost_BAG_L2_FULL');
-    render(<PrecisionRecallTab {...defaultProps} taskType="multiclass" model={model} />);
+  it('should render chart for binary curves data', () => {
+    render(
+      <PrecisionRecallTab {...defaultProps} taskType="binary" curves={mockBinaryCurvesData} />,
+    );
 
     expect(screen.getByTestId('precision-recall-chart')).toBeInTheDocument();
   });
 
-  it('should render chart for unknown multiclass model using fallback', () => {
-    const model = buildModel('UnknownModel');
-    render(<PrecisionRecallTab {...defaultProps} taskType="multiclass" model={model} />);
+  it('should render no-data message when curves is undefined', () => {
+    render(<PrecisionRecallTab {...defaultProps} curves={undefined} />);
 
-    expect(screen.getByTestId('precision-recall-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('precision-recall-no-data')).toBeInTheDocument();
+    expect(screen.queryByTestId('precision-recall-chart')).not.toBeInTheDocument();
   });
 });

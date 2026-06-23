@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { TaskType, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
+import type { TaskType, FeatureImportanceData, ConfusionMatrixData, CurvesData } from '~/app/types';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -21,6 +21,7 @@ export type TabContentProps = {
   createdAt?: string;
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
+  curves?: CurvesData;
   isArtifactsLoading?: boolean;
 };
 

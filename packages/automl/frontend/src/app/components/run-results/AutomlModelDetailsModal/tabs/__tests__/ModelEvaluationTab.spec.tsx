@@ -4,6 +4,10 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import ModelEvaluationTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ModelEvaluationTab';
+import {
+  mockBinaryCurvesData,
+  mockMulticlassCurvesData,
+} from '~/app/mocks/mockAutomlResultsContext';
 
 jest.mock('~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart', () => ({
   __esModule: true,
@@ -107,7 +111,14 @@ describe('ModelEvaluationTab', () => {
 
   it('should render ROC curve section for binary task type', () => {
     const model = buildModel({ accuracy: 0.8 });
-    render(<ModelEvaluationTab {...defaultProps} taskType="binary" model={model} />);
+    render(
+      <ModelEvaluationTab
+        {...defaultProps}
+        taskType="binary"
+        model={model}
+        curves={mockBinaryCurvesData}
+      />,
+    );
 
     expect(screen.getByTestId('roc-curve-section')).toBeInTheDocument();
     expect(screen.getByTestId('roc-curve-chart')).toBeInTheDocument();
@@ -116,7 +127,14 @@ describe('ModelEvaluationTab', () => {
   it('should render ROC curve section for multiclass task type', () => {
     const model = buildModel({ accuracy: 0.8 });
     model.name = 'CatBoost_BAG_L2_FULL';
-    render(<ModelEvaluationTab {...defaultProps} taskType="multiclass" model={model} />);
+    render(
+      <ModelEvaluationTab
+        {...defaultProps}
+        taskType="multiclass"
+        model={model}
+        curves={mockMulticlassCurvesData.CatBoost_BAG_L2_FULL}
+      />,
+    );
 
     expect(screen.getByTestId('roc-curve-section')).toBeInTheDocument();
     expect(screen.getByTestId('roc-curve-chart')).toBeInTheDocument();

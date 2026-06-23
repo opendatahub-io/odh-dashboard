@@ -74,6 +74,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   const {
     featureImportance,
     confusionMatrix,
+    curves,
     isLoading: isArtifactsLoading,
   } = useModelEvaluationArtifactsQuery(namespace, modelDirectory, isClassification);
 
@@ -194,6 +195,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                         createdAt={createdAt}
                         featureImportance={featureImportance}
                         confusionMatrix={confusionMatrix}
+                        curves={curves}
                         isArtifactsLoading={isArtifactsLoading}
                       />
                     )}
@@ -234,6 +236,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                     createdAt={createdAt}
                     featureImportance={featureImportance}
                     confusionMatrix={confusionMatrix}
+                    curves={curves}
                   />
                 </div>
               );

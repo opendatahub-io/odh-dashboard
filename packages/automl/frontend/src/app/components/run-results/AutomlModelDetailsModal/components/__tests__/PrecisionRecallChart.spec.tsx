@@ -1,10 +1,20 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
 import { buildPRCurveLines } from '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart';
-import type { PrecisionRecallData } from '~/app/types';
+import type { CurvesData } from '~/app/types';
 
-const binaryData: PrecisionRecallData = {
+const binaryData: CurvesData = {
   task_type: 'binary',
+  positive_class: 1,
+  num_samples: 100,
+  num_positive: 50,
+  num_negative: 50,
+  roc_curve: {
+    auc: 0.95,
+    fpr: [0.0, 0.1, 0.5, 1.0],
+    tpr: [0.0, 0.6, 0.9, 1.0],
+    thresholds: ['inf', 0.9, 0.5, 0.1],
+  },
   precision_recall_curve: {
     average_precision: 0.95,
     precision: [0.5, 0.7, 0.9, 1.0],
@@ -14,9 +24,32 @@ const binaryData: PrecisionRecallData = {
   },
 };
 
-const multiclassData: PrecisionRecallData = {
+const multiclassData: CurvesData = {
   task_type: 'multiclass',
+  strategy: 'ovr',
+  num_classes: 2,
   classes: ['A', 'B'],
+  num_samples: 100,
+  roc_curve: {
+    auc_macro: 0.85,
+    auc_weighted: 0.86,
+    per_class: {
+      A: {
+        auc: 0.9,
+        fpr: [0.0, 0.2, 1.0],
+        tpr: [0.0, 0.8, 1.0],
+        thresholds: ['inf', 0.7, 0.1],
+        support: 50,
+      },
+      B: {
+        auc: 0.8,
+        fpr: [0.0, 0.3, 1.0],
+        tpr: [0.0, 0.7, 1.0],
+        thresholds: ['inf', 0.6, 0.1],
+        support: 50,
+      },
+    },
+  },
   precision_recall_curve: {
     average_precision_macro: 0.85,
     average_precision_weighted: 0.86,

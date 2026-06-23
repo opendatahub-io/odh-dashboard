@@ -15,7 +15,7 @@ import {
   chart_theme_multi_color_ordered_ColorScale_500 as chartThemeColor500,
 } from '@patternfly/react-tokens';
 import { Flex, FlexItem, Label, Title } from '@patternfly/react-core';
-import type { RocCurveData, RocCurveEntry } from '~/app/types';
+import type { CurvesData, RocCurveEntry } from '~/app/types';
 
 const COLOR_SCALE = [
   chartThemeColor100.value,
@@ -93,10 +93,10 @@ function buildMacroAverageCurve(
   };
 }
 
-// Transforms RocCurveData into chart-renderable line data.
+// Transforms CurvesData into chart-renderable line data.
 // Binary: returns a single ROC curve.
 // Multiclass: returns one "ClassName (One v. Rest)" curve per class plus a macro-averaged curve.
-export function buildCurveLines(rocCurveData: RocCurveData): CurveLineData[] {
+export function buildCurveLines(rocCurveData: CurvesData): CurveLineData[] {
   if (rocCurveData.task_type === 'binary') {
     return [buildCurveLineFromEntry(rocCurveData.roc_curve, 'ROC', 0)];
   }
@@ -110,7 +110,7 @@ export function buildCurveLines(rocCurveData: RocCurveData): CurveLineData[] {
 }
 
 // Returns the headline AUC for the badge: single AUC for binary, macro-average for multiclass.
-function getAucValue(rocCurveData: RocCurveData): number {
+function getAucValue(rocCurveData: CurvesData): number {
   if (rocCurveData.task_type === 'binary') {
     return rocCurveData.roc_curve.auc;
   }
@@ -118,7 +118,7 @@ function getAucValue(rocCurveData: RocCurveData): number {
 }
 
 type ROCCurveChartProps = {
-  rocCurveData: RocCurveData;
+  rocCurveData: CurvesData;
 };
 
 const CHART_SIZE = 500;

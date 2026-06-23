@@ -15,7 +15,7 @@ import {
   chart_theme_multi_color_ordered_ColorScale_500 as chartThemeColor500,
 } from '@patternfly/react-tokens';
 import { Flex, FlexItem, Label, Title } from '@patternfly/react-core';
-import type { PrecisionRecallData, PrecisionRecallEntry } from '~/app/types';
+import type { CurvesData, PrecisionRecallEntry } from '~/app/types';
 
 const COLOR_SCALE = [
   chartThemeColor100.value,
@@ -49,10 +49,10 @@ function buildLineFromEntry(
   };
 }
 
-// Transforms PrecisionRecallData into chart-renderable line data.
+// Transforms CurvesData into chart-renderable line data.
 // Binary: returns a single precision-recall curve.
 // Multiclass: returns one curve per class.
-export function buildPRCurveLines(prData: PrecisionRecallData): CurveLineData[] {
+export function buildPRCurveLines(prData: CurvesData): CurveLineData[] {
   if (prData.task_type === 'binary') {
     return [buildLineFromEntry(prData.precision_recall_curve, 'Model', 0)];
   }
@@ -64,7 +64,7 @@ export function buildPRCurveLines(prData: PrecisionRecallData): CurveLineData[] 
 }
 
 // Returns the headline AP for the badge: single AP for binary, macro-average for multiclass.
-function getApValue(prData: PrecisionRecallData): number {
+function getApValue(prData: CurvesData): number {
   if (prData.task_type === 'binary') {
     return prData.precision_recall_curve.average_precision;
   }
@@ -73,7 +73,7 @@ function getApValue(prData: PrecisionRecallData): number {
 
 // Returns the baseline precision for the no-skill classifier line.
 // Binary: single value. Multiclass: average across classes.
-function getBaselinePrecision(prData: PrecisionRecallData): number {
+function getBaselinePrecision(prData: CurvesData): number {
   if (prData.task_type === 'binary') {
     return prData.precision_recall_curve.baseline_precision;
   }
@@ -82,7 +82,7 @@ function getBaselinePrecision(prData: PrecisionRecallData): number {
 }
 
 type PrecisionRecallChartProps = {
-  prData: PrecisionRecallData;
+  prData: CurvesData;
 };
 
 const CHART_SIZE = 500;

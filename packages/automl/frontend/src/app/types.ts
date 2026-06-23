@@ -215,23 +215,6 @@ export type MulticlassRocCurveEntry = RocCurveEntry & {
   support: number;
 };
 
-export type BinaryRocCurveData = {
-  task_type: 'binary';
-  roc_curve: RocCurveEntry;
-};
-
-export type MulticlassRocCurveData = {
-  task_type: 'multiclass';
-  classes: (string | number)[];
-  roc_curve: {
-    auc_macro: number;
-    auc_weighted: number;
-    per_class: Record<string, MulticlassRocCurveEntry>;
-  };
-};
-
-export type RocCurveData = BinaryRocCurveData | MulticlassRocCurveData;
-
 export type PrecisionRecallEntry = {
   average_precision: number;
   precision: number[];
@@ -240,14 +223,27 @@ export type PrecisionRecallEntry = {
   baseline_precision: number;
 };
 
-export type BinaryPrecisionRecallData = {
+export type BinaryCurvesData = {
   task_type: 'binary';
+  positive_class: string | number;
+  num_samples: number;
+  num_positive: number;
+  num_negative: number;
+  roc_curve: RocCurveEntry;
   precision_recall_curve: PrecisionRecallEntry;
 };
 
-export type MulticlassPrecisionRecallData = {
+export type MulticlassCurvesData = {
   task_type: 'multiclass';
+  strategy: string;
+  num_classes: number;
   classes: (string | number)[];
+  num_samples: number;
+  roc_curve: {
+    auc_macro: number;
+    auc_weighted: number;
+    per_class: Record<string, MulticlassRocCurveEntry>;
+  };
   precision_recall_curve: {
     average_precision_macro: number;
     average_precision_weighted: number;
@@ -255,4 +251,4 @@ export type MulticlassPrecisionRecallData = {
   };
 };
 
-export type PrecisionRecallData = BinaryPrecisionRecallData | MulticlassPrecisionRecallData;
+export type CurvesData = BinaryCurvesData | MulticlassCurvesData;

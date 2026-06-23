@@ -2,9 +2,8 @@
 import type {
   FeatureImportanceData,
   ConfusionMatrixData,
+  CurvesData,
   PipelineRun,
-  RocCurveData,
-  PrecisionRecallData,
 } from '~/app/types';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 
@@ -365,27 +364,41 @@ export const mockTabularConfusionMatrices: Record<string, ConfusionMatrixData> =
 };
 
 // ---------------------------------------------------------------------------
-// Mock ROC curve data — binary
+// Mock curves data — binary
 // ---------------------------------------------------------------------------
 
-export const mockBinaryRocCurveData: RocCurveData = {
+export const mockBinaryCurvesData: CurvesData = {
   task_type: 'binary',
+  positive_class: 1,
+  num_samples: 2000,
+  num_positive: 1024,
+  num_negative: 976,
   roc_curve: {
     auc: 0.9821,
     fpr: [0.0, 0.0, 0.012, 0.046, 0.089, 0.123, 0.235, 0.457, 0.789, 1.0],
     tpr: [0.0, 0.235, 0.568, 0.789, 0.89, 0.935, 0.968, 0.989, 0.999, 1.0],
     thresholds: ['inf', 0.988, 0.877, 0.765, 0.654, 0.543, 0.432, 0.321, 0.211, 0.11],
   },
+  precision_recall_curve: {
+    average_precision: 0.9567,
+    precision: [0.512, 0.679, 0.789, 0.846, 0.901, 0.935, 0.968, 0.989, 1.0],
+    recall: [1.0, 0.988, 0.946, 0.89, 0.823, 0.746, 0.601, 0.457, 0.0],
+    thresholds: [0.123, 0.235, 0.346, 0.457, 0.568, 0.679, 0.789, 0.89],
+    baseline_precision: 0.512,
+  },
 };
 
 // ---------------------------------------------------------------------------
-// Mock ROC curve data — multiclass (per model)
+// Mock curves data — multiclass (per model)
 // ---------------------------------------------------------------------------
 
-export const mockMulticlassRocCurveData: Record<string, RocCurveData> = {
+export const mockMulticlassCurvesData: Record<string, CurvesData> = {
   CatBoost_BAG_L2_FULL: {
     task_type: 'multiclass',
+    strategy: 'ovr',
+    num_classes: 3,
     classes: ['Ghost', 'Ghoul', 'Goblin'],
+    num_samples: 38,
     roc_curve: {
       auc_macro: 0.8456,
       auc_weighted: 0.8512,
@@ -413,94 +426,6 @@ export const mockMulticlassRocCurveData: Record<string, RocCurveData> = {
         },
       },
     },
-  },
-  RandomForest_BAG_L1_FULL: {
-    task_type: 'multiclass',
-    classes: ['Ghost', 'Ghoul', 'Goblin'],
-    roc_curve: {
-      auc_macro: 0.8102,
-      auc_weighted: 0.8156,
-      per_class: {
-        Ghost: {
-          auc: 0.8812,
-          fpr: [0.0, 0.01, 0.04, 0.08, 0.15, 0.25, 0.45, 0.65, 0.85, 1.0],
-          tpr: [0.0, 0.4, 0.6, 0.75, 0.85, 0.92, 0.96, 0.98, 1.0, 1.0],
-          thresholds: ['inf', 0.93, 0.85, 0.72, 0.6, 0.48, 0.33, 0.18, 0.07, 0.01],
-          support: 12,
-        },
-        Ghoul: {
-          auc: 0.8245,
-          fpr: [0.0, 0.03, 0.07, 0.12, 0.2, 0.3, 0.45, 0.65, 0.82, 1.0],
-          tpr: [0.0, 0.25, 0.48, 0.62, 0.75, 0.84, 0.91, 0.96, 0.99, 1.0],
-          thresholds: ['inf', 0.9, 0.81, 0.68, 0.56, 0.44, 0.31, 0.17, 0.06, 0.01],
-          support: 13,
-        },
-        Goblin: {
-          auc: 0.7249,
-          fpr: [0.0, 0.06, 0.12, 0.2, 0.3, 0.42, 0.55, 0.72, 0.88, 1.0],
-          tpr: [0.0, 0.15, 0.35, 0.5, 0.63, 0.74, 0.85, 0.92, 0.97, 1.0],
-          thresholds: ['inf', 0.85, 0.75, 0.62, 0.5, 0.38, 0.25, 0.13, 0.05, 0.01],
-          support: 13,
-        },
-      },
-    },
-  },
-  NeuralNet_BAG_L1_FULL: {
-    task_type: 'multiclass',
-    classes: ['Ghost', 'Ghoul', 'Goblin'],
-    roc_curve: {
-      auc_macro: 0.789,
-      auc_weighted: 0.7935,
-      per_class: {
-        Ghost: {
-          auc: 0.8601,
-          fpr: [0.0, 0.02, 0.06, 0.1, 0.18, 0.28, 0.48, 0.68, 0.86, 1.0],
-          tpr: [0.0, 0.35, 0.55, 0.7, 0.82, 0.9, 0.95, 0.98, 1.0, 1.0],
-          thresholds: ['inf', 0.91, 0.82, 0.7, 0.58, 0.45, 0.31, 0.16, 0.06, 0.01],
-          support: 12,
-        },
-        Ghoul: {
-          auc: 0.789,
-          fpr: [0.0, 0.04, 0.09, 0.15, 0.23, 0.33, 0.48, 0.67, 0.84, 1.0],
-          tpr: [0.0, 0.2, 0.42, 0.58, 0.72, 0.82, 0.9, 0.95, 0.98, 1.0],
-          thresholds: ['inf', 0.88, 0.78, 0.65, 0.53, 0.41, 0.29, 0.15, 0.05, 0.01],
-          support: 13,
-        },
-        Goblin: {
-          auc: 0.7179,
-          fpr: [0.0, 0.07, 0.14, 0.22, 0.32, 0.44, 0.58, 0.74, 0.9, 1.0],
-          tpr: [0.0, 0.12, 0.3, 0.46, 0.6, 0.72, 0.83, 0.91, 0.96, 1.0],
-          thresholds: ['inf', 0.83, 0.73, 0.6, 0.48, 0.36, 0.23, 0.12, 0.04, 0.01],
-          support: 13,
-        },
-      },
-    },
-  },
-};
-
-// ---------------------------------------------------------------------------
-// Mock precision-recall curve data — binary
-// ---------------------------------------------------------------------------
-
-export const mockBinaryPrecisionRecallData: PrecisionRecallData = {
-  task_type: 'binary',
-  precision_recall_curve: {
-    average_precision: 0.9567,
-    precision: [0.512, 0.679, 0.789, 0.846, 0.901, 0.935, 0.968, 0.989, 1.0],
-    recall: [1.0, 0.988, 0.946, 0.89, 0.823, 0.746, 0.601, 0.457, 0.0],
-    thresholds: [0.123, 0.235, 0.346, 0.457, 0.568, 0.679, 0.789, 0.89],
-    baseline_precision: 0.512,
-  },
-};
-
-// ---------------------------------------------------------------------------
-// Mock precision-recall curve data — multiclass (per model)
-// ---------------------------------------------------------------------------
-
-export const mockMulticlassPrecisionRecallData: Record<string, PrecisionRecallData> = {
-  CatBoost_BAG_L2_FULL: {
-    task_type: 'multiclass',
-    classes: ['Ghost', 'Ghoul', 'Goblin'],
     precision_recall_curve: {
       average_precision_macro: 0.8934,
       average_precision_weighted: 0.9012,
@@ -531,7 +456,37 @@ export const mockMulticlassPrecisionRecallData: Record<string, PrecisionRecallDa
   },
   RandomForest_BAG_L1_FULL: {
     task_type: 'multiclass',
+    strategy: 'ovr',
+    num_classes: 3,
     classes: ['Ghost', 'Ghoul', 'Goblin'],
+    num_samples: 38,
+    roc_curve: {
+      auc_macro: 0.8102,
+      auc_weighted: 0.8156,
+      per_class: {
+        Ghost: {
+          auc: 0.8812,
+          fpr: [0.0, 0.01, 0.04, 0.08, 0.15, 0.25, 0.45, 0.65, 0.85, 1.0],
+          tpr: [0.0, 0.4, 0.6, 0.75, 0.85, 0.92, 0.96, 0.98, 1.0, 1.0],
+          thresholds: ['inf', 0.93, 0.85, 0.72, 0.6, 0.48, 0.33, 0.18, 0.07, 0.01],
+          support: 12,
+        },
+        Ghoul: {
+          auc: 0.8245,
+          fpr: [0.0, 0.03, 0.07, 0.12, 0.2, 0.3, 0.45, 0.65, 0.82, 1.0],
+          tpr: [0.0, 0.25, 0.48, 0.62, 0.75, 0.84, 0.91, 0.96, 0.99, 1.0],
+          thresholds: ['inf', 0.9, 0.81, 0.68, 0.56, 0.44, 0.31, 0.17, 0.06, 0.01],
+          support: 13,
+        },
+        Goblin: {
+          auc: 0.7249,
+          fpr: [0.0, 0.06, 0.12, 0.2, 0.3, 0.42, 0.55, 0.72, 0.88, 1.0],
+          tpr: [0.0, 0.15, 0.35, 0.5, 0.63, 0.74, 0.85, 0.92, 0.97, 1.0],
+          thresholds: ['inf', 0.85, 0.75, 0.62, 0.5, 0.38, 0.25, 0.13, 0.05, 0.01],
+          support: 13,
+        },
+      },
+    },
     precision_recall_curve: {
       average_precision_macro: 0.8501,
       average_precision_weighted: 0.8578,
@@ -562,7 +517,37 @@ export const mockMulticlassPrecisionRecallData: Record<string, PrecisionRecallDa
   },
   NeuralNet_BAG_L1_FULL: {
     task_type: 'multiclass',
+    strategy: 'ovr',
+    num_classes: 3,
     classes: ['Ghost', 'Ghoul', 'Goblin'],
+    num_samples: 38,
+    roc_curve: {
+      auc_macro: 0.789,
+      auc_weighted: 0.7935,
+      per_class: {
+        Ghost: {
+          auc: 0.8601,
+          fpr: [0.0, 0.02, 0.06, 0.1, 0.18, 0.28, 0.48, 0.68, 0.86, 1.0],
+          tpr: [0.0, 0.35, 0.55, 0.7, 0.82, 0.9, 0.95, 0.98, 1.0, 1.0],
+          thresholds: ['inf', 0.91, 0.82, 0.7, 0.58, 0.45, 0.31, 0.16, 0.06, 0.01],
+          support: 12,
+        },
+        Ghoul: {
+          auc: 0.789,
+          fpr: [0.0, 0.04, 0.09, 0.15, 0.23, 0.33, 0.48, 0.67, 0.84, 1.0],
+          tpr: [0.0, 0.2, 0.42, 0.58, 0.72, 0.82, 0.9, 0.95, 0.98, 1.0],
+          thresholds: ['inf', 0.88, 0.78, 0.65, 0.53, 0.41, 0.29, 0.15, 0.05, 0.01],
+          support: 13,
+        },
+        Goblin: {
+          auc: 0.7179,
+          fpr: [0.0, 0.07, 0.14, 0.22, 0.32, 0.44, 0.58, 0.74, 0.9, 1.0],
+          tpr: [0.0, 0.12, 0.3, 0.46, 0.6, 0.72, 0.83, 0.91, 0.96, 1.0],
+          thresholds: ['inf', 0.83, 0.73, 0.6, 0.48, 0.36, 0.23, 0.12, 0.04, 0.01],
+          support: 13,
+        },
+      },
+    },
     precision_recall_curve: {
       average_precision_macro: 0.8234,
       average_precision_weighted: 0.8312,
