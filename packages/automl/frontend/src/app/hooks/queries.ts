@@ -277,24 +277,30 @@ const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.nu
 /* eslint-disable camelcase */
 const ThresholdValueSchema = z.union([z.string(), z.number()]);
 
-const RocCurveEntrySchema = z.object({
-  auc: z.number(),
-  fpr: z.array(z.number()),
-  tpr: z.array(z.number()),
-  thresholds: z.array(ThresholdValueSchema),
-});
+const RocCurveEntrySchema = z
+  .object({
+    auc: z.number(),
+    fpr: z.array(z.number()),
+    tpr: z.array(z.number()),
+    thresholds: z.array(ThresholdValueSchema),
+  })
+  .refine((v) => v.fpr.length === v.tpr.length && v.fpr.length === v.thresholds.length, {
+    message: 'fpr, tpr, and thresholds arrays must have equal length',
+  });
 
-const MulticlassRocCurveEntrySchema = RocCurveEntrySchema.extend({
-  support: z.number(),
-});
+const MulticlassRocCurveEntrySchema = RocCurveEntrySchema.and(z.object({ support: z.number() }));
 
-const PrecisionRecallEntrySchema = z.object({
-  average_precision: z.number(),
-  precision: z.array(z.number()),
-  recall: z.array(z.number()),
-  thresholds: z.array(ThresholdValueSchema),
-  baseline_precision: z.number(),
-});
+const PrecisionRecallEntrySchema = z
+  .object({
+    average_precision: z.number(),
+    precision: z.array(z.number()),
+    recall: z.array(z.number()),
+    thresholds: z.array(ThresholdValueSchema),
+    baseline_precision: z.number(),
+  })
+  .refine((v) => v.precision.length === v.recall.length, {
+    message: 'precision and recall arrays must have equal length',
+  });
 
 const BinaryCurvesDataSchema = z.object({
   task_type: z.literal('binary'),
