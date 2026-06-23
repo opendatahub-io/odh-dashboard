@@ -128,19 +128,23 @@ describe('ApiKeysAndSubscriptionsPage', () => {
   it('should refresh subscriptions when switching to the subscriptions tab', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
-    fireEvent.click(screen.getByTestId('subscriptions-tab'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Subscriptions tab' }));
 
     expect(mockRefreshSubscriptions).toHaveBeenCalledTimes(1);
     expect(mockRefreshAll).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.stringContaining('/keys-and-subs/subscriptions'),
+    );
   });
 
   it('should refresh API keys when switching to the API keys tab', () => {
     mockTab = 'subscriptions';
     render(<ApiKeysAndSubscriptionsPage />);
 
-    fireEvent.click(screen.getByTestId('api-keys-tab'));
+    fireEvent.click(screen.getByRole('tab', { name: 'API keys tab' }));
 
     expect(mockRefreshAll).toHaveBeenCalledTimes(1);
     expect(mockRefreshSubscriptions).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('/keys-and-subs/tokens'));
   });
 });
