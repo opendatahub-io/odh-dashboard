@@ -4,6 +4,13 @@ This document provides guidance for AI agents and developers working on mod-arch
 This is a **starter template** for building modular architecture applications with a React frontend
 and Go backend-for-frontend (BFF).
 
+## Shared Library: autox-core/services
+
+This package depends on `autox-core/services`, a shared Go library consumed by both automl and
+autorag BFFs. Before working on BFF code, read @../autox-core/services/AGENTS.md for architecture
+decisions, layering rules, error handling conventions, and the "autox-core first" principle (build
+generic capabilities there before adding product-specific logic here).
+
 ## Mandatory Development Flow
 
 **CRITICAL: Never skip or reorder these stages. A PR that implements UI before the API contract will

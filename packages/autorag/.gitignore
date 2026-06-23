@@ -355,5 +355,5 @@ $RECYCLE.BIN/
 *.lnk
 
 # Claude
-CLAUDE.md
+!CLAUDE.md
 .claude/settings.local.json
