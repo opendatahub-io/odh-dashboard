@@ -24,7 +24,7 @@ func parseListAgentRuntimesOptions(r *http.Request) (models.ListAgentRuntimesOpt
 
 	if ns := opts.Namespace; ns != "" {
 		if !isValidDNS1123Label(ns) {
-			return models.ListAgentRuntimesOptions{}, fmt.Errorf("namespace must be a valid RFC 1123 label (lowercase alphanumeric and hyphens, max 63 chars)")
+			return models.ListAgentRuntimesOptions{}, fmt.Errorf("invalid namespace %q: must match RFC 1123 label format (lowercase alphanumeric and hyphens, max 63 chars)", ns)
 		}
 	}
 
