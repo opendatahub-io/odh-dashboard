@@ -63,3 +63,46 @@ func TestListAgentRuntimesHandler(t *testing.T) {
 	assert.Equal(t, "agent", runtime.Type)
 	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", runtime.EndpointURL)
 }
+
+func TestListAgentRuntimesHandler_WithNamespace(t *testing.T) {
+	app := &App{
+		repositories: testRepositoriesWithAgents(),
+	}
+
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath+"?namespace=agent-ops-demo", nil)
+	rr := httptest.NewRecorder()
+
+	app.ListAgentRuntimesHandler(rr, req, httprouter.Params{})
+
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	body, err := io.ReadAll(rr.Body)
+	require.NoError(t, err)
+
+	var envelope AgentRuntimesEnvelope
+	require.NoError(t, json.Unmarshal(body, &envelope))
+	require.NotNil(t, envelope.Data)
+	require.Len(t, envelope.Data.Runtimes, 1)
+	assert.Equal(t, "agent-ops-demo", envelope.Data.Runtimes[0].Namespace)
+}
+
+func TestListAgentRuntimesHandler_WithNamespaceNoResults(t *testing.T) {
+	app := &App{
+		repositories: testRepositoriesWithAgents(),
+	}
+
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath+"?namespace=nonexistent-ns", nil)
+	rr := httptest.NewRecorder()
+
+	app.ListAgentRuntimesHandler(rr, req, httprouter.Params{})
+
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	body, err := io.ReadAll(rr.Body)
+	require.NoError(t, err)
+
+	var envelope AgentRuntimesEnvelope
+	require.NoError(t, json.Unmarshal(body, &envelope))
+	require.NotNil(t, envelope.Data)
+	assert.Empty(t, envelope.Data.Runtimes)
+}

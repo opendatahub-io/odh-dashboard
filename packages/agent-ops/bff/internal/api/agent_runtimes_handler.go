@@ -17,6 +17,7 @@ type AgentRuntimesEnvelope Envelope[*models.AgentRuntimesResponse, None]
 
 func parseListAgentRuntimesOptions(r *http.Request) (models.ListAgentRuntimesOptions, error) {
 	opts := models.ListAgentRuntimesOptions{
+		Namespace:     r.URL.Query().Get("namespace"),
 		Limit:         repositories.DefaultAgentRuntimesLimit,
 		ContinueToken: r.URL.Query().Get("continueToken"),
 	}
