@@ -262,10 +262,10 @@ describe('Model Details Card', () => {
     cy.visit(registeredModelOverviewUrl);
 
     cy.findByTestId('model-versions-page-tabs').should('exist');
-    cy.findByTestId('model-overview-tab').should('exist');
+    cy.findByTestId('overview-tab').should('exist');
 
-    cy.findByTestId('model-overview-tab').should('have.attr', 'aria-selected', 'true');
+    cy.findByTestId('overview-tab').should('have.attr', 'aria-selected', 'true');
 
-    cy.findByTestId('model-details-tab-content').should('be.visible');
+    cy.findByTestId('overview-tab-content').should('be.visible');
   });
 });

@@ -1,4 +1,5 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 import type { ModelDeployPrefillInfo } from '~/odh/hooks/useRegisteredModelDeployPrefillInfo';
 import type { ModelRegistryDeploymentListItem } from '~/odh/k8sTypes';
 
@@ -19,10 +20,10 @@ export type ModelRegistryDeployModalExtension = Extension<
   }
 >;
 
-export const isModelRegistryDeployModalExtension = (
-  extension: Extension,
-): extension is ModelRegistryDeployModalExtension =>
-  extension.type === 'model-registry.model-version/deploy-modal';
+export const isModelRegistryDeployModalExtension =
+  createExtensionGuard<ModelRegistryDeployModalExtension>(
+    'model-registry.model-version/deploy-modal',
+  );
 
 export type ModelRegistryVersionDeploymentsContextExtension = Extension<
   'model-registry.model-version/deployments-context',
@@ -43,7 +44,7 @@ export type ModelRegistryVersionDeploymentsContextExtension = Extension<
   }
 >;
 
-export const isModelRegistryVersionDeploymentsContextExtension = (
-  extension: Extension,
-): extension is ModelRegistryVersionDeploymentsContextExtension =>
-  extension.type === 'model-registry.model-version/deployments-context';
+export const isModelRegistryVersionDeploymentsContextExtension =
+  createExtensionGuard<ModelRegistryVersionDeploymentsContextExtension>(
+    'model-registry.model-version/deployments-context',
+  );

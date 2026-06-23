@@ -283,7 +283,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps http
 		}
 
 		if isS3ConnectivityError(err) {
-			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
+			app.badGatewayResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
 			return
 		}
 
@@ -365,7 +365,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 			return
 		}
 		if isS3ConnectivityError(err) {
-			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
+			app.badGatewayResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
 			return
 		}
 		app.serverErrorResponse(w, r, fmt.Errorf("error resolving S3 key for upload: %w", err))
@@ -451,7 +451,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 			return
 		}
 		if isS3ConnectivityError(err) {
-			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
+			app.badGatewayResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
 			return
 		}
 		app.serverErrorResponse(w, r, fmt.Errorf("error uploading file to S3: %w", err))
@@ -663,7 +663,7 @@ func (app *App) handleS3FileSchemaView(w http.ResponseWriter, r *http.Request, k
 		}
 
 		if isS3ConnectivityError(err) {
-			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
+			app.badGatewayResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
 			return
 		}
 
@@ -732,7 +732,7 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		}
 
 		if isS3ConnectivityError(err) {
-			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
+			app.badGatewayResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
 			return
 		}
 

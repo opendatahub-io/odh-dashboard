@@ -282,6 +282,8 @@ export type DataScienceProjectData = {
   invalidResourceNames: string[];
   modelFormat: string;
   servingRuntime: string;
+  servingRuntimeVersion: string;
+  servingRuntimeVersionStatus: string;
   modelStatus: string;
   hardwareProfileName: string;
   resourceType: string;

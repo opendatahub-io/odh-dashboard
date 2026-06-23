@@ -13,8 +13,8 @@
     "start:dev:wait": "wait-on -i 1000 http://localhost:9105"
   },
   "subtree": {
-    "repo": "https://github.com/kubeflow/notebooks.git",
-    "branch": "notebooks-v2",
+    "repo": "https://github.com/opendatahub-io/workbenches.git",
+    "branch": "main",
     "src": "",
     "target": "upstream",
     "commit": "f62ed0495eac6859e93bfbeb6af7119f786d3f10"

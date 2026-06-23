@@ -191,6 +191,19 @@ describe('ModelDetailsDropdown', () => {
     expect(disabledOption.closest('[role="menuitem"]')).toHaveAttribute('aria-disabled', 'true');
   });
 
+  it('should disable the toggle when isDisabled is true', () => {
+    const models = [createMockLlamaModel('test-model-1')];
+    const contextValue = createContextValue(models, [aiModel1]);
+
+    render(
+      <TestWrapper contextValue={contextValue}>
+        <ModelDetailsDropdown {...defaultProps} isDisabled />
+      </TestWrapper>,
+    );
+
+    expect(screen.getByRole('button')).toBeDisabled();
+  });
+
   it('does not call onModelChange when disabled model is clicked', async () => {
     const user = userEvent.setup();
     const mockOnModelChange = jest.fn();

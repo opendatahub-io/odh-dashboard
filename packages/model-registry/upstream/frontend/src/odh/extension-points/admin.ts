@@ -1,5 +1,6 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 
 /**
  * Extension point for providing a custom admin check component.
@@ -19,5 +20,6 @@ export type AdminCheckExtension = Extension<
   }
 >;
 
-export const isAdminCheckExtension = (extension: Extension): extension is AdminCheckExtension =>
-  extension.type === 'model-registry.admin/check';
+export const isAdminCheckExtension = createExtensionGuard<AdminCheckExtension>(
+  'model-registry.admin/check',
+);
