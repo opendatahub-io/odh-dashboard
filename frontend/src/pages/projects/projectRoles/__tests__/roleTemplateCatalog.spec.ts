@@ -55,7 +55,9 @@ describe('roleTemplateCatalog', () => {
     if (!updater) {
       return;
     }
-    const notebookRules = updater.rules.filter((r) => r.resources?.includes('notebooks'));
+    const notebookRules = updater.rules.filter(
+      (r) => r.resources?.includes('notebooks') || r.resources?.includes('*'),
+    );
     for (const rule of notebookRules) {
       expect(rule.verbs).not.toContain('*');
       expect(rule.verbs).not.toContain('create');

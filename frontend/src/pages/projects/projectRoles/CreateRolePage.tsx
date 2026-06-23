@@ -121,6 +121,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
       setDescription('');
       setLabels([]);
       setRules([]);
+      setSubmitError(undefined);
       setTemplateModal({ type: 'selectTemplate', mode: templateModal.nextMode });
     }
   }, [templateModal, k8sNameDescriptionData]);

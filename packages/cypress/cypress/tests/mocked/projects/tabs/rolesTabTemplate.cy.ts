@@ -43,6 +43,7 @@ describe('Select role template (header button)', () => {
     projectRoles.findSelectRoleTemplateButton().click();
     projectRoles.findSelectTemplateModal().should('exist');
     projectRoles.findSelectTemplateModal().contains('Select a role template').should('exist');
+    cy.testA11y();
   });
 
   it('should show discard confirmation when form has changes', () => {
@@ -52,6 +53,7 @@ describe('Select role template (header button)', () => {
     projectRoles.findSelectRoleTemplateButton().click();
     projectRoles.findDiscardChangesModal().should('exist');
     projectRoles.findDiscardChangesModal().contains('Discard unsaved changes?').should('exist');
+    cy.testA11y();
   });
 
   it('should open template modal after confirming discard', () => {
@@ -78,7 +80,7 @@ describe('Select role template (header button)', () => {
     projectRoles.findSelectTemplateModal().should('not.exist');
   });
 
-  it('should pre-populate form with template name and rules', () => {
+  it('should pre-populate form with template name and rules (replace semantics)', () => {
     projectRoles.visitCreateRole(NAMESPACE);
 
     projectRoles.findSelectRoleTemplateButton().click();
@@ -87,6 +89,7 @@ describe('Select role template (header button)', () => {
     projectRoles.findSelectTemplateModal().should('not.exist');
     projectRoles.findRoleNameInput().should('have.value', 'Workbench maintainer');
     cy.findByTestId('permission-rules-table').should('exist');
+    cy.findByTestId('permission-rules-table').find('tbody tr').should('have.length', 6);
   });
 
   it('should display template categories and templates', () => {
@@ -165,16 +168,22 @@ describe('Import rules from template (toolbar button)', () => {
     projectRoles.findSelectTemplateModal().should('exist');
   });
 
-  it('should not change name/description when adding rules from template', () => {
+  it('should append rules without changing name/description (append semantics)', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-custom-role');
     projectRoles.findDescriptionTextarea().type('My description');
 
     projectRoles.findImportTemplateButton().click();
-    projectRoles.findSelectTemplateButton('workbench-updater').click();
+    projectRoles.findSelectTemplateButton('workbench-reader').click();
 
     projectRoles.findRoleNameInput().should('have.value', 'my-custom-role');
     projectRoles.findDescriptionTextarea().should('have.value', 'My description');
     cy.findByTestId('permission-rules-table').should('exist');
+    cy.findByTestId('permission-rules-table').find('tbody tr').should('have.length', 5);
+
+    projectRoles.findImportTemplateButton().click();
+    projectRoles.findSelectTemplateButton('workbench-reader').click();
+
+    cy.findByTestId('permission-rules-table').find('tbody tr').should('have.length', 10);
   });
 });
