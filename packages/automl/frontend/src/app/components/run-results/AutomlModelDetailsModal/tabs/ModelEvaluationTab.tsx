@@ -1,5 +1,5 @@
 import React from 'react';
-import { Title } from '@patternfly/react-core';
+import { Bullseye, Spinner, Title } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import {
   CLASSIFICATION_TYPES,
@@ -8,7 +8,12 @@ import {
 import { formatMetricName, formatMetricValue, toNumericMetric } from '~/app/utilities/utils';
 import ROCCurveChart from '~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart';
 
-const ModelEvaluationTab: React.FC<TabContentProps> = ({ model, taskType, curves }) => {
+const ModelEvaluationTab: React.FC<TabContentProps> = ({
+  model,
+  taskType,
+  curves,
+  isArtifactsLoading,
+}) => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: test_data may be missing in malformed model.json
   const metrics = model.metrics.test_data ?? {};
   const entries = Object.entries(metrics);
@@ -22,7 +27,11 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({ model, taskType, curves
     <>
       {isClassification && (
         <div className="pf-v6-u-mb-xl" data-testid="roc-curve-section">
-          {curves ? (
+          {isArtifactsLoading ? (
+            <Bullseye>
+              <Spinner size="lg" aria-label="Loading ROC curve data" />
+            </Bullseye>
+          ) : curves ? (
             <ROCCurveChart rocCurveData={curves} />
           ) : (
             <p data-testid="roc-curve-no-data">

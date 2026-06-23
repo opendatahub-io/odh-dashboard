@@ -160,7 +160,7 @@ const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
             <ChartLine
               key={line.label}
               data={line.points}
-              interpolation="basis"
+              interpolation="linear"
               style={{
                 data: {
                   stroke: COLOR_SCALE[idx % COLOR_SCALE.length],

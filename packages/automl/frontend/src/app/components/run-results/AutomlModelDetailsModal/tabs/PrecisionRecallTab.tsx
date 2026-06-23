@@ -1,8 +1,17 @@
 import React from 'react';
+import { Bullseye, Spinner } from '@patternfly/react-core';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import PrecisionRecallChart from '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart';
 
-const PrecisionRecallTab: React.FC<TabContentProps> = ({ curves }) => {
+const PrecisionRecallTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoading }) => {
+  if (isArtifactsLoading) {
+    return (
+      <Bullseye>
+        <Spinner size="lg" aria-label="Loading precision-recall curve data" />
+      </Bullseye>
+    );
+  }
+
   if (!curves) {
     return (
       <p data-testid="precision-recall-no-data">
