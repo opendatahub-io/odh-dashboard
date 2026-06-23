@@ -40,7 +40,7 @@ const AutoragRunsTable: React.FC<AutoragRunsTableProps> = ({
   <TableBase
     data-testid="autorag-runs-table"
     id="autorag-runs-table"
-    enablePagination={totalSize > 0}
+    enablePagination={totalSize > pageSize}
     data={runs}
     columns={autoragRunsColumns}
     defaultSortColumn={0}
@@ -58,10 +58,7 @@ const AutoragRunsTable: React.FC<AutoragRunsTableProps> = ({
     page={page}
     perPage={pageSize}
     onSetPage={(_e, newPage) => onPageChange(newPage)}
-    onPerPageSelect={(_e, newSize, newPage) => {
-      onPerPageChange(newSize);
-      onPageChange(newPage);
-    }}
+    onPerPageSelect={(_e, newSize) => onPerPageChange(newSize)}
   />
 );
 
