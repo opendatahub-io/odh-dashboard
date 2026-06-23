@@ -17,7 +17,7 @@
     "branch": "main",
     "src": "",
     "target": "upstream",
-    "commit": "d47d7d92c2f05e66eb08dec325c9aea347ada4e7"
+    "commit": "f7e72a5b799d3af7bec4a70cd379b7d54debbcdd"
   },
   "module-federation": {
     "name": "notebooks",
