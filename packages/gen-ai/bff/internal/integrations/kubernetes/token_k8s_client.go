@@ -19,6 +19,7 @@ import (
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	genaitypes "github.com/opendatahub-io/gen-ai/internal/types"
 	authnv1 "k8s.io/api/authentication/v1"
@@ -1577,6 +1578,48 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		}
 	}
 
+	// Inject pgvector connection env vars when configured.
+	conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
+	if err != nil {
+		return nil, fmt.Errorf("invalid pgvector configuration: %w", err)
+	}
+	if conn.IsConfigured() {
+		envVars = append(envVars,
+			corev1.EnvVar{Name: pgvector.HostEnvVar, Value: conn.Host},
+			corev1.EnvVar{Name: pgvector.PortEnvVar, Value: strconv.Itoa(conn.Port)},
+			corev1.EnvVar{Name: pgvector.DBEnvVar, Value: conn.DB},
+			corev1.EnvVar{Name: pgvector.UserEnvVar, Value: conn.User},
+		)
+		if conn.PasswordSecret != nil {
+			var secret corev1.Secret
+			if err := kc.Client.Get(ctx, types.NamespacedName{
+				Name:      conn.PasswordSecret.Name,
+				Namespace: namespace,
+			}, &secret); err != nil {
+				return nil, fmt.Errorf("pgvector password secret %q not found in namespace %s: %w",
+					conn.PasswordSecret.Name, namespace, err)
+			}
+			if _, ok := secret.Data[conn.PasswordSecret.Key]; !ok {
+				return nil, fmt.Errorf("pgvector password secret %q is missing key %q",
+					conn.PasswordSecret.Name, conn.PasswordSecret.Key)
+			}
+			envVars = append(envVars, corev1.EnvVar{
+				Name: pgvector.PasswordEnvVar,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: conn.PasswordSecret.Name},
+						Key:                  conn.PasswordSecret.Key,
+					},
+				},
+			})
+		} else {
+			kc.Logger.Warn("pgvector configured without password mechanism; PostgreSQL auth may fail",
+				"host", conn.Host)
+		}
+		kc.Logger.Info("injected pgvector connection env vars for OGXServer pod",
+			"host", conn.Host, "port", conn.Port, "db", conn.DB)
+	}
+
 	// Step 5: Generate ConfigMap content first (before creating OGXServer)
 	configMapName := "llama-stack-config"
 	userAuthToken := ""
@@ -1724,6 +1767,49 @@ func ensureVLLMCompatibleURL(url string) string {
 	return url + "/v1"
 }
 
+// pgvectorConnectionFromConfig builds a pgvector.Connection from the BFF's
+// env config. Returns a zero-value Connection (IsConfigured() == false) when
+// PgvectorHost is empty.
+func pgvectorConnectionFromConfig(cfg config.EnvConfig) (pgvector.Connection, error) {
+	if cfg.PgvectorHost == "" {
+		return pgvector.Connection{}, nil
+	}
+
+	port := cfg.PgvectorPort
+	if port == 0 {
+		port = pgvector.DefaultPort
+	}
+	if port < 1 || port > 65535 {
+		return pgvector.Connection{}, fmt.Errorf("invalid PGVECTOR_PORT %d: must be between 1 and 65535", port)
+	}
+	db := cfg.PgvectorDB
+	if db == "" {
+		db = pgvector.DefaultDB
+	}
+	user := cfg.PgvectorUser
+	if user == "" {
+		user = pgvector.DefaultUser
+	}
+
+	conn := pgvector.Connection{
+		Host: cfg.PgvectorHost,
+		Port: port,
+		DB:   db,
+		User: user,
+	}
+	if cfg.PgvectorPasswordSecretName != "" {
+		key := cfg.PgvectorPasswordSecretKey
+		if key == "" {
+			key = pgvector.DefaultPasswordKey
+		}
+		conn.PasswordSecret = &pgvector.SecretRef{
+			Name: cfg.PgvectorPasswordSecretName,
+			Key:  key,
+		}
+	}
+	return conn, nil
+}
+
 // buildEmbeddingModelLookup returns a map from user-supplied embedding_model values
 // as found in entries under registered_resources > vector_stores in the gen-ai-aa-vector-stores ConfigMap,
 // to the full LlamaStack model identifier (provider_id/effective_provider_model_id),
@@ -1757,6 +1843,16 @@ func buildEmbeddingModelLookup(ms []Model) map[string]string {
 func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, bffClient bffclient.BFFClientInterface, userAuthToken string) (string, error) {
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
+
+	conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
+	if err != nil {
+		return "", fmt.Errorf("invalid pgvector configuration: %w", err)
+	}
+	if conn.IsConfigured() {
+		config.SetDefaultPgvectorProvider(conn)
+		kc.Logger.Info("using remote::pgvector as default vector_io provider",
+			"host", conn.Host, "port", conn.Port, "db", conn.DB)
+	}
 
 	// Create a map of MaaS models for efficient lookup (only call ListModels once)
 	maasModelsMap := make(map[string]*models.MaaSModel)

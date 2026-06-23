@@ -127,4 +127,13 @@ type EnvConfig struct {
 	// BFFMaaSAuthTokenPrefix specifies the prefix MaaS BFF expects in the token header.
 	// Default: "" (empty for ODH's x-forwarded-access-token)
 	BFFMaaSAuthTokenPrefix string
+
+	// When PgvectorHost is set, the BFF configures remote::pgvector as the
+	// default vector_io provider instead of inline::milvus.
+	PgvectorHost               string
+	PgvectorPort               int    // default: 5432
+	PgvectorDB                 string // default: "vectordb"
+	PgvectorUser               string // default: "vectoruser"
+	PgvectorPasswordSecretName string // K8s Secret name containing the password
+	PgvectorPasswordSecretKey  string // key inside the password Secret, default: "password"
 }
