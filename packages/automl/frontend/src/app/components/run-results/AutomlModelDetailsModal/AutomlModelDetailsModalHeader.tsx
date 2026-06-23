@@ -79,7 +79,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
   if (print) {
     return (
       <div className="automl-print-header">
-        <h1>{model && model.name}</h1>
+        <h1>{currentModelName}</h1>
         <p>
           Rank: {rank} | {formatMetricName(evalMetric)} (Optimized):{' '}
           {optimizedMetric ? formatMetricValue(optimizedMetric.value) : 'N/A'}
