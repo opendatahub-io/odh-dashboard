@@ -1,12 +1,10 @@
 import * as React from 'react';
-import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table/index';
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { SortableData, ResourceNameTooltip, ResourceTr } from '@odh-dashboard/ui-core';
 import { Td, ActionsColumn } from '@patternfly/react-table';
-import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { Label } from '@patternfly/react-core';
-import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { Link, useNavigate } from 'react-router-dom';
-import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
@@ -16,6 +14,7 @@ type AuthPoliciesTableRowProps = {
   authPolicy: MaaSAuthPolicy;
   columns: SortableData<MaaSAuthPolicy>[];
   setDeleteAuthPolicy: (authPolicy: MaaSAuthPolicy) => void;
+  returnTo?: string;
 };
 
 const labelHelper = (count: number, singular: string, plural: string) => {
@@ -27,14 +26,17 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   authPolicy,
   columns,
   setDeleteAuthPolicy,
+  returnTo,
 }) => {
   const navigate = useNavigate();
+  const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
+  const navState = returnTo ? { state: { returnTo } } : undefined;
   const policyNameSegment = (name: string) => encodeURIComponent(name);
   const onViewDetailsAuthPolicy = (authPolicyName: string) => {
-    navigate(`${URL_PREFIX}/auth-policies/view/${policyNameSegment(authPolicyName)}`);
+    navigate(`${base}/view/${policyNameSegment(authPolicyName)}`, navState);
   };
   const onEditAuthPolicy = (authPolicyName: string) => {
-    navigate(`${URL_PREFIX}/auth-policies/edit/${policyNameSegment(authPolicyName)}`);
+    navigate(`${base}/edit/${policyNameSegment(authPolicyName)}`, navState);
   };
   const onDeleteAuthPolicy = (authPolicyToDelete: MaaSAuthPolicy) => {
     setDeleteAuthPolicy(authPolicyToDelete);
@@ -63,7 +65,10 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
               </span>
             ) : (
               <ResourceNameTooltip resource={convertAuthPolicyToK8sResource(authPolicy)}>
-                <Link to={`${URL_PREFIX}/auth-policies/view/${policyNameSegment(authPolicy.name)}`}>
+                <Link
+                  to={`${base}/view/${policyNameSegment(authPolicy.name)}`}
+                  state={returnTo ? { returnTo } : undefined}
+                >
                   {authPolicy.displayName ?? authPolicy.name}
                 </Link>
               </ResourceNameTooltip>

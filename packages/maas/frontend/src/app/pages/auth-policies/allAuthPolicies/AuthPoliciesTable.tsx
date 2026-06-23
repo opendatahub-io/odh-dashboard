@@ -1,6 +1,5 @@
 import * as React from 'react';
-import Table from '@odh-dashboard/internal/components/table/Table';
-import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { authPoliciesColumns } from './columns';
 import AuthPoliciesTableRow from './AuthPoliciesTableRow';
@@ -10,6 +9,7 @@ type AuthPoliciesTableProps = {
   setDeleteAuthPolicy: (authPolicy: MaaSAuthPolicy) => void;
   toolbarContent?: React.ReactElement;
   onClearFilters: () => void;
+  returnTo?: string;
 };
 
 const AuthPoliciesTable: React.FC<AuthPoliciesTableProps> = ({
@@ -17,6 +17,7 @@ const AuthPoliciesTable: React.FC<AuthPoliciesTableProps> = ({
   setDeleteAuthPolicy,
   toolbarContent,
   onClearFilters,
+  returnTo,
 }) => (
   <Table
     data-testid="auth-policies-table"
@@ -28,6 +29,7 @@ const AuthPoliciesTable: React.FC<AuthPoliciesTableProps> = ({
         authPolicy={authPolicy}
         columns={authPoliciesColumns}
         setDeleteAuthPolicy={setDeleteAuthPolicy}
+        returnTo={returnTo}
       />
     )}
     emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}

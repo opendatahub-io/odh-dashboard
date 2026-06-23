@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { SubjectRoleRow } from './types';
 import { ROLE_BINDING_DATE_CREATED_TOOLTIP } from './const';
 

@@ -6,7 +6,12 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import SystemPromptFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
-import { useChatbotConfigStore, selectDirtyPrompt, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
+import {
+  useChatbotConfigStore,
+  selectDirtyPrompt,
+  selectIsPreview,
+  DEFAULT_CONFIG_ID,
+} from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
@@ -26,6 +31,7 @@ function PromptTabContent({
   const { openModal } = usePlaygroundStore();
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
   const isEdited = usePromptEdited(configId);
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
   const [promptManagementEnabled] = useFeatureFlag(PROMPT_MANAGEMENT);
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
 
@@ -55,6 +61,7 @@ function PromptTabContent({
         variant="link"
         icon={<AddCircleOIcon aria-hidden="true" />}
         onClick={handleLoadPromptClick}
+        isDisabled={isPreview}
       >
         Load Prompt
       </Button>
@@ -71,6 +78,7 @@ function PromptTabContent({
               <SystemPromptFormGroup
                 systemInstruction={systemInstruction}
                 onSystemInstructionChange={onSystemInstructionChange}
+                isDisabled={isPreview}
               />
             </FormGroup>
           )}

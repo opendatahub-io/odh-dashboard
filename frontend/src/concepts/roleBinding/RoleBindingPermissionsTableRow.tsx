@@ -17,11 +17,12 @@ import {
   TimesIcon,
   EllipsisVIcon,
 } from '@patternfly/react-icons';
-import { ProjectKind, RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { projectDisplayNameToNamespace } from '#~/concepts/projects/utils';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { useUser } from '#~/redux/selectors';
 import {
   castRoleBindingPermissionsRoleType,

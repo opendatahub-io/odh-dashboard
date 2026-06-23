@@ -1,4 +1,4 @@
-import { KnownLabels } from '#~/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import assembleRole from '#~/pages/projects/projectRoles/assembleRole';
 import type { RuleEntry } from '#~/pages/projects/projectRoles/types';
 

@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { HardwareProfileKind } from '#~/k8sTypes';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { BYONImage, BYONImagePackage } from '#~/types';
 
 export const convertBYONImageToK8sResource = (image: BYONImage): K8sResourceCommon => ({

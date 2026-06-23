@@ -6,9 +6,10 @@ import {
   k8sPatchResource,
   k8sListResourceItems,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
-import { KnownLabels, RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
+import { RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import {
   createRoleBinding,
   deleteRoleBinding,

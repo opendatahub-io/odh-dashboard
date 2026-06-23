@@ -1,0 +1,102 @@
+package repositories
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	bfferrors "github.com/opendatahub-io/mod-arch-library/bff/internal/errors"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
+	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestGetAgentRuntimeDetailTranslatesForbidden(t *testing.T) {
+	mockClient := agentsmock.NewClient()
+	mockClient.GetAgentErr = agents.ErrForbidden
+
+	repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: mockClient})
+	_, err := repo.GetAgentRuntimeDetail(context.Background(), "agent-ops-demo", "sample-support-agent")
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, bfferrors.ErrForbidden))
+}
+
+func TestGetAgentRuntimeDetailNilDetailReturnsNotFound(t *testing.T) {
+	repo := NewAgentRuntimesRepository(stubAgentClientFactory{client: nilAgentDetailClient{}})
+	_, err := repo.GetAgentRuntimeDetail(context.Background(), "agent-ops-demo", "sample-support-agent")
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, bfferrors.ErrNotFound))
+}
+
+type stubAgentClientFactory struct {
+	client agents.Client
+}
+
+func (f stubAgentClientFactory) GetClient(context.Context) (agents.Client, error) {
+	return f.client, nil
+}
+
+type nilAgentDetailClient struct{}
+
+func (nilAgentDetailClient) ListNamespaces(context.Context, bool) ([]string, error) {
+	return nil, nil
+}
+
+func (nilAgentDetailClient) ListAgents(context.Context, string) (*agents.AgentList, error) {
+	return nil, nil
+}
+
+func (nilAgentDetailClient) GetAgent(context.Context, string, string) (*agents.AgentDetail, error) {
+	return nil, nil
+}
+
+func TestPaginateAgentRuntimes(t *testing.T) {
+	runtimes := []models.AgentRuntime{
+		{Name: "agent-b", Namespace: "ns-a"},
+		{Name: "agent-a", Namespace: "ns-b"},
+		{Name: "agent-c", Namespace: "ns-a"},
+	}
+
+	firstPage, err := paginateAgentRuntimes(runtimes, 2, "")
+	require.NoError(t, err)
+	require.Len(t, firstPage.Runtimes, 2)
+	require.NotNil(t, firstPage.ContinueToken)
+	assert.Equal(t, "agent-b", firstPage.Runtimes[0].Name)
+	assert.Equal(t, "ns-a", firstPage.Runtimes[0].Namespace)
+	assert.Equal(t, "agent-c", firstPage.Runtimes[1].Name)
+
+	secondPage, err := paginateAgentRuntimes(runtimes, 2, *firstPage.ContinueToken)
+	require.NoError(t, err)
+	require.Len(t, secondPage.Runtimes, 1)
+	assert.Nil(t, secondPage.ContinueToken)
+	assert.Equal(t, "agent-a", secondPage.Runtimes[0].Name)
+}
+
+func TestPaginateAgentRuntimesCursorContinuesAfterLastSeenItem(t *testing.T) {
+	runtimes := []models.AgentRuntime{
+		{Name: "agent-b", Namespace: "ns-a"},
+		{Name: "agent-c", Namespace: "ns-a"},
+		{Name: "agent-a", Namespace: "ns-b"},
+	}
+
+	firstPage, err := paginateAgentRuntimes(runtimes, 1, "")
+	require.NoError(t, err)
+	require.Len(t, firstPage.Runtimes, 1)
+	require.NotNil(t, firstPage.ContinueToken)
+	assert.Equal(t, "agent-b", firstPage.Runtimes[0].Name)
+
+	secondPage, err := paginateAgentRuntimes(runtimes, 2, *firstPage.ContinueToken)
+	require.NoError(t, err)
+	require.Len(t, secondPage.Runtimes, 2)
+	assert.Equal(t, "agent-c", secondPage.Runtimes[0].Name)
+	assert.Equal(t, "agent-a", secondPage.Runtimes[1].Name)
+	assert.Nil(t, secondPage.ContinueToken)
+}
+
+func TestPaginateAgentRuntimesInvalidContinueToken(t *testing.T) {
+	_, err := paginateAgentRuntimes(nil, 10, "not-a-valid-token")
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrInvalidContinueToken))
+}

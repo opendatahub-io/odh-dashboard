@@ -1,6 +1,5 @@
-import { DashboardConfigKind, KnownLabels } from '#~/k8sTypes';
+import { type DashboardConfigKind, KnownLabels, NotebookSize } from '@odh-dashboard/k8s-core';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
-import { NotebookSize } from '#~/types';
 
 export type MockDashboardConfigType = {
   disableInfo?: boolean;
@@ -61,6 +60,7 @@ export type MockDashboardConfigType = {
   promptManagement?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
+  maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
   genAiStudioConfig?: {
@@ -123,6 +123,7 @@ export const mockDashboardConfig = ({
   promptManagement = false,
   nimWizard = false,
   mySubscriptions = true,
+  maasSettingsIaRedesign = false,
   agentOps = false,
   roleManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
@@ -308,6 +309,7 @@ export const mockDashboardConfig = ({
       promptManagement,
       nimWizard,
       mySubscriptions,
+      maasSettingsIaRedesign,
       agentOps,
       roleManagement,
     },

@@ -12,6 +12,7 @@ spec:
     caBundleFileName: ''
     deploy: true
     enableSamplePipeline: false
+    managedPipelines: {}
     autoUpdatePipelineDefaultVersion: true
     archiveLogs: false
     terminateStatus: Cancelled

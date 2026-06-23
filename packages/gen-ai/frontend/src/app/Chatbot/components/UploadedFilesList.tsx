@@ -26,6 +26,7 @@ interface UploadedFilesListProps {
   isDeleting: boolean;
   error: string | null;
   onDeleteFile: (fileId: string) => void;
+  isDisabled?: boolean;
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -52,6 +53,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   isDeleting,
   error,
   onDeleteFile,
+  isDisabled = false,
 }) => {
   const [fileToDelete, setFileToDelete] = React.useState<FileModel | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
@@ -164,7 +166,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
                     style={{ padding: 0 }}
                     icon={<TimesIcon />}
                     onClick={() => handleDeleteClick(file)}
-                    isDisabled={isDeleting}
+                    isDisabled={isDeleting || isDisabled}
                     aria-label={`Delete ${file.filename}`}
                     isDanger
                   />
