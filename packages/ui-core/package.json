@@ -1,0 +1,28 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/ui-core",
+  "description": "Shared UI components and table primitives",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@odh-dashboard/k8s-core": "*",
+    "classnames": "^2.5.1"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "@patternfly/react-table": "^6",
+    "react": "^18"
+  }
+}

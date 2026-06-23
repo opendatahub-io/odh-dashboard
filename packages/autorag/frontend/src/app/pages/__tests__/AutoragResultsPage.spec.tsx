@@ -51,6 +51,22 @@ jest.mock('~/app/hooks/useAutoragResults', () => ({
   useAutoragResults: (...args: unknown[]) => mockUseAutoragResults(...args),
 }));
 
+jest.mock('~/app/hooks/useComponentStageMap', () => ({
+  useComponentStageMap: () => ({
+    componentStageMap: undefined,
+    isLoading: false,
+    isError: false,
+    error: undefined,
+  }),
+}));
+
+jest.mock('~/app/hooks/useComponentStatuses', () => ({
+  useComponentStatuses: () => ({
+    mergedStageMap: undefined,
+    isLoading: false,
+  }),
+}));
+
 jest.mock('~/app/hooks/mutations', () => ({
   useTerminatePipelineRunMutation: jest.fn().mockReturnValue({
     mutateAsync: jest.fn(),

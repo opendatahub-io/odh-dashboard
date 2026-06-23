@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { Button, Timestamp, Tooltip } from '@patternfly/react-core';
 import { BanIcon } from '@patternfly/react-icons';
 import { ActionsColumn } from '@patternfly/react-table';

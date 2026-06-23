@@ -9,7 +9,8 @@ import {
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
-import { findTrainingTaskPrefix, isTabularRun, normalizeMetricKey } from '~/app/utilities/utils';
+import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
+import { findTrainingTaskPrefix, normalizeMetricKey } from '~/app/utilities/utils';
 
 // Timeseries runs return acronym metric keys (e.g. "MAE") while tabular runs
 // return snake_case keys (e.g. "mean_absolute_error"). normalizeMetricsToSnakeCase
@@ -82,13 +83,7 @@ export function useAutomlResults(
   // for speed). Instead of hardcoding the exact name, we list all directories at
   // {rootDir}/{runId}/ and pattern-match for the training task.
   const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED' && Boolean(runId);
-  const isTabular = isTabularRun(pipelineRun);
-  const rootDir = isTabular
-    ? 'autogluon-tabular-training-pipeline'
-    : 'autogluon-timeseries-training-pipeline';
-  const modelGenerationDirPattern = isTabular
-    ? 'autogluon-models-training'
-    : 'autogluon-timeseries-models-training';
+  const { rootDir, modelGenerationDir } = useAutomlOutputDir(pipelineRun);
   const runLevelPrefix = shouldFetchS3Files ? `${rootDir}/${runId}` : undefined;
 
   // Lists all task directories under the run (e.g. automl-data-loader/,
@@ -106,9 +101,9 @@ export function useAutomlResults(
   const candidateModelsPrefix = React.useMemo(
     () =>
       runLevelFiles?.common_prefixes.length
-        ? findTrainingTaskPrefix(runLevelFiles.common_prefixes, modelGenerationDirPattern)
+        ? findTrainingTaskPrefix(runLevelFiles.common_prefixes, modelGenerationDir)
         : undefined,
-    [runLevelFiles, modelGenerationDirPattern],
+    [runLevelFiles, modelGenerationDir],
   );
 
   // Step 1: Fetch execution-ID directories under the discovered training task directory

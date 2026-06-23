@@ -1,10 +1,8 @@
 import * as React from 'react';
-import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table/index';
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { SortableData, ResourceNameTooltip, ResourceTr } from '@odh-dashboard/ui-core';
 import { Td, ActionsColumn } from '@patternfly/react-table';
-import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { Label } from '@patternfly/react-core';
-import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';

@@ -10,7 +10,6 @@ import (
 type Repositories struct {
 	HealthCheck          *HealthCheckRepository
 	Models               *ModelsRepository
-	MaaSModels           *MaaSModelsRepository
 	AAModels             *AAModelsRepository
 	VectorStores         *VectorStoresRepository
 	ExternalVectorStores *ExternalVectorStoresRepository
@@ -31,7 +30,6 @@ func NewRepositories() *Repositories {
 	return &Repositories{
 		HealthCheck:          NewHealthCheckRepository(),
 		Models:               NewModelsRepository(),
-		MaaSModels:           NewMaaSModelsRepository(),
 		AAModels:             NewAAModelsRepository(),
 		VectorStores:         NewVectorStoresRepository(),
 		ExternalVectorStores: NewExternalVectorStoresRepository(nil),

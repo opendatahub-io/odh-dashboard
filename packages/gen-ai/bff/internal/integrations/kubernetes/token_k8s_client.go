@@ -18,7 +18,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	genaitypes "github.com/opendatahub-io/gen-ai/internal/types"
 	authnv1 "k8s.io/api/authentication/v1"
@@ -1396,7 +1396,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 
 // findGuardrailsServiceAccountTokenSecret finds the token secret for the guardrails service account
 // This follows the same pattern as VLLM token discovery - finding SA token secrets by type and annotation
-func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error) {
+func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -1589,7 +1589,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			break
 		}
 	}
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, maasClient, userAuthToken)
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, bffClient, userAuthToken)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
@@ -1754,13 +1754,13 @@ func buildEmbeddingModelLookup(ms []Model) map[string]string {
 }
 
 // generateLlamaStackConfig generates the Llama Stack configuration YAML
-func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, maasClient maas.MaaSClientInterface, userAuthToken string) (string, error) {
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, bffClient bffclient.BFFClientInterface, userAuthToken string) (string, error) {
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
 
 	// Create a map of MaaS models for efficient lookup (only call ListModels once)
 	maasModelsMap := make(map[string]*models.MaaSModel)
-	if maasClient != nil {
+	if bffClient != nil {
 		// Check if we have any MaaS models first
 		hasMaaSModels := false
 		for _, model := range installModels {
@@ -1774,19 +1774,37 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			if userAuthToken == "" {
 				return "", fmt.Errorf("user auth token is required to list MaaS models")
 			}
-			maasModels, err := maasClient.ListModels(ctx, userAuthToken)
+
+			// Call MaaS BFF /models endpoint using BFF client
+			// The response is envelope-wrapped: {"data": {"object": "list", "data": [...]}}
+			// Note: MaaS BFF determines namespace scope via the forwarded authentication token
+			// (x-forwarded-access-token header), not via query parameters
+			var bffResponse models.MaaSBFFModelsResponse
+			err := bffClient.Call(ctx, "GET", "/models", nil, &bffResponse)
 			if err != nil {
-				kc.Logger.Error("failed to list MaaS models", "error", err)
-				return "", fmt.Errorf("failed to list MaaS models: %w", err)
+				kc.Logger.Error("failed to list MaaS models via BFF", "error", err)
+				return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
 			}
 
-			// Create map for efficient lookup
-			for i := range maasModels {
-				model := &maasModels[i]
-				maasModelsMap[model.ID] = model
+			// Extract models from envelope-wrapped response and convert to MaaSModel format
+			bffModels := bffResponse.Data.Data
+
+			// Create map for efficient lookup, converting from BFF model to MaaSModel
+			for i := range bffModels {
+				bffModel := &bffModels[i]
+				// Convert MaaSBFFModel to MaaSModel
+				maasModel := &models.MaaSModel{
+					ID:      bffModel.ID,
+					Object:  bffModel.Object,
+					Created: bffModel.Created,
+					OwnedBy: bffModel.OwnedBy,
+					Ready:   bffModel.Ready,
+					URL:     bffModel.URL,
+				}
+				maasModelsMap[maasModel.ID] = maasModel
 			}
 
-			kc.Logger.Debug("loaded MaaS models into map", "count", len(maasModelsMap))
+			kc.Logger.Debug("loaded MaaS models into map via BFF", "count", len(maasModelsMap))
 		}
 	}
 
