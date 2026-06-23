@@ -15,7 +15,6 @@ import {
 } from '../../../utils/oc_commands/evalHubInstance';
 import { deleteMlflowCr, ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
 import {
-  getVllmEndpointUrl,
   grantEvalHubTenantAccess,
   setupTenantAndDeployModel,
 } from '../../../utils/oc_commands/evalHubModelDeploy';
@@ -34,11 +33,10 @@ describe('Eval Hub E2E', () => {
   let evaluationTenantProject = '';
   let evalHubCrName = 'evalhub';
   let hardwareProfileName = '';
-  let vllmEndpointUrl = '';
+  let inferenceServiceName = '';
   let evalHubInstanceYamlPath = '';
   let mlflowInstanceYamlPath = '';
   let benchmarkCardTitle = '';
-  let inferenceModelName = '';
   let additionalBenchmarkParams = '';
   let projectNamePrefix = '';
 
@@ -51,10 +49,18 @@ describe('Eval Hub E2E', () => {
       evalHubInstanceYamlPath = testData.evalHubInstanceResourceYamlPath;
       mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
       benchmarkCardTitle = testData.benchmarkCardTitle;
-      inferenceModelName = testData.inferenceModelName;
       additionalBenchmarkParams = testData.additionalBenchmarkParams;
       projectNamePrefix = testData.projectNamePrefix;
       evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
+    });
+
+    cy.then(() => {
+      cy.step('Ensure MLflow CR is Available (must be ready before EvalHub)');
+      return ensureMlflowCrReady(mlflowInstanceYamlPath).then((created) => {
+        if (created) {
+          Cypress.env('MLFLOW_CR_CREATED_BY_TEST', true);
+        }
+      });
     });
 
     cy.then(() => {
@@ -62,15 +68,6 @@ describe('Eval Hub E2E', () => {
       return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath).then((created) => {
         if (created) {
           Cypress.env('EVAL_HUB_CR_CREATED_BY_TEST', true);
-        }
-      });
-    });
-
-    cy.then(() => {
-      cy.step('Ensure MLflow CR is Available');
-      return ensureMlflowCrReady(mlflowInstanceYamlPath).then((created) => {
-        if (created) {
-          Cypress.env('MLFLOW_CR_CREATED_BY_TEST', true);
         }
       });
     });
@@ -87,8 +84,8 @@ describe('Eval Hub E2E', () => {
       addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
       setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
       grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
-      vllmEndpointUrl = getVllmEndpointUrl(testData, evaluationTenantProject);
-      cy.log(`vLLM endpoint: ${vllmEndpointUrl}`);
+      inferenceServiceName = testData.inferenceServiceName;
+      cy.log(`InferenceService: ${inferenceServiceName}`);
     });
   });
 
@@ -149,11 +146,9 @@ describe('Eval Hub E2E', () => {
       cy.step('Fill evaluation form');
       evalHubEvaluationFlow.findBenchmarkNameDisplay().should('contain.text', benchmarkCardTitle);
       evalHubEvaluationFlow.findEvaluationNameInput().clear().type(evaluationRunName);
-      evalHubEvaluationFlow.findInputModeInference().check({ force: true });
 
-      cy.step('Enter model details');
-      evalHubEvaluationFlow.findModelNameInput().clear().type(inferenceModelName);
-      evalHubEvaluationFlow.findEndpointUrlInput().clear().type(vllmEndpointUrl);
+      cy.step('Select deployed cluster model from picker');
+      evalHubEvaluationFlow.selectClusterModel(inferenceServiceName);
 
       if (extraParams) {
         cy.step('Add benchmark parameters');

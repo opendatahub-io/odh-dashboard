@@ -1,7 +1,9 @@
 import * as React from 'react';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
+import { DEFAULT_EVAL_METRIC_BY_TASK } from '~/app/utilities/const';
 import { getTaskType } from '~/app/utilities/utils';
 
 const configureSchema = createConfigureSchema();
@@ -31,6 +33,9 @@ export type AutomlResultsContextProps = {
   onRetryModels?: () => void;
   parameters?: Partial<ConfigureSchema>;
   modelsBasePath?: string;
+  componentStageMap?: ComponentStageMap;
+  componentStageMapLoading?: boolean;
+  componentStageMapError?: boolean;
 };
 
 export const AutomlResultsContext = React.createContext<AutomlResultsContextProps | undefined>(
@@ -54,6 +59,9 @@ export function getAutomlContext({
   modelsError,
   modelsLoadError,
   onRetryModels,
+  componentStageMap,
+  componentStageMapLoading,
+  componentStageMapError,
 }: {
   pipelineRun?: PipelineRun;
   models?: Record<string, AutomlModel>;
@@ -63,6 +71,9 @@ export function getAutomlContext({
   modelsError?: boolean;
   modelsLoadError?: Error;
   onRetryModels?: () => void;
+  componentStageMap?: ComponentStageMap;
+  componentStageMapLoading?: boolean;
+  componentStageMapError?: boolean;
 }): AutomlResultsContextProps {
   const inputParams = pipelineRun?.runtime_config?.parameters;
 
@@ -83,6 +94,13 @@ export function getAutomlContext({
     parameters = { task_type: getTaskType(pipelineRun) ?? 'timeseries' };
   }
 
+  // Populate eval_metric with the task-type default when missing from stored parameters
+  // (e.g. runs created before the eval_metric feature, or when the default was used)
+  if (parameters.eval_metric === undefined && parameters.task_type) {
+    // eslint-disable-next-line camelcase
+    parameters.eval_metric = DEFAULT_EVAL_METRIC_BY_TASK[parameters.task_type];
+  }
+
   return {
     pipelineRun,
     pipelineRunLoading,
@@ -93,5 +111,8 @@ export function getAutomlContext({
     onRetryModels,
     parameters,
     modelsBasePath,
+    componentStageMap,
+    componentStageMapLoading,
+    componentStageMapError,
   };
 }

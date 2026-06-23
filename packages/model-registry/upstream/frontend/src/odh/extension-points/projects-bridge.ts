@@ -1,5 +1,6 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 
 type ProjectRef = {
   name: string;
@@ -31,7 +32,5 @@ export type ProjectsBridgeProviderExtension = Extension<
   }
 >;
 
-export const isProjectsBridgeProviderExtension = (
-  extension: Extension,
-): extension is ProjectsBridgeProviderExtension =>
-  extension.type === 'model-registry.projects/bridge-provider';
+export const isProjectsBridgeProviderExtension =
+  createExtensionGuard<ProjectsBridgeProviderExtension>('model-registry.projects/bridge-provider');

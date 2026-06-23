@@ -1,5 +1,6 @@
 import React from 'react';
-import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
 import { ClusterStorageNotebookSelection } from '#~/pages/projects/types';
 

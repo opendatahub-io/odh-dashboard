@@ -1,17 +1,20 @@
 package api
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 )
 
 // EvalHubHealthStatus describes the three possible states returned by the health endpoint.
 //
-//   - "healthy"             — CR found in dashboard namespace, service responded to ping.
-//   - "service-unreachable" — CR found (URL known) but the EvalHub service did not respond.
-//   - "cr-not-found"        — No EvalHub CR exists in the dashboard namespace; the operator
-//     has not been configured.
+//   - "healthy"             — Service URL resolved (via ConfigMap or CR), service responded.
+//   - "service-unreachable" — URL resolved but the EvalHub service did not respond.
+//   - "cr-not-found"        — No EvalHub service discoverable in the given or dashboard
+//     namespace; the operator has not been configured.
 type EvalHubHealthStatus = string
 
 const (
@@ -30,18 +33,30 @@ type EvalHubServiceHealth struct {
 
 type EvalHubServiceHealthEnvelope Envelope[EvalHubServiceHealth, None]
 
-// EvalHubServiceHealthHandler performs per-request CR discovery in the dashboard namespace
-// using the caller's bearer token and then pings the discovered EvalHub service. It always
+// EvalHubServiceHealthHandler performs per-request service discovery using the caller's
+// bearer token and pings the discovered EvalHub service. It accepts an optional ?namespace=
+// query parameter; when provided, the handler resolves the service URL via ConfigMap/CR
+// discovery in that namespace before falling back to app.dashboardNamespace. It always
 // returns HTTP 200 with one of the three EvalHubHealthStatus values so the frontend always
 // reaches a loaded state.
 //
 // Priority:
 //  1. MockEvalHubClient=true — return healthy immediately (dev/test mode, no K8s call).
 //  2. EVAL_HUB_URL env override — skip CR discovery, ping the override URL directly.
-//  3. CR discovery — list evalhubs.trustyai.opendatahub.io in app.dashboardNamespace via
-//     the caller's bearer token; if no CR found → cr-not-found; if found, ping status.url.
+//  3. ?namespace= provided — ConfigMap/CR discovery in the given namespace, then fallback
+//     to app.dashboardNamespace.
+//  4. No namespace — CR discovery in app.dashboardNamespace only.
 func (app *App) EvalHubServiceHealthHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
+
+	// Optionally inject namespace into context so evalHubServiceURL can use ConfigMap discovery.
+	if ns := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey)); ns != "" {
+		if !validNamespaceRE.MatchString(ns) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace %q: must be a valid RFC 1123 DNS label", ns))
+			return
+		}
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, ns)
+	}
 
 	writeHealth := func(status EvalHubHealthStatus, available bool) {
 		envelope := EvalHubServiceHealthEnvelope{Data: EvalHubServiceHealth{Status: status, Available: available}}

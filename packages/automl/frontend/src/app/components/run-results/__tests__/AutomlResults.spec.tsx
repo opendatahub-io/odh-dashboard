@@ -5,8 +5,13 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
-import { AutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
+import {
+  AutomlResultsContext,
+  type AutomlModel,
+  type AutomlResultsContextProps,
+} from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import * as queries from '~/app/hooks/queries';
 import * as utils from '~/app/utilities/utils';
 
@@ -19,6 +24,10 @@ jest.mock('~/app/topology/PipelineTopology', () => ({
 
 jest.mock('~/app/topology/useAutomlTaskTopology', () => ({
   useAutomlTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
+}));
+
+jest.mock('~/app/topology/buildStageMapTopology', () => ({
+  buildStageMapTopology: jest.fn().mockReturnValue([{ id: 'stage-1' }, { id: 'stage-2' }]),
 }));
 
 jest.mock('~/app/utilities/utils', () => ({
@@ -62,6 +71,7 @@ describe('AutomlResults', () => {
     pipelineRun?: PipelineRun,
     models: Record<string, AutomlModel> = {},
     namespace = 'test-namespace',
+    contextOverrides?: Partial<AutomlResultsContextProps>,
   ) =>
     render(
       <MemoryRouter initialEntries={[`/automl/${namespace}/results`]}>
@@ -74,6 +84,7 @@ describe('AutomlResults', () => {
                   pipelineRun,
                   models,
                   parameters: { task_type: 'timeseries', label_column: '' },
+                  ...contextOverrides,
                 }}
               >
                 <AutomlResults />
@@ -350,6 +361,106 @@ describe('AutomlResults', () => {
       renderWithContext(runningRun);
 
       expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('stage map vs fallback topology', () => {
+    const stageMapRun: PipelineRun = {
+      ...mockPipelineRun,
+      state: 'RUNNING',
+      pipeline_spec: {
+        root: {
+          dag: {
+            tasks: {
+              'publish-component-stage-map': { taskInfo: { name: 'publish-component-stage-map' } },
+              'data-preparation': { taskInfo: { name: 'data-preparation' } },
+            },
+          },
+        },
+      } as unknown as PipelineRun['pipeline_spec'],
+    };
+
+    const noStageMapRun: PipelineRun = {
+      ...mockPipelineRun,
+      pipeline_spec: {
+        root: {
+          dag: {
+            tasks: {
+              'data-preparation': { taskInfo: { name: 'data-preparation' } },
+            },
+          },
+        },
+      } as unknown as PipelineRun['pipeline_spec'],
+    };
+
+    const mockComponentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      components: [],
+      kfp_run_id: 'run-1',
+      published_at: '2025-01-01T00:00:00Z',
+    };
+
+    it('should show loading spinner when stage map is loading and run is not terminal', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: true,
+      });
+
+      expect(screen.getByText('Preparing the optimization pipeline')).toBeInTheDocument();
+      expect(screen.queryByTestId('pipeline-topology')).not.toBeInTheDocument();
+    });
+
+    it('should show loading spinner when stage map is not yet available and run is not terminal', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(screen.getByText('Preparing the optimization pipeline')).toBeInTheDocument();
+    });
+
+    it('should show topology with stage map nodes when componentStageMap is available', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+      });
+
+      expect(screen.getByTestId('pipeline-topology')).toBeInTheDocument();
+      expect(screen.queryByText('Preparing the optimization pipeline')).not.toBeInTheDocument();
+    });
+
+    it('should fall back to task topology when pipeline spec lacks publish-component-stage-map task', () => {
+      renderWithContext(noStageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+      });
+
+      const topology = screen.getByTestId('pipeline-topology');
+      expect(topology).toBeInTheDocument();
+      // Fallback uses useAutomlTaskTopology which returns 2 nodes
+      expect(topology).toHaveAttribute('data-node-count', '2');
+    });
+
+    it('should fall back to task topology when componentStageMapError is truthy', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapError: true,
+      });
+
+      const topology = screen.getByTestId('pipeline-topology');
+      expect(topology).toBeInTheDocument();
+      // Falls back to useAutomlTaskTopology (2 nodes)
+      expect(topology).toHaveAttribute('data-node-count', '2');
+    });
+
+    it('should show topology (not spinner) when run is terminal even without stage map', () => {
+      const terminalStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        state: 'SUCCEEDED',
+      };
+      renderWithContext(terminalStageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(screen.getByTestId('pipeline-topology')).toBeInTheDocument();
+      expect(screen.queryByText('Preparing the optimization pipeline')).not.toBeInTheDocument();
     });
   });
 });

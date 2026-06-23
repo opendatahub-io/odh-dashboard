@@ -6,7 +6,7 @@ import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 type CustomTypeSelectFieldProps = {
   typeOptions: ConnectionTypeConfigMapObj[];
   onSelect: (connectionType: ConnectionTypeConfigMapObj) => void;
-  typeKey: string;
+  typeLabel: string;
   selectedConnectionType: ConnectionTypeConfigMapObj | undefined;
   isDisabled?: boolean;
 };
@@ -14,7 +14,7 @@ type CustomTypeSelectFieldProps = {
 export const CustomTypeSelectField: React.FC<CustomTypeSelectFieldProps> = ({
   typeOptions,
   onSelect,
-  typeKey,
+  typeLabel,
   selectedConnectionType,
   isDisabled,
 }) => {
@@ -28,7 +28,7 @@ export const CustomTypeSelectField: React.FC<CustomTypeSelectFieldProps> = ({
           <FormHelperText>
             <HelperTextItem>
               Your administrator has defined multiple configuration options for{' '}
-              <strong>{typeKey}</strong> locations.
+              <strong>{typeLabel}</strong> locations.
               <br />
               Select the one that best fits your needs.
             </HelperTextItem>

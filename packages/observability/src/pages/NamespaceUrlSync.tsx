@@ -6,7 +6,7 @@ import { NAMESPACE_URL_PARAM } from '../utils/transformDashboardVariables';
 /**
  * NamespaceUrlSync syncs the Perses namespace variable value to URL query parameters.
  *
- * This component must be rendered as a child of PersesWrapper to access the VariableProvider context.
+ * This component must be rendered as a child of PersesProvider to access the VariableProvider context.
  *
  * Note: Restoration from URL is handled by setting the `defaultValue` in the transformed
  * dashboard spec (see transformNamespaceVariable). This component only syncs changes

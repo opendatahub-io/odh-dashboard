@@ -1,4 +1,4 @@
-import type { ContainerResources } from '@odh-dashboard/internal/types';
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
 import { Contextual } from './Contextual';
 
 class HardwareProfileGroup extends Contextual<HTMLElement> {}

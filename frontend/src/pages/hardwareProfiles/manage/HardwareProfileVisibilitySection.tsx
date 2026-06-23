@@ -6,7 +6,7 @@ import {
   Radio,
 } from '@patternfly/react-core';
 import React from 'react';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import { MultiSelection, type SelectionOptions } from '#~/components/MultiSelection';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const';

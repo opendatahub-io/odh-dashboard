@@ -1,4 +1,5 @@
-import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';

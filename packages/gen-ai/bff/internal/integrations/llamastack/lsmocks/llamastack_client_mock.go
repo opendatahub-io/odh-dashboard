@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -61,37 +62,37 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 			ID:      "ollama/llama3.2:3b",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 		{
 			ID:      "ollama/all-minilm:l6-v2",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 		{
 			ID:      "mistral-7b-instruct",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 		{
 			ID:      "llama-3.1-8b-instruct",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 		{
 			ID:      "maas-mock-provider-1/llama-2-7b-chat",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 		{
 			ID:      "maas-mock-provider-1/llama-2-13b-chat",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 	}, nil
 }
@@ -210,8 +211,15 @@ func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params llamastack
 
 // CreateResponse returns a mock response with comprehensive parameter support
 func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamastack.CreateResponseParams) (*responses.Response, error) {
+	// Check for MOCK: prefix in input to trigger mock errors
+	input := params.Input.TextContent()
+	if strings.HasPrefix(input, "MOCK:") {
+		errorScenario := strings.TrimPrefix(input, "MOCK:")
+		return nil, m.mockError(errorScenario)
+	}
+
 	// Create base response text
-	responseText := "This is a mock response to your query: " + params.Input.TextContent()
+	responseText := "This is a mock response to your query: " + input
 
 	// If previous response ID is provided, acknowledge it in the response
 	if params.PreviousResponseID != "" {
@@ -340,10 +348,17 @@ const ModerationChunkSize = 30
 
 // CreateResponseStream builds mock streaming events and returns a MockStreamIterator.
 func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
+	// Check for MOCK: prefix in input to trigger mock errors
+	input := params.Input.TextContent()
+	if strings.HasPrefix(input, "MOCK:") {
+		errorScenario := strings.TrimPrefix(input, "MOCK:")
+		return nil, m.mockError(errorScenario)
+	}
+
 	responseID := "resp_mock_stream123"
 	itemID := "msg_mock_stream123"
 
-	responseText := "This is a mock response to your query: " + params.Input.TextContent()
+	responseText := "This is a mock response to your query: " + input
 	if len(params.VectorStoreIDs) > 0 {
 		responseText = "Based on retrieved documents <|e6053358-ab61-48cb-a600-2d04dfcbb51b|>, this is a mock response to your query: " + params.Input.TextContent()
 	}
@@ -484,6 +499,15 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 	return NewMockStreamIterator(events), nil
 }
 
+// CreateResponseStreamRaw returns the same mock stream as CreateResponseStream.
+// The raw body is ignored in mock mode.
+func (m *MockLlamaStackClient) CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (llamastack.ResponseStreamIterator, error) {
+	return m.CreateResponseStream(ctx, llamastack.CreateResponseParams{
+		Input: llamastack.InputUnion{Text: "passthrough-mock"},
+		Model: "mock-model",
+	})
+}
+
 // HandleMockStreaming streams mock SSE events directly to an HTTP response writer.
 // It delegates to CreateResponseStream and writes each event as a Server-Sent Event.
 func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {
@@ -602,6 +626,16 @@ func (m *MockLlamaStackClient) GetFile(ctx context.Context, fileID string) (*ope
 		Filename:  "unknown_file.txt",
 		Purpose:   "assistants",
 	}, nil
+}
+
+// GetFileContent returns mock audio content for testing
+func (m *MockLlamaStackClient) GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error) {
+	if fileID == "" {
+		return nil, "", fmt.Errorf("fileID is required")
+	}
+	// WAV header magic bytes for mock audio content
+	wavHeader := []byte("RIFF\x00\x00\x00\x00WAVEfmt ")
+	return io.NopCloser(strings.NewReader(string(wavHeader))), "audio/wav", nil
 }
 
 // DeleteFile returns success for mock deletion
@@ -734,4 +768,61 @@ func (m *MockLlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vector
 	}
 	// Mock deletion always succeeds
 	return nil
+}
+
+// mockError returns a LlamaStackError for the given error scenario.
+// Supported scenarios match the error codes the BFF and OGX actually produce.
+// Usage: Type "MOCK:timeout" in the UI to trigger a timeout error.
+func (m *MockLlamaStackClient) mockError(scenario string) error {
+	switch strings.ToLower(scenario) {
+	// BFF error codes
+	case "timeout":
+		return llamastack.NewLlamaStackErrorWithDetails(
+			llamastack.ErrCodeTimeout,
+			"Request timed out",
+			"timeout_error",
+			"timeout",
+			"",
+			llamastack.ComponentOGX,
+			504,
+		)
+	case "connection_failed":
+		return llamastack.NewConnectionError("Failed to connect to LlamaStack server")
+	case "server_unavailable":
+		return llamastack.NewServerUnavailableError("LlamaStack server is unavailable")
+	case "unauthorized":
+		return llamastack.NewUnauthorizedError("Invalid authentication token")
+	case "invalid_request":
+		return llamastack.NewInvalidRequestError("Invalid request parameters")
+
+	// OGX error codes (from OGXErr* constants)
+	case "server_error":
+		return llamastack.NewLlamaStackErrorWithDetails(
+			llamastack.ErrCodeInternalError,
+			"Server encountered an internal error",
+			"server_error",
+			llamastack.OGXErrServerError,
+			"",
+			llamastack.ComponentOGX,
+			500,
+		)
+	case "rate_limit_exceeded":
+		return llamastack.NewLlamaStackErrorWithDetails(
+			llamastack.ErrCodeInternalError,
+			"Rate limit exceeded: 60 requests per minute",
+			"rate_limit_error",
+			llamastack.OGXErrRateLimitExceeded,
+			"",
+			llamastack.ComponentOGX,
+			429,
+		)
+
+	// Default: generic internal error
+	default:
+		return llamastack.NewLlamaStackError(
+			llamastack.ErrCodeInternalError,
+			fmt.Sprintf("Mock error scenario '%s' not recognized. Supported: timeout, connection_failed, server_unavailable, unauthorized, invalid_request, server_error, rate_limit_exceeded", scenario),
+			500,
+		)
+	}
 }

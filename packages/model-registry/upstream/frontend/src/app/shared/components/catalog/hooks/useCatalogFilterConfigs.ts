@@ -2,7 +2,7 @@ import * as React from 'react';
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
 import { toggleFilterValue } from '../utils/catalogFilterUtils';
 
-export type FilterPanelItem = {
+export type StringFilterPanelItem = {
   key: string;
   title: string;
   filterValues: string[];
@@ -14,6 +14,18 @@ export type FilterPanelItem = {
   testIdBase?: string;
   getCheckboxTestId?: (value: string) => string;
 };
+
+export type CustomFilterPanelItem = {
+  key: string;
+  title: string;
+  customContent: React.ReactNode;
+  visible?: boolean;
+};
+
+export type FilterPanelItem = StringFilterPanelItem | CustomFilterPanelItem;
+
+export const isCustomFilterItem = (item: FilterPanelItem): item is CustomFilterPanelItem =>
+  'customContent' in item;
 
 type CatalogFilterConfigsInput = {
   filterKeys: string[];
@@ -37,14 +49,14 @@ export function useCatalogFilterConfigs({
   selectedFilters,
   onFilterChange,
   labelMappings,
-}: CatalogFilterConfigsInput): FilterPanelItem[] {
+}: CatalogFilterConfigsInput): StringFilterPanelItem[] {
   const selectedFiltersRef = React.useRef(selectedFilters);
   selectedFiltersRef.current = selectedFilters;
 
   return React.useMemo(
     () =>
       filterKeys
-        .map((filterKey): FilterPanelItem | null => {
+        .map((filterKey): StringFilterPanelItem | null => {
           const filterOption = filterOptions?.[filterKey];
           if (!filterOption?.values || filterOption.values.length === 0) {
             return null;
@@ -74,7 +86,7 @@ export function useCatalogFilterConfigs({
               : undefined,
           };
         })
-        .filter((item): item is FilterPanelItem => item !== null),
+        .filter((item): item is StringFilterPanelItem => item !== null),
     [filterKeys, filterNames, filterOptions, selectedFilters, onFilterChange, labelMappings],
   );
 }

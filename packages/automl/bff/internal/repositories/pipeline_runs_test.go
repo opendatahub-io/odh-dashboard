@@ -258,6 +258,7 @@ func newValidTabularRequest() models.CreateAutoMLRunRequest {
 	topN := 3
 	labelColumn := "target"
 	taskType := "binary"
+	preset := "speed"
 	return models.CreateAutoMLRunRequest{
 		DisplayName:         "test-run",
 		TrainDataSecretName: "minio-secret",
@@ -265,6 +266,7 @@ func newValidTabularRequest() models.CreateAutoMLRunRequest {
 		TrainDataFileKey:    "data/train.csv",
 		LabelColumn:         &labelColumn,
 		TaskType:            &taskType,
+		Preset:              &preset,
 		TopN:                &topN,
 	}
 }
@@ -278,6 +280,7 @@ func newValidTimeSeriesRequest() models.CreateAutoMLRunRequest {
 	timestampColumn := "date"
 	predictionLength := 7
 	covariates := []string{"temperature", "is_holiday"}
+	preset := "speed"
 	return models.CreateAutoMLRunRequest{
 		DisplayName:          "test-run",
 		TrainDataSecretName:  "minio-secret",
@@ -289,6 +292,7 @@ func newValidTimeSeriesRequest() models.CreateAutoMLRunRequest {
 		TimestampColumn:      &timestampColumn,
 		PredictionLength:     &predictionLength,
 		KnownCovariatesNames: &covariates,
+		Preset:               &preset,
 		TopN:                 &topN,
 	}
 }
@@ -346,6 +350,38 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
 
 		assert.Equal(t, 5, result.RuntimeConfig.Parameters["top_n"])
+	})
+
+	t.Run("should include preset when provided", func(t *testing.T) {
+		req := newValidTabularRequest()
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.Equal(t, "speed", result.RuntimeConfig.Parameters["preset"])
+	})
+
+	t.Run("should omit preset when nil", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.Preset = nil
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.NotContains(t, result.RuntimeConfig.Parameters, "preset")
+	})
+
+	t.Run("should include eval_metric when provided", func(t *testing.T) {
+		req := newValidTabularRequest()
+		metric := "f1"
+		req.EvalMetric = &metric
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.Equal(t, "f1", result.RuntimeConfig.Parameters["eval_metric"])
+	})
+
+	t.Run("should omit eval_metric when nil", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.EvalMetric = nil
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.NotContains(t, result.RuntimeConfig.Parameters, "eval_metric")
 	})
 
 	t.Run("should pass description to KFP request", func(t *testing.T) {
@@ -551,6 +587,49 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("should accept valid preset for tabular pipeline", func(t *testing.T) {
+		req := newValidTabularRequest()
+		preset := "balanced"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject invalid preset for tabular pipeline", func(t *testing.T) {
+		req := newValidTabularRequest()
+		preset := "best_quality"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid preset")
+		assert.Contains(t, err.Error(), "tabular")
+	})
+
+	t.Run("should accept valid preset for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		preset := "balanced"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject invalid preset for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		preset := "high_quality"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid preset")
+		assert.Contains(t, err.Error(), "timeseries")
+	})
+
+	t.Run("should allow nil preset", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.Preset = nil
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
 	t.Run("should fail for unsupported pipeline type", func(t *testing.T) {
 		req := newValidTabularRequest()
 		err := ValidateCreateAutoMLRunRequest(req, "unsupported")
@@ -642,5 +721,117 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "display_name must be at most 250 characters")
+	})
+
+	t.Run("should allow nil eval_metric", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.EvalMetric = nil
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should accept valid eval_metric for binary classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "binary"
+		req.TaskType = &taskType
+		metric := "f1"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should accept valid eval_metric for multiclass classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "multiclass"
+		req.TaskType = &taskType
+		metric := "roc_auc_ovo"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should accept valid eval_metric for regression", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "regression"
+		req.TaskType = &taskType
+		metric := "r2"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should accept valid eval_metric for timeseries", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		metric := "MASE"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject multiclass-only eval_metric for binary classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "binary"
+		req.TaskType = &taskType
+		metric := "roc_auc_ovo"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "binary")
+	})
+
+	t.Run("should reject binary-only eval_metric for multiclass classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "multiclass"
+		req.TaskType = &taskType
+		metric := "roc_auc"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "multiclass")
+	})
+
+	t.Run("should reject regression eval_metric for binary classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "binary"
+		req.TaskType = &taskType
+		metric := "r2"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "binary")
+	})
+
+	t.Run("should reject classification eval_metric for regression", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "regression"
+		req.TaskType = &taskType
+		metric := "accuracy"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "regression")
+	})
+
+	t.Run("should reject tabular eval_metric for timeseries", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		metric := "accuracy"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "timeseries")
+	})
+
+	t.Run("should reject timeseries eval_metric for tabular", func(t *testing.T) {
+		req := newValidTabularRequest()
+		metric := "MASE"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
 	})
 }

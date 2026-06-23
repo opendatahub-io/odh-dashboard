@@ -12,19 +12,20 @@ import {
 } from './consts';
 
 // Mock external dependencies
-jest.mock('@patternfly/chatbot', () => ({
-  FileDetailsLabel: jest.fn(({ fileName }: { fileName: string }) => fileName),
-}));
+jest.mock('@patternfly/chatbot', () => ({}));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
-jest.mock('~/app/utilities/utils', () => ({
-  getId: jest.fn(() => 'mock-id'),
-  getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
-  splitLlamaModelId: jest.fn((modelId: string) => ({
-    providerId: 'provider-id',
-    id: modelId,
-  })),
-}));
+jest.mock('~/app/utilities/utils', () => {
+  let idCounter = 0;
+  return {
+    getId: jest.fn(() => `mock-id-${idCounter++}`),
+    getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+    splitLlamaModelId: jest.fn((modelId: string) => ({
+      providerId: 'provider-id',
+      id: modelId,
+    })),
+  };
+});
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
   ToolResponseCardTitle: jest.fn(() => 'ToolResponseCardTitle'),
@@ -119,7 +120,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Hello, bot!');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot
 
       // Test user message - only check what matters
       expect(result.current.messages[0]).toMatchObject({
@@ -190,11 +191,15 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: 'No model or source settings selected',
+        content: '',
         name: 'Bot',
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
@@ -215,7 +220,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot response
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: 'This is a bot response',
@@ -238,7 +243,14 @@ describe('useChatbotMessages', () => {
     });
 
     it('should handle API errors', async () => {
-      mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: 'API Error',
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -246,17 +258,28 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: 'API Error',
+        content: '',
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
 
     it('should re-enable send button even when errors occur', async () => {
-      mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: 'API Error',
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -282,11 +305,15 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: 'API is not available',
+        content: '',
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
@@ -294,7 +321,14 @@ describe('useChatbotMessages', () => {
 
     it('should display error message from streaming error', async () => {
       const customErrorMessage = 'Custom streaming error message';
-      mockCreateResponse.mockRejectedValueOnce(new Error(customErrorMessage));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: customErrorMessage,
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -302,11 +336,15 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: customErrorMessage,
+        content: '',
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
@@ -316,12 +354,19 @@ describe('useChatbotMessages', () => {
 
       // Mock streaming response that will error
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           // Simulate some streaming before error
           if (opts?.onStreamData) {
             opts.onStreamData('Hello ');
           }
-          return Promise.reject(new Error(streamingErrorMessage));
+          return Promise.reject({
+            error: {
+              component: 'bff',
+              code: 'streaming_error',
+              message: streamingErrorMessage,
+              retriable: false,
+            },
+          });
         },
       );
 
@@ -333,12 +378,16 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      // Should have user + bot (placeholder removed; bot updated with error, not added separately)
+      // Should have user + bot (updated with error, not added separately)
       expect(result.current.messages).toHaveLength(2);
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
-        content: streamingErrorMessage,
+        content: '', // Error happened before streaming content was persisted
         name: mockModelId,
+      });
+      expect(result.current.messages[1].errorClassification).toMatchObject({
+        pattern: 'partial-failure',
+        variant: 'warning',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.isLoading).toBe(false);
@@ -360,7 +409,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot response
       expect(mockCreateResponse).toHaveBeenCalledWith(
         {
           input: 'Test message',
@@ -550,7 +599,7 @@ describe('useChatbotMessages', () => {
       };
 
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           if (opts?.onStreamData) {
             opts.onStreamData('Streaming content');
           }
@@ -605,7 +654,7 @@ describe('useChatbotMessages', () => {
       };
 
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           if (opts?.onStreamData) {
             opts.onStreamData('Streaming content');
           }
@@ -764,7 +813,8 @@ describe('useChatbotMessages', () => {
           content: 'This is a bot response',
         });
       } finally {
-        mockGetId.mockImplementation(() => 'mock-id');
+        let restoreCounter = 0;
+        mockGetId.mockImplementation(() => `mock-id-${restoreCounter++}`);
       }
     });
   });
@@ -1035,167 +1085,6 @@ describe('useChatbotMessages', () => {
       const payload = mockCreateResponse.mock.calls[0][0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((payload as any).reasoning).toBeUndefined();
-    });
-  });
-
-  describe('inline document chips in sent message', () => {
-    it('should set extraContent.afterMainContent when docAttachments are provided', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend(
-          'Check these files',
-          undefined,
-          undefined,
-          undefined,
-          ['PR_STYLE_GUIDE.md', 'rag-testing.txt'],
-        );
-      });
-
-      const userMessage = result.current.messages[0];
-      expect(userMessage.role).toBe('user');
-      expect(userMessage.content).toBe('Check these files');
-      expect(userMessage.extraContent).toBeDefined();
-      expect(React.isValidElement(userMessage.extraContent?.afterMainContent)).toBe(true);
-    });
-
-    it('should not set extraContent.afterMainContent when no docAttachments are provided', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('Hello without docs');
-      });
-
-      const userMessage = result.current.messages[0];
-      expect(userMessage.extraContent).toBeUndefined();
-    });
-
-    it('should not set afterMainContent when docAttachments is empty array', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('No docs', undefined, undefined, undefined, []);
-      });
-
-      const userMessage = result.current.messages[0];
-      expect(userMessage.extraContent).toBeUndefined();
-    });
-
-    it('should set both beforeMainContent and afterMainContent when image and docs are provided', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend(
-          'Image and docs',
-          undefined,
-          'file-123',
-          { previewUrl: 'blob:http://localhost/abc', fileName: 'photo.png' },
-          ['report.pdf'],
-        );
-      });
-
-      const userMessage = result.current.messages[0];
-      expect(userMessage.extraContent).toBeDefined();
-      expect(React.isValidElement(userMessage.extraContent?.beforeMainContent)).toBe(true);
-      expect(React.isValidElement(userMessage.extraContent?.afterMainContent)).toBe(true);
-    });
-
-    it('should create FileDetailsLabel elements with correct fileName and hasTruncation for each attachment', async () => {
-      const { FileDetailsLabel } = require('@patternfly/chatbot');
-
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('Files here', undefined, undefined, undefined, [
-          'report.pdf',
-          'data.csv',
-        ]);
-      });
-
-      const wrapper = result.current.messages[0].extraContent
-        ?.afterMainContent as React.ReactElement;
-      const children = wrapper.props.children as React.ReactElement[];
-      expect(children).toHaveLength(2);
-      expect(children[0].type).toBe(FileDetailsLabel);
-      expect(children[0].props).toEqual(
-        expect.objectContaining({ fileName: 'report.pdf', hasTruncation: true }),
-      );
-      expect(children[1].type).toBe(FileDetailsLabel);
-      expect(children[1].props).toEqual(
-        expect.objectContaining({ fileName: 'data.csv', hasTruncation: true }),
-      );
-    });
-
-    it('should create exactly N FileDetailsLabel elements for N doc attachments', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('Three docs', undefined, undefined, undefined, [
-          'a.pdf',
-          'b.txt',
-          'c.csv',
-        ]);
-      });
-
-      const wrapper = result.current.messages[0].extraContent
-        ?.afterMainContent as React.ReactElement;
-      const children = wrapper.props.children as React.ReactElement[];
-      expect(children).toHaveLength(3);
-    });
-
-    it('afterMainContent wrapper div has correct flex styles', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('Check styles', undefined, undefined, undefined, [
-          'doc.pdf',
-        ]);
-      });
-
-      const userMessage = result.current.messages[0];
-      const wrapper = userMessage.extraContent?.afterMainContent as React.ReactElement;
-      expect(wrapper.type).toBe('div');
-      expect(wrapper.props.style).toEqual({
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '0.5rem',
-        marginTop: '0.5rem',
-      });
-    });
-
-    it('works correctly with a single doc attachment', async () => {
-      const { FileDetailsLabel } = require('@patternfly/chatbot');
-
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('Single doc', undefined, undefined, undefined, [
-          'only-one.pdf',
-        ]);
-      });
-
-      const userMessage = result.current.messages[0];
-      expect(userMessage.extraContent).toBeDefined();
-      expect(React.isValidElement(userMessage.extraContent?.afterMainContent)).toBe(true);
-
-      const wrapper = userMessage.extraContent?.afterMainContent as React.ReactElement;
-      // With React.createElement spread args, single child is in props.children
-      const children = Array.isArray(wrapper.props.children)
-        ? wrapper.props.children
-        : [wrapper.props.children];
-      expect(children).toHaveLength(1);
-      expect(children[0].type).toBe(FileDetailsLabel);
-      expect(children[0].props).toEqual(
-        expect.objectContaining({ fileName: 'only-one.pdf', hasTruncation: true }),
-      );
     });
   });
 });

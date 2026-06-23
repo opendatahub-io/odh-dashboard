@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/model-serving-backport",
   "description": "Simple plugin support for model mesh and nim.",
   "version": "0.0.0",
+  "e2eCiTags": ["@ModelServingBackportCI"],
   "exports": {
     "./extensions": "./extensions.ts"
   },

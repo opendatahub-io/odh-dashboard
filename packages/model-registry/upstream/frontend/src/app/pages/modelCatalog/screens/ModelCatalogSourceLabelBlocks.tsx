@@ -4,7 +4,7 @@ import { CategoryName } from '~/app/modelCatalogTypes';
 import { CatalogSourceLabelToggle } from '~/app/shared/components/catalog';
 
 const ModelCatalogSourceLabelBlocks: React.FC = () => {
-  const { catalogSources, catalogLabels, updateSelectedSourceLabel, selectedSourceLabel } =
+  const { catalogSources, catalogLabels, setSelectedSourceLabel, selectedSourceLabel } =
     React.useContext(ModelCatalogContext);
 
   return (
@@ -12,7 +12,7 @@ const ModelCatalogSourceLabelBlocks: React.FC = () => {
       catalogSources={catalogSources}
       catalogLabels={catalogLabels}
       selectedSourceLabel={selectedSourceLabel}
-      onSelectSourceLabel={(label) => updateSelectedSourceLabel(label ?? CategoryName.allModels)}
+      onSelectSourceLabel={(label) => setSelectedSourceLabel(label ?? CategoryName.allModels)}
       allBlockLabel={CategoryName.allModels}
       allBlockDisplayName={CategoryName.allModels}
       className="pf-v6-u-pb-0"

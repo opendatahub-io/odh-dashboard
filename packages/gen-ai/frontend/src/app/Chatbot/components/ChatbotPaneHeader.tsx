@@ -24,6 +24,7 @@ interface ChatbotPaneHeaderProps {
   /** Test ID prefix for the header elements */
   testIdPrefix?: string;
   isDarkMode?: boolean;
+  isDisabled?: boolean;
 }
 
 /**
@@ -42,6 +43,7 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   isActiveConfig,
   testIdPrefix = 'chatbot',
   isDarkMode,
+  isDisabled = false,
 }) => (
   <div
     style={{
@@ -93,6 +95,7 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
                 testId="chatbot-model-selector-toggle"
+                isDisabled={isDisabled}
               />
             </FlexItem>
           </Flex>
