@@ -55,11 +55,16 @@ const renderApiKeyCell = (
           title={apiKey.name}
           description={apiKey.description}
           truncateDescriptionLines={2}
+          data-testid="api-key-name"
         />
       );
     case 'status':
       return (
-        <Label variant="outline" {...getApiKeyStatusProps(apiKey.status)}>
+        <Label
+          variant="outline"
+          {...getApiKeyStatusProps(apiKey.status)}
+          data-testid="api-key-status"
+        >
           {capitalize(apiKey.status)}
         </Label>
       );
@@ -71,13 +76,21 @@ const renderApiKeyCell = (
         />
       );
     case 'username':
-      return apiKey.username ?? '—';
+      return <span data-testid="api-key-owner">{apiKey.username ?? '—'}</span>;
     case 'creationDate':
-      return formatDate(apiKey.creationDate, '—');
+      return (
+        <span data-testid="api-key-creation-date">{formatDate(apiKey.creationDate, '—')}</span>
+      );
     case 'lastUsedAt':
-      return formatDate(apiKey.lastUsedAt, 'Never');
+      return (
+        <span data-testid="api-key-last-used-at">{formatDate(apiKey.lastUsedAt, 'Never')}</span>
+      );
     case 'expirationDate':
-      return formatDate(apiKey.expirationDate, 'Never');
+      return (
+        <span data-testid="api-key-expiration-date">
+          {formatDate(apiKey.expirationDate, 'Never')}
+        </span>
+      );
     default:
       return null;
   }

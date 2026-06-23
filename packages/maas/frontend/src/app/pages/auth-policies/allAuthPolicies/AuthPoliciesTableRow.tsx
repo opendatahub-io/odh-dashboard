@@ -91,16 +91,16 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           isDisabled={!!authPolicy.deletionTimestamp}
           items={[
             {
-              title: 'View details',
+              title: <span data-testid="view-auth-policy-action">View details</span>,
               onClick: () => onViewDetailsAuthPolicy(authPolicy.name),
             },
             {
-              title: 'Edit',
+              title: <span data-testid="edit-auth-policy-action">Edit</span>,
               onClick: () => onEditAuthPolicy(authPolicy.name),
             },
             { isSeparator: true },
             {
-              title: 'Delete',
+              title: <span data-testid="delete-auth-policy-action">Delete</span>,
               onClick: () => onDeleteAuthPolicy(authPolicy),
             },
           ]}

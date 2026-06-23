@@ -30,7 +30,7 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
       to={`${URL_PREFIX}/keys-and-subs/subscriptions/${encodeURIComponent(subscriptionName)}`}
       data-testid="subscription-detail-link"
     >
-      {displayLabel}
+      <span data-testid="api-key-subscription">{displayLabel}</span>
     </Link>
   );
 };
