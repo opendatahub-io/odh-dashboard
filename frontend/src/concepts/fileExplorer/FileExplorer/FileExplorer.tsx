@@ -10,7 +10,7 @@
  * All data and callbacks are passed in via props, making it storage-agnostic.
  *
  * Wrapper components (e.g. {@link S3FileExplorer}) supply the data-fetching layer and
- * map storage-specific responses into the {@link File} / {@link Folder} shapes this
+ * map storage-specific responses into the {@link ExplorerFile} / {@link Folder} shapes this
  * component expects.
  *
  * Intended for reuse across packages — import types and the default export from this
@@ -82,12 +82,14 @@ import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState 
 
 // TODO [ Gustavo ] This file is ~1,130 lines containing 6+ components, types, helpers, and globals.
 // Consider splitting into:
-//   - FileExplorer.types.ts (Source, File, Folder, FileExplorerEmptyStateConfig, Column)
+//   - FileExplorer.types.ts (Source, ExplorerFile, Folder, FileExplorerEmptyStateConfig, Column)
 //   - FileExplorer.utils.ts (shouldDetailsPanelRender, sanitizeId, defaults, constants)
 //   - components/FilesTable.tsx
 //   - components/PathBreadcrumbs.tsx
 //   - components/DetailsPanel.tsx (includes FileDetails, SelectedFilesDataList)
 //   - components/SourceSelector.tsx
+
+const NOOP = () => null;
 
 // Types ---------------------------------------------------------------------->
 
@@ -103,7 +105,7 @@ export type Sources = Source[];
  * A single item (file or folder) displayed in the file explorer table.
  * Storage-specific wrappers map their API responses into this shape.
  */
-export interface File {
+export interface ExplorerFile {
   name: string;
   path: string;
   size?: string;
@@ -114,14 +116,14 @@ export interface File {
   selectable?: boolean;
   forceShowAsSelected?: boolean;
 }
-export type Files<T extends File = File> = T[];
+export type Files<T extends ExplorerFile = ExplorerFile> = T[];
 
-/** A {@link File} whose `type` is `'folder'`, making it navigable in the breadcrumb trail. */
-export interface Folder extends File {
+/** A {@link ExplorerFile} whose `type` is `'folder'`, making it navigable in the breadcrumb trail. */
+export interface Folder extends ExplorerFile {
   type: 'folder';
   items: number;
 }
-export const isFolder = (file: File): file is Folder => file.type === 'folder';
+export const isFolder = (file: ExplorerFile): file is Folder => file.type === 'folder';
 
 /** Configuration for the empty-state banner shown when no files are available or an error occurs. */
 export type FileExplorerEmptyStateConfig = Pick<
@@ -234,6 +236,37 @@ const STICKY_TABLE_HEIGHT = ROW_HEIGHT * NUMBER_OF_ROWS_TO_SHOW + HEADER_HEIGHT;
 
 export const sanitizeId = (value: string): string => value.replace(/[^a-zA-Z0-9-_]/g, '-');
 
+const SKELETON_NAME_WIDTHS = [75, 60, 70, 45, 65, 50, 55, 40, 72, 58];
+const TABLE_COLUMNS: Record<string, Column> = {
+  select: {
+    id: 'select',
+    label: '',
+    width: undefined,
+    screenReaderText: defaults.labels.tableColumnSelect,
+  },
+  name: {
+    id: 'name',
+    label: defaults.labels.tableColumnName,
+    width: 70,
+    skeleton: (index = 0) => {
+      const width = `${SKELETON_NAME_WIDTHS[index % SKELETON_NAME_WIDTHS.length]}%`;
+      return <Skeleton className="pf-v6-u-mb-md" width={width} height="1em" />;
+    },
+  },
+  type: {
+    id: 'type',
+    label: defaults.labels.tableColumnType,
+    width: 10,
+    skeleton: () => <Skeleton className="pf-v6-u-mb-md" width="50%" height="1em" />,
+  },
+  actions: {
+    id: 'actions',
+    label: '',
+    width: undefined,
+    screenReaderText: defaults.labels.tableColumnActions,
+  },
+};
+
 // Private -------------------------------------------------------------------->
 
 export const shouldDetailsPanelRender = (state: {
@@ -292,14 +325,14 @@ const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSele
 };
 interface FilesTableProps {
   files?: Files;
-  onSelectFile?: (file: File, selected: boolean) => void;
+  onSelectFile?: (file: ExplorerFile, selected: boolean) => void;
   selectedFiles?: Files;
   setSelectedFiles: (files: Files) => void;
   selection?: 'radio' | 'checkbox';
   unselectableReason?: string;
   onFolderClick?: (folder: Folder) => void;
-  onViewDetails: (file: File) => void;
-  onRemoveSelection: (file: File) => void;
+  onViewDetails: (file: ExplorerFile) => void;
+  onRemoveSelection: (file: ExplorerFile) => void;
   filesToView?: Files;
   isEmpty?: boolean;
   emptyStateProps?: FileExplorerEmptyStateConfig;
@@ -322,37 +355,6 @@ const FilesTable: React.FC<FilesTableProps> = ({
   loading,
   perPage = 100,
 }) => {
-  const columns: Record<string, Column> = {
-    select: {
-      id: 'select',
-      label: '',
-      width: undefined,
-      screenReaderText: defaults.labels.tableColumnSelect,
-    },
-    name: {
-      id: 'name',
-      label: defaults.labels.tableColumnName,
-      width: 70,
-      skeleton: (index = 0) => {
-        const widths = [75, 60, 70, 45, 65, 50, 55, 40, 72, 58];
-        const width = `${widths[index % widths.length]}%`;
-        return <Skeleton className="pf-v6-u-mb-md" width={width} height="1em" />;
-      },
-    },
-    type: {
-      id: 'type',
-      label: defaults.labels.tableColumnType,
-      width: 10,
-      skeleton: () => <Skeleton className="pf-v6-u-mb-md" width="50%" height="1em" />,
-    },
-    actions: {
-      id: 'actions',
-      label: '',
-      width: undefined,
-      screenReaderText: defaults.labels.tableColumnActions,
-    },
-  };
-
   const visibleFiles = Array.isArray(files) ? files.filter((file) => !file.hidden) : [];
   const skeletonRowCount = perPage;
   const isEmpty = isEmptyProp === true || (!loading && visibleFiles.length === 0);
@@ -369,7 +371,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
         >
           <Thead>
             <Tr>
-              {Object.values(columns).map((column) => (
+              {Object.values(TABLE_COLUMNS).map((column) => (
                 <Th
                   key={column.id}
                   isStickyColumn
@@ -387,7 +389,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
             {loading &&
               Array.from({ length: skeletonRowCount }, (_, rowIndex) => (
                 <Tr key={`skeleton-${rowIndex}`}>
-                  {Object.values(columns).map((column) => (
+                  {Object.values(TABLE_COLUMNS).map((column) => (
                     <Td key={column.id} isStickyColumn width={column.width}>
                       {column.skeleton && column.skeleton(rowIndex)}
                     </Td>
@@ -494,7 +496,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     }}
                   >
                     <Td
-                      width={columns.select.width}
+                      width={TABLE_COLUMNS.select.width}
                       title={
                         isUnselectable &&
                         typeof unselectableReason === 'string' &&
@@ -510,7 +512,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         variant: selection,
                       }}
                     />
-                    <Td width={columns.name.width} dataLabel={columns.name.label}>
+                    <Td width={TABLE_COLUMNS.name.width} dataLabel={TABLE_COLUMNS.name.label}>
                       <Flex
                         spaceItems={{ default: 'spaceItemsSm' }}
                         alignItems={{ default: 'alignItemsCenter' }}
@@ -534,10 +536,10 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         )}
                       </Flex>
                     </Td>
-                    <Td width={columns.type.width} dataLabel={columns.type.label}>
+                    <Td width={TABLE_COLUMNS.type.width} dataLabel={TABLE_COLUMNS.type.label}>
                       {isFolder(file) ? defaults.labels.folderType : file.type}
                     </Td>
-                    <Td width={columns.actions.width} isActionCell>
+                    <Td width={TABLE_COLUMNS.actions.width} isActionCell>
                       <ActionsColumn
                         actionsToggle={({ toggleRef, onToggle, isOpen, isDisabled }) => (
                           <MenuToggle
@@ -688,7 +690,7 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
 };
 
 interface FileDetailsProps {
-  file: File;
+  file: ExplorerFile;
 }
 const FileDetails: React.FC<FileDetailsProps> = ({ file }) => (
   <>
@@ -716,8 +718,8 @@ const FileDetails: React.FC<FileDetailsProps> = ({ file }) => (
 interface SelectedFilesDataListProps {
   selectedFiles: Files;
   filesToView?: Files;
-  onViewDetails: (file: File) => void;
-  onRemoveSelection: (file: File) => void;
+  onViewDetails: (file: ExplorerFile) => void;
+  onRemoveSelection: (file: ExplorerFile) => void;
 }
 const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
   selectedFiles,
@@ -727,15 +729,13 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
 }) => {
   const [openMenuFileKey, setOpenMenuFileKey] = useState<string | null>(null);
 
-  const emptyHandler = () => null;
-
   return (
     <DataList
       aria-label={defaults.labels.detailsPanelTitleFiles}
       data-testid="file-explorer-selected-files"
       isCompact
-      onSelectDataListItem={emptyHandler}
-      onSelectableRowChange={emptyHandler}
+      onSelectDataListItem={NOOP}
+      onSelectableRowChange={NOOP}
     >
       {selectedFiles.map((file) => (
         <DataListItem
@@ -831,8 +831,8 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
 interface DetailsPanelProps {
   selectedFiles?: Files;
   filesToView?: Files;
-  onViewDetails: (file: File) => void;
-  onRemoveSelection: (file: File) => void;
+  onViewDetails: (file: ExplorerFile) => void;
+  onRemoveSelection: (file: ExplorerFile) => void;
   onClearDetails: () => void;
 }
 const DetailsPanel: React.FC<DetailsPanelProps> = ({
@@ -956,7 +956,7 @@ interface FileExplorerProps {
 
   /** Callback fired when a file is selected from the table
    * (FileExplorer maintains its own state for selected files; Using this callback is helpful for any side effects needed) */
-  onSelectFile?: (file: File, selected: boolean) => void;
+  onSelectFile?: (file: ExplorerFile, selected: boolean) => void;
 
   /** Callback fired when a folder row is clicked in the table. */
   onFolderClick?: (folder: Folder) => void;
@@ -1077,12 +1077,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     [onFolderClick],
   );
 
-  const handleViewDetails = useCallback((file: File) => {
+  const handleViewDetails = useCallback((file: ExplorerFile) => {
     setFilesToView([file]);
   }, []);
 
   const handleRemoveSelection = useCallback(
-    (file: File) => {
+    (file: ExplorerFile) => {
       setSelectedFiles((prev) => prev.filter((f) => f.path !== file.path));
       setFilesToView([]);
       onSelectFile?.(file, false);

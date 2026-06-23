@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import * as React from 'react';
-import type { File, Files } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer';
+import type { ExplorerFile, Files } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer';
 import FileExplorer, {
   isFolder,
   sanitizeId,
@@ -29,7 +29,7 @@ describe('FileExplorer', () => {
   };
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('modal rendering', () => {
@@ -1474,11 +1474,11 @@ describe('FileExplorer', () => {
 
 describe('isFolder', () => {
   it('should return true for folder type', () => {
-    const folder: File = { name: 'test', path: '/test', type: 'folder', items: 0 };
+    const folder: ExplorerFile = { name: 'test', path: '/test', type: 'folder', items: 0 };
     expect(isFolder(folder)).toBe(true);
   });
   it('should return false for non-folder type', () => {
-    const file: File = { name: 'test.json', path: '/test.json', type: 'JSON' };
+    const file: ExplorerFile = { name: 'test.json', path: '/test.json', type: 'JSON' };
     expect(isFolder(file)).toBe(false);
   });
 });

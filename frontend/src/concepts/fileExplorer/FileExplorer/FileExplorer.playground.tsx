@@ -16,7 +16,7 @@ import {
   Switch,
 } from '@patternfly/react-core';
 import FileExplorer from './FileExplorer';
-import type { Folder, File, Files, Source, Sources } from './FileExplorer';
+import type { Folder, ExplorerFile, Files, Source, Sources } from './FileExplorer';
 
 // Mocks ---------------------------------------------------------------------->
 
@@ -37,8 +37,8 @@ const createFile = (
   path: string,
   type: string,
   size: string,
-  details?: File['details'],
-): File => ({
+  details?: ExplorerFile['details'],
+): ExplorerFile => ({
   name,
   path,
   type,

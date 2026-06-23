@@ -145,6 +145,25 @@ describe('getFiles', () => {
     ).rejects.toThrow('Server returned a non-JSON response');
   });
 
+  it('should construct URL correctly with a non-empty host', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: validResponse }),
+    });
+
+    await getFiles(
+      'https://my-bff.example.com',
+      {},
+      { apiPath: '/autorag/api/v1/s3', namespace: 'ns', secretName: 'secret' },
+    );
+
+    const [urlArg] = mockFetch.mock.calls[0];
+    expect(urlArg.origin).toBe('https://my-bff.example.com');
+    expect(urlArg.pathname).toBe('/autorag/api/v1/s3/files');
+    expect(urlArg.searchParams.get('namespace')).toBe('ns');
+    expect(urlArg.searchParams.get('secretName')).toBe('secret');
+  });
+
   it('should throw on invalid response shape', async () => {
     mockFetch.mockResolvedValue({
       ok: true,

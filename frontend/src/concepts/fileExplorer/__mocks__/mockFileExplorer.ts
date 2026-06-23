@@ -1,5 +1,5 @@
 import type {
-  File,
+  ExplorerFile,
   Files,
   Folder,
   Source,
@@ -22,7 +22,7 @@ export const mockSources = (count = 3): Sources =>
 
 // Files ---------------------------------------------------------------------->
 
-export const mockFile = (overrides: Partial<File> = {}): File => ({
+export const mockFile = (overrides: Partial<ExplorerFile> = {}): ExplorerFile => ({
   name: 'test-file.json',
   path: '/test-file.json',
   type: 'JSON',

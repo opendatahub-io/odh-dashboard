@@ -65,6 +65,9 @@ export const mapResultToItems = (
           type: 'folder',
           selectable: options?.allowFolderSelection,
           items: 0,
+          details: {
+            ...{ Type: 'Folder' },
+          },
         });
         continue;
       }

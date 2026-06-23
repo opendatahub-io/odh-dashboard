@@ -114,7 +114,7 @@ async function throwIfNotOk(response: Response): Promise<void> {
     try {
       detail = await response.text();
     } catch {
-      // ignore read failures
+      detail = '(response body unreadable)';
     }
     throw new Error(`Request failed (${response.status}): ${detail || response.statusText}`);
   }
