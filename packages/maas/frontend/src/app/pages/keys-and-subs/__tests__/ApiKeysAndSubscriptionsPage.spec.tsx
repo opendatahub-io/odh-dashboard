@@ -49,13 +49,13 @@ jest.mock('~/app/hooks/useUserSubscriptions', () => ({
   useUserSubscriptions: () => [[], true, undefined, mockRefreshSubscriptions],
 }));
 
-jest.mock('~/app/pages/api-keys/ApiKeysTab', () => {
+jest.mock('~/app/pages/keys-and-subs/apiKeys/ApiKeysTab', () => {
   const MockApiKeysTab = () => <div data-testid="mock-api-keys-tab">ApiKeysTab</div>;
   MockApiKeysTab.displayName = 'MockApiKeysTab';
   return { __esModule: true, default: MockApiKeysTab };
 });
 
-jest.mock('~/app/pages/api-keys/SubscriptionsTab', () => {
+jest.mock('~/app/pages/keys-and-subs/mySubscriptions/SubscriptionsTab', () => {
   const MockSubscriptionsTab = () => (
     <div data-testid="mock-subscriptions-tab">SubscriptionsTab</div>
   );
@@ -122,19 +122,23 @@ describe('ApiKeysAndSubscriptionsPage', () => {
   it('should refresh subscriptions when switching to the subscriptions tab', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
-    fireEvent.click(screen.getByTestId('subscriptions-tab'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Subscriptions tab' }));
 
     expect(mockRefreshSubscriptions).toHaveBeenCalledTimes(1);
     expect(mockRefreshAll).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.stringContaining('/keys-and-subs/subscriptions'),
+    );
   });
 
   it('should refresh API keys when switching to the API keys tab', () => {
     mockTab = 'subscriptions';
     render(<ApiKeysAndSubscriptionsPage />);
 
-    fireEvent.click(screen.getByTestId('api-keys-tab'));
+    fireEvent.click(screen.getByRole('tab', { name: 'API keys tab' }));
 
     expect(mockRefreshAll).toHaveBeenCalledTimes(1);
     expect(mockRefreshSubscriptions).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('/keys-and-subs/tokens'));
   });
 });
