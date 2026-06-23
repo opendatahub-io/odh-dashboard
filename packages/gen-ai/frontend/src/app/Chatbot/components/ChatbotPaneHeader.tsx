@@ -25,6 +25,10 @@ interface ChatbotPaneHeaderProps {
   testIdPrefix?: string;
   isDarkMode?: boolean;
   isDisabled?: boolean;
+  /** Name of the currently loaded agent profile, shown before the Model label */
+  agentName?: string;
+  /** When true, shows a "Preview" badge next to the agent name */
+  isPreviewMode?: boolean;
 }
 
 /**
@@ -44,6 +48,8 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   testIdPrefix = 'chatbot',
   isDarkMode,
   isDisabled = false,
+  agentName,
+  isPreviewMode = false,
 }) => (
   <div
     style={{
@@ -81,6 +87,35 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                     style={{ height: '1em', alignSelf: 'center' }}
                   />
                 )}
+              </>
+            )}
+            {agentName && !isSettingsOpen && (
+              <>
+                <FlexItem>
+                  <Content
+                    component="p"
+                    style={{
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--pf-t--global--spacer--sm)',
+                      fontSize: 'var(--pf-t--global--font--size--lg)',
+                    }}
+                  >
+                    <strong>{agentName}</strong>
+                    {isPreviewMode && (
+                      <Label isCompact color="blue" data-testid="agent-preview-label">
+                        Preview
+                      </Label>
+                    )}
+                  </Content>
+                </FlexItem>
+                <FlexItem alignSelf={{ default: 'alignSelfCenter' }}>
+                  <Divider
+                    orientation={{ default: 'vertical' }}
+                    style={{ height: 'var(--pf-t--global--font--size--body--default)' }}
+                  />
+                </FlexItem>
               </>
             )}
             {!isSettingsOpen && (
