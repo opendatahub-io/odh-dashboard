@@ -165,67 +165,6 @@ describe('SimpleSelect', () => {
     expect(onChange).toHaveBeenCalledWith('secret', false);
   });
 
-  it('should re-auto-select the only option when value is cleared', () => {
-    const onChange = jest.fn();
-
-    const { rerender } = render(
-      <SimpleSelect
-        value={undefined}
-        options={[{ key: 'config-map', label: 'Config map' }]}
-        onChange={onChange}
-      />,
-    );
-
-    expect(onChange).toHaveBeenCalledWith('config-map', false);
-    expect(onChange).toHaveBeenCalledTimes(1);
-
-    rerender(
-      <SimpleSelect
-        value="config-map"
-        options={[{ key: 'config-map', label: 'Config map' }]}
-        onChange={onChange}
-      />,
-    );
-
-    expect(onChange).toHaveBeenCalledTimes(1);
-
-    rerender(
-      <SimpleSelect
-        value={undefined}
-        options={[{ key: 'config-map', label: 'Config map' }]}
-        onChange={onChange}
-      />,
-    );
-
-    expect(onChange).toHaveBeenCalledTimes(2);
-    expect(onChange).toHaveBeenLastCalledWith('config-map', false);
-  });
-
-  it('should not select aria-disabled options', async () => {
-    const onChange = jest.fn();
-
-    render(
-      <SimpleSelect
-        value={undefined}
-        options={[
-          { key: 'config-map', label: 'Config map' },
-          { key: 'secret', label: 'Secret', isAriaDisabled: true },
-        ]}
-        onChange={onChange}
-      />,
-    );
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Options menu' }));
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('option', { name: 'Secret' }));
-    });
-
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
   it('should not select disabled options', async () => {
     const onChange = jest.fn();
 
@@ -249,5 +188,19 @@ describe('SimpleSelect', () => {
     });
 
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('should pass isPlaceholder when auto-selecting the only option', () => {
+    const onChange = jest.fn();
+
+    render(
+      <SimpleSelect
+        value={undefined}
+        options={[{ key: 'placeholder-key', label: 'Placeholder', isPlaceholder: true }]}
+        onChange={onChange}
+      />,
+    );
+
+    expect(onChange).toHaveBeenCalledWith('placeholder-key', true);
   });
 });

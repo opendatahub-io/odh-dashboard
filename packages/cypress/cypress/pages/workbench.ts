@@ -133,7 +133,7 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvDataType(name: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Options menu' })
+      .findByRole('button', { name: 'Data type' })
       .findSelectOption(name)
       .click();
   }
@@ -141,7 +141,7 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvDataTypeByTestId(testId: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Options menu' })
+      .findByRole('button', { name: 'Data type' })
       .click();
     cy.findByTestId(testId).click();
   }
@@ -149,7 +149,7 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvironmentVariableType(name: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Options menu' })
+      .findByRole('button', { name: 'Variable type' })
       .findSelectOption(name)
       .click();
   }
@@ -157,7 +157,7 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvironmentVariableTypeByTestId(testId: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Options menu' })
+      .findByRole('button', { name: 'Variable type' })
       .click();
     cy.findByTestId(testId).click();
   }
@@ -366,34 +366,6 @@ class NotebookRow extends TableRow {
   shouldHaveHardwareProfile(name: string) {
     this.findHardwareProfileColumn().contains(name).should('exist');
     return this;
-  }
-
-  shouldHaveFeatureStoreTitle() {
-    this.findExpansion()
-      .findByTestId('notebook-feature-store-title')
-      .should('have.text', 'Connected feature stores');
-    return this;
-  }
-
-  shouldHaveFeatureStoreNone() {
-    this.findExpansion().findByTestId('notebook-feature-store-none').should('have.text', 'None');
-    return this;
-  }
-
-  findFeatureStoreList() {
-    return this.findExpansion().findByTestId('notebook-feature-store-list');
-  }
-
-  shouldHaveFeatureStoreItems(names: string[]) {
-    this.findFeatureStoreList().find('li').should('have.length', names.length);
-    names.forEach((name) => {
-      this.findFeatureStoreList().should('contain.text', name);
-    });
-    return this;
-  }
-
-  findFeatureStoreShowAll() {
-    return this.findExpansion().findByTestId('feature-store-show-all');
   }
 }
 

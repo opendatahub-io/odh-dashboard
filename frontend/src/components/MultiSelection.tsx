@@ -84,15 +84,15 @@ const createOptionElementId = (instanceId: string, optionId: number | string): s
 
 const normalizeOptionId = (optionId: number | string): string => String(optionId);
 
-const getOptionTestId = (name: string) => `select-multi-typeahead-${name.replace(/\s+/g, '-')}`;
+const getOptionTestId = (name: string) =>
+  `select-multi-typeahead-${name.replace(/[^a-zA-Z0-9]+/g, '-')}`;
 
 type MultiSelectionOptionProps = {
   option: SelectionOptions;
   children?: React.ReactNode;
   showCheckbox?: boolean;
   hasCheckbox: boolean;
-  focusedItemIndex: number | null;
-  visibleIndexById: Map<string, number>;
+  isFocused: boolean;
   instanceId: string;
 };
 
@@ -101,14 +101,13 @@ const MultiSelectionOption: React.FC<MultiSelectionOptionProps> = ({
   children,
   showCheckbox = true,
   hasCheckbox,
-  focusedItemIndex,
-  visibleIndexById,
+  isFocused,
   instanceId,
 }) => (
   <SelectOption
     id={createOptionElementId(instanceId, option.id)}
     {...(showCheckbox && hasCheckbox ? { hasCheckbox: true } : {})}
-    isFocused={focusedItemIndex === visibleIndexById.get(normalizeOptionId(option.id))}
+    isFocused={isFocused}
     data-testid={getOptionTestId(option.name)}
     value={option.id}
     isSelected={option.selected}
@@ -202,7 +201,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     if (
       isCreatable &&
       inputValueTrim &&
-      !allValues.find((o) => String(o.name).toLowerCase() === inputValueTrim.toLowerCase())
+      !allValues.find(
+        (o) =>
+          String(o.name).toLowerCase() === inputValueTrim.toLowerCase() ||
+          String(o.id).toLowerCase() === inputValueTrim.toLowerCase(),
+      )
     ) {
       return {
         id: inputValueTrim,
@@ -234,12 +237,6 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     }
     return options;
   }, [groupOptions, selectOptions, createOption, isCreateOptionOnTop]);
-
-  const visibleIndexById = React.useMemo(() => {
-    const map = new Map<string, number>();
-    visibleOptions.forEach((option, index) => map.set(normalizeOptionId(option.id), index));
-    return map;
-  }, [visibleOptions]);
 
   const selected = React.useMemo(() => allOptions.filter((v) => v.selected), [allOptions]);
 
@@ -341,8 +338,14 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         }
         break;
       case 'Tab':
-      case 'Escape':
         closeMenu();
+        break;
+      case 'Escape':
+        if (isOpen) {
+          event.preventDefault();
+          event.stopPropagation();
+          closeMenu();
+        }
         break;
       case 'ArrowUp':
       case 'ArrowDown':
@@ -377,16 +380,28 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     resetActiveAndFocusedItem();
   };
 
+  const persistOptions = (options: SelectionOptions[]): SelectionOptions[] => {
+    if (!createOption) {
+      return options;
+    }
+    return options.filter(
+      (option) =>
+        normalizeOptionId(option.id) !== normalizeOptionId(createOption.id) || option.selected,
+    );
+  };
+
   const onSelect = (menuItem?: SelectionOptions) => {
     if (menuItem?.isAriaDisabled || menuItem?.isDisabled) {
       return;
     }
     if (menuItem) {
       setValue(
-        allOptions.map((option) =>
-          normalizeOptionId(option.id) === normalizeOptionId(menuItem.id)
-            ? { ...option, selected: !option.selected }
-            : option,
+        persistOptions(
+          allOptions.map((option) =>
+            normalizeOptionId(option.id) === normalizeOptionId(menuItem.id)
+              ? { ...option, selected: !option.selected }
+              : option,
+          ),
         ),
       );
       setInputValue('');
@@ -395,33 +410,34 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     textInputRef.current?.focus();
   };
 
-  const noSelectedItems = allOptions.filter((option) => option.selected).length === 0;
-  const showSelectionError = selectionRequired && noSelectedItems;
+  const showSelectionError = selectionRequired && selected.length === 0;
 
   const renderSelectOption = (
     option: SelectionOptions,
     children?: React.ReactNode,
     showCheckbox = true,
-  ) => (
-    <MultiSelectionOption
-      key={normalizeOptionId(option.id)}
-      option={option}
-      hasCheckbox={hasCheckbox}
-      focusedItemIndex={focusedItemIndex}
-      visibleIndexById={visibleIndexById}
-      instanceId={instanceId}
-      showCheckbox={showCheckbox}
-    >
-      {children}
-    </MultiSelectionOption>
-  );
+  ) => {
+    const optionVisibleIndex = visibleOptions.indexOf(option);
+    return (
+      <MultiSelectionOption
+        key={normalizeOptionId(option.id)}
+        option={option}
+        hasCheckbox={hasCheckbox}
+        isFocused={focusedItemIndex === optionVisibleIndex}
+        instanceId={instanceId}
+        showCheckbox={showCheckbox}
+      >
+        {children}
+      </MultiSelectionOption>
+    );
+  };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle
       id={toggleId}
       data-testid={toggleTestId}
       variant="typeahead"
-      status={selectionRequired && noSelectedItems ? 'danger' : undefined}
+      status={selectionRequired && selected.length === 0 ? 'danger' : undefined}
       onClick={onToggleClick}
       innerRef={toggleRef}
       isDisabled={isDisabled}
@@ -432,7 +448,12 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         <TextInputGroupMain
           inputId={inputId}
           value={inputValue}
-          onClick={onToggleClick}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (!isOpen) {
+              openMenu(false);
+            }
+          }}
           onChange={onTextInputChange}
           onKeyDown={onInputKeyDown}
           autoComplete="off"
@@ -441,6 +462,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           aria-label={ariaLabel}
           {...(activeItemId && { 'aria-activedescendant': activeItemId })}
           inputProps={{
+            'aria-haspopup': 'listbox',
             ...(showSelectionError && {
               'aria-describedby': selectionErrorId,
               'aria-invalid': true,
@@ -455,7 +477,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
               <Label
                 variant={isDisabled ? 'filled' : 'outline'}
                 key={normalizeOptionId(selection.id)}
-                closeBtnProps={{ isDisabled }}
+                closeBtnProps={{
+                  isDisabled,
+                  'aria-label': `Remove ${selection.name}`,
+                }}
                 onClose={(ev) => {
                   ev.stopPropagation();
                   if (!isDisabled) {
@@ -476,7 +501,9 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
               onClick={() => {
                 setInputValue('');
                 resetActiveAndFocusedItem();
-                setValue(allOptions.map((option) => ({ ...option, selected: false })));
+                setValue(
+                  persistOptions(allOptions.map((option) => ({ ...option, selected: false }))),
+                );
                 textInputRef.current?.focus();
               }}
               aria-label="Clear all selections"
@@ -489,6 +516,14 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   return (
     <>
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        aria-relevant="additions text"
+        className="pf-v6-u-screen-reader"
+      >
+        {isOpen && visibleOptions.length === 0 && inputValue ? 'No results found' : ''}
+      </div>
       <Select
         isScrollable={isScrollable}
         id={id}
@@ -513,13 +548,16 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         <SelectList
           isAriaMultiselectable
           id={listboxId}
+          aria-label={ariaLabel}
           {...(listTestId ? { 'data-testid': listTestId } : {})}
         >
           {createOption && isCreateOptionOnTop && groupOptions.length > 0
             ? renderSelectOption(createOption, createOptionDisplayName, false)
             : null}
           {!createOption && visibleOptions.length === 0 && inputValue ? (
-            <SelectOption isDisabled>No results found</SelectOption>
+            <SelectOption isDisabled aria-hidden="true">
+              No results found
+            </SelectOption>
           ) : null}
           {selectGroups.map((g, index) => (
             <React.Fragment key={g.id}>

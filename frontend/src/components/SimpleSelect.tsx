@@ -13,11 +13,9 @@ import {
   HelperTextItem,
   Skeleton,
 } from '@patternfly/react-core';
+import { omit } from 'lodash-es';
 import TruncatedText from '#~/components/TruncatedText';
-import {
-  resolveSelectPopperAppendTo,
-  useModalOverflowUnlock,
-} from '#~/utilities/useModalOverflowUnlock';
+import { useModalOverflowUnlock } from '#~/utilities/useModalOverflowUnlock';
 
 import './SimpleSelect.scss';
 
@@ -87,19 +85,23 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
 
   useModalOverflowUnlock(open, menuToggleRef);
 
-  const getPopperAppendTo = React.useCallback(
-    () => resolveSelectPopperAppendTo(menuToggleRef.current),
-    [],
-  );
-
-  const mergedPopperProps = React.useMemo(
-    () => ({
+  const mergedPopperProps = React.useMemo(() => {
+    if (popperProps?.appendTo !== undefined) {
+      return { maxWidth: 'trigger' as const, ...popperProps };
+    }
+    return {
       maxWidth: 'trigger' as const,
       ...popperProps,
-      appendTo: popperProps?.appendTo ?? getPopperAppendTo,
-    }),
-    [popperProps, getPopperAppendTo],
-  );
+      // Portal into the dialog only inside modals; otherwise keep PatternFly inline default.
+      appendTo: () => {
+        const dialog = menuToggleRef.current?.closest<HTMLElement>('[role="dialog"]');
+        if (dialog) {
+          return dialog;
+        }
+        return menuToggleRef.current?.parentElement ?? document.body;
+      },
+    };
+  }, [popperProps]);
 
   const groupedOptionsFlat = React.useMemo(
     () =>
@@ -123,11 +125,11 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
 
   React.useEffect(() => {
     if (singleOptionKey && !isSkeleton && autoSelectOnlyOption && value !== totalOptions[0].key) {
-      onChange(totalOptions[0].key, false);
+      onChange(totalOptions[0].key, totalOptions[0].isPlaceholder ?? false);
     }
     // We don't want the callback function to be a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [singleOptionKey, isSkeleton, autoSelectOnlyOption, value]);
+  }, [singleOptionKey, isSkeleton, autoSelectOnlyOption, value, totalOptions]);
 
   if (isSkeleton) {
     return <Skeleton style={{ minWidth: 100 }} />;
@@ -136,6 +138,8 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   const displayedLabel = toggleLabel ?? selectedLabel;
   const displayedLabelTitle = typeof displayedLabel === 'string' ? displayedLabel : undefined;
   const toggleAriaLabel = ariaLabel ?? (toggleProps?.id ? undefined : 'Options menu');
+  const togglePropsAriaLabel = toggleProps?.['aria-label'];
+  const restToggleProps = omit(toggleProps ?? {}, ['onClick', 'aria-label']);
 
   return (
     <>
@@ -159,8 +163,10 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             <MenuToggle
               innerRef={toggleRef}
               data-testid={dataTestId}
-              {...(toggleAriaLabel ? { 'aria-label': toggleAriaLabel } : {})}
-              onClick={() => setOpen(!open)}
+              {...(toggleAriaLabel && !togglePropsAriaLabel
+                ? { 'aria-label': toggleAriaLabel }
+                : {})}
+              onClick={() => setOpen((currentOpen) => !currentOpen)}
               icon={icon}
               isExpanded={open}
               isDisabled={
@@ -169,7 +175,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                 isDisabled
               }
               isFullWidth={isFullWidth}
-              {...toggleProps}
+              {...restToggleProps}
             >
               {/* Plain text: MenuToggle's .pf-v6-c-menu-toggle__text handles truncation. Using Truncate
                   caused Safari flex layout bugs (labels clipped when space was available). */}
@@ -215,39 +221,41 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
           </React.Fragment>
         )) ?? null}
         {options?.length ? (
-          <SelectList>
+          <>
             {groupedOptions?.length ? <Divider /> : null}
-            {options.map(
-              ({
-                key,
-                optionKey,
-                label,
-                dropdownLabel,
-                description,
-                isFavorited,
-                isDisabled: optionDisabled,
-                isAriaDisabled: optionAriaDisabled,
-                dataTestId: optionDataTestId,
-              }) => (
-                <SelectOption
-                  key={optionKey ?? key}
-                  value={key}
-                  description={<TruncatedText maxLines={2} content={description} />}
-                  isFavorited={isFavorited}
-                  isDisabled={optionDisabled}
-                  isAriaDisabled={optionAriaDisabled}
-                  data-testid={optionDataTestId || key}
-                >
-                  {dropdownLabel || label}
-                </SelectOption>
-              ),
-            )}
-          </SelectList>
+            <SelectList>
+              {options.map(
+                ({
+                  key,
+                  optionKey,
+                  label,
+                  dropdownLabel,
+                  description,
+                  isFavorited,
+                  isDisabled: optionDisabled,
+                  isAriaDisabled: optionAriaDisabled,
+                  dataTestId: optionDataTestId,
+                }) => (
+                  <SelectOption
+                    key={optionKey ?? key}
+                    value={key}
+                    description={<TruncatedText maxLines={2} content={description} />}
+                    isFavorited={isFavorited}
+                    isDisabled={optionDisabled}
+                    isAriaDisabled={optionAriaDisabled}
+                    data-testid={optionDataTestId || key}
+                  >
+                    {dropdownLabel || label}
+                  </SelectOption>
+                ),
+              )}
+            </SelectList>
+          </>
         ) : null}
       </Select>
       {previewDescription && selectedOption?.description ? (
         <FormHelperText>
-          <HelperText>
+          <HelperText isLiveRegion>
             <HelperTextItem>
               <TruncatedText maxLines={2} content={selectedOption.description} />
             </HelperTextItem>

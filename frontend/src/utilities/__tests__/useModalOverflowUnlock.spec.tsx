@@ -1,7 +1,6 @@
 import React from 'react';
 import { act, render, renderHook } from '@testing-library/react';
 import {
-  MODAL_OVERFLOW_ORIGINAL_ATTR,
   MODAL_OVERFLOW_UNLOCK_COUNT_ATTR,
   resolveSelectPopperAppendTo,
   useModalOverflowUnlock,
@@ -45,13 +44,11 @@ describe('useModalOverflowUnlock', () => {
 
     expect(dialog.style.overflow).toBe('visible');
     expect(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR)).toBe('1');
-    expect(dialog.getAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR)).toBe('auto');
 
     rerender(<HookHarness openA={false} />);
 
     expect(dialog.style.overflow).toBe('auto');
     expect(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR)).toBeNull();
-    expect(dialog.getAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR)).toBeNull();
   });
 
   it('should ref-count when multiple instances share a dialog', () => {
@@ -131,10 +128,11 @@ describe('useModalOverflowUnlock', () => {
   it('should portal into document.body when anchor is outside a dialog', () => {
     const anchor = document.createElement('input');
     document.body.appendChild(anchor);
-
-    expect(resolveSelectPopperAppendTo(anchor)).toBe(document.body);
-
-    document.body.removeChild(anchor);
+    try {
+      expect(resolveSelectPopperAppendTo(anchor)).toBe(document.body);
+    } finally {
+      document.body.removeChild(anchor);
+    }
   });
 
   it('should portal into the nearest dialog when anchor is inside one', () => {
@@ -143,9 +141,10 @@ describe('useModalOverflowUnlock', () => {
     const anchor = document.createElement('input');
     dialog.appendChild(anchor);
     document.body.appendChild(dialog);
-
-    expect(resolveSelectPopperAppendTo(anchor)).toBe(dialog);
-
-    document.body.removeChild(dialog);
+    try {
+      expect(resolveSelectPopperAppendTo(anchor)).toBe(dialog);
+    } finally {
+      document.body.removeChild(dialog);
+    }
   });
 });

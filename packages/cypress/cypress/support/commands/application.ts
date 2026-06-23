@@ -476,7 +476,8 @@ Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (su
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.wrap($el).parent().findByTestId(testId);
+    // Options may render inline or in a portal (e.g. modal dialog or document.body).
+    return cy.findByTestId(testId);
   });
 });
 
@@ -518,7 +519,7 @@ Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (su
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.wrap($el).parent().findByTestId(testId);
+    return cy.findByTestId(testId);
   });
 });
 

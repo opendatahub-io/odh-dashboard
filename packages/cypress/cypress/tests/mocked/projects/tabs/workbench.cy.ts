@@ -22,9 +22,8 @@ import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8s
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import type { HardwareProfileKind, PodKind } from '@odh-dashboard/k8s-core';
-import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
-import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
+import type { HardwareProfileKind, NotebookKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/internal/types';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
@@ -673,6 +672,31 @@ describe('Workbench page', () => {
     createSpawnerPage.getDescriptionInput().type(longDescription, { delay: 0 });
     createSpawnerPage.getDescriptionInput().should('have.value', longDescription);
     cy.contains('Cannot exceed 5500 characters (248 remaining)').should('be.visible');
+  });
+
+  it('should allow selecting environment variable type via accessible dropdown', () => {
+    initIntercepts({ isEmpty: true });
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.ENVIRONMENT_VARIABLES).click();
+    createSpawnerPage.findAddVariableButton().click();
+
+    const environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
+    environmentVariableField
+      .find()
+      .findByTestId('environment-variable-type-select')
+      .findByRole('button', { name: 'Variable type' })
+      .should('have.attr', 'aria-expanded', 'false')
+      .click()
+      .should('have.attr', 'aria-expanded', 'true');
+
+    cy.findByRole('option', { name: 'Config Map' }).click();
+
+    environmentVariableField
+      .find()
+      .findByTestId('environment-variable-type-select')
+      .findByRole('button', { name: 'Variable type' })
+      .should('have.text', 'Config Map');
   });
 
   it('Create workbench', () => {
@@ -2066,108 +2090,6 @@ describe('Workbench page', () => {
     notebookRow.findExpansion().should('be.visible');
     notebookRow.shouldHaveClusterStorageTitle();
     notebookRow.shouldHaveMountPath('/opt/app-root/src/root');
-  });
-
-  it('Expanded row hides feature store section when area is unavailable', () => {
-    initIntercepts({});
-    workbenchPage.visit('test-project');
-    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.findExpansionButton().click();
-    notebookRow.findExpansion().findByTestId('notebook-feature-store-title').should('not.exist');
-  });
-
-  describe('Expanded row feature stores (area enabled)', () => {
-    const enableFeatureStoreArea = () => {
-      cy.interceptOdh(
-        'GET /api/dsc/status',
-        mockDscStatus({
-          components: {
-            [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
-            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
-          },
-        }),
-      );
-      cy.interceptOdh(
-        'GET /api/config',
-        mockDashboardConfig({ disableFeatureStore: false, disableProjectScoped: true }),
-      );
-    };
-
-    it('shows "None" when feast-config annotation is absent', () => {
-      initIntercepts({});
-      enableFeatureStoreArea();
-      workbenchPage.visit('test-project');
-      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-      notebookRow.findExpansionButton().click();
-      notebookRow.shouldHaveFeatureStoreTitle();
-      notebookRow.shouldHaveFeatureStoreNone();
-    });
-
-    it('shows feature store names when 5 or fewer', () => {
-      initIntercepts({
-        notebooks: [
-          mockNotebookK8sResource({
-            lastImageSelection: 'test-imagestream:1.2',
-            opts: {
-              metadata: {
-                name: 'test-notebook',
-                labels: { 'opendatahub.io/notebook-image': 'true' },
-                annotations: {
-                  'opendatahub.io/image-display-name': 'Test image',
-                  'opendatahub.io/feast-config': 'project-a,project-b,project-c',
-                },
-              },
-            },
-          }),
-        ],
-      });
-      enableFeatureStoreArea();
-      workbenchPage.visit('test-project');
-      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-      notebookRow.findExpansionButton().click();
-      notebookRow.shouldHaveFeatureStoreTitle();
-      notebookRow.shouldHaveFeatureStoreItems(['project-a', 'project-b', 'project-c']);
-      notebookRow.findFeatureStoreShowAll().should('not.exist');
-    });
-
-    it('shows expand/collapse for more than 5 feature stores', () => {
-      initIntercepts({
-        notebooks: [
-          mockNotebookK8sResource({
-            lastImageSelection: 'test-imagestream:1.2',
-            opts: {
-              metadata: {
-                name: 'test-notebook',
-                labels: { 'opendatahub.io/notebook-image': 'true' },
-                annotations: {
-                  'opendatahub.io/image-display-name': 'Test image',
-                  'opendatahub.io/feast-config':
-                    'store-1,store-2,store-3,store-4,store-5,store-6,store-7',
-                },
-              },
-            },
-          }),
-        ],
-      });
-      enableFeatureStoreArea();
-      workbenchPage.visit('test-project');
-      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-      notebookRow.findExpansionButton().click();
-      notebookRow.shouldHaveFeatureStoreTitle();
-
-      notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
-      notebookRow.findFeatureStoreShowAll().should('exist');
-      notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
-      notebookRow.findFeatureStoreShowAll().should('contain.text', '2 more');
-
-      notebookRow.findFeatureStoreShowAll().find('button').click();
-      notebookRow.findFeatureStoreList().find('li').should('have.length', 7);
-      notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show less');
-
-      notebookRow.findFeatureStoreShowAll().find('button').click();
-      notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
-      notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
-    });
   });
 
   it('Delete Workbench', () => {

@@ -66,14 +66,14 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
                 color="grey"
                 style={{ border: '1px solid var(--pf-t--global--border--color--disabled)' }}
               >
-                {`${String(mode)} (${String(label)})`}
+                {`${mode} (${label})`}
               </Label>
             ) : (
               <Label key={`access-mode-label-${label}`} isCompact color="blue" variant="outline">
-                {`${String(mode)} (${String(label)})`}
+                {`${mode} (${label})`}
               </Label>
             ),
-          group: `${String(mode)} (${String(label)}) storage`,
+          group: `${mode} (${label}) storage`,
         }));
         groups.push(...groupOptions);
       }

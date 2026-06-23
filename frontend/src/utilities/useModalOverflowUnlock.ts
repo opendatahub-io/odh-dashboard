@@ -1,11 +1,22 @@
 import * as React from 'react';
 
 export const MODAL_OVERFLOW_UNLOCK_COUNT_ATTR = 'data-modal-overflow-unlock-count';
-export const MODAL_OVERFLOW_ORIGINAL_ATTR = 'data-modal-overflow-original';
+
+const MODAL_DIALOG_SELECTOR = '[role="dialog"][aria-modal="true"], [role="dialog"]';
+
+const originalOverflowByDialog = new WeakMap<HTMLElement, string>();
+const unlockCountByDialog = new WeakMap<HTMLElement, number>();
 
 /** Resolve popper mount target: portal into the nearest modal dialog for VoiceOver + aria-modal. */
-export const resolveSelectPopperAppendTo = (anchor: HTMLElement | null | undefined): HTMLElement =>
-  anchor?.closest<HTMLElement>('[role="dialog"]') ?? document.body;
+export const resolveSelectPopperAppendTo = (
+  anchor: HTMLElement | null | undefined,
+): HTMLElement => {
+  const dialog = anchor?.closest<HTMLElement>(MODAL_DIALOG_SELECTOR);
+  if (dialog) {
+    return dialog;
+  }
+  return anchor?.parentElement ?? document.body;
+};
 
 /** Unlock modal overflow while a portaled select menu is open; ref-counts when multiple instances share a dialog. */
 export const useModalOverflowUnlock = (
@@ -16,24 +27,27 @@ export const useModalOverflowUnlock = (
     if (!isOpen) {
       return;
     }
-    const dialog = anchorRef.current?.closest<HTMLElement>('[role="dialog"]');
+    const dialog = anchorRef.current?.closest<HTMLElement>(MODAL_DIALOG_SELECTOR);
     if (!dialog) {
       return;
     }
-    const unlockCount = Number(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR) ?? '0');
+    const unlockCount = unlockCountByDialog.get(dialog) ?? 0;
     if (unlockCount === 0) {
-      dialog.setAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR, dialog.style.overflow);
+      originalOverflowByDialog.set(dialog, dialog.style.overflow);
     }
+    unlockCountByDialog.set(dialog, unlockCount + 1);
     dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(unlockCount + 1));
     dialog.style.overflow = 'visible';
     return () => {
-      const currentCount = Number(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR) ?? '1');
+      const currentCount = unlockCountByDialog.get(dialog) ?? 1;
       const nextCount = currentCount - 1;
       if (nextCount <= 0) {
-        dialog.style.overflow = dialog.getAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR) ?? '';
+        dialog.style.overflow = originalOverflowByDialog.get(dialog) ?? '';
+        originalOverflowByDialog.delete(dialog);
+        unlockCountByDialog.delete(dialog);
         dialog.removeAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR);
-        dialog.removeAttribute(MODAL_OVERFLOW_ORIGINAL_ATTR);
       } else {
+        unlockCountByDialog.set(dialog, nextCount);
         dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(nextCount));
       }
     };

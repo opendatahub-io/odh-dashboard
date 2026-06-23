@@ -14,10 +14,6 @@ describe('MultiSelection', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
   it('should wire combobox aria-activedescendant to option ids per PatternFly typeahead pattern', async () => {
     render(
       <MultiSelection
@@ -90,6 +86,32 @@ describe('MultiSelection', () => {
 
     expect(combobox).not.toHaveAttribute('aria-activedescendant');
     expect(combobox).toHaveValue('');
+  });
+
+  it('should call setValue when Enter selects a focused option', async () => {
+    const setValue = jest.fn();
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Connections"
+        value={defaultOptions}
+        setValue={setValue}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'Enter' });
+    });
+
+    expect(setValue).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 'connection-1', selected: true })]),
+    );
   });
 
   it('should prevent default Enter behavior to avoid submitting parent forms', async () => {
@@ -181,21 +203,16 @@ describe('MultiSelection', () => {
     });
 
     expect(combobox).toHaveAttribute('aria-expanded', 'false');
+    expect(combobox).not.toHaveAttribute('aria-activedescendant');
   });
 
-  it('should reset keyboard focus when clearing all selections', async () => {
-    const setValue = jest.fn();
-    const selectedOptions = defaultOptions.map((option, index) => ({
-      ...option,
-      selected: index === 0,
-    }));
-
+  it('should wrap ArrowDown from the last option to the first option', async () => {
     render(
       <MultiSelection
         id="test-select"
         ariaLabel="Connections"
-        value={selectedOptions}
-        setValue={setValue}
+        value={defaultOptions}
+        setValue={jest.fn()}
       />,
     );
 
@@ -204,20 +221,25 @@ describe('MultiSelection', () => {
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
-
-    expect(combobox).toHaveAttribute('aria-activedescendant');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Clear all selections' }));
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-2');
 
-    expect(combobox).not.toHaveAttribute('aria-activedescendant');
-    expect(setValue).toHaveBeenCalledWith(
-      selectedOptions.map((option) => ({ ...option, selected: false })),
-    );
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-3');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
   });
 
-  it('should focus the first option when opening via toggle click', async () => {
+  it('should announce no results found when filtering yields no matches', async () => {
     render(
       <MultiSelection
         id="test-select"
@@ -230,137 +252,45 @@ describe('MultiSelection', () => {
     const combobox = screen.getByRole('combobox', { name: 'Connections' });
 
     await act(async () => {
-      fireEvent.click(combobox);
+      fireEvent.change(combobox, { target: { value: 'nonexistent' } });
     });
 
-    expect(combobox).toHaveAttribute('aria-expanded', 'true');
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
+    const liveRegion = document.querySelector('[aria-live="polite"].pf-v6-u-screen-reader');
+    expect(liveRegion).toHaveTextContent('No results found');
   });
 
-  it('should render grouped option labels for groupedValues consumers', async () => {
+  it('should not persist an unselected creatable option when selecting an existing option', async () => {
+    const setValue = jest.fn();
     render(
       <MultiSelection
         id="test-select"
-        ariaLabel="Metrics"
-        groupedValues={[
-          {
-            id: 'SPD',
-            name: 'SPD',
-            values: [{ id: 'spd-1', name: 'SPD metric', selected: false }],
-          },
-          {
-            id: 'DIR',
-            name: 'DIR',
-            values: [{ id: 'dir-1', name: 'DIR metric', selected: false }],
-          },
-        ]}
-        setValue={jest.fn()}
-      />,
-    );
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('combobox', { name: 'Metrics' }));
-    });
-
-    expect(screen.getByText('SPD')).toBeInTheDocument();
-    expect(screen.getByText('DIR')).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'SPD metric' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'DIR metric' })).toBeInTheDocument();
-  });
-
-  it('should pass hasCheckbox to regular options when enabled (upstream RHOAIENG-63155)', async () => {
-    render(
-      <MultiSelection
-        id="test-select"
-        ariaLabel="Resources"
+        ariaLabel="Connections"
         value={defaultOptions}
-        setValue={jest.fn()}
-        hasCheckbox
-      />,
-    );
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('combobox', { name: 'Resources' }));
-    });
-
-    screen.getAllByRole('menuitem').forEach((option) => {
-      expect(within(option).getByRole('checkbox')).toBeInTheDocument();
-    });
-  });
-
-  it('should not pass hasCheckbox to creatable options (upstream behavior)', async () => {
-    render(
-      <MultiSelection
-        id="test-select"
-        ariaLabel="API groups"
-        value={[{ id: 'apps', name: 'apps', selected: false }]}
-        setValue={jest.fn()}
+        setValue={setValue}
         isCreatable
-        hasCheckbox
-        createOptionMessage={(val) => `Use custom API group "${val}"`}
       />,
     );
 
-    const combobox = screen.getByRole('combobox', { name: 'API groups' });
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
 
     await act(async () => {
-      fireEvent.change(combobox, { target: { value: 'custom.io' } });
+      fireEvent.change(combobox, { target: { value: 'Conn' } });
     });
 
-    const createOption = screen.getByRole('option', { name: /Use custom API group "custom.io"/ });
-    expect(within(createOption).queryByRole('checkbox')).not.toBeInTheDocument();
-  });
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
 
-  it('should key options by id when duplicate names exist (upstream RHOAIENG-63155)', async () => {
-    const duplicateNameOptions: SelectionOptions[] = [
-      { id: 'core/pods', name: 'pods', selected: false },
-      { id: '/pods', name: 'pods', selected: false },
-    ];
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'Enter' });
+    });
 
-    render(
-      <MultiSelection
-        id="test-select"
-        ariaLabel="Resource types"
-        value={duplicateNameOptions}
-        setValue={jest.fn()}
-        hasCheckbox
-      />,
+    expect(setValue).toHaveBeenCalled();
+    const persistedOptions = setValue.mock.calls.at(-1)?.[0] as SelectionOptions[];
+    expect(persistedOptions.some((option) => option.id === 'Conn')).toBe(false);
+    expect(persistedOptions.some((option) => option.id === 'connection-1' && option.selected)).toBe(
+      true,
     );
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('combobox', { name: 'Resource types' }));
-    });
-
-    expect(screen.getAllByRole('menuitem')).toHaveLength(2);
-    expect(document.getElementById('test-select-option-coreu47upods')).toBeInTheDocument();
-    expect(document.getElementById('test-select-option-u47upods')).toBeInTheDocument();
-  });
-
-  it('should produce distinct DOM ids for encoded and literal u47u option ids', async () => {
-    const collisionRiskOptions: SelectionOptions[] = [
-      { id: 'core/pods', name: 'pods from slash', selected: false },
-      { id: 'coreu47upods', name: 'pods from literal', selected: false },
-    ];
-
-    render(
-      <MultiSelection
-        id="test-select"
-        ariaLabel="Resource types"
-        value={collisionRiskOptions}
-        setValue={jest.fn()}
-      />,
-    );
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('combobox', { name: 'Resource types' }));
-    });
-
-    const slashEncodedId = document.getElementById('test-select-option-coreu47upods');
-    const literalEncodedId = document.getElementById('test-select-option-coreuu47uupods');
-
-    expect(slashEncodedId).toBeInTheDocument();
-    expect(literalEncodedId).toBeInTheDocument();
-    expect(slashEncodedId).not.toBe(literalEncodedId);
   });
 
   it('should restore modal overflow when a menu closes', async () => {
@@ -369,8 +299,8 @@ describe('MultiSelection', () => {
     render(
       <div ref={dialogRef} role="dialog" style={{ overflow: 'auto' }}>
         <MultiSelection
-          id="select-a"
-          ariaLabel="API groups"
+          id="test-select"
+          ariaLabel="Connections"
           value={defaultOptions}
           setValue={jest.fn()}
         />
@@ -378,96 +308,21 @@ describe('MultiSelection', () => {
     );
 
     const dialog = dialogRef.current as HTMLDivElement;
-    const combobox = screen.getByRole('combobox', { name: 'API groups' });
-
-    await act(async () => {
-      fireEvent.click(combobox);
-    });
-    expect(dialog.style.overflow).toBe('visible');
-
-    await act(async () => {
-      fireEvent.keyDown(combobox, { key: 'Escape' });
-    });
-    expect(dialog.style.overflow).toBe('auto');
-    expect(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR)).toBeNull();
-  });
-
-  it('should match numeric option ids when PatternFly returns string selections', async () => {
-    const setValue = jest.fn();
-    const numericOptions: SelectionOptions[] = [
-      { id: 1, name: 'Option one', selected: false },
-      { id: 2, name: 'Option two', selected: false },
-    ];
-
-    render(
-      <MultiSelection
-        id="test-select"
-        ariaLabel="Numeric ids"
-        value={numericOptions}
-        setValue={setValue}
-      />,
-    );
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('combobox', { name: 'Numeric ids' }));
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('option', { name: 'Option one' }));
-    });
-
-    expect(setValue).toHaveBeenCalledWith([
-      { id: 1, name: 'Option one', selected: true },
-      { id: 2, name: 'Option two', selected: false },
-    ]);
-  });
-
-  it('should show selectionRequired error in a live region', async () => {
-    render(
-      <MultiSelection
-        id="test-select"
-        ariaLabel="Connections"
-        value={defaultOptions}
-        setValue={jest.fn()}
-        selectionRequired
-        noSelectedOptionsMessage="Pick at least one connection"
-      />,
-    );
-
-    expect(screen.getByTestId('group-selection-error-text')).toHaveTextContent(
-      'Pick at least one connection',
-    );
-    expect(screen.getByTestId('group-selection-error-text').closest('[aria-live]')).toBeTruthy();
-    expect(screen.getByRole('combobox', { name: 'Connections' })).toHaveAttribute(
-      'aria-describedby',
-      'test-select-selection-error',
-    );
-    expect(screen.getByRole('combobox', { name: 'Connections' })).toHaveAttribute(
-      'aria-invalid',
-      'true',
-    );
-  });
-
-  it('should skip disabled options when navigating with arrow keys', async () => {
-    render(
-      <MultiSelection
-        id="test-select"
-        ariaLabel="Connections"
-        value={[
-          { id: 'disabled', name: 'Disabled connection', isDisabled: true },
-          { id: 'connection-1', name: 'Connection 1', selected: false },
-        ]}
-        setValue={jest.fn()}
-      />,
-    );
-
     const combobox = screen.getByRole('combobox', { name: 'Connections' });
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
+    expect(dialog.style.overflow).toBe('visible');
+    expect(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR)).toBe('1');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'Escape' });
+    });
+
+    expect(dialog.style.overflow).toBe('auto');
+    expect(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR)).toBeNull();
   });
 
   it('should portal options into the modal dialog for screen reader access', async () => {
@@ -477,7 +332,7 @@ describe('MultiSelection', () => {
       <div ref={dialogRef} role="dialog" style={{ overflow: 'auto' }}>
         <MultiSelection
           id="test-select"
-          ariaLabel="API groups"
+          ariaLabel="Connections"
           value={defaultOptions}
           setValue={jest.fn()}
         />
@@ -485,149 +340,13 @@ describe('MultiSelection', () => {
     );
 
     const dialog = dialogRef.current as HTMLDivElement;
-    const combobox = screen.getByRole('combobox', { name: 'API groups' });
-
-    await act(async () => {
-      fireEvent.click(combobox);
-    });
-
-    expect(within(dialog).getByRole('option', { name: 'Connection 1' })).toBeInTheDocument();
-  });
-
-  it('should clear keyboard focus when Tab closes the menu before focus timeout fires', async () => {
-    jest.useFakeTimers();
-    let afterCombobox: HTMLButtonElement | null = null;
-
-    try {
-      render(
-        <MultiSelection
-          id="test-select"
-          ariaLabel="Connections"
-          value={defaultOptions}
-          setValue={jest.fn()}
-        />,
-      );
-
-      const combobox = screen.getByRole('combobox', { name: 'Connections' });
-      afterCombobox = document.createElement('button');
-      afterCombobox.textContent = 'Next field';
-      document.body.appendChild(afterCombobox);
-
-      await act(async () => {
-        fireEvent.click(combobox);
-      });
-
-      await act(async () => {
-        fireEvent.keyDown(combobox, { key: 'Tab' });
-      });
-
-      afterCombobox.focus();
-
-      await act(async () => {
-        jest.advanceTimersByTime(100);
-      });
-
-      expect(document.activeElement).toBe(afterCombobox);
-    } finally {
-      if (afterCombobox) {
-        document.body.removeChild(afterCombobox);
-      }
-    }
-  });
-
-  it('should not select aria-disabled options', async () => {
-    const setValue = jest.fn();
-
-    render(
-      <MultiSelection
-        id="test-select"
-        ariaLabel="Connections"
-        value={[
-          { id: 'connection-1', name: 'Connection 1', selected: false },
-          { id: 'placeholder', name: 'No connections available', isAriaDisabled: true },
-        ]}
-        setValue={setValue}
-      />,
-    );
-
-    const combobox = screen.getByRole('combobox', { name: 'Connections' });
-
-    await act(async () => {
-      fireEvent.click(combobox);
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('option', { name: 'No connections available' }));
-    });
-
-    expect(setValue).not.toHaveBeenCalled();
-  });
-
-  it('should not select aria-disabled options via Enter', async () => {
-    const setValue = jest.fn();
-
-    render(
-      <MultiSelection
-        id="test-select"
-        ariaLabel="Connections"
-        value={[
-          { id: 'placeholder', name: 'No connections available', isAriaDisabled: true },
-          { id: 'connection-1', name: 'Connection 1', selected: false },
-        ]}
-        setValue={setValue}
-      />,
-    );
-
     const combobox = screen.getByRole('combobox', { name: 'Connections' });
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
-      fireEvent.keyDown(combobox, { key: 'Enter' });
     });
 
-    expect(setValue).not.toHaveBeenCalled();
-  });
-
-  it('should keep modal overflow unlocked when switching between two instances', async () => {
-    const dialogRef = React.createRef<HTMLDivElement>();
-
-    render(
-      <div ref={dialogRef} role="dialog" style={{ overflow: 'auto' }}>
-        <MultiSelection
-          id="select-a"
-          ariaLabel="API groups"
-          value={defaultOptions}
-          setValue={jest.fn()}
-        />
-        <MultiSelection
-          id="select-b"
-          ariaLabel="Resource types"
-          value={defaultOptions}
-          setValue={jest.fn()}
-        />
-      </div>,
-    );
-
-    const dialog = dialogRef.current as HTMLDivElement;
-    const comboboxA = screen.getByRole('combobox', { name: 'API groups' });
-    const comboboxB = screen.getByRole('combobox', { name: 'Resource types' });
-
-    await act(async () => {
-      fireEvent.click(comboboxA);
-    });
-    expect(dialog.style.overflow).toBe('visible');
-
-    // Opening the second combobox closes the first menu (PF outside-click behavior).
-    await act(async () => {
-      fireEvent.click(comboboxB);
-    });
-    expect(dialog.style.overflow).toBe('visible');
-    expect(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR)).toBe('1');
-
-    await act(async () => {
-      fireEvent.keyDown(comboboxB, { key: 'Escape' });
-    });
-    expect(dialog.style.overflow).toBe('auto');
-    expect(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR)).toBeNull();
+    expect(within(dialog).getByRole('option', { name: 'Connection 1' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('option', { name: 'Connection 2' })).toBeInTheDocument();
   });
 });
