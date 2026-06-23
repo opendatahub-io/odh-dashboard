@@ -30,10 +30,10 @@ type ErrorPayload struct {
 func (app *App) LogError(r *http.Request, err error) {
 	var (
 		method = r.Method
-		uri    = r.URL.RequestURI()
+		path   = r.URL.Path
 	)
 
-	app.logger.Error(err.Error(), "method", method, "uri", uri)
+	app.logger.Error(err.Error(), "method", method, "path", path)
 }
 
 func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
@@ -42,14 +42,14 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 }
 
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
-	app.logger.Warn("Access forbidden", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
+	app.logger.Warn("Access forbidden", "message", message, "method", r.Method, "path", r.URL.Path)
 
 	httpError := &HTTPError{StatusCode: http.StatusForbidden, Error: ErrorPayload{Code: ErrCodeForbidden, Message: "Access forbidden"}}
 	app.errorResponse(w, r, httpError)
 }
 
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
-	app.logger.Warn("Unauthorized request", "error", err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
+	app.logger.Warn("Unauthorized request", "error", err.Error(), "method", r.Method, "path", r.URL.Path)
 
 	httpError := &HTTPError{StatusCode: http.StatusUnauthorized, Error: ErrorPayload{Code: ErrCodeUnauthorized, Message: "Authentication required"}}
 	app.errorResponse(w, r, httpError)
