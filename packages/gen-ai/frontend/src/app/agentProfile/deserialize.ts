@@ -58,7 +58,8 @@ export const deserializeAgentProfile = (
   const { playgroundModels, mcpServers = [] } = context;
 
   // Resolve AI Asset model_id → Llama Stack runtime ID (LlamaModel.id).
-  // Mirrors the isPlaygroundModelMatchForAIModel logic to handle the MaaS provider prefix.
+  // LlamaModel.modelId is the prefix-stripped form of the Llama Stack ID, which matches
+  // the AI Asset model_id stored in spec.model.id.
   const matchingPlaygroundModel = playgroundModels.find((m) => {
     if (m.modelId !== spec.model.id) {
       return false;
