@@ -46,8 +46,9 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
 
   // Workaround for PF v6.4.0 bug: termWidth prop sets wrong CSS variable name
   // Should be fixed in future PF version, then we can use: termWidth={`${maxTermWidth}ch`}
+  // Cap at 50% to prevent extreme parameter names from breaking layout
   const customStyle: Record<string, string> = {
-    '--pf-v6-c-description-list__term--width': `${maxTermWidth}ch`,
+    '--pf-v6-c-description-list__term--width': `min(${maxTermWidth}ch, 50%)`,
   };
 
   return (
