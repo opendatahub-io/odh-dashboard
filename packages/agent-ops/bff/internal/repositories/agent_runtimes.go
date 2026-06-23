@@ -47,6 +47,9 @@ func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context, opts mo
 	for _, namespace := range namespaces {
 		list, err := client.ListAgents(ctx, namespace)
 		if err != nil {
+			if opts.Namespace != "" {
+				return nil, translateAgentError(err)
+			}
 			slog.Warn("failed to list agents in namespace, skipping",
 				slog.String("namespace", namespace),
 				slog.Any("error", err))
