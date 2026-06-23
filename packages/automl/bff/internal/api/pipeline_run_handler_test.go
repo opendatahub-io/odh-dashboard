@@ -19,6 +19,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func mockDiscoveredAutoMLPipelines() map[string]*repositories.DiscoveredPipeline {
+	tsIDs := psmocks.DeriveMockIDs("test-namespace")
+	tabIDs := psmocks.DeriveTabularMockIDs("test-namespace")
+	return map[string]*repositories.DiscoveredPipeline{
+		constants.PipelineTypeTimeSeries: {
+			PipelineID:        tsIDs.PipelineID,
+			PipelineVersionID: tsIDs.LatestVersionID,
+			PipelineName:      "autogluon-timeseries-training-pipeline",
+			Namespace:         "test-namespace",
+		},
+		constants.PipelineTypeTabular: {
+			PipelineID:        tabIDs.PipelineID,
+			PipelineVersionID: tabIDs.LatestVersionID,
+			PipelineName:      "autogluon-tabular-training-pipeline",
+			Namespace:         "test-namespace",
+		},
+	}
+}
+
 func newMinimalTestApp() *App {
 	return &App{
 		config: config.EnvConfig{
@@ -84,6 +103,7 @@ func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterfa
 	ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, client)
 	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 	ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, "mock://test-namespace")
+	ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, mockDiscoveredAutoMLPipelines())
 	return req.WithContext(ctx)
 }
 
@@ -306,7 +326,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
-	t.Run("should fail without pipeline server base URL in context", func(t *testing.T) {
+	t.Run("should fail without discovered pipelines in context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req := newCreateRequest(t, validTabularRequest())
 		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
@@ -427,82 +447,47 @@ func (f *failingPipelineServerClient) CreateRun(_ context.Context, _ models.Crea
 	return nil, fmt.Errorf("connection refused")
 }
 
-// oldVersionOnlyClient returns pipelines whose versions don't match DefaultPipelineVersion,
-// forcing EnsurePipeline to create the missing version via UploadPipelineVersion.
-type oldVersionOnlyClient struct {
-	*psmocks.MockPipelineServerClient
-	uploadedVersionName string
-	uploadedCallCount   int
-}
-
-func (m *oldVersionOnlyClient) ListPipelineVersions(_ context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
-	if m.uploadedVersionName != "" {
-		// After upload, return both old and new versions so EnsurePipeline's retry succeeds
-		return &models.KFPipelineVersionsResponse{
-			PipelineVersions: []models.KFPipelineVersion{
-				{PipelineID: pipelineID, PipelineVersionID: "uploaded-version-id", DisplayName: m.uploadedVersionName, CreatedAt: "2026-03-01T10:00:00Z"},
-				{PipelineID: pipelineID, PipelineVersionID: "old-version-id", DisplayName: "autogluon-timeseries-training-pipeline-3.4.0", CreatedAt: "2026-02-20T10:00:00Z"},
-			},
-			TotalSize: 2,
-		}, nil
-	}
-	return &models.KFPipelineVersionsResponse{
-		PipelineVersions: []models.KFPipelineVersion{
-			{PipelineID: pipelineID, PipelineVersionID: "old-version-id", DisplayName: "autogluon-timeseries-training-pipeline-3.4.0", CreatedAt: "2026-02-20T10:00:00Z"},
-		},
-		TotalSize: 1,
-	}, nil
-}
-
-func (m *oldVersionOnlyClient) UploadPipelineVersion(_ context.Context, pipelineID string, versionName string, _ []byte) (*models.KFPipelineVersion, error) {
-	m.uploadedCallCount++
-	m.uploadedVersionName = versionName
-	return &models.KFPipelineVersion{
-		PipelineID:        pipelineID,
-		PipelineVersionID: "uploaded-version-id",
-		DisplayName:       versionName,
-		CreatedAt:         "2026-03-01T10:00:00Z",
-	}, nil
-}
-
-func TestCreatePipelineRunHandler_EnsurePipeline(t *testing.T) {
+func TestCreatePipelineRunHandler_ManagedPipelinesNotFound(t *testing.T) {
 	app := newMinimalTestApp()
+	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 
-	t.Run("should create missing default version when only older versions exist", func(t *testing.T) {
-		baseMock := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		client := &oldVersionOnlyClient{MockPipelineServerClient: baseMock}
-
+	t.Run("should return 404 when no managed pipelines are discovered", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), client)
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), mockClient)
+		ctx := context.WithValue(req.Context(), constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
+		req = req.WithContext(ctx)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, 1, client.uploadedCallCount, "EnsurePipeline should have called UploadPipelineVersion exactly once")
-		assert.NotEmpty(t, client.uploadedVersionName, "EnsurePipeline should have uploaded the missing version")
-		assert.Contains(t, client.uploadedVersionName, repositories.DefaultPipelineVersion)
-
-		var response CreatePipelineRunEnvelope
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var response ErrorEnvelope
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "uploaded-version-id", response.Data.PipelineVersionReference.PipelineVersionID,
-			"run should use the newly created version, not the old one")
+		assert.Equal(t, "404", response.Error.Code)
+		assert.Equal(t, repositories.ManagedPipelinesNotFoundMessage, response.Error.Message)
 	})
 
-	t.Run("should use existing default version without uploading", func(t *testing.T) {
-		baseMock := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		client := &oldVersionOnlyClient{MockPipelineServerClient: baseMock}
-		// Pre-set the uploaded version name so ListPipelineVersions returns the default version
-		client.uploadedVersionName = fmt.Sprintf("autogluon-timeseries-training-pipeline-%s", repositories.DefaultPipelineVersion)
-
+	t.Run("should return 404 when only one AutoML pipeline is discovered", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), client)
-
-		prevCount := client.uploadedCallCount
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), mockClient)
+		tsIDs := psmocks.DeriveMockIDs("test-namespace")
+		partial := map[string]*repositories.DiscoveredPipeline{
+			constants.PipelineTypeTimeSeries: {
+				PipelineID:        tsIDs.PipelineID,
+				PipelineVersionID: tsIDs.LatestVersionID,
+				PipelineName:      "autogluon-timeseries-training-pipeline",
+			},
+		}
+		ctx := context.WithValue(req.Context(), constants.DiscoveredPipelinesKey, partial)
+		req = req.WithContext(ctx)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, prevCount, client.uploadedCallCount, "should not have called UploadPipelineVersion")
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var response ErrorEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "404", response.Error.Code)
+		assert.Equal(t, repositories.ManagedPipelinesNotFoundMessage, response.Error.Message)
 	})
 }

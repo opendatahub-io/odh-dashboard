@@ -187,6 +187,101 @@ paths:
               example:
                 error: Failed to retrieve LLM models
 
+  /api/v1/overview/models:
+    get:
+      tags:
+        - models
+      summary: List Models Overview
+      operationId: listModelsOverview
+      description: |
+        Returns a list of models from the MaaS catalog, each enriched with the K8s subscriptions
+        and authorization policies that reference it. Phase comes from the MaaSModelRef CR status.
+        Intended for admin overview pages that need to display per-model subscription and policy counts.
+      responses:
+        '200':
+          description: Model overview list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ModelOverviewItem'
+                required:
+                  - data
+              example:
+                data:
+                  - id: granite-3-8b-instruct
+                    modelDetails:
+                      displayName: Granite 3 8B Instruct
+                      description: IBM Granite 3 8B instruction-tuned language model.
+                      phase: Ready
+                    subscriptions:
+                      - name: premium-team-sub
+                        displayName: Premium Team Subscription
+                        phase: Active
+                        groups:
+                          - premium-users
+                        tokenRateLimits:
+                          - limit: 100000
+                            window: 24h
+                    authPolicies:
+                      - name: premium-team-sub-policy
+                        displayName: Premium Team Policy
+                        phase: Active
+                        groups:
+                          - premium-users
+                  - id: flan-t5-small
+                    modelDetails:
+                      displayName: Flan T5 Small
+                      description: Google Flan T5 small text-to-text transfer transformer model.
+                      phase: Ready
+                    subscriptions:
+                      - name: premium-team-sub
+                        displayName: Premium Team Subscription
+                        phase: Active
+                        groups:
+                          - premium-users
+                        tokenRateLimits:
+                          - limit: 200000
+                            window: 24h
+                      - name: basic-team-sub
+                        displayName: Basic Team Subscription
+                        phase: Active
+                        groups:
+                          - system:authenticated
+                        tokenRateLimits:
+                          - limit: 10000
+                            window: 24h
+                    authPolicies:
+                      - name: premium-team-sub-policy
+                        displayName: Premium Team Policy
+                        phase: Active
+                        groups:
+                          - premium-users
+                      - name: basic-team-sub-policy
+                        displayName: Basic Team Policy
+                        phase: Active
+                        groups:
+                          - system:authenticated
+                  - id: llama-3-70b-instruct
+                    modelDetails:
+                      displayName: Llama 3 70B Instruct
+                      description: Meta Llama 3 70B instruction-tuned model.
+                      phase: ''
+                    subscriptions: []
+                    authPolicies: []
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/subscriptions:
     get:
       tags:
@@ -2494,3 +2589,103 @@ components:
           example: A high-performance instruction-tuned language model
       required:
         - modelRef
+
+    ModelOverviewDetails:
+      type: object
+      description: Model catalog metadata combined with the K8s MaaSModelRef phase.
+      properties:
+        displayName:
+          type: string
+          description: Human-readable display name from the maas-api catalog.
+          example: Granite 3 8B Instruct
+        description:
+          type: string
+          description: Model description from the maas-api catalog.
+          example: IBM Granite 3 8B instruction-tuned language model.
+        phase:
+          type: string
+          description: Current phase of the K8s MaaSModelRef CR (e.g. Ready, Pending).
+          example: Ready
+
+    ModelOverviewSubscription:
+      type: object
+      description: A subscription that references this model, with its groups and rate limits.
+      properties:
+        name:
+          type: string
+          description: K8s subscription name.
+          example: premium-team-sub
+        displayName:
+          type: string
+          description: Human-readable subscription name.
+          example: Premium Team Subscription
+        phase:
+          type: string
+          description: Subscription phase (e.g. Active, Pending, Degraded).
+          example: Active
+        groups:
+          type: array
+          description: Group names that own this subscription.
+          items:
+            type: string
+          example:
+            - premium-users
+        tokenRateLimits:
+          type: array
+          description: Token rate limits applied to this model within the subscription.
+          items:
+            $ref: '#/components/schemas/TokenRateLimit'
+      required:
+        - name
+
+    ModelOverviewPolicy:
+      type: object
+      description: An authorization policy that references this model, with its groups.
+      properties:
+        name:
+          type: string
+          description: K8s auth policy name.
+          example: premium-team-sub-policy
+        displayName:
+          type: string
+          description: Human-readable auth policy name.
+          example: Premium Team Policy
+        phase:
+          type: string
+          description: Auth policy phase (e.g. Active, Pending, Unknown).
+          example: Active
+        groups:
+          type: array
+          description: Group names subject to this policy.
+          items:
+            type: string
+          example:
+            - premium-users
+      required:
+        - name
+
+    ModelOverviewItem:
+      type: object
+      description: A model catalog entry enriched with its associated subscriptions and auth policies.
+      properties:
+        id:
+          type: string
+          description: Model identifier (matches the maas-api model ID and K8s MaaSModelRef name).
+          example: granite-3-8b-instruct
+        modelDetails:
+          $ref: '#/components/schemas/ModelOverviewDetails'
+        subscriptions:
+          type: array
+          description: Subscriptions that reference this model.
+          items:
+            $ref: '#/components/schemas/ModelOverviewSubscription'
+        authPolicies:
+          type: array
+          description: Authorization policies that reference this model.
+          items:
+            $ref: '#/components/schemas/ModelOverviewPolicy'
+      required:
+        - id
+        - subscriptions
+        - authPolicies
+

@@ -1,5 +1,6 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 import type { NamespaceSelectorFieldProps } from '~/concepts/k8s/NamespaceSelectorField/NamespaceSelectorField';
 
 export type { NamespaceSelectorFieldProps };
@@ -17,7 +18,6 @@ export type NamespaceSelectorExtension = Extension<
   }
 >;
 
-export const isNamespaceSelectorExtension = (
-  extension: Extension,
-): extension is NamespaceSelectorExtension =>
-  extension.type === 'model-registry.namespace/selector';
+export const isNamespaceSelectorExtension = createExtensionGuard<NamespaceSelectorExtension>(
+  'model-registry.namespace/selector',
+);

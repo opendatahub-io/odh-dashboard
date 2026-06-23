@@ -1,4 +1,4 @@
-import { ProjectKind } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import {
   ExperimentKF,
   PipelineKF,

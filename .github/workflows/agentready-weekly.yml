@@ -21,19 +21,17 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install AgentReady
         run: |
-          pip install agentready
+          pip install agentready==2.47.0
 
       - name: Run AgentReady Assessment
         id: assessment
         run: |
-          # Exclude assessors that don't apply to this monorepo structure:
-          # - type_annotations: Uses project references, no root tsconfig.json
-          # - precommit_hooks: Uses Husky, not Python pre-commit framework
-          agentready assess . -e type_annotations -e precommit_hooks > assessment-output.txt
+          # Exclusions configured in .github/agentready/config.yaml
+          agentready assess . --config .github/agentready/config.yaml > assessment-output.txt
           cat assessment-output.txt
           SCORE=$(grep "Overall Score:" assessment-output.txt | grep -oE '[0-9]+\.[0-9]+' | head -1)
           echo "score=$SCORE" >> $GITHUB_OUTPUT

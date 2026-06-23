@@ -1,0 +1,11 @@
+# Patterns to ignore when packaging charts.
+.DS_Store
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+.project
+.idea/
+*.tmproj
+.vscode/

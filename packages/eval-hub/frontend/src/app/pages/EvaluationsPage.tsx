@@ -30,7 +30,7 @@ const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const { clusterAdmin } = useUser();
 
-  const { isHealthy, loaded: healthLoaded, error: healthError } = useEvalHubHealth();
+  const { isHealthy, loaded: healthLoaded, error: healthError } = useEvalHubHealth(namespace);
 
   const [evaluations, loaded, error, refreshEvaluations] = useEvaluationJobs(
     { namespace },

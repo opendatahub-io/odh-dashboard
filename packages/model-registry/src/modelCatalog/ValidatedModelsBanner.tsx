@@ -76,7 +76,7 @@ const ValidatedModelsBanner: React.FC = () => {
               onClick={handleExploreClick}
               data-testid="explore-validated-models-button"
             >
-              Explore Red Hat AI validated models
+              Explore Red Hat AI - validated models
             </Button>
           </CardFooter>
         </Flex>

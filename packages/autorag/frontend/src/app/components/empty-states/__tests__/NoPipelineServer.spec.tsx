@@ -17,7 +17,7 @@ describe('NoPipelineServer', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'To use AutoRAG, you need access to a pipeline server. Create or edit a pipeline server on the Pipelines page.',
+        'To use AutoRAG, go to the Pipelines page, then create a new pipeline server or edit an existing one using Manage pipeline server configuration. Under Advanced settings, check the Enable AutoML and AutoRAG pipelines option.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByTestId('go-to-pipelines-link')).toHaveTextContent('Go to Pipelines');

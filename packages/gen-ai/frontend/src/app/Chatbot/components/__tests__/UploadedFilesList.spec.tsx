@@ -141,6 +141,15 @@ describe('UploadedFilesList', () => {
     });
   });
 
+  it('should disable delete buttons when isDisabled is true', () => {
+    render(<UploadedFilesList {...defaultProps} isDisabled />);
+
+    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    deleteButtons.forEach((button) => {
+      expect(button).toBeDisabled();
+    });
+  });
+
   it('formats different file sizes correctly', () => {
     const filesWithVariousSizes: FileModel[] = [
       { ...mockFiles[0], id: 'file-0', bytes: 0 },

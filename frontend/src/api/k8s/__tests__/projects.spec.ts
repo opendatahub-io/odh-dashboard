@@ -4,6 +4,7 @@ import {
   k8sUpdateResource,
   k8sDeleteResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import axios from '#~/utilities/axios';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
@@ -20,7 +21,6 @@ import {
 import { ProjectModel, ProjectRequestModel } from '#~/api/models';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
-import { ProjectKind } from '#~/k8sTypes';
 import { groupVersionKind } from '#~/api/k8sUtils';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 

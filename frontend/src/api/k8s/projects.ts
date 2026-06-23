@@ -5,9 +5,10 @@ import {
   K8sResourceCommon,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import axios from '#~/utilities/axios';
 import { CustomWatchK8sResult } from '#~/types';
-import { K8sAPIOptions, ProjectKind } from '#~/k8sTypes';
+import { K8sAPIOptions } from '#~/k8sTypes';
 import { ProjectModel, ProjectRequestModel } from '#~/api/models';
 import { throwErrorFromAxios } from '#~/api/errorUtils';
 import { translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
