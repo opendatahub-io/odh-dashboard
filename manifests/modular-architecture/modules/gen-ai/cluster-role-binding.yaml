@@ -4,7 +4,7 @@ metadata:
   name: odh-dashboard-gen-ai
 subjects:
   - kind: ServiceAccount
-    name: odh-dashboard-gen-ai
+    name: odh-dashboard-modules
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
