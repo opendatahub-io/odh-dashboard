@@ -300,7 +300,8 @@ func buildEnvVars(params *agents.DeployAgentParams) []corev1.EnvVar {
 		svcPort = params.ServicePorts[0].Port
 	}
 
-	defaults := map[string]string{
+	defaultKeys := []string{"AGENT_ENDPOINT", "HOST", "PORT", "UV_CACHE_DIR"}
+	defaultValues := map[string]string{
 		"AGENT_ENDPOINT": agentEndpointURL(params.Name, params.Namespace, svcPort),
 		"PORT":           fmt.Sprintf("%d", defaultPort),
 		"HOST":           "0.0.0.0",
@@ -313,9 +314,9 @@ func buildEnvVars(params *agents.DeployAgentParams) []corev1.EnvVar {
 	}
 
 	var result []corev1.EnvVar
-	for name, value := range defaults {
+	for _, name := range defaultKeys {
 		if !seen[name] {
-			result = append(result, corev1.EnvVar{Name: name, Value: value})
+			result = append(result, corev1.EnvVar{Name: name, Value: defaultValues[name]})
 		}
 	}
 

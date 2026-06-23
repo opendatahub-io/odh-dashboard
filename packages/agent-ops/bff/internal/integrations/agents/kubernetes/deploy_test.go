@@ -49,7 +49,7 @@ func (c *deployTestK8sClient) CanGetAgentInNamespace(context.Context, *k8s.Reque
 	return true, nil
 }
 
-func (c *deployTestK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
+func (c *deployTestK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string, bool) (bool, error) {
 	return true, nil
 }
 

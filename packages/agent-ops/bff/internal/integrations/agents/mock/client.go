@@ -86,6 +86,16 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 	if _, ok := c.Details[key]; ok {
 		return nil, agents.ErrAlreadyExists
 	}
+	c.Details[key] = agents.AgentDetail{
+		Metadata: agents.AgentMetadata{
+			Name:      params.Name,
+			Namespace: params.Namespace,
+			Labels: map[string]string{
+				"kagenti.io/type": "agent",
+			},
+		},
+		WorkloadType: "Deployment",
+	}
 	return &agents.DeployAgentResult{
 		Name:      params.Name,
 		Namespace: params.Namespace,

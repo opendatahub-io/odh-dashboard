@@ -53,7 +53,7 @@ func (kc *TokenKubernetesClient) CanGetAgentInNamespace(ctx context.Context, _ *
 	return kc.selfSubjectAccessReview(ctx, namespace, name, "services", "get")
 }
 
-var agentDeployResources = []struct {
+var agentDeployBaseResources = []struct {
 	group    string
 	resource string
 }{
@@ -61,11 +61,22 @@ var agentDeployResources = []struct {
 	{"apps", "deployments"},
 	{"", "services"},
 	{"agent.kagenti.dev", "agentruntimes"},
-	{"route.openshift.io", "routes"},
 }
 
-func (kc *InternalKubernetesClient) CanDeployAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
-	for _, r := range agentDeployResources {
+var agentDeployRouteResource = struct {
+	group    string
+	resource string
+}{"route.openshift.io", "routes"}
+
+func (kc *InternalKubernetesClient) CanDeployAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace string, createRoute bool) (bool, error) {
+	resources := agentDeployBaseResources
+	if createRoute {
+		resources = append(append([]struct {
+			group    string
+			resource string
+		}{}, resources...), agentDeployRouteResource)
+	}
+	for _, r := range resources {
 		allowed, err := kc.subjectAccessReviewGroup(ctx, identity, namespace, "", r.group, r.resource, "create")
 		if err != nil {
 			return false, err
@@ -77,8 +88,15 @@ func (kc *InternalKubernetesClient) CanDeployAgentInNamespace(ctx context.Contex
 	return true, nil
 }
 
-func (kc *TokenKubernetesClient) CanDeployAgentInNamespace(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
-	for _, r := range agentDeployResources {
+func (kc *TokenKubernetesClient) CanDeployAgentInNamespace(ctx context.Context, _ *RequestIdentity, namespace string, createRoute bool) (bool, error) {
+	resources := agentDeployBaseResources
+	if createRoute {
+		resources = append(append([]struct {
+			group    string
+			resource string
+		}{}, resources...), agentDeployRouteResource)
+	}
+	for _, r := range resources {
 		allowed, err := kc.selfSubjectAccessReviewGroup(ctx, namespace, "", r.group, r.resource, "create")
 		if err != nil {
 			return false, err

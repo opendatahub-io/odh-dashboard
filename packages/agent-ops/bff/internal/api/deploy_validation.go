@@ -38,6 +38,9 @@ func validateDeployRequest(req *models.DeployAgentRequest) error {
 	if req.ImageTag == "" {
 		return fmt.Errorf("imageTag is required")
 	}
+	if req.Framework != "" && !isValidLabelValue(req.Framework) {
+		return fmt.Errorf("invalid framework %q: must be a valid Kubernetes label value (max 63 chars, alphanumeric, '-', '_', or '.')", req.Framework)
+	}
 	if req.Protocol != "" && !validProtocols[req.Protocol] {
 		return fmt.Errorf("invalid protocol %q: must be one of a2a, mcp", req.Protocol)
 	}

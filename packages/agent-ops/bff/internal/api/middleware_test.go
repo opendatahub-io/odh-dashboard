@@ -50,7 +50,7 @@ func (c *rbacTestK8sClient) CanGetAgentInNamespace(context.Context, *k8s.Request
 	return c.getAllowed, c.err
 }
 
-func (c *rbacTestK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
+func (c *rbacTestK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string, bool) (bool, error) {
 	return c.allowed, c.err
 }
 

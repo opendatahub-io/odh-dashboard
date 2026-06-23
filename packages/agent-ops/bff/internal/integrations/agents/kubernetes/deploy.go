@@ -62,14 +62,15 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 		c.logger.Debug("AgentRuntime already exists, reusing",
 			slog.String("name", params.Name),
 			slog.String("namespace", params.Namespace))
+	} else {
+		cleanups = append(cleanups, func() {
+			if delErr := dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Delete(rollbackCtx, params.Name, metav1.DeleteOptions{}); delErr != nil {
+				c.logger.Warn("rollback: failed to delete AgentRuntime",
+					slog.String("name", params.Name),
+					slog.Any("error", delErr))
+			}
+		})
 	}
-	cleanups = append(cleanups, func() {
-		if delErr := dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Delete(rollbackCtx, params.Name, metav1.DeleteOptions{}); delErr != nil {
-			c.logger.Warn("rollback: failed to delete AgentRuntime",
-				slog.String("name", params.Name),
-				slog.Any("error", delErr))
-		}
-	})
 
 	// 3. Deployment
 	deployment := buildDeployment(params)

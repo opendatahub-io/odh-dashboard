@@ -16,6 +16,7 @@ type DeployAgentEnvelope Envelope[*models.DeployAgentResponse, None]
 
 // DeployAgentHandler handles POST /api/v1/agents/deploy.
 func (app *App) DeployAgentHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
 	logger := helper.GetContextLoggerFromReq(r)
 	logger.Info("Deploying agent", slog.String("method", r.Method), slog.String("path", r.URL.Path))
 
@@ -33,24 +34,23 @@ func (app *App) DeployAgentHandler(w http.ResponseWriter, r *http.Request, _ htt
 	}
 
 	// RBAC: verify the caller can create all agent resources in the target namespace
-	identityVal := r.Context().Value(constants.RequestIdentityKey)
-	if identityVal == nil {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	if !ok || identity == nil {
 		app.forbiddenResponse(w, r, "missing request identity")
 		return
 	}
-	identity, ok := identityVal.(*k8s.RequestIdentity)
-	if !ok || identity == nil {
-		app.forbiddenResponse(w, r, "invalid request identity")
+
+	if app.kubernetesClientFactory == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("kubernetes client factory not available"))
 		return
 	}
-
-	k8sClient, err := app.kubernetesClientFactory.GetClient(r.Context())
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get kubernetes client: %w", err))
 		return
 	}
 
-	canDeploy, err := k8sClient.CanDeployAgentInNamespace(r.Context(), identity, req.Namespace)
+	canDeploy, err := k8sClient.CanDeployAgentInNamespace(ctx, identity, req.Namespace, req.CreateRoute)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("RBAC check failed: %w", err))
 		return
@@ -62,7 +62,7 @@ func (app *App) DeployAgentHandler(w http.ResponseWriter, r *http.Request, _ htt
 
 	params := mapDeployRequestToParams(&req)
 
-	result, err := app.repositories.AgentRuntimes.DeployAgent(r.Context(), params)
+	result, err := app.repositories.AgentRuntimes.DeployAgent(ctx, params)
 	if err != nil {
 		logger.Error("Failed to deploy agent",
 			slog.String("method", r.Method),
