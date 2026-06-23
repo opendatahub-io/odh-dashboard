@@ -12,7 +12,7 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
-import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import taskAssistantIllustration from '#~/images/Illustration-Learning_path-Teal-RH.svg';

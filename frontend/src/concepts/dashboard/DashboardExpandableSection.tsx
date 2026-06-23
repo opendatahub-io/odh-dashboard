@@ -1,6 +1,6 @@
 import React from 'react';
 import { ExpandableSection } from '@patternfly/react-core';
-import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 
 import './DashboardExpandableSection.scss';
 

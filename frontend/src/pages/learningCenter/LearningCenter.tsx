@@ -2,7 +2,7 @@ import React from 'react';
 import useDimensions from 'react-cool-dimensions';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
-import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { OdhDocument } from '#~/types';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { DOC_LINK, ODH_PRODUCT_NAME } from '#~/utilities/const';

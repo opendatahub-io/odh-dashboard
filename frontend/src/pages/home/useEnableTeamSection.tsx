@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Card, CardBody, PageSection, Content, ContentVariants } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
 import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '#~/concepts/design/utils';
 import DividedGallery from '#~/concepts/design/DividedGallery';

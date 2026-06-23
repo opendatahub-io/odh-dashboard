@@ -1,4 +1,4 @@
-import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { CURRENT_BROWSER_TAB_PREFERENCE } from '#~/pages/notebookController/const';
 
 const useBrowserTabPreference = (): [boolean, (value: boolean) => boolean] => {

@@ -1,10 +1,19 @@
 {
   "private": true,
   "name": "@odh-dashboard/ui-core",
-  "description": "Shared UI components and table primitives",
+  "description": "Shared UI components, table primitives, and common utilities",
   "version": "0.0.0",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./utilities": "./src/utilities/index.ts",
+    "./utilities/const": "./src/utilities/const.ts",
+    "./utilities/string": "./src/utilities/string.ts",
+    "./utilities/trimInput": "./src/utilities/trimInput.ts",
+    "./utilities/valueUnits": "./src/utilities/valueUnits.ts",
+    "./utilities/utils": "./src/utilities/utils.ts",
+    "./typeHelpers": "./src/types/typeHelpers.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./hooks/useBrowserStorage": "./src/hooks/useBrowserStorage.tsx"
   },
   "scripts": {
     "lint": "eslint .",
@@ -13,11 +22,14 @@
   },
   "dependencies": {
     "@odh-dashboard/k8s-core": "*",
-    "classnames": "^2.5.1"
+    "classnames": "^2.5.1",
+    "lodash-es": "^4.18.1"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/tsconfig": "*",
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^22.0.0"
   },
   "peerDependencies": {
     "@patternfly/react-core": "^6",

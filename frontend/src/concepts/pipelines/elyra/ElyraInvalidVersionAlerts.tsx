@@ -8,7 +8,7 @@ import {
   AlertActionCloseButton,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { NotebookKind } from '#~/k8sTypes';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { NotebookImageStatus } from '#~/pages/projects/screens/detail/notebooks/const';

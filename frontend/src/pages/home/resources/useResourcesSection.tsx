@@ -11,7 +11,7 @@ import {
   ContentVariants,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useBrowserStorage } from '@odh-dashboard/plugin-core/utilities';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import OdhDocCard from '#~/components/OdhDocCard';
 import ScrolledGallery from '#~/concepts/design/ScrolledGallery';
 import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
