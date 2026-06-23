@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -1122,8 +1121,10 @@ func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, _ *integration
 
 	// Call MaaS BFF to list models
 	// Per MaaS BFF OpenAPI spec, GET /models returns envelope: {"data": {"object": "list", "data": [...]}}
+	// Note: MaaS BFF determines namespace scope via the forwarded authentication token
+	// (x-forwarded-access-token header), not via query parameters
 	var bffResponse models.MaaSBFFModelsResponse
-	err := maasClient.Call(ctx, "GET", "/models?namespace="+url.QueryEscape(namespace), nil, &bffResponse)
+	err := maasClient.Call(ctx, "GET", "/models", nil, &bffResponse)
 	if err != nil {
 		return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
 	}

@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -34,8 +33,10 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 	// MaaS BFF returns response wrapped in envelope: {"data": {"object": "list", "data": [...]}}
 	// The MaaSReturnAllModelsHeader: true header (set in middleware) ensures enriched model details
 	// Path is relative to BFF base URL (/api/v1) - do not include /api/v1 prefix here
+	// Note: MaaS BFF determines namespace scope via the forwarded authentication token
+	// (x-forwarded-access-token header), not via query parameters
 	var bffResponse models.MaaSBFFModelsResponse
-	err := maasClient.Call(ctx, "GET", "/models?namespace="+url.QueryEscape(namespace), nil, &bffResponse)
+	err := maasClient.Call(ctx, "GET", "/models", nil, &bffResponse)
 	if err != nil {
 		app.handleBFFClientError(w, r, err)
 		return

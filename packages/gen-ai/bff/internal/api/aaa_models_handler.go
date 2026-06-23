@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -195,8 +194,10 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 	}
 
 	// Call MaaS BFF to get models
+	// Note: MaaS BFF determines namespace scope via the forwarded authentication token
+	// (x-forwarded-access-token header), not via query parameters
 	var bffResponse models.MaaSBFFModelsResponse
-	err := maasClient.Call(ctx, "GET", "/models?namespace="+url.QueryEscape(namespace), nil, &bffResponse)
+	err := maasClient.Call(ctx, "GET", "/models", nil, &bffResponse)
 	if err != nil {
 		// Return unwrapped error - handleBFFClientError uses errors.As and preserves error details
 		return nil, err
