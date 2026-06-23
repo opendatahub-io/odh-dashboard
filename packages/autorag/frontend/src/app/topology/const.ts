@@ -4,8 +4,8 @@ export const PIPELINE_NODE_SEPARATION_VERTICAL = 20;
 export const PIPELINE_NODE_SEPARATION_HORIZONTAL = 32;
 
 /** Baseline (px) in `computePipelineRankSep`; upper bound is `PIPELINE_RANKSEP_MAX`. */
-export const PIPELINE_RANKSEP_MIN = 18;
-export const PIPELINE_RANKSEP_MAX = 64;
+export const PIPELINE_RANKSEP_MIN = 2;
+export const PIPELINE_RANKSEP_MAX = 10;
 
 /**
  * Derive Dagre `ranksep` from the widest task node in the graph so short pipelines stay compact
@@ -22,9 +22,9 @@ export function computePipelineRankSep(maxNodeLayoutWidth: number): number {
 /** Padding passed to `Graph.fit` after layout (smaller = graph uses more of the viewport). */
 export const PIPELINE_TOPOLOGY_FIT_PADDING = 16;
 
-export const NODE_WIDTH = 200;
-export const NODE_PADDING = 40;
+export const NODE_WIDTH = 120;
+export const NODE_PADDING = 32;
 export const NODE_HEIGHT = 50;
 
 // Must match canvas measurement to the effective pill label font (see AutoragResults.scss overrides).
-export const NODE_FONT = '1.3125rem RedHatText, sans-serif';
+export const NODE_FONT = '1rem RedHatText, sans-serif';
