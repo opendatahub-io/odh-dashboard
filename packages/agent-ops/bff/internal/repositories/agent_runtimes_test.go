@@ -117,6 +117,18 @@ func TestListAgentRuntimesScopedByNamespace(t *testing.T) {
 		assert.True(t, errors.Is(err, bfferrors.ErrForbidden))
 	})
 
+	t.Run("with namespace returns forbidden when access check errors", func(t *testing.T) {
+		errClient := agentsmock.NewClient()
+		errClient.CanListAgentsInNSErr = errors.New("sar failed")
+		repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: errClient})
+		_, err := repo.ListAgentRuntimes(context.Background(), models.ListAgentRuntimesOptions{
+			Namespace: "ns-a",
+			Limit:     DefaultAgentRuntimesLimit,
+		})
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, bfferrors.ErrForbidden))
+	})
+
 	t.Run("with namespace skips ListNamespaces call", func(t *testing.T) {
 		clientWithNsErr := agentsmock.NewClient()
 		clientWithNsErr.ListNamespacesErr = errors.New("should not be called")
