@@ -4,9 +4,8 @@ import type { PipelineRun } from '~/app/types';
 import { getPipelineRunsFromBFF } from '~/app/api/pipelines';
 
 jest.mock('~/app/utilities/const', () => ({
-  URL_PREFIX: '/automl',
+  URL_PREFIX: '/autorag',
   BFF_API_VERSION: 'v1',
-  DEFAULT_PAGE_SIZE: 20,
 }));
 
 jest.mock('mod-arch-core', () => ({
@@ -83,7 +82,7 @@ describe('getPipelineRunsFromBFF', () => {
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
-      '/automl/api/v1/pipeline-runs',
+      '/autorag/api/v1/pipeline-runs',
       { namespace: 'my-namespace', pageSize: '20' },
       {},
     );
@@ -100,7 +99,7 @@ describe('getPipelineRunsFromBFF', () => {
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
-      '/automl/api/v1/pipeline-runs',
+      '/autorag/api/v1/pipeline-runs',
       expect.objectContaining({ pipelineVersionId: 'pv-123' }),
       {},
     );
@@ -117,7 +116,7 @@ describe('getPipelineRunsFromBFF', () => {
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
-      '/automl/api/v1/pipeline-runs',
+      '/autorag/api/v1/pipeline-runs',
       expect.objectContaining({ page: '2' }),
       {},
     );
@@ -134,7 +133,7 @@ describe('getPipelineRunsFromBFF', () => {
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
-      '/automl/api/v1/pipeline-runs',
+      '/autorag/api/v1/pipeline-runs',
       expect.objectContaining({ page: '0' }),
       {},
     );
@@ -151,7 +150,7 @@ describe('getPipelineRunsFromBFF', () => {
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
-      '/automl/api/v1/pipeline-runs',
+      '/autorag/api/v1/pipeline-runs',
       expect.objectContaining({ pageSize: '50' }),
       {},
     );
@@ -166,7 +165,7 @@ describe('getPipelineRunsFromBFF', () => {
 
     expect(mockRestGET).toHaveBeenCalledWith(
       'https://host.example',
-      '/automl/api/v1/pipeline-runs',
+      '/autorag/api/v1/pipeline-runs',
       expect.any(Object),
       opts,
     );
