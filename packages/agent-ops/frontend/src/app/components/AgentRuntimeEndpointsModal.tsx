@@ -82,9 +82,7 @@ const AgentRuntimeEndpointsModal: React.FC<AgentRuntimeEndpointsModalProps> = ({
                     </ClipboardCopy>
                   </FlexItem>
                   <FlexItem>
-                    <Content component={ContentVariants.small}>
-                      {field.description}
-                    </Content>
+                    <Content component={ContentVariants.small}>{field.description}</Content>
                   </FlexItem>
                 </Flex>
               </StackItem>

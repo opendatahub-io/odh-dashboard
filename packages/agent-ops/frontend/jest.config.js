@@ -14,6 +14,8 @@ module.exports = {
     '^react$': '<rootDir>/../../../node_modules/react',
     '^react-dom$': '<rootDir>/../../../node_modules/react-dom',
     '@odh-dashboard/internal/(.*)': '<rootDir>/../../../frontend/src/$1',
+    // Resolve @odh-dashboard/internal's #~/ imports to main frontend src
+    '#~/(.*)': '<rootDir>/../../../frontend/src/$1',
     '~/(.*)': '<rootDir>/src/$1',
   },
   testEnvironment: 'jest-environment-jsdom',

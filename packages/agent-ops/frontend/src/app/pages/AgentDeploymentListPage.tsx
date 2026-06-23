@@ -55,7 +55,7 @@ const AgentDeploymentListPage: React.FC = () => {
   const safeNamespaces = React.useMemo(
     () =>
       namespaces.filter(
-        (ns): ns is { name: string } => typeof ns?.name === 'string' && ns.name.length > 0,
+        (ns): ns is { name: string } => typeof ns.name === 'string' && ns.name.length > 0,
       ),
     [namespaces],
   );

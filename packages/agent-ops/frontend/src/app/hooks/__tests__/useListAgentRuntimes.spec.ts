@@ -27,7 +27,7 @@ const mockListAgentRuntimes = jest.mocked(listAgentRuntimes);
 const mockListAgentRuntimesFetcher = jest.fn();
 
 const getLatestFetchCallback = () => {
-  const calls = mockUseFetchState.mock.calls;
+  const { calls } = mockUseFetchState.mock;
   const [fetchCallback] = calls[calls.length - 1] as unknown as [
     (opts: Record<string, never>) => Promise<{ runtimes: unknown[]; continueToken?: string }>,
   ];
