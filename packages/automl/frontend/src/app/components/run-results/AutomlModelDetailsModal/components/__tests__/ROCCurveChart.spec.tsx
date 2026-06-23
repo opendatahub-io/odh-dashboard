@@ -90,7 +90,7 @@ describe('buildCurveLines', () => {
       index: 0,
     });
     expect(lines[0].points[1]).toEqual({
-      name: 'ROC threshold: 0.9',
+      name: 'ROC threshold: 0.900',
       x: 0.1,
       y: 0.6,
       index: 0,
@@ -117,8 +117,8 @@ describe('buildCurveLines', () => {
 
   it('should include class name in multiclass point names', () => {
     const lines = buildCurveLines(multiclassData);
-    expect(lines[0].points[1].name).toBe('A (One v. Rest) threshold: 0.7');
-    expect(lines[1].points[1].name).toBe('B (One v. Rest) threshold: 0.6');
+    expect(lines[0].points[1].name).toBe('A (One v. Rest) threshold: 0.700');
+    expect(lines[1].points[1].name).toBe('B (One v. Rest) threshold: 0.600');
   });
 
   it('should have correct point count matching fpr array length', () => {

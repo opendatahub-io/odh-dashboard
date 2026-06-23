@@ -26,7 +26,7 @@ function buildCurveLineFromEntry(
     label,
     auc: entry.auc,
     points: entry.fpr.map((x, i) => ({
-      name: `${label} threshold: ${String(entry.thresholds[i])}`,
+      name: `${label} threshold: ${typeof entry.thresholds[i] === 'number' ? entry.thresholds[i].toFixed(3) : entry.thresholds[i]}`,
       x,
       y: entry.tpr[i],
       index,
