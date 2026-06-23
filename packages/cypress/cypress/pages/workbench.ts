@@ -818,8 +818,25 @@ class CreateSpawnerPage {
     return this;
   }
 
-  shouldNotHaveFeatureStoreInModal(namespace: string, projectName: string) {
-    cy.findByTestId(`select-feature-stores-row-${namespace}/${projectName}`).should('not.exist');
+  shouldHaveFeatureStoreConnectedInModal(namespace: string, projectName: string) {
+    this.findSelectFeatureStoresModalRow(namespace, projectName)
+      .find('input[type="checkbox"]')
+      .should('be.checked')
+      .and('be.disabled');
+    return this;
+  }
+
+  shouldHaveSelectFeatureStoresModalButtonDisabled() {
+    cy.findByTestId('select-feature-stores-connect-button')
+      .should('be.disabled')
+      .and('have.text', 'Select');
+    return this;
+  }
+
+  shouldHaveSelectFeatureStoresModalButtonEnabled() {
+    cy.findByTestId('select-feature-stores-connect-button')
+      .should('be.enabled')
+      .and('have.text', 'Connect');
     return this;
   }
 

@@ -17,7 +17,9 @@ import type { FeatureStoreProject } from '#~/api/featureStore/custom';
 import { SelectFeatureStoresModalRow } from './SelectFeatureStoresModalRow';
 import {
   getFeatureStoreProjectId,
+  SELECT_FEATURE_STORES_MODAL_CONNECT_BUTTON,
   SELECT_FEATURE_STORES_MODAL_DESCRIPTION,
+  SELECT_FEATURE_STORES_MODAL_SELECT_BUTTON,
   SELECT_FEATURE_STORES_MODAL_TITLE,
   selectFeatureStoresColumns,
 } from './selectFeatureStoresModalConst';
@@ -43,24 +45,16 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
     [alreadySelectedIds],
   );
 
-  const availableProjects = React.useMemo(
-    () =>
-      featureStoreProjects.filter(
-        (project) => !alreadySelectedIdSet.has(getFeatureStoreProjectId(project)),
-      ),
-    [alreadySelectedIdSet, featureStoreProjects],
-  );
-
   const filteredProjects = React.useMemo(() => {
     const normalized = filterText.trim().toLowerCase();
     if (!normalized) {
-      return availableProjects;
+      return featureStoreProjects;
     }
 
-    return availableProjects.filter((project) =>
+    return featureStoreProjects.filter((project) =>
       project.feastProjectName.toLowerCase().includes(normalized),
     );
-  }, [availableProjects, filterText]);
+  }, [featureStoreProjects, filterText]);
 
   const sort = useTableColumnSort<FeatureStoreProject>(selectFeatureStoresColumns, [], 1);
   const sortedProjects = React.useMemo(
@@ -68,7 +62,7 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
     [filteredProjects, sort],
   );
 
-  const { selections, toggleSelection, isSelected, tableProps } =
+  const { selections, toggleSelection, isSelected, tableProps, disableCheck } =
     useCheckboxTableBase<FeatureStoreProject>(
       sortedProjects,
       selectedProjects,
@@ -77,9 +71,17 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
       { persistSelections: true },
     );
 
+  React.useEffect(() => {
+    featureStoreProjects.forEach((project) => {
+      disableCheck(project, alreadySelectedIdSet.has(getFeatureStoreProjectId(project)));
+    });
+  }, [alreadySelectedIdSet, disableCheck, featureStoreProjects]);
+
   const onClearFilters = React.useCallback(() => {
     setFilterText('');
   }, []);
+
+  const hasNewSelections = selections.length > 0;
 
   return (
     <Modal
@@ -117,25 +119,33 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
           }
           emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
           onClearFilters={onClearFilters}
-          rowRenderer={(project, rowIndex) => (
-            <SelectFeatureStoresModalRow
-              key={getFeatureStoreProjectId(project)}
-              rowIndex={rowIndex}
-              project={project}
-              isSelected={isSelected(project)}
-              onToggle={toggleSelection}
-            />
-          )}
+          rowRenderer={(project, rowIndex) => {
+            const projectId = getFeatureStoreProjectId(project);
+            const isAlreadyConnected = alreadySelectedIdSet.has(projectId);
+
+            return (
+              <SelectFeatureStoresModalRow
+                key={projectId}
+                rowIndex={rowIndex}
+                project={project}
+                isSelected={isSelected(project)}
+                isAlreadyConnected={isAlreadyConnected}
+                onToggle={toggleSelection}
+              />
+            );
+          }}
         />
       </ModalBody>
       <ModalFooter>
         <Button
           data-testid="select-feature-stores-connect-button"
-          variant="primary"
-          isDisabled={selections.length === 0}
+          variant={hasNewSelections ? 'primary' : 'secondary'}
+          isDisabled={!hasNewSelections}
           onClick={() => onSave(selections)}
         >
-          Connect
+          {hasNewSelections
+            ? SELECT_FEATURE_STORES_MODAL_CONNECT_BUTTON
+            : SELECT_FEATURE_STORES_MODAL_SELECT_BUTTON}
         </Button>
         <Button
           data-testid="select-feature-stores-cancel-button"

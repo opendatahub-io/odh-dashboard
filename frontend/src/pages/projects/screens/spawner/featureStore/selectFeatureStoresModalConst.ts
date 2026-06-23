@@ -6,6 +6,12 @@ export const SELECT_FEATURE_STORES_MODAL_TITLE = 'Select feature stores';
 
 export const SELECT_FEATURE_STORES_MODAL_DESCRIPTION = 'Select feature stores to connect';
 
+export const SELECT_FEATURE_STORES_MODAL_SELECT_BUTTON = 'Select';
+
+export const SELECT_FEATURE_STORES_MODAL_CONNECT_BUTTON = 'Connect';
+
+export const SELECT_FEATURE_STORES_ALREADY_CONNECTED_TOOLTIP = 'Already connected';
+
 export const FEATURE_STORE_NAMESPACE_COLUMN_INFO =
   'Kubernetes namespace where the Feature Store registry is deployed.';
 

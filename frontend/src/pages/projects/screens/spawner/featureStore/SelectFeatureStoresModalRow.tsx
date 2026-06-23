@@ -9,6 +9,7 @@ export type SelectFeatureStoresModalRowProps = {
   rowIndex: number;
   project: FeatureStoreProject;
   isSelected: boolean;
+  isAlreadyConnected: boolean;
   onToggle: (project: FeatureStoreProject) => void;
 };
 
@@ -16,6 +17,7 @@ export const SelectFeatureStoresModalRow: React.FC<SelectFeatureStoresModalRowPr
   rowIndex,
   project,
   isSelected,
+  isAlreadyConnected,
   onToggle,
 }) => {
   const projectId = getFeatureStoreProjectId(project);
@@ -25,8 +27,13 @@ export const SelectFeatureStoresModalRow: React.FC<SelectFeatureStoresModalRowPr
       <Td
         select={{
           rowIndex,
-          isSelected,
-          onSelect: () => onToggle(project),
+          isSelected: isAlreadyConnected || isSelected,
+          isDisabled: isAlreadyConnected,
+          onSelect: () => {
+            if (!isAlreadyConnected) {
+              onToggle(project);
+            }
+          },
         }}
         aria-label={`Toggle ${project.feastProjectName}`}
       />

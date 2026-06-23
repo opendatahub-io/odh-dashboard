@@ -2524,7 +2524,7 @@ describe('Workbench page', () => {
       editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
     });
 
-    it('should hide already connected stores from the selection modal in edit mode', () => {
+    it('should show already connected stores as disabled in the selection modal in edit mode', () => {
       const notebookWithFeatureStores = mockNotebookWithFeastConfig([
         FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
       ]);
@@ -2538,14 +2538,20 @@ describe('Workbench page', () => {
 
       editSpawnerPage.visit('test-notebook');
       editSpawnerPage.openSelectFeatureStoresModal();
-      editSpawnerPage.shouldNotHaveFeatureStoreInModal(
+      editSpawnerPage.shouldHaveFeatureStoreConnectedInModal(
         FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
         FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
       );
+      editSpawnerPage.shouldHaveSelectFeatureStoresModalButtonDisabled();
       editSpawnerPage.shouldHaveFeatureStoreOptionsInModal([
         FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
         FEATURE_STORE_SPAWNER_PROJECTS.fraudDetect.projectName,
       ]);
+      editSpawnerPage.toggleFeatureStoreInModal(
+        FEATURE_STORE_SPAWNER_PROJECTS.banking.namespace,
+        FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+      );
+      editSpawnerPage.shouldHaveSelectFeatureStoresModalButtonEnabled();
     });
 
     it('should allow removing all feature stores in edit mode', () => {
