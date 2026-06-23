@@ -123,14 +123,36 @@ describe('Agent Deployments', () => {
       .and('contain.text', 'No agent deployments');
   });
 
-  it('should show select-project state when no namespace is selected and no runtimes exist', () => {
-    initIntercepts({ runtimes: [] });
+  it('should show select-project state when no namespace is selected and no projects exist', () => {
+    initIntercepts({ runtimes: [], namespaces: [] });
     agentDeploymentsPage.visit();
 
     agentDeploymentsPage
       .findSelectProjectState()
       .should('be.visible')
       .and('contain.text', 'Select a project');
+  });
+
+  it('should redirect to the active project when no namespace is selected', () => {
+    const preferredNamespace = 'preferred-project';
+    initIntercepts({
+      runtimes: [
+        mockAgentRuntime({
+          name: 'other-agent',
+          namespace: 'other-project',
+          status: 'Ready',
+          type: 'agent',
+        }),
+      ],
+      namespaces: [
+        mockNamespace({ name: preferredNamespace }),
+        mockNamespace({ name: 'other-project' }),
+      ],
+    });
+    agentDeploymentsPage.visit();
+
+    cy.url().should('include', `/deployments/${preferredNamespace}`);
+    agentDeploymentsPage.findEmptyState().should('be.visible');
   });
 
   it('should show loading spinner while runtimes are being fetched', () => {

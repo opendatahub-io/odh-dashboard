@@ -15,6 +15,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { BanIcon, CubesIcon } from '@patternfly/react-icons';
+import { useNamespaceSelector } from 'mod-arch-core';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
 import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
@@ -25,6 +26,7 @@ import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
 const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelector();
 
   const {
     runtimes,
@@ -50,14 +52,17 @@ const AgentDeploymentListPage: React.FC = () => {
     [runtimes],
   );
 
-  // When landing on /deployments with no namespace selected, auto-redirect to the first
-  // namespace found in the agent runtimes list.  This way the URL always reflects the
-  // active project and the project selector shows a meaningful selection on first load.
+  // When landing on /deployments with no namespace selected, redirect to the dashboard's
+  // active project (preferred namespace) or the first accessible project.
   React.useEffect(() => {
-    if (!namespace && loaded && !loadError && safeRuntimes.length > 0) {
-      navigate(agentOpsDeploymentsRoute(safeRuntimes[0].namespace), { replace: true });
+    if (!namespace && namespacesLoaded && namespaces.length > 0) {
+      const validPreferredNamespace = preferredNamespace
+        ? namespaces.find((n) => n.name === preferredNamespace.name)
+        : undefined;
+      const redirectNamespace = validPreferredNamespace ?? namespaces[0];
+      navigate(agentOpsDeploymentsRoute(redirectNamespace.name), { replace: true });
     }
-  }, [namespace, loaded, loadError, safeRuntimes, navigate]);
+  }, [namespace, namespacesLoaded, namespaces, preferredNamespace, navigate]);
 
   const [filterText, setFilterText] = React.useState('');
   const clearFilters = React.useCallback(() => setFilterText(''), []);
@@ -136,7 +141,7 @@ const AgentDeploymentListPage: React.FC = () => {
       description="View and manage agent deployments across your fleet."
       headerContent={headerContent}
       loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
-      loaded={noProjectSelected ? true : loaded}
+      loaded={noProjectSelected ? namespacesLoaded : loaded}
       empty={noProjectSelected || (isEmpty && !isAccessDenied)}
       emptyStatePage={
         noProjectSelected ? (

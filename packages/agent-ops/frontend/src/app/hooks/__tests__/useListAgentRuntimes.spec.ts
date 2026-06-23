@@ -155,6 +155,46 @@ describe('useListAgentRuntimes', () => {
     );
   });
 
+  it('should keep continueToken and allow next page when namespace filter yields an empty page', async () => {
+    const refresh = jest.fn();
+    mockUseFetchState.mockReturnValue([
+      { runtimes: [], continueToken: undefined },
+      false,
+      undefined,
+      refresh,
+    ]);
+
+    const renderResult = testHook(useListAgentRuntimes)('agent-ops-demo');
+
+    mockUseFetchState.mockReturnValue([
+      {
+        runtimes: [mockAgentRuntime({ namespace: 'other-project', name: 'agent-b' })],
+        continueToken: 'page-1-token',
+      },
+      true,
+      undefined,
+      refresh,
+    ]);
+
+    await act(async () => {
+      renderResult.rerender('agent-ops-demo');
+    });
+
+    expect(renderResult.result.current.runtimes).toHaveLength(0);
+    expect(renderResult.result.current.continueToken).toBe('page-1-token');
+
+    await act(async () => {
+      renderResult.result.current.setPage(2);
+    });
+
+    await getLatestFetchCallback()({});
+
+    expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith(
+      {},
+      { limit: 10, continueToken: 'page-1-token' },
+    );
+  });
+
   it('should reject fetch when navigating to a page without a stored token', async () => {
     mockLoadedState({ runtimes: [] });
 

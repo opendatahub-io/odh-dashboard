@@ -34,39 +34,41 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }
   );
 
   return (
-    <Tr data-testid={`agent-runtime-row-${runtime.namespace}-${runtime.name}`}>
-      <Td dataLabel={agentRuntimesColumns[0].label} data-testid="agent-runtime-name">
-        <Link to={detailRoute}>
-          <Truncate content={runtime.name} />
-        </Link>
-      </Td>
-      <Td dataLabel={agentRuntimesColumns[1].label} data-testid="agent-runtime-namespace">
-        {runtime.namespace}
-      </Td>
-      <Td dataLabel={agentRuntimesColumns[2].label} data-testid="agent-runtime-endpoint">
-        <Button
-          variant="link"
-          isInline
-          isDisabled={!hasEndpoints}
-          onClick={() => setIsEndpointsModalOpen(true)}
-          data-testid="agent-runtime-endpoint-view"
-        >
-          View
-        </Button>
-      </Td>
-      <Td dataLabel={agentRuntimesColumns[3].label} data-testid="agent-runtime-status">
-        <AgentRuntimeStatusLabel status={runtime.status} />
-      </Td>
-      <Td isActionCell data-testid="agent-runtime-actions">
-        <ActionsColumn items={actions} />
-      </Td>
+    <>
+      <Tr data-testid={`agent-runtime-row-${runtime.namespace}-${runtime.name}`}>
+        <Td dataLabel={agentRuntimesColumns[0].label} data-testid="agent-runtime-name">
+          <Link to={detailRoute}>
+            <Truncate content={runtime.name} />
+          </Link>
+        </Td>
+        <Td dataLabel={agentRuntimesColumns[1].label} data-testid="agent-runtime-namespace">
+          {runtime.namespace}
+        </Td>
+        <Td dataLabel={agentRuntimesColumns[2].label} data-testid="agent-runtime-endpoint">
+          <Button
+            variant="link"
+            isInline
+            isDisabled={!hasEndpoints}
+            onClick={() => setIsEndpointsModalOpen(true)}
+            data-testid="agent-runtime-endpoint-view"
+          >
+            View
+          </Button>
+        </Td>
+        <Td dataLabel={agentRuntimesColumns[3].label} data-testid="agent-runtime-status">
+          <AgentRuntimeStatusLabel status={runtime.status} />
+        </Td>
+        <Td isActionCell data-testid="agent-runtime-actions">
+          <ActionsColumn items={actions} />
+        </Td>
+      </Tr>
       {isEndpointsModalOpen && (
         <AgentRuntimeEndpointsModal
           runtime={runtime}
           onClose={() => setIsEndpointsModalOpen(false)}
         />
       )}
-    </Tr>
+    </>
   );
 };
 
