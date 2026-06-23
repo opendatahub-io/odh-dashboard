@@ -89,6 +89,10 @@ declare global {
        */
       findSelectOptionByTestId: (testId: string) => Cypress.Chainable<JQuery>;
       /**
+       * Closes an open PatternFly select / MultiSelection menu via Escape on the combobox input.
+       */
+      closeSelectMenu: () => Cypress.Chainable<JQuery>;
+      /**
        * Finds a patternfly checkbox label by test-id and returns a number in that label
        *
        * @param testId the test-id of checkbox
@@ -520,6 +524,17 @@ Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (su
       cy.wrap($el).click();
     }
     return cy.findByTestId(testId);
+  });
+});
+
+Cypress.Commands.add('closeSelectMenu', { prevSubject: 'element' }, (subject) => {
+  Cypress.log({ displayName: 'closeSelectMenu' });
+  return cy.wrap(subject).then(($el) => {
+    const combobox = $el.find('[role="combobox"]');
+    if (combobox.length) {
+      return cy.wrap(combobox).type('{esc}');
+    }
+    return cy.wrap($el).type('{esc}');
   });
 });
 
