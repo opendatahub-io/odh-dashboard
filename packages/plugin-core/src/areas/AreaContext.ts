@@ -9,6 +9,7 @@ export type AreaContextState = {
   /**
    * If value is `null`:
    *   Using the v1 Operator, no status to pull
+   *   TODO: Remove when we no longer want to support v1
    */
   dscStatus: DataScienceClusterKindStatus | null;
   dsciStatus: DataScienceClusterInitializationKindStatus | null;
