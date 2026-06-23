@@ -180,7 +180,7 @@ describe('AutomlExperiments', () => {
     expect(screen.getByText('Fetch failed')).toBeInTheDocument();
   });
 
-  it('should show NoPipelineServer for 404 error (no DSPA)', () => {
+  it('should show generic error for unrelated 404', () => {
     mockGetGenericErrorCode.mockReturnValue(404);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -189,27 +189,25 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Failed to load experiments')).toBeInTheDocument();
+    expect(screen.getByText('Not found')).toBeInTheDocument();
   });
 
-  it('should show error alert when BFF reports no managed AutoML pipelines (auto-creation handles this at submit time)', () => {
-    mockGetGenericErrorCode.mockReturnValue(500);
+  it('should show NoPipelineServer when BFF reports no managed AutoML pipelines', () => {
+    mockGetGenericErrorCode.mockReturnValue(undefined);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
       error: new Error(
-        'no AutoML pipelines found in namespace - ensure managed AutoML pipelines are deployed',
+        'required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
       ),
     });
 
     renderAutoml(<AutomlExperiments />);
 
-    // No longer shows NoPipelineServer — the BFF auto-creates pipelines on submit
     expect(
-      screen.queryByRole('heading', { name: 'Configure a compatible pipeline server' }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText('Failed to load experiments')).toBeInTheDocument();
+      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Failed to load experiments')).not.toBeInTheDocument();
   });
 
   it('should show NoPipelineServer for no Pipeline Server (DSPipelineApplication) message', () => {

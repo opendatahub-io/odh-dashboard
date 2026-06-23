@@ -29,6 +29,35 @@ func NewMaaSModelRefsRepository(logger *slog.Logger, k8sFactory kubernetes.Kuber
 	}
 }
 
+// ListMaaSModelRefs returns all MaaSModelRef resources across all namespaces.
+func (r *MaaSModelRefsRepository) ListMaaSModelRefs(ctx context.Context) ([]models.MaaSModelRefSummary, error) {
+	r.logger.Debug("Listing all MaaSModelRefs")
+
+	client, err := r.k8sFactory.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeClient := client.GetDynamicClient()
+
+	list, err := kubeClient.Resource(constants.MaaSModelRefGvr).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list MaaSModelRefs: %w", err)
+	}
+
+	summaries := make([]models.MaaSModelRefSummary, 0, len(list.Items))
+	for _, item := range list.Items {
+		summary, err := convertUnstructuredToModelRefSummary(&item)
+		if err != nil {
+			r.logger.Warn("Failed to convert MaaSModelRef", slog.String("name", item.GetName()), slog.Any("error", err))
+			continue
+		}
+		summaries = append(summaries, *summary)
+	}
+
+	return summaries, nil
+}
+
 // CreateMaaSModelRef creates a MaaSModelRef resource. When dryRun is true the request is
 // validated by the API server but not persisted.
 func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error) {

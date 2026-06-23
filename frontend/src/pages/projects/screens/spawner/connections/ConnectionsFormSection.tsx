@@ -8,10 +8,11 @@ import {
   FormSection,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { SortableData, Table } from '@odh-dashboard/ui-core';
 import ExtendedButton from '#~/components/ExtendedButton';
-import { SortableData, Table } from '#~/components/table';
 import { createSecret, replaceSecret } from '#~/api';
-import { NotebookKind, ProjectKind } from '#~/k8sTypes';
+import { NotebookKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import {

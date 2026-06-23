@@ -1,6 +1,6 @@
 import { waitFor } from '@testing-library/dom';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { ProjectKind } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
 import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -72,6 +73,7 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		SAToken:         models.SAToken{},
 		ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 		ModelType:       req.ModelType,
+		Capabilities:    constants.DefaultCapabilities(),
 	}, nil
 }
 

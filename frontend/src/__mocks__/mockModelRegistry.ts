@@ -1,4 +1,5 @@
-import { K8sCondition, ModelRegistryKind } from '#~/k8sTypes';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
+import { ModelRegistryKind } from '#~/k8sTypes';
 
 type MockModelRegistryType = {
   name?: string;

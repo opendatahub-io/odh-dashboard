@@ -17,6 +17,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isProjectDetailsSettingsCardExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
@@ -32,7 +33,6 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
 } from '#~/concepts/k8s/utils';
-import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import {
   useProjectPermissionsTabVisible,

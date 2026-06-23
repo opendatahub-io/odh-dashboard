@@ -2,15 +2,16 @@ import React from 'react';
 import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import { K8sResourceCommon, Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { get, set } from 'lodash-es';
-import { ImageStreamKind, HardwareProfileKind, NotebookKind } from '#~/k8sTypes';
-import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import {
-  Toleration,
-  NodeSelector,
-  Identifier,
-  ContainerResources,
   IdentifierResourceType,
-} from '#~/types';
+  type HardwareProfileKind,
+  type Toleration,
+  type NodeSelector,
+  type Identifier,
+  type ContainerResources,
+} from '@odh-dashboard/k8s-core';
+import { ImageStreamKind, NotebookKind } from '#~/k8sTypes';
+import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
 import {
   HardwareProfileConfig,

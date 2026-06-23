@@ -1,7 +1,7 @@
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { act } from 'react';
 import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
-import { PodKind } from '#~/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
 import usePod from '#~/concepts/k8s/pods/usePod';
 import { mockPipelinePodK8sResource } from '#~/__mocks__/mockPipelinePodK8sResource';
 

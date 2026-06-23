@@ -12,11 +12,11 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { BYONImage, BYONImagePackage } from '#~/types';
 import { useAppSelector } from '#~/redux/hooks';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { filterBlankPackages } from '#~/pages/BYONImages/utils';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';

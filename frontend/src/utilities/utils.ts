@@ -1,11 +1,6 @@
 import { LabelProps } from '@patternfly/react-core';
-import {
-  ContainerResources,
-  OdhApplication,
-  OdhDocument,
-  OdhDocumentType,
-  OdhIntegrationApplication,
-} from '#~/types';
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
+import { OdhApplication, OdhDocument, OdhDocumentType, OdhIntegrationApplication } from '#~/types';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 
@@ -193,6 +188,11 @@ export const isEnumMember = <T extends object>(
   }
   return false;
 };
+
+export const isInEnum =
+  <T extends { [s: string]: unknown }>(e: T) =>
+  (token: unknown): token is T[keyof T] =>
+    isEnumMember(token, e);
 
 export const isInternalRouteIntegrationsApp = (internalRoute?: string): internalRoute is string =>
   internalRoute?.startsWith('/api/') ?? false;

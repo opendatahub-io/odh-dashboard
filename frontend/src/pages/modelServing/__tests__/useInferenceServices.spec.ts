@@ -1,12 +1,13 @@
 import { act } from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import { useAccessReview } from '#~/api';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
-import { InferenceServiceKind, KnownLabels } from '#~/k8sTypes';
+import { InferenceServiceKind } from '#~/k8sTypes';
 
 const mockInferenceServices = [
   mockInferenceServiceK8sResource({ name: 'item-1' }),

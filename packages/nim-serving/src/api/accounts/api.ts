@@ -1,4 +1,5 @@
-import { NIMAccountKind, SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
+import type { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import {
   assembleNIMSecret,

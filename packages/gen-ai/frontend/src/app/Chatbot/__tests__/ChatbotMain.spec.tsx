@@ -13,6 +13,7 @@ import { MaaSModel } from '~/app/types';
 // Mock dependencies
 jest.mock('react-router-dom', () => ({
   useNavigate: () => jest.fn(),
+  useSearchParams: () => [new URLSearchParams(), jest.fn()],
 }));
 
 jest.mock('~/app/hooks/useFetchBFFConfig');

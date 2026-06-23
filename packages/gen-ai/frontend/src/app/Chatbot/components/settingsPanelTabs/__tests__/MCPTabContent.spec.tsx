@@ -141,4 +141,20 @@ describe('MCPTabContent', () => {
 
     expect(screen.getByTestId('config-id')).toHaveTextContent('test-config');
   });
+
+  it('remounts MCPServersPanel when configId changes', () => {
+    const { rerender } = render(<MCPTabContent {...defaultProps} configId="config-a" />);
+
+    const panelBefore = screen.getByTestId('mcp-servers-panel');
+    expect(screen.getByTestId('config-id')).toHaveTextContent('config-a');
+
+    rerender(<MCPTabContent {...defaultProps} configId="config-b" />);
+
+    const panelAfter = screen.getByTestId('mcp-servers-panel');
+    expect(screen.getByTestId('config-id')).toHaveTextContent('config-b');
+
+    // key={configId} causes React to unmount and remount the component,
+    // producing a different DOM node instance
+    expect(panelBefore).not.toBe(panelAfter);
+  });
 });

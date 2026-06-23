@@ -107,7 +107,7 @@ describe('usePromptsList', () => {
 
   it('should return prompts when loaded successfully', () => {
     mockUseInfiniteQuery.mockReturnValue({
-      data: mockPrompts,
+      data: [{ prompts: mockPrompts, total_count: mockPrompts.length }],
       isLoading: false,
       isFetchingNextPage: false,
       hasNextPage: false,
@@ -118,13 +118,14 @@ describe('usePromptsList', () => {
     const { result } = testHook(usePromptsList)();
 
     expect(result.current.prompts).toEqual(mockPrompts);
+    expect(result.current.totalCount).toBe(mockPrompts.length);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeNull();
   });
 
   it('should return empty array when no prompts exist', () => {
     mockUseInfiniteQuery.mockReturnValue({
-      data: [],
+      data: [{ prompts: [], total_count: 0 }],
       isLoading: false,
       isFetchingNextPage: false,
       hasNextPage: false,
@@ -135,6 +136,7 @@ describe('usePromptsList', () => {
     const { result } = testHook(usePromptsList)();
 
     expect(result.current.prompts).toEqual([]);
+    expect(result.current.totalCount).toBe(0);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeNull();
   });
@@ -158,9 +160,9 @@ describe('usePromptsList', () => {
   });
 
   it('should pass filter options to query', async () => {
-    mockListMLflowPrompts.mockResolvedValue({ prompts: [] });
+    mockListMLflowPrompts.mockResolvedValue({ prompts: [], total_count: 0 });
     mockUseInfiniteQuery.mockReturnValue({
-      data: [],
+      data: [{ prompts: [], total_count: 0 }],
       isLoading: false,
       isFetchingNextPage: false,
       hasNextPage: false,
@@ -190,7 +192,7 @@ describe('usePromptsList', () => {
 
   it('should expose pagination state', () => {
     mockUseInfiniteQuery.mockReturnValue({
-      data: mockPrompts,
+      data: [{ prompts: mockPrompts, total_count: mockPrompts.length }],
       isLoading: false,
       isFetchingNextPage: true,
       hasNextPage: true,

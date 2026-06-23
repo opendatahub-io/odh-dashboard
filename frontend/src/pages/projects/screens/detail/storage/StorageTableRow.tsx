@@ -10,7 +10,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import StorageSizeBar from '#~/pages/projects/components/StorageSizeBars';
 import { TableRowTitleDescription } from '#~/components/table';
 import {

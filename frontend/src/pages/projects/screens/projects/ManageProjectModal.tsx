@@ -10,9 +10,9 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { createProject, updateProject } from '#~/api';
 import { useUser } from '#~/redux/selectors';
-import { ProjectKind } from '#~/k8sTypes';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 

@@ -151,6 +151,10 @@ export const createChatbotConfigStore = (
       },
     },
     configIds: ['default'],
+    profileApplied: false,
+    loadedProfileId: null,
+    loadedProfileDisplayName: null,
+    loadedProfileDescription: null,
   };
 
   return create<ChatbotConfigStore>()(
@@ -271,6 +275,10 @@ const createStoreActions = (
       activePrompt: deepCopyPrompt(sourceConfig.activePrompt),
       dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
       variableValues: { ...sourceConfig.variableValues },
+      selectedAsrModel: sourceConfig.selectedAsrModel,
+      isAsrModelEnabled: sourceConfig.isAsrModelEnabled,
+      hasVisionImage: sourceConfig.hasVisionImage,
+      isPreview: sourceConfig.isPreview,
     };
 
     set(
@@ -569,6 +577,59 @@ const createStoreActions = (
     );
   },
 
+  // ASR model actions
+  updateSelectedAsrModel: (id: string, value: string) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.selectedAsrModel !== value) {
+          config.selectedAsrModel = value;
+        }
+      },
+      false,
+      'updateSelectedAsrModel',
+    );
+  },
+
+  updateAsrModelEnabled: (id: string, value: boolean) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.isAsrModelEnabled !== value) {
+          config.isAsrModelEnabled = value;
+        }
+      },
+      false,
+      'updateAsrModelEnabled',
+    );
+  },
+
+  updatePreviewMode: (id: string, value: boolean) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.isPreview !== value) {
+          config.isPreview = value;
+        }
+      },
+      false,
+      'updatePreviewMode',
+    );
+  },
+
+  updateHasVisionImage: (id: string, value: boolean) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.hasVisionImage !== value) {
+          config.hasVisionImage = value;
+        }
+      },
+      false,
+      'updateHasVisionImage',
+    );
+  },
+
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => {
     set(
@@ -584,6 +645,34 @@ const createStoreActions = (
       }),
       false,
       'resetConfiguration',
+    );
+  },
+
+  applyAgentProfile: (
+    config: Partial<ChatbotConfiguration>,
+    profileId?: string,
+    displayName?: string,
+    description?: string,
+  ) => {
+    set(
+      () => ({
+        ...storeInitialState,
+        profileApplied: true,
+        loadedProfileId: profileId ?? null,
+        loadedProfileDisplayName: displayName ?? null,
+        loadedProfileDescription: description ?? null,
+        configurations: {
+          default: {
+            ...DEFAULT_CONFIGURATION,
+            ...config,
+            // Profile load always starts with a clean slate — never read from sessionStorage.
+            // The correct tool selections are applied explicitly via saveToolSelections afterward.
+            mcpToolSelections: config.mcpToolSelections ?? {},
+          },
+        },
+      }),
+      false,
+      'applyAgentProfile',
     );
   },
 

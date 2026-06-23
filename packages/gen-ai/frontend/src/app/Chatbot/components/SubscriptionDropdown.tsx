@@ -9,12 +9,14 @@ interface SubscriptionDropdownProps {
   selectedModel: string;
   selectedSubscription: string;
   onSubscriptionChange: (subscription: string) => void;
+  isDisabled?: boolean;
 }
 
 const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> = ({
   selectedModel,
   selectedSubscription,
   onSubscriptionChange,
+  isDisabled = false,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const { maasModels } = React.useContext(ChatbotContext);
@@ -35,15 +37,16 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
 
   // Auto-select highest-priority subscription when current selection is empty or invalid.
   // Subscriptions arrive pre-sorted by priority (desc) from the MaaS API.
+  // Skip mutation when the component is disabled (e.g. preview mode).
   React.useEffect(() => {
-    if (subscriptions.length === 0) {
+    if (isDisabled || subscriptions.length === 0) {
       return;
     }
     const isCurrentSelectionValid = subscriptions.some((s) => s.name === selectedSubscription);
     if (!isCurrentSelectionValid) {
       onSubscriptionChange(subscriptions[0].name);
     }
-  }, [subscriptions, selectedSubscription, onSubscriptionChange]);
+  }, [isDisabled, subscriptions, selectedSubscription, onSubscriptionChange]);
 
   if (subscriptions.length === 0) {
     return null;
@@ -83,6 +86,7 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
             ref={toggleRef}
             onClick={() => setIsOpen(!isOpen)}
             isExpanded={isOpen}
+            isDisabled={isDisabled}
             style={{ width: '100%' }}
             data-testid="subscription-selector-toggle"
           >

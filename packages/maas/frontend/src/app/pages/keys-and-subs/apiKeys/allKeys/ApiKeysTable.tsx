@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Pagination, Spinner, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { APIKey, SubscriptionDetail } from '~/app/types/api-key';
 import { ApiKeySortField, getVisibleApiKeyColumns } from './columns';
 import ApiKeysTableRow from './ApiKeysTableRow';

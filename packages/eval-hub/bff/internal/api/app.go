@@ -40,6 +40,8 @@ const (
 	ProvidersPath            = ApiPathPrefix + "/evaluations/providers"
 	EvalHubCRStatusPath      = ApiPathPrefix + "/evalhub/status"
 	EvalHubServiceHealthPath = ApiPathPrefix + "/evalhub/health"
+	InferenceServicesPath    = ApiPathPrefix + "/inferenceservices"
+	VerifyConnectionPath     = ApiPathPrefix + "/evaluations/verify-connection"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -211,11 +213,17 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
 
+	// InferenceService listing (user-token dynamic client, no EvalHub REST client needed)
+	apiRouter.GET(InferenceServicesPath, app.AttachNamespace(app.RequireAccessToService(app.InferenceServicesHandler)))
+
+	// Connection verification (probes external endpoints, no EvalHub REST client needed)
+	apiRouter.POST(VerifyConnectionPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyConnectionHandler)))
+
 	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
 	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.EvalHubCRStatusHandler))
 
-	// EvalHub service health endpoint: performs per-request CR discovery in the dashboard
-	// namespace (no ?namespace= needed) and pings the EvalHub service if a URL is found.
+	// EvalHub service health endpoint: accepts an optional ?namespace= to enable ConfigMap/CR
+	// discovery in the user's namespace. Falls back to dashboardNamespace when omitted.
 	// Returns a three-state response: "healthy", "service-unreachable", or "cr-not-found".
 	apiRouter.GET(EvalHubServiceHealthPath, app.EvalHubServiceHealthHandler)
 

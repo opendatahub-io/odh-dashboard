@@ -17,11 +17,14 @@ import {
   CreateEvaluationJobResponse,
   EvaluationJob,
   EvaluationJobsResponse,
+  InferenceServicesResponse,
   ListCollectionsParams,
   ListEvaluationJobsParams,
   NamespaceKind,
   Provider,
   ProvidersResponse,
+  VerifyConnectionRequest,
+  VerifyConnectionResponse,
 } from '~/app/types';
 
 export const getUser =
@@ -61,10 +64,15 @@ export const getEvalHubCRStatus =
     });
 
 export const getEvalHubHealth =
-  (hostPath: string) =>
+  (hostPath: string, namespace?: string) =>
   (opts: APIOptions): Promise<EvalHubHealthResponse> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evalhub/health`, {}, opts),
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evalhub/health`,
+        namespace ? { namespace } : {},
+        opts,
+      ),
     ).then((response) => {
       if (isModArchResponse<EvalHubHealthResponse>(response)) {
         return response.data;
@@ -239,6 +247,41 @@ export const createEvaluationJob =
       ),
     ).then((response) => {
       if (isModArchResponse<CreateEvaluationJobResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getInferenceServices =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<InferenceServicesResponse> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/inferenceservices`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<InferenceServicesResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const verifyConnection =
+  (hostPath: string, namespace: string, request: VerifyConnectionRequest) =>
+  (opts: APIOptions): Promise<VerifyConnectionResponse> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/verify-connection`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<VerifyConnectionResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

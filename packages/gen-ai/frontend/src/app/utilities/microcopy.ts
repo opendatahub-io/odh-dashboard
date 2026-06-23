@@ -62,9 +62,66 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
     title: 'Request was rate limited',
     description: 'Too many requests to the model server. Wait a moment before trying again.',
   },
+  // ASR error codes (from ASRCode* constants in constants/asr.go)
+  'asr:model_not_found': {
+    title: 'Transcription model not found',
+    description: 'The selected transcription model is no longer available in this namespace.',
+  },
+  'asr:model_not_running': {
+    title: 'Transcription model not ready',
+    description: 'The transcription model is starting up. Wait a moment and try again.',
+  },
+  'asr:model_no_endpoint': {
+    title: 'Transcription model has no endpoint',
+    description: 'The model has no reachable endpoint. Check its deployment status.',
+  },
+  'asr:model_invalid': {
+    title: 'Invalid transcription model',
+    description: 'The selected model cannot be used for audio transcription.',
+  },
+  'asr:unreachable': {
+    title: 'Transcription model unreachable',
+    description:
+      'Could not connect to the transcription model. Ensure it is running and accessible.',
+  },
+  'asr:timeout': {
+    title: 'Transcription timed out',
+    description:
+      'The transcription took too long. The audio file may be too large or the model is overloaded.',
+  },
+  'asr:auth_failed': {
+    title: 'Transcription model access denied',
+    description: 'Authentication to the transcription model failed. Verify access configuration.',
+  },
+  'asr:service_error': {
+    title: 'Transcription model error',
+    description: 'The transcription model returned an error. Try again or check model health.',
+  },
+  'asr:invalid_response': {
+    title: 'Unexpected response from model',
+    description: 'The transcription model returned an unexpected response. Try again.',
+  },
+  'asr:no_speech': {
+    title: 'No speech detected',
+    description: 'No speech was found in the audio file. Try a clearer recording.',
+  },
+  'asr:file_retrieval_failed': {
+    title: 'Audio file unavailable',
+    description: 'Could not retrieve the uploaded audio file. It may have expired.',
+  },
+  'asr:invalid_format': {
+    title: 'Unsupported audio format',
+    description: 'The file does not appear to be a valid WAV or MP3 audio file.',
+  },
 };
 
 const partialFailureTemplates: Record<string, MicrocopyTemplate> = {
+  // RAG error codes (from OGXErr* constants in llamastack/errors.go)
+  'rag:vector_store_timeout': {
+    title: 'Vector store timed out',
+    description:
+      'The vector store did not respond in time. Contact your Platform Engineer to verify the connection.',
+  },
   // Guardrails error codes (from BFF constants in guardrails.go)
   'guardrails:guardrail_service_unavailable': {
     title: 'Guardrail check was not applied',

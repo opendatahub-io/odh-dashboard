@@ -28,6 +28,8 @@ spec:
           protocol: TCP
         - port: 8743
           protocol: TCP
+        - port: 8843
+          protocol: TCP
       from:
         # Allow traffic from OpenShift ingress controller
         - namespaceSelector:

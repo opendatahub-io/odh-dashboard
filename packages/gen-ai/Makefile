@@ -39,11 +39,11 @@ endif
 ifndef LLAMA_STACK_URL
 	$(error LLAMA_STACK_URL is not set. Use 'make dev-bff-mock' for mock mode or set LLAMA_STACK_URL environment variable)
 endif
-	cd bff && make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) MLFLOW_URL=$(MLFLOW_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer "
+	cd bff && make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) MLFLOW_URL=$(MLFLOW_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer "
 
 .PHONY: dev-bff-inter-bff
-dev-bff-inter-bff: ## Run BFF with MaaS BFF dev URL for inter-BFF testing (mock K8s, real HTTP to MaaS BFF on port 4000)
-	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true AUTH_METHOD=user_token LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev" BFF_MAAS_DEV_URL=http://localhost:4000/api/v1
+dev-bff-inter-bff: ## Run BFF with MaaS BFF dev URL for inter-BFF testing (mock K8s, real HTTP to MaaS BFF on port 8081)
+	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true AUTH_METHOD=user_token LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev" BFF_MAAS_DEV_URL=http://localhost:$${MAAS_LOCAL_PORT:-8081}/api/v1
 
 .PHONY: dev-bff-debug
 dev-bff-debug: ## Run BFF with Delve debugger (VSCode can attach - requires Delve installation, see readme)
@@ -53,7 +53,7 @@ endif
 ifndef LLAMA_STACK_URL
 	$(error LLAMA_STACK_URL is not set. Use 'make dev-bff-mock-debug' for mock mode or set LLAMA_STACK_URL environment variable)
 endif
-	cd bff && make debug LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) MLFLOW_URL=$(MLFLOW_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer "
+	cd bff && make debug LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) MLFLOW_URL=$(MLFLOW_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer "
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
@@ -96,6 +96,11 @@ dev-portforward: ## Start port-forwarding in separate terminals
 	@sleep 1
 	@echo "Starting port-forward for lsd-genai-playground-service..."
 	@oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/lsd-genai-playground-service 8321:8321 &
+	@if [ -n "$${ASR_SERVICE_NAME}" ]; then \
+		sleep 1; \
+		echo "Starting port-forward for ASR model ($${ASR_SERVICE_NAME}) on port $${ASR_LOCAL_PORT:-8790}..."; \
+		oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/$${ASR_SERVICE_NAME} $${ASR_LOCAL_PORT:-8790}:8080 & \
+	fi
 	@echo "Port-forwarding started in background!"
 
 .PHONY: dev-start

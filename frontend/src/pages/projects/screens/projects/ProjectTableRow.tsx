@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Content, ContentVariants, Timestamp, Flex, FlexItem } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { ProjectKind } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import useProjectTableRowItems from '#~/pages/projects/screens/projects/useProjectTableRowItems';
 import { getProjectOwner, isAiProject } from '#~/concepts/projects/utils';
 import { TableRowTitleDescription } from '#~/components/table';
-import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import { getDescriptionFromK8sResource } from '#~/concepts/k8s/utils';
 import { allProjectFilterKey } from '#~/pages/projects/screens/projects/const';
 import ProjectLink from './ProjectLink';

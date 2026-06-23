@@ -88,7 +88,7 @@ class ModelVersionDetails {
   }
 
   findDetailsTab() {
-    return cy.findByTestId('model-versions-details-tab');
+    return cy.findByTestId('details-tab');
   }
 
   findRegisteredDeploymentsTab() {
