@@ -5,6 +5,7 @@ import type { DashboardResource, DurationString, TimeRangeValue } from '@perses-
 import {
   DashboardProvider,
   DatasourceStoreProvider,
+  PanelFocusProvider,
   VariableProvider,
 } from '@perses-dev/dashboards';
 import {
@@ -146,13 +147,15 @@ const PersesProvider: React.FC<PersesProviderProps> = ({
   if (syncToUrl) {
     return (
       <QueryClientProvider client={queryClient}>
-        <QueryParamProvider adapter={ReactRouter6Adapter}>
-          <PersesProviderWithUrlSync
-            {...rest}
-            defaultDuration={defaultDuration}
-            defaultRefreshInterval={defaultRefreshInterval}
-          />
-        </QueryParamProvider>
+        <PanelFocusProvider>
+          <QueryParamProvider adapter={ReactRouter6Adapter}>
+            <PersesProviderWithUrlSync
+              {...rest}
+              defaultDuration={defaultDuration}
+              defaultRefreshInterval={defaultRefreshInterval}
+            />
+          </QueryParamProvider>
+        </PanelFocusProvider>
       </QueryClientProvider>
     );
   }
