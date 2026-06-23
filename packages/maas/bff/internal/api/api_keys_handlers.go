@@ -167,9 +167,6 @@ func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ ht
 // enrichAPIKeysWithSubscriptionDetails fetches subscription data from the MaaS API
 // and populates SubscriptionDetails on the response with model names per subscription.
 func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *models.APIKeyListResponse) {
-	details := make(map[string]models.SubscriptionDetail)
-	response.SubscriptionDetails = details
-
 	subNames := make(map[string]struct{})
 	for _, key := range response.Data {
 		if key.SubscriptionName != "" {
@@ -186,6 +183,8 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 		app.logger.Warn("Failed to fetch subscriptions for API key enrichment", "error", err)
 		return
 	}
+
+	details := make(map[string]models.SubscriptionDetail, len(subNames))
 	for _, sub := range subscriptions {
 		if _, needed := subNames[sub.SubscriptionIDHeader]; !needed {
 			continue
@@ -204,6 +203,7 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 		}
 		details[sub.SubscriptionIDHeader] = models.SubscriptionDetail{DisplayName: displayName, Models: modelNames}
 	}
+	response.SubscriptionDetails = details
 }
 
 // GetAPIKeyHandler handles GET /api/v1/api-keys/:id

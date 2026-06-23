@@ -26,7 +26,6 @@ export type UseApiKeysTableStateReturn = {
   refresh: () => void;
   filterData: ApiKeyFilterDataType;
   isKeyInactive: (key: APIKey) => boolean;
-  clientFiltered: boolean;
   localUsername: string;
   setLocalUsername: React.Dispatch<React.SetStateAction<string>>;
   page: number;
@@ -95,7 +94,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     [rawResponse.subscriptionDetails],
   );
 
-  const { data: filteredData, clientFiltered } = React.useMemo(
+  const { data: filteredData } = React.useMemo(
     () => applyInactiveFilter(rawResponse.data, filterData.statuses, isKeyInactive),
     [rawResponse.data, filterData.statuses, isKeyInactive],
   );
@@ -183,7 +182,6 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     refresh,
     filterData,
     isKeyInactive,
-    clientFiltered,
     localUsername,
     setLocalUsername,
     page,
