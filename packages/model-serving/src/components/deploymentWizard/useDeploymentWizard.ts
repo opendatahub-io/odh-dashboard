@@ -87,11 +87,7 @@ export const useModelDeploymentWizard = (
     initialData?.createConnectionData,
     modelLocationData.data,
   );
-  const modelType = useModelTypeField(
-    initialData?.modelTypeField,
-    modelLocationData.data,
-    vLLMDeploymentOnMaaSEnabled,
-  );
+  const modelType = useModelTypeField(initialData?.modelTypeField, modelLocationData.data);
 
   // loaded state
   const modelSourceLoaded = React.useMemo(() => {
@@ -130,12 +126,14 @@ export const useModelDeploymentWizard = (
     initialData?.externalRoute ?? undefined,
     modelType,
     formState.modelServer,
+    formState.deploymentMethod,
   );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
     modelType,
     formState.modelServer,
+    formState.deploymentMethod,
     canCreateRoleBindings,
   );
 
@@ -147,6 +145,7 @@ export const useModelDeploymentWizard = (
     initialData?.deploymentStrategy ?? undefined,
     modelType,
     formState.modelServer,
+    formState.deploymentMethod,
   );
 
   // Step 4: Summary
