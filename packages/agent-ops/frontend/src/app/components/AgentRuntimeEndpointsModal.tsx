@@ -66,8 +66,8 @@ const AgentRuntimeEndpointsModal: React.FC<AgentRuntimeEndpointsModalProps> = ({
               <StackItem key={field.id}>
                 <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
                   <FlexItem>
-                    <Content component={ContentVariants.p} className="pf-v6-u-font-weight-bold">
-                      {field.label}
+                    <Content component={ContentVariants.p}>
+                      <strong>{field.label}</strong>
                     </Content>
                   </FlexItem>
                   <FlexItem>
@@ -82,7 +82,7 @@ const AgentRuntimeEndpointsModal: React.FC<AgentRuntimeEndpointsModalProps> = ({
                     </ClipboardCopy>
                   </FlexItem>
                   <FlexItem>
-                    <Content component={ContentVariants.small} className="pf-v6-u-color-text-200">
+                    <Content component={ContentVariants.small}>
                       {field.description}
                     </Content>
                   </FlexItem>

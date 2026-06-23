@@ -52,17 +52,25 @@ const AgentDeploymentListPage: React.FC = () => {
     [runtimes],
   );
 
+  const safeNamespaces = React.useMemo(
+    () =>
+      namespaces.filter(
+        (ns): ns is { name: string } => typeof ns?.name === 'string' && ns.name.length > 0,
+      ),
+    [namespaces],
+  );
+
   // When landing on /deployments with no namespace selected, redirect to the dashboard's
   // active project (preferred namespace) or the first accessible project.
   React.useEffect(() => {
-    if (!namespace && namespacesLoaded && namespaces.length > 0) {
+    if (!namespace && namespacesLoaded && safeNamespaces.length > 0) {
       const validPreferredNamespace = preferredNamespace
-        ? namespaces.find((n) => n.name === preferredNamespace.name)
+        ? safeNamespaces.find((n) => n.name === preferredNamespace.name)
         : undefined;
-      const redirectNamespace = validPreferredNamespace ?? namespaces[0];
+      const redirectNamespace = validPreferredNamespace ?? safeNamespaces[0];
       navigate(agentOpsDeploymentsRoute(redirectNamespace.name), { replace: true });
     }
-  }, [namespace, namespacesLoaded, namespaces, preferredNamespace, navigate]);
+  }, [namespace, namespacesLoaded, safeNamespaces, preferredNamespace, navigate]);
 
   const [filterText, setFilterText] = React.useState('');
   const clearFilters = React.useCallback(() => setFilterText(''), []);
