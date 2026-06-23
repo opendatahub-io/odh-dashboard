@@ -13,9 +13,9 @@ import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import {
   LLMInferenceServiceConfigModel,
+  TopologyType,
   CONFIG_TYPE_LABEL,
   CONFIG_TYPE_ROUTER,
-  type TopologyType,
   type LLMInferenceServiceConfigKind,
 } from '../types';
 
@@ -128,6 +128,9 @@ export const useWatchLLMInferenceServiceConfigs = (
 
 // --- Topology Configuration APIs ---
 
+const TOPOLOGY_TYPE_VALUES = Object.values(TopologyType);
+const TOPOLOGY_LABEL_SELECTOR = `${CONFIG_TYPE_LABEL} in (${TOPOLOGY_TYPE_VALUES.join(',')})`;
+
 export const listTopologyConfigs = async (
   namespace: string,
   topologyType: TopologyType,
@@ -143,23 +146,17 @@ export const listTopologyConfigs = async (
   });
 };
 
-/**
- * Fetches all configs and filters client-side because topology types use distinct label values
- * (e.g., workload-single-node, workload-multi-node-data-parallel) that can't be matched
- * with a single server-side label selector.
- */
 export const listAllTopologyConfigs = async (
   namespace: string,
 ): Promise<LLMInferenceServiceConfigKind[]> => {
-  const results = await k8sListResourceItems<LLMInferenceServiceConfigKind>({
+  return k8sListResourceItems<LLMInferenceServiceConfigKind>({
     model: LLMInferenceServiceConfigModel,
     queryOptions: {
       ns: namespace,
+      queryParams: {
+        labelSelector: TOPOLOGY_LABEL_SELECTOR,
+      },
     },
-  });
-  return results.filter((config) => {
-    const configType = config.metadata.labels?.[CONFIG_TYPE_LABEL];
-    return configType && configType !== CONFIG_TYPE_ROUTER && configType !== 'accelerator';
   });
 };
 
@@ -182,6 +179,15 @@ export const useWatchTopologyConfigs = (
       isList: true,
       groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
       namespace,
+      selector: {
+        matchExpressions: [
+          {
+            key: CONFIG_TYPE_LABEL,
+            operator: 'In',
+            values: TOPOLOGY_TYPE_VALUES,
+          },
+        ],
+      },
     },
     LLMInferenceServiceConfigModel,
     opts,

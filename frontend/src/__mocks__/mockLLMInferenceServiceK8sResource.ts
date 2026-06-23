@@ -47,7 +47,7 @@ export const mockLLMInferenceServiceK8sResource = ({
   secretName,
   gatewayRefs,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
-  apiVersion: 'serving.kserve.io/v1alpha1',
+  apiVersion: 'serving.kserve.io/v1alpha2',
   kind: 'LLMInferenceService',
   metadata: {
     annotations: {
