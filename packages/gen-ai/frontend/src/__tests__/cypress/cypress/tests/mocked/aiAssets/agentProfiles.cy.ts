@@ -124,7 +124,7 @@ describe('AI Assets - Agent Profiles', () => {
 describe('AI Assets - Agent Profiles (empty state)', () => {
   beforeEach(() => {
     setupAgentProfilesIntercepts({ namespace: TEST_NAMESPACE, empty: true });
-    aiAssetsPage.visit(TEST_NAMESPACE, AGENT_PROFILE_PARAMS);
+    aiAssetsPage.visit(TEST_NAMESPACE);
     aiAssetsPage.switchToAgentProfilesTab();
     cy.wait('@listAgentProfiles');
   });
