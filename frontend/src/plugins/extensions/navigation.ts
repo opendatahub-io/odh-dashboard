@@ -72,6 +72,19 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
     },
   },
   {
+    type: 'app.tab-route/page',
+    properties: {
+      id: 'agents-tab-page',
+      title: 'Agents',
+      href: '/ai-hub/agents',
+      path: '/ai-hub/agents/*',
+      group: '3_agents',
+      section: 'ai-hub',
+      objectType: 'agent-ops',
+      alwaysShowTabBar: true,
+    },
+  },
+  {
     type: 'app.navigation/section',
     properties: {
       id: 'develop-and-train',
