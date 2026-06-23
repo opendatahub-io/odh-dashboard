@@ -1,40 +1,30 @@
 # AGENTS.md - Modular Architecture Starter
 
-This document provides guidance for AI agents and developers working on mod-arch-starter projects.
-This is a **starter template** for building modular architecture applications with a React frontend
-and Go backend-for-frontend (BFF).
+This document provides guidance for AI agents and developers working on mod-arch-starter projects. This is a **starter template** for building modular architecture applications with a React frontend and Go backend-for-frontend (BFF).
 
 ## Shared Library: autox-core/services
 
-This package depends on `autox-core/services`, a shared Go library consumed by both automl and
-autorag BFFs. Before working on BFF code, read @../autox-core/services/AGENTS.md for architecture
-decisions, layering rules, error handling conventions, and the "autox-core first" principle (build
-generic capabilities there before adding product-specific logic here).
+This package depends on `autox-core/services`, a shared Go library consumed by both automl and autorag BFFs. Before working on BFF code, read @../autox-core/services/AGENTS.md for architecture decisions, layering rules, error handling conventions, and the "autox-core first" principle (build generic capabilities there before adding product-specific logic here).
 
 ## Mandatory Development Flow
 
-**CRITICAL: Never skip or reorder these stages. A PR that implements UI before the API contract will
-be rejected.**
+**CRITICAL: Never skip or reorder these stages. A PR that implements UI before the API contract will be rejected.**
 
 ### 1. Contract First
 
-Describe every capability in `api/openapi/mod-arch.yaml` (or a new file under `api/openapi/`). All
-request/response objects must be documented before coding.
+Describe every capability in `api/openapi/mod-arch.yaml` (or a new file under `api/openapi/`). All request/response objects must be documented before coding.
 
 ### 2. BFF Stub Second
 
-Add handlers and mock-returning services in `bff/internal/api` and `bff/internal/mocks` that satisfy
-the new contract. Wire them in `bff/cmd/main.go` and expose feature flags/env vars as needed.
+Add handlers and mock-returning services in `bff/internal/api` and `bff/internal/mocks` that satisfy the new contract. Wire them in `bff/cmd/main.go` and expose feature flags/env vars as needed.
 
 ### 3. Frontend Third
 
-Build UI routes inside `frontend/src/app` only after the stub endpoints respond with realistic
-shapes. Consume generated types instead of duplicating schemas.
+Build UI routes inside `frontend/src/app` only after the stub endpoints respond with realistic shapes. Consume generated types instead of duplicating schemas.
 
 ### 4. Production BFF Last
 
-Replace mocks with Kubernetes-aware logic (repositories, clients, RBAC) before shipping. Verify the
-BFF against a real cluster or the manifests in `manifests/`.
+Replace mocks with Kubernetes-aware logic (repositories, clients, RBAC) before shipping. Verify the BFF against a real cluster or the manifests in `manifests/`.
 
 ---
 
@@ -182,8 +172,7 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 - One OpenAPI document per module capability
 - Reference shared schemas to avoid drift
 - Add examples for every schema and response so mock servers can generate useful data
-- After updating the spec, regenerate clients/types for both Go and TypeScript if your workflow
-  requires them
+- After updating the spec, regenerate clients/types for both Go and TypeScript if your workflow requires them
 - **Reviewers must see a diff in the OpenAPI file alongside code changes**
 
 ### Current Endpoints
@@ -211,8 +200,7 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Development Guidelines
 
-- Keep stub implementations close to production ones: identical signatures, logged TODOs, and mock
-  data that matches the OpenAPI examples
+- Keep stub implementations close to production ones: identical signatures, logged TODOs, and mock data that matches the OpenAPI examples
 - Every new handler must include:
   - Request validation
   - Structured logging
@@ -222,8 +210,7 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
   - `make lint` - Run linter
   - `make test` - Run tests
   - `make build` - Build binary
-- When the feature is ready for production, connect to Kubernetes through the helpers under
-  `internal/helpers/k8s.go`
+- When the feature is ready for production, connect to Kubernetes through the helpers under `internal/helpers/k8s.go`
 - Gate risky behavior behind flags/env vars defined in `cmd/main.go`
 
 ### BFF Configuration Flags
@@ -256,19 +243,15 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 - **mod-arch-shared** - Kubeflow flavor only (shared UI components)
 - **mod-arch-kubeflow** - Kubeflow flavor only (MUI theming, Kubeflow-specific utilities)
 
-> **Note**: When using the `default` flavor (PatternFly-only), `mod-arch-shared` and
-> `mod-arch-kubeflow` are **not installed**. Only `mod-arch-core` is included.
+> **Note**: When using the `default` flavor (PatternFly-only), `mod-arch-shared` and `mod-arch-kubeflow` are **not installed**. Only `mod-arch-core` is included.
 
 ### Development Guidelines
 
 - **PatternFly components only** unless Kubeflow flavor explicitly requires Material UI
-- **Namespace awareness is mandatory**: Use `useNamespaceSelector` / `useNamespaces` hooks instead
-  of inventing new global state
-- All remote calls flow through API clients generated from the OpenAPI spec or thin wrappers in
-  `src/api/`. **Do not fetch directly from hard-coded URLs**
+- **Namespace awareness is mandatory**: Use `useNamespaceSelector` / `useNamespaces` hooks instead of inventing new global state
+- All remote calls flow through API clients generated from the OpenAPI spec or thin wrappers in `src/api/`. **Do not fetch directly from hard-coded URLs**
 - Follow routing conventions in `src/app/AppRoutes.tsx`
-- Use layout primitives from mod-arch-shared (`ApplicationsPage`, `DashboardEmptyTableView`, etc.) -
-  **Kubeflow flavor only**
+- Use layout primitives from mod-arch-shared (`ApplicationsPage`, `DashboardEmptyTableView`, etc.) - **Kubeflow flavor only**
 - Keep state in React Query hooks or existing context providers from `mod-arch-core`
 
 ### Before Submitting
@@ -390,13 +373,11 @@ make test   # Run tests
 
 1. Use **Go 1.26+** for the BFF and **Node 22+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
-3. Stick to **PatternFly components** and utilities; Material UI appears only when Kubeflow flavor
-   explicitly requires it
+3. Stick to **PatternFly components** and utilities; Material UI appears only when Kubeflow flavor explicitly requires it
 4. Run tests before pushing:
    - Frontend: `npm run test` in `frontend/`
    - BFF: `make lint && make test` in `bff/`
-5. Keep docs updated (`docs/*.md`, `frontend/docs/*.md`) when you change workflows, env vars, or
-   deployment steps
+5. Keep docs updated (`docs/*.md`, `frontend/docs/*.md`) when you change workflows, env vars, or deployment steps
 
 ---
 
@@ -436,5 +417,4 @@ npx mod-arch-installer my-module --flavor kubeflow
 - [Frontend Dev Setup](frontend/docs/dev-setup.md)
 - [Frontend Testing](frontend/docs/testing.md)
 - [BFF Documentation](bff/README.md)
-- [OpenAPI Spec](api/openapi/mod-arch.yaml) -
-  [View in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/opendatahub-io/mod-arch-library/main/mod-arch-starter/api/openapi/mod-arch.yaml)
+- [OpenAPI Spec](api/openapi/mod-arch.yaml) - [View in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/opendatahub-io/mod-arch-library/main/mod-arch-starter/api/openapi/mod-arch.yaml)
