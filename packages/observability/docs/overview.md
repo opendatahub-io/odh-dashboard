@@ -4,7 +4,6 @@
 
 - `@odh-dashboard/observability` embeds [Perses](https://perses.dev) dashboards into ODH Dashboard for metrics, monitoring, and tracing around AI workloads and infrastructure.
 - Frontend-only; main dashboard backend proxies Perses at `/perses/api`.
-- Tech Preview; aimed at admin users.
 
 ## Design Intent
 
