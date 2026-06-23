@@ -63,8 +63,8 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
       <Td dataLabel="Labels" data-testid="role-labels-cell">
         {labelEntries.length > 0 ? (
           <LabelGroup>
-            {labelEntries.map(([, value]) => (
-              <Label key={value} isCompact variant="outline" data-testid={`role-label-${value}`}>
+            {labelEntries.map(([key, value]) => (
+              <Label key={key} isCompact variant="outline" data-testid={`role-label-${key}`}>
                 {value}
               </Label>
             ))}

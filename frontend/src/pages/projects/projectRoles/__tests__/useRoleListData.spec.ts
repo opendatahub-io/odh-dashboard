@@ -191,4 +191,37 @@ describe('useRoleListData', () => {
       expect(keys).toEqual(['Role:labeled-role']);
     });
   });
+
+  describe('type search filtering', () => {
+    it('should filter dashboard roles by "ai role"', () => {
+      const renderResult = testHook(useRoleListData)(
+        [dashboardRole],
+        [adminClusterRole],
+        'ai role',
+      );
+      const keys = renderResult.result.current.map((r) => r.key);
+      expect(keys).toContain('Role:my-dashboard-role');
+      expect(keys).toContain('ClusterRole:admin');
+    });
+
+    it('should filter default cluster roles by "openshift default role"', () => {
+      const renderResult = testHook(useRoleListData)(
+        [dashboardRole],
+        [adminClusterRole, editClusterRole, dashboardClusterRole],
+        'openshift default role',
+      );
+      const keys = renderResult.result.current.map((r) => r.key);
+      expect(keys).toEqual(['ClusterRole:admin', 'ClusterRole:edit']);
+    });
+
+    it('should filter by "cluster role"', () => {
+      const renderResult = testHook(useRoleListData)(
+        [dashboardRole],
+        [adminClusterRole, dashboardClusterRole],
+        'cluster role',
+      );
+      const keys = renderResult.result.current.map((r) => r.key);
+      expect(keys).toEqual(['ClusterRole:admin', 'ClusterRole:my-dashboard-cr']);
+    });
+  });
 });

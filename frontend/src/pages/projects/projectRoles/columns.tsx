@@ -54,10 +54,12 @@ export const columns: SortableData<RoleListRow>[] = [
     width: 20,
     sortable: (a, b) =>
       Object.entries(a.userLabels)
+        .toSorted(([ak], [bk]) => ak.localeCompare(bk))
         .map(([k, v]: [string, string]) => `${k}=${v}`)
         .join(',')
         .localeCompare(
           Object.entries(b.userLabels)
+            .toSorted(([ak], [bk]) => ak.localeCompare(bk))
             .map(([k, v]: [string, string]) => `${k}=${v}`)
             .join(','),
         ),

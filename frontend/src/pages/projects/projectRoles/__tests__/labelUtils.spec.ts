@@ -29,6 +29,17 @@ describe('toK8sLabels', () => {
     });
   });
 
+  it('should skip entries with whitespace-only keys', () => {
+    const entries = [
+      { id: 'l-1', key: '   ', value: 'platform' },
+      { id: 'l-2', key: 'env', value: 'production' },
+    ];
+
+    expect(toK8sLabels(entries)).toStrictEqual({
+      [`${USER_LABEL_PREFIX}env`]: 'production',
+    });
+  });
+
   it('should return empty object for empty array', () => {
     expect(toK8sLabels([])).toStrictEqual({});
   });
@@ -64,6 +75,10 @@ describe('fromK8sLabels', () => {
 
   it('should return empty array for undefined labels', () => {
     expect(fromK8sLabels(undefined)).toHaveLength(0);
+  });
+
+  it('should return empty array for null labels', () => {
+    expect(fromK8sLabels(null)).toHaveLength(0);
   });
 
   it('should return empty array for empty object', () => {
@@ -109,6 +124,10 @@ describe('getUserLabels', () => {
 
   it('should return empty object for undefined labels', () => {
     expect(getUserLabels(undefined)).toStrictEqual({});
+  });
+
+  it('should return empty object for null labels', () => {
+    expect(getUserLabels(null)).toStrictEqual({});
   });
 
   it('should return empty object for empty object', () => {
