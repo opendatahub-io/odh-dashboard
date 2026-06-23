@@ -118,7 +118,7 @@ export const deserializeAgentProfile = (
   }
 
   // ASR (transcription) model
-  if (spec.asr?.model) {
+  if (spec.asr?.model?.id) {
     config.selectedAsrModel = spec.asr.model.id;
     config.isAsrModelEnabled = true;
   } else {
