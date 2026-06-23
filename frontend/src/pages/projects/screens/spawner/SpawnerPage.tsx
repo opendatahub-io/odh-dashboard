@@ -160,11 +160,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     existingNotebook ? getConnectionsFromNotebook(existingNotebook, projectConnections) : [],
   );
 
-  const {
-    featureStores: availableFeatureStores = [],
-    loaded: featureStoresLoaded,
-    error: featureStoresError,
-  } = useWorkbenchFeatureStores();
+  const { featureStores: availableFeatureStores = [] } = useWorkbenchFeatureStores();
   const [selectedFeatureStores, setSelectedFeatureStores] = React.useState<
     WorkbenchFeatureStoreConfig[]
   >([]);
@@ -437,13 +433,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
             />
             <FeatureStoreFormSection
               selectedFeatureStores={selectedFeatureStores}
+              availableFeatureStores={availableFeatureStores}
               onSelect={(featureStores) => {
                 setSelectedFeatureStores(featureStores);
                 hasUserInteractedRef.current = true;
               }}
-              availableFeatureStores={availableFeatureStores}
-              loaded={featureStoresLoaded}
-              error={featureStoresError}
             />
           </Form>
         </GenericSidebar>

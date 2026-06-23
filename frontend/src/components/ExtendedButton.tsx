@@ -24,8 +24,6 @@ const ExtendedButton: React.FC<ExtendedButtonProps> = ({
   tooltipProps = { isEnabled: false },
   ...props
 }) => {
-  const tooltipRef = React.useRef<HTMLButtonElement | null>(null);
-
   if (!loadProps.loaded) {
     return <Skeleton data-testid="skeleton-loader" style={{ width: 200 }} />;
   }
@@ -51,21 +49,17 @@ const ExtendedButton: React.FC<ExtendedButtonProps> = ({
     );
   }
 
-  return (
-    <>
-      <Button
-        {...props}
-        ref={tooltipRef}
-        isAriaDisabled={tooltipProps.isEnabled}
-        aria-describedby={tooltipProps.isEnabled ? 'button-tooltip' : undefined}
-      >
-        {props.children}
-      </Button>
-      {tooltipProps.isEnabled && (
-        <Tooltip id="button-tooltip" content={tooltipProps.content} triggerRef={tooltipRef} />
-      )}
-    </>
-  );
+  if (tooltipProps.isEnabled) {
+    return (
+      <Tooltip id="button-tooltip" content={tooltipProps.content}>
+        <Button {...props} isAriaDisabled aria-describedby="button-tooltip">
+          {props.children}
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  return <Button {...props}>{props.children}</Button>;
 };
 
 export default ExtendedButton;

@@ -1,6 +1,7 @@
 import { NotebookKind } from '#~/k8sTypes';
-import { SelectionOptions } from '#~/components/MultiSelection';
+import type { FeatureStoreProject } from '#~/api/featureStore/custom';
 import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
+import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 import { FEAST_CONFIG_ANNOTATION, FEAST_INTEGRATION_LABEL } from './const';
 
 export type NotebookFeatureStore = {
@@ -14,6 +15,70 @@ export const FEATURE_STORE_CODE_HELP =
 
 export const FEATURE_STORE_CODE_DESCRIPTION =
   "Modify and run this example code in your workbench to create a FeatureStore object for each connected feature store. Make sure to update each object's name and the path to the corresponding client configuration YAML file. After creation, you can access this code in the";
+
+export const FEATURE_STORE_EMPTY_STATE_TITLE = 'No selected feature store';
+
+export const FEATURE_STORE_EMPTY_STATE_BODY =
+  'Select feature stores to connect to this workbench. Features in selected feature stores have read and write access to this workbench.';
+
+export const findWorkbenchFeatureStoreConfig = (
+  project: FeatureStoreProject,
+  availableFeatureStores: WorkbenchFeatureStoreConfig[],
+): WorkbenchFeatureStoreConfig | undefined =>
+  availableFeatureStores.find(
+    (config) =>
+      config.projectName === project.feastProjectName && config.namespace === project.namespace,
+  );
+
+export const mapFeatureStoreProjectToConfig = (
+  project: FeatureStoreProject,
+  availableFeatureStores: WorkbenchFeatureStoreConfig[] = [],
+): WorkbenchFeatureStoreConfig => {
+  const match = findWorkbenchFeatureStoreConfig(project, availableFeatureStores);
+  if (match) {
+    return match;
+  }
+
+  return {
+    namespace: project.namespace,
+    configName: '',
+    projectName: project.feastProjectName,
+    configMap: null,
+    hasAccessToFeatureStore: project.permissionLevel.length > 0,
+  };
+};
+
+export const mapFeatureStoreProjectsToConfigs = (
+  projects: FeatureStoreProject[],
+  availableFeatureStores: WorkbenchFeatureStoreConfig[] = [],
+): WorkbenchFeatureStoreConfig[] =>
+  projects.map((project) => mapFeatureStoreProjectToConfig(project, availableFeatureStores));
+
+export const mapConfigsToFeatureStoreProjects = (
+  configs: WorkbenchFeatureStoreConfig[],
+  availableProjects: FeatureStoreProject[],
+): FeatureStoreProject[] =>
+  configs.map((config) => {
+    const match = availableProjects.find(
+      (project) =>
+        project.feastProjectName === config.projectName && project.namespace === config.namespace,
+    );
+
+    return (
+      match ?? {
+        feastProjectName: config.projectName,
+        namespace: config.namespace,
+        permissionLevel: [],
+        connectedWorkbenches: [],
+      }
+    );
+  });
+
+export const removeFeatureStoreProjectById = (
+  configs: WorkbenchFeatureStoreConfig[],
+  projectId: string,
+): WorkbenchFeatureStoreConfig[] =>
+  configs.filter((config) => getFeatureStoreProjectId(config) !== projectId);
 
 export const generateFeatureStoreCode = (): string => {
   return `from feast import FeatureStore
@@ -34,57 +99,25 @@ export const getFeatureStoresFromNotebook = (
 
   const projectNames = feastConfigAnnotation.split(',').map((name) => name.trim());
   const matched: WorkbenchFeatureStoreConfig[] = [];
+  const usedConfigKeys = new Set<string>();
 
   projectNames.forEach((projectName) => {
-    const found = availableFeatureStores.find((fs) => fs.projectName === projectName);
+    if (!projectName) {
+      return;
+    }
+
+    const found = availableFeatureStores.find(
+      (config) =>
+        config.projectName === projectName && !usedConfigKeys.has(getFeatureStoreProjectId(config)),
+    );
+
     if (found) {
       matched.push(found);
+      usedConfigKeys.add(getFeatureStoreProjectId(found));
     }
   });
 
   return matched;
-};
-
-export const convertFeatureStoresToSelectionOptions = (
-  featureStoreConfigs: WorkbenchFeatureStoreConfig[],
-  selectedFeatureStores: WorkbenchFeatureStoreConfig[],
-): SelectionOptions[] => {
-  const availableOptions = featureStoreConfigs.map((config) => ({
-    id: config.projectName,
-    name: config.projectName,
-    selected: selectedFeatureStores.some((selected) => selected.projectName === config.projectName),
-  }));
-
-  const selectedKeys = new Set(availableOptions.map((opt) => opt.id));
-  const missingSelected = selectedFeatureStores
-    .filter(
-      (selected) =>
-        !selectedKeys.has(selected.projectName) &&
-        !featureStoreConfigs.some((config) => config.projectName === selected.projectName),
-    )
-    .map((selected) => ({
-      id: selected.projectName,
-      name: selected.projectName,
-      selected: true,
-    }));
-
-  return [...availableOptions, ...missingSelected];
-};
-
-export const getSelectedFeatureStoresFromSelections = (
-  newSelections: SelectionOptions[],
-  featureStoreConfigs: WorkbenchFeatureStoreConfig[],
-  selectedFeatureStores: WorkbenchFeatureStoreConfig[],
-): WorkbenchFeatureStoreConfig[] => {
-  const allConfigs = [...featureStoreConfigs, ...selectedFeatureStores];
-
-  return newSelections
-    .filter((option) => option.selected)
-    .map((option) => {
-      const projectName = String(option.id);
-      return allConfigs.find((config) => config.projectName === projectName);
-    })
-    .filter((config): config is WorkbenchFeatureStoreConfig => config !== undefined);
 };
 
 export const mapFeatureStoresForNotebook = <T extends NotebookFeatureStore>(
