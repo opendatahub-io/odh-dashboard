@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
 import AgentRuntimeStatusLabel from '~/app/components/AgentRuntimeStatusLabel';
 import AgentRuntimeEndpointsModal from '~/app/components/AgentRuntimeEndpointsModal';
+import { getAgentRuntimeEndpointFields } from '~/app/utilities/agentRuntimeEndpoints';
 import { agentOpsDeploymentDetailRoute } from '~/app/utilities/routes';
 import { agentRuntimesColumns } from './columns';
 
@@ -16,6 +17,11 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }
   const [isEndpointsModalOpen, setIsEndpointsModalOpen] = React.useState(false);
   const navigate = useNavigate();
   const detailRoute = agentOpsDeploymentDetailRoute(runtime.namespace, runtime.name);
+
+  const hasEndpoints = React.useMemo(
+    () => getAgentRuntimeEndpointFields(runtime).length > 0,
+    [runtime],
+  );
 
   const actions: IAction[] = React.useMemo(
     () => [
@@ -41,6 +47,7 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }
         <Button
           variant="link"
           isInline
+          isDisabled={!hasEndpoints}
           onClick={() => setIsEndpointsModalOpen(true)}
           data-testid="agent-runtime-endpoint-view"
         >

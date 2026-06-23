@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import {
+  Alert,
   Button,
   ClipboardCopy,
   Content,
@@ -10,6 +12,7 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
+  Spinner,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -26,11 +29,12 @@ const AgentRuntimeEndpointsModal: React.FC<AgentRuntimeEndpointsModalProps> = ({
   runtime,
   onClose,
 }) => {
-  const [detail] = useAgentRuntimeDetail(runtime.namespace, runtime.name);
+  const [detail, loaded, detailError] = useAgentRuntimeDetail(runtime.namespace, runtime.name);
+  const isAccessDenied = !!detailError && getGenericErrorCode(detailError) === 403;
 
   const endpointFields = React.useMemo(
-    () => getAgentRuntimeEndpointFields(runtime, detail),
-    [runtime, detail],
+    () => getAgentRuntimeEndpointFields(runtime, loaded && !detailError ? detail : undefined),
+    [runtime, detail, loaded, detailError],
   );
 
   return (
@@ -43,6 +47,19 @@ const AgentRuntimeEndpointsModal: React.FC<AgentRuntimeEndpointsModalProps> = ({
     >
       <ModalHeader title="Endpoints" labelId="endpoints-modal-title" />
       <ModalBody>
+        {!loaded && !detailError && <Spinner aria-label="Loading endpoints" />}
+        {detailError && (
+          <Alert
+            variant="danger"
+            isInline
+            title={isAccessDenied ? 'Access permissions needed' : 'Error loading endpoints'}
+            data-testid="agent-runtime-endpoints-error"
+          >
+            {isAccessDenied
+              ? 'You do not have permission to view endpoint details for this agent deployment.'
+              : 'Unable to load endpoint details. Please try again later.'}
+          </Alert>
+        )}
         {endpointFields.length > 0 && (
           <Stack hasGutter>
             {endpointFields.map((field) => (
@@ -65,10 +82,7 @@ const AgentRuntimeEndpointsModal: React.FC<AgentRuntimeEndpointsModalProps> = ({
                     </ClipboardCopy>
                   </FlexItem>
                   <FlexItem>
-                    <Content
-                      component={ContentVariants.small}
-                      className="pf-v6-u-color-text-subtle"
-                    >
+                    <Content component={ContentVariants.small} className="pf-v6-u-color-text-200">
                       {field.description}
                     </Content>
                   </FlexItem>

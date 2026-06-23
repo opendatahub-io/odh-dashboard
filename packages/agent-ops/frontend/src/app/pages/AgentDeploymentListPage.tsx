@@ -6,7 +6,6 @@ import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/P
 import ProjectNavigatorLink from '@odh-dashboard/internal/concepts/projects/ProjectNavigatorLink';
 import { IconSize } from '@odh-dashboard/internal/types';
 import {
-  Alert,
   Content,
   EmptyState,
   EmptyStateBody,
@@ -27,7 +26,16 @@ const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
 
-  const [runtimes, loaded, loadError] = useListAgentRuntimes(namespace);
+  const {
+    runtimes,
+    continueToken,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    loaded,
+    error: loadError,
+  } = useListAgentRuntimes(namespace);
 
   const safeRuntimes = React.useMemo(
     () =>
@@ -104,17 +112,16 @@ const AgentDeploymentListPage: React.FC = () => {
       return accessDeniedState;
     }
 
-    if (loadError) {
-      return (
-        <Alert variant="danger" isInline title="Error loading agent deployments">
-          Unable to load agent deployments. Please try again later.
-        </Alert>
-      );
-    }
-
     return (
       <AgentRuntimesTable
         runtimes={filteredRuntimes}
+        loaded={loaded}
+        continueToken={continueToken}
+        page={page}
+        pageSize={pageSize}
+        isFiltered={!!filterText}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
         onClearFilters={clearFilters}
         toolbarContent={
           <AgentRuntimesToolbar filterText={filterText} onFilterChange={setFilterText} />

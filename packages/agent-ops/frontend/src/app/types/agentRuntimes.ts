@@ -9,6 +9,7 @@ export type AgentRuntime = {
 
 export type AgentRuntimesList = {
   runtimes: AgentRuntime[];
+  continueToken?: string;
 };
 
 export type AgentServiceEndpoint = {

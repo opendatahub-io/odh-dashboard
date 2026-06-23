@@ -14,6 +14,14 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <MemoryRouter>{children}</MemoryRouter>
 );
 
+const defaultPaginationProps = {
+  loaded: true,
+  page: 1,
+  pageSize: 10,
+  onPageChange: jest.fn(),
+  onPageSizeChange: jest.fn(),
+};
+
 describe('AgentRuntimesTable', () => {
   const onClearFilters = jest.fn();
 
@@ -26,6 +34,7 @@ describe('AgentRuntimesTable', () => {
       <AgentRuntimesTable
         runtimes={[createReadyRuntime(), createPendingRuntime(), createFailedRuntime()]}
         onClearFilters={onClearFilters}
+        {...defaultPaginationProps}
       />,
       { wrapper },
     );
@@ -41,7 +50,11 @@ describe('AgentRuntimesTable', () => {
 
   it('should render column headers', () => {
     render(
-      <AgentRuntimesTable runtimes={[createMockAgentRuntime()]} onClearFilters={onClearFilters} />,
+      <AgentRuntimesTable
+        runtimes={[createMockAgentRuntime()]}
+        onClearFilters={onClearFilters}
+        {...defaultPaginationProps}
+      />,
       { wrapper },
     );
 
@@ -52,7 +65,14 @@ describe('AgentRuntimesTable', () => {
   });
 
   it('should show empty table view when runtimes list is empty', () => {
-    render(<AgentRuntimesTable runtimes={[]} onClearFilters={onClearFilters} />, { wrapper });
+    render(
+      <AgentRuntimesTable
+        runtimes={[]}
+        onClearFilters={onClearFilters}
+        {...defaultPaginationProps}
+      />,
+      { wrapper },
+    );
 
     expect(
       screen.queryByTestId('agent-runtime-row-agent-ops-demo-sample-support-agent'),
