@@ -19,7 +19,8 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
   const navigate = useNavigate();
   const apiKeysPageState = useApiKeysPageLoad();
   const { loadError: apiKeysLoadError } = apiKeysPageState;
-  const [subscriptions, subscriptionsLoaded, subscriptionsLoadError] = useUserSubscriptions();
+  const [subscriptions, subscriptionsLoaded, subscriptionsLoadError, refreshSubscriptions] =
+    useUserSubscriptions();
 
   const activeTab = tab && VALID_TABS.includes(tab) ? tab : API_KEYS_TAB;
 
@@ -35,11 +36,18 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
   const showApiKeysLoadError = activeTab === API_KEYS_TAB && !!apiKeysTabError;
   const pageLoadError = activeTab === API_KEYS_TAB ? apiKeysTabError : subscriptionsLoadError;
 
+  const { refreshAll: refreshApiKeys } = apiKeysPageState;
+
   const onSelectTab = React.useCallback(
     (_event: React.MouseEvent, tabKey: string | number) => {
+      if (String(tabKey) === SUBSCRIPTIONS_TAB) {
+        refreshSubscriptions();
+      } else {
+        refreshApiKeys();
+      }
       navigate(`${URL_PREFIX}/keys-and-subs/${String(tabKey)}`);
     },
-    [navigate],
+    [navigate, refreshSubscriptions, refreshApiKeys],
   );
 
   return (
