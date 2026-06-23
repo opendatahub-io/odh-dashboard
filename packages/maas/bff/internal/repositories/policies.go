@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -60,6 +61,9 @@ func (r *PoliciesRepository) ListPolicies(ctx context.Context) ([]models.MaaSAut
 	// display name and description. Failures here are non-fatal.
 	summaries, err := listAllModelRefSummaries(ctx, r.logger, kubeClient)
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, err
+		}
 		r.logger.Warn("Failed to list MaaSModelRefs for enrichment; returning policies without enrichment", slog.Any("error", err))
 		return policies, nil
 	}

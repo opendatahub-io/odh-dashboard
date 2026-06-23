@@ -182,14 +182,14 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         {actionsCell}
       </ResourceTr>
       <Tr isExpanded={expandedPanel === 'groups'}>
-        <Td colSpan={columns.length}>
+        <Td colSpan={columns.length + 1}>
           <ExpandableRowContent>
             <ExpandedGroupsPanel groups={groups} />
           </ExpandableRowContent>
         </Td>
       </Tr>
       <Tr isExpanded={expandedPanel === 'models'}>
-        <Td colSpan={columns.length}>
+        <Td colSpan={columns.length + 1}>
           <ExpandableRowContent>
             <ExpandedAuthPolicyModelsPanel models={authPolicy.modelRefs} />
           </ExpandableRowContent>

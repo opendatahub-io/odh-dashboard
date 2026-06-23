@@ -37,11 +37,7 @@ func listAllModelRefSummaries(ctx context.Context, logger *slog.Logger, kubeClie
 
 	summaries := make([]models.MaaSModelRefSummary, 0, len(list.Items))
 	for _, item := range list.Items {
-		summary, convErr := convertUnstructuredToModelRefSummary(&item)
-		if convErr != nil {
-			logger.Warn("Failed to convert MaaSModelRef", slog.String("name", item.GetName()), slog.Any("error", convErr))
-			continue
-		}
+		summary := convertUnstructuredToModelRefSummary(&item)
 		summaries = append(summaries, *summary)
 	}
 
@@ -49,7 +45,7 @@ func listAllModelRefSummaries(ctx context.Context, logger *slog.Logger, kubeClie
 }
 
 // convertUnstructuredToModelRefSummary converts a MaaSModelRef unstructured object to a MaaSModelRefSummary.
-func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*models.MaaSModelRefSummary, error) {
+func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) *models.MaaSModelRefSummary {
 	content := obj.UnstructuredContent()
 
 	summary := &models.MaaSModelRefSummary{
@@ -71,5 +67,5 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*mode
 	endpoint, _, _ := unstructured.NestedString(content, "status", "endpoint")
 	summary.Endpoint = endpoint
 
-	return summary, nil
+	return summary
 }

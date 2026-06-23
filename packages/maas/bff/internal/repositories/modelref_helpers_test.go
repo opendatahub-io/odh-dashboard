@@ -96,10 +96,7 @@ func TestBuildModelRefSummaryIndex_LastWriteWins(t *testing.T) {
 func TestConvertUnstructuredToModelRefSummary_Full(t *testing.T) {
 	obj := newModelRefObj("my-model", "my-ns", "My Model", "A test model", "Ready", "http://ep:8080")
 
-	summary, err := convertUnstructuredToModelRefSummary(obj)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	summary := convertUnstructuredToModelRefSummary(obj)
 
 	type check struct{ want, got string }
 	for field, c := range map[string]check{
@@ -130,10 +127,7 @@ func TestConvertUnstructuredToModelRefSummary_NoAnnotations(t *testing.T) {
 		},
 	}
 
-	summary, err := convertUnstructuredToModelRefSummary(obj)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	summary := convertUnstructuredToModelRefSummary(obj)
 	if summary.DisplayName != "" {
 		t.Errorf("expected empty DisplayName, got %q", summary.DisplayName)
 	}

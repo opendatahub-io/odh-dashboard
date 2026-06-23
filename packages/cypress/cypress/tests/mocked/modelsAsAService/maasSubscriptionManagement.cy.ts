@@ -204,7 +204,7 @@ describe('Subscription Management Page', () => {
   it('should expand and collapse inline rows in the auth policies tab', () => {
     subscriptionManagementPage.visit('auth-policies');
 
-    const premiumPolicy = authPoliciesPage.getRow('premium-team-policy');
+    const premiumPolicy = authPoliciesPage.getRow('Premium Team Policy');
 
     // Expand the groups panel
     premiumPolicy.findExpandGroupButton().click();

@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -61,6 +62,9 @@ func (r *SubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]mode
 	// display name and description. Failures here are non-fatal.
 	modelRefSummaries, err := listAllModelRefSummaries(ctx, r.logger, kubeClient)
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, err
+		}
 		r.logger.Warn("Failed to list MaaSModelRefs for enrichment; returning subscriptions without enrichment", slog.Any("error", err))
 		return subscriptions, nil
 	}

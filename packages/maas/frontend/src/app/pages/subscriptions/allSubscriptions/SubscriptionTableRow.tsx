@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ResourceTr, ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import { Content, Label } from '@patternfly/react-core';
+import { Content, ContentVariants, Label } from '@patternfly/react-core';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
@@ -64,6 +64,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
     ? subscription.owner.groups.length
     : 0;
   const modelsCount = subscription.modelRefs.length;
+  const groups = Array.isArray(subscription.owner.groups) ? subscription.owner.groups : [];
 
   const nameCell = (
     <Td dataLabel={subscriptionsColumns[0].label}>
@@ -101,8 +102,11 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   );
 
   const priorityCell = (
-    <Td dataLabel={subscriptionsColumns[4].label} style={{ textAlign: 'center' }}>
-      <Content component="p" style={{ fontWeight: 'bold' }}>
+    <Td dataLabel={subscriptionsColumns[4].label}>
+      <Content
+        component={ContentVariants.p}
+        className="pf-v6-u-font-weight-bold pf-v6-u-text-align-center"
+      >
         {subscription.priority ?? '-'}
       </Content>
     </Td>
@@ -193,14 +197,14 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         {actionsCell}
       </ResourceTr>
       <Tr isExpanded={expandedPanel === 'groups'}>
-        <Td colSpan={subscriptionsColumns.length}>
+        <Td colSpan={subscriptionsColumns.length + 1}>
           <ExpandableRowContent>
-            <ExpandedGroupsPanel groups={subscription.owner.groups} />
+            <ExpandedGroupsPanel groups={groups} />
           </ExpandableRowContent>
         </Td>
       </Tr>
       <Tr isExpanded={expandedPanel === 'models'}>
-        <Td colSpan={subscriptionsColumns.length}>
+        <Td colSpan={subscriptionsColumns.length + 1}>
           <ExpandableRowContent>
             <ExpandedSubscriptionModelsPanel models={subscription.modelRefs} />
           </ExpandableRowContent>
