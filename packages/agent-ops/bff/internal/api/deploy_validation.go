@@ -2,10 +2,14 @@ package api
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
 )
+
+var envVarNameRegex = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 var validProtocols = map[string]bool{
 	"a2a": true,
@@ -49,6 +53,15 @@ func validateDeployRequest(req *models.DeployAgentRequest) error {
 	}
 	if req.MTLSMode != "" && !validMTLSModes[req.MTLSMode] {
 		return fmt.Errorf("invalid mtlsMode %q: must be one of disabled, permissive, strict", req.MTLSMode)
+	}
+	for i, e := range req.EnvVars {
+		name := strings.TrimSpace(e.Name)
+		if name == "" {
+			return fmt.Errorf("envVars[%d].name must not be empty", i)
+		}
+		if !envVarNameRegex.MatchString(name) {
+			return fmt.Errorf("envVars[%d].name %q is not a valid C_IDENTIFIER", i, name)
+		}
 	}
 	for i, p := range req.ServicePorts {
 		if p.Port < 1 || p.Port > 65535 {

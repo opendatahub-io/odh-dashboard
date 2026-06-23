@@ -299,11 +299,15 @@ func buildEnvVars(params *agents.DeployAgentParams) []corev1.EnvVar {
 	if len(params.ServicePorts) > 0 && params.ServicePorts[0].Port > 0 {
 		svcPort = params.ServicePorts[0].Port
 	}
+	containerPort := defaultPort
+	if len(params.ServicePorts) > 0 && params.ServicePorts[0].TargetPort > 0 {
+		containerPort = params.ServicePorts[0].TargetPort
+	}
 
 	defaultKeys := []string{"AGENT_ENDPOINT", "HOST", "PORT", "UV_CACHE_DIR"}
 	defaultValues := map[string]string{
 		"AGENT_ENDPOINT": agentEndpointURL(params.Name, params.Namespace, svcPort),
-		"PORT":           fmt.Sprintf("%d", defaultPort),
+		"PORT":           fmt.Sprintf("%d", containerPort),
 		"HOST":           "0.0.0.0",
 		"UV_CACHE_DIR":   "/app/.cache/uv",
 	}

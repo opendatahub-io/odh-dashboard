@@ -120,7 +120,8 @@ describe('Agent Ops API Contract Tests', () => {
         containerImage: 'quay.io/example/agent',
         imageTag: 'latest',
       };
-      await apiClient.post('/api/v1/agents/deploy', body);
+      const firstResult = await apiClient.post('/api/v1/agents/deploy', body);
+      expect(firstResult.success).toBe(true);
       const result = await apiClient.post('/api/v1/agents/deploy', body);
       expect(result.success).toBe(false);
       if (!result.success) {

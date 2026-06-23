@@ -141,6 +141,9 @@ func TestDeployAgent_ServiceAccountAlreadyExists(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "my-agent",
 				Namespace: ns,
+				Labels: map[string]string{
+					"app.kubernetes.io/managed-by": "odh-dashboard",
+				},
 			},
 		},
 	)

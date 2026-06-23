@@ -38,6 +38,10 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 		if !apierrors.IsAlreadyExists(err) {
 			return nil, fmt.Errorf("failed to create ServiceAccount: %w", mapK8sError(err))
 		}
+		existingSA, getErr := clientset.CoreV1().ServiceAccounts(params.Namespace).Get(ctx, params.Name, metav1.GetOptions{})
+		if getErr != nil || existingSA.Labels[labelManagedBy] != managedByValue {
+			return nil, fmt.Errorf("ServiceAccount %q already exists and is not managed by odh-dashboard", params.Name)
+		}
 		c.logger.Debug("ServiceAccount already exists, reusing",
 			slog.String("name", params.Name),
 			slog.String("namespace", params.Namespace))
@@ -115,6 +119,13 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 			rollback()
 			return nil, fmt.Errorf("failed to create Route: %w", mapK8sError(err))
 		}
+		cleanups = append(cleanups, func() {
+			if delErr := dynamicClient.Resource(openshiftRouteGVR).Namespace(params.Namespace).Delete(rollbackCtx, params.Name, metav1.DeleteOptions{}); delErr != nil {
+				c.logger.Warn("rollback: failed to delete Route",
+					slog.String("name", params.Name),
+					slog.Any("error", delErr))
+			}
+		})
 	}
 
 	return &agents.DeployAgentResult{
