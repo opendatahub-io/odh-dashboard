@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { Content, ContentVariants } from '@patternfly/react-core';
 import { ModelSubscriptionRef } from '~/app/types/subscriptions';
 import { formatWindow } from '~/app/utilities/rateLimits';
 
@@ -27,8 +28,8 @@ const ExpandedSubscriptionModelsPanel: React.FC<ExpandedSubscriptionModelsPanelP
   >
     <Thead>
       <Tr>
-        <Th width={45}>Model name</Th>
-        <Th width={35}>Token limits</Th>
+        <Th width={60}>Model name</Th>
+        <Th width={40}>Token limits</Th>
       </Tr>
     </Thead>
     <Tbody>
@@ -52,15 +53,17 @@ const ExpandedSubscriptionModelsPanel: React.FC<ExpandedSubscriptionModelsPanelP
                 {model.displayName ?? model.name}
               </span>
               {model.displayName && model.displayName !== model.name && (
-                <div data-testid="subscription-expanded-model-resource-name">{model.name}</div>
+                <Content data-testid="subscription-expanded-model-resource-name">
+                  {model.name}
+                </Content>
               )}
               {model.description && (
-                <div
-                  style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+                <Content
                   data-testid="subscription-expanded-model-description"
+                  component={ContentVariants.small}
                 >
                   {model.description}
-                </div>
+                </Content>
               )}
             </Td>
             <Td dataLabel="Token limits" data-testid="subscription-expanded-model-token-limits">

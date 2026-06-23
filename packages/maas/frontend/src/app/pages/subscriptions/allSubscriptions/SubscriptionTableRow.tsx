@@ -2,7 +2,8 @@ import * as React from 'react';
 import { ResourceTr, ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import { Content } from '@patternfly/react-core';
+import { Content, Label } from '@patternfly/react-core';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { MaaSSubscription } from '~/app/types/subscriptions';
@@ -13,9 +14,6 @@ import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import ExpandedSubscriptionModelsPanel from '~/app/shared/ExpandedSubscriptionModelsPanel';
 import { subscriptionsColumns } from './columns';
-
-// Total column count: Name + Phase + Groups + Models + Priority + Actions
-const SUBSCRIPTION_COL_SPAN = 6;
 
 type ExpandedPanel = 'groups' | 'models' | null;
 
@@ -35,6 +33,8 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   const navigate = useNavigate();
   const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
   const navState = returnTo ? { state: { returnTo } } : undefined;
+  const dashboardConfig = React.useContext(DashboardConfigContext);
+  const isIARedesign = !!dashboardConfig?.dashboardConfig.maasSettingsIaRedesign;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
 
   const togglePanel = (panel: 'groups' | 'models') => {
@@ -60,8 +60,97 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
     },
   };
 
-  const groupsCount = subscription.owner.groups.length;
+  const groupsCount = Array.isArray(subscription.owner.groups)
+    ? subscription.owner.groups.length
+    : 0;
   const modelsCount = subscription.modelRefs.length;
+
+  const nameCell = (
+    <Td dataLabel={subscriptionsColumns[0].label}>
+      <TableRowTitleDescription
+        title={
+          subscription.deletionTimestamp ? (
+            <span data-testid="subscription-name">
+              {subscription.displayName ?? subscription.name}
+            </span>
+          ) : (
+            <ResourceNameTooltip resource={convertSubscriptionToK8sResource(subscription)}>
+              <Link
+                to={`${base}/view/${subscription.name}`}
+                state={returnTo ? { returnTo } : undefined}
+              >
+                {subscription.displayName ?? subscription.name}
+              </Link>
+            </ResourceNameTooltip>
+          )
+        }
+        description={subscription.description ?? ''}
+        truncateDescriptionLines={2}
+      />
+    </Td>
+  );
+
+  const phaseCell = (
+    <Td dataLabel={subscriptionsColumns[1].label}>
+      <PhaseLabel
+        phase={subscription.phase}
+        statusMessage={subscription.statusMessage}
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+      />
+    </Td>
+  );
+
+  const priorityCell = (
+    <Td dataLabel={subscriptionsColumns[4].label} style={{ textAlign: 'center' }}>
+      <Content component="p" style={{ fontWeight: 'bold' }}>
+        {subscription.priority ?? '-'}
+      </Content>
+    </Td>
+  );
+
+  const actionsCell = (
+    <Td isActionCell>
+      <ActionsColumn
+        data-testid="subscription-actions"
+        isDisabled={!!subscription.deletionTimestamp}
+        items={[
+          {
+            title: 'View details',
+            onClick: () => onViewDetailsSubscription(subscription.name),
+          },
+          {
+            title: 'Edit',
+            onClick: () => onEditSubscription(subscription.name),
+          },
+          { isSeparator: true },
+          {
+            title: 'Delete',
+            onClick: () => setDeleteSubscription(subscription),
+          },
+        ]}
+      />
+    </Td>
+  );
+
+  if (!isIARedesign) {
+    return (
+      <Tbody>
+        <ResourceTr resource={subscriptionResource} data-testid="subscription-row">
+          {nameCell}
+          {phaseCell}
+          <Td dataLabel={subscriptionsColumns[2].label}>
+            <Label color="grey">{`${groupsCount} Group${groupsCount === 1 ? '' : 's'}`}</Label>
+          </Td>
+          <Td dataLabel={subscriptionsColumns[3].label}>
+            <Label color="grey">{`${modelsCount} Model${modelsCount === 1 ? '' : 's'}`}</Label>
+          </Td>
+          {priorityCell}
+          {actionsCell}
+        </ResourceTr>
+      </Tbody>
+    );
+  }
+
   const isRowExpanded = expandedPanel !== null;
 
   return (
@@ -72,35 +161,8 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         isControlRow
         data-testid="subscription-row"
       >
-        <Td dataLabel={subscriptionsColumns[0].label}>
-          <TableRowTitleDescription
-            title={
-              subscription.deletionTimestamp ? (
-                <span data-testid="subscription-name">
-                  {subscription.displayName ?? subscription.name}
-                </span>
-              ) : (
-                <ResourceNameTooltip resource={convertSubscriptionToK8sResource(subscription)}>
-                  <Link
-                    to={`${base}/view/${subscription.name}`}
-                    state={returnTo ? { returnTo } : undefined}
-                  >
-                    {subscription.displayName ?? subscription.name}
-                  </Link>
-                </ResourceNameTooltip>
-              )
-            }
-            description={subscription.description ?? ''}
-            truncateDescriptionLines={2}
-          />
-        </Td>
-        <Td dataLabel={subscriptionsColumns[1].label}>
-          <PhaseLabel
-            phase={subscription.phase}
-            statusMessage={subscription.statusMessage}
-            resourceType={PhaseResourceType.SUBSCRIPTION}
-          />
-        </Td>
+        {nameCell}
+        {phaseCell}
         <Td
           dataLabel={subscriptionsColumns[2].label}
           compoundExpand={{
@@ -127,42 +189,18 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         >
           {modelsCount}
         </Td>
-        <Td dataLabel={subscriptionsColumns[4].label} style={{ textAlign: 'center' }}>
-          <Content component="p" style={{ fontWeight: 'bold' }}>
-            {subscription.priority ?? '-'}
-          </Content>
-        </Td>
-        <Td isActionCell>
-          <ActionsColumn
-            data-testid="subscription-actions"
-            isDisabled={!!subscription.deletionTimestamp}
-            items={[
-              {
-                title: 'View details',
-                onClick: () => onViewDetailsSubscription(subscription.name),
-              },
-              {
-                title: 'Edit',
-                onClick: () => onEditSubscription(subscription.name),
-              },
-              { isSeparator: true },
-              {
-                title: 'Delete',
-                onClick: () => setDeleteSubscription(subscription),
-              },
-            ]}
-          />
-        </Td>
+        {priorityCell}
+        {actionsCell}
       </ResourceTr>
       <Tr isExpanded={expandedPanel === 'groups'}>
-        <Td colSpan={SUBSCRIPTION_COL_SPAN}>
+        <Td colSpan={subscriptionsColumns.length}>
           <ExpandableRowContent>
             <ExpandedGroupsPanel groups={subscription.owner.groups} />
           </ExpandableRowContent>
         </Td>
       </Tr>
       <Tr isExpanded={expandedPanel === 'models'}>
-        <Td colSpan={SUBSCRIPTION_COL_SPAN}>
+        <Td colSpan={subscriptionsColumns.length}>
           <ExpandableRowContent>
             <ExpandedSubscriptionModelsPanel models={subscription.modelRefs} />
           </ExpandableRowContent>

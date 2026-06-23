@@ -15,11 +15,6 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
-const (
-	displayNameAnnotation = "openshift.io/display-name"
-	descriptionAnnotation = "openshift.io/description"
-)
-
 // SubscriptionsRepository handles subscription operations via the Kubernetes API.
 type SubscriptionsRepository struct {
 	logger     *slog.Logger
@@ -64,7 +59,7 @@ func (r *SubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]mode
 
 	// Fetch MaaSModelRef CRs once and enrich each subscription's model refs with
 	// display name and description. Failures here are non-fatal.
-	modelRefSummaries, err := r.listAllModelRefSummaries(ctx, kubeClient)
+	modelRefSummaries, err := listAllModelRefSummaries(ctx, r.logger, kubeClient)
 	if err != nil {
 		r.logger.Warn("Failed to list MaaSModelRefs for enrichment; returning subscriptions without enrichment", slog.Any("error", err))
 		return subscriptions, nil
@@ -244,7 +239,7 @@ func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.Subs
 	}
 
 	// Fetch model refs
-	modelRefs, err := r.listAllModelRefSummaries(ctx, kubeClient)
+	modelRefs, err := listAllModelRefSummaries(ctx, r.logger, kubeClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list MaaSModelRefs: %w", err)
 	}
@@ -295,7 +290,7 @@ func (r *SubscriptionsRepository) GetModelRefSummaries(ctx context.Context, refs
 
 	kubeClient := client.GetDynamicClient()
 
-	allRefs, err := r.listAllModelRefSummaries(ctx, kubeClient)
+	allRefs, err := listAllModelRefSummaries(ctx, r.logger, kubeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -316,17 +311,6 @@ func (r *SubscriptionsRepository) GetModelRefSummaries(ctx context.Context, refs
 	return result, nil
 }
 
-// --- Enrichment helpers ---
-
-// buildModelRefSummaryIndex returns a lookup map from "namespace/name" to MaaSModelRefSummary
-func buildModelRefSummaryIndex(summaries []models.MaaSModelRefSummary) map[string]models.MaaSModelRefSummary {
-	idx := make(map[string]models.MaaSModelRefSummary, len(summaries))
-	for _, s := range summaries {
-		idx[s.Namespace+"/"+s.Name] = s
-	}
-	return idx
-}
-
 // --- K8s helpers ---
 
 func (r *SubscriptionsRepository) listGroups(ctx context.Context, kubeClient dynamic.Interface) ([]string, error) {
@@ -341,25 +325,6 @@ func (r *SubscriptionsRepository) listGroups(ctx context.Context, kubeClient dyn
 	}
 
 	return groups, nil
-}
-
-func (r *SubscriptionsRepository) listAllModelRefSummaries(ctx context.Context, kubeClient dynamic.Interface) ([]models.MaaSModelRefSummary, error) {
-	list, err := kubeClient.Resource(constants.MaaSModelRefGvr).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MaaSModelRefs: %w", err)
-	}
-
-	summaries := make([]models.MaaSModelRefSummary, 0, len(list.Items))
-	for _, item := range list.Items {
-		summary, err := convertUnstructuredToModelRefSummary(&item)
-		if err != nil {
-			r.logger.Warn("Failed to convert MaaSModelRef", slog.String("name", item.GetName()), slog.Any("error", err))
-			continue
-		}
-		summaries = append(summaries, *summary)
-	}
-
-	return summaries, nil
 }
 
 // --- Conversion helpers: Unstructured -> Go models ---
@@ -547,30 +512,6 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 	}
 
 	return policy, nil
-}
-
-func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*models.MaaSModelRefSummary, error) {
-	content := obj.UnstructuredContent()
-
-	summary := &models.MaaSModelRefSummary{
-		Name:      obj.GetName(),
-		Namespace: obj.GetNamespace(),
-	}
-	annotations := obj.GetAnnotations()
-	summary.DisplayName = annotations[displayNameAnnotation]
-	summary.Description = annotations[descriptionAnnotation]
-
-	kind, _, _ := unstructured.NestedString(content, "spec", "modelRef", "kind")
-	name, _, _ := unstructured.NestedString(content, "spec", "modelRef", "name")
-	summary.ModelRef = models.ModelReference{Kind: kind, Name: name}
-
-	phase, _, _ := unstructured.NestedString(content, "status", "phase")
-	summary.Phase = phase
-
-	endpoint, _, _ := unstructured.NestedString(content, "status", "endpoint")
-	summary.Endpoint = endpoint
-
-	return summary, nil
 }
 
 // extractReadyConditionMessage returns the message from the "Ready" condition in status.conditions.

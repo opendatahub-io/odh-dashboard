@@ -99,7 +99,10 @@ describe('Subscription Management Page', () => {
     premiumRow
       .findExpandedModelDescription()
       .eq(0)
-      .should('contain.text', 'IBM Granite 3 8B instruction-tuned language model.');
+      .should(
+        'contain.text',
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+      );
     premiumRow.findExpandedModelResourceName().should('have.length', 2);
     premiumRow
       .findExpandedModelResourceName()
@@ -219,7 +222,10 @@ describe('Subscription Management Page', () => {
     premiumPolicy
       .findExpandedModelDescription()
       .eq(0)
-      .should('contain.text', 'IBM Granite 3 8B instruction-tuned language model.');
+      .should(
+        'contain.text',
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+      );
     premiumPolicy.findExpandedModelResourceName().should('have.length', 2);
     premiumPolicy
       .findExpandedModelResourceName()

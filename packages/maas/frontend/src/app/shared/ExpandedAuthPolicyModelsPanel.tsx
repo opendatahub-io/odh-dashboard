@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { Content, ContentVariants } from '@patternfly/react-core';
 import { ModelRef } from '~/app/types/subscriptions';
 
 type ExpandedAuthPolicyModelsPanelProps = {
@@ -36,15 +37,17 @@ const ExpandedAuthPolicyModelsPanel: React.FC<ExpandedAuthPolicyModelsPanelProps
                 {model.displayName ?? model.name}
               </span>
               {model.displayName && model.displayName !== model.name && (
-                <div data-testid="auth-policy-expanded-model-resource-name">{model.name}</div>
+                <Content data-testid="auth-policy-expanded-model-resource-name">
+                  {model.name}
+                </Content>
               )}
               {model.description && (
-                <div
-                  style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+                <Content
+                  component={ContentVariants.small}
                   data-testid="auth-policy-expanded-model-description"
                 >
                   {model.description}
-                </div>
+                </Content>
               )}
             </Td>
           </Tr>

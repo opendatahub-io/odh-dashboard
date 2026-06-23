@@ -58,19 +58,10 @@ func (r *PoliciesRepository) ListPolicies(ctx context.Context) ([]models.MaaSAut
 
 	// Fetch MaaSModelRef CRs once and enrich each policy's model refs with
 	// display name and description. Failures here are non-fatal.
-	modelRefList, err := kubeClient.Resource(constants.MaaSModelRefGvr).List(ctx, metav1.ListOptions{})
+	summaries, err := listAllModelRefSummaries(ctx, r.logger, kubeClient)
 	if err != nil {
 		r.logger.Warn("Failed to list MaaSModelRefs for enrichment; returning policies without enrichment", slog.Any("error", err))
 		return policies, nil
-	}
-	summaries := make([]models.MaaSModelRefSummary, 0, len(modelRefList.Items))
-	for _, item := range modelRefList.Items {
-		summary, convErr := convertUnstructuredToModelRefSummary(&item)
-		if convErr != nil {
-			r.logger.Warn("Failed to convert MaaSModelRef", slog.String("name", item.GetName()), slog.Any("error", convErr))
-			continue
-		}
-		summaries = append(summaries, *summary)
 	}
 	idx := buildModelRefSummaryIndex(summaries)
 	for i := range policies {

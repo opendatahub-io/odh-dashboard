@@ -2,6 +2,8 @@ import * as React from 'react';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { SortableData, ResourceNameTooltip, ResourceTr } from '@odh-dashboard/ui-core';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
+import { Label } from '@patternfly/react-core';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
@@ -11,9 +13,6 @@ import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import ExpandedAuthPolicyModelsPanel from '~/app/shared/ExpandedAuthPolicyModelsPanel';
-
-// Total column count: Name + Phase + Groups + Models + Actions
-const AUTH_POLICY_COL_SPAN = 5;
 
 type ExpandedPanel = 'groups' | 'models' | null;
 
@@ -36,6 +35,8 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
   const navState = returnTo ? { state: { returnTo } } : undefined;
   const policyNameSegment = (name: string) => encodeURIComponent(name);
+  const dashboardConfig = React.useContext(DashboardConfigContext);
+  const isIARedesign = !!dashboardConfig?.dashboardConfig.maasSettingsIaRedesign;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
 
   const togglePanel = (panel: 'groups' | 'models') => {
@@ -65,6 +66,81 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
     },
   };
 
+  const nameCell = (
+    <Td dataLabel={columns[0].label}>
+      <TableRowTitleDescription
+        title={
+          authPolicy.deletionTimestamp ? (
+            <span data-testid="auth-policy-name">{authPolicy.displayName ?? authPolicy.name}</span>
+          ) : (
+            <ResourceNameTooltip resource={convertAuthPolicyToK8sResource(authPolicy)}>
+              <Link
+                to={`${base}/view/${policyNameSegment(authPolicy.name)}`}
+                state={returnTo ? { returnTo } : undefined}
+              >
+                {authPolicy.displayName ?? authPolicy.name}
+              </Link>
+            </ResourceNameTooltip>
+          )
+        }
+        description={authPolicy.description ?? ''}
+        truncateDescriptionLines={2}
+      />
+    </Td>
+  );
+
+  const phaseCell = (
+    <Td dataLabel={columns[1].label}>
+      <PhaseLabel
+        phase={authPolicy.phase}
+        statusMessage={authPolicy.statusMessage}
+        resourceType={PhaseResourceType.AUTHPOLICY}
+      />
+    </Td>
+  );
+
+  const actionsCell = (
+    <Td isActionCell>
+      <ActionsColumn
+        data-testid="auth-policy-actions"
+        isDisabled={!!authPolicy.deletionTimestamp}
+        items={[
+          {
+            title: 'View details',
+            onClick: () => onViewDetailsAuthPolicy(authPolicy.name),
+          },
+          {
+            title: 'Edit',
+            onClick: () => onEditAuthPolicy(authPolicy.name),
+          },
+          { isSeparator: true },
+          {
+            title: 'Delete',
+            onClick: () => setDeleteAuthPolicy(authPolicy),
+          },
+        ]}
+      />
+    </Td>
+  );
+
+  if (!isIARedesign) {
+    return (
+      <Tbody>
+        <ResourceTr resource={policyResource} data-testid="auth-policy-row">
+          {nameCell}
+          {phaseCell}
+          <Td dataLabel={columns[2].label}>
+            <Label color="grey">{`${groupsCount} Group${groupsCount === 1 ? '' : 's'}`}</Label>
+          </Td>
+          <Td dataLabel={columns[3].label}>
+            <Label color="grey">{`${modelsCount} Model${modelsCount === 1 ? '' : 's'}`}</Label>
+          </Td>
+          {actionsCell}
+        </ResourceTr>
+      </Tbody>
+    );
+  }
+
   const isRowExpanded = expandedPanel !== null;
 
   return (
@@ -75,35 +151,8 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         isControlRow
         data-testid="auth-policy-row"
       >
-        <Td dataLabel={columns[0].label}>
-          <TableRowTitleDescription
-            title={
-              authPolicy.deletionTimestamp ? (
-                <span data-testid="auth-policy-name">
-                  {authPolicy.displayName ?? authPolicy.name}
-                </span>
-              ) : (
-                <ResourceNameTooltip resource={convertAuthPolicyToK8sResource(authPolicy)}>
-                  <Link
-                    to={`${base}/view/${policyNameSegment(authPolicy.name)}`}
-                    state={returnTo ? { returnTo } : undefined}
-                  >
-                    {authPolicy.displayName ?? authPolicy.name}
-                  </Link>
-                </ResourceNameTooltip>
-              )
-            }
-            description={authPolicy.description ?? ''}
-            truncateDescriptionLines={2}
-          />
-        </Td>
-        <Td dataLabel={columns[1].label}>
-          <PhaseLabel
-            phase={authPolicy.phase}
-            statusMessage={authPolicy.statusMessage}
-            resourceType={PhaseResourceType.AUTHPOLICY}
-          />
-        </Td>
+        {nameCell}
+        {phaseCell}
         <Td
           dataLabel={columns[2].label}
           compoundExpand={{
@@ -130,37 +179,17 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         >
           {modelsCount}
         </Td>
-        <Td isActionCell>
-          <ActionsColumn
-            data-testid="auth-policy-actions"
-            isDisabled={!!authPolicy.deletionTimestamp}
-            items={[
-              {
-                title: 'View details',
-                onClick: () => onViewDetailsAuthPolicy(authPolicy.name),
-              },
-              {
-                title: 'Edit',
-                onClick: () => onEditAuthPolicy(authPolicy.name),
-              },
-              { isSeparator: true },
-              {
-                title: 'Delete',
-                onClick: () => setDeleteAuthPolicy(authPolicy),
-              },
-            ]}
-          />
-        </Td>
+        {actionsCell}
       </ResourceTr>
       <Tr isExpanded={expandedPanel === 'groups'}>
-        <Td colSpan={AUTH_POLICY_COL_SPAN}>
+        <Td colSpan={columns.length}>
           <ExpandableRowContent>
             <ExpandedGroupsPanel groups={groups} />
           </ExpandableRowContent>
         </Td>
       </Tr>
       <Tr isExpanded={expandedPanel === 'models'}>
-        <Td colSpan={AUTH_POLICY_COL_SPAN}>
+        <Td colSpan={columns.length}>
           <ExpandableRowContent>
             <ExpandedAuthPolicyModelsPanel models={authPolicy.modelRefs} />
           </ExpandableRowContent>
