@@ -54,12 +54,16 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
   }, [namespace, k8sName, displayName, description, rules, labelRecord]);
 
   React.useEffect(() => {
+    const container = editorContainerRef.current;
     const handleFullScreenChange = () => {
-      setIsFullScreen(document.fullscreenElement === editorContainerRef.current);
+      setIsFullScreen(document.fullscreenElement === container);
     };
     document.addEventListener('fullscreenchange', handleFullScreenChange);
     return () => {
       document.removeEventListener('fullscreenchange', handleFullScreenChange);
+      if (document.fullscreenElement === container) {
+        document.exitFullscreen();
+      }
     };
   }, []);
 
@@ -74,7 +78,7 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
   const customControls = (
     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
       <FlexItem>
-        <Tooltip content={isFullScreen ? 'Exit full screen' : 'Full screen'}>
+        <Tooltip content={isFullScreen ? 'Exit full screen' : 'Full screen'} aria="none">
           <Button
             variant="plain"
             aria-label={isFullScreen ? 'Exit full screen' : 'Full screen'}

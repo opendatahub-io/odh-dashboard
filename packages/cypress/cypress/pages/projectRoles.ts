@@ -154,6 +154,10 @@ class ProjectRolesTab {
     return cy.findByTestId('yaml-code-editor');
   }
 
+  findYamlEditorContainer() {
+    return cy.findByTestId('yaml-editor-container');
+  }
+
   findYamlFullscreenToggle() {
     return cy.findByTestId('yaml-fullscreen-toggle');
   }

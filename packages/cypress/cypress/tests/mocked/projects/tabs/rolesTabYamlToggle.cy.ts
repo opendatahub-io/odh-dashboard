@@ -51,8 +51,9 @@ describe('Create Role - Form/YAML toggle', () => {
   it('should switch to YAML view when YAML toggle is clicked', () => {
     projectRoles.findYamlViewToggle().click();
 
-    projectRoles.findYamlView().should('be.visible');
+    projectRoles.findYamlView().should('exist');
     projectRoles.findCreateRoleForm().should('not.be.visible');
+    cy.testA11y();
   });
 
   it('should display title and description in YAML view', () => {
@@ -75,10 +76,10 @@ describe('Create Role - Form/YAML toggle', () => {
     projectRoles.findYamlViewToggle().click();
 
     projectRoles.findYamlCodeEditor().should('exist');
-    cy.findByTestId('yaml-editor-container').contains('rbac.authorization.k8s.io/v1');
-    cy.findByTestId('yaml-editor-container').contains('Role');
-    cy.findByTestId('yaml-editor-container').contains('test-role');
-    cy.findByTestId('yaml-editor-container').contains(NAMESPACE);
+    projectRoles.findYamlEditorContainer().contains('rbac.authorization.k8s.io/v1');
+    projectRoles.findYamlEditorContainer().contains('Role');
+    projectRoles.findYamlEditorContainer().contains('test-role');
+    projectRoles.findYamlEditorContainer().contains(NAMESPACE);
   });
 
   it('should reflect description in YAML', () => {
@@ -86,7 +87,17 @@ describe('Create Role - Form/YAML toggle', () => {
     projectRoles.findDescriptionTextarea().type('My role description');
     projectRoles.findYamlViewToggle().click();
 
-    cy.findByTestId('yaml-editor-container').contains('My role description');
+    projectRoles.findYamlEditorContainer().contains('My role description');
+  });
+
+  it('should reflect rules in YAML', () => {
+    projectRoles.findRoleNameInput().type('test-role');
+    projectRoles.findAddRuleButton().click();
+    projectRoles.findVerbCheckbox('get').click();
+    projectRoles.findRuleSaveButton().click();
+    projectRoles.findYamlViewToggle().click();
+
+    projectRoles.findYamlEditorContainer().contains('get');
   });
 
   it('should switch back to Form view and preserve data', () => {
@@ -94,7 +105,7 @@ describe('Create Role - Form/YAML toggle', () => {
     projectRoles.findDescriptionTextarea().type('Preserved description');
 
     projectRoles.findYamlViewToggle().click();
-    projectRoles.findYamlView().should('be.visible');
+    projectRoles.findYamlView().should('exist');
 
     projectRoles.findFormViewToggle().click();
     projectRoles.findCreateRoleForm().should('be.visible');

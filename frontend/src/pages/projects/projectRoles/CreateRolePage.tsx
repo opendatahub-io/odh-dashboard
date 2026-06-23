@@ -108,7 +108,9 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
     setSubmitError(undefined);
     const k8sName = k8sNameDescriptionData.data.k8sName.value;
     const roleDisplayName = k8sNameDescriptionData.data.name || k8sName;
-    const labelRecord = Object.fromEntries(labels.map((l) => [l.key, l.value]));
+    const labelRecord = Object.fromEntries(
+      labels.filter((l) => l.key).map((l) => [l.key, l.value]),
+    );
     const role = assembleRole(namespace, k8sName, roleDisplayName, description, rules, labelRecord);
     try {
       await createRole(role);
@@ -195,7 +197,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
               onRulesChange={handleRulesChange}
             />
           </div>
-          <div hidden={viewMode !== 'yaml'}>
+          {viewMode === 'yaml' && (
             <CreateRoleYamlView
               namespace={namespace}
               k8sName={k8sNameDescriptionData.data.k8sName.value}
@@ -206,7 +208,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
               rules={rules}
               labels={labels}
             />
-          </div>
+          )}
         </PageSection>
         <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
           <CreateRoleFooter
