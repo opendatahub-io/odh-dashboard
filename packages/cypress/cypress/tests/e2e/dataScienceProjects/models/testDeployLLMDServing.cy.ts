@@ -120,9 +120,6 @@ describe('A user can deploy an LLMD model', () => {
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
 
-      cy.step('Verify legacy deployment checkbox appears and is unchecked');
-      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
-
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select Model deployment');
@@ -136,6 +133,10 @@ describe('A user can deploy an LLMD model', () => {
           resourceName = val as string;
         });
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
+
+      modelServingWizard
+        .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
+        .click();
 
       cy.step('Verify YAML Viewer');
       // Stub clipboard API AFTER page load (window changes on navigation)

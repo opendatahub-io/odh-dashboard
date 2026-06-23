@@ -218,6 +218,9 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
           resourceName = String(val ?? '');
         });
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
+      modelServingWizard
+        .findDeploymentMethodSelectOption('LLM inference service deployment')
+        .click();
       modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard

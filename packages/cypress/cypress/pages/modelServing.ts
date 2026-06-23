@@ -1413,8 +1413,17 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('switch-to-manual-yaml-editor');
   }
 
-  findLegacyModeCheckbox() {
-    return cy.findByTestId('legacy-mode-checkbox');
+  findDeploymentMethodSelect() {
+    return cy.findByTestId('deployment-method-select');
+  }
+
+  findDeploymentMethodSelectOption(name: string) {
+    return this.findDeploymentMethodSelect().findSelectOption(new RegExp(`^${name}`));
+  }
+
+  selectDeploymentMethodByKey(key: string) {
+    this.findDeploymentMethodSelect().click();
+    return cy.findByTestId(key).click();
   }
 
   findYAMLEditFallbackAlert() {

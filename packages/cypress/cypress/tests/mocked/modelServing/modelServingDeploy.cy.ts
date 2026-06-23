@@ -376,8 +376,6 @@ describe('Model Serving Deploy Wizard', () => {
       .should('exist')
       .click();
     modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
-
-    modelServingWizard.findLegacyModeCheckbox().should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -386,6 +384,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findModelDeploymentDescriptionInput().type('test-description');
+    modelServingWizard.findDeploymentMethodSelectOption('Legacy deployment').click();
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
     // Generative has no model format select (they are all vLLM)
@@ -1481,13 +1480,16 @@ describe('Model Serving Deploy Wizard', () => {
       .should('have.text', ModelTypeLabel.GENERATIVE)
       .should('be.disabled');
 
-    modelServingWizardEdit.findLegacyModeCheckbox().should('be.checked').should('be.disabled');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
     modelServingWizardEdit
       .findModelDeploymentDescriptionInput()
       .should('contain.text', 'test-description');
+    modelServingWizardEdit
+      .findDeploymentMethodSelect()
+      .should('be.disabled')
+      .should('contain.text', 'Legacy deployment');
     modelServingWizardEdit.findModelDeploymentStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 
@@ -1659,6 +1661,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizardEdit.findDeploymentMethodSelectOption('Legacy deployment').click();
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
     modelServingWizard.findModelFormatSelect().should('not.exist');
@@ -1820,10 +1823,8 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findSaveConnectionCheckbox().click();
       modelServingWizard.findNextButton().should('be.enabled').click();
       modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-        .should('exist')
+      modelServingWizardEdit
+        .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
         .click();
 
       // Verify yaml preview contents (use .contains() command, not .should('contain.text'),
@@ -1874,10 +1875,8 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Step 2: Model deployment - set name and choose the LLMd runtime
       modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-        .should('exist')
+      modelServingWizardEdit
+        .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
         .click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -2158,6 +2157,7 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findNextButton().click();
 
       // Step 6: Verify selection is cleared when model type changes
+      modelServingWizardEdit.findDeploymentMethodSelectOption('Legacy deployment').click();
       modelServingWizard
         .findServingRuntimeTemplateSearchSelector()
         .should('contain.text', 'Select one');

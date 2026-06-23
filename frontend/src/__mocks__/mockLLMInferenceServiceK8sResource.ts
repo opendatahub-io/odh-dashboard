@@ -25,6 +25,7 @@ type MockLLMInferenceServiceConfigType = {
   isMaaS?: boolean;
   secretName?: string;
   gatewayRefs?: { name: string; namespace: string }[];
+  isLLMd?: boolean;
 };
 
 export const mockLLMInferenceServiceK8sResource = ({
@@ -46,6 +47,7 @@ export const mockLLMInferenceServiceK8sResource = ({
   isMaaS = false,
   secretName,
   gatewayRefs,
+  isLLMd = true,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'LLMInferenceService',
@@ -86,7 +88,7 @@ export const mockLLMInferenceServiceK8sResource = ({
           : {}),
       },
       route: {},
-      scheduler: {},
+      ...(isLLMd && { scheduler: {} }),
     },
     template: {
       containers: [
