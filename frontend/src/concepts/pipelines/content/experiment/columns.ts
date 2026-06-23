@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 export const experimentSelectorColumns: SortableData<ExperimentKF>[] = [

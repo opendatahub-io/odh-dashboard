@@ -6,7 +6,7 @@ import (
 
 	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +33,7 @@ type KubernetesClientInterface interface {
 	// OGX Server (OGXServer CR)
 	GetOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*ogxapi.OGXServerList, error)
 	CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
-	InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error)
+	InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error)
 	DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error)
 	GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*types.ModelProviderInfo, error)
 

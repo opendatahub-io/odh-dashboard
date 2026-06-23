@@ -1,4 +1,4 @@
-import { SortableData, kebabTableColumn } from '#~/components/table';
+import { SortableData, kebabTableColumn } from '@odh-dashboard/ui-core';
 import { ModelRegistryKind } from '#~/k8sTypes';
 
 export const modelRegistryColumns: SortableData<ModelRegistryKind>[] = [

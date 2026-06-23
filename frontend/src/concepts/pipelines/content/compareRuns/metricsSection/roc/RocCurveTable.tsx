@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TextInput, ToolbarItem } from '@patternfly/react-core';
-import { Table, useCheckboxTableBase } from '#~/components/table';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import { useCheckboxTableBase } from '#~/components/table';
 import { getLinkedArtifactId } from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
 import RocCurveTableRow from './RocCurveTableRow';
 import { rocCurveColumns } from './const';

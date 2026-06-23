@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, Td } from '@patternfly/react-table';
-import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
+import { ResourceTr, ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { Content, Label } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';

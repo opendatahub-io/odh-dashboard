@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { intersection, xor } from 'lodash-es';
-import type Table from './Table';
+import type { Table } from '@odh-dashboard/ui-core';
 
 export type UseCheckboxTableBaseProps<DataType> = {
   selections: DataType[];

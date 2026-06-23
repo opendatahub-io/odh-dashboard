@@ -1,6 +1,6 @@
 import React from 'react';
 import { type Identifier, IdentifierResourceType } from '@odh-dashboard/k8s-core';
-import { TableBase } from '#~/components/table';
+import { TableBase } from '@odh-dashboard/ui-core';
 import { nodeResourceColumns, DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './const';
 import NodeResourceTableRow from './NodeResourceTableRow';
 import ManageNodeResourceModal from './ManageNodeResourceModal';

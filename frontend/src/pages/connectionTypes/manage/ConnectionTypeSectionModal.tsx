@@ -11,9 +11,9 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { SectionField } from '#~/concepts/connectionTypes/types';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
 
 type Props = {

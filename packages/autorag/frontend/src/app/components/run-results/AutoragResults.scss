@@ -15,8 +15,7 @@
   border: 1px solid var(--pf-t--global--border--color--default);
   overflow: hidden;
 
-  /* Default view: larger than body--lg for long pipeline labels at default zoom. */
-  --pf-topology-pipelines__pill-text--FontSize: 1.3125rem;
+  --pf-topology-pipelines__pill-text--FontSize: 1rem;
 
   .pf-topology-content {
     background-color: var(--pf-t--global--background--color--primary--default);
