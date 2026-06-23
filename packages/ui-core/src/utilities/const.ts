@@ -1,4 +1,5 @@
 /* eslint-disable prefer-destructuring */
+// We need to disable the prefer-destructuring rule here due to an issue with how environment variables are handled in the build process with webpack.
 const FAST_POLL_INTERVAL = process.env.FAST_POLL_INTERVAL
   ? parseInt(process.env.FAST_POLL_INTERVAL)
   : 3000;

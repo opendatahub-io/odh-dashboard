@@ -1,8 +1,13 @@
+/**
+ * Format: '{value: number}{unit: string}'
+ * eg. 1Unit; 100Mi; 10Gi; 5m
+ */
 export type ValueUnitString = string;
 
 export type UnitOption = {
   name: string;
   unit: string;
+  /** How much to multiply the unit value to get it to the same unit as the lowest unit */
   weight: number;
 };
 
