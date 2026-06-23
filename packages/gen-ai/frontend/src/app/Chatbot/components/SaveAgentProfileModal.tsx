@@ -155,7 +155,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
     }
   };
 
-  const title = mode === 'save' ? 'Save agent profile' : 'Save as agent profile';
+  const title = mode === 'save' ? 'Save agent configuration' : 'Save as agent configuration';
   const nameError = nameTouched && !name.trim();
   const isSaveDisabled = isSaving || !name.trim();
 
@@ -205,7 +205,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
       <ModalHeader
         title={title}
         labelId="save-agent-profile-modal-title"
-        description="Save your model, prompt, knowledge, and MCP servers as a reusable agent profile."
+        description="Save your model, prompt, knowledge, and MCP servers as a reusable agent configuration."
       />
       <ModalBody>
         <Form id="save-agent-profile-form" onSubmit={handleSubmit}>
