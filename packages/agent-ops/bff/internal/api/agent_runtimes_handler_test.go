@@ -1,13 +1,17 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
+	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -117,4 +121,28 @@ func TestListAgentRuntimesHandler_WithNamespaceNoResults(t *testing.T) {
 	require.NoError(t, json.Unmarshal(body, &envelope))
 	require.NotNil(t, envelope.Data)
 	assert.Empty(t, envelope.Data.Runtimes)
+}
+
+func TestListAgentRuntimesHandler_ForbiddenNamespaceDoesNotLeakQueryParams(t *testing.T) {
+	mockClient := agentsmock.NewClient()
+	mockClient.CanListAgentsInNSResult = false
+	repos := repositories.NewRepositories(&agentsmock.Factory{Client: mockClient})
+
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+	app := &App{
+		repositories: repos,
+		logger:       logger,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath+"?namespace=secret-ns&continueToken=sensitive-token", nil)
+	rr := httptest.NewRecorder()
+
+	app.ListAgentRuntimesHandler(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+
+	logOutput := buf.String()
+	assert.NotContains(t, logOutput, "sensitive-token")
+	assert.NotContains(t, logOutput, "continueToken")
 }
