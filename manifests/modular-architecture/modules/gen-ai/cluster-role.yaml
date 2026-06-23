@@ -25,3 +25,43 @@ rules:
       - create
     resources:
       - subjectaccessreviews
+  # pgvector auto-provisioning (RHOAIENG-68914)
+  - apiGroups:
+      - ""
+    verbs:
+      - create
+      - get
+      - list
+      - delete
+      - deletecollection
+    resources:
+      - secrets
+      - services
+      - persistentvolumeclaims
+      - configmaps
+  - apiGroups:
+      - apps
+    verbs:
+      - create
+      - get
+      - list
+      - delete
+      - deletecollection
+    resources:
+      - deployments
+  - apiGroups:
+      - networking.k8s.io
+    verbs:
+      - create
+      - get
+      - list
+      - delete
+      - deletecollection
+    resources:
+      - networkpolicies
+  - apiGroups:
+      - storage.k8s.io
+    verbs:
+      - list
+    resources:
+      - storageclasses
