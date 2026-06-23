@@ -13,6 +13,10 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
+    '@patternfly/react-icons': {
+      singleton: true,
+      requiredVersion: deps['@patternfly/react-icons'],
+    },
     '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
   },
