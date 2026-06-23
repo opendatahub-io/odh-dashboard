@@ -25,7 +25,7 @@ import { uploadMediaFile } from '~/app/services/llamaStackService';
 import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
 import {
-  convertAAModelToAIModel,
+  convertMaaSModelToAIModel,
   getId,
   isMaasLlamaModelId,
   isPlaygroundModelMatchForAIModel,
@@ -183,7 +183,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     !capabilitiesReady || capabilitiesError || !primaryIsAsrEnabled || !primarySelectedAsrModel;
 
   const convertedMaasModels = React.useMemo(
-    () => maasModels.map(convertAAModelToAIModel),
+    () => maasModels.map(convertMaaSModelToAIModel),
     [maasModels],
   );
 

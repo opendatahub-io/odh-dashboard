@@ -23,7 +23,7 @@ import {
 } from '~/app/types';
 import {
   computeEmbeddingModelStatus,
-  convertAAModelToAIModel,
+  convertMaaSModelToAIModel,
   isASROnlyModel,
   isPlaygroundModelMatchForAIModel,
   splitLlamaModelId,
@@ -95,7 +95,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const vectorStoresEnabled = useAiAssetVectorStoresEnabled();
 
   const maasAsAIModels: AIModel[] = React.useMemo(
-    () => maasModels.map(convertAAModelToAIModel),
+    () => maasModels.map(convertMaaSModelToAIModel),
     [maasModels],
   );
 
