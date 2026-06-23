@@ -6,24 +6,9 @@ import {
   ChartLine,
   ChartVoronoiContainer,
 } from '@patternfly/react-charts/victory';
-import {
-  chart_color_black_500 as chartColorBlack500,
-  chart_theme_multi_color_ordered_ColorScale_100 as chartThemeColor100,
-  chart_theme_multi_color_ordered_ColorScale_200 as chartThemeColor200,
-  chart_theme_multi_color_ordered_ColorScale_300 as chartThemeColor300,
-  chart_theme_multi_color_ordered_ColorScale_400 as chartThemeColor400,
-  chart_theme_multi_color_ordered_ColorScale_500 as chartThemeColor500,
-} from '@patternfly/react-tokens';
 import { Flex, FlexItem, Label, Title } from '@patternfly/react-core';
 import type { CurvesData, PrecisionRecallEntry } from '~/app/types';
-
-const COLOR_SCALE = [
-  chartThemeColor100.value,
-  chartThemeColor200.value,
-  chartThemeColor300.value,
-  chartThemeColor400.value,
-  chartThemeColor500.value,
-];
+import { chartColorBlack500, COLOR_SCALE } from './chartConstants';
 
 type CurveLineData = {
   label: string;
@@ -153,12 +138,12 @@ const PrecisionRecallChart: React.FC<PrecisionRecallChartProps> = ({ prData }) =
 
   return (
     <div data-testid="precision-recall-chart">
-      <div className="pf-v6-u-mb-md pf-v6-u-display-flex pf-v6-u-align-items-center">
+      <Flex alignItems={{ default: 'alignItemsCenter' }} className="pf-v6-u-mb-md">
         <Title headingLevel="h3" className="pf-v6-u-mr-sm">
           Precision-Recall Curve
         </Title>
         <Label isCompact>{`AP = ${ap.toFixed(3)}`}</Label>
-      </div>
+      </Flex>
       {isMulticlass ? (
         <Flex>
           <FlexItem>{chart}</FlexItem>

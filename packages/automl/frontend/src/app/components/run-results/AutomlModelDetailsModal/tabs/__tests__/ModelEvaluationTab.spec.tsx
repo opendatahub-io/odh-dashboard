@@ -26,6 +26,10 @@ const defaultProps = {
 };
 
 describe('ModelEvaluationTab', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should render all metric rows from test_data', () => {
     const model = buildModel({ accuracy: 0.658, f1: 0.648, precision: 0.65 });
     render(<ModelEvaluationTab {...defaultProps} model={model} />);

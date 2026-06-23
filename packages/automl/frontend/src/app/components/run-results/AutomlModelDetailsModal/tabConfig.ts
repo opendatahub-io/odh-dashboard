@@ -47,7 +47,7 @@ const NON_TIMESERIES_TYPES: readonly TaskType[] = [
   TASK_TYPE_REGRESSION,
 ];
 
-const CLASSIFICATION_TYPES: readonly TaskType[] = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS];
+export const CLASSIFICATION_TYPES: readonly TaskType[] = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS];
 
 export const TAB_DEFINITIONS: TabDefinition[] = [
   {

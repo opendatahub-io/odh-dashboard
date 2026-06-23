@@ -1,13 +1,12 @@
 import React from 'react';
 import { Title } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
+import {
+  CLASSIFICATION_TYPES,
+  type TabContentProps,
+} from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import { formatMetricName, formatMetricValue, toNumericMetric } from '~/app/utilities/utils';
-import { TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS } from '~/app/utilities/const';
-import type { TaskType } from '~/app/types';
 import ROCCurveChart from '~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart';
-
-const CLASSIFICATION_TYPES: TaskType[] = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS];
 
 const ModelEvaluationTab: React.FC<TabContentProps> = ({ model, taskType, curves }) => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: test_data may be missing in malformed model.json

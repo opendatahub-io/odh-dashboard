@@ -30,6 +30,10 @@ const defaultProps = {
 };
 
 describe('PrecisionRecallTab', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should render chart when curves data is provided', () => {
     render(
       <PrecisionRecallTab
