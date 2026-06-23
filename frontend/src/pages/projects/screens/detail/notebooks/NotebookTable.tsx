@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Table } from '#~/components/table';
+import { Table } from '@odh-dashboard/ui-core';
 import { NotebookKind } from '#~/k8sTypes';
 import DeleteNotebookModal from '#~/pages/projects/notebook/DeleteNotebookModal';
 import { NotebookState } from '#~/pages/projects/notebook/types';

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import { Tr } from '@patternfly/react-table';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 
 import './ResourceTr.scss';
 

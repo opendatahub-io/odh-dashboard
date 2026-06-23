@@ -19,7 +19,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import {
   MlflowExperimentSelector,
   type MlflowExperiment,
