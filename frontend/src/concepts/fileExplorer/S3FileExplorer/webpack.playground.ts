@@ -107,7 +107,7 @@ ENV_TO_INCLUDE.forEach((key) => {
 ENV_STUB_FALSE.forEach((key) => {
   playgroundEnv[`process.env.${key}`] = 'false';
 });
-const NODE_MODULES = path.resolve(PROJECT_ROOT, 'node_modules');
+const NODE_MODULES = path.resolve(ODH_ROOT, 'node_modules');
 
 // Config --------------------------------------------------------------------->
 
