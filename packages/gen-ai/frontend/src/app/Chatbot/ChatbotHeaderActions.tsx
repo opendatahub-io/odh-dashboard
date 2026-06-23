@@ -14,7 +14,7 @@ import {
 import { CodeIcon, ColumnsIcon, CogIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { AGENT_PROFILES } from '~/odh/extensions';
+import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
 type ChatbotHeaderActionsProps = {
@@ -51,7 +51,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configIds[0]));
   const isViewCodeDisabled = !lastInput || !selectedModel;
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
-  const [agentProfilesEnabled] = useFeatureFlag(AGENT_PROFILES);
+  const [agentProfilesEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
 
   const getDisabledReason = () => {

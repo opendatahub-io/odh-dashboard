@@ -64,6 +64,7 @@ export type DashboardConfig = K8sResourceCommon & {
       projectRBAC: boolean;
       deploymentWizardYAMLViewer: boolean;
       externalVectorStores: boolean;
+      agentConfigManagement: boolean;
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;

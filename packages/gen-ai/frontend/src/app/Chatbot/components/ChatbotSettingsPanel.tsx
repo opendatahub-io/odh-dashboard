@@ -25,7 +25,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
-import { AGENT_PROFILES } from '~/odh/extensions';
+import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import {
   useChatbotConfigStore,
   selectSystemInstruction,
@@ -107,7 +107,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
   const [isSaveDropdownOpen, setIsSaveDropdownOpen] = React.useState(false);
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
-  const [agentProfilesEnabled] = useFeatureFlag(AGENT_PROFILES);
+  const [agentProfilesEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
