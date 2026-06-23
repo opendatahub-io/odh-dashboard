@@ -22,15 +22,18 @@ const HIDDEN_KEYS = new Set([
 ]);
 
 const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, createdAt }) => {
-  const paramEntries = Object.entries(parameters ?? {}).filter(([key, value]) => {
-    if (HIDDEN_KEYS.has(key) || value === '') {
-      return false;
-    }
-    return !Array.isArray(value) || value.length > 0;
-  });
-  const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
-  paramEntries.push(['Evaluation metric', formatMetricName(evalMetric)]);
-  paramEntries.push(['Created on', createdAt ? new Date(createdAt).toLocaleString() : '-']);
+  const paramEntries = React.useMemo(() => {
+    const entries = Object.entries(parameters ?? {}).filter(([key, value]) => {
+      if (HIDDEN_KEYS.has(key) || value === '') {
+        return false;
+      }
+      return !Array.isArray(value) || value.length > 0;
+    });
+    const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
+    entries.push(['Evaluation metric', formatMetricName(evalMetric)]);
+    entries.push(['Created on', createdAt ? new Date(createdAt).toLocaleString() : '-']);
+    return entries;
+  }, [parameters, taskType, createdAt]);
 
   const maxTermWidth = React.useMemo(
     () => paramEntries.reduce((max, [key]) => Math.max(max, formatMetricName(key).length), 0),
