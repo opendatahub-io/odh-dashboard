@@ -23,16 +23,6 @@ yarn-debug.log*
 yarn-error.log*
 yarn.lock
 
-# Runtime files
-*.pid
-.dashboard-pid
-.genai-bff-pid
-.genai-frontend-pid
-cluster-run.log
-dashboard-dev.log
-genai-bff.log
-genai-frontend.log
-
 # snyk cache file
 .dccache
 
