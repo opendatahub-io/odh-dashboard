@@ -199,4 +199,4 @@ endef
 
 .PHONY: dev-start-federated
 dev-start-federated:
-make run PORT=4000 DEPLOYMENT_MODE=federated
+	$(MAKE) run PORT=4000 DEPLOYMENT_MODE=federated
