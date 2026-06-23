@@ -20,7 +20,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	genaitypes "github.com/opendatahub-io/gen-ai/internal/types"
 	authnv1 "k8s.io/api/authentication/v1"
