@@ -15,13 +15,15 @@ func TestResolveModuleStatuses(t *testing.T) {
 	tests := []struct {
 		name        string
 		spec        v1alpha1.DashboardSpec
+		wantLen     int
 		wantPhases  map[string]v1alpha1.ModulePhase
 		wantReason  map[string]string
 		wantMessage map[string]string
 	}{
 		{
-			name: "default spec — all modules deployed",
-			spec: v1alpha1.DashboardSpec{},
+			name:    "default spec — all modules deployed",
+			wantLen: 8,
+			spec:    v1alpha1.DashboardSpec{},
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDeployed,
 				"genAi":         v1alpha1.ModulePhaseDeployed,
@@ -34,7 +36,8 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 		},
 		{
-			name: "explicit disable override",
+			name:    "explicit disable override",
+			wantLen: 8,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"genAi": {State: v1alpha1.ModuleDisabled},
@@ -49,7 +52,8 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 		},
 		{
-			name: "explicit enable is treated as deployed",
+			name:    "explicit enable is treated as deployed",
+			wantLen: 8,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelRegistry": {State: v1alpha1.ModuleEnabled},
@@ -60,7 +64,8 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 		},
 		{
-			name: "all modules disabled via overrides",
+			name:    "all modules disabled via overrides",
+			wantLen: 8,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelRegistry": {State: v1alpha1.ModuleDisabled},
@@ -85,7 +90,8 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 		},
 		{
-			name: "unknown module override key produces UnknownModule status",
+			name:    "unknown module override key produces UnknownModule status",
+			wantLen: 9,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelregistry": {State: v1alpha1.ModuleEnabled},
@@ -104,7 +110,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := resolveModuleStatuses(&tt.spec)
 
-			require.GreaterOrEqual(t, len(got), len(moduleRegistry), "should include at least every registered module")
+			require.Len(t, got, tt.wantLen, "result should have exact expected cardinality")
 
 			for name, wantPhase := range tt.wantPhases {
 				status, ok := got[name]
@@ -209,6 +215,7 @@ func TestOverlayContainerReadiness(t *testing.T) {
 				{
 					Status: corev1.PodStatus{
 						ContainerStatuses: []corev1.ContainerStatus{
+							{Name: "gen-ai-ui", Ready: true},
 							{
 								Name:  "mlflow-ui",
 								Ready: false,
@@ -325,7 +332,8 @@ func TestModuleRegistry(t *testing.T) {
 
 func TestModuleNames(t *testing.T) {
 	names := ModuleNames()
-	assert.Len(t, names, 8)
-	assert.Equal(t, "agentOps", names[0], "names should be sorted alphabetically")
-	assert.Equal(t, "modelRegistry", names[len(names)-1])
+	assert.Equal(t, []string{
+		"agentOps", "automl", "autorag", "evalHub",
+		"genAi", "maas", "mlflow", "modelRegistry",
+	}, names)
 }

@@ -9,6 +9,8 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -95,6 +97,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, fmt.Errorf("failed to tear down resources: %w", err)
 		}
 
+		dashboard.Status.ObservedGeneration = dashboard.Generation
 		dashboard.Status.Phase = common.PhaseNotReady
 		dashboard.Status.URL = ""
 		dashboard.Status.ModuleStatuses = nil
@@ -112,10 +115,15 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
+		cm.MarkFalse(string(common.ConditionTypeReady),
+			conditions.WithReason("Removed"),
+			conditions.WithMessage("Dashboard has been removed via managementState"))
 		cm.Sort()
 
 		if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after removal")
+
+			return ctrl.Result{}, fmt.Errorf("failed to update status after removal: %w", statusErr)
 		}
 
 		return ctrl.Result{}, nil
@@ -258,10 +266,15 @@ func (r *DashboardReconciler) reconcile(
 		client.InNamespace(r.ApplicationsNamespace),
 		client.MatchingLabels{"app.kubernetes.io/part-of": "odh-dashboard"},
 	); err != nil {
-		logger.Error(err, "Failed to list dashboard pods for readiness overlay")
-	} else {
-		overlayContainerReadiness(nextStatuses, podList.Items)
+		cm.MarkFalse(string(common.ConditionTypeDegraded),
+			conditions.WithReason("PodListFailed"),
+			conditions.WithError(err),
+			conditions.WithSeverity(common.ConditionSeverityError))
+
+		return ctrl.Result{}, fmt.Errorf("failed to list dashboard pods: %w", err)
 	}
+
+	overlayContainerReadiness(nextStatuses, podList.Items)
 
 	for name, next := range nextStatuses {
 		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
@@ -348,8 +361,8 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	inNamespace := client.InNamespace(r.ApplicationsNamespace)
 
-	deleteTyped := func(list client.ObjectList, kind string) error {
-		if err := r.List(ctx, list, matchLabels, inNamespace); err != nil {
+	deleteTyped := func(list client.ObjectList, kind string, opts ...client.ListOption) error {
+		if err := r.List(ctx, list, opts...); err != nil {
 			return fmt.Errorf("listing %s: %w", kind, err)
 		}
 
@@ -365,17 +378,52 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 
 	var deployments appsv1.DeploymentList
-	if err := deleteTyped(&deployments, "Deployment"); err != nil {
+	if err := deleteTyped(&deployments, "Deployment", matchLabels, inNamespace); err != nil {
 		return err
 	}
 
 	var services corev1.ServiceList
-	if err := deleteTyped(&services, "Service"); err != nil {
+	if err := deleteTyped(&services, "Service", matchLabels, inNamespace); err != nil {
 		return err
 	}
 
 	var configmaps corev1.ConfigMapList
-	if err := deleteTyped(&configmaps, "ConfigMap"); err != nil {
+	if err := deleteTyped(&configmaps, "ConfigMap", matchLabels, inNamespace); err != nil {
+		return err
+	}
+
+	var serviceAccounts corev1.ServiceAccountList
+	if err := deleteTyped(&serviceAccounts, "ServiceAccount", matchLabels, inNamespace); err != nil {
+		return err
+	}
+
+	var secrets corev1.SecretList
+	if err := deleteTyped(&secrets, "Secret", matchLabels, inNamespace); err != nil {
+		return err
+	}
+
+	var networkPolicies networkingv1.NetworkPolicyList
+	if err := deleteTyped(&networkPolicies, "NetworkPolicy", matchLabels, inNamespace); err != nil {
+		return err
+	}
+
+	var roles rbacv1.RoleList
+	if err := deleteTyped(&roles, "Role", matchLabels, inNamespace); err != nil {
+		return err
+	}
+
+	var roleBindings rbacv1.RoleBindingList
+	if err := deleteTyped(&roleBindings, "RoleBinding", matchLabels, inNamespace); err != nil {
+		return err
+	}
+
+	var clusterRoles rbacv1.ClusterRoleList
+	if err := deleteTyped(&clusterRoles, "ClusterRole", matchLabels); err != nil {
+		return err
+	}
+
+	var clusterRoleBindings rbacv1.ClusterRoleBindingList
+	if err := deleteTyped(&clusterRoleBindings, "ClusterRoleBinding", matchLabels); err != nil {
 		return err
 	}
 
@@ -407,6 +455,48 @@ func extractItems(list client.ObjectList) []client.Object {
 			items[i] = &l.Items[i]
 		}
 		return items
+	case *corev1.ServiceAccountList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
+	case *corev1.SecretList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
+	case *networkingv1.NetworkPolicyList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
+	case *rbacv1.RoleList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
+	case *rbacv1.RoleBindingList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
+	case *rbacv1.ClusterRoleList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
+	case *rbacv1.ClusterRoleBindingList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
 	default:
 		return nil
 	}
@@ -423,6 +513,10 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		ApplicationsNamespace: opts.ApplicationsNamespace,
 	}
 
+	// Owns() watches ensure external modifications or deletions of managed
+	// resources trigger re-reconciliation. During Removed state the extra
+	// reconcile is harmless — teardown is idempotent and bounded by the
+	// number of owned resources.
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Dashboard{}).
 		Owns(&appsv1.Deployment{}).

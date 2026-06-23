@@ -123,6 +123,13 @@ func overlayContainerReadiness(statuses map[string]v1alpha1.ModuleStatus, pods [
 
 		cs, found := containerByName[mod.ContainerName]
 		if !found {
+			statuses[name] = v1alpha1.ModuleStatus{
+				Phase:              v1alpha1.ModulePhaseNotDeployed,
+				Reason:             "ContainerNotFound",
+				Message:            fmt.Sprintf("Container %q not found in any dashboard pod", mod.ContainerName),
+				LastTransitionTime: now,
+			}
+
 			continue
 		}
 

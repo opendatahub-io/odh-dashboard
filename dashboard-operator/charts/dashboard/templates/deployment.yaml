@@ -76,6 +76,9 @@ spec:
             {{- if .Values.manager.leaderElection }}
             - --leader-elect
             {{- end }}
+            {{- if .Values.webhook.enabled }}
+            - --webhook-port={{ .Values.webhook.port }}
+            {{- end }}
           env:
             - name: OPERATOR_NAMESPACE
               valueFrom:

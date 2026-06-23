@@ -1,6 +1,10 @@
 # Default values for the Dashboard module controller bootstrap chart.
 # The ODH Operator renders this chart and injects namespace, image tags, and
 # RELATED_IMAGE_* values at install time.
+#
+# NOTE: Image tags below use mutable branch references (e.g. ":main") for
+# development convenience. In production, the ODH Operator overrides these
+# with immutable digest references injected by Konflux.
 
 nameOverride: ""
 fullnameOverride: ""

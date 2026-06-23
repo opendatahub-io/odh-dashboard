@@ -54,7 +54,7 @@ The controller follows a sequential pipeline on each reconcile:
 4. Render manifests    → kustomize engine with namespace injection
 5. Deploy via SSA      → deploy.NewDeployer with field ownership + apply ordering
 6. Extract URL         → list Routes by label, check admission status
-7. Resolve modules     → two-pass dependency resolution, populate moduleStatuses
+7. Resolve modules     → resolve from spec overrides, overlay container readiness
 8. Update status       → conditions, phase, URL, moduleStatuses, releases
 ```
 
@@ -62,7 +62,7 @@ The controller follows a sequential pipeline on each reconcile:
 
 The controller supports `managementState: Removed` on the Dashboard CR. When set:
 
-1. All resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (Deployments, Services, ConfigMaps)
+1. All resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings
 2. Cross-namespace resources (e.g., Perses proxy in observability namespace) are cleaned up
 3. Status is updated: `phase: NotReady`, `ProvisioningSucceeded: False` (reason: `Removed`), `Degraded: False` (reason: `Removed`)
 4. `status.url` and `status.moduleStatuses` are cleared
@@ -95,43 +95,27 @@ The rendering pipeline:
 
 ### Module Registry
 
-A static map compiled into the controller binary defining each module's properties:
+A static map compiled into the controller binary defining each BFF module's properties:
 
-| Module | Type | Container | Port | Dependencies |
-|--------|------|-----------|------|--------------|
-| agentOps | BFF | agent-ops-ui | 8843 | (none) |
-| automl | BFF | automl-ui | 8543 | (none) |
-| autorag | BFF | autorag-ui | 8643 | (none) |
-| evalHub | BFF | eval-hub-ui | 8443 | (none) |
-| genAi | BFF | gen-ai-ui | 8143 | (none) |
-| maas | BFF | maas-ui | 8243 | (none) |
-| mlflow | BFF | mlflow-ui | 8343 | mlflowoperator |
-| mlflowEmbedded | Embedded | — | — | mlflowoperator, module:mlflow |
-| modelRegistry | BFF | model-registry-ui | 8043 | modelregistry |
-| perses | ProxyService | — | — | (observability spec) |
+| Module | Container | Port | Image Env Var |
+|--------|-----------|------|---------------|
+| agentOps | agent-ops-ui | 8843 | `RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE` |
+| automl | automl-ui | 8543 | `RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE` |
+| autorag | autorag-ui | 8643 | `RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE` |
+| evalHub | eval-hub-ui | 8443 | `RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE` |
+| genAi | gen-ai-ui | 8143 | `RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE` |
+| maas | maas-ui | 8243 | `RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE` |
+| mlflow | mlflow-ui | 8343 | `RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE` |
+| modelRegistry | model-registry-ui | 8043 | `RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE` |
 
-Dependencies prefixed with `module:` are inter-module dependencies resolved in Pass 2; others are DSC component dependencies checked in Pass 1.
+### Resolution
 
-### Two-Pass Resolution Algorithm
+Module statuses are resolved from `spec.modules` overrides:
+- **Disabled** override → `Phase: Disabled`
+- **Enabled** or absent → `Phase: Deployed` (default-on)
+- Unknown keys (not in registry) → `Phase: NotDeployed`, reason `UnknownModule`
 
-**Pass 1** — Evaluate each module independently:
-1. Check `spec.modules[name].state` override: `Disabled` → immediately disabled; `Enabled` → bypasses DSC component checks
-2. For `perses`: check `spec.observability.enabled` instead of components
-3. Check required DSC components via `spec.components`: `Managed`/`Unmanaged` = available, `Removed`/missing = unavailable
-4. If all checks pass: tentatively mark as deployed
-
-**Pass 2** — Resolve inter-module dependencies:
-- For each module with `RequiredModules` (e.g., mlflowEmbedded requires mlflow): verify the required module resolved to `Deployed`
-- If any required module is not deployed, downgrade to `NotDeployed`
-- Bounded iteration prevents infinite loops from dependency cycles
-
-### Override Semantics
-
-| Override State | DSC Components | Inter-Module Deps |
-|---------------|----------------|-------------------|
-| `Enabled` | Bypassed | Still enforced |
-| `Disabled` | Skipped | Skipped |
-| (absent) | Checked | Checked |
+Container readiness is then overlaid from pod status: if a module's container is in `ImagePullBackOff`, `CrashLoopBackOff`, or similar waiting state, its status is downgraded to `Degraded`. If the container is not found in any pod, the status is set to `NotDeployed`.
 
 ## Operator ConfigMap
 
@@ -481,6 +465,11 @@ All container images use `RELATED_IMAGE_*` env vars (required by Konflux/operato
 
 If a CR was created with the wrong name (e.g., `default` instead of `default-dashboard`), CEL validation blocks all mutations including finalizer removal. Workaround:
 
+> **Security warning:** This procedure temporarily removes all CEL validation
+> rules from the CRD, allowing any Dashboard CR to be created or mutated
+> without constraint. Always restore the CRD immediately after cleanup, and
+> avoid running this in production clusters with shared access.
+
 ```bash
 # Temporarily remove CEL validation from CRD
 oc patch crd dashboards.components.platform.opendatahub.io --type=json \
@@ -490,7 +479,7 @@ oc patch crd dashboards.components.platform.opendatahub.io --type=json \
 oc patch dashboard <name> --type=json -p='[{"op":"remove","path":"/metadata/finalizers"}]'
 oc delete dashboard <name>
 
-# Restore CEL validation
+# Restore CEL validation immediately
 oc apply -f config/crd/bases/
 ```
 
