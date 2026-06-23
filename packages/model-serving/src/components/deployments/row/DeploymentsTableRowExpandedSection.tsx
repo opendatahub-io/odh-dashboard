@@ -1,6 +1,6 @@
 import React from 'react';
 import { ExpandableRowContent, Td } from '@patternfly/react-table';
-import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
+import { ResourceTr } from '@odh-dashboard/ui-core';
 import {
   DescriptionListDescription,
   DescriptionListTerm,

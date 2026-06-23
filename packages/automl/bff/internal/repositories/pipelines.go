@@ -84,14 +84,9 @@ func HasAllRequiredAutoMLPipelines(discovered map[string]*pipelines.DiscoveredPi
 
 // --- Pipeline Runs: List ---
 
-func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace string, pageSize int32, pageToken string) (*models.PipelineRunsData, error) {
-	page := int64(1)
-	if t := strings.TrimSpace(pageToken); t != "" {
-		parsed, err := strconv.ParseInt(t, 10, 64)
-		if err != nil || parsed < 1 {
-			return nil, NewValidationError("invalid nextPageToken")
-		}
-		page = parsed
+func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace string, pageSize int32, page int64) (*models.PipelineRunsData, error) {
+	if page < 1 {
+		page = 1
 	}
 
 	discovered, err := r.DiscoverNamedPipelines(ctx, namespace)

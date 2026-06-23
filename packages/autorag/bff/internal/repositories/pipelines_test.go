@@ -470,7 +470,7 @@ func TestGetCombinedRuns(t *testing.T) {
 		}
 		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
 
-		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, "")
+		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -492,7 +492,7 @@ func TestGetCombinedRuns(t *testing.T) {
 		}
 		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{})
 
-		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, "")
+		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -511,12 +511,66 @@ func TestGetCombinedRuns(t *testing.T) {
 		}
 		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{})
 
-		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, "")
+		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if len(data.Runs) != 0 {
 			t.Errorf("expected empty, got %d", len(data.Runs))
+		}
+	})
+
+	t.Run("page-based pagination returns correct slices", func(t *testing.T) {
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return testDiscovered(), nil
+			},
+			getAllPipelineRunsFn: func(ctx context.Context, namespace, pipelineID string) ([]pipelines.PipelineRun, error) {
+				return []pipelines.PipelineRun{
+					{RunID: "r1", CreatedAt: "2024-01-03T00:00:00Z",
+						PipelineVersionReference: &pipelines.PipelineVersionReference{PipelineID: "rag-pid"}},
+					{RunID: "r2", CreatedAt: "2024-01-02T00:00:00Z",
+						PipelineVersionReference: &pipelines.PipelineVersionReference{PipelineID: "rag-pid"}},
+					{RunID: "r3", CreatedAt: "2024-01-01T00:00:00Z",
+						PipelineVersionReference: &pipelines.PipelineVersionReference{PipelineID: "rag-pid"}},
+				}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{AutoRAGPipelineName: "rag"})
+
+		// Page 1: should return 2 runs out of 3 total
+		page1, err := repo.GetCombinedRuns(context.Background(), "ns", 2, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(page1.Runs) != 2 {
+			t.Fatalf("page 1: expected 2 runs, got %d", len(page1.Runs))
+		}
+		if page1.TotalSize != 3 {
+			t.Errorf("page 1: expected TotalSize 3, got %d", page1.TotalSize)
+		}
+
+		// Page 2: should return the remaining 1 run
+		page2, err := repo.GetCombinedRuns(context.Background(), "ns", 2, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(page2.Runs) != 1 {
+			t.Fatalf("page 2: expected 1 run, got %d", len(page2.Runs))
+		}
+		if page2.TotalSize != 3 {
+			t.Errorf("page 2: expected TotalSize 3, got %d", page2.TotalSize)
+		}
+
+		// Verify no overlap between pages
+		page1IDs := make(map[string]bool)
+		for _, r := range page1.Runs {
+			page1IDs[r.RunID] = true
+		}
+		for _, r := range page2.Runs {
+			if page1IDs[r.RunID] {
+				t.Errorf("run %q appears on both page 1 and page 2", r.RunID)
+			}
 		}
 	})
 }

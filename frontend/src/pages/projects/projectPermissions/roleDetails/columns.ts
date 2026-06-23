@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { RoleAssignment } from '#~/concepts/permissions/types';
 import { ResourceRule } from '#~/k8sTypes';
 import { ROLE_BINDING_DATE_CREATED_TOOLTIP } from '#~/pages/projects/projectPermissions/const';

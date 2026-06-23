@@ -25,6 +25,7 @@ const moduleFederationConfig = {
     },
     '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/ui-core': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/autox-core': { singleton: true, requiredVersion: '*' },
   },
   exposes: {

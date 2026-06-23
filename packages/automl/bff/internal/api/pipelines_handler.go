@@ -26,8 +26,10 @@ type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 
+	query := r.URL.Query()
+
 	pageSize := int32(20)
-	if pageSizeStr := r.URL.Query().Get("pageSize"); pageSizeStr != "" {
+	if pageSizeStr := query.Get("pageSize"); pageSizeStr != "" {
 		parsed, err := strconv.ParseInt(pageSizeStr, 10, 32)
 		if err != nil || parsed <= 0 || parsed > 100 {
 			app.badRequestResponse(w, r, fmt.Errorf("invalid pageSize parameter: must be between 1 and 100"))
@@ -36,9 +38,17 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		pageSize = int32(parsed)
 	}
 
-	pageToken := r.URL.Query().Get("nextPageToken")
+	page := int64(1)
+	if pageStr := query.Get("page"); pageStr != "" {
+		parsed, err := strconv.ParseInt(pageStr, 10, 64)
+		if err != nil || parsed <= 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid page parameter: must be a positive integer"))
+			return
+		}
+		page = parsed
+	}
 
-	result, err := app.repositories.Pipelines.GetCombinedRuns(r.Context(), namespace, pageSize, pageToken)
+	result, err := app.repositories.Pipelines.GetCombinedRuns(r.Context(), namespace, pageSize, page)
 	if err != nil {
 		app.mapPipelineError(w, r, err)
 		return

@@ -20,9 +20,10 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -199,7 +200,7 @@ var _ = Describe("LlamaStackDistributionInstallHandler", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN", // Use one of the default test tokens
 		})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -239,7 +240,7 @@ var _ = Describe("LlamaStackDistributionInstallHandler", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -320,7 +321,7 @@ var _ = Describe("LlamaStackDistributionInstallHandler", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -385,7 +386,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -439,7 +440,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -490,7 +491,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -528,7 +529,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -570,7 +571,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -621,7 +622,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -657,7 +658,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -708,7 +709,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithVectorStores", func() 
 
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -746,7 +747,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithVectorStores", func() 
 
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -780,7 +781,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithVectorStores", func() 
 
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -817,7 +818,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithVectorStores", func() 
 
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -869,7 +870,7 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		installCtx = context.WithValue(installCtx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
-		installCtx = context.WithValue(installCtx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		installCtx = context.WithValue(installCtx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		installReq = installReq.WithContext(installCtx)
 
 		installRr := httptest.NewRecorder()

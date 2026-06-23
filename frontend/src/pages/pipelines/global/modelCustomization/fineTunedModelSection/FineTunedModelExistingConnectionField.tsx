@@ -1,6 +1,7 @@
 import React from 'react';
 import { Flex, FlexItem, FormGroup, Popover, Truncate } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
 import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import {
@@ -13,7 +14,6 @@ import {
   getConnectionTypeRef,
 } from '#~/concepts/connectionTypes/utils';
 import { ConnectionDetailsHelperText } from '#~/concepts/connectionTypes/ConnectionDetailsHelperText';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 
 type FineTunedModelExistingConnectionFieldProps = {
   connectionTypes: ConnectionTypeConfigMapObj[];

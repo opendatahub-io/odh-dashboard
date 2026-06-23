@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { useTableColumnSort } from '@odh-dashboard/ui-core';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
 import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
-import useTableColumnSort from '#~/components/table/useTableColumnSort';
 
 jest.mock('#~/concepts/mlflow/hooks/useMlflowExperiments');
-jest.mock('#~/components/table/useTableColumnSort');
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  useTableColumnSort: jest.fn(),
+}));
 jest.mock('#~/concepts/mlflow/MlflowExperimentTable', () => {
   const MockMlflowExperimentTable = (props: { data: unknown[] }) => (
     <div data-testid="mlflow-experiment-table">{props.data.length}</div>
