@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ApiKeysAndSubscriptionsPage from '~/app/pages/keys-and-subs/ApiKeysAndSubscriptionsPage';
 
@@ -12,6 +12,8 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ tab: mockTab }),
 }));
 
+const mockRefreshAll = jest.fn();
+
 jest.mock('~/app/hooks/useApiKeysPageLoad', () => ({
   useApiKeysPageLoad: () => ({
     loadError: undefined,
@@ -22,7 +24,7 @@ jest.mock('~/app/hooks/useApiKeysPageLoad', () => ({
     isMaasAdminLoaded: true,
     // eslint-disable-next-line camelcase
     response: { data: [], has_more: false, object: 'list' },
-    refreshAll: jest.fn(),
+    refreshAll: mockRefreshAll,
     filterData: { username: '', statuses: [] },
     localUsername: '',
     setLocalUsername: jest.fn(),
@@ -41,8 +43,10 @@ jest.mock('~/app/hooks/useApiKeysPageLoad', () => ({
   }),
 }));
 
+const mockRefreshSubscriptions = jest.fn();
+
 jest.mock('~/app/hooks/useUserSubscriptions', () => ({
-  useUserSubscriptions: () => [[], true, undefined],
+  useUserSubscriptions: () => [[], true, undefined, mockRefreshSubscriptions],
 }));
 
 jest.mock('~/app/pages/keys-and-subs/apiKeys/ApiKeysTab', () => {
@@ -119,5 +123,24 @@ describe('ApiKeysAndSubscriptionsPage', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
     expect(screen.getByTestId('api-keys-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('should refresh subscriptions when switching to the subscriptions tab', () => {
+    render(<ApiKeysAndSubscriptionsPage />);
+
+    fireEvent.click(screen.getByTestId('subscriptions-tab'));
+
+    expect(mockRefreshSubscriptions).toHaveBeenCalledTimes(1);
+    expect(mockRefreshAll).not.toHaveBeenCalled();
+  });
+
+  it('should refresh API keys when switching to the API keys tab', () => {
+    mockTab = 'subscriptions';
+    render(<ApiKeysAndSubscriptionsPage />);
+
+    fireEvent.click(screen.getByTestId('api-keys-tab'));
+
+    expect(mockRefreshAll).toHaveBeenCalledTimes(1);
+    expect(mockRefreshSubscriptions).not.toHaveBeenCalled();
   });
 });
