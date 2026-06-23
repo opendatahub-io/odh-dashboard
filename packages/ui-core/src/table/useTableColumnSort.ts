@@ -60,14 +60,7 @@ const getTableColumnSortByIndex =
           columnIndex,
         }
       : undefined;
-/**
- * Using PF Composable Tables, this utility will help with handling sort logic.
- *
- * Use `transformData` on your data before you render rows.
- * Use `getColumnSort` on your Th.sort as you render it (using the index of your column)
- *
- * @see https://www.patternfly.org/v4/components/table
- */
+
 const useTableColumnSort = <T>(
   columns: SortableData<T>[],
   subColumns: SortableData<T>[],

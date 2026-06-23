@@ -6,9 +6,6 @@ type DashboardPopupIconButtonProps = Omit<ButtonProps, 'variant' | 'isInline'> &
   iconProps?: Omit<IconComponentProps, 'isInline'>;
 };
 
-/**
- * Overriding PF's button styles to allow for a11y in opening tooltips or popovers on a single item
- */
 const DashboardPopupIconButton = ({
   icon,
   iconProps,

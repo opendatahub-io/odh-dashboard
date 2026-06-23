@@ -22,9 +22,9 @@ import {
   InnerScrollContainer,
   TrProps,
 } from '@patternfly/react-table';
-import { EitherNotBoth } from '#~/typeHelpers';
 import { GetColumnSort, SortableData } from './types';
 import { CHECKBOX_FIELD_ID, EXPAND_FIELD_ID, KEBAB_FIELD_ID } from './const';
+import { EitherNotBoth } from '../types';
 
 type Props<DataType> = {
   loading?: boolean;

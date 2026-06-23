@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { evaluationRootSegment } from '~/app/routes';
 
 const EvalCoreLoader: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const { pathname } = useLocation();
-  const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelector();
+  const { namespaces, namespacesLoaded, preferredNamespace } =
+    useNamespaceSelectorWithPersistence();
 
   const evalBase = React.useMemo(() => {
     const marker = `/${evaluationRootSegment}`;

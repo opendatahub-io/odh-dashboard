@@ -1,14 +1,16 @@
 import React from 'react';
 import { Spinner } from '@patternfly/react-core';
 import { Td, Tbody } from '@patternfly/react-table';
-import ResourceActionsColumn from '@odh-dashboard/internal/components/ResourceActionsColumn';
-import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
+import {
+  ResourceActionsColumn,
+  ResourceTr,
+  ResourceNameTooltip,
+  StateActionToggle,
+} from '@odh-dashboard/ui-core';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
-import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';

@@ -9,8 +9,9 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -156,8 +157,8 @@ func TestCanListOGXServersSARStructure(t *testing.T) {
 
 func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 	t.Run("should handle MaaS models correctly", func(t *testing.T) {
-		// Create a mock MaaS client
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		// Create a mock BFF client for MaaS
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		// Create a token client
 		client := &TokenKubernetesClient{
@@ -173,7 +174,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token", nil)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
 		// This should succeed since we're only using MaaS models
 		assert.NoError(t, err)
@@ -199,7 +200,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 	t.Run("should fail when MaaS model is not ready", func(t *testing.T) {
 		// Create a mock MaaS client
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		// Create a token client
 		client := &TokenKubernetesClient{
@@ -214,7 +215,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token", nil)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
 		// This should fail because the model is not ready
 		assert.Error(t, err)
@@ -224,7 +225,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 	t.Run("should fail when MaaS model is not found", func(t *testing.T) {
 		// Create a mock MaaS client
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		// Create a token client
 		client := &TokenKubernetesClient{
@@ -239,7 +240,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token", nil)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
 		// This should fail because the model is not found
 		assert.Error(t, err)
@@ -248,7 +249,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 	})
 
 	t.Run("should fail when MaaS models are present but auth token is empty", func(t *testing.T) {
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		client := &TokenKubernetesClient{
 			Logger: slog.Default(),
@@ -260,7 +261,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		ctx := context.Background()
 
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "", nil)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "", nil)
 
 		assert.Error(t, err)
 		assert.Empty(t, result)
@@ -270,7 +271,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 	t.Run("should NOT include RBAC auth when EnableLlamaStackRBAC is false", func(t *testing.T) {
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		// Create client with RBAC disabled (default)
 		client := &TokenKubernetesClient{
@@ -283,7 +284,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockMaaSClient, "test-oidc-token", nil)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token", nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -299,7 +300,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 	})
 
 	t.Run("should include RBAC auth when EnableLlamaStackRBAC is true", func(t *testing.T) {
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		// Create client with RBAC enabled
 		client := &TokenKubernetesClient{
@@ -312,7 +313,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockMaaSClient, "test-oidc-token", nil)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token", nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 

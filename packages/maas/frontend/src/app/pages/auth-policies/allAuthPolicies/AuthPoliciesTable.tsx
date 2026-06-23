@@ -1,6 +1,5 @@
 import * as React from 'react';
-import Table from '@odh-dashboard/internal/components/table/Table';
-import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { authPoliciesColumns } from './columns';
 import AuthPoliciesTableRow from './AuthPoliciesTableRow';

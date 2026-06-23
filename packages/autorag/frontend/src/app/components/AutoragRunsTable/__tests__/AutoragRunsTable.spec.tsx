@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable/index';
 
-jest.mock('@odh-dashboard/internal/components/table', () => {
+jest.mock('@odh-dashboard/ui-core', () => {
   const MockTableBase = ({
     data,
     rowRenderer,
@@ -27,13 +27,12 @@ jest.mock('@odh-dashboard/internal/components/table', () => {
           ))}
     </div>
   );
-  return { __esModule: true, TableBase: MockTableBase };
+  return {
+    __esModule: true,
+    TableBase: MockTableBase,
+    DashboardEmptyTableView: () => <div data-testid="empty-view">Empty</div>,
+  };
 });
-
-jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView', () => ({
-  __esModule: true,
-  default: () => <div data-testid="empty-view">Empty</div>,
-}));
 
 jest.mock('~/app/hooks/useAutoragRunActions', () => ({
   useAutoragRunActions: () => ({

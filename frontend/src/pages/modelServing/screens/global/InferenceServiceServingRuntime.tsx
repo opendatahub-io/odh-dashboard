@@ -11,6 +11,7 @@ import {
   ServingRuntimeVersionStatusLabel,
 } from '#~/pages/modelServing/screens/const';
 import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
+import ServingRuntimeTemplateStatus from '#~/pages/modelServing/screens/ServingRuntimeTemplateStatus';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { useTemplateByName } from '#~/pages/modelServing/customServingRuntimes/useTemplateByName';
 import ServingRuntimeVersionStatus from '#~/pages/modelServing/screens/ServingRuntimeVersionStatus';
@@ -40,6 +41,8 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => 
     return undefined;
   }, [template, templateLoaded, templateError, servingRuntime]);
 
+  const isTemplateRemoved = templateLoaded && !templateError && !template && !!templateName;
+
   return (
     <>
       {servingRuntime ? (
@@ -60,6 +63,7 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => 
                   templateVersion={getServingRuntimeVersion(template) || ''}
                 />
               )}
+              {isTemplateRemoved && <ServingRuntimeTemplateStatus />}
               {isProjectScopedAvailable &&
                 servingRuntime.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
                   SERVING_RUNTIME_SCOPE.Project && (
