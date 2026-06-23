@@ -107,7 +107,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
   const [isSaveDropdownOpen, setIsSaveDropdownOpen] = React.useState(false);
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
-  const [agentProfilesEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
+  const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
@@ -268,7 +268,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           </ToggleGroup>
         )}
         <DrawerActions style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
-          {agentProfilesEnabled && (
+          {agentConfigManagementEnabled && (
             <>
               <Button variant="secondary" onClick={onLoad} data-testid="settings-panel-load-button">
                 Load

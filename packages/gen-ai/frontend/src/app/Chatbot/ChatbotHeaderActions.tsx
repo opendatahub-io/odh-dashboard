@@ -51,7 +51,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configIds[0]));
   const isViewCodeDisabled = !lastInput || !selectedModel;
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
-  const [agentProfilesEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
+  const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
 
   const getDisabledReason = () => {
@@ -159,7 +159,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
             popperProps={{ position: 'end', preventOverflow: true }}
           >
             <DropdownList>
-              {!isCompareMode && agentProfilesEnabled && (
+              {!isCompareMode && agentConfigManagementEnabled && (
                 <DropdownItem
                   onClick={onLoad}
                   key="load-agent-configuration"
@@ -168,7 +168,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   Load agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && profileApplied && (
+              {!isCompareMode && agentConfigManagementEnabled && profileApplied && (
                 <DropdownItem
                   onClick={onSave}
                   key="save-agent-configuration"
@@ -177,7 +177,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   Save agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && (
+              {!isCompareMode && agentConfigManagementEnabled && (
                 <DropdownItem
                   onClick={onSaveAs}
                   key="save-as-agent-configuration"
@@ -186,7 +186,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   Save as agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && profileApplied && (
+              {!isCompareMode && agentConfigManagementEnabled && profileApplied && (
                 <DropdownItem
                   onClick={onNew}
                   key="new-agent-configuration"
@@ -195,7 +195,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   New agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && <Divider key="agent-divider" />}
+              {!isCompareMode && agentConfigManagementEnabled && <Divider key="agent-divider" />}
               <DropdownItem
                 onClick={onConfigurePlayground}
                 key="update-configuration"
