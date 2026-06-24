@@ -157,6 +157,7 @@ describe('generatePythonSnippet', () => {
     const result = generatePythonSnippet(mockParams);
     expect(result).toContain('timeout=30');
     expect(result).toContain('raise_for_status()');
+    expect(result).toContain('result.get("output", result)');
   });
 
   it('should contain the secret name and namespace', () => {
