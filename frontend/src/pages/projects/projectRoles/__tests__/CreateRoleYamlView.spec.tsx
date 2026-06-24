@@ -42,6 +42,8 @@ describe('CreateRoleYamlView', () => {
   it('should render a valid Kubernetes Role YAML', () => {
     render(<CreateRoleYamlView {...defaultProps} />);
 
+    expect(screen.getByTestId('yaml-code-editor')).toHaveAttribute('data-readonly', 'true');
+
     const editorContent = screen.getByTestId('yaml-code-editor').querySelector('pre')?.textContent;
     const parsed = YAML.parse(editorContent ?? '');
 
