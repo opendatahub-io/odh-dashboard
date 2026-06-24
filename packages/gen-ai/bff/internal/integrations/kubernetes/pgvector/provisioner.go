@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -164,34 +165,27 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 }
 
 // DeletePostgresResources removes all auto-provisioned pgvector resources in
-// the namespace. Resources are discovered by the managed label. Errors are
-// collected but the function attempts to delete everything.
+// the namespace by their known names. Errors are collected but the function
+// attempts to delete everything. NotFound errors are ignored (resource already gone).
 func DeletePostgresResources(ctx context.Context, c client.Client, namespace string) error {
-	opts := []client.DeleteAllOfOption{
-		client.InNamespace(namespace),
-		client.MatchingLabels(managedLabels()),
-	}
-
 	var errs []error
 
-	if err := c.DeleteAllOf(ctx, &networkingv1.NetworkPolicy{}, opts...); err != nil {
-		errs = append(errs, fmt.Errorf("NetworkPolicy: %w", err))
+	deleteByName := func(obj client.Object, kind, name string) {
+		obj.SetName(name)
+		obj.SetNamespace(namespace)
+		if err := c.Delete(ctx, obj); err != nil {
+			if !apierrors.IsNotFound(err) {
+				errs = append(errs, fmt.Errorf("%s %s: %w", kind, name, err))
+			}
+		}
 	}
-	if err := c.DeleteAllOf(ctx, &corev1.Service{}, opts...); err != nil {
-		errs = append(errs, fmt.Errorf("Service: %w", err))
-	}
-	if err := c.DeleteAllOf(ctx, &appsv1.Deployment{}, opts...); err != nil {
-		errs = append(errs, fmt.Errorf("Deployment: %w", err))
-	}
-	if err := c.DeleteAllOf(ctx, &corev1.PersistentVolumeClaim{}, opts...); err != nil {
-		errs = append(errs, fmt.Errorf("PVC: %w", err))
-	}
-	if err := c.DeleteAllOf(ctx, &corev1.Secret{}, opts...); err != nil {
-		errs = append(errs, fmt.Errorf("Secret: %w", err))
-	}
-	if err := c.DeleteAllOf(ctx, &corev1.ConfigMap{}, opts...); err != nil {
-		errs = append(errs, fmt.Errorf("ConfigMap: %w", err))
-	}
+
+	deleteByName(&networkingv1.NetworkPolicy{}, "NetworkPolicy", NetworkPolicyName)
+	deleteByName(&corev1.Service{}, "Service", ServiceName)
+	deleteByName(&appsv1.Deployment{}, "Deployment", DeploymentName)
+	deleteByName(&corev1.PersistentVolumeClaim{}, "PVC", StoragePVCName)
+	deleteByName(&corev1.ConfigMap{}, "ConfigMap", InitConfigMapName)
+	deleteByName(&corev1.Secret{}, "Secret", CredentialsSecretName)
 
 	if len(errs) > 0 {
 		return fmt.Errorf("failed to delete pgvector resources: %v", errs)
@@ -442,9 +436,13 @@ func waitForReady(ctx context.Context, c client.Client, namespace string, timeou
 }
 
 // rollbackDelete attempts to delete a resource with retries on transient failures.
+// NotFound errors are treated as success (the resource is already gone).
 func rollbackDelete(ctx context.Context, c client.Client, obj client.Object, log *slog.Logger) {
 	for attempt := 1; attempt <= rollbackMaxRetries; attempt++ {
 		if err := c.Delete(ctx, obj); err != nil {
+			if apierrors.IsNotFound(err) {
+				return
+			}
 			log.Warn("rollback delete failed",
 				"resource", fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName()),
 				"attempt", attempt, "error", err)

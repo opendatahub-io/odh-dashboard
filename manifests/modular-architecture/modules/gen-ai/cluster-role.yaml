@@ -26,6 +26,7 @@ rules:
     resources:
       - subjectaccessreviews
   # pgvector auto-provisioning (RHOAIENG-68914)
+  # Deletion uses named resources (not deletecollection) to minimize blast radius.
   - apiGroups:
       - ""
     verbs:
@@ -33,7 +34,6 @@ rules:
       - get
       - list
       - delete
-      - deletecollection
     resources:
       - secrets
       - services
@@ -46,7 +46,6 @@ rules:
       - get
       - list
       - delete
-      - deletecollection
     resources:
       - deployments
   - apiGroups:
@@ -56,7 +55,6 @@ rules:
       - get
       - list
       - delete
-      - deletecollection
     resources:
       - networkpolicies
   - apiGroups:

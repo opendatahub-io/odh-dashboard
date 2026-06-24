@@ -1582,7 +1582,19 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	// Auto-provision pgvector or fall back to manual BFF env config.
 	var pgConn *pgvector.Connection
+	pgvectorProvisioned := false
 	if kc.SAClient != nil {
+		// Gate SA-elevated provisioning on user authorization: the caller must
+		// be allowed to create OGXServers in the target namespace before the SA
+		// client creates Deployments/PVCs/Secrets on their behalf.
+		allowed, err := kc.CanListOGXServers(ctx, identity, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify OGXServer permissions: %w", err)
+		}
+		if !allowed {
+			return nil, fmt.Errorf("user is not authorized to manage OGXServers in namespace %s", namespace)
+		}
+
 		opts := pgvector.Options{
 			Image: kc.EnvConfig.PgvectorImage,
 			OGXServerLabelSelector: map[string]string{
@@ -1598,6 +1610,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			return nil, fmt.Errorf("failed to provision pgvector: %w", err)
 		}
 		pgConn = provisioned
+		pgvectorProvisioned = true
 		kc.Logger.Info("pgvector auto-provisioned", "host", pgConn.Host, "namespace", namespace)
 	} else {
 		conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
@@ -1608,6 +1621,23 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			pgConn = &conn
 			kc.Logger.Info("using manually configured pgvector", "host", pgConn.Host)
 		}
+	}
+
+	// rollbackPgvector cleans up auto-provisioned pgvector resources when a
+	// later step in the install pipeline fails. No-op when pgvector was not
+	// provisioned (manual config path or SAClient == nil).
+	rollbackPgvector := func(cause error) error {
+		if !pgvectorProvisioned {
+			return cause
+		}
+		rollbackCtx, rollbackCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer rollbackCancel()
+		if deleteErr := pgvector.DeletePostgresResources(rollbackCtx, kc.SAClient, namespace); deleteErr != nil {
+			kc.Logger.Error("failed to roll back pgvector resources", "error", deleteErr, "namespace", namespace)
+			return fmt.Errorf("%w; additionally failed to roll back pgvector resources: %v", cause, deleteErr)
+		}
+		kc.Logger.Info("rolled back pgvector resources after install failure", "namespace", namespace)
+		return cause
 	}
 
 	if pgConn != nil {
@@ -1623,12 +1653,12 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 				Name:      pgConn.PasswordSecret.Name,
 				Namespace: namespace,
 			}, &secret); err != nil {
-				return nil, fmt.Errorf("pgvector password secret %q not found in namespace %s: %w",
-					pgConn.PasswordSecret.Name, namespace, err)
+				return nil, rollbackPgvector(fmt.Errorf("pgvector password secret %q not found in namespace %s: %w",
+					pgConn.PasswordSecret.Name, namespace, err))
 			}
 			if _, ok := secret.Data[pgConn.PasswordSecret.Key]; !ok {
-				return nil, fmt.Errorf("pgvector password secret %q is missing key %q",
-					pgConn.PasswordSecret.Name, pgConn.PasswordSecret.Key)
+				return nil, rollbackPgvector(fmt.Errorf("pgvector password secret %q is missing key %q",
+					pgConn.PasswordSecret.Name, pgConn.PasswordSecret.Key))
 			}
 			envVars = append(envVars, corev1.EnvVar{
 				Name: pgvector.PasswordEnvVar,
@@ -1662,7 +1692,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, bffClient, userAuthToken, pgConn)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
-		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
+		return nil, rollbackPgvector(fmt.Errorf("failed to generate Llama Stack configuration: %w", err))
 	}
 
 	// Step 6: Create ConfigMap BEFORE creating OGXServer (without owner reference yet)
@@ -1684,7 +1714,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	if err := kc.Client.Create(ctx, configMap); err != nil {
 		kc.Logger.Error("failed to create ConfigMap", "error", err, "namespace", namespace, "configMapName", configMapName)
-		return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
+		return nil, rollbackPgvector(fmt.Errorf("failed to create ConfigMap: %w", err))
 	}
 
 	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
@@ -1752,7 +1782,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			kc.Logger.Info("ConfigMap cleaned up after OGXServer creation failure", "namespace", namespace, "configMapName", configMapName)
 		}
 
-		return nil, fmt.Errorf("failed to create OGXServer: %w", err)
+		return nil, rollbackPgvector(fmt.Errorf("failed to create OGXServer: %w", err))
 	}
 
 	kc.Logger.Info("OGXServer created successfully", "namespace", namespace, "lsdName", lsdName, "models", installModels)
