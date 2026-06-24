@@ -24,6 +24,8 @@ const ExtendedButton: React.FC<ExtendedButtonProps> = ({
   tooltipProps = { isEnabled: false },
   ...props
 }) => {
+  const tooltipId = React.useId();
+
   if (!loadProps.loaded) {
     return <Skeleton data-testid="skeleton-loader" style={{ width: 200 }} />;
   }
@@ -51,8 +53,8 @@ const ExtendedButton: React.FC<ExtendedButtonProps> = ({
 
   if (tooltipProps.isEnabled) {
     return (
-      <Tooltip id="button-tooltip" content={tooltipProps.content}>
-        <Button {...props} isAriaDisabled aria-describedby="button-tooltip">
+      <Tooltip id={tooltipId} content={tooltipProps.content}>
+        <Button {...props} isAriaDisabled aria-describedby={tooltipId}>
           {props.children}
         </Button>
       </Tooltip>
