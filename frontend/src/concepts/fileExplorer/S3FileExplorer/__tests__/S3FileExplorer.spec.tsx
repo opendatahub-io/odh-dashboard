@@ -89,8 +89,18 @@ describe('S3FileExplorer', () => {
   });
 
   describe('error states', () => {
-    it('should show bucket not configured error', async () => {
-      mockGetFiles.mockRejectedValue(new Error('bucket is required'));
+    it.each([
+      {
+        name: 'AutoML BFF message',
+        message:
+          'bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret',
+      },
+      {
+        name: 'AutoRAG BFF message',
+        message: 'bucket is required either as a query parameter or as AWS_S3_BUCKET in the secret',
+      },
+    ])('should show bucket not configured error for $name', async ({ message }) => {
+      mockGetFiles.mockRejectedValue(new Error(message));
 
       render(<S3FileExplorer {...defaultProps} />);
 
@@ -99,8 +109,17 @@ describe('S3FileExplorer', () => {
       });
     });
 
-    it('should show HTTPS required error for HTTP connections', async () => {
-      mockGetFiles.mockRejectedValue(new Error('endpoint URL must use HTTPS scheme, got: http'));
+    it.each([
+      {
+        name: 'BFF message with external endpoints qualifier',
+        message: 'endpoint URL must use HTTPS scheme for external endpoints, got: http',
+      },
+      {
+        name: 'BFF message without qualifier',
+        message: 'endpoint URL must use HTTPS scheme, got: http',
+      },
+    ])('should show HTTPS required error for $name', async ({ message }) => {
+      mockGetFiles.mockRejectedValue(new Error(message));
 
       render(<S3FileExplorer {...defaultProps} />);
 

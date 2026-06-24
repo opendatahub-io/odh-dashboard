@@ -328,7 +328,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
       // TODO [ Gustavo ] Generally weak error handling: Add CommonErrorHandling strategy to AutoX BFF+UI
 
-      if (message.includes('bucket is required')) {
+      if (message.includes('bucket') && message.includes('is required')) {
         return {
           isEmpty: true,
           emptyStateProps: {
@@ -344,7 +344,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         };
       }
 
-      if (message.includes('endpoint URL must use HTTPS scheme, got: http')) {
+      if (message.includes('endpoint URL must use HTTPS scheme') && message.includes('got: http')) {
         return {
           isEmpty: true,
           emptyStateProps: {
