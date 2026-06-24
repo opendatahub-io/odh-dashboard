@@ -555,7 +555,6 @@ export type GenAiAPIs = {
   deleteLSD: DeleteLSD;
   getAAModels: GetAAModels;
   getAAVectorStores: GetAAVectorStores;
-  getMaaSModels: GetMaaSModels;
   generateMaaSToken: GenerateMaaSToken;
   getMCPServerTools: GetMCPServerTools;
   getMCPServers: GetMCPServers;
@@ -644,7 +643,6 @@ type InstallLSD = ModArchRestCREATE<LlamaStackDistributionModel, InstallLSDReque
 type DeleteLSD = ModArchRestDELETE<string, DeleteLSDRequest>;
 type GetAAModels = ModArchRestGET<AAModelResponse[]>;
 type GetAAVectorStores = ModArchRestGET<ExternalVectorStoreSummary[]>;
-type GetMaaSModels = ModArchRestGET<MaaSModel[]>;
 type GenerateMaaSToken = ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>;
 type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
 type GetMCPServers = ModArchRestGET<MCPServersResponse>;
