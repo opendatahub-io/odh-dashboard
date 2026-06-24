@@ -298,36 +298,39 @@ func TestSetOwnerReferences(t *testing.T) {
 
 	require.NoError(t, SetOwnerReferences(ctx, c, ns, ownerRef))
 
+	assertOwnerRef := func(t *testing.T, refs []metav1.OwnerReference) {
+		t.Helper()
+		require.Len(t, refs, 1)
+		assert.Equal(t, ownerRef.Name, refs[0].Name)
+		assert.Equal(t, ownerRef.UID, refs[0].UID)
+		assert.Equal(t, ownerRef.APIVersion, refs[0].APIVersion)
+		assert.Equal(t, ownerRef.Kind, refs[0].Kind)
+	}
+
 	// Verify each resource has the owner reference.
 	var secret corev1.Secret
 	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: CredentialsSecretName, Namespace: ns}, &secret))
-	require.Len(t, secret.OwnerReferences, 1)
-	assert.Equal(t, "my-server", secret.OwnerReferences[0].Name)
+	assertOwnerRef(t, secret.OwnerReferences)
 
 	var cm corev1.ConfigMap
 	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: InitConfigMapName, Namespace: ns}, &cm))
-	require.Len(t, cm.OwnerReferences, 1)
-	assert.Equal(t, "my-server", cm.OwnerReferences[0].Name)
+	assertOwnerRef(t, cm.OwnerReferences)
 
 	var pvc corev1.PersistentVolumeClaim
 	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: StoragePVCName, Namespace: ns}, &pvc))
-	require.Len(t, pvc.OwnerReferences, 1)
-	assert.Equal(t, "my-server", pvc.OwnerReferences[0].Name)
+	assertOwnerRef(t, pvc.OwnerReferences)
 
 	var deploy appsv1.Deployment
 	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: DeploymentName, Namespace: ns}, &deploy))
-	require.Len(t, deploy.OwnerReferences, 1)
-	assert.Equal(t, "my-server", deploy.OwnerReferences[0].Name)
+	assertOwnerRef(t, deploy.OwnerReferences)
 
 	var svc corev1.Service
 	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: ServiceName, Namespace: ns}, &svc))
-	require.Len(t, svc.OwnerReferences, 1)
-	assert.Equal(t, "my-server", svc.OwnerReferences[0].Name)
+	assertOwnerRef(t, svc.OwnerReferences)
 
 	var netpol networkingv1.NetworkPolicy
 	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: NetworkPolicyName, Namespace: ns}, &netpol))
-	require.Len(t, netpol.OwnerReferences, 1)
-	assert.Equal(t, "my-server", netpol.OwnerReferences[0].Name)
+	assertOwnerRef(t, netpol.OwnerReferences)
 }
 
 func TestSetOwnerReferences_NoopWhenResourcesMissing(t *testing.T) {
