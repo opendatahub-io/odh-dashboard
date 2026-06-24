@@ -40,6 +40,14 @@ describe('toK8sLabels', () => {
     });
   });
 
+  it('should trim leading and trailing whitespace from keys', () => {
+    const entries = [{ id: 'l-1', key: '  team  ', value: 'val' }];
+
+    expect(toK8sLabels(entries)).toStrictEqual({
+      [`${USER_LABEL_PREFIX}team`]: 'val',
+    });
+  });
+
   it('should return empty object for empty array', () => {
     expect(toK8sLabels([])).toStrictEqual({});
   });

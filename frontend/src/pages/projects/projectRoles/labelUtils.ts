@@ -4,7 +4,9 @@ import type { LabelEntry } from './types';
 
 export const toK8sLabels = (entries: LabelEntry[]): Record<string, string> =>
   Object.fromEntries(
-    entries.filter((l) => l.key.trim()).map((l) => [`${USER_LABEL_PREFIX}${l.key}`, l.value]),
+    entries
+      .filter((l) => l.key.trim())
+      .map((l) => [`${USER_LABEL_PREFIX}${l.key.trim()}`, l.value]),
   );
 
 export const fromK8sLabels = (labels?: Record<string, string> | null): LabelEntry[] =>
