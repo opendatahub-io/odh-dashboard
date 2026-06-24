@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Truncate, Button, Tooltip, Spinner, Badge } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { LockIcon, UnlockIcon } from '@patternfly/react-icons';
+import { LockIcon, UnlockIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { CheckboxTd } from 'mod-arch-shared';
 import { MCPServer } from '~/app/types';
 
@@ -17,6 +17,7 @@ interface MCPServerPanelRowProps {
   toolsCount?: number;
   isFetchingTools?: boolean;
   isDisabled?: boolean;
+  needsAuthorization?: boolean;
 }
 
 const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
@@ -31,6 +32,7 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
   toolsCount,
   isFetchingTools = false,
   isDisabled = false,
+  needsAuthorization = false,
 }) => {
   const disableToolIcon = isLoading || isStatusLoading || !isAuthenticated;
 
@@ -59,6 +61,25 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
       />
       <Td dataLabel="Name" className="pf-v6-u-align-content-center pf-v6-u-py-sm">
         <Truncate content={server.name} />
+        {needsAuthorization && (
+          <div
+            className="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-mt-xs"
+            style={{ gap: 'var(--pf-t--global--spacer--xs)' }}
+            data-testid={`mcp-server-needs-auth-${server.id}`}
+          >
+            <ExclamationTriangleIcon
+              color="var(--pf-t--global--color--status--warning--default)"
+              aria-hidden
+            />
+            <span
+              style={{
+                fontSize: 'var(--pf-t--global--font--size--sm)',
+              }}
+            >
+              Needs authorization
+            </span>
+          </div>
+        )}
       </Td>
 
       <Td dataLabel="Tools" className="pf-v6-u-align-content-center pf-v6-u-py-sm">
