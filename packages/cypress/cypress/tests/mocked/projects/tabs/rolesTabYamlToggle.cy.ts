@@ -93,11 +93,19 @@ describe('Create Role - Form/YAML toggle', () => {
   it('should reflect rules in YAML', () => {
     projectRoles.findRoleNameInput().type('test-role');
     projectRoles.findAddRuleButton().click();
+    projectRoles.findAddRuleModal().should('exist');
+    projectRoles.findRuleApiGroupsToggle().click();
+    projectRoles.findRuleApiGroupsToggle().parent().find('input').type('apps');
+    cy.contains('Use custom API group "apps"').click();
+    projectRoles.findRuleResourceTypesToggle().click();
+    projectRoles.findRuleResourceTypesToggle().parent().find('input').type('deployments');
+    cy.contains('Use custom resource type "deployments"').click();
     projectRoles.findVerbCheckbox('get').click();
     projectRoles.findRuleSaveButton().click();
     projectRoles.findYamlViewToggle().click();
 
     projectRoles.findYamlEditorContainer().contains('get');
+    projectRoles.findYamlEditorContainer().contains('deployments');
   });
 
   it('should switch back to Form view and preserve data', () => {
