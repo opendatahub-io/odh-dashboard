@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -163,7 +164,7 @@ func discoverCollectorCR(dynClient dynamic.Interface, logger *slog.Logger, targe
 //
 // This is a best-effort operation — errors are logged but not propagated so
 // that the parent install flow is not blocked.
-func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string) {
+func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, userToken string) {
 	ctx, cancel := context.WithTimeout(ctx, collectorPatchTimeout)
 	defer cancel()
 
@@ -178,7 +179,13 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string) {
 		return
 	}
 
-	experimentID := m.ensureMLflowExperiment(ctx, namespace)
+	// Use the user's token for MLflow experiment creation (namespace-scoped,
+	// project admins have access) rather than the SA token.
+	token := userToken
+	if token == "" {
+		token = m.getAuthToken()
+	}
+	experimentID := m.ensureMLflowExperimentWithToken(ctx, namespace, token)
 	if experimentID == "" {
 		m.logger.Warn("skipping collector route setup — MLflow experiment could not be created", "namespace", namespace)
 		return
@@ -188,12 +195,12 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string) {
 	changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowK8sServiceURL, experimentID) || changed
 
 	if !changed {
-		m.logger.Info("collector config already has route for namespace, no update needed", "namespace", namespace)
+		m.logger.Info("collector config already has route for namespace, no patch needed", "namespace", namespace)
 		return
 	}
 
 	if err := m.writeBackConfig(ctx, cr, collectorCfg); err != nil {
-		m.logger.Warn("failed to update OpenTelemetryCollector CR", "error", err, "namespace", namespace)
+		m.logger.Warn("failed to patch OpenTelemetryCollector CR", "error", err, "namespace", namespace)
 		return
 	}
 
@@ -228,7 +235,7 @@ func (m *otelConfigManager) RemoveRoute(ctx context.Context, namespace string) {
 	}
 
 	if err := m.writeBackConfig(ctx, cr, collectorCfg); err != nil {
-		m.logger.Warn("failed to update OpenTelemetryCollector CR after route removal", "error", err, "namespace", namespace)
+		m.logger.Warn("failed to patch OpenTelemetryCollector CR after route removal", "error", err, "namespace", namespace)
 		return
 	}
 
@@ -268,25 +275,41 @@ func (m *otelConfigManager) extractConfig(cr *unstructured.Unstructured) (map[st
 	}
 }
 
-// writeBackConfig writes the modified config back to the CR, preserving the
-// original format (structured map for v1beta1, YAML string for legacy).
+// writeBackConfig writes the modified config back to the CR using a merge patch,
+// preserving the original format (structured map for v1beta1, YAML string for legacy).
 func (m *otelConfigManager) writeBackConfig(ctx context.Context, cr *unstructured.Unstructured, collectorCfg map[string]interface{}) error {
 	spec := cr.Object["spec"].(map[string]interface{})
 
+	var configValue interface{}
 	switch spec["config"].(type) {
 	case string:
 		serialized, err := serializeCollectorConfig(collectorCfg)
 		if err != nil {
 			return fmt.Errorf("failed to serialize collector config: %w", err)
 		}
-		spec["config"] = serialized
+		configValue = serialized
 	default:
-		spec["config"] = collectorCfg
+		configValue = collectorCfg
 	}
 
-	_, err := m.dynClient.Resource(otelCollectorGVR).
+	// Use JSON Patch (RFC 6902) to replace spec.config entirely.
+	// Merge patch cannot remove map keys (e.g., deleted exporters/pipelines),
+	// so we use a "replace" operation on the whole config field instead.
+	configJSON, err := json.Marshal(configValue)
+	if err != nil {
+		return fmt.Errorf("failed to marshal collector config: %w", err)
+	}
+	patchOps := []map[string]interface{}{
+		{"op": "replace", "path": "/spec/config", "value": json.RawMessage(configJSON)},
+	}
+	patchBytes, err := json.Marshal(patchOps)
+	if err != nil {
+		return fmt.Errorf("failed to marshal collector patch: %w", err)
+	}
+
+	_, err = m.dynClient.Resource(otelCollectorGVR).
 		Namespace(m.collectorNamespace).
-		Update(ctx, cr, metav1.UpdateOptions{})
+		Patch(ctx, cr.GetName(), k8stypes.JSONPatchType, patchBytes, metav1.PatchOptions{})
 	return err
 }
 
@@ -297,11 +320,12 @@ const (
 	mlflowExperimentsAPI = "/api/2.0/mlflow/experiments"
 )
 
-// ensureMLflowExperiment creates a "Default" experiment in the given workspace
-// if one doesn't exist, and returns its experiment ID. Returns "" on error,
+// ensureMLflowExperimentWithToken creates a "Default" experiment in the given
+// workspace if one doesn't exist, and returns its experiment ID. Uses the
+// provided token (typically the user's token, since experiment creation is
+// namespace-scoped and project admins have access). Returns "" on error,
 // signalling the caller to skip route creation for this namespace.
-func (m *otelConfigManager) ensureMLflowExperiment(ctx context.Context, workspace string) string {
-	token := m.getAuthToken()
+func (m *otelConfigManager) ensureMLflowExperimentWithToken(ctx context.Context, workspace string, token string) string {
 	if token == "" {
 		m.logger.Warn("no auth token available for MLflow experiment setup")
 		return ""

@@ -156,6 +156,39 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *i
 	return true, nil
 }
 
+// canCreatePlayground checks whether the user can create OGXServer resources
+// in the given namespace using SelfSubjectAccessReview with the user's token.
+// Used as an authorization gate before the BFF's SA performs privileged
+// operations (e.g., patching the platform collector) on the user's behalf.
+func (kc *TokenKubernetesClient) canCreatePlayground(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	cfg := rest.AnonymousClientConfig(kc.Config)
+	cfg.BearerToken = identity.Token
+	cfg.BearerTokenFile = ""
+
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return false, fmt.Errorf("failed to create clientset for canCreatePlayground check: %w", err)
+	}
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "create",
+				Group:     "ogx.io",
+				Resource:  "ogxservers",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to perform canCreatePlayground SAR: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
 // GetClusterDomainUsingServiceAccount retrieves cluster domain using the pod's service account
 func GetClusterDomainUsingServiceAccount(ctx context.Context, logger *slog.Logger) (string, error) {
 	// Use in-cluster config (pod's service account)
@@ -1773,7 +1806,20 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	}
 
 	if enableTracing && kc.otelConfigManager != nil {
-		kc.otelConfigManager.EnsureRoute(ctx, namespace)
+		// Defense-in-depth: verify the user can create playgrounds before the
+		// BFF's SA escalates to patch the platform collector on their behalf.
+		// In practice, an unauthorized user would already be rejected by the
+		// OGXServer creation above (which uses the user's token), but this
+		// explicit SSAR check guards the SA privilege escalation independently
+		// in case the code flow is restructured in the future.
+		canCreate, sarErr := kc.canCreatePlayground(ctx, identity, namespace)
+		if sarErr != nil {
+			kc.Logger.Warn("failed to verify playground access for tracing", "error", sarErr, "namespace", namespace)
+		} else if !canCreate {
+			kc.Logger.Warn("user cannot create playgrounds in namespace, skipping collector route setup", "namespace", namespace)
+		} else {
+			kc.otelConfigManager.EnsureRoute(ctx, namespace, identity.Token)
+		}
 	}
 
 	return ogxServer, nil

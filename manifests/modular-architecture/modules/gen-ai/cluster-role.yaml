@@ -19,23 +19,15 @@ rules:
       - watch
     resources:
       - ingresses
+  # OTel Collector — discovery and per-namespace trace route management
   - apiGroups:
       - opentelemetry.io
     verbs:
       - get
       - list
-      - watch
-      - update
+      - patch
     resources:
       - opentelemetrycollectors
-  - apiGroups:
-      - mlflow.kubeflow.org
-    verbs:
-      - get
-      - list
-      - create
-    resources:
-      - experiments
   - apiGroups:
       - authorization.k8s.io
     verbs:
