@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -25,6 +27,10 @@ const (
 	rollbackMaxRetries    = 3
 	rollbackRetryDelay    = 500 * time.Millisecond
 )
+
+// ErrResourcesTerminating is returned when a previous pgvector instance is still
+// being deleted. Callers should surface a user-friendly retry message.
+var ErrResourcesTerminating = errors.New("previous pgvector resources are still being removed")
 
 // Options configures the pgvector provisioner.
 type Options struct {
@@ -69,9 +75,20 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	// Check for an existing pgvector Deployment by its deterministic name.
 	var existing appsv1.Deployment
 	if err := c.Get(ctx, client.ObjectKey{Name: DeploymentName, Namespace: namespace}, &existing); err == nil {
-		return connectionFromExisting(ctx, c, namespace)
+		if existing.DeletionTimestamp == nil {
+			return connectionFromExisting(ctx, c, namespace)
+		}
+		log.Info("existing pgvector Deployment is still terminating", "namespace", namespace)
+		return nil, fmt.Errorf("%w: the Deployment is still terminating — please wait a moment and try again", ErrResourcesTerminating)
 	} else if !apierrors.IsNotFound(err) {
 		return nil, fmt.Errorf("failed to check for existing pgvector Deployment: %w", err)
+	}
+
+	// The Deployment is gone, but other resources (especially PVCs) may still
+	// be finalizing. Check for any terminating resources and fail fast rather
+	// than blocking the HTTP request.
+	if err := checkForTerminatingResources(ctx, c, namespace, log); err != nil {
+		return nil, err
 	}
 
 	// Warn if no default StorageClass exists -- the PVC will hang in Pending.
@@ -94,6 +111,9 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	// 1. Secret
 	secret := buildSecret(namespace, password)
 	if err := c.Create(ctx, secret); err != nil {
+		if isBeingDeleted(err) {
+			return nil, fmt.Errorf("%w: Secret %q is still terminating — please wait a moment and try again", ErrResourcesTerminating, CredentialsSecretName)
+		}
 		return nil, fmt.Errorf("failed to create pgvector credentials Secret: %w", err)
 	}
 	created = append(created, secret)
@@ -102,6 +122,9 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	initCM := buildInitConfigMap(namespace)
 	if err := c.Create(ctx, initCM); err != nil {
 		rollback()
+		if isBeingDeleted(err) {
+			return nil, fmt.Errorf("%w: ConfigMap %q is still terminating — please wait a moment and try again", ErrResourcesTerminating, InitConfigMapName)
+		}
 		return nil, fmt.Errorf("failed to create pgvector init ConfigMap: %w", err)
 	}
 	created = append(created, initCM)
@@ -110,6 +133,9 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	pvc := buildPVC(namespace)
 	if err := c.Create(ctx, pvc); err != nil {
 		rollback()
+		if isBeingDeleted(err) {
+			return nil, fmt.Errorf("%w: PVC %q is still terminating — please wait a moment and try again", ErrResourcesTerminating, StoragePVCName)
+		}
 		return nil, fmt.Errorf("failed to create pgvector storage PVC: %w", err)
 	}
 	created = append(created, pvc)
@@ -118,6 +144,9 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	deploy := buildDeployment(namespace, opts.Image)
 	if err := c.Create(ctx, deploy); err != nil {
 		rollback()
+		if isBeingDeleted(err) {
+			return nil, fmt.Errorf("%w: Deployment %q is still terminating — please wait a moment and try again", ErrResourcesTerminating, DeploymentName)
+		}
 		return nil, fmt.Errorf("failed to create pgvector Deployment: %w", err)
 	}
 	created = append(created, deploy)
@@ -126,6 +155,9 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	svc := buildService(namespace)
 	if err := c.Create(ctx, svc); err != nil {
 		rollback()
+		if isBeingDeleted(err) {
+			return nil, fmt.Errorf("%w: Service %q is still terminating — please wait a moment and try again", ErrResourcesTerminating, ServiceName)
+		}
 		return nil, fmt.Errorf("failed to create pgvector Service: %w", err)
 	}
 	created = append(created, svc)
@@ -134,6 +166,9 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	netpol := buildNetworkPolicy(namespace, opts.OGXServerLabelSelector)
 	if err := c.Create(ctx, netpol); err != nil {
 		rollback()
+		if isBeingDeleted(err) {
+			return nil, fmt.Errorf("%w: NetworkPolicy %q is still terminating — please wait a moment and try again", ErrResourcesTerminating, NetworkPolicyName)
+		}
 		return nil, fmt.Errorf("failed to create pgvector NetworkPolicy: %w", err)
 	}
 	created = append(created, netpol)
@@ -492,6 +527,52 @@ func rollbackDelete(ctx context.Context, c client.Client, obj client.Object, log
 		}
 		return
 	}
+}
+
+// checkForTerminatingResources inspects all pgvector-managed resources by
+// name. If any exist with a deletionTimestamp (still finalizing), it returns
+// ErrResourcesTerminating so the caller can surface a user-friendly retry
+// message instead of blocking the HTTP request for an indeterminate time.
+func checkForTerminatingResources(ctx context.Context, c client.Client, namespace string, log *slog.Logger) error {
+	checks := []struct {
+		obj  client.Object
+		name string
+		kind string
+	}{
+		{&corev1.Secret{}, CredentialsSecretName, "Secret"},
+		{&corev1.ConfigMap{}, InitConfigMapName, "ConfigMap"},
+		{&corev1.PersistentVolumeClaim{}, StoragePVCName, "PVC"},
+		{&appsv1.Deployment{}, DeploymentName, "Deployment"},
+		{&corev1.Service{}, ServiceName, "Service"},
+		{&networkingv1.NetworkPolicy{}, NetworkPolicyName, "NetworkPolicy"},
+	}
+
+	for _, check := range checks {
+		key := client.ObjectKey{Name: check.name, Namespace: namespace}
+		if err := c.Get(ctx, key, check.obj); err == nil {
+			if check.obj.GetDeletionTimestamp() != nil {
+				log.Info("pgvector resource is still terminating",
+					"kind", check.kind, "name", check.name, "namespace", namespace)
+				return fmt.Errorf("%w: %s %q is still terminating — please wait a moment and try again",
+					ErrResourcesTerminating, check.kind, check.name)
+			}
+		}
+	}
+	return nil
+}
+
+// isBeingDeleted returns true when a Create call failed because the named
+// object still exists and has a deletionTimestamp (Kubernetes returns HTTP 409
+// Conflict with "object is being deleted" in this case).
+func isBeingDeleted(err error) bool {
+	if err == nil {
+		return false
+	}
+	var statusErr *apierrors.StatusError
+	if !errors.As(err, &statusErr) {
+		return false
+	}
+	return apierrors.IsConflict(err) || strings.Contains(statusErr.Error(), "object is being deleted")
 }
 
 // checkDefaultStorageClass logs a warning if no default StorageClass is
