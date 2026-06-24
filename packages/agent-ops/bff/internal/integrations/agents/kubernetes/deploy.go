@@ -40,7 +40,10 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 			return nil, fmt.Errorf("failed to create ServiceAccount: %w", mapK8sError(err))
 		}
 		existingSA, getErr := clientset.CoreV1().ServiceAccounts(params.Namespace).Get(ctx, params.Name, metav1.GetOptions{})
-		if getErr != nil || existingSA.Labels[labelManagedBy] != managedByValue {
+		if getErr != nil {
+			return nil, fmt.Errorf("failed to verify existing ServiceAccount %q: %w", params.Name, mapK8sError(getErr))
+		}
+		if existingSA.Labels[labelManagedBy] != managedByValue {
 			return nil, fmt.Errorf("ServiceAccount %q already exists and is not managed by odh-dashboard", params.Name)
 		}
 		c.logger.Debug("ServiceAccount already exists, reusing",

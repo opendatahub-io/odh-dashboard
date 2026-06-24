@@ -53,31 +53,30 @@ func (kc *TokenKubernetesClient) CanGetAgentInNamespace(ctx context.Context, _ *
 	return kc.selfSubjectAccessReview(ctx, namespace, name, "services", "get")
 }
 
-var agentDeployBaseResources = []struct {
+type deployResourceCheck struct {
 	group    string
 	resource string
-}{
-	{"", "serviceaccounts"},
-	{"apps", "deployments"},
-	{"", "services"},
-	{"agent.kagenti.dev", "agentruntimes"},
+	verb     string
 }
 
-var agentDeployRouteResource = struct {
-	group    string
-	resource string
-}{"route.openshift.io", "routes"}
+var agentDeployChecks = []deployResourceCheck{
+	{"", "serviceaccounts", "create"},
+	{"", "serviceaccounts", "get"},
+	{"apps", "deployments", "create"},
+	{"", "services", "create"},
+	{"agent.kagenti.dev", "agentruntimes", "create"},
+	{"agent.kagenti.dev", "agentruntimes", "get"},
+}
+
+var agentDeployRouteCheck = deployResourceCheck{"route.openshift.io", "routes", "create"}
 
 func (kc *InternalKubernetesClient) CanDeployAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace string, createRoute bool) (bool, error) {
-	resources := agentDeployBaseResources
+	checks := agentDeployChecks
 	if createRoute {
-		resources = append(append([]struct {
-			group    string
-			resource string
-		}{}, resources...), agentDeployRouteResource)
+		checks = append(append([]deployResourceCheck{}, checks...), agentDeployRouteCheck)
 	}
-	for _, r := range resources {
-		allowed, err := kc.subjectAccessReviewGroup(ctx, identity, namespace, "", r.group, r.resource, "create")
+	for _, r := range checks {
+		allowed, err := kc.subjectAccessReviewGroup(ctx, identity, namespace, "", r.group, r.resource, r.verb)
 		if err != nil {
 			return false, err
 		}
@@ -89,15 +88,12 @@ func (kc *InternalKubernetesClient) CanDeployAgentInNamespace(ctx context.Contex
 }
 
 func (kc *TokenKubernetesClient) CanDeployAgentInNamespace(ctx context.Context, _ *RequestIdentity, namespace string, createRoute bool) (bool, error) {
-	resources := agentDeployBaseResources
+	checks := agentDeployChecks
 	if createRoute {
-		resources = append(append([]struct {
-			group    string
-			resource string
-		}{}, resources...), agentDeployRouteResource)
+		checks = append(append([]deployResourceCheck{}, checks...), agentDeployRouteCheck)
 	}
-	for _, r := range resources {
-		allowed, err := kc.selfSubjectAccessReviewGroup(ctx, namespace, "", r.group, r.resource, "create")
+	for _, r := range checks {
+		allowed, err := kc.selfSubjectAccessReviewGroup(ctx, namespace, "", r.group, r.resource, r.verb)
 		if err != nil {
 			return false, err
 		}
