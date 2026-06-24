@@ -98,9 +98,7 @@ const cellRenderers: Record<string, CellRenderer> = {
     />
   ),
 
-  username: ({ apiKey }) => (
-    <span data-testid="api-key-owner">{apiKey.username ?? '—'}</span>
-  ),
+  username: ({ apiKey }) => <span data-testid="api-key-owner">{apiKey.username ?? '—'}</span>,
   creationDate: ({ apiKey }) => (
     <span data-testid="api-key-creation-date">{formatDate(apiKey.creationDate, '—')}</span>
   ),
@@ -108,9 +106,7 @@ const cellRenderers: Record<string, CellRenderer> = {
     <span data-testid="api-key-last-used-at">{formatDate(apiKey.lastUsedAt, 'Never')}</span>
   ),
   expirationDate: ({ apiKey }) => (
-    <span data-testid="api-key-expiration-date">
-      {formatDate(apiKey.expirationDate, 'Never')}
-    </span>
+    <span data-testid="api-key-expiration-date">{formatDate(apiKey.expirationDate, 'Never')}</span>
   ),
 };
 
