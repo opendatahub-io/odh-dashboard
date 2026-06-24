@@ -17,8 +17,11 @@ import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import type { DataScienceClusterKindStatus } from '@odh-dashboard/k8s-core';
-import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
+import type {
+  DataScienceClusterKindStatus,
+  InferenceServiceKind,
+  ServingRuntimeKind,
+} from '@odh-dashboard/k8s-core';
 import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';

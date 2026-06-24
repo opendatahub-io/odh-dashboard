@@ -19,9 +19,9 @@ import type {
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { getServingRuntimeFromTemplate } from '@odh-dashboard/k8s-core';
 import {
   getServingRuntimeDisplayNameFromTemplate,
-  getServingRuntimeFromTemplate,
   getServingRuntimeVersion,
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';

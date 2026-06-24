@@ -5,11 +5,10 @@ import {
   getInferenceServiceModelState,
   getInferenceServiceStatusMessage,
 } from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { ModelDeploymentState } from '@odh-dashboard/ui-core';
 import type { NIMDeployment } from '../nimservices/types';
 import { NIMServiceModel } from '../nimservices/types';
 

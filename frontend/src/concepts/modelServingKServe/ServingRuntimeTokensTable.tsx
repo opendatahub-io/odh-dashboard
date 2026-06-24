@@ -1,7 +1,9 @@
 import * as React from 'react';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { TokensDescriptionItem } from '@odh-dashboard/model-serving/components/tokens/TokensDescriptionItem';
+import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { InferenceServiceKind, isInferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { TokensDescriptionItem } from '#~/concepts/modelServing/ModelRow/TokensDescriptionItem';
+import { InferenceServiceKind, isInferenceServiceKind } from '#~/k8sTypes';
 
 type ServingRuntimeTokensTableProps = {
   obj: ServingRuntimeKind | InferenceServiceKind;

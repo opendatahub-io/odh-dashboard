@@ -15,7 +15,9 @@ import type {
   ProjectKind,
   SecretKind,
   AccessReviewResourceAttributes,
+  ServingRuntimeKind,
 } from '@odh-dashboard/k8s-core';
+import { getServingRuntimeFromTemplate } from '@odh-dashboard/k8s-core';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -25,7 +27,7 @@ import {
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
@@ -54,7 +56,6 @@ import {
   updateServingRuntimeTemplate,
 } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { getServingRuntimeFromTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { useNIMPVC } from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC';
 import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useNIMTemplateName } from '#~/pages/modelServing/screens/projects/nim/useNIMTemplateName';

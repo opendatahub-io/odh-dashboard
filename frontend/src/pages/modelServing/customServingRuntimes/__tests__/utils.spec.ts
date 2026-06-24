@@ -1,8 +1,9 @@
+import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
 } from '#~/__mocks__/mockServingRuntimeK8sResource';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getEnabledPlatformsFromTemplate,

@@ -9,8 +9,9 @@ import {
   List,
   ListItem,
 } from '@patternfly/react-core';
+import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
 import { AppContext } from '#~/app/AppContext';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { getResourceSize } from '#~/pages/modelServing/utils';
 import { formatMemory } from '#~/utilities/valueUnits';

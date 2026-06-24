@@ -1,14 +1,14 @@
 import React from 'react';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { useTemplates } from '@odh-dashboard/internal/api/index';
-import useTemplateOrder from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateOrder';
-import useTemplateDisablement from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import { ServingRuntimePlatform, type CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   getSortedTemplates,
   getTemplateEnabled,
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import useTemplateDisablement from './useTemplateDisablement';
+import useTemplateOrder from './useTemplateOrder';
 
 /**
  * Custom hook that retrieves, sorts, and filters serving runtime templates for model serving.

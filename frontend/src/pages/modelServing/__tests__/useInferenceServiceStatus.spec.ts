@@ -1,9 +1,10 @@
 import { renderHook, act } from '@testing-library/react';
+import { ModelDeploymentState } from '@odh-dashboard/ui-core';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
-import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
+
 import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
 
 // Mock dependencies

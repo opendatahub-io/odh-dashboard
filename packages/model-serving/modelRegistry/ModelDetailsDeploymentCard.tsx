@@ -21,9 +21,8 @@ import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import TypedObjectIcon from '@odh-dashboard/internal/concepts/design/TypedObjectIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
-import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+
+import { ModelDeploymentState, ModelStatusIcon } from '@odh-dashboard/ui-core';
 import { useModelRegistryFilter } from './useModelRegistryFilter';
 import DeploymentLastDeployed from '../src/components/deployments/DeploymentLastDeployed';
 import {

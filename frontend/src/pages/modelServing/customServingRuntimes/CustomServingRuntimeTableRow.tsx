@@ -2,16 +2,16 @@ import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { Label, LabelGroup } from '@patternfly/react-core';
-import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import type { TemplateKind, ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+import { getServingRuntimeFromTemplate } from '@odh-dashboard/k8s-core';
+import { ResourceNameTooltip, ServingRuntimeVersionLabel } from '@odh-dashboard/ui-core';
+
 import CustomServingRuntimePlatformsLabelGroup from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
 import { isOOTB, PreInstalledName } from '#~/concepts/k8s/utils';
-import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
+
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import {
   getServingRuntimeDisplayNameFromTemplate,
-  getServingRuntimeFromTemplate,
   getServingRuntimeNameFromTemplate,
   getServingRuntimeVersion,
 } from './utils';

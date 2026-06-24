@@ -8,8 +8,17 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import type { ProjectKind, SecretKind, TemplateKind } from '@odh-dashboard/k8s-core';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type {
+  ProjectKind,
+  SecretKind,
+  TemplateKind,
+  ServingRuntimeKind,
+} from '@odh-dashboard/k8s-core';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import useTemplateOrder from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/useTemplateOrder';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import useTemplateDisablement from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/useTemplateDisablement';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import {
   DEFAULT_LIST_FETCH_STATE,
   DEFAULT_LIST_WATCH_RESULT,
@@ -27,8 +36,6 @@ import { Connection } from '#~/concepts/connectionTypes/types';
 import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
 import useInferenceServices from './useInferenceServices';
 import useServingRuntimes from './useServingRuntimes';
-import useTemplateOrder from './customServingRuntimes/useTemplateOrder';
-import useTemplateDisablement from './customServingRuntimes/useTemplateDisablement';
 import { getTokenNames } from './utils';
 import useServingRuntimeSecrets from './screens/projects/useServingRuntimeSecrets';
 

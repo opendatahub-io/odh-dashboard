@@ -11,6 +11,8 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
+import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+import { ModelDeploymentState } from '@odh-dashboard/ui-core';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { getPodsForKserve } from '#~/api';
@@ -18,8 +20,8 @@ import {
   checkModelPodStatus,
   getInferenceServiceModelState,
 } from '#~/concepts/modelServingKServe/kserveStatusUtils';
-import { ModelDeploymentState, ModelStatus } from '#~/pages/modelServing/screens/types';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { ModelStatus } from '#~/pages/modelServing/screens/types';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import DeployedModelCard from './DeployedModelCard';
 
 const SUCCESS_STATUSES = [ModelDeploymentState.LOADED, ModelDeploymentState.STANDBY];

@@ -3,11 +3,12 @@ import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
+
 import { getServingRuntimeVersionStatus } from '@odh-dashboard/internal/pages/modelServing/utils';
 import ServingRuntimeVersionStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionStatus';
 import ServingRuntimeTemplateStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeTemplateStatus';
 import { ServingRuntimeVersionStatusLabel } from '@odh-dashboard/internal/pages/modelServing/screens/const';
+import { ServingRuntimeVersionLabel } from '@odh-dashboard/ui-core';
 import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../types';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 

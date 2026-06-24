@@ -13,11 +13,11 @@ import {
 } from '@patternfly/react-core';
 import { formatMemory } from '@odh-dashboard/internal/utilities/valueUnits';
 import type { SupportedModelFormats, ContainerResources } from '@odh-dashboard/k8s-core';
-import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
+import { TokensDescriptionItem } from '../../../components/tokens/TokensDescriptionItem';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
 import { type Deployment, isModelServingAuthExtension } from '../../../../extension-points';

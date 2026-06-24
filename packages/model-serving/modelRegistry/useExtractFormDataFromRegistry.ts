@@ -7,13 +7,13 @@ import {
   LimitNameResourceType,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ConnectionTypeValueType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { AccessTypes } from '@odh-dashboard/internal/pages/projects/dataConnections/const';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/ui-core';
 import { getModelRegistryMetadata } from './utils/deployUtils';
 import {
   ModelLocationData,

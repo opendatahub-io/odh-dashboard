@@ -1,11 +1,13 @@
 import * as React from 'react';
-import type { PersistentVolumeClaimKind, ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
-import {
-  ConfigMapKind,
-  InferenceServiceKind,
+import type {
+  PersistentVolumeClaimKind,
+  ProjectKind,
+  SecretKind,
   ServingContainer,
   ServingRuntimeKind,
-} from '#~/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/ui-core';
+import { ConfigMapKind, InferenceServiceKind } from '#~/k8sTypes';
 import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import {
@@ -40,7 +42,6 @@ import {
 } from '#~/concepts/connectionTypes/utils';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-auth'] === 'true';

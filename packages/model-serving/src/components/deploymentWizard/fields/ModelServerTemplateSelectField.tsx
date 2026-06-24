@@ -18,8 +18,9 @@ import {
   ProjectScopedSearchDropdown,
 } from '@odh-dashboard/internal/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/internal/components/searchSelector/ProjectScopedToggleContent';
-import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
+
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { ServingRuntimeVersionLabel } from '@odh-dashboard/ui-core';
 
 // Schema
 const ModelServerOptionSchema = z.object({

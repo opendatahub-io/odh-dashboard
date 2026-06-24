@@ -1,6 +1,6 @@
 import React from 'react';
 import { Flex, FlexItem, FormGroup, Label, Truncate } from '@patternfly/react-core';
-import { LabeledConnection } from '#~/pages/modelServing/screens/types';
+import type { LabeledConnection } from '@odh-dashboard/model-serving/concepts/types';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,

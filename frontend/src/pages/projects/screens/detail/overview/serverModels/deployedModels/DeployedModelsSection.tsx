@@ -13,6 +13,7 @@ import {
   Stack,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/ui-core';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
@@ -25,7 +26,7 @@ import ModelServingContextProvider from '#~/pages/modelServing/ModelServingConte
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-import ModelServingPlatformSelectErrorAlert from '#~/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert.tsx';
+
 import DeployedModelsCard from './DeployedModelsCard';
 
 const DeployedModelsSection: React.FC = () => {

@@ -9,10 +9,11 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
+import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import DeployedModelsGallery from './DeployedModelsGallery';

@@ -14,6 +14,7 @@ import { Language } from '@patternfly/react-code-editor';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import YAML from 'yaml';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import { isServingRuntimeKind } from '@odh-dashboard/k8s-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import DashboardCodeEditor from '#~/concepts/dashboard/codeEditor/DashboardCodeEditor';
@@ -32,7 +33,6 @@ import {
   getModelTypesFromTemplate,
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
-  isServingRuntimeKind,
 } from './utils';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 import CustomServingRuntimeAPIProtocolSelector from './CustomServingRuntimeAPIProtocolSelector';

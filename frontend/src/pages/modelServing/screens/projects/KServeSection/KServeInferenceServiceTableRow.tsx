@@ -9,7 +9,8 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ResourceTr } from '@odh-dashboard/ui-core';
-import { DeploymentMode, InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+import { DeploymentMode, InferenceServiceKind } from '#~/k8sTypes';
 import InferenceServiceTableRow from '#~/pages/modelServing/screens/global/InferenceServiceTableRow';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ServingRuntimeDetails from '#~/pages/modelServing/screens/projects/ServingRuntimeDetails';

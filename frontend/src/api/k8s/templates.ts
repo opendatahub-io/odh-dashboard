@@ -5,8 +5,8 @@ import {
   k8sGetResource,
   WatchK8sResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { KnownLabels, type TemplateKind } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import { KnownLabels, type TemplateKind, ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+
 import { TemplateModel } from '#~/api/models';
 import { genRandomChars } from '#~/utilities/string';
 import {

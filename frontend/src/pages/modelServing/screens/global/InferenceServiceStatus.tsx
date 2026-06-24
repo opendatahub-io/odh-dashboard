@@ -1,6 +1,6 @@
 import * as React from 'react';
-import type { ToggleState } from '@odh-dashboard/ui-core';
-import { ModelStatusIcon } from '#~/concepts/modelServing/ModelStatusIcon';
+import { ToggleState, ModelStatusIcon } from '@odh-dashboard/ui-core';
+
 import { InferenceServiceKind } from '#~/k8sTypes';
 import {
   getInferenceServiceModelState,

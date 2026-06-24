@@ -12,15 +12,16 @@ import {
   Skeleton,
   Truncate,
 } from '@patternfly/react-core';
-import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import type { TemplateKind, ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+import { isServingRuntimeKind } from '@odh-dashboard/k8s-core';
+import { ServingRuntimeVersionLabel } from '@odh-dashboard/ui-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
   setServingRuntimeTemplate,
-  isServingRuntimeKind,
   getServingRuntimeVersion,
 } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithIdentifier } from '#~/pages/projects/screens/spawner/spawnerUtils';
@@ -34,7 +35,6 @@ import {
   ProjectScopedSearchDropdown,
 } from '#~/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '#~/components/searchSelector/ProjectScopedToggleContent';
-import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;

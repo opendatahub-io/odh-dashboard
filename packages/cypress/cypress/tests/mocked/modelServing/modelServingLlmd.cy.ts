@@ -9,7 +9,7 @@ import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sRe
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
-import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/k8s-core';
 import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,

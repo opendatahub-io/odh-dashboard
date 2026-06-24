@@ -1,5 +1,6 @@
+import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
 } from '#~/utilities/useAcceleratorProfileFormState';

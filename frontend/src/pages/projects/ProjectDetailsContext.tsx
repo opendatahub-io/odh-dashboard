@@ -6,14 +6,13 @@ import type {
   ProjectKind,
   SecretKind,
   TemplateKind,
-} from '@odh-dashboard/k8s-core';
-import {
-  GroupKind,
-  InferenceServiceKind,
-  LocalQueueKind,
-  RoleBindingKind,
   ServingRuntimeKind,
-} from '#~/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import useTemplateOrder from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/useTemplateOrder';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import useTemplateDisablement from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/useTemplateDisablement';
+import { GroupKind, InferenceServiceKind, LocalQueueKind, RoleBindingKind } from '#~/k8sTypes';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   DEFAULT_LIST_FETCH_STATE,
@@ -30,8 +29,6 @@ import useServingRuntimeSecrets from '#~/pages/modelServing/screens/projects/use
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import InvalidProject from '#~/concepts/projects/InvalidProject';
 import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
-import useTemplateOrder from '#~/pages/modelServing/customServingRuntimes/useTemplateOrder';
-import useTemplateDisablement from '#~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { getTokenNames } from '#~/pages/modelServing/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';

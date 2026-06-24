@@ -58,4 +58,10 @@ export type {
   DataScienceClusterComponentStatus,
   DataScienceClusterKindStatus,
   DataScienceClusterInitializationKindStatus,
+  ServingRuntimeAnnotations,
+  ServingContainer,
+  ImagePullSecret,
+  ServingRuntimeKind,
 } from './k8sTypes';
+
+export { isServingRuntimeKind, getServingRuntimeFromTemplate } from './servingRuntimeUtils';

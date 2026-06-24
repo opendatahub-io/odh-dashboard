@@ -1,8 +1,10 @@
 import React from 'react';
 import type { K8sDSGResource, AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
-import { ServingContainer, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import {
+  ServingContainer,
+  ServingRuntimeKind,
+  isServingRuntimeKind,
+} from '@odh-dashboard/k8s-core';
 import {
   Form,
   Stack,

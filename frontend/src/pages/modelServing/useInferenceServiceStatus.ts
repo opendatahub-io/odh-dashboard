@@ -1,6 +1,7 @@
 import * as React from 'react';
+import { ModelDeploymentState } from '@odh-dashboard/ui-core';
 import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils.ts';
-import { ModelDeploymentState, ModelServingState } from '#~/pages/modelServing/screens/types';
+import { ModelServingState } from '#~/pages/modelServing/screens/types';
 import useModelPodStatus from '#~/pages/modelServing/useModelPodStatus';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
 import { InferenceServiceKind } from '#~/k8sTypes.ts';

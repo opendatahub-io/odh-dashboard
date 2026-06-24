@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import type { ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
+import type { ProjectKind, SecretKind, ServingRuntimeKind } from '@odh-dashboard/k8s-core';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';
 import { mockStorageClasses } from '#~/__mocks__';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
 import * as utils from '#~/pages/modelServing/screens/projects/utils';
 import * as useNIMPVCModule from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC';
@@ -52,7 +52,8 @@ jest.mock('#~/redux/selectors', () => ({
   useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'test-namespace' })),
 }));
 
-jest.mock('#~/pages/modelServing/customServingRuntimes/utils', () => ({
+jest.mock('@odh-dashboard/k8s-core', () => ({
+  ...jest.requireActual('@odh-dashboard/k8s-core'),
   getServingRuntimeFromTemplate: jest.fn(),
 }));
 

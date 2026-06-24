@@ -8,7 +8,6 @@ import {
   ConnectionTypeValueType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import type { ProjectKind, SecretKind, SupportedModelFormats } from '@odh-dashboard/k8s-core';
-import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect.js';
 import type {
@@ -33,6 +32,7 @@ import {
 import { useProjectSection } from './fields/ProjectSection';
 import { NIMModelLocationKey } from './fields/modelLocationFields/NIMModelLocation';
 import { getStateKey } from './dynamicFormUtils';
+import type { LabeledConnection } from '../../concepts/types';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
 
 export enum ConnectionTypeRefs {

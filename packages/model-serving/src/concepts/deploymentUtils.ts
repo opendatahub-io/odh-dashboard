@@ -1,6 +1,5 @@
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/ui-core';
 import { Deployment, ModelServingMetricsExtension } from '../../extension-points';
 
 const isDeploymentInactive = (deployment: Deployment): boolean =>

@@ -11,8 +11,11 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import useModelMetricsEnabled from '@odh-dashboard/model-serving/concepts/useModelMetricsEnabled';
+import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import InferenceServiceStatus from '#~/pages/modelServing/screens/global/InferenceServiceStatus';
 import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
 import InferenceServiceEndpoint from '#~/pages/modelServing/screens/global/InferenceServiceEndpoint';
@@ -20,7 +23,6 @@ import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable.ts';
 import { SupportedArea } from '#~/concepts/areas/types.ts';
-import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled.ts';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
 
 interface DeployedModelCardProps {

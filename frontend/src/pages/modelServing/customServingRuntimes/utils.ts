@@ -1,6 +1,7 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import type { TemplateKind, ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+import { getServingRuntimeFromTemplate } from '@odh-dashboard/k8s-core';
+
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
   ServingRuntimeAPIProtocol,
@@ -65,62 +66,12 @@ export const getServingRuntimeDisplayNameFromTemplate = (template: TemplateKind)
 export const getServingRuntimeNameFromTemplate = (template: TemplateKind): string =>
   template.objects[0].metadata.name;
 
-const createServingRuntimeCustomError = (name: string, message: string): Error => {
-  const error = new Error(message);
-  error.name = name;
-  return error;
-};
-
-export const isServingRuntimeKind = (
-  obj: K8sResourceCommon | K8sDSGResource,
-): obj is ServingRuntimeKind => {
-  if (obj.kind !== 'ServingRuntime') {
-    throw createServingRuntimeCustomError('Invalid parameter', 'kind: must be ServingRuntime.');
-  }
-  if (!obj.spec?.containers) {
-    throw createServingRuntimeCustomError('Missing parameter', 'spec.containers: is required.');
-  }
-  if (!obj.spec.supportedModelFormats) {
-    throw createServingRuntimeCustomError(
-      'Missing parameter',
-      'spec.supportedModelFormats: is required.',
-    );
-  }
-  return true;
-};
-
 export const getServingRuntimeFromName = (
   templateName: string,
   templateList: TemplateKind[] = [],
 ): ServingRuntimeKind | undefined => {
   const template = templateList.find((t) => getServingRuntimeNameFromTemplate(t) === templateName);
   return getServingRuntimeFromTemplate(template);
-};
-
-export const getServingRuntimeFromTemplate = (
-  template?: TemplateKind,
-): ServingRuntimeKind | undefined => {
-  try {
-    if (!template || !isServingRuntimeKind(template.objects[0])) {
-      return undefined;
-    }
-  } catch (e) {
-    return undefined;
-  }
-
-  // Add apiProtocol annotation if exists in template
-  const apiProtocolAttribute = 'opendatahub.io/apiProtocol';
-  const servingRuntimeObj = { ...template.objects[0] };
-  const metadata = { ...template.objects[0].metadata };
-
-  if (metadata.annotations && template.metadata.annotations?.[apiProtocolAttribute]) {
-    metadata.annotations[apiProtocolAttribute] =
-      template.metadata.annotations[apiProtocolAttribute];
-  }
-
-  servingRuntimeObj.metadata = metadata;
-
-  return servingRuntimeObj;
 };
 
 export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntimeKind): string => {

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Label, Content, ContentVariants } from '@patternfly/react-core';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+
+import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
 import { getAPIProtocolFromServingRuntime } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimeAPIProtocol } from '#~/types';
 

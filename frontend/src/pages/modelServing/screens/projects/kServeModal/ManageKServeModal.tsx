@@ -15,6 +15,7 @@ import type {
   SecretKind,
   AccessReviewResourceAttributes,
 } from '@odh-dashboard/k8s-core';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/ui-core';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -58,9 +59,7 @@ import {
   LimitNameResourceType,
 } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';
-import usePrefillModelDeployModal, {
-  ModelDeployPrefillInfo,
-} from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+import usePrefillModelDeployModal from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import usePvcs from '#~/pages/modelServing/usePvcs';

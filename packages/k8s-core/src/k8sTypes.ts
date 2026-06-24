@@ -1,5 +1,6 @@
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type {
+  ContainerResources,
   HardwareProfileAnnotations,
   HardwareProfileScheduling,
   Identifier,
@@ -10,6 +11,7 @@ import type {
   PodContainer,
   Toleration,
   Volume,
+  VolumeMount,
   AccessMode,
 } from './types';
 
@@ -366,4 +368,63 @@ export type DataScienceClusterInitializationKindStatus = {
   };
   components?: Record<string, never>;
   phase?: string;
+};
+
+export type ServingRuntimeAnnotations = Partial<{
+  'opendatahub.io/template-name': string;
+  'opendatahub.io/template-display-name': string;
+  'opendatahub.io/disable-gpu': string;
+  'opendatahub.io/recommended-accelerators': string;
+  'opendatahub.io/accelerator-name': string;
+  'opendatahub.io/apiProtocol': string;
+  'opendatahub.io/serving-runtime-scope': string;
+  'opendatahub.io/accelerator-profile-namespace': string | undefined;
+  'enable-route': string;
+  'enable-auth': string;
+}>;
+
+export type ServingContainer = {
+  name: string;
+  args?: string[];
+  image?: string;
+  affinity?: PodAffinity;
+  resources?: ContainerResources;
+  volumeMounts?: VolumeMount[];
+  env?: {
+    name: string;
+    value?: string;
+    valueFrom?: {
+      secretKeyRef?: {
+        name: string;
+        key: string;
+      };
+    };
+  }[];
+};
+
+export type ImagePullSecret = {
+  name: string;
+};
+
+export type ServingRuntimeKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    builtInAdapter?: {
+      serverType?: string;
+      runtimeManagementPort?: number;
+      memBufferBytes?: number;
+      modelLoadingTimeoutMillis?: number;
+    };
+    containers: ServingContainer[];
+    supportedModelFormats?: SupportedModelFormats[];
+    replicas?: number;
+    tolerations?: Toleration[];
+    nodeSelector?: NodeSelector;
+    volumes?: Volume[];
+    imagePullSecrets?: ImagePullSecret[];
+  };
 };

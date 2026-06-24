@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import useModelMetricsEnabled from '@odh-dashboard/model-serving/concepts/useModelMetricsEnabled';
 import ProjectModelMetricsWrapper from '#~/pages/modelServing/screens/projects/ProjectModelMetricsWrapper';
-import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import ProjectModelMetricsConfigurationPage from '#~/pages/modelServing/screens/projects/ProjectModelMetricsConfigurationPage';
 import ProjectModelMetricsPage from '#~/pages/modelServing/screens/projects/ProjectModelMetricsPage';

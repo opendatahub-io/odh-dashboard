@@ -1,6 +1,7 @@
 import { AlertVariant } from '@patternfly/react-core';
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/ui-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
@@ -29,19 +30,6 @@ import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { isRedHatRegistryUri, PrefilledConnection } from '#~/concepts/modelRegistry/utils';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import useLabeledConnections from './nim/useLabeledConnections';
-
-export type ModelDeployPrefillInfo = {
-  modelName: string;
-  modelFormat?: string;
-  modelArtifactUri?: string;
-  connectionTypeName?: string;
-  initialConnectionName?: string;
-  modelRegistryInfo?: {
-    modelVersionId?: string;
-    registeredModelId?: string;
-    mrName?: string;
-  };
-};
 
 const usePrefillModelDeployModal = (
   projectContext: { currentProject: ProjectKind; connections: Connection[] } | undefined,

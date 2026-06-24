@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import useModelMetricsEnabled from '@odh-dashboard/model-serving/concepts/useModelMetricsEnabled';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import ModelServingExplainabilityWrapper from '#~/pages/modelServing/screens/metrics/ModelServingExplainabilityWrapper';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
@@ -8,7 +10,6 @@ import BiasConfigurationBreadcrumbPage from './screens/metrics/bias/BiasConfigur
 import GlobalModelMetricsPage from './screens/metrics/GlobalModelMetricsPage';
 import GlobalModelMetricsWrapper from './screens/metrics/GlobalModelMetricsWrapper';
 import ModelServingGlobal from './screens/global/ModelServingGlobal';
-import useModelMetricsEnabled from './useModelMetricsEnabled';
 
 const ModelServingRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();

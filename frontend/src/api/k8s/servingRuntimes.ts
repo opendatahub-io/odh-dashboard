@@ -6,13 +6,13 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServingRuntimeModel } from '#~/api/models';
-import {
-  K8sAPIOptions,
+import type {
   ServingContainer,
   ServingRuntimeAnnotations,
   ServingRuntimeKind,
-} from '#~/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+import { ServingRuntimeModel } from '#~/api/models';
+import { K8sAPIOptions } from '#~/k8sTypes';
 import {
   CreatingServingRuntimeObject,
   SupportedModelFormatsInfo,

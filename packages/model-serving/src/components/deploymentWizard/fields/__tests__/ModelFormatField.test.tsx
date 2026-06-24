@@ -7,18 +7,21 @@ import { useServingRuntimeTemplates } from '../../../../concepts/servingRuntimeT
 
 // Mock dependencies
 jest.mock('../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates');
+jest.mock('@odh-dashboard/k8s-core', () => ({
+  ...jest.requireActual('@odh-dashboard/k8s-core'),
+  getServingRuntimeFromTemplate: jest.fn(),
+}));
 jest.mock('@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils', () => ({
   getModelTypesFromTemplate: jest.fn(),
-  getServingRuntimeFromTemplate: jest.fn(),
 }));
 
 const mockUseServingRuntimeTemplates = useServingRuntimeTemplates as jest.MockedFunction<
   typeof useServingRuntimeTemplates
 >;
 
+const { getServingRuntimeFromTemplate } = require('@odh-dashboard/k8s-core');
 const {
   getModelTypesFromTemplate,
-  getServingRuntimeFromTemplate,
 } = require('@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils');
 
 describe('ModelFormatField', () => {

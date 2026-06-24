@@ -1,6 +1,6 @@
 import React from 'react';
-import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind, ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+
 import { getPvc } from '#~/api';
 
 type NIMPVCState = {

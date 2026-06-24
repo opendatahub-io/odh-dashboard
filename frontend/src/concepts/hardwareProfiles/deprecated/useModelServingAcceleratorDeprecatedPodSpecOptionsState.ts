@@ -1,5 +1,6 @@
 import React from 'react';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import { useAppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';

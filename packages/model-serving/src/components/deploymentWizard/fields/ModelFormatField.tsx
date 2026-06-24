@@ -5,10 +5,8 @@ import SimpleSelect, {
   type SimpleSelectOption,
 } from '@odh-dashboard/internal/components/SimpleSelect';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
-import {
-  getModelTypesFromTemplate,
-  getServingRuntimeFromTemplate,
-} from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import { getServingRuntimeFromTemplate } from '@odh-dashboard/k8s-core';
+import { getModelTypesFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { type ModelTypeFieldData } from './ModelTypeSelectField';
 import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';

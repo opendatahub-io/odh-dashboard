@@ -1,13 +1,12 @@
 import { AlertVariant } from '@patternfly/react-core';
-import type { SecretKind } from '@odh-dashboard/k8s-core';
-import type { ToggleState } from '@odh-dashboard/ui-core';
-import { Connection } from '#~/concepts/connectionTypes/types';
-import {
+import type {
+  SecretKind,
   ImagePullSecret,
-  InferenceServiceKind,
   ServingContainer,
   ServingRuntimeKind,
-} from '#~/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+import type { ToggleState } from '@odh-dashboard/ui-core';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
 
 export enum PerformanceMetricType {
@@ -25,15 +24,6 @@ export enum ServingRuntimeTableTabs {
   TYPE = 1,
   DEPLOYED_MODELS = 2,
   TOKENS = 3,
-}
-
-export enum ModelDeploymentState {
-  PENDING = 'Pending',
-  STANDBY = 'Standby',
-  FAILED_TO_LOAD = 'FailedToLoad',
-  LOADING = 'Loading',
-  LOADED = 'Loaded',
-  UNKNOWN = 'Unknown',
 }
 
 export type ModelServingState = ToggleState & {
@@ -131,9 +121,4 @@ export type ServingPlatformStatuses = {
   kServeNIM: PlatformStatus;
   platformEnabledCount: number;
   refreshNIMAvailability: () => Promise<boolean | undefined>;
-};
-
-export type LabeledConnection = {
-  connection: Connection;
-  isRecommended?: boolean;
 };
