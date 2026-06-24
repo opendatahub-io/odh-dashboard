@@ -18,7 +18,7 @@ import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { OutlinedQuestionCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
-import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { FeatureView, OnDemandFeatureView } from '../../../types/featureView';
 import FeatureStoreCodeBlock from '../../../components/FeatureStoreCodeBlock';
 import { featureDataSourceRoute, featureViewRoute } from '../../../routes';

@@ -448,6 +448,7 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   },
   {
     name: 'premium-team-policy',
+    displayName: 'Premium Team Policy',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -477,7 +478,7 @@ export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse
   return {
     policy: {
       ...policy,
-      displayName: `${resolvedName} Display`,
+      displayName: policy.displayName ?? `${resolvedName} Display`,
       description: `Description for ${resolvedName}`,
       creationTimestamp: '2025-03-01T10:00:00Z',
     },

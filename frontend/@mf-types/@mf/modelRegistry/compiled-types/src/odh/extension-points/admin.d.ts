@@ -1,4 +1,4 @@
-import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import type { Extension, ExtensionPredicate } from '@openshift/dynamic-plugin-sdk';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 /**
  * Extension point for providing a custom admin check component.
@@ -14,4 +14,4 @@ export type AdminCheckExtension = Extension<'model-registry.admin/check', {
         children: (isAdmin: boolean, loaded: boolean) => React.ReactElement;
     }>;
 }>;
-export declare const isAdminCheckExtension: (extension: Extension) => extension is AdminCheckExtension;
+export declare const isAdminCheckExtension: ExtensionPredicate<AdminCheckExtension>;

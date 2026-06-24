@@ -1,33 +1,24 @@
 import * as React from 'react';
-import { Label, LabelProps, Popover } from '@patternfly/react-core';
-import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
+import { Label, Popover } from '@patternfly/react-core';
+import {
+  normalizePhase,
+  getPhaseProps,
+  getPopoverContent,
+  PhaseStatus,
+  PhaseResourceType,
+} from '~/app/utilities/phaseLabelUtils';
 
 type PhaseLabelProps = {
   phase: string | undefined;
+  resourceType: PhaseResourceType;
   statusMessage?: string;
 };
 
-const getPhaseProps = (
-  phase: string | undefined,
-): { icon: React.ReactNode; status?: LabelProps['status']; color?: LabelProps['color'] } => {
-  switch (phase) {
-    case 'Active':
-    case 'Ready':
-      return { icon: <CheckCircleIcon />, status: 'success' };
-    case 'Failed':
-    case 'Unhealthy':
-      return { icon: <ExclamationCircleIcon />, status: 'danger' };
-    case 'Pending':
-      return { icon: <InProgressIcon />, color: 'blue' };
-    default:
-      return { icon: undefined, color: 'grey' };
-  }
-};
-
-const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, statusMessage }) => {
-  const normalized = phase?.trim() || 'Unknown';
+const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, resourceType, statusMessage }) => {
+  const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
-  const hasPopover = !!statusMessage;
+  const hasPopover = normalized !== PhaseStatus.READY && !!statusMessage;
+  const popoverContent = getPopoverContent(normalized, resourceType, statusMessage);
 
   const label = (
     <Label
@@ -48,8 +39,10 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, statusMessage }) => {
   return (
     <Popover
       data-testid="phase-popover"
-      headerContent={normalized}
-      bodyContent={statusMessage}
+      headerContent={popoverContent.headerContent}
+      headerIcon={popoverContent.headerIcon}
+      bodyContent={popoverContent.bodyContent}
+      footerContent={popoverContent.footerContent}
       position="top"
     >
       {label}

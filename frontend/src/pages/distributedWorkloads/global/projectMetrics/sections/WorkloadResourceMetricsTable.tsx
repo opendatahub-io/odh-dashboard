@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { SortableData, Table } from '@odh-dashboard/ui-core';
 import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
-import { SortableData, Table } from '#~/components/table';
 import {
   getStatusInfo,
   getWorkloadRequestedResources,

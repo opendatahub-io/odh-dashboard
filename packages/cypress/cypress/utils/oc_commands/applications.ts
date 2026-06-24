@@ -144,6 +144,26 @@ export const getVersionFromCsv = (csvObject: {
  * @returns A Cypress.Chainable that resolves to the channel name.
  * @throws {Error} if the CSV format is invalid or no subscription is found in the namespace.
  */
+/**
+ * Detect whether the cluster is running ODH or RHOAI by inspecting the
+ * rhods-operator OLM Subscription channel.  ODH channels start with "odh"
+ * (e.g. "odh-stable"), while RHOAI channels use "fast", "stable", "eus-*", etc.
+ *
+ * @returns `true` when the cluster is RHOAI, `false` when it is ODH or detection fails.
+ */
+export const isRHOAI = (): Cypress.Chainable<boolean> => {
+  const command = `oc get subscription -A -o json | jq -r '.items[] | select(.spec.name=="rhods-operator") | .spec.channel'`;
+  return execWithOutput(command).then(({ exitCode, stdout }) => {
+    const channel = stdout.trim();
+    if (exitCode !== 0 || !channel || channel.startsWith('odh')) {
+      cy.log(`ODH detected (subscription channel="${channel}").`);
+      return cy.wrap(false);
+    }
+    cy.log(`RHOAI confirmed (subscription channel="${channel}").`);
+    return cy.wrap(true);
+  });
+};
+
 export const getSubscriptionChannelFromCsv = (csvObject: {
   metadata: {
     name: string;

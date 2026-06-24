@@ -176,8 +176,8 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
 
   const defaultTab = getDefaultTab(pageId, tabExtensions);
 
-  // Single tab: render content directly without tab bar
-  if (tabExtensions.length === 1) {
+  // Single tab: render content directly without tab bar (unless opted in per page)
+  if (tabExtensions.length === 1 && !extension.properties.alwaysShowTabBar) {
     const singleTab = tabExtensions[0];
     return (
       <Routes>
