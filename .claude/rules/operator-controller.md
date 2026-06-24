@@ -104,11 +104,29 @@ Embed `client.Client` — this gives direct access to `r.Get()`, `r.List()`, `r.
 Follow this pipeline order:
 
 1. **Fetch the CR** — return `nil` error for `IsNotFound` (resource was deleted)
-2. **Compute state** — kustomize params, image resolution
-3. **Render manifests** — `kustomize.NewEngine().Render()`
-4. **Deploy** — `deploy.NewDeployer()` with SSA
-5. **Post-deploy actions** — URL extraction, dependency checks
-6. **Update status** — set conditions, observedGeneration, then `r.Status().Update()`
+2. **Handle deletion** — finalizer removal + cross-namespace cleanup
+3. **Handle `managementState: Removed`** — tear down managed resources, set status, return early
+4. **Compute state** — kustomize params, image resolution
+5. **Render manifests** — `kustomize.NewEngine().Render()`
+6. **Deploy** — `deploy.NewDeployer()` with SSA
+7. **Post-deploy actions** — URL extraction, dependency checks
+8. **Update status** — set conditions, observedGeneration, then `r.Status().Update()`
+
+### managementState handling
+
+The reconciler must check `dashboard.Spec.ManagementState` after finalizer handling:
+
+```go
+if dashboard.Spec.ManagementState == "Removed" {
+    // Delete all resources labeled platform.opendatahub.io/part-of=dashboard
+    // Clean up cross-namespace resources
+    // Set phase=NotReady, clear URL and moduleStatuses
+    // Set ProvisioningSucceeded=False (reason: Removed)
+    return ctrl.Result{}, nil
+}
+```
+
+`Removed` is distinct from CR deletion: it preserves the CR while removing the operand. The finalizer handles actual CR deletion cleanup.
 
 ### Error handling in Reconcile
 
@@ -128,18 +146,21 @@ if err != nil {
 
 ### SetupWithManager
 
-Register watches and predicates:
+Register watches and predicates. Always register `Owns()` for resource types the controller deploys so that external deletions or modifications trigger re-reconciliation:
 
 ```go
 func SetupWithManager(mgr ctrl.Manager, opts Options) error {
     r := &DashboardReconciler{...}
     return ctrl.NewControllerManagedBy(mgr).
         For(&v1alpha1.Dashboard{}).
+        Owns(&appsv1.Deployment{}).
+        Owns(&corev1.Service{}).
+        Owns(&corev1.ConfigMap{}).
         Complete(r)
 }
 ```
 
-Add `Owns()` for resources the controller creates. Add `Watches()` for external resources that should trigger reconciliation.
+Add `Watches()` for external resources that should trigger reconciliation but are not owned by the CR.
 
 ## Platform utilities usage
 
@@ -262,3 +283,6 @@ RBAC manifests are in `config/rbac/`. When adding new resource types to the reco
 - **Ignoring status updates on error paths** — always set a condition before returning an error
 - **Using `fmt.Errorf` without `%w`** — wrap errors for `errors.Is()` / `errors.As()` compatibility
 - **Creating resources without ownership** — use `deployer.Deploy()` with `Owner` set for garbage collection
+- **Missing `Owns()` registration** — if the controller deploys Deployments, Services, or ConfigMaps, register them with `Owns()` so external modifications/deletions trigger re-reconciliation
+- **Ignoring `managementState: Removed`** — always check before proceeding with deployment; `Removed` means "tear down the operand but keep the CR"
+- **Adding modules without updating the full chain** — new modules need entries in `modules.go` (registry), `support.go` (image mapping), and `charts/dashboard/values.yaml` (related images)

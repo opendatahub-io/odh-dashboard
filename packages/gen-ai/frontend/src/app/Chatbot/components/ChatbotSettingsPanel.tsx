@@ -112,6 +112,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   const configIds = useChatbotConfigStore(selectConfigIds);
+  const isCompareMode = configIds.length > 1;
 
   // Consume store directly using configId (controlled by parent)
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
@@ -270,7 +271,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         <DrawerActions style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
           {agentProfilesEnabled && (
             <>
-              <Button variant="secondary" onClick={onLoad} data-testid="settings-panel-load-button">
+              <Button
+                variant="secondary"
+                onClick={onLoad}
+                isDisabled={isCompareMode}
+                data-testid="settings-panel-load-button"
+              >
                 Load
               </Button>
               <Dropdown
@@ -283,6 +289,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     ref={toggleRef}
                     variant="secondary"
                     isExpanded={isSaveDropdownOpen}
+                    isDisabled={isCompareMode}
                     onClick={() => setIsSaveDropdownOpen(!isSaveDropdownOpen)}
                     splitButtonItems={[
                       <MenuToggleAction

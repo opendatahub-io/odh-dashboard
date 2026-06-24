@@ -71,3 +71,23 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- define "dashboard.image" -}}
 {{- printf "%s:%s" .Values.image.repository (.Values.image.tag | default .Chart.AppVersion) }}
 {{- end }}
+
+{{- define "dashboard.webhookServiceName" -}}
+{{- printf "%sdashboard-operator-webhook" .Values.namePrefix }}
+{{- end }}
+
+{{- define "dashboard.webhookName" -}}
+{{- printf "%sdashboard-operator-validating" .Values.namePrefix }}
+{{- end }}
+
+{{- define "dashboard.webhookIssuerName" -}}
+{{- printf "%sdashboard-operator-selfsigned" .Values.namePrefix }}
+{{- end }}
+
+{{- define "dashboard.webhookCertName" -}}
+{{- printf "%sdashboard-operator-webhook-cert" .Values.namePrefix }}
+{{- end }}
+
+{{- define "dashboard.webhookCertSecretName" -}}
+{{- printf "%sdashboard-operator-webhook-tls" .Values.namePrefix }}
+{{- end }}

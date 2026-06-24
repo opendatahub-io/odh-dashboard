@@ -78,15 +78,29 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
             {/* Hide compare button when in compare mode - use close button on pane to exit */}
             {!isCompareMode && (
               <ToolbarItem>
-                <Button
-                  variant="link"
-                  aria-label="Compare chat"
-                  icon={<ColumnsIcon />}
-                  onClick={onCompareChat}
-                  data-testid="compare-chat-button"
-                >
-                  Compare chat
-                </Button>
+                {profileApplied ? (
+                  <Tooltip content="Comparison mode is not available when an agent configuration is loaded.">
+                    <Button
+                      variant="link"
+                      aria-label="Compare chat (disabled)"
+                      icon={<ColumnsIcon />}
+                      isAriaDisabled
+                      data-testid="compare-chat-button"
+                    >
+                      Compare chat
+                    </Button>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    variant="link"
+                    aria-label="Compare chat"
+                    icon={<ColumnsIcon />}
+                    onClick={onCompareChat}
+                    data-testid="compare-chat-button"
+                  >
+                    Compare chat
+                  </Button>
+                )}
               </ToolbarItem>
             )}
             <ToolbarItem>
@@ -159,43 +173,47 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
             popperProps={{ position: 'end', preventOverflow: true }}
           >
             <DropdownList>
-              {!isCompareMode && agentProfilesEnabled && (
+              {agentProfilesEnabled && (
                 <DropdownItem
-                  onClick={onLoad}
+                  onClick={!isCompareMode ? onLoad : undefined}
+                  isAriaDisabled={isCompareMode}
                   key="load-agent-configuration"
                   data-testid="load-agent-profile-button"
                 >
                   Load agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && profileApplied && (
+              {agentProfilesEnabled && profileApplied && (
                 <DropdownItem
-                  onClick={onSave}
+                  onClick={!isCompareMode ? onSave : undefined}
+                  isAriaDisabled={isCompareMode}
                   key="save-agent-configuration"
                   data-testid="save-agent-profile-button"
                 >
                   Save agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && (
+              {agentProfilesEnabled && (
                 <DropdownItem
-                  onClick={onSaveAs}
+                  onClick={!isCompareMode ? onSaveAs : undefined}
+                  isAriaDisabled={isCompareMode}
                   key="save-as-agent-configuration"
                   data-testid="save-as-agent-profile-button"
                 >
                   Save as agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && profileApplied && (
+              {agentProfilesEnabled && profileApplied && (
                 <DropdownItem
-                  onClick={onNew}
+                  onClick={!isCompareMode ? onNew : undefined}
+                  isAriaDisabled={isCompareMode}
                   key="new-agent-configuration"
                   data-testid="new-agent-configuration-button"
                 >
                   New agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && <Divider key="agent-divider" />}
+              {agentProfilesEnabled && <Divider key="agent-divider" />}
               <DropdownItem
                 onClick={onConfigurePlayground}
                 key="update-configuration"

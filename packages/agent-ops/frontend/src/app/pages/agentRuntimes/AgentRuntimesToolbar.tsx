@@ -44,6 +44,7 @@ const AgentRuntimesToolbar: React.FC<AgentRuntimesToolbarProps> = ({
   >
     <ToolbarGroup>
       <ToolbarItem>
+        {/* Deploy agent - functionality to be implemented */}
         <Button variant="primary" data-testid="deploy-agent-button" isDisabled>
           Deploy agent
         </Button>

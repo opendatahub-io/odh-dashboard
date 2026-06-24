@@ -635,7 +635,7 @@ describe('Model Serving LLMD', () => {
       });
       cy.intercept(
         'PATCH',
-        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/llminferenceservices/test-llmd-model',
+        '/api/k8s/apis/serving.kserve.io/v1alpha2/namespaces/test-project/llminferenceservices/test-llmd-model',
         (req) => {
           req.reply({
             statusCode: 200,
@@ -645,7 +645,7 @@ describe('Model Serving LLMD', () => {
       ).as('startLLMInferenceService1');
       cy.intercept(
         'PATCH',
-        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/llminferenceservices/test-llmd-model-2',
+        '/api/k8s/apis/serving.kserve.io/v1alpha2/namespaces/test-project/llminferenceservices/test-llmd-model-2',
         (req) => {
           req.reply({
             statusCode: 200,

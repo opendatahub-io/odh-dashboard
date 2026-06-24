@@ -75,6 +75,26 @@ func (r *AgentRuntimesRepository) GetAgentRuntimeDetail(ctx context.Context, nam
 	return mapper.AgentDetailToRuntimeDetail(detail), nil
 }
 
+// DeployAgent deploys a new agent via the agent data source.
+func (r *AgentRuntimesRepository) DeployAgent(ctx context.Context, params *agents.DeployAgentParams) (*models.DeployAgentResponse, error) {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return nil, translateAgentError(err)
+	}
+
+	result, err := client.DeployAgent(ctx, params)
+	if err != nil {
+		return nil, translateAgentError(err)
+	}
+
+	return &models.DeployAgentResponse{
+		Success:   true,
+		Name:      result.Name,
+		Namespace: result.Namespace,
+		Message:   "Agent deployed successfully",
+	}, nil
+}
+
 func translateAgentError(err error) error {
 	if err == nil {
 		return nil
@@ -82,6 +102,14 @@ func translateAgentError(err error) error {
 
 	if errors.Is(err, agents.ErrNotFound) {
 		return bfferrors.ErrNotFound
+	}
+
+	if errors.Is(err, agents.ErrAlreadyExists) {
+		return bfferrors.ErrAlreadyExists
+	}
+
+	if errors.Is(err, agents.ErrConflict) {
+		return bfferrors.ErrAlreadyExists
 	}
 
 	if errors.Is(err, agents.ErrForbidden) {

@@ -61,10 +61,10 @@ export const useModelDeploymentSubmit = (
         if (
           viewMode === 'yaml-edit' &&
           (resources.model?.kind !== 'LLMInferenceService' ||
-            resources.model.apiVersion !== 'serving.kserve.io/v1alpha1')
+            resources.model.apiVersion !== 'serving.kserve.io/v1alpha2')
         ) {
           throw new Error(
-            'Invalid YAML: Kind must be LLMInferenceService and apiVersion must be serving.kserve.io/v1alpha1',
+            'Invalid YAML: Kind must be LLMInferenceService and apiVersion must be serving.kserve.io/v1alpha2',
           );
         }
         if (
