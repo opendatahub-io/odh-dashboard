@@ -1,5 +1,7 @@
 import * as z from 'zod';
 import {
+  MAX_DESCRIPTION_LENGTH,
+  MAX_DISPLAY_NAME_LENGTH,
   MIN_RAG_PATTERNS,
   MAX_RAG_PATTERNS,
   RAG_METRIC_FAITHFULNESS,
@@ -43,16 +45,16 @@ function createConfigureSchema() {
         .trim()
         .min(1)
         .refine(
-          (val) => Array.from(val).length <= 250,
-          'Display name must be at most 250 characters',
+          (val) => Array.from(val).length <= MAX_DISPLAY_NAME_LENGTH,
+          `Display name must be at most ${MAX_DISPLAY_NAME_LENGTH} characters`,
         )
         .default(''),
       description: z
         .string()
         .trim()
         .refine(
-          (val) => Array.from(val).length <= 255,
-          'Description must be at most 255 characters',
+          (val) => Array.from(val).length <= MAX_DESCRIPTION_LENGTH,
+          `Description must be at most ${MAX_DESCRIPTION_LENGTH} characters`,
         )
         .default('')
         .optional(),

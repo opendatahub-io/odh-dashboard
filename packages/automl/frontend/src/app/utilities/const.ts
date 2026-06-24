@@ -65,6 +65,7 @@ export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, re
   };
 
 export const MAX_DISPLAY_NAME_LENGTH = 250;
+export const MAX_DESCRIPTION_LENGTH = 255;
 export const MIN_TOP_N = 1;
 export const MAX_TOP_N_TABULAR = 10;
 export const MAX_TOP_N_TIMESERIES = 7;

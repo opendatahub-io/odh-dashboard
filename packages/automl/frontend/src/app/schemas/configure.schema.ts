@@ -9,6 +9,8 @@ import {
   MIN_TOP_N,
   MAX_TOP_N_TABULAR,
   MAX_TOP_N_TIMESERIES,
+  MAX_DESCRIPTION_LENGTH,
+  MAX_DISPLAY_NAME_LENGTH,
   MAX_PREDICTION_LENGTH,
   TASK_TYPES,
   TASK_TYPE_TIMESERIES,
@@ -26,16 +28,16 @@ function createConfigureSchema() {
         .trim()
         .min(1)
         .refine(
-          (val) => Array.from(val).length <= 250,
-          'Display name must be at most 250 characters',
+          (val) => Array.from(val).length <= MAX_DISPLAY_NAME_LENGTH,
+          `Display name must be at most ${MAX_DISPLAY_NAME_LENGTH} characters`,
         )
         .default(''),
       description: z
         .string()
         .trim()
         .refine(
-          (val) => Array.from(val).length <= 255,
-          'Description must be at most 255 characters',
+          (val) => Array.from(val).length <= MAX_DESCRIPTION_LENGTH,
+          `Description must be at most ${MAX_DESCRIPTION_LENGTH} characters`,
         )
         .default('')
         .optional(),
