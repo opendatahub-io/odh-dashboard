@@ -11,7 +11,7 @@ export const authPoliciesColumns: SortableData<MaaSAuthPolicy>[] = [
   },
   {
     label: 'Status',
-    field: 'status',
+    field: 'phase',
     width: 10,
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>
       normalizePhase(a.phase).localeCompare(normalizePhase(b.phase)),

@@ -11,7 +11,7 @@ export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
   },
   {
     label: 'Status',
-    field: 'status',
+    field: 'phase',
     width: 15,
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       normalizePhase(a.phase).localeCompare(normalizePhase(b.phase)),
