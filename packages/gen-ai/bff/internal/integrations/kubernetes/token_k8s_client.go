@@ -1932,6 +1932,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		config.SetDefaultPgvectorProvider(*pgConn)
 		kc.Logger.Info("using remote::pgvector as default vector_io provider",
 			"host", pgConn.Host, "port", pgConn.Port, "db", pgConn.DB)
+	} else {
+		config.VectorStores.DefaultProviderID = ""
 	}
 
 	// Create a map of MaaS models for efficient lookup (only call ListModels once)
