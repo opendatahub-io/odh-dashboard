@@ -3,8 +3,7 @@ import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import useMergedModels from '~/app/hooks/useMergedModels';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
-import { AIModel } from '~/app/types';
-import type { MaaSModel } from '~/app/types';
+import type { AAModelResponse, AIModel } from '~/app/types';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
@@ -34,13 +33,19 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   ...overrides,
 });
 
-const createMaaSModel = (overrides: Partial<MaaSModel>): MaaSModel => ({
-  id: 'maas-model',
-  object: 'model',
-  created: Date.now(),
-  owned_by: 'maas',
-  ready: true,
-  url: 'https://maas.example.com/v1',
+const createMaaSModel = (overrides: Partial<AAModelResponse> = {}): AAModelResponse => ({
+  model_name: 'maas-model',
+  model_id: 'maas-model',
+  display_name: 'MaaS Model',
+  description: '',
+  endpoints: ['external:https://maas.example.com/v1'],
+  serving_runtime: 'MaaS',
+  api_protocol: 'OpenAI',
+  version: '',
+  usecase: 'LLM',
+  status: 'Running',
+  sa_token: { name: '', token_name: '', token: '' },
+  model_source_type: 'maas',
   ...overrides,
 });
 
@@ -105,7 +110,7 @@ describe('useMergedModels', () => {
       ...mockFetchStateDefaults,
     });
     mockUseFetchMaaSModels.mockReturnValue({
-      data: [createMaaSModel({ id: 'llama-2-7b-chat', display_name: 'Llama 2 Chat' })],
+      data: [createMaaSModel({ model_id: 'llama-2-7b-chat', display_name: 'Llama 2 Chat' })],
       loaded: true,
       error: undefined,
       ...mockFetchStateDefaults,
@@ -126,9 +131,9 @@ describe('useMergedModels', () => {
       model_source_type: 'namespace',
     });
     const maasModel = createMaaSModel({
-      id: 'granite-7b-lab',
+      model_id: 'granite-7b-lab',
       display_name: 'Granite 7B Lab',
-      url: 'https://maas.example.com/granite-7b-lab',
+      endpoints: ['external:https://maas.example.com/granite-7b-lab'],
     });
 
     mockUseFetchAIModels.mockReturnValue({
@@ -164,7 +169,10 @@ describe('useMergedModels', () => {
       createAIModel({ model_name: 'model-a', model_id: 'model-a' }),
       createAIModel({ model_name: 'model-b', model_id: 'model-b' }),
     ];
-    const maasModels = [createMaaSModel({ id: 'model-b' }), createMaaSModel({ id: 'model-c' })];
+    const maasModels = [
+      createMaaSModel({ model_id: 'model-b' }),
+      createMaaSModel({ model_id: 'model-c' }),
+    ];
 
     mockUseFetchAIModels.mockReturnValue({
       data: aiModels,
@@ -198,7 +206,7 @@ describe('useMergedModels', () => {
         model_source_type: 'namespace',
       }),
     ];
-    const maasModels = [createMaaSModel({ id: 'shared-model' })];
+    const maasModels = [createMaaSModel({ model_id: 'shared-model' })];
 
     mockUseFetchAIModels.mockReturnValue({
       data: aiModels,
@@ -291,7 +299,7 @@ describe('useMergedModels', () => {
         ...mockFetchStateDefaults,
       });
       mockUseFetchMaaSModels.mockReturnValue({
-        data: [createMaaSModel({ id: 'maas-model', display_name: 'MaaS Model' })],
+        data: [createMaaSModel({ model_id: 'maas-model', display_name: 'MaaS Model' })],
         loaded: true,
         error: undefined,
         ...mockFetchStateDefaults,

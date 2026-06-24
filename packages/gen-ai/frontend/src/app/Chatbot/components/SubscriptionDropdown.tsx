@@ -31,8 +31,13 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
       return [];
     }
     const { id: maasModelId } = splitLlamaModelId(selectedModel);
-    const matchingModel = maasModels.find((m) => m.id === maasModelId);
-    return matchingModel?.subscriptions ?? [];
+    const matchingModel = maasModels.find((m) => m.model_id === maasModelId);
+    // TODO: AAModelResponse from /aaa/models?sources=maas doesn't include subscriptions field.
+    // This feature is currently broken. Need to either:
+    // 1. Fetch subscriptions from separate endpoint
+    // 2. Request backend to add subscriptions to AAA endpoint response
+    // 3. Remove subscriptions feature
+    return matchingModel ? [] : [];
   }, [selectedModel, maasModels]);
 
   // Auto-select highest-priority subscription when current selection is empty or invalid.
