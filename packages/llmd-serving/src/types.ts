@@ -45,7 +45,7 @@ export const CONFIG_TYPE_ROUTER = 'router';
 const WELL_KNOWN_ANNOTATION = 'serving.kserve.io/well-known-config';
 const DISABLED_ANNOTATION = 'opendatahub.io/disabled';
 const ROUTING_TYPE_ANNOTATION = 'opendatahub.io/routing-type';
-const SUPPORTED_TOPOLOGIES_LABEL = 'opendatahub.io/supported-topologies';
+const SUPPORTED_TOPOLOGIES_ANNOTATION = 'opendatahub.io/supported-topologies';
 export const DASHBOARD_RESOURCE_LABEL = 'opendatahub.io/dashboard';
 
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
@@ -125,11 +125,11 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
       'opendatahub.io/template-name'?: string;
       'opendatahub.io/disabled'?: 'true' | 'false';
       'opendatahub.io/routing-type'?: RoutingType;
+      'opendatahub.io/supported-topologies'?: string;
       'serving.kserve.io/well-known-config'?: 'true' | 'false';
     };
     labels?: {
-      'opendatahub.io/config-type'?: string;
-      'opendatahub.io/supported-topologies'?: string;
+      'opendatahub.io/config-type'?: TopologyType | 'router' | 'accelerator';
       'opendatahub.io/dashboard'?: 'true' | 'false';
     };
   };
@@ -206,7 +206,7 @@ export const getConfigRoutingType = (
 export const getConfigSupportedTopologies = (
   config: LLMInferenceServiceConfigKind,
 ): TopologyType[] => {
-  const raw = config.metadata.labels?.[SUPPORTED_TOPOLOGIES_LABEL];
+  const raw = config.metadata.annotations?.[SUPPORTED_TOPOLOGIES_ANNOTATION];
   if (!raw) {
     return [];
   }

@@ -8,7 +8,7 @@ type MockLLMInferenceServiceConfigType = {
   name?: string;
   namespace?: string;
   displayName?: string;
-  configType?: string;
+  configType?: TopologyType | 'router' | 'accelerator';
   topologyType?: TopologyType;
   routingType?: RoutingType;
   supportedTopologies?: TopologyType[];
@@ -51,13 +51,13 @@ export const mockLLMInferenceServiceConfigK8sResource = ({
       ...(templateName ? { 'opendatahub.io/template-name': templateName } : {}),
       ...(disabled ? { 'opendatahub.io/disabled': 'true' as const } : {}),
       ...(routingType ? { 'opendatahub.io/routing-type': routingType } : {}),
+      ...(supportedTopologies
+        ? { 'opendatahub.io/supported-topologies': JSON.stringify(supportedTopologies) }
+        : {}),
       ...(preInstalled ? { 'serving.kserve.io/well-known-config': 'true' as const } : {}),
     },
     labels: {
       'opendatahub.io/config-type': topologyType ?? configType,
-      ...(supportedTopologies
-        ? { 'opendatahub.io/supported-topologies': JSON.stringify(supportedTopologies) }
-        : {}),
       ...(!preInstalled ? { 'opendatahub.io/dashboard': 'true' as const } : {}),
     },
     ...(preInstalled
