@@ -101,8 +101,6 @@ const useEmbeddedChatbotMessages = ({
   const isClearingRef = React.useRef<boolean>(false);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const isStreamingWithoutContentRef = React.useRef(false);
-  const streamingReceivedRef = React.useRef(false);
-  const botMessageIdRef = React.useRef<string | undefined>(undefined);
   const handleMessageSendRef = React.useRef<((message: string) => Promise<void>) | null>(null);
 
   const modelDisplayName = responsesTemplate.model || 'Bot';
@@ -170,7 +168,7 @@ const useEmbeddedChatbotMessages = ({
 
   const handleMessageSend = React.useCallback(
     async (message: string) => {
-      streamingReceivedRef.current = false;
+      let hadStreamingContent = false;
 
       const userMessage: MessageProps = {
         id: getId(),
@@ -187,15 +185,17 @@ const useEmbeddedChatbotMessages = ({
       setIsStreamingWithoutContent(true);
       isStreamingWithoutContentRef.current = true;
 
+      let botMessageId: string | undefined;
+
       try {
         const requestBody = buildRequestBodyFn(message, messagesRef.current);
 
         abortControllerRef.current = new AbortController();
 
         // Create initial bot message with loading state
-        botMessageIdRef.current = getId();
+        botMessageId = getId();
         const streamingBotMessage: MessageProps = {
-          id: botMessageIdRef.current,
+          id: botMessageId,
           role: 'bot',
           content: '',
           name: modelDisplayName,
@@ -217,7 +217,7 @@ const useEmbeddedChatbotMessages = ({
 
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
-              msg.id === botMessageIdRef.current
+              msg.id === botMessageId
                 ? { ...msg, content: displayContent, isLoading: !hasContent }
                 : msg,
             ),
@@ -234,7 +234,7 @@ const useEmbeddedChatbotMessages = ({
               completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
 
             if (chunk) {
-              streamingReceivedRef.current = true;
+              hadStreamingContent = true;
             }
 
             if (chunk && isStreamingWithoutContentRef.current) {
@@ -279,7 +279,7 @@ const useEmbeddedChatbotMessages = ({
 
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
-            msg.id === botMessageIdRef.current
+            msg.id === botMessageId
               ? { ...msg, content: streamingResponse.content, isLoading: false, ...sourcesProps }
               : msg,
           ),
@@ -319,10 +319,10 @@ const useEmbeddedChatbotMessages = ({
           isStoppingStreamRef.current &&
           (isAbortError || errorMessage === 'Response stopped by user');
 
-        if (wasUserStopped && botMessageIdRef.current) {
+        if (wasUserStopped && botMessageId) {
           setMessages((prevMessages) =>
             prevMessages.map((msg) => {
-              if (msg.id === botMessageIdRef.current) {
+              if (msg.id === botMessageId) {
                 const stoppedContent = msg.content
                   ? `${msg.content}\n\n*You stopped this message*`
                   : '*You stopped this message*';
@@ -334,47 +334,30 @@ const useEmbeddedChatbotMessages = ({
           return;
         }
 
-        const hadPartialContent = streamingReceivedRef.current;
-
         const errorClassification = classifyError(apiError, {
           modelName: modelDisplayName,
           wasStreamStarted: true,
-          wasResponseGenerated: hadPartialContent,
+          wasResponseGenerated: hadStreamingContent,
         });
 
         const handleRetry = () => {
-          const currentMessages = messagesRef.current;
-          const lastUserMessage = currentMessages
-            .slice()
-            .reverse()
-            .find((msg) => msg.role === 'user');
-
-          if (!lastUserMessage?.content) {
+          if (!botMessageId) {
             return;
           }
 
-          const userContent = lastUserMessage.content;
-
-          setMessages((prevMessages) =>
-            prevMessages.filter((msg) => msg.id !== botMessageIdRef.current),
-          );
+          setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== botMessageId));
 
           setTimeout(() => {
-            if (!isClearingRef.current) {
-              const stillHasUserMessage = messagesRef.current.some(
-                (msg) => msg.id === lastUserMessage.id && msg.role === 'user',
-              );
-              if (stillHasUserMessage && handleMessageSendRef.current) {
-                handleMessageSendRef.current(userContent);
-              }
+            if (!isClearingRef.current && handleMessageSendRef.current) {
+              handleMessageSendRef.current(message);
             }
           }, 0);
         };
 
-        if (botMessageIdRef.current) {
+        if (botMessageId) {
           setMessages((prevMessages) =>
             prevMessages.map((msg) => {
-              if (msg.id === botMessageIdRef.current) {
+              if (msg.id === botMessageId) {
                 const hadContent = msg.content && msg.content.length > 0;
 
                 return hadContent
@@ -398,6 +381,10 @@ const useEmbeddedChatbotMessages = ({
           );
         }
       } finally {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
         setIsMessageSendButtonDisabled(false);
         setIsLoading(false);
         setIsStreamingWithoutContent(false);
