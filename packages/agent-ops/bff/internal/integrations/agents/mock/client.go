@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"sync"
 
@@ -79,8 +80,14 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 	_ = ctx
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if params == nil {
+		return nil, fmt.Errorf("deploy params must not be nil")
+	}
 	if c.DeployAgentErr != nil {
 		return nil, c.DeployAgentErr
+	}
+	if c.Details == nil {
+		c.Details = make(map[string]agents.AgentDetail)
 	}
 	key := detailKey(params.Namespace, params.Name)
 	if _, ok := c.Details[key]; ok {

@@ -159,6 +159,28 @@ func TestDeployAgent_ServiceAccountAlreadyExists(t *testing.T) {
 	assert.Equal(t, "my-agent", result.Name)
 }
 
+func TestDeployAgent_ServiceAccountUnmanaged(t *testing.T) {
+	ns := "test-ns"
+	client := newDeployTestClient(t,
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}},
+		&corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-agent",
+				Namespace: ns,
+			},
+		},
+	)
+
+	_, err := client.DeployAgent(context.Background(), &agents.DeployAgentParams{
+		Name:           "my-agent",
+		Namespace:      ns,
+		ContainerImage: "quay.io/example/agent",
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not managed by odh-dashboard")
+}
+
 func TestDeployAgent_FullParams(t *testing.T) {
 	ns := "test-ns"
 	client := newDeployTestClient(t,

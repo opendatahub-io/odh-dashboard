@@ -55,12 +55,14 @@ func validateDeployRequest(req *models.DeployAgentRequest) error {
 		return fmt.Errorf("invalid mtlsMode %q: must be one of disabled, permissive, strict", req.MTLSMode)
 	}
 	for i, e := range req.EnvVars {
-		name := strings.TrimSpace(e.Name)
-		if name == "" {
+		if strings.TrimSpace(e.Name) != e.Name {
+			return fmt.Errorf("envVars[%d].name must not have leading/trailing whitespace", i)
+		}
+		if e.Name == "" {
 			return fmt.Errorf("envVars[%d].name must not be empty", i)
 		}
-		if !envVarNameRegex.MatchString(name) {
-			return fmt.Errorf("envVars[%d].name %q is not a valid C_IDENTIFIER", i, name)
+		if !envVarNameRegex.MatchString(e.Name) {
+			return fmt.Errorf("envVars[%d].name %q is not a valid C_IDENTIFIER", i, e.Name)
 		}
 	}
 	for i, p := range req.ServicePorts {
