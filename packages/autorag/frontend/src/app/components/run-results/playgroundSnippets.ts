@@ -56,10 +56,16 @@ const response = await fetch(\`\${baseURL}/v1/responses\`, {
     "Authorization": \`Bearer \${apiKey}\`,
   },
   body: JSON.stringify(payload),
+  signal: AbortSignal.timeout(30_000),
 });
 
+if (!response.ok) {
+  const errorBody = await response.text();
+  throw new Error(\`Request failed (\${response.status}): \${errorBody}\`);
+}
+
 const result = await response.json();
-console.log(result.output);`;
+console.log(result.output ?? result);`;
 };
 
 export const generateGoSnippet = ({ template, secretName, namespace }: SnippetParams): string => {
@@ -204,8 +210,10 @@ response = requests.post(
         "Authorization": f"Bearer {api_key}",
     },
     json=payload,
+    timeout=30,
 )
+response.raise_for_status()
 
 result = response.json()
-print(result.get("output"))`;
+print(result.get("output", result))`;
 };

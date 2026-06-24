@@ -85,6 +85,13 @@ describe('generateNodeSnippet', () => {
     expect(result).not.toContain('OpenAI');
   });
 
+  it('should include request timeout and error handling', () => {
+    const result = generateNodeSnippet(mockParams);
+    expect(result).toContain('AbortSignal.timeout(');
+    expect(result).toContain('response.ok');
+    expect(result).toContain('result.output ?? result');
+  });
+
   it('should contain the secret name and namespace', () => {
     const result = generateNodeSnippet(mockParams);
     expect(result).toContain('my-secret');
@@ -144,6 +151,12 @@ describe('generatePythonSnippet', () => {
     expect(result).toContain('/v1/responses');
     expect(result).not.toContain('from openai');
     expect(result).not.toContain('openai_client');
+  });
+
+  it('should include request timeout and error handling', () => {
+    const result = generatePythonSnippet(mockParams);
+    expect(result).toContain('timeout=30');
+    expect(result).toContain('raise_for_status()');
   });
 
   it('should contain the secret name and namespace', () => {
