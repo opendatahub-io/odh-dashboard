@@ -24,9 +24,8 @@ export const generateNodeSnippet = ({ template, secretName, namespace }: Snippet
     .split('\n')
     .map((line, i) => (i === 0 ? line : `  ${line}`))
     .join('\n');
-  return `// Prerequisites: npm install openai @kubernetes/client-node
+  return `// Prerequisites: npm install @kubernetes/client-node
 // Save as .mjs or add "type": "module" to package.json
-import OpenAI from "openai";
 import * as k8s from "@kubernetes/client-node";
 
 // Loads kubeconfig from the default location (~/.kube/config or KUBECONFIG env var).
@@ -46,16 +45,21 @@ const decode = (key) => Buffer.from(secret.data[key], "base64").toString();
 const baseURL = decode("OGX_CLIENT_BASE_URL");
 const apiKey = decode("OGX_CLIENT_API_KEY");
 
-// Initialize the OpenAI client pointing to the OGX endpoint
-const client = new OpenAI({
-  baseURL: \`\${baseURL}/v1\`,
-  apiKey,
-});
+// Build the JSON request body
+const payload = ${body};
 
 // Send a request to the Responses API
-const response = await client.responses.create(${body});
+const response = await fetch(\`\${baseURL}/v1/responses\`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": \`Bearer \${apiKey}\`,
+  },
+  body: JSON.stringify(payload),
+});
 
-console.log(response.output);`;
+const result = await response.json();
+console.log(result.output);`;
 };
 
 export const generateGoSnippet = ({ template, secretName, namespace }: SnippetParams): string => {
@@ -172,10 +176,10 @@ export const generatePythonSnippet = ({
   namespace,
 }: SnippetParams): string => {
   const params = jsonToPython(template, 0);
-  return `# Prerequisites: pip install openai kubernetes
+  return `# Prerequisites: pip install kubernetes requests
 import base64
+import requests
 from kubernetes import client, config
-from openai import OpenAI
 
 # Loads kubeconfig from the default location (~/.kube/config or KUBECONFIG env var).
 # Ensure you are logged in to the cluster (e.g. via "oc login") before running this script.
@@ -189,16 +193,19 @@ secret = v1.read_namespaced_secret("${secretName}", "${namespace}")
 base_url = base64.b64decode(secret.data["OGX_CLIENT_BASE_URL"]).decode()
 api_key = base64.b64decode(secret.data["OGX_CLIENT_API_KEY"]).decode()
 
-# Initialize the OpenAI client pointing to the OGX endpoint
-openai_client = OpenAI(
-    base_url=f"{base_url}/v1",
-    api_key=api_key,
-)
+# Build the request payload
+payload = ${params}
 
 # Send a request to the Responses API
-params = ${params}
+response = requests.post(
+    f"{base_url}/v1/responses",
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    },
+    json=payload,
+)
 
-response = openai_client.responses.create(**params)
-
-print(response.output)`;
+result = response.json()
+print(result.get("output"))`;
 };

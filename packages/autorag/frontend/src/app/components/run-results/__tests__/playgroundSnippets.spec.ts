@@ -77,9 +77,12 @@ describe('generateNodeSnippet', () => {
     expect(result).toContain('test-model');
   });
 
-  it('should contain import OpenAI', () => {
+  it('should use fetch to call the OGX Responses API directly', () => {
     const result = generateNodeSnippet(mockParams);
-    expect(result).toContain('import OpenAI');
+    expect(result).toContain('await fetch(');
+    expect(result).toContain('/v1/responses');
+    expect(result).not.toContain('openai');
+    expect(result).not.toContain('OpenAI');
   });
 
   it('should contain the secret name and namespace', () => {
@@ -135,9 +138,12 @@ describe('generatePythonSnippet', () => {
     expect(result).toContain('test-model');
   });
 
-  it('should contain from openai import OpenAI', () => {
+  it('should use requests to call the OGX Responses API directly', () => {
     const result = generatePythonSnippet(mockParams);
-    expect(result).toContain('from openai import OpenAI');
+    expect(result).toContain('requests.post');
+    expect(result).toContain('/v1/responses');
+    expect(result).not.toContain('from openai');
+    expect(result).not.toContain('openai_client');
   });
 
   it('should contain the secret name and namespace', () => {
