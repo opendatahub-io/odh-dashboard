@@ -42,7 +42,9 @@ export const useDeploymentMethodExternalData = (): {
   const overrides = useWizardFieldOverrides(isDeploymentMethodFieldOverride);
 
   return React.useMemo(() => {
-    const options = overrides.flatMap((override) => override.options);
+    const options = overrides
+      .flatMap((override) => override.options)
+      .toSorted((a, b) => b.label.localeCompare(a.label));
     const suggestion = overrides.reduce<DeploymentMethodOption | undefined>(
       (acc, override) => acc ?? override.suggestion?.(modelServingClusterSettings),
       undefined,

@@ -205,7 +205,6 @@ describe('AvailableAiAssetsFields', () => {
       const { result } = renderHook(() =>
         useModelAvailabilityFields(undefined, {
           type: ServingRuntimeModelType.GENERATIVE,
-
         }),
       );
       expect(result.current.showField).toBe(true);
@@ -214,7 +213,6 @@ describe('AvailableAiAssetsFields', () => {
       const { result } = renderHook(() =>
         useModelAvailabilityFields(undefined, {
           type: ServingRuntimeModelType.PREDICTIVE,
-
         }),
       );
       expect(result.current.showField).toBe(false);
