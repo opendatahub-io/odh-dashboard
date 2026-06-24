@@ -1000,7 +1000,7 @@ describe('Workbench page', () => {
     attachConnectionModal.selectConnectionOption('test1');
     attachConnectionModal.findAttachButton().should('be.enabled');
     attachConnectionModal.selectConnectionOption('test2');
-    attachConnectionModal.findAttachButton().click();
+    attachConnectionModal.clickAttachButton();
 
     createSpawnerPage.findConnectionsTableRow('test1', 's3');
     createSpawnerPage.findConnectionsTableRow('test2', 's3');

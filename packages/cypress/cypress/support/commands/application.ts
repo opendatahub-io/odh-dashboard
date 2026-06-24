@@ -89,8 +89,8 @@ declare global {
        */
       findSelectOptionByTestId: (testId: string) => Cypress.Chainable<JQuery>;
       /**
-       * Closes an open PatternFly select / MultiSelection menu via Escape on the combobox input.
-       * No-op when the menu is already closed (avoids Escape closing a parent modal).
+       * Closes an open PatternFly select / MultiSelection menu via Tab on the combobox input.
+       * No-op when the menu is already closed. Uses Tab (not Escape) so parent modals stay open.
        */
       closeSelectMenu: () => Cypress.Chainable<JQuery>;
       /**
@@ -540,7 +540,7 @@ Cypress.Commands.add('closeSelectMenu', { prevSubject: 'element' }, (subject) =>
       return cy.wrap($el);
     }
 
-    return cy.wrap(target).type('{esc}');
+    return cy.wrap(target).type('{tab}');
   });
 });
 

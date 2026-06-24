@@ -427,6 +427,11 @@ class AttachConnectionModal extends Modal {
   findAttachButton() {
     return this.find().findByTestId('attach-button');
   }
+
+  clickAttachButton() {
+    this.find().findByRole('combobox', { name: 'Connections' }).closeSelectMenu();
+    this.findAttachButton().click();
+  }
 }
 
 class StorageTableRow extends TableRow {
