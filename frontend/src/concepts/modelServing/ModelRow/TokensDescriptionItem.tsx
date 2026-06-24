@@ -2,8 +2,8 @@ import React from 'react';
 import { HelperText, HelperTextItem } from '@patternfly/react-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { Table, SortableData } from '@odh-dashboard/ui-core';
-import { ColumnField } from '@odh-dashboard/internal/pages/modelServing/screens/global/data';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { ColumnField } from '#~/pages/modelServing/screens/global/data';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import ServingRuntimeTokenTableRow from './ServingRuntimeTokenTableRow';
 
 export const tokenColumns: SortableData<SecretKind>[] = [

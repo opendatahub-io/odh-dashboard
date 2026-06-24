@@ -7,12 +7,8 @@ import {
   mockCustomSecretK8sResource,
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
-import type { SecretKind } from '@odh-dashboard/k8s-core';
-import type {
-  InferenceServiceKind,
-  ServingRuntimeKind,
-  TrustyAIKind,
-} from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind, ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind, TrustyAIKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockPrometheusServing } from '@odh-dashboard/internal/__mocks__/mockPrometheusServing';
 import { mockPrometheusBias } from '@odh-dashboard/internal/__mocks__/mockPrometheusBias';
 import { mockMetricsRequest } from '@odh-dashboard/internal/__mocks__/mockMetricsRequests';

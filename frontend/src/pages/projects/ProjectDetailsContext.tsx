@@ -8,10 +8,8 @@ import type {
   TemplateKind,
   ServingRuntimeKind,
 } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import useTemplateOrder from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/useTemplateOrder';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import useTemplateDisablement from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/useTemplateDisablement';
+import useTemplateOrder from '#~/pages/modelServing/customServingRuntimes/useTemplateOrder';
+import useTemplateDisablement from '#~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import { GroupKind, InferenceServiceKind, LocalQueueKind, RoleBindingKind } from '#~/k8sTypes';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {

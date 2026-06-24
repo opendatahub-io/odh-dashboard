@@ -26,11 +26,6 @@
     "./concepts/auth": "./src/concepts/auth.ts",
     "./concepts/types": "./src/concepts/types.ts",
     "./concepts/useModelServingClusterSettings": "./src/concepts/useModelServingClusterSettings.tsx",
-    "./concepts/servingRuntimeTemplates/*": [
-      "./src/concepts/servingRuntimeTemplates/*",
-      "./src/concepts/servingRuntimeTemplates/*.ts"
-    ],
-    "./concepts/useModelMetricsEnabled": "./src/concepts/useModelMetricsEnabled.ts",
     "./utils": "./src/concepts/utils.ts"
   },
   "dependencies": {

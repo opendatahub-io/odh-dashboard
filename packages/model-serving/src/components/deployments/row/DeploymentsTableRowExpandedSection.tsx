@@ -16,8 +16,8 @@ import type { SupportedModelFormats, ContainerResources } from '@odh-dashboard/k
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
-import { TokensDescriptionItem } from '../../../components/tokens/TokensDescriptionItem';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
 import { type Deployment, isModelServingAuthExtension } from '../../../../extension-points';

@@ -14,10 +14,8 @@ import type {
   TemplateKind,
   ServingRuntimeKind,
 } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import useTemplateOrder from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/useTemplateOrder';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import useTemplateDisablement from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/useTemplateDisablement';
+import useTemplateOrder from '#~/pages/modelServing/customServingRuntimes/useTemplateOrder';
+import useTemplateDisablement from '#~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import {
   DEFAULT_LIST_FETCH_STATE,

@@ -11,9 +11,8 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import useModelMetricsEnabled from '@odh-dashboard/model-serving/concepts/useModelMetricsEnabled';
 import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import InferenceServiceStatus from '#~/pages/modelServing/screens/global/InferenceServiceStatus';

@@ -7,8 +7,8 @@ import {
   getSortedTemplates,
   getTemplateEnabled,
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import useTemplateDisablement from './useTemplateDisablement';
-import useTemplateOrder from './useTemplateOrder';
+import useTemplateDisablement from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateDisablement';
+import useTemplateOrder from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateOrder';
 
 /**
  * Custom hook that retrieves, sorts, and filters serving runtime templates for model serving.

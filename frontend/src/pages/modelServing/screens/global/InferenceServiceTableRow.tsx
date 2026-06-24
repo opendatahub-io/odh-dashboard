@@ -6,9 +6,8 @@ import {
   ResourceNameTooltip,
   StateActionToggle,
 } from '@odh-dashboard/ui-core';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import useModelMetricsEnabled from '@odh-dashboard/model-serving/concepts/useModelMetricsEnabled';
 import type { ServingRuntimeKind } from '@odh-dashboard/k8s-core';
+import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind } from '#~/k8sTypes';
 
 import { SupportedArea } from '#~/concepts/areas';

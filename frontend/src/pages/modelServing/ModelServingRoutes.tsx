@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import useModelMetricsEnabled from '@odh-dashboard/model-serving/concepts/useModelMetricsEnabled';
+import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import ModelServingExplainabilityWrapper from '#~/pages/modelServing/screens/metrics/ModelServingExplainabilityWrapper';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
