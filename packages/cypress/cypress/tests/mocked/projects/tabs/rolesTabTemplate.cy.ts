@@ -88,8 +88,8 @@ describe('Select role template (header button)', () => {
 
     projectRoles.findSelectTemplateModal().should('not.exist');
     projectRoles.findRoleNameInput().should('have.value', 'Workbench maintainer');
-    cy.findByTestId('permission-rules-table').should('exist');
-    cy.findByTestId('permission-rules-table').find('tbody tr').should('have.length', 6);
+    projectRoles.findPermissionRulesTable().should('exist');
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 6);
   });
 
   it('should display template categories and templates', () => {
@@ -146,7 +146,7 @@ describe('Import rules from template (toolbar button)', () => {
     projectRoles.findSelectTemplateButton('workbench-reader').click();
 
     projectRoles.findSelectTemplateModal().should('not.exist');
-    cy.findByTestId('permission-rules-table').should('exist');
+    projectRoles.findPermissionRulesTable().should('exist');
   });
 
   it('should open template modal directly even when rules already exist', () => {
@@ -178,12 +178,12 @@ describe('Import rules from template (toolbar button)', () => {
 
     projectRoles.findRoleNameInput().should('have.value', 'my-custom-role');
     projectRoles.findDescriptionTextarea().should('have.value', 'My description');
-    cy.findByTestId('permission-rules-table').should('exist');
-    cy.findByTestId('permission-rules-table').find('tbody tr').should('have.length', 5);
+    projectRoles.findPermissionRulesTable().should('exist');
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 5);
 
     projectRoles.findImportTemplateButton().click();
     projectRoles.findSelectTemplateButton('workbench-reader').click();
 
-    cy.findByTestId('permission-rules-table').find('tbody tr').should('have.length', 10);
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 10);
   });
 });

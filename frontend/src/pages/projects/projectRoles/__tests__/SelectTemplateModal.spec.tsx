@@ -79,4 +79,13 @@ describe('SelectTemplateModal', () => {
       expect.objectContaining({ id: 'workbench-maintainer' }),
     );
   });
+
+  it('should call onClose when the modal close button is clicked', () => {
+    const onClose = jest.fn();
+    render(<SelectTemplateModal mode="select" onSelectTemplate={jest.fn()} onClose={onClose} />);
+
+    fireEvent.click(screen.getByLabelText('Close'));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

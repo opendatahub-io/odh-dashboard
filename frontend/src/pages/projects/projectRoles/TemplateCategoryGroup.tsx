@@ -77,7 +77,7 @@ const TemplateCategoryGroup: React.FC<TemplateCategoryGroupProps> = ({
                               <Content component="p">{template.name}</Content>
                             </FlexItem>
                             <FlexItem>
-                              <Content component="p" className="pf-v6-u-color-200">
+                              <Content component="p" className="pf-v6-u-text-color-subtle">
                                 {template.description}
                               </Content>
                             </FlexItem>
