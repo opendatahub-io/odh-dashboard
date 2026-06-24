@@ -142,6 +142,10 @@ func TestBuildDeployment(t *testing.T) {
 
 			assert.Len(t, deployment.Spec.Template.Spec.ImagePullSecrets, tt.wantPullSecrets)
 
+			require.Len(t, deployment.OwnerReferences, 1)
+			assert.Equal(t, "AgentRuntime", deployment.OwnerReferences[0].Kind)
+			assert.Equal(t, testOwnerRef.UID, deployment.OwnerReferences[0].UID)
+
 			container := deployment.Spec.Template.Spec.Containers[0]
 			assert.Equal(t, containerName, container.Name)
 			require.NotNil(t, container.SecurityContext)
@@ -223,6 +227,8 @@ func TestBuildService(t *testing.T) {
 
 			assert.Equal(t, tt.params.Name, svc.Name)
 			assert.Equal(t, tt.params.Namespace, svc.Namespace)
+			require.Len(t, svc.OwnerReferences, 1)
+			assert.Equal(t, "AgentRuntime", svc.OwnerReferences[0].Kind)
 			assert.Equal(t, corev1.ServiceTypeClusterIP, svc.Spec.Type)
 			assert.Equal(t, tt.params.Name, svc.Spec.Selector[labelAppName])
 			assert.Len(t, svc.Spec.Ports, tt.wantPorts)
@@ -316,6 +322,15 @@ func TestBuildRoute(t *testing.T) {
 	assert.Equal(t, "Route", route.GetKind())
 	assert.Equal(t, "my-agent", route.GetName())
 	assert.Equal(t, "test-ns", route.GetNamespace())
+
+	metadata, ok := route.Object["metadata"].(map[string]any)
+	require.True(t, ok)
+	ownerRefs, ok := metadata["ownerReferences"].([]any)
+	require.True(t, ok)
+	require.Len(t, ownerRefs, 1)
+	ownerRefMap, ok := ownerRefs[0].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "AgentRuntime", ownerRefMap["kind"])
 
 	spec, ok := route.Object["spec"].(map[string]any)
 	require.True(t, ok)

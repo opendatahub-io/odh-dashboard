@@ -70,6 +70,10 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 			rollback()
 			return nil, fmt.Errorf("failed to get existing AgentRuntime: %w", mapK8sError(getErr))
 		}
+		if existingCR.GetLabels()[labelManagedBy] != managedByValue {
+			rollback()
+			return nil, fmt.Errorf("AgentRuntime %q already exists and is not managed by odh-dashboard", params.Name)
+		}
 		crUID = existingCR.GetUID()
 		c.logger.Debug("AgentRuntime already exists, reusing",
 			slog.String("name", params.Name),
@@ -90,6 +94,7 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 		Kind:       "AgentRuntime",
 		Name:       params.Name,
 		UID:        crUID,
+		Controller: boolPtr(true),
 	}
 
 	// 3. Deployment
