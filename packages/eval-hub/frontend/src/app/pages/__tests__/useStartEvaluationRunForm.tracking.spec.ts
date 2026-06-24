@@ -290,14 +290,14 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
 
       expect(paramCalls[0][1]).toEqual({
         parameterName: 'num_examples',
-        parameterValue: '10',
+        parameterValueShape: 'number',
         benchmarkName: 'ARC Easy',
         isDefault: false,
       });
 
       expect(paramCalls[1][1]).toEqual({
         parameterName: 'temperature',
-        parameterValue: '0.5',
+        parameterValueShape: 'number',
         benchmarkName: 'ARC Easy',
         isDefault: false,
       });

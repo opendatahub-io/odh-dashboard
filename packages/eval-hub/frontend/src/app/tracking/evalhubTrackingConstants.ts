@@ -127,7 +127,8 @@ export type RunMetricSelectedProperties = {
 
 export type RunParameterChangedProperties = {
   parameterName: string;
-  parameterValue: string;
+  /** Redacted shape descriptor (e.g. "string(12)", "number", "boolean") — never the raw value. */
+  parameterValueShape: string;
   benchmarkName: string;
   isDefault: boolean;
 };

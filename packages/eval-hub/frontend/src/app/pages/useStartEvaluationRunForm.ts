@@ -432,7 +432,8 @@ export function useStartEvaluationRunForm({
         for (const [key, val] of Object.entries(parsedArgs)) {
           const paramProps: RunParameterChangedProperties = {
             parameterName: key,
-            parameterValue: String(val),
+            parameterValueShape:
+              typeof val === 'string' ? `string(${val.length})` : String(typeof val),
             benchmarkName: benchmarkDisplayName,
             isDefault: false,
           };
