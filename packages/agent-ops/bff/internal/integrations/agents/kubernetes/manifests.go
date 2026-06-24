@@ -230,6 +230,7 @@ func buildRoute(name, namespace string, port int32, ownerRef metav1.OwnerReferen
 						"kind":       ownerRef.Kind,
 						"name":       ownerRef.Name,
 						"uid":        string(ownerRef.UID),
+						"controller": true,
 					},
 				},
 			},

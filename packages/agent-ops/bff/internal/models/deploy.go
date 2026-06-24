@@ -34,10 +34,3 @@ type DeployAgentResponse struct {
 	Namespace string `json:"namespace"`
 	Message   string `json:"message"`
 }
-
-type AgentLifecycleResponse struct {
-	Success   bool   `json:"success"`
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Message   string `json:"message"`
-}
