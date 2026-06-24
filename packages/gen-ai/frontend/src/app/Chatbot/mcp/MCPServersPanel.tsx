@@ -179,17 +179,18 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   const showToolsWarning = totalActiveTools > 40;
 
   // Show banner when initial load is settled and at least one selected server is not yet
-  // authenticated and not currently being checked. Derived entirely from existing state —
-  // covers both profile-loaded servers and manually-selected servers that need a token.
+  // authenticated and not currently being checked. Each server is evaluated independently
+  // so an auth-required server surfaces the banner even while another server is still
+  // auto-unlocking.
   const showAuthRequiredBanner =
     selection.isInitialLoadComplete &&
-    autoUnlockingServers.size === 0 &&
     selection.selectedServers.some((server) => {
       const tokenInfo = tokenManagement.getToken(server.connectionUrl);
       const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
       const isServerLoading =
         validation.validatingServers.has(server.connectionUrl) ||
-        validation.checkingServers.has(server.connectionUrl);
+        validation.checkingServers.has(server.connectionUrl) ||
+        autoUnlockingServers.has(server.connectionUrl);
       return !isAuthenticated && !isServerLoading;
     });
 
