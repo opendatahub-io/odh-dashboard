@@ -168,7 +168,9 @@ class MlflowExperiments {
   }
 
   findEditExperimentSubmitButton() {
-    return cy.findByRole('button', { name: 'Save' });
+    return cy
+      .findByRole('dialog', { name: 'Edit experiment' })
+      .findByRole('button', { name: 'Save' });
   }
 
   findDeleteConfirmModal() {
