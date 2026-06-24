@@ -106,6 +106,8 @@ const getPromisesForConfigMapsAndSecrets = (
             : replaceSecret(assembleSecret(projectName, dataAsRecord, 'aws', envVar.existingName), {
                 dryRun,
               });
+        case SecretCategory.EXISTING:
+          return null;
         case ConfigMapCategory.GENERIC:
         case ConfigMapCategory.UPLOAD:
           return type === 'create'

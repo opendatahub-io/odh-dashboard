@@ -35,7 +35,12 @@ import K8sNameDescriptionField, {
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { LimitNameResourceType } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import { StorageData, StorageType } from '#~/pages/projects/types';
+import {
+  StorageData,
+  StorageType,
+  ExistingSecretRef,
+  SecretCategory,
+} from '#~/pages/projects/types';
 import useNotebookPVCItems from '#~/pages/projects/pvc/useNotebookPVCItems';
 import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
@@ -64,6 +69,8 @@ import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
 import AlertWarningText from './environmentVariables/AlertWarningText';
+import { detectEnvVarConflicts } from './environmentVariables/envVarConflictDetection';
+import ExistingSecretConflictWarning from './environmentVariables/ExistingSecretConflictWarning';
 import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
 import { defaultClusterStorage } from './storage/constants';
@@ -196,6 +203,40 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
     ]);
+
+  const existingSecretRefs = React.useMemo(() => {
+    const refs: ExistingSecretRef[] = [];
+    for (const envVar of envVariables) {
+      if (
+        envVar.values?.category === SecretCategory.EXISTING &&
+        envVar.existingSecretRefs &&
+        envVar.existingSecretRefs.length > 0
+      ) {
+        refs.push(...envVar.existingSecretRefs);
+      }
+    }
+    return refs;
+  }, [envVariables]);
+
+  const inlineEnvVars = React.useMemo(
+    () => envVariables.filter((env) => env.values?.category !== SecretCategory.EXISTING),
+    [envVariables],
+  );
+
+  const connectionKeys = React.useMemo(
+    () =>
+      notebookConnections.flatMap((conn) =>
+        Object.keys(conn.data || {}).filter((key) => key !== ''),
+      ),
+    [notebookConnections],
+  );
+
+  const envVarConflicts = React.useMemo(
+    () => detectEnvVarConflicts(existingSecretRefs, inlineEnvVars, connectionKeys),
+    [existingSecretRefs, inlineEnvVars, connectionKeys],
+  );
+
+  const hasConflicts = envVarConflicts.length > 0;
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
     const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
@@ -351,7 +392,12 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   deletedSecrets={deletedSecrets}
                 />
               )}
-              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
+              {hasConflicts && <ExistingSecretConflictWarning conflicts={envVarConflicts} />}
+              <EnvironmentVariables
+                envVariables={envVariables}
+                namespace={currentProject.metadata.name}
+                setEnvVariables={setEnvVariables}
+              />
             </FormSection>
             <FormSection
               title={
@@ -453,6 +499,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
+                  hasConflicts={hasConflicts}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

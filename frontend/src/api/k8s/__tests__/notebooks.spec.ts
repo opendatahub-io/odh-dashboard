@@ -424,6 +424,77 @@ describe('assembleNotebook', () => {
       expect(result.metadata.annotations?.['opendatahub.io/mlflow-instance']).toBeUndefined();
     },
   );
+
+  it('should include secretKeyRef env entries when existingSecretEnvVars is provided', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [
+      {
+        name: 'DB_PASSWORD',
+        valueFrom: { secretKeyRef: { name: 'my-db-secret', key: 'password' } },
+      },
+      {
+        name: 'API_KEY',
+        valueFrom: { secretKeyRef: { name: 'my-api-secret', key: 'api-key' } },
+      },
+    ];
+
+    const result = assembleNotebook(notebookData, 'test-user');
+    const envEntries = result.spec.template.spec.containers[0].env;
+
+    expect(envEntries[0].name).toBe('NOTEBOOK_ARGS');
+    expect(envEntries[1].name).toBe('JUPYTER_IMAGE');
+    expect(envEntries[2]).toStrictEqual({
+      name: 'DB_PASSWORD',
+      valueFrom: { secretKeyRef: { name: 'my-db-secret', key: 'password' } },
+    });
+    expect(envEntries[3]).toStrictEqual({
+      name: 'API_KEY',
+      valueFrom: { secretKeyRef: { name: 'my-api-secret', key: 'api-key' } },
+    });
+    expect(envEntries).toHaveLength(4);
+  });
+
+  it('should not add extra env entries when existingSecretEnvVars is undefined', () => {
+    const notebookData = mockStartNotebookData({});
+    const result = assembleNotebook(notebookData, 'test-user');
+    const envEntries = result.spec.template.spec.containers[0].env;
+
+    expect(envEntries).toHaveLength(2);
+    expect(envEntries[0].name).toBe('NOTEBOOK_ARGS');
+    expect(envEntries[1].name).toBe('JUPYTER_IMAGE');
+  });
+
+  it('should not add extra env entries when existingSecretEnvVars is empty', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [];
+    const result = assembleNotebook(notebookData, 'test-user');
+    const envEntries = result.spec.template.spec.containers[0].env;
+
+    expect(envEntries).toHaveLength(2);
+    expect(envEntries[0].name).toBe('NOTEBOOK_ARGS');
+    expect(envEntries[1].name).toBe('JUPYTER_IMAGE');
+  });
+
+  it('should preserve envFrom when existingSecretEnvVars is also provided', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.envFrom = [{ secretRef: { name: 'inline-secret' } }];
+    notebookData.existingSecretEnvVars = [
+      {
+        name: 'DB_PASSWORD',
+        valueFrom: { secretKeyRef: { name: 'my-db-secret', key: 'password' } },
+      },
+    ];
+
+    const result = assembleNotebook(notebookData, 'test-user');
+    const container = result.spec.template.spec.containers[0];
+
+    expect(container.envFrom).toStrictEqual([{ secretRef: { name: 'inline-secret' } }]);
+    expect(container.env).toHaveLength(3);
+    expect(container.env[2]).toStrictEqual({
+      name: 'DB_PASSWORD',
+      valueFrom: { secretKeyRef: { name: 'my-db-secret', key: 'password' } },
+    });
+  });
 });
 
 describe('createNotebook', () => {

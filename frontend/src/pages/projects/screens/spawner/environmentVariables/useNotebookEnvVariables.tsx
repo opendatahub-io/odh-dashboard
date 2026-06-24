@@ -14,7 +14,10 @@ import { isConnection } from '#~/concepts/connectionTypes/utils';
 import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
-  const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
+  const container = notebook.spec.template.spec.containers[0];
+  const envFromList = container.envFrom ?? [];
+  const envList = container.env;
+
   return Promise.all(
     envFromList
       .map((envFrom) => {
@@ -41,8 +44,8 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
           v: Promise<ConfigMapKind | null> | Promise<undefined> | undefined,
         ): v is Promise<SecretKind | ConfigMapKind | null> => !!v,
       ),
-  ).then((results) =>
-    results.reduce<EnvVariable[]>((acc, resource) => {
+  ).then((results) => {
+    const envVarsFromEnvFrom = results.reduce<EnvVariable[]>((acc, resource) => {
       if (!resource) {
         return acc;
       }
@@ -70,8 +73,61 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
         return acc;
       }
       return [...acc, envVar];
-    }, []),
-  );
+    }, []);
+
+    type SecretKeyRefEntry = {
+      secretKeyRef: {
+        name: string;
+        key: string;
+      };
+    };
+
+    const hasSecretKeyRef = (valueFrom: Record<string, unknown>): valueFrom is SecretKeyRefEntry =>
+      'secretKeyRef' in valueFrom &&
+      typeof valueFrom.secretKeyRef === 'object' &&
+      valueFrom.secretKeyRef !== null &&
+      'name' in valueFrom.secretKeyRef &&
+      'key' in valueFrom.secretKeyRef;
+
+    const secretKeyRefEntries = envList.filter(
+      (
+        envVar,
+      ): envVar is typeof envVar & {
+        valueFrom: SecretKeyRefEntry;
+      } => envVar.valueFrom !== undefined && hasSecretKeyRef(envVar.valueFrom),
+    );
+
+    const groupedBySecret = secretKeyRefEntries.reduce<
+      Record<string, { secretName: string; keys: string[] }>
+    >((acc, envVar) => {
+      const { name: secretName, key } = envVar.valueFrom.secretKeyRef;
+
+      if (secretName in acc) {
+        acc[secretName].keys.push(key);
+      } else {
+        acc[secretName] = { secretName, keys: [key] };
+      }
+      return acc;
+    }, {});
+
+    const envVarsFromSecretKeyRef = Object.values(groupedBySecret).map((group) => ({
+      type: EnvironmentVariableType.SECRET,
+      existingName: group.secretName,
+      values: {
+        category: SecretCategory.EXISTING,
+        data: [],
+      },
+      existingSecretRefs: [
+        {
+          secretName: group.secretName,
+          selectedKeys: group.keys,
+          allKeys: false,
+        },
+      ],
+    }));
+
+    return [...envVarsFromEnvFrom, ...envVarsFromSecretKeyRef];
+  });
 };
 
 export const useNotebookEnvVariables = (

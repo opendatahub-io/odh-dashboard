@@ -16,7 +16,13 @@ import {
   restartNotebook,
   updateNotebook,
 } from '#~/api';
-import { EnvVariable, StartNotebookData, StorageData } from '#~/pages/projects/types';
+import {
+  EnvVariable,
+  SecretCategory,
+  SecretKeyRefEnvVar,
+  StartNotebookData,
+  StorageData,
+} from '#~/pages/projects/types';
 import { useUser } from '#~/redux/selectors';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
@@ -46,6 +52,35 @@ type SpawnerFooterProps = {
   connections: Connection[];
   canEnablePipelines: boolean;
   selectedFeatureStores?: WorkbenchFeatureStoreConfig[];
+  hasConflicts?: boolean;
+};
+
+const extractExistingSecretEnvVars = (envVariables: EnvVariable[]): SecretKeyRefEnvVar[] => {
+  const result: SecretKeyRefEnvVar[] = [];
+
+  for (const envVar of envVariables) {
+    if (
+      envVar.values?.category === SecretCategory.EXISTING &&
+      envVar.existingSecretRefs &&
+      envVar.existingSecretRefs.length > 0
+    ) {
+      for (const ref of envVar.existingSecretRefs) {
+        for (const key of ref.selectedKeys) {
+          result.push({
+            name: key,
+            valueFrom: {
+              secretKeyRef: {
+                name: ref.secretName,
+                key,
+              },
+            },
+          });
+        }
+      }
+    }
+  }
+
+  return result;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -55,6 +90,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   connections = [],
   canEnablePipelines,
   selectedFeatureStores = [],
+  hasConflicts = false,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -78,6 +114,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
     !isHardwareProfileValid ||
+    hasConflicts ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 
@@ -187,11 +224,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, editNotebook, true);
+    const existingSecretEnvVars = extractExistingSecretEnvVars(envVariables);
     const newStartNotebookData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,
       envFrom,
+      existingSecretEnvVars,
       connections,
       feastData,
     };
@@ -233,11 +272,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, undefined, false);
 
+    const existingSecretEnvVars = extractExistingSecretEnvVars(envVariables);
+
     const newStartData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,
       envFrom: [...envFrom],
+      existingSecretEnvVars,
       connections,
       feastData,
     };

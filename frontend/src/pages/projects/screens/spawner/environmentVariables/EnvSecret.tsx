@@ -1,14 +1,23 @@
 import * as React from 'react';
-import { EnvironmentVariableType, EnvVariableData, SecretCategory } from '#~/pages/projects/types';
+import {
+  EnvironmentVariableType,
+  EnvVariableData,
+  ExistingSecretRef,
+  SecretCategory,
+} from '#~/pages/projects/types';
 import { asEnumMember } from '#~/utilities/utils';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
 import EnvUploadField from './EnvUploadField';
+import EnvExistingSecret from './EnvExistingSecret';
 
 type EnvSecretProps = {
   env?: EnvVariableData;
+  namespace: string;
+  existingSecretRefs?: ExistingSecretRef[];
   onUpdate: (envVariableData: EnvVariableData) => void;
+  onExistingSecretRefsUpdate: (refs: ExistingSecretRef[]) => void;
 };
 
 const DEFAULT_ENV: EnvVariableData = {
@@ -16,7 +25,13 @@ const DEFAULT_ENV: EnvVariableData = {
   data: [],
 };
 
-const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate }) => (
+const EnvSecret: React.FC<EnvSecretProps> = ({
+  env = DEFAULT_ENV,
+  namespace,
+  existingSecretRefs,
+  onUpdate,
+  onExistingSecretRefsUpdate,
+}) => (
   <EnvDataTypeField
     selection={env.category || ''}
     onSelection={(value) =>
@@ -40,6 +55,16 @@ const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate }) =>
             envVarType={EnvironmentVariableType.SECRET}
             onUpdate={(newEnvData) => onUpdate({ ...env, data: newEnvData })}
             translateValue={(value) => atob(value)}
+          />
+        ),
+      },
+      [SecretCategory.EXISTING]: {
+        label: 'Existing secret',
+        render: (
+          <EnvExistingSecret
+            namespace={namespace}
+            existingSecretRefs={existingSecretRefs}
+            onUpdate={onExistingSecretRefsUpdate}
           />
         ),
       },

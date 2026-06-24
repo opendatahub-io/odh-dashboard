@@ -339,18 +339,28 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
         return values.every(({ key, value }) => isValidGenericKey(key) && !!value);
       case SecretCategory.AWS:
         return isAWSValid(values);
+      case SecretCategory.EXISTING:
+        return true;
       default:
         return false;
     }
   };
 
-  const isValid = envVariables.every(
-    (envVar) =>
+  const isValid = envVariables.every((envVar) => {
+    if (envVar.values?.category === SecretCategory.EXISTING) {
+      return (
+        envVar.existingSecretRefs &&
+        envVar.existingSecretRefs.length > 0 &&
+        envVar.existingSecretRefs.every((ref) => ref.secretName && ref.selectedKeys.length > 0)
+      );
+    }
+    return (
       !!envVar.type &&
       !!envVar.values &&
       !!envVar.values.category &&
-      hasValidValuesForType(envVar.values.data, envVar.values.category),
-  );
+      hasValidValuesForType(envVar.values.data, envVar.values.category)
+    );
+  });
 
   return isValid;
 };
