@@ -45,6 +45,11 @@
     "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9111 PROXY_PORT=4021 npm run start:dev",
     "cypress:server:wait": "wait-on -i 1000 http://localhost:9111"
   },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
+  },
   "devDependencies": {
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
