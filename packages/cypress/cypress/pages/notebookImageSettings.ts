@@ -139,10 +139,6 @@ class ImportUpdateNotebookImageModal extends Modal {
     return cy.findByRole('option', { name: option, hidden: true });
   }
 
-  closeHardwareProfileSelect() {
-    this.findHardwareProfileSelect().closeSelectMenu();
-  }
-
   // Software tab
   findSoftwareTab() {
     return this.find().findByTestId('displayed-content-software-tab');
