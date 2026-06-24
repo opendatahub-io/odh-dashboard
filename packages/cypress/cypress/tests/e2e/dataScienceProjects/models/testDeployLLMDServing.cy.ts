@@ -134,9 +134,7 @@ describe('A user can deploy an LLMD model', () => {
         });
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
 
-      modelServingWizard
-        .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
-        .click();
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
       cy.step('Verify YAML Viewer');
       // Stub clipboard API AFTER page load (window changes on navigation)

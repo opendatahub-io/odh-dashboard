@@ -171,9 +171,7 @@ describe('MaaS Deployment Wizard', () => {
     modelServingWizard
       .findModelDeploymentDescriptionInput()
       .type('Test LLM Inference Service Description');
-    modelServingWizardEdit
-      .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
-      .click();
+    modelServingWizardEdit.selectDeploymentMethodByKey('llm-inference-service-llmd');
     modelServingWizard.findNextButton().click();
 
     // Focus on MaaS feature testing
@@ -400,9 +398,7 @@ describe('MaaS Deployment Wizard', () => {
     modelServingWizard
       .findModelDeploymentDescriptionInput()
       .type('Test LLM Inference Service Description');
-    modelServingWizardEdit
-      .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
-      .click();
+    modelServingWizardEdit.selectDeploymentMethodByKey('llm-inference-service-llmd');
     modelServingWizard.findNextButton().click();
 
     // Focus on MaaS feature testing

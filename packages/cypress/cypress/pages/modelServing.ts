@@ -8,6 +8,11 @@ import { DeleteModal } from './components/DeleteModal';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
 
+type DeploymentMethodKey =
+  | 'legacy'
+  | 'llm-inference-service-simple-vllm'
+  | 'llm-inference-service-llmd';
+
 class ModelServingToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
     return this.find().pfSwitch(id).click();
@@ -1417,13 +1422,17 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('deployment-method-select');
   }
 
-  findDeploymentMethodSelectOption(name: string) {
-    return this.findDeploymentMethodSelect().findSelectOption(new RegExp(`^${name}`));
+  findDeploymentMethodSelectOption(testId: DeploymentMethodKey) {
+    this.findDeploymentMethodSelect().then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+    });
+    return cy.findByTestId(testId);
   }
 
-  selectDeploymentMethodByKey(key: string) {
-    this.findDeploymentMethodSelect().click();
-    return cy.findByTestId(key).click();
+  selectDeploymentMethodByKey(key: DeploymentMethodKey) {
+    this.findDeploymentMethodSelectOption(key).click();
   }
 
   findYAMLEditFallbackAlert() {

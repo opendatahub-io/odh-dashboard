@@ -384,7 +384,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findModelDeploymentDescriptionInput().type('test-description');
-    modelServingWizard.findDeploymentMethodSelectOption('Legacy deployment').click();
+    modelServingWizard.selectDeploymentMethodByKey('legacy');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
     // Generative has no model format select (they are all vLLM)
@@ -1661,7 +1661,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
-    modelServingWizardEdit.findDeploymentMethodSelectOption('Legacy deployment').click();
+    modelServingWizard.selectDeploymentMethodByKey('legacy');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
     modelServingWizard.findModelFormatSelect().should('not.exist');
@@ -1823,9 +1823,7 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findSaveConnectionCheckbox().click();
       modelServingWizard.findNextButton().should('be.enabled').click();
       modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizardEdit
-        .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
-        .click();
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
       // Verify yaml preview contents (use .contains() command, not .should('contain.text'),
       // because cy.contains() normalizes &nbsp; to regular spaces while the assertion does not)
@@ -1875,9 +1873,7 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Step 2: Model deployment - set name and choose the LLMd runtime
       modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizardEdit
-        .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
-        .click();
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 3: Advanced options
@@ -2157,7 +2153,7 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findNextButton().click();
 
       // Step 6: Verify selection is cleared when model type changes
-      modelServingWizardEdit.findDeploymentMethodSelectOption('Legacy deployment').click();
+      modelServingWizard.selectDeploymentMethodByKey('legacy');
       modelServingWizard
         .findServingRuntimeTemplateSearchSelector()
         .should('contain.text', 'Select one');

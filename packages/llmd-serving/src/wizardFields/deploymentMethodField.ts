@@ -2,7 +2,7 @@ import type { DeploymentMethodFieldOverride } from '@odh-dashboard/model-serving
 
 // Keys
 
-export const SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY = 'inference-service-simple-vllm';
+export const SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY = 'llm-inference-service-simple-vllm';
 export const LLMD_DEPLOYMENT_METHOD_KEY = 'llm-inference-service-llmd';
 
 // Simple vLLM

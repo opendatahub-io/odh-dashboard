@@ -300,8 +300,8 @@ describe('Model Serving LLMD', () => {
       cy.step('Verify LLMD deployment method option is not displayed');
       modelServingWizard
         .findDeploymentMethodSelect()
-        .should('exist')
-        .should('not.contain.text', 'LLM inference service deployment with llm-d');
+        .should('be.disabled')
+        .should('contain.text', 'Legacy deployment');
       modelServingWizard.findCancelButton().click();
       modelServingWizard.findDiscardButton().click();
 
@@ -325,7 +325,7 @@ describe('Model Serving LLMD', () => {
 
       cy.step('Verify LLMD deployment method option is displayed when LLMD is enabled');
       modelServingWizard
-        .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
+        .findDeploymentMethodSelectOption('llm-inference-service-llmd')
         .should('exist');
     });
 
@@ -399,9 +399,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelDeploymentNameInput().type('test-llmd-model');
       modelServingWizard.findModelDeploymentDescriptionInput().type('test-llmd-description');
 
-      modelServingWizard
-        .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
-        .click();
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
       hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
@@ -704,9 +702,7 @@ describe('Model Serving LLMD', () => {
 
       // Step 2: Model deployment
       modelServingWizard.findModelDeploymentNameInput().type('test-gateway-model');
-      modelServingWizard
-        .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
-        .click();
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 3: Advanced Options — gateway select should be visible
@@ -1043,7 +1039,7 @@ describe('Model Serving LLMD', () => {
 
       // Select the vLLM deployment method to activate the model server field
       modelServingWizard.findDeploymentMethodSelect().should('not.be.disabled');
-      modelServingWizard.selectDeploymentMethodByKey('inference-service-simple-vllm');
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
 
       // Open template dropdown and verify LLMInferenceServiceConfig options are available
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
@@ -1139,7 +1135,7 @@ describe('Model Serving LLMD', () => {
       // Step 2: Model deployment — select vLLM deployment method, then open the config dropdown
       modelServingWizard.findModelDeploymentNameInput().type('test-disabled-config');
       modelServingWizard.findDeploymentMethodSelect().should('not.be.disabled');
-      modelServingWizard.selectDeploymentMethodByKey('inference-service-simple-vllm');
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
 
       // Enabled config should be visible

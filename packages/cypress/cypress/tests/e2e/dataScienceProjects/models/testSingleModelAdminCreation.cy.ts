@@ -122,7 +122,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         .then((val) => {
           resourceName = val as string;
         });
-      modelServingWizard.findDeploymentMethodSelectOption('Legacy deployment').click();
+      modelServingWizard.selectDeploymentMethodByKey('legacy');
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();

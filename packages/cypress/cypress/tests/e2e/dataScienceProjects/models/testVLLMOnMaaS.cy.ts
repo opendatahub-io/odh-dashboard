@@ -127,9 +127,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
         .then((val) => {
           resourceName = val as string;
         });
-      modelServingWizard
-        .findDeploymentMethodSelectOption('LLM inference service deployment with llm-d')
-        .click();
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard
