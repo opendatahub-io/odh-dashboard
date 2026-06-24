@@ -66,10 +66,14 @@ const useConnectedWorkbenchFilters = (
     setWorkbenchNameFilter('');
     setSelectedProjects([]);
     setSelectedPermissions([]);
+    setHideProjectsWithConnectedWorkbenches(false);
   }, []);
 
   const hasActiveFilters =
-    workbenchNameFilter.length > 0 || selectedProjects.length > 0 || selectedPermissions.length > 0;
+    workbenchNameFilter.length > 0 ||
+    selectedProjects.length > 0 ||
+    selectedPermissions.length > 0 ||
+    hideProjectsWithConnectedWorkbenches;
 
   const filteredRows = React.useMemo(() => {
     const toggleFiltered = filterRowsByToggle(rows, hideProjectsWithConnectedWorkbenches);

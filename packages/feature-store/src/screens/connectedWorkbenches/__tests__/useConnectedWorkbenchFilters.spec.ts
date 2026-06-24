@@ -116,7 +116,7 @@ describe('useConnectedWorkbenchFilters', () => {
     expect(renderResult.result.current.filteredRows).toEqual(mockRows);
   });
 
-  it('should hide rows with connected workbenches when toggle is on', () => {
+  it('should hide rows with connected workbenches when toggle is on and set hasActiveFilters', () => {
     const renderResult = testHook(useConnectedWorkbenchFilters)(mockRows);
 
     act(() => {
@@ -125,6 +125,7 @@ describe('useConnectedWorkbenchFilters', () => {
 
     expect(renderResult.result.current.filteredRows).toHaveLength(1);
     expect(renderResult.result.current.filteredRows[0].id).toBe('row-3');
+    expect(renderResult.result.current.hasActiveFilters).toBe(true);
   });
 
   it('should combine name and project filters with AND logic', () => {
@@ -139,7 +140,7 @@ describe('useConnectedWorkbenchFilters', () => {
     expect(renderResult.result.current.filteredRows[0].id).toBe('row-1');
   });
 
-  it('should reset all filters except the hide toggle on clearAllFilters', () => {
+  it('should reset all filters including the hide toggle on clearAllFilters', () => {
     const renderResult = testHook(useConnectedWorkbenchFilters)(mockRows);
 
     act(() => {
@@ -149,6 +150,8 @@ describe('useConnectedWorkbenchFilters', () => {
       renderResult.result.current.setHideProjectsWithConnectedWorkbenches(true);
     });
 
+    expect(renderResult.result.current.hasActiveFilters).toBe(true);
+
     act(() => {
       renderResult.result.current.clearAllFilters();
     });
@@ -156,7 +159,7 @@ describe('useConnectedWorkbenchFilters', () => {
     expect(renderResult.result.current.workbenchNameFilter).toBe('');
     expect(renderResult.result.current.selectedProjects).toEqual([]);
     expect(renderResult.result.current.selectedPermissions).toEqual([]);
-    expect(renderResult.result.current.hideProjectsWithConnectedWorkbenches).toBe(true);
+    expect(renderResult.result.current.hideProjectsWithConnectedWorkbenches).toBe(false);
     expect(renderResult.result.current.hasActiveFilters).toBe(false);
   });
 });

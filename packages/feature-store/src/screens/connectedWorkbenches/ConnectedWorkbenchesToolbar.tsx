@@ -24,11 +24,13 @@ const FILTER_TYPES = {
   workbenchName: 'Workbench name',
   authorizedProject: 'Authorized project',
   permission: 'Permission',
-} as const;
+} satisfies Record<string, string>;
 
 type FilterType = keyof typeof FILTER_TYPES;
 
-const FILTER_TYPE_KEYS: FilterType[] = ['workbenchName', 'authorizedProject', 'permission'];
+const isFilterType = (key: string): key is FilterType => key in FILTER_TYPES;
+
+const FILTER_TYPE_KEYS = Object.keys(FILTER_TYPES).filter(isFilterType);
 
 type ConnectedWorkbenchesToolbarProps = {
   workbenchNameFilter: string;
@@ -79,7 +81,7 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
             </MenuToggle>
           )}
           isOpen={isFilterTypeOpen}
-          popperProps={{ appendTo: 'inline' }}
+          popperProps={{ appendTo: () => document.body }}
         >
           <DropdownList>
             {FILTER_TYPE_KEYS.map((filterType) => (
@@ -161,7 +163,7 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
               ) : null}
             </MenuToggle>
           )}
-          popperProps={{ appendTo: 'inline' }}
+          popperProps={{ appendTo: () => document.body }}
         >
           <SelectList isAriaMultiselectable>
             {projectOptions.withConnected.length > 0 ? (
@@ -251,7 +253,7 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
               ) : null}
             </MenuToggle>
           )}
-          popperProps={{ appendTo: 'inline' }}
+          popperProps={{ appendTo: () => document.body }}
         >
           <SelectList isAriaMultiselectable>
             {PERMISSION_OPTIONS.map((permission) => (

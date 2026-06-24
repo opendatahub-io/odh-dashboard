@@ -314,12 +314,12 @@ describe('Connected Workbenches modal', () => {
     it('should switch filter types and filter by workbench name', () => {
       openModalWithMultiProjectData();
 
-      cy.findByTestId('filter-type-toggle').should('have.text', 'Authorized project');
-      cy.findByTestId('filter-type-toggle').click();
-      cy.findByTestId('filter-type-option-workbenchName').click();
-      cy.findByTestId('filter-type-toggle').should('have.text', 'Workbench name');
+      featureStoreGlobal.findFilterTypeToggle().should('have.text', 'Authorized project');
+      featureStoreGlobal.findFilterTypeToggle().click();
+      featureStoreGlobal.findFilterTypeOption('workbenchName').should('be.visible').click();
+      featureStoreGlobal.findFilterTypeToggle().should('have.text', 'Workbench name');
 
-      cy.findByTestId('workbench-name-filter-input').type('alpha');
+      featureStoreGlobal.findWorkbenchNameFilterInput().type('alpha');
       featureStoreGlobal
         .findConnectedWorkbenchesTable()
         .find('tbody')
@@ -332,11 +332,11 @@ describe('Connected Workbenches modal', () => {
     it('should filter by authorized project and show grouped options', () => {
       openModalWithMultiProjectData();
 
-      cy.findByTestId('project-filter-toggle').click();
-      cy.findByTestId('project-group-header-with').should('be.visible');
-      cy.findByTestId('project-group-header-without').should('be.visible');
+      featureStoreGlobal.findProjectFilterToggle().click();
+      featureStoreGlobal.findProjectGroupHeader('with').should('be.visible');
+      featureStoreGlobal.findProjectGroupHeader('without').should('be.visible');
 
-      cy.findByTestId('project-option-proj-a').click();
+      featureStoreGlobal.findProjectOption('proj-a').should('be.visible').click();
       featureStoreGlobal
         .findConnectedWorkbenchesTable()
         .find('tbody')
@@ -349,10 +349,10 @@ describe('Connected Workbenches modal', () => {
     it('should filter by permission', () => {
       openModalWithMultiProjectData();
 
-      cy.findByTestId('filter-type-toggle').click();
-      cy.findByTestId('filter-type-option-permission').click();
-      cy.findByTestId('permission-filter-toggle').click();
-      cy.findByTestId('permission-option-Delete').click();
+      featureStoreGlobal.findFilterTypeToggle().click();
+      featureStoreGlobal.findFilterTypeOption('permission').should('be.visible').click();
+      featureStoreGlobal.findPermissionFilterToggle().click();
+      featureStoreGlobal.findPermissionOption('Delete').should('be.visible').click();
 
       featureStoreGlobal
         .findConnectedWorkbenchesTable()
@@ -366,7 +366,7 @@ describe('Connected Workbenches modal', () => {
     it('should hide projects with connected workbenches using the toggle', () => {
       openModalWithMultiProjectData();
 
-      cy.pfSwitch('hide-connected-workbenches-switch').click();
+      featureStoreGlobal.findHideConnectedWorkbenchesSwitch().click();
       featureStoreGlobal
         .findConnectedWorkbenchesTable()
         .find('tbody')
