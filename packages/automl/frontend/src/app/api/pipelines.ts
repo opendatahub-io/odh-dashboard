@@ -14,7 +14,7 @@ export type GetPipelineRunsFromBFFParams = {
   namespace: string;
   pipelineVersionId?: string;
   pageSize?: number;
-  nextPageToken?: string;
+  page?: number;
 };
 
 type PipelineRunsApiResponse = {
@@ -40,8 +40,8 @@ export async function getPipelineRunsFromBFF(
   if (params.pipelineVersionId) {
     queryParams.pipelineVersionId = params.pipelineVersionId;
   }
-  if (params.nextPageToken) {
-    queryParams.nextPageToken = params.nextPageToken;
+  if (params.page != null) {
+    queryParams.page = String(params.page);
   }
 
   const response = await handleRestFailures(

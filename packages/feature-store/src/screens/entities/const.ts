@@ -1,4 +1,4 @@
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { Entity } from '../../types/entities';
 
 export const columns: SortableData<Entity>[] = [

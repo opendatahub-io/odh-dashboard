@@ -1,10 +1,6 @@
 import React from 'react';
-import {
-  BrowserStorageContextProvider,
-  Namespace,
-  useNamespaceSelector,
-  useQueryParamNamespaces,
-} from 'mod-arch-core';
+import { BrowserStorageContextProvider, Namespace, useQueryParamNamespaces } from 'mod-arch-core';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import useSyncPreferredNamespace from '~/app/hooks/useSyncPreferredNamespace';
 import useGenAiAPIState, { GenAiAPIState } from '~/app/hooks/useGenAiAPIState';
 import { URL_PREFIX } from '~/app/utilities';
@@ -32,7 +28,7 @@ export const GenAiContextProvider: React.FC<GenAiContextProviderProps> = ({
   children,
   namespaceParam,
 }) => {
-  const { namespaces } = useNamespaceSelector();
+  const { namespaces } = useNamespaceSelectorWithPersistence();
   const foundNamespace = React.useMemo(
     () => namespaces.find((n) => n.name === namespaceParam),
     [namespaces, namespaceParam],

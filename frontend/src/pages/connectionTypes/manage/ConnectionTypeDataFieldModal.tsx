@@ -12,6 +12,7 @@ import {
   Alert,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import ContentModal from '#~/components/modals/ContentModal';
 import {
   ConnectionTypeDataField,
@@ -27,7 +28,6 @@ import {
   isValidEnvVar,
 } from '#~/concepts/connectionTypes/utils';
 import { isEnumMember } from '#~/utilities/utils';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import DataFieldPropertiesForm from '#~/pages/connectionTypes/manage/DataFieldPropertiesForm';
 import { prepareFieldForSave } from '#~/pages/connectionTypes/manage/manageFieldUtils';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';

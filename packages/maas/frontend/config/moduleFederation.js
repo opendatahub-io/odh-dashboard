@@ -15,6 +15,7 @@ const moduleFederationConfig = {
     },
     '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/ui-core': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/model-serving': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/llmd-serving': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/gen-ai': { singleton: true, requiredVersion: '*' },
