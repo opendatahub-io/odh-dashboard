@@ -169,7 +169,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		},
 		Providers: Providers{
 			Inference: []Provider{NewSentenceTransformerProvider()},
-			VectorIO: []Provider{},
+			VectorIO:  []Provider{},
 			Responses: []Provider{
 				NewProvider("builtin", "inline::builtin", map[string]interface{}{
 					"persistence": map[string]interface{}{
