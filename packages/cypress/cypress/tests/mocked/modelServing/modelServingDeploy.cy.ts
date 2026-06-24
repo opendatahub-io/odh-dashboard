@@ -1830,7 +1830,7 @@ describe('Model Serving Deploy Wizard', () => {
       // because cy.contains() normalizes &nbsp; to regular spaces while the assertion does not)
       modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
       const yamlEditor = modelServingWizard.findYAMLCodeEditor();
-      yamlEditor.containsText('apiVersion: serving.kserve.io/v1alpha1');
+      yamlEditor.containsText('apiVersion: serving.kserve.io/v1alpha2');
       yamlEditor.containsText('kind: LLMInferenceService');
       yamlEditor.containsText('name: test-model');
     });
@@ -1909,7 +1909,7 @@ describe('Model Serving Deploy Wizard', () => {
       cy.wait('@createLLMInferenceService').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.kind).to.equal('LLMInferenceService');
-        expect(interception.request.body.apiVersion).to.equal('serving.kserve.io/v1alpha1');
+        expect(interception.request.body.apiVersion).to.equal('serving.kserve.io/v1alpha2');
         expect(interception.request.body.metadata.name).to.equal('yaml-edited-model');
         expect(interception.request.body.metadata.namespace).to.equal('test-project');
       });
@@ -1990,7 +1990,7 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Set a valid LLMInferenceService YAML
       const yamlContent = [
-        'apiVersion: serving.kserve.io/v1alpha1',
+        'apiVersion: serving.kserve.io/v1alpha2',
         'kind: LLMInferenceService',
         'metadata:',
         '  name: yaml-only-model',
@@ -2009,7 +2009,7 @@ describe('Model Serving Deploy Wizard', () => {
       cy.wait('@createLLMInferenceService').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.kind).to.equal('LLMInferenceService');
-        expect(interception.request.body.apiVersion).to.equal('serving.kserve.io/v1alpha1');
+        expect(interception.request.body.apiVersion).to.equal('serving.kserve.io/v1alpha2');
         expect(interception.request.body.metadata.name).to.equal('yaml-only-model');
         expect(interception.request.body.metadata.namespace).to.equal('test-project');
         expect(interception.request.body.spec.model.uri).to.equal('hf://test/model');
