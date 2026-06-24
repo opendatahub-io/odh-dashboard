@@ -453,6 +453,48 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		assert.NotContains(t, caps, "made-up", "unknown capabilities should be filtered out")
 		assert.Len(t, caps, 2, "should only contain text-generation and vision")
 	})
+
+	It("should strip capabilities for embedding models", func() {
+		t := GinkgoT()
+
+		embDim := 768
+		requestBody := models.ExternalModelRequest{
+			ModelID:            "bge-large-en",
+			ModelDisplayName:   "BGE Large EN",
+			BaseURL:            "https://api.example.com/v1",
+			SecretValue:        "sk-test-key",
+			ModelType:          models.ModelTypeEmbedding,
+			EmbeddingDimension: &embDim,
+			Capabilities:       []string{"vision"},
+		}
+
+		bodyBytes, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external", bytes.NewReader(bodyBytes))
+		assert.NoError(t, err)
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.CreateExternalModelHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		data := response["data"].(map[string]interface{})
+		caps, ok := data["capabilities"].([]interface{})
+		assert.True(t, ok, "capabilities should be an array")
+		assert.NotContains(t, caps, "vision", "user-supplied capabilities should be stripped for embedding models")
+	})
 })
 
 var _ = Describe("DeleteExternalModelHandler", func() {
