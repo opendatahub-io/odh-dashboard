@@ -5,6 +5,7 @@ import type {
   ModelCatalogBannerExtension,
   NamespaceSelectorExtension,
   ProjectsBridgeProviderExtension,
+  RegistrySettingsUrlExtension,
 } from '@mf/modelRegistry/extension-points';
 
 const CATALOG_SETTINGS_PAGE_TITLE = 'Model catalog settings';
@@ -12,14 +13,6 @@ const CATALOG_SETTINGS_URL = '/settings/model-resources-operations/model-catalog
 
 const REGISTRY_SETTINGS_PAGE_TITLE = 'Model registry settings';
 const REGISTRY_SETTINGS_URL = '/settings/model-resources-operations/model-registry';
-
-type RegistrySettingsUrlExtension = Extension<
-  'model-registry.settings/url',
-  {
-    url: string;
-    title: string;
-  }
->;
 
 const extensions: (
   | AutofillConnectionButtonExtension

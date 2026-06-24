@@ -202,6 +202,7 @@ describe('Model Registry core', () => {
       'be.visible',
     );
     modelRegistry.findWhosMyAdministratorLink().should('exist');
+    // View details button should not be present when registry is unavailable
     modelRegistry.findViewDetailsButton().should('not.exist');
   });
 

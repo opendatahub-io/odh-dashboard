@@ -68,17 +68,20 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
     );
   };
 
-  const createUnavailableStatePage = (isAdmin: boolean) => {
-    const renderUnavailablePage = (registryDisplayName: string): React.ReactNode => (
-      <OdhUnavailableModelRegistry
-        registryDisplayName={registryDisplayName}
-        isAdmin={isAdmin}
-        settingsUrl={settingsUrl}
-        settingsTitle={settingsTitle}
-      />
-    );
-    return renderUnavailablePage;
-  };
+  const createUnavailableStatePage = React.useMemo(
+    () => (isAdmin: boolean) => {
+      const renderUnavailablePage = (registryDisplayName: string): React.ReactNode => (
+        <OdhUnavailableModelRegistry
+          registryDisplayName={registryDisplayName}
+          isAdmin={isAdmin}
+          settingsUrl={settingsUrl}
+          settingsTitle={settingsTitle}
+        />
+      );
+      return renderUnavailablePage;
+    },
+    [settingsUrl, settingsTitle],
+  );
 
   // If an admin check extension is provided and loaded, use it
   if (adminCheckExtensionsLoaded && adminCheckExtensions.length > 0) {
