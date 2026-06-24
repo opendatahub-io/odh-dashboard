@@ -241,6 +241,23 @@ export const verifyTryThisPatternInteraction = (): void => {
     .findByTestId('chatbot-message-bot', { timeout: 120000 })
     .should('exist');
 
+  cy.step('Switch pattern via the pattern selector dropdown');
+  autoragResultsPage.findPlaygroundPatternSelect().then(($toggle) => {
+    const currentPattern = $toggle.text().trim();
+    $toggle.trigger('click');
+    cy.get('[role="option"]').not(`:contains("${currentPattern}")`).first().click();
+  });
+
+  cy.step('Verify chat messages are cleared after pattern switch');
+  autoragResultsPage
+    .findPlaygroundDrawerPanel()
+    .findByTestId('chatbot-message-user')
+    .should('not.exist');
+  autoragResultsPage
+    .findPlaygroundDrawerPanel()
+    .findByTestId('chatbot-message-bot')
+    .should('not.exist');
+
   cy.step('Close playground drawer');
   autoragResultsPage.findPlaygroundDrawerClose().click();
   autoragResultsPage.findPlaygroundDrawerPanel().should('not.exist');
