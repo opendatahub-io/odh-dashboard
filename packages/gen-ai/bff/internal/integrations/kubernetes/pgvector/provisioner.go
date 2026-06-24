@@ -15,7 +15,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -52,11 +51,6 @@ func managedLabels() map[string]string {
 	}
 }
 
-// managedSelector returns a label selector matching auto-provisioned resources.
-func managedSelector() labels.Selector {
-	return labels.SelectorFromSet(managedLabels())
-}
-
 // EnsurePostgres provisions a pgvector-enabled PostgreSQL instance in the
 // namespace if one does not already exist. It is idempotent: when an existing
 // instance is found (by label), its connection details are returned without
@@ -72,13 +66,12 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 		return nil, fmt.Errorf("OGXServerLabelSelector must be non-empty to scope the NetworkPolicy ingress rule")
 	}
 
-	// Check for an existing pgvector Deployment.
-	var existing appsv1.DeploymentList
-	if err := c.List(ctx, &existing, client.InNamespace(namespace), client.MatchingLabelsSelector{Selector: managedSelector()}); err != nil {
-		return nil, fmt.Errorf("failed to check for existing pgvector Deployment: %w", err)
-	}
-	if len(existing.Items) > 0 {
+	// Check for an existing pgvector Deployment by its deterministic name.
+	var existing appsv1.Deployment
+	if err := c.Get(ctx, client.ObjectKey{Name: DeploymentName, Namespace: namespace}, &existing); err == nil {
 		return connectionFromExisting(ctx, c, namespace)
+	} else if !apierrors.IsNotFound(err) {
+		return nil, fmt.Errorf("failed to check for existing pgvector Deployment: %w", err)
 	}
 
 	// Warn if no default StorageClass exists -- the PVC will hang in Pending.
