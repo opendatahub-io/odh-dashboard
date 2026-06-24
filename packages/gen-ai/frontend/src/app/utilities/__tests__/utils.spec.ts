@@ -179,6 +179,14 @@ describe('convertMaaSModelToAIModel', () => {
 
   it('should parse external: prefixed endpoint to externalEndpoint', () => {
     const aaModel = makeAAModelResponse({
+      endpoints: ['external:https://maas.example.com/model'],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.externalEndpoint).toBe('https://maas.example.com/model');
+  });
+
+  it('should parse external: with space after colon', () => {
+    const aaModel = makeAAModelResponse({
       endpoints: ['external: https://maas.example.com/model'],
     });
     const result = convertMaaSModelToAIModel(aaModel);
@@ -193,10 +201,22 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.internalEndpoint).toBe('http://service.namespace.svc.cluster.local:8080');
   });
 
-  it('should parse both external and internal endpoints', () => {
+  it('should parse both external and internal endpoints with prefix', () => {
     const aaModel = makeAAModelResponse({
       endpoints: [
-        'external: https://maas.example.com/v1',
+        'external:https://maas.example.com/v1',
+        'internal:http://maas-service.ns.svc.cluster.local:8000',
+      ],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.externalEndpoint).toBe('https://maas.example.com/v1');
+    expect(result.internalEndpoint).toBe('http://maas-service.ns.svc.cluster.local:8000');
+  });
+
+  it('should parse external with prefix and internal without prefix', () => {
+    const aaModel = makeAAModelResponse({
+      endpoints: [
+        'external:https://maas.example.com/v1',
         'http://maas-service.ns.svc.cluster.local:8000',
       ],
     });
@@ -214,7 +234,7 @@ describe('convertMaaSModelToAIModel', () => {
 
   it('should only parse external endpoint when no internal endpoint exists', () => {
     const aaModel = makeAAModelResponse({
-      endpoints: ['external: https://api.maas.io/models/llama'],
+      endpoints: ['external:https://api.maas.io/models/llama'],
     });
     const result = convertMaaSModelToAIModel(aaModel);
     expect(result.externalEndpoint).toBe('https://api.maas.io/models/llama');

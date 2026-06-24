@@ -244,10 +244,10 @@ export const getSourceLabelColor = (sourceLabel: string): 'blue' | 'green' | 'or
  */
 export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => {
   // Parse endpoints - AAModel already has the correct structure from BFF transformation
-  const externalEndpoint = aaModel.endpoints
-    .find((ep) => ep.startsWith('external:'))
-    ?.replace('external: ', '');
-  const internalEndpoint = aaModel.endpoints.find((ep) => !ep.startsWith('external:'));
+  const externalEndpoint = parseEndpointByPrefix(aaModel.endpoints, 'external');
+  const internalEndpoint =
+    parseEndpointByPrefix(aaModel.endpoints, 'internal') ||
+    aaModel.endpoints.find((ep) => !ep.startsWith('external:') && !ep.startsWith('internal:'));
 
   return {
     ...aaModel,
