@@ -84,7 +84,7 @@ const workspacePackages = getWorkspacePackages();
 const odhDashboardShared = Object.fromEntries(
   [...getRuntimeOdhPackages(workspacePackages)].map((name) => [
     name,
-    { singleton: true, requiredVersion: '*', eager: true },
+    { singleton: true, requiredVersion: '*' },
   ]),
 );
 

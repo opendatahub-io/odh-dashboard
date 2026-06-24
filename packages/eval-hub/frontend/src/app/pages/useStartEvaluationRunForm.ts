@@ -7,7 +7,14 @@ import {
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
 import { createEvaluationJob } from '~/app/api/k8s';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import {
+  EVAL_HUB_EVENTS,
+  type RunSourceSelectedProperties,
+  type RunModelSelectedProperties,
+  type RunThresholdChangedProperties,
+  type RunMetricSelectedProperties,
+  type RunParameterChangedProperties,
+} from '~/app/tracking/evalhubTrackingConstants';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
 import getErrorTitle from '~/app/utils/getErrorTitle';
@@ -68,6 +75,12 @@ export function useStartEvaluationRunForm({
   const availableMetrics = React.useMemo(() => benchmark?.metrics ?? [], [benchmark]);
   const defaultPrimaryMetric = benchmark?.primary_score?.metric ?? availableMetrics[0];
 
+  const benchmarkDisplayNameRef = React.useRef('');
+  const defaultPrimaryMetricRef = React.useRef(defaultPrimaryMetric);
+  React.useEffect(() => {
+    defaultPrimaryMetricRef.current = defaultPrimaryMetric;
+  }, [defaultPrimaryMetric]);
+
   const [threshold, setThreshold] = React.useState(defaultThreshold);
   const [thresholdTouched, setThresholdTouched] = React.useState(false);
   const [primaryMetric, setPrimaryMetric] = React.useState<string | undefined>(
@@ -90,11 +103,24 @@ export function useStartEvaluationRunForm({
   const handleThresholdChange = React.useCallback((value: number) => {
     setThreshold(value);
     setThresholdTouched(true);
+
+    const props: RunThresholdChangedProperties = {
+      thresholdValue: value,
+      benchmarkName: benchmarkDisplayNameRef.current,
+    };
+    fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, props);
   }, []);
 
   const handlePrimaryMetricChange = React.useCallback((metric: string) => {
     setPrimaryMetric(metric);
     setPrimaryMetricTouched(true);
+
+    const props: RunMetricSelectedProperties = {
+      metricName: metric,
+      isDefault: metric === defaultPrimaryMetricRef.current,
+      benchmarkName: benchmarkDisplayNameRef.current,
+    };
+    fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
   }, []);
 
   // ── Evaluation name ─────────────────────────────────────────────────
@@ -145,7 +171,8 @@ export function useStartEvaluationRunForm({
 
   const handleModelDropdownSelect = React.useCallback(
     (value: string | undefined, inferenceServices: InferenceServiceItem[]) => {
-      if (value === EXTERNAL_ENDPOINT_VALUE) {
+      const isExternal = value === EXTERNAL_ENDPOINT_VALUE;
+      if (isExternal) {
         setModelSelection('external');
         setSelectedInferenceService(undefined);
       } else {
@@ -154,6 +181,14 @@ export function useStartEvaluationRunForm({
         setSelectedInferenceService(is);
       }
       setConnectionValidation({ status: 'idle' });
+
+      if (value) {
+        const props: RunModelSelectedProperties = {
+          selectedModel: isExternal ? 'Other (External endpoint)' : value,
+          isExternal,
+        };
+        fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_MODEL_SELECTED, props);
+      }
     },
     [setConnectionValidation],
   );
@@ -162,6 +197,9 @@ export function useStartEvaluationRunForm({
     (mode: SourceMode) => {
       setSourceMode(mode);
       setConnectionValidation({ status: 'idle' });
+
+      const props: RunSourceSelectedProperties = { sourceType: mode };
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, props);
     },
     [setConnectionValidation],
   );
@@ -221,6 +259,7 @@ export function useStartEvaluationRunForm({
     }
     return '';
   }, [benchmark, collection]);
+  benchmarkDisplayNameRef.current = benchmarkDisplayName;
 
   const hasBenchmarks =
     !!benchmark || (!!collection && !!collection.benchmarks && collection.benchmarks.length > 0);
@@ -389,6 +428,17 @@ export function useStartEvaluationRunForm({
           return;
         }
         Object.assign(parsedArgs, parsed);
+
+        for (const [key, val] of Object.entries(parsedArgs)) {
+          const paramProps: RunParameterChangedProperties = {
+            parameterName: key,
+            parameterValueShape:
+              typeof val === 'string' ? `string(${val.length})` : String(typeof val),
+            benchmarkName: benchmarkDisplayName,
+            isDefault: false,
+          };
+          fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED, paramProps);
+        }
       } catch {
         notification.error(
           'Invalid benchmark parameters',

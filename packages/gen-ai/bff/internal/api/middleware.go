@@ -20,8 +20,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/rs/cors"
@@ -322,67 +322,6 @@ func (app *App) AttachOGXClient(next func(http.ResponseWriter, *http.Request, ht
 	}
 }
 
-// AttachMaaSClient middleware creates a MaaS client and attaches it to context.
-// This middleware can be used independently and doesn't require namespace.
-//
-// In mock mode, creates a mock client. In real mode, uses autodiscovery or configured MaaS URL.
-// Uses RequestIdentity from context for authentication, consistent with other clients.
-func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		ctx := r.Context()
-
-		// Use request-scoped logger to avoid nil-panic in tests/environments where app.logger is not set
-		logger := helper.GetContextLoggerFromReq(r)
-
-		var maasClient maas.MaaSClient
-
-		// Check if running in mock mode
-		if app.config.MockMaaSClient {
-			logger.Debug("MOCK MODE: creating mock MaaS client")
-			// In mock mode, use empty URL since mock factory ignores it
-			maasClient = app.maasClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
-		} else {
-			var serviceURL string
-
-			if app.config.MaaSURL != "" {
-				serviceURL = app.config.MaaSURL
-				logger.Debug("Using MAAS_URL environment variable (developer override)",
-					"serviceURL", serviceURL)
-			} else if app.clusterDomain != "" {
-				serviceURL = fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
-				logger.Debug("Using autodiscovered MaaS endpoint from cached cluster domain",
-					"clusterDomain", app.clusterDomain,
-					"serviceURL", serviceURL)
-			} else {
-				logger.Debug("MaaS unavailable: no MAAS_URL configured and cluster domain not available")
-				ctx = context.WithValue(ctx, constants.MaaSClientKey, nil)
-				next(w, r.WithContext(ctx), ps)
-				return
-			}
-
-			// Get RequestIdentity from context (set by InjectRequestIdentity middleware)
-			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-			if !ok || identity == nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-				return
-			}
-
-			logger.Debug("Creating MaaS client",
-				"serviceURL", serviceURL,
-				"hasAuthToken", identity.Token != "")
-
-			// Create MaaS client per-request using app factory with auth token from RequestIdentity
-			maasClient = app.maasClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
-		}
-
-		// Attach ready-to-use client to context
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasClient)
-		r = r.WithContext(ctx)
-
-		next(w, r, ps)
-	}
-}
-
 // AttachMLflowClient middleware creates a per-request MLflow client with auth and workspace headers.
 // Extracts the user's token from RequestIdentity and namespace from context.
 func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
@@ -451,14 +390,21 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		}
 
 		// Check if MaaS BFF target is configured
-		if !app.bffClientFactory.IsTargetConfigured("maas") {
+		if !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			logger.Debug("MaaS BFF target not configured, attaching nil client")
-			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)
+			// Intentionally store nil client to allow graceful degradation. Handlers check for nil
+			// and return 503 when MaaS-specific operations are requested. This pattern allows
+			// mixed-source endpoints (e.g., namespace+maas models) to succeed with partial data
+			// when MaaS BFF is unavailable, rather than failing the entire request.
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), nil)
 			next(w, r.WithContext(ctx), ps)
 			return
 		}
 
-		// Get auth token from RequestIdentity
+		// Get auth token from RequestIdentity.
+		// Safe to use empty string when identity is absent due to middleware ordering:
+		// RequireAccessToService runs before AttachBFFMaaSClient (see Routes() in app.go),
+		// guaranteeing RequestIdentity exists and is validated before reaching this code.
 		var authToken string
 		if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); ok && identity != nil {
 			authToken = identity.Token
@@ -466,28 +412,54 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 
 		// Build headers based on MaaS BFF's auth method
 		forwardHeaders := make(map[string]string)
-		maasConfig := app.bffClientFactory.GetConfig("maas")
+		maasConfig := app.bffClientFactory.GetConfig(bffclient.BFFTargetMaaS)
 
 		if maasConfig != nil && maasConfig.AuthMethod == "internal" {
 			// For internal auth mode (Kubeflow only), forward kubeflow identity headers
-			if userID := r.Header.Get("kubeflow-userid"); userID != "" {
-				forwardHeaders["kubeflow-userid"] = userID
+			// SECURITY: Only forward kubeflow headers if Gen AI BFF also uses internal auth
+			// to prevent header injection attacks. In user_token mode, we cannot trust
+			// kubeflow headers from the raw request as they are not validated during authentication.
+			if app.config.AuthMethod == "internal" {
+				// Both BFFs use internal auth - safe to forward headers
+				if userID := r.Header.Get("kubeflow-userid"); userID != "" {
+					forwardHeaders["kubeflow-userid"] = userID
+				}
+				if groups := r.Header.Get("kubeflow-groups"); groups != "" {
+					forwardHeaders["kubeflow-groups"] = groups
+				}
+				logger.Debug("Using internal auth mode for MaaS BFF, forwarding kubeflow headers")
+			} else {
+				// Configuration mismatch: Gen AI BFF uses user_token but MaaS BFF uses internal
+				// This is a security risk - reject the request
+				logger.Error("Auth method mismatch: Gen AI BFF uses user_token but MaaS BFF requires internal auth",
+					"gen_ai_auth", app.config.AuthMethod,
+					"maas_bff_auth", maasConfig.AuthMethod)
+				app.errorResponse(w, r, &integrations.HTTPError{
+					StatusCode: http.StatusServiceUnavailable,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    "configuration_error",
+						Message: "BFF auth method configuration mismatch",
+					},
+				})
+				return
 			}
-			if groups := r.Header.Get("kubeflow-groups"); groups != "" {
-				forwardHeaders["kubeflow-groups"] = groups
-			}
-			logger.Debug("Using internal auth mode for MaaS BFF, forwarding kubeflow headers")
 		} else {
 			// For user_token auth mode (default for ODH), the token is sent via
 			// the configured auth header by the client itself
 			logger.Debug("Using user_token auth mode for MaaS BFF")
 		}
 
+		// Always forward X-MaaS-Return-All-Models header to get enriched model details
+		// This ensures MaaS BFF returns models with modelDetails, subscriptions, and kind fields
+		// Set unconditionally for middleware simplicity since we cannot determine requested sources
+		// at this point in the chain. The header is only used if the handler actually calls MaaS BFF.
+		forwardHeaders[constants.MaaSReturnAllModelsHeader] = "true"
+
 		// Create BFF client for MaaS target with forwarded headers
-		client := app.bffClientFactory.CreateClientWithHeaders("maas", authToken, forwardHeaders)
+		client := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMaaS, authToken, forwardHeaders)
 		if client == nil {
 			logger.Warn("Failed to create MaaS BFF client")
-			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), nil)
 			next(w, r.WithContext(ctx), ps)
 			return
 		}
@@ -495,7 +467,7 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		logger.Debug("Created MaaS BFF client", "baseURL", client.GetBaseURL())
 
 		// Attach to context
-		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), client)
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), client)
 		next(w, r.WithContext(ctx), ps)
 	}
 }
