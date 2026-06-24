@@ -11,6 +11,12 @@ export const EVAL_HUB_EVENTS = {
   COMPARE_RUN_SELECTED: 'Evaluations Compare Run Selected',
   COMPARE_INITIATED: 'Evaluations Compare Initiated',
   COMPARE_BENCHMARK_CHOSEN: 'Evaluations Compare Benchmark Chosen',
+  RUN_SOURCE_SELECTED: 'Evaluations Run Source Selected',
+  RUN_MODEL_SELECTED: 'Evaluations Run Model Selected',
+  EXTERNAL_CONNECTION_TESTED: 'Evaluations External Connection Tested',
+  RUN_THRESHOLD_CHANGED: 'Evaluations Run Threshold Changed',
+  RUN_METRIC_SELECTED: 'Evaluations Run Metric Selected',
+  RUN_PARAMETER_CHANGED: 'Evaluations Run Parameter Changed',
 } as const;
 
 /**
@@ -91,4 +97,38 @@ export type CompareBenchmarkChosenProperties = {
   countOfBenchmarks: number;
   totalAvailable: number;
   benchmarkNames: string;
+};
+
+export type RunSourceSelectedProperties = {
+  sourceType: 'model' | 'agent' | 'prerecorded';
+};
+
+export type RunModelSelectedProperties = {
+  selectedModel: string;
+  isExternal: boolean;
+};
+
+export type ExternalConnectionTestedProperties = {
+  outcome: 'success' | 'error';
+  endpointType: 'model' | 'agent' | 'prerecorded';
+  error?: string;
+};
+
+export type RunThresholdChangedProperties = {
+  thresholdValue: number;
+  benchmarkName: string;
+};
+
+export type RunMetricSelectedProperties = {
+  metricName: string;
+  isDefault: boolean;
+  benchmarkName: string;
+};
+
+export type RunParameterChangedProperties = {
+  parameterName: string;
+  /** Redacted shape descriptor (e.g. "string(12)", "number", "boolean") — never the raw value. */
+  parameterValueShape: string;
+  benchmarkName: string;
+  isDefault: boolean;
 };

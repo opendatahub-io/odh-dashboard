@@ -107,9 +107,9 @@ describe('PromptDrawer', () => {
     );
   });
 
-  it('should render close button in drawer', () => {
+  it('should render clear selection button in drawer', () => {
     render(<PromptDrawer {...defaultProps} selectedVersion={2} />);
 
-    expect(screen.getByRole('button', { name: 'Close drawer' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear selection' })).toBeInTheDocument();
   });
 });

@@ -53,8 +53,8 @@ class PromptDrawer {
     return cy.findByTestId('prompt-drawer-template');
   }
 
-  findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-drawer-close');
+  findClearSelectionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('prompt-drawer-clear-selection');
   }
 
   findLoading(): Cypress.Chainable<JQuery<HTMLElement>> {

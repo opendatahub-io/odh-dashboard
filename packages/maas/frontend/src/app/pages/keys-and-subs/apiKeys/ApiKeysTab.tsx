@@ -28,6 +28,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showD
     loaded,
     refreshAll,
     filterData,
+    isKeyInactive,
     localUsername,
     setLocalUsername,
     page,
@@ -106,6 +107,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showD
           onRevokeApiKey={setRevokeApiKey}
           apiKeys={apiKeys}
           subscriptionDetails={subscriptionDetails}
+          isKeyInactive={isKeyInactive}
           hasMore={hasMore}
           page={page}
           perPage={perPage}

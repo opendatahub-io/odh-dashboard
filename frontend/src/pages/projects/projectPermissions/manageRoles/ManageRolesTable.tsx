@@ -6,9 +6,7 @@ import {
   SearchInput,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { TableBase } from '#~/components/table';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
-import useTableColumnSort from '#~/components/table/useTableColumnSort';
+import { DashboardEmptyTableView, TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 import { getRoleRefKey } from '#~/concepts/permissions/utils';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';

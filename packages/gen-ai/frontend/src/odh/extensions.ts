@@ -198,7 +198,7 @@ const extensions: (
     },
     properties: {
       id: 'agentprofile',
-      title: 'Agent profiles',
+      title: 'Agent configurations',
       component: () => import('../app/AIAssets/AIAssetsAgentProfilesTab').then((m) => m.default),
     },
   },

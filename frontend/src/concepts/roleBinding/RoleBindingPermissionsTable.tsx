@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { K8sResourceCommon, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { Table } from '#~/components/table';
+import { Table } from '@odh-dashboard/ui-core';
 import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '#~/k8sTypes';
 import { generateRoleBindingPermissions } from '#~/api';
 import RoleBindingPermissionsTableRow from './RoleBindingPermissionsTableRow';

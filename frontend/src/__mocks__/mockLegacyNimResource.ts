@@ -106,7 +106,7 @@ export const mockNimServingRuntime = (): ServingRuntimeKind => {
 
 export const mockNimServingRuntimeTemplate = (): TemplateKind => {
   const templateMock = mockServingRuntimeTemplateK8sResource({
-    name: 'mock-nvidia-nim-serving-template',
+    name: 'nvidia-nim-runtime',
     displayName: 'NVIDIA NIM',
     platforms: [ServingRuntimePlatform.SINGLE],
     apiProtocol: ServingRuntimeAPIProtocol.REST,

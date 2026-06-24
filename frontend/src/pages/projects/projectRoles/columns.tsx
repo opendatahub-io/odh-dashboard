@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { List, ListItem } from '@patternfly/react-core';
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { getRoleDescription, getRoleDisplayName } from '#~/concepts/permissions/utils';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import type { RoleListRow } from './types';

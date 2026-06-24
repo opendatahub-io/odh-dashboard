@@ -85,7 +85,7 @@ Same structure as upstream but with SHA-pinned images and Red Hat labels. Placed
 Key differences from upstream:
 - All base images pinned by SHA digest
 - Red Hat labels added to final stage
-- `CACHITO_ENV_FILE` support for hermetic builds (Konflux Cachi2)
+- `CACHITO_ENV_FILE` support is optional — Konflux Cachi2 injects this file automatically during hermetic builds when prefetch is enabled; no Dockerfile changes are needed unless you opt into sourcing it explicitly
 - Additional `io.openshift.build.commit.*` labels
 
 ```dockerfile
@@ -98,7 +98,39 @@ ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22@sha256:<digest>
 ARG GOLANG_BASE_IMAGE=registry.redhat.io/ubi9/go-toolset@sha256:<digest>
 ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal@sha256:<digest>
 
-# [same multi-stage build as upstream, but with FIPS flags already in upstream]
+# UI build stage (same as upstream, using SHA-pinned NODE_BASE_IMAGE)
+FROM ${NODE_BASE_IMAGE} AS ui-builder
+ARG UI_SOURCE_CODE
+ARG MODULE_NAME
+WORKDIR /usr/src/workspace
+
+COPY --chown=default:root package.json package-lock.json* ./
+COPY --chown=default:root frontend/package.json ./frontend/
+COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
+COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
+COPY --chown=default:root frontend/src/ ./frontend/src/
+COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
+
+USER default
+RUN npm cache clean --force
+RUN npm ci --omit=optional --ignore-scripts
+
+WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
+RUN npm ci --omit=optional --ignore-scripts
+RUN npm run build:prod
+
+# BFF build stage (same as upstream, using SHA-pinned GOLANG_BASE_IMAGE)
+FROM ${GOLANG_BASE_IMAGE} AS bff-builder
+ARG BFF_SOURCE_CODE
+ARG TARGETOS
+ARG TARGETARCH
+WORKDIR /usr/src/app
+
+COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+RUN go mod download
+COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
+COPY ${BFF_SOURCE_CODE}/internal/ internal/
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
 
 # Final stage — add Red Hat labels
 FROM ${DISTROLESS_BASE_IMAGE}
@@ -200,12 +232,39 @@ ENTRYPOINT ["/<binary-name>"]
 
 ## SHA Digest Management
 
-Downstream Dockerfiles use SHA digests instead of tags. To get the current digest:
+Downstream Dockerfiles use SHA digests instead of tags. Complete this workflow **before Phase 4** generates the downstream Dockerfile.
+
+### Step 1: Query current digests for each base image
 
 ```bash
-# For a specific image and tag
-skopeo inspect docker://registry.access.redhat.com/ubi9/ubi-minimal:latest --format '{{.Digest}}'
-skopeo inspect docker://registry.redhat.io/ubi9/go-toolset:1.25 --format '{{.Digest}}'
+# Node.js base image (Type A only)
+skopeo inspect docker://registry.access.redhat.com/ubi9/nodejs-22:latest \
+  --format '{{.Digest}}'
+
+# Go toolset (Type A BFF or Type B)
+skopeo inspect docker://registry.redhat.io/ubi9/go-toolset:1.25 \
+  --format '{{.Digest}}'
+
+# UBI minimal runtime
+skopeo inspect docker://registry.access.redhat.com/ubi9/ubi-minimal:latest \
+  --format '{{.Digest}}'
 ```
 
-Renovate (or Konflux's automated tooling) will keep these digests up to date after initial setup.
+### Step 2: Validate digests
+
+Verify each returned digest matches the expected image by pulling and inspecting:
+
+```bash
+# Pull with the digest and confirm the image runs
+podman pull registry.access.redhat.com/ubi9/ubi-minimal@sha256:<digest>
+podman inspect registry.access.redhat.com/ubi9/ubi-minimal@sha256:<digest> \
+  --format '{{.RepoDigests}}'
+```
+
+### Step 3: Insert digests into the Dockerfile
+
+Replace all `@sha256:<digest>` placeholders in the downstream Dockerfile with the actual digest values from Step 1.
+
+### Step 4: After merge — Renovate takes over
+
+Once the Dockerfile is merged to the downstream repo, Renovate (configured by DevOps onboarding) automatically monitors for base image updates and opens PRs with refreshed digests. No manual digest management is needed after the initial setup.
