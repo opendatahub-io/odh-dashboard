@@ -69,14 +69,15 @@ import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
-  ConfigureSchema,
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
+  OPTIMIZATION_METRIC_LABELS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
-} from '~/app/schemas/configure.schema';
-import { OPTIMIZATION_METRIC_LABELS, REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
+  REQUIRED_CONNECTION_SECRET_KEYS,
+} from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';

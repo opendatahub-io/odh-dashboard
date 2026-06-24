@@ -6,20 +6,14 @@ import {
   ALL_EVAL_METRICS,
   DEFAULT_EVAL_METRIC_BY_TASK,
   EVAL_METRICS_BY_TASK_TYPE,
-  TASK_TYPE_BINARY,
-  TASK_TYPE_MULTICLASS,
-  TASK_TYPE_REGRESSION,
+  MIN_TOP_N,
+  MAX_TOP_N_TABULAR,
+  MAX_TOP_N_TIMESERIES,
+  MAX_PREDICTION_LENGTH,
+  TASK_TYPES,
   TASK_TYPE_TIMESERIES,
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
-
-export const MIN_TOP_N = 1;
-export const MAX_TOP_N_TABULAR = 10;
-export const MAX_TOP_N_TIMESERIES = 7;
-export const MAX_PREDICTION_LENGTH = 100;
-
-const TABULAR_TASK_TYPES = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION] as const;
-export const TASK_TYPES = [...TABULAR_TASK_TYPES, TASK_TYPE_TIMESERIES] as const;
 
 // Make sure every field has a default to ensure RHF works as intended.
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types

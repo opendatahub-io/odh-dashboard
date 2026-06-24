@@ -1,10 +1,14 @@
 import * as z from 'zod';
+import {
+  MIN_RAG_PATTERNS,
+  MAX_RAG_PATTERNS,
+  RAG_METRIC_FAITHFULNESS,
+  RAG_METRIC_ANSWER_CORRECTNESS,
+  RAG_METRIC_CONTEXT_CORRECTNESS,
+} from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
 // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
 // import type { OgxVectorStoreProvider } from '~/app/types';
-
-export const MIN_RAG_PATTERNS = 4;
-export const MAX_RAG_PATTERNS = 20;
 
 // The allowlist of supported vector store provider types.
 // The BFF returns all vector_io providers; only providers with these types are shown in the UI.
@@ -19,9 +23,7 @@ export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus', 'remote:
 //   provider_type: 'IN_MEMORY',
 // };
 
-export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
-export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
-export const RAG_METRIC_CONTEXT_CORRECTNESS = 'context_correctness';
+export { RAG_METRIC_FAITHFULNESS, RAG_METRIC_ANSWER_CORRECTNESS, RAG_METRIC_CONTEXT_CORRECTNESS };
 export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
