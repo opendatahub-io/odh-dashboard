@@ -371,7 +371,9 @@ Ask the user for their fork of `openshift/release` (e.g., `git@github.com:<user>
 WORK_DIR=$(mktemp -d)
 git clone --depth 1 <fork-url> "$WORK_DIR/openshift-release"
 cd "$WORK_DIR/openshift-release"
-git checkout -b <component-name>-openshift-ci
+git remote add upstream https://github.com/openshift/release.git
+git fetch upstream main
+git checkout -b <component-name>-openshift-ci upstream/main
 ```
 
 ### Step 6b: Modify the Configuration File
@@ -438,10 +440,10 @@ Run prowgen to generate the job configuration files. This requires Docker or Pod
 cd "$WORK_DIR/openshift-release"
 
 # Try Docker first, fall back to Podman
-if command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
+if command -v docker &>/dev/null && docker info &>/dev/null; then
   CONTAINER_ENGINE=docker make ci-operator-prowgen
-elif command -v podman &>/dev/null && podman info &>/dev/null 2>&1; then
-  make ci-operator-prowgen
+elif command -v podman &>/dev/null && podman info &>/dev/null; then
+  CONTAINER_ENGINE=podman make ci-operator-prowgen
 else
   echo "ERROR: Neither Docker nor Podman is available. The user must run 'make jobs' manually."
   # Continue without generated files — note in PR description
