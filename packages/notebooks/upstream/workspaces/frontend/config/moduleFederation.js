@@ -18,12 +18,18 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: '*',
     },
+    '@odh-dashboard/plugin-core': {
+      singleton: true,
+      requiredVersion: '*',
+    },
   },
-  exposes: {},
+  exposes: {
+    './extensions': './src/odh/extensions',
+  },
   // For module federation to work when optimization.runtimeChunk="single":
   // See https://github.com/webpack/webpack/issues/18810
   runtime: false,
-  dts: false,
+  dts: true,
 };
 
 module.exports = {
