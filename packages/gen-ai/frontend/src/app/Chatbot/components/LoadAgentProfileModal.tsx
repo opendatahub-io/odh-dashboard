@@ -64,7 +64,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
       })
       .catch((err: Error) => {
         if (!cancelled) {
-          setError(err.message || 'Failed to load agent profiles.');
+          setError(err.message || 'Failed to load agent configurations.');
         }
       })
       .finally(() => {
@@ -96,7 +96,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
     if (loading) {
       return (
         <Bullseye style={{ minHeight: 'var(--pf-t--global--spacer--2xl)' }}>
-          <Spinner aria-label="Loading agent profiles" />
+          <Spinner aria-label="Loading agent configurations" />
         </Bullseye>
       );
     }
@@ -107,14 +107,16 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
       return (
         <EmptyState>
           <EmptyStateBody>
-            {profiles.length === 0 ? 'No agent profiles found.' : 'No profiles match your search.'}
+            {profiles.length === 0
+              ? 'No agent configurations found.'
+              : 'No configurations match your search.'}
           </EmptyStateBody>
         </EmptyState>
       );
     }
     return (
       <>
-        <Table aria-label="Agent profiles" variant="compact">
+        <Table aria-label="Agent configurations" variant="compact">
           <Thead>
             <Tr>
               <Th>Name</Th>
@@ -195,7 +197,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
           onClear={() => setFilter('')}
           style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
           data-testid="load-agent-profile-search"
-          aria-label="Filter agent profiles by name"
+          aria-label="Filter agent configurations by name"
         />
         {renderBody()}
       </ModalBody>
