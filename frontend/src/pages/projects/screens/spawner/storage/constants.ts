@@ -1,4 +1,4 @@
-import { SortableData, kebabTableColumn } from '#~/components/table';
+import { SortableData, kebabTableColumn } from '@odh-dashboard/ui-core';
 import { StorageData } from '#~/pages/projects/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { getAccessModePopover } from './getAccessModePopover';

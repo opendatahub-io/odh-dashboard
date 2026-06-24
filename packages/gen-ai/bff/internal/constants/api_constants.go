@@ -60,13 +60,9 @@ const (
 	VerifyExternalModelPath  = ApiPathPrefix + "/models/external/verify"
 	ExternalVectorStoresPath = ApiPathPrefix + "/vectorstores/external"
 
-	// Model as a Service (MaaS) endpoints - direct MaaS controller calls
+	// Model as a Service (MaaS) endpoints - via inter-BFF communication with MaaS BFF
 	MaaSModelsPath = ApiPathPrefix + "/maas/models"
 	MaaSTokensPath = ApiPathPrefix + "/maas/tokens"
-
-	// Inter-BFF Communication endpoints - calls to other BFF services
-	// These use the BFF client for inter-service communication
-	BFFMaaSTokensPath = ApiPathPrefix + "/bff/maas/tokens"
 
 	// MLflow endpoints
 	MLflowPromptsPath        = ApiPathPrefix + "/mlflow/prompts"

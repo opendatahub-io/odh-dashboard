@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Flex, Popover, Stack, StackItem, Title } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 
 type FeatureStoreInfoTooltipProps = {
   wrap?: boolean;
