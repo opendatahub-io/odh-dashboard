@@ -1829,7 +1829,17 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			BlockOwnerDeletion: &[]bool{false}[0],
 		}
 		if err := pgvector.SetOwnerReferences(ctx, kc.SAClient, namespace, ownerRef); err != nil {
-			return nil, fmt.Errorf("failed to set owner references on pgvector resources: %w", err)
+			kc.Logger.Error("failed to set owner references on pgvector resources; cleaning up OGXServer to unblock retries",
+				"error", err, "namespace", namespace, "lsdName", lsdName)
+
+			if deleteErr := kc.Client.Delete(ctx, ogxServer); deleteErr != nil {
+				kc.Logger.Error("failed to clean up OGXServer after owner-reference failure", "error", deleteErr)
+			}
+			if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+				kc.Logger.Error("failed to clean up ConfigMap after owner-reference failure", "error", deleteErr)
+			}
+
+			return nil, rollbackPgvector(fmt.Errorf("failed to set owner references on pgvector resources: %w", err))
 		}
 	}
 
