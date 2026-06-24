@@ -26,13 +26,22 @@ rules:
     resources:
       - subjectaccessreviews
   # pgvector auto-provisioning (RHOAIENG-68914)
-  # Deletion uses named resources (not deletecollection) to minimize blast radius.
+  # create/list are broad (resourceNames cannot restrict them in k8s RBAC).
+  # get/update/delete are scoped to the deterministic pgvector resource names.
   - apiGroups:
       - ""
     verbs:
       - create
-      - get
       - list
+    resources:
+      - secrets
+      - services
+      - persistentvolumeclaims
+      - configmaps
+  - apiGroups:
+      - ""
+    verbs:
+      - get
       - update
       - delete
     resources:
@@ -40,26 +49,45 @@ rules:
       - services
       - persistentvolumeclaims
       - configmaps
+    resourceNames:
+      - genai-pgvector-credentials
+      - genai-pgvector-init
+      - genai-pgvector-storage
+      - genai-pgvector
   - apiGroups:
       - apps
     verbs:
       - create
-      - get
       - list
+    resources:
+      - deployments
+  - apiGroups:
+      - apps
+    verbs:
+      - get
       - update
       - delete
     resources:
       - deployments
+    resourceNames:
+      - genai-pgvector
   - apiGroups:
       - networking.k8s.io
     verbs:
       - create
-      - get
       - list
+    resources:
+      - networkpolicies
+  - apiGroups:
+      - networking.k8s.io
+    verbs:
+      - get
       - update
       - delete
     resources:
       - networkpolicies
+    resourceNames:
+      - genai-pgvector
   - apiGroups:
       - storage.k8s.io
     verbs:
