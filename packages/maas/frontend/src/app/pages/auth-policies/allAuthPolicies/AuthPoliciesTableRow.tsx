@@ -9,6 +9,7 @@ import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
 import PhaseLabel from '~/app/shared/PhaseLabel';
+import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
 type AuthPoliciesTableRowProps = {
   authPolicy: MaaSAuthPolicy;
@@ -79,7 +80,11 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         />
       </Td>
       <Td dataLabel={columns[1].label}>
-        <PhaseLabel phase={authPolicy.phase} statusMessage={authPolicy.statusMessage} />
+        <PhaseLabel
+          phase={authPolicy.phase}
+          statusMessage={authPolicy.statusMessage}
+          resourceType={PhaseResourceType.AUTHPOLICY}
+        />
       </Td>
       <Td dataLabel={columns[2].label}>{labelHelper(groupsCount, 'Group', 'Groups')}</Td>
       <Td dataLabel={columns[3].label}>{labelHelper(modelsCount, 'Model', 'Models')}</Td>
