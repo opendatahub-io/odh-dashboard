@@ -52,6 +52,14 @@ func (nilAgentDetailClient) GetAgent(context.Context, string, string) (*agents.A
 	return nil, nil
 }
 
+func (nilAgentDetailClient) DeployAgent(context.Context, *agents.DeployAgentParams) (*agents.DeployAgentResult, error) {
+	return nil, nil
+}
+
+func (nilAgentDetailClient) DeleteAgent(context.Context, string, string) error { return nil }
+func (nilAgentDetailClient) StopAgent(context.Context, string, string) error   { return nil }
+func (nilAgentDetailClient) StartAgent(context.Context, string, string) error  { return nil }
+
 func TestPaginateAgentRuntimes(t *testing.T) {
 	runtimes := []models.AgentRuntime{
 		{Name: "agent-b", Namespace: "ns-a"},

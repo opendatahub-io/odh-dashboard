@@ -138,7 +138,7 @@ export const mockDeploymentWizardState = (
           setProjectName: jest.fn(),
         },
         modelType: {
-          data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
+          data: { type: ServingRuntimeModelType.GENERATIVE },
           setData: jest.fn(),
           externalData: { data: { extraOptions: [] as SimpleSelectOption[], forced: false } },
         },

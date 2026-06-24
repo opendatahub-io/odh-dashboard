@@ -170,6 +170,11 @@ module.exports = {
                 singleton: true,
                 requiredVersion: deps['@patternfly/react-core'],
               },
+              '@patternfly/react-icons': {
+                singleton: true,
+                requiredVersion: deps['@patternfly/react-icons'],
+                eager: true,
+              },
               '@openshift/dynamic-plugin-sdk': {
                 singleton: true,
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk'],

@@ -20,6 +20,7 @@ import * as _ from 'lodash-es';
 import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
+import { DeploymentMethodFieldData } from './DeploymentMethodSelectField';
 import { isTokenAuthFieldOverride } from '../types';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
 import { showAuthWarning } from '../hooks/useAuthWarning';
@@ -55,11 +56,13 @@ export const useTokenAuthenticationField = (
   existingData?: TokenAuthenticationFieldData,
   modelType?: ModelTypeField,
   modelServer?: ModelServerSelectField,
+  deploymentMethod?: DeploymentMethodFieldData,
   canCreateRoleBindings?: boolean,
 ): TokenAuthenticationFieldHook => {
   const tokenAuthOverrides = useWizardFieldOverrides(isTokenAuthFieldOverride, {
     modelType: { data: modelType?.data },
     modelServer: { data: modelServer?.data },
+    deploymentMethod,
   });
   const shouldAutoCheck = React.useMemo(() => {
     return tokenAuthOverrides.some((override) => override.initialValue);

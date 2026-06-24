@@ -13,8 +13,8 @@ import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilte
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import ImageFallback from '~/shared/components/ImageFallback';
-import WithValidImage from '~/shared/components/WithValidImage';
-import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import WorkspaceKindImage from '~/app/components/WorkspaceKindImage';
+import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 type KindFilterKey = 'name';
 
@@ -24,15 +24,18 @@ const filterConfig = {
 
 const visibleFilterKeys: readonly KindFilterKey[] = ['name'];
 
-const filterableProperties: Record<KindFilterKey, (item: WorkspacekindsWorkspaceKind) => string> = {
+const filterableProperties: Record<
+  KindFilterKey,
+  (item: WorkspacekindsWorkspaceKindListItem) => string
+> = {
   // Combine name and displayName for matching (separated by space so regex can match either)
   name: (kind) => `${kind.name} ${kind.displayName}`,
 };
 
 type WorkspaceFormKindListProps = {
-  allWorkspaceKinds: WorkspacekindsWorkspaceKind[];
-  selectedKind: WorkspacekindsWorkspaceKind | undefined;
-  onSelect: (workspaceKind: WorkspacekindsWorkspaceKind | undefined) => void;
+  allWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[];
+  selectedKind: WorkspacekindsWorkspaceKindListItem | undefined;
+  onSelect: (workspaceKind: WorkspacekindsWorkspaceKindListItem | undefined) => void;
   isSelectionDisabled: boolean;
 };
 
@@ -68,7 +71,7 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
   );
 
   const handleCardClick = useCallback(
-    (kind: WorkspacekindsWorkspaceKind) => {
+    (kind: WorkspacekindsWorkspaceKindListItem) => {
       if (kind.name !== selectedKind?.name) {
         return;
       }
@@ -137,7 +140,7 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                       spaceItems={{ default: 'spaceItemsMd' }}
                     >
                       <FlexItem>
-                        <WithValidImage
+                        <WorkspaceKindImage
                           imageSrc={kind.logo.url}
                           skeletonWidth="60px"
                           fallback={
@@ -147,6 +150,8 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                               message="Cannot load logo image"
                             />
                           }
+                          assetType="logo"
+                          kindName={kind.name}
                         >
                           {(validSrc) => (
                             <img
@@ -156,7 +161,7 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                               data-testid={`kind-logo-${kind.name}`}
                             />
                           )}
-                        </WithValidImage>
+                        </WorkspaceKindImage>
                       </FlexItem>
                       <FlexItem>
                         <CardTitle>{kind.displayName}</CardTitle>

@@ -3,12 +3,13 @@ import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/cr
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
-import type { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
-import { WorkspacekindsRedirectMessageLevel } from '~/generated/data-contracts';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
+import type { OptionsImageConfigValue } from '~/generated/data-contracts';
+import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 
 const buildMockImageConfigValue = (
-  overrides?: Partial<WorkspacekindsImageConfigValue>,
-): WorkspacekindsImageConfigValue => ({
+  overrides?: Partial<OptionsImageConfigValue>,
+): OptionsImageConfigValue => ({
   id: 'default-image',
   displayName: 'Default Image',
   description: 'Default description',
@@ -33,7 +34,7 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
       redirect: {
         to: 'target-image',
         message: {
-          level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
           text: 'This image is deprecated. Please use the target image.',
         },
       },
@@ -71,6 +72,7 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
       { path: { apiVersion: NOTEBOOKS_API_VERSION } },
       mockModArchResponse([mockWorkspaceKind]),
     ).as('getWorkspaceKinds');
+    interceptListValues(mockWorkspaceKind);
 
     cy.visit('/workspaces/create');
     cy.wait('@getNamespaces');
