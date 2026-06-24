@@ -141,4 +141,25 @@ describe('ApiKeysAndSubscriptionsPage', () => {
     expect(mockRefreshSubscriptions).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('/keys-and-subs/tokens'));
   });
+
+  it('should not refresh or navigate when clicking the already active tab', () => {
+    render(<ApiKeysAndSubscriptionsPage />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'API keys tab' }));
+
+    expect(mockRefreshAll).not.toHaveBeenCalled();
+    expect(mockRefreshSubscriptions).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('should not refresh or navigate when clicking the already active subscriptions tab', () => {
+    mockTab = 'subscriptions';
+    render(<ApiKeysAndSubscriptionsPage />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Subscriptions tab' }));
+
+    expect(mockRefreshAll).not.toHaveBeenCalled();
+    expect(mockRefreshSubscriptions).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });

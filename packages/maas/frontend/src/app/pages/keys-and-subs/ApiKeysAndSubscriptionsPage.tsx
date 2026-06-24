@@ -40,14 +40,18 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
 
   const onSelectTab = React.useCallback(
     (_event: React.MouseEvent, tabKey: string | number) => {
-      if (String(tabKey) === SUBSCRIPTIONS_TAB) {
+      const selectedTab = String(tabKey);
+      if (selectedTab === activeTab) {
+        return;
+      }
+      if (selectedTab === SUBSCRIPTIONS_TAB) {
         refreshSubscriptions();
       } else {
         refreshApiKeys();
       }
-      navigate(`${URL_PREFIX}/keys-and-subs/${String(tabKey)}`);
+      navigate(`${URL_PREFIX}/keys-and-subs/${selectedTab}`);
     },
-    [navigate, refreshSubscriptions, refreshApiKeys],
+    [navigate, refreshSubscriptions, refreshApiKeys, activeTab],
   );
 
   return (
