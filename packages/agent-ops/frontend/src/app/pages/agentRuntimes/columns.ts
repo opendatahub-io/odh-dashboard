@@ -1,4 +1,4 @@
-import { kebabTableColumn, SortableData } from '@odh-dashboard/internal/components/table';
+import { kebabTableColumn, SortableData } from '@odh-dashboard/ui-core';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
 import { getAgentRuntimeStatusSortWeight } from '~/app/utilities/agentRuntimeStatus';
 

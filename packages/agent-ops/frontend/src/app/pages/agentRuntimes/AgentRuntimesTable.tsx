@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { TableBase } from '@odh-dashboard/internal/components/table';
-import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { DashboardEmptyTableView, TableBase } from '@odh-dashboard/ui-core';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
 import { getAgentRuntimeRowKey } from '~/app/utilities/agentRuntimes';
 import { agentRuntimesColumns } from './columns';
