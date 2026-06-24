@@ -24,7 +24,7 @@ export const GUARDRAILS = 'guardrails';
 export const PROMPT_MANAGEMENT = 'promptManagement';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
-export const AGENT_PROFILES = 'agentProfileManagement';
+export const AGENT_CONFIG_MANAGEMENT = 'agentConfigManagement';
 const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
 
 const extensions: (
@@ -90,9 +90,9 @@ const extensions: (
   {
     type: 'app.area',
     properties: {
-      id: AGENT_PROFILES,
+      id: AGENT_CONFIG_MANAGEMENT,
       reliantAreas: [PLUGIN_GEN_AI],
-      featureFlags: [AGENT_PROFILES],
+      featureFlags: [AGENT_CONFIG_MANAGEMENT],
     },
   },
   {
@@ -194,7 +194,7 @@ const extensions: (
   {
     type: 'gen-ai.ai-assets/tab',
     flags: {
-      required: [PLUGIN_GEN_AI, AGENT_PROFILES],
+      required: [PLUGIN_GEN_AI, AGENT_CONFIG_MANAGEMENT],
     },
     properties: {
       id: 'agentprofile',
