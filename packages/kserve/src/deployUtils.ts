@@ -52,6 +52,8 @@ import {
   deploymentStrategyRolling,
   deploymentStrategyRecreate,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
+import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentMethodSelectField';
+import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from './wizardFields/deploymentMethodField';
 import type { CreatingInferenceServiceObject } from './deployModel';
 import type { KServeDeployment } from './deployments';
 
@@ -391,7 +393,6 @@ export const extractModelType = (deployment: {
 
   return {
     type: modelType,
-    legacyVLLM: modelType === ServingRuntimeModelType.GENERATIVE,
   };
 };
 
@@ -445,3 +446,7 @@ export const applyDeploymentStrategy = (
   }
   return result;
 };
+
+export const extractDeploymentMethod = (): DeploymentMethodFieldData => ({
+  method: LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY,
+});
