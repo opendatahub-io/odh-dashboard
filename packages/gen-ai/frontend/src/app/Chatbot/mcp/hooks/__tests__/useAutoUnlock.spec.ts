@@ -189,6 +189,7 @@ describe('useAutoUnlock', () => {
         authenticated: true,
         autoConnected: true,
       });
+      expect(mockOnFetchTools).toHaveBeenCalledWith('https://server1.com', '');
     });
   });
 
