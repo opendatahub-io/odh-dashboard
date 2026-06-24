@@ -17,14 +17,6 @@
 - op: replace
   path: /spec/template/spec/serviceAccount
   value: rhods-dashboard
-# Fix inter-BFF service discovery: gen-ai BFF calls MaaS via K8s DNS.
-# Guards: fail-fast if container or env ordering ever changes.
-- op: test
-  path: /spec/template/spec/containers/3/name
-  value: "gen-ai-ui"
-- op: test
-  path: /spec/template/spec/containers/3/env/2/name
-  value: "BFF_MAAS_SERVICE_NAME"
 - op: replace
   path: /spec/template/spec/containers/3/env/2/value
   value: "rhods-dashboard"
