@@ -151,13 +151,19 @@ const ProjectDetails: React.FC = () => {
           </Alert>
         </Flex>
       )}
-      {isKueueManaged && (
+      {isKueueManaged && !isKueueAlertDismissed && (
         <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
           <Alert
             data-testid="kueue-managed-alert-project-details"
             variant="info"
             isInline
             title="This project uses Kueue for workload scheduling"
+            actionClose={
+              <AlertActionCloseButton
+                data-testid="kueue-managed-alert-close"
+                onClose={handleKueueAlertClose}
+              />
+            }
           />
         </Flex>
       )}

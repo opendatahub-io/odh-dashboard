@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import ProjectDetails from '#~/pages/projects/screens/detail/ProjectDetails';
@@ -121,6 +121,21 @@ describe('ProjectDetails', () => {
       renderProjectDetails();
 
       expect(screen.getByTestId('kueue-disabled-alert-project-details')).toBeInTheDocument();
+      expect(screen.queryByTestId('kueue-managed-alert-project-details')).not.toBeInTheDocument();
+    });
+
+    it('should hide the managed indicator when the close button is clicked', () => {
+      mockUseKueueConfiguration.mockReturnValue({
+        isKueueDisabled: false,
+        isKueueFeatureEnabled: true,
+        isProjectKueueEnabled: true,
+        kueueFilteringState: KueueFilteringState.ONLY_KUEUE_PROFILES,
+      });
+
+      renderProjectDetails();
+
+      expect(screen.getByTestId('kueue-managed-alert-project-details')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('kueue-managed-alert-close'));
       expect(screen.queryByTestId('kueue-managed-alert-project-details')).not.toBeInTheDocument();
     });
 
