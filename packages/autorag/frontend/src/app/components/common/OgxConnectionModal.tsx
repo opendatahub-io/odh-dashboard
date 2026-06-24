@@ -19,6 +19,9 @@ import K8sNameDescriptionField, {
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { AUTORAG_EVENTS } from '~/app/tracking/autoragTrackingConstants';
 
 type Props = {
   namespace: string;
@@ -72,6 +75,11 @@ const OgxConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) =
     try {
       await createSecret(secret);
     } catch (e) {
+      fireFormTrackingEvent(AUTORAG_EVENTS.OGX_CONNECTION_CREATED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: e instanceof Error ? e.message : 'Unknown error',
+      });
       setSubmitError(e instanceof Error ? e : new Error(String(e)));
       setIsSaving(false);
       return;
@@ -79,6 +87,10 @@ const OgxConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) =
 
     try {
       await onSubmit(k8sName);
+      fireFormTrackingEvent(AUTORAG_EVENTS.OGX_CONNECTION_CREATED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       onClose();
     } catch (e) {
       setSubmitError(e instanceof Error ? e : new Error(String(e)));

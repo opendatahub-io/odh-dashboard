@@ -20,6 +20,10 @@ import {
   withRequiredFields,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+
+import { AUTOML_EVENTS } from '~/app/tracking/automlTrackingConstants';
 
 const S3_REQUIRED_ENV_VARS = ['AWS_DEFAULT_REGION', 'AWS_S3_BUCKET'];
 
@@ -200,10 +204,19 @@ const AutomlConnectionModal: React.FC<Props> = ({
 
             createSecret(assembledConnection)
               .then(async () => {
+                fireFormTrackingEvent(AUTOML_EVENTS.S3_CONNECTION_CREATED, {
+                  outcome: TrackingOutcome.submit,
+                  success: true,
+                });
                 await onSubmit(assembledConnection);
                 onClose(true);
               })
               .catch((e) => {
+                fireFormTrackingEvent(AUTOML_EVENTS.S3_CONNECTION_CREATED, {
+                  outcome: TrackingOutcome.submit,
+                  success: false,
+                  error: e instanceof Error ? e.message : 'Unknown error',
+                });
                 setSubmitError(e);
                 setIsSaving(false);
               });

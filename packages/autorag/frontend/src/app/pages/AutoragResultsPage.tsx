@@ -14,6 +14,7 @@ import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@pattern
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
@@ -40,6 +41,7 @@ import {
 } from '~/app/utilities/utils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import { AUTORAG_EVENTS } from '~/app/tracking/autoragTrackingConstants';
 
 type DrawerContentType =
   | { type: 'run-details' }
@@ -202,6 +204,7 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern) {
         return;
       }
+      fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERN_TRIED, { patternName });
       const responsesTemplate = pattern.settings?.responses_template;
       if (!responsesTemplate) {
         return;
@@ -239,6 +242,7 @@ function AutoragResultsPage(): React.JSX.Element {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const responsesTemplate = patterns?.[patternName]?.settings?.responses_template;
       if (responsesTemplate) {
+        fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERN_CODE_VIEWED, { patternName });
         setViewCodePattern({ patternName, responsesTemplate });
       }
     },

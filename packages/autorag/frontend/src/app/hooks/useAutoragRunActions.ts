@@ -1,11 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import {
   useDeletePipelineRunMutation,
   useRetryPipelineRunMutation,
   useTerminatePipelineRunMutation,
 } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
+import { AUTORAG_EVENTS } from '~/app/tracking/autoragTrackingConstants';
 
 type AutoragRunActions = {
   handleRetry: () => Promise<void>;
@@ -37,11 +40,20 @@ export const useAutoragRunActions = (
       await queryClient.invalidateQueries({
         queryKey: ['autorag', 'pipelineRun', runId, namespace],
       });
+      fireFormTrackingEvent(AUTORAG_EVENTS.PIPELINE_RUN_RETRIED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       notification.success(
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
     } catch (error) {
+      fireFormTrackingEvent(AUTORAG_EVENTS.PIPELINE_RUN_RETRIED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       notification.error(
         'Failed to retry run',
         error instanceof Error ? error.message : 'An unknown error occurred',
@@ -61,11 +73,20 @@ export const useAutoragRunActions = (
       await queryClient.invalidateQueries({
         queryKey: ['autorag', 'pipelineRun', runId, namespace],
       });
+      fireFormTrackingEvent(AUTORAG_EVENTS.PIPELINE_RUN_STOPPED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       notification.success(
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
     } catch (error) {
+      fireFormTrackingEvent(AUTORAG_EVENTS.PIPELINE_RUN_STOPPED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       // Check if the error is because the run is already in a terminal state (case-insensitive, whole words only)
       const terminalStatePattern = /\b(FAILED|SUCCEEDED|CANCELL?ED)\b|cannot be terminated/i;
@@ -102,11 +123,20 @@ export const useAutoragRunActions = (
       await queryClient.invalidateQueries({
         queryKey: ['autorag', 'pipelineRun', runId, namespace],
       });
+      fireFormTrackingEvent(AUTORAG_EVENTS.PIPELINE_RUN_DELETED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       notification.success(
         'Run deleted successfully',
         'The pipeline run has been permanently removed',
       );
     } catch (error) {
+      fireFormTrackingEvent(AUTORAG_EVENTS.PIPELINE_RUN_DELETED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       notification.error(
         'Failed to delete run',
         error instanceof Error ? error.message : 'An unknown error occurred',
