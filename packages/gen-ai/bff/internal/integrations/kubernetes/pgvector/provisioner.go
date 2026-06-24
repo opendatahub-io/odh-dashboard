@@ -76,6 +76,9 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	var existing appsv1.Deployment
 	if err := c.Get(ctx, client.ObjectKey{Name: DeploymentName, Namespace: namespace}, &existing); err == nil {
 		if existing.DeletionTimestamp == nil {
+			if err := validateExistingManagedResources(ctx, c, namespace); err != nil {
+				return nil, err
+			}
 			return connectionFromExisting(ctx, c, namespace)
 		}
 		log.Info("existing pgvector Deployment is still terminating", "namespace", namespace)
@@ -255,6 +258,40 @@ func SetOwnerReferences(ctx context.Context, c client.Client, namespace string, 
 
 	if len(errs) > 0 {
 		return fmt.Errorf("failed to set owner references on pgvector resources: %v", errs)
+	}
+	return nil
+}
+
+// validateExistingManagedResources verifies the full pgvector resource set
+// (Secret, ConfigMap, PVC, Service, NetworkPolicy) exists and none are
+// terminating. This prevents returning a Connection when supporting resources
+// are missing (e.g. Service deleted → DB unreachable, NetworkPolicy deleted →
+// ingress unrestricted).
+func validateExistingManagedResources(ctx context.Context, c client.Client, namespace string) error {
+	checks := []struct {
+		obj  client.Object
+		name string
+		kind string
+	}{
+		{&corev1.Secret{}, CredentialsSecretName, "Secret"},
+		{&corev1.ConfigMap{}, InitConfigMapName, "ConfigMap"},
+		{&corev1.PersistentVolumeClaim{}, StoragePVCName, "PVC"},
+		{&corev1.Service{}, ServiceName, "Service"},
+		{&networkingv1.NetworkPolicy{}, NetworkPolicyName, "NetworkPolicy"},
+	}
+
+	for _, check := range checks {
+		key := client.ObjectKey{Name: check.name, Namespace: namespace}
+		if err := c.Get(ctx, key, check.obj); err != nil {
+			if apierrors.IsNotFound(err) {
+				return fmt.Errorf("pgvector Deployment exists but managed %s %q is missing — cannot return connection safely", check.kind, check.name)
+			}
+			return fmt.Errorf("failed to verify pgvector %s %q: %w", check.kind, check.name, err)
+		}
+		if check.obj.GetDeletionTimestamp() != nil {
+			return fmt.Errorf("%w: %s %q is still terminating — please wait a moment and try again",
+				ErrResourcesTerminating, check.kind, check.name)
+		}
 	}
 	return nil
 }

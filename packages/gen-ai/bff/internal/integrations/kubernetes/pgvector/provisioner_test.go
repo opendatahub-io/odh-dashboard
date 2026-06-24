@@ -101,30 +101,59 @@ func TestEnsurePostgres_CreatesAllResources(t *testing.T) {
 }
 
 func TestEnsurePostgres_SkipsIfExists(t *testing.T) {
+	ns := "test-ns"
 	existingDeploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DeploymentName,
-			Namespace: "test-ns",
+			Namespace: ns,
 			Labels:    managedLabels(),
 		},
 	}
 	existingSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      CredentialsSecretName,
-			Namespace: "test-ns",
+			Namespace: ns,
 			Labels:    managedLabels(),
 		},
 		Data: map[string][]byte{
 			DefaultPasswordKey: []byte("existing-password"),
 		},
 	}
+	existingCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      InitConfigMapName,
+			Namespace: ns,
+			Labels:    managedLabels(),
+		},
+	}
+	existingPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      StoragePVCName,
+			Namespace: ns,
+			Labels:    managedLabels(),
+		},
+	}
+	existingSvc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ServiceName,
+			Namespace: ns,
+			Labels:    managedLabels(),
+		},
+	}
+	existingNetpol := &networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      NetworkPolicyName,
+			Namespace: ns,
+			Labels:    managedLabels(),
+		},
+	}
 	c := fake.NewClientBuilder().
 		WithScheme(testScheme()).
-		WithObjects(existingDeploy, existingSecret).
+		WithObjects(existingDeploy, existingSecret, existingCM, existingPVC, existingSvc, existingNetpol).
 		Build()
 	ctx := context.Background()
 
-	conn, err := EnsurePostgres(ctx, c, "test-ns", testOpts())
+	conn, err := EnsurePostgres(ctx, c, ns, testOpts())
 	require.NoError(t, err)
 	require.NotNil(t, conn)
 
