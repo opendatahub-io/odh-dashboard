@@ -81,20 +81,25 @@ const getFailedMessage = (rawMessage: string | undefined, queue: string): string
   return rawMessage.trim();
 };
 
-const getEvictedMessage = (rawMessage: string | undefined): string => {
+const getEvictionReason = (rawMessage: string | undefined): string | undefined => {
   if (!rawMessage) {
-    return 'Evicted from the queue';
+    return undefined;
   }
   if (QUEUE_STOPPED_REGEX.test(rawMessage)) {
-    return 'Evicted: queue was stopped';
+    return 'queue was stopped';
   }
   if (DEACTIVATED_REGEX.test(rawMessage)) {
-    return 'Evicted: workload was deactivated';
+    return 'workload was deactivated';
   }
   if (ADMISSION_CHECK_REGEX.test(rawMessage)) {
-    return 'Evicted: admission check failed';
+    return 'admission check failed';
   }
-  return rawMessage.trim();
+  return rawMessage.trim() || undefined;
+};
+
+const getEvictedMessage = (rawMessage: string | undefined): string => {
+  const reason = getEvictionReason(rawMessage);
+  return reason ? `Evicted: ${reason}` : 'Evicted from the queue';
 };
 
 const getInadmissibleMessage = (rawMessage: string | undefined, queue: string): string => {
@@ -128,7 +133,7 @@ export const getPreemptionToastBody = (workbenchName: string, timestamp?: string
  * Formats an eviction toast body message with the workbench name and reason.
  */
 export const getEvictionToastBody = (workbenchName: string, rawMessage?: string): string => {
-  const reason = rawMessage?.trim();
+  const reason = getEvictionReason(rawMessage);
   if (reason) {
     return `Workbench ${workbenchName} was evicted: ${reason}`;
   }

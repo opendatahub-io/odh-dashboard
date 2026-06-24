@@ -152,10 +152,10 @@ describe('getHumanReadableKueueMessage', () => {
       ).toBe('Evicted: admission check failed');
     });
 
-    it('should return raw message as fallback for unknown eviction reasons', () => {
+    it('should prefix raw message with Evicted for unknown eviction reasons', () => {
       expect(
         getHumanReadableKueueMessage(KueueWorkloadStatus.Evicted, 'Some unknown eviction reason'),
-      ).toBe('Some unknown eviction reason');
+      ).toBe('Evicted: Some unknown eviction reason');
     });
 
     it('should return generic eviction message when no raw message provided', () => {
@@ -288,9 +288,19 @@ describe('getPreemptionToastBody', () => {
 });
 
 describe('getEvictionToastBody', () => {
-  it('should include reason when provided', () => {
-    const result = getEvictionToastBody('my-workbench', 'ClusterQueue was stopped');
-    expect(result).toBe('Workbench my-workbench was evicted: ClusterQueue was stopped');
+  it('should normalize known reason (queue stopped)', () => {
+    const result = getEvictionToastBody('my-workbench', 'ClusterQueue default is stopped');
+    expect(result).toBe('Workbench my-workbench was evicted: queue was stopped');
+  });
+
+  it('should normalize known reason (deactivated)', () => {
+    const result = getEvictionToastBody('my-workbench', 'Workload was deactivated');
+    expect(result).toBe('Workbench my-workbench was evicted: workload was deactivated');
+  });
+
+  it('should pass through unknown reason as-is', () => {
+    const result = getEvictionToastBody('my-workbench', 'Some unexpected eviction reason');
+    expect(result).toBe('Workbench my-workbench was evicted: Some unexpected eviction reason');
   });
 
   it('should return generic message when no reason', () => {

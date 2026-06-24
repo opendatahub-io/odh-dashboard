@@ -389,6 +389,35 @@ describe('getKueueWorkloadStatusWithMessage', () => {
     expect(result.status).toBe(KueueWorkloadStatus.Preempted);
   });
 
+  it('should respect priority order: Evicted before Inadmissible (ClusterQueueStopped)', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'Evicted',
+        status: 'True',
+        reason: 'ClusterQueueStopped',
+        message: 'ClusterQueue default is inactive',
+        lastTransitionTime: '2026-02-16T08:00:01Z',
+      },
+      {
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Inadmissible',
+        message: 'ClusterQueue default is inactive',
+        lastTransitionTime: '2026-02-16T08:00:01Z',
+      },
+      {
+        type: 'Admitted',
+        status: 'False',
+        reason: 'NoReservation',
+        message: 'The workload has no reservation',
+        lastTransitionTime: '2026-02-16T08:00:01Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Evicted);
+    expect(result.message).toBe('ClusterQueue default is inactive');
+  });
+
   it('should return Queued when workload has no conditions', () => {
     const workload = { ...baseWorkload, status: { conditions: [] } };
     const result = getKueueWorkloadStatusWithMessage(workload);

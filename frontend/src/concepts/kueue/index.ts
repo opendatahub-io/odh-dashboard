@@ -122,7 +122,7 @@ const getMessageFromCondition = (condition: WorkloadCondition | undefined): stri
 };
 
 /**
- * Finds the most recent True condition with a non-empty message from types
+ * Finds the first True condition with a non-empty message from types
  * not handled by the known extraction logic. Ensures unknown condition types
  * always surface the raw Kueue message rather than showing blank.
  */
@@ -159,8 +159,8 @@ export const getKueueWorkloadStatusWithMessage = (
     status: KueueWorkloadStatus;
   }> = [
     { condition: Failed, status: KueueWorkloadStatus.Failed },
-    { condition: Inadmissible, status: KueueWorkloadStatus.Inadmissible },
     { condition: Evicted, status: evictedStatus ?? KueueWorkloadStatus.Evicted },
+    { condition: Inadmissible, status: KueueWorkloadStatus.Inadmissible },
     { condition: Preempted, status: KueueWorkloadStatus.Preempted },
     { condition: Succeeded, status: KueueWorkloadStatus.Complete },
     { condition: Running, status: KueueWorkloadStatus.Running },

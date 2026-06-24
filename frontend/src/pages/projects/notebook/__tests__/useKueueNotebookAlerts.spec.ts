@@ -230,7 +230,7 @@ describe('useKueueNotebookAlerts', () => {
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
       expect(mockNotification.warning).toHaveBeenCalledWith(
         expect.stringContaining('was evicted'),
-        expect.stringContaining('ClusterQueue was stopped'),
+        expect.stringContaining('queue was stopped'),
         expect.arrayContaining([expect.objectContaining({ title: 'View details' })]),
       );
     });
