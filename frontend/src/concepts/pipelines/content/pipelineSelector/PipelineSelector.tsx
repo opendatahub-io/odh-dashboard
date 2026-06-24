@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { EmptyStateVariant } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
+import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
 import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
-import { TableBase, getTableColumnSort } from '#~/components/table';
 import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 import { pipelineSelectorColumns } from '#~/concepts/pipelines/content/pipelineSelector/columns';
 import PipelineViewMoreFooterRow from '#~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { usePipelineSelector } from '#~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
 import SearchSelector from '#~/components/searchSelector/SearchSelector';
 

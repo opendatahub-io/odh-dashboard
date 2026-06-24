@@ -79,7 +79,8 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesToolbar', () => {
   };
 });
 
-jest.mock('#~/components/table', () => ({
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
   Table: ({
     data,
     columns,
@@ -116,10 +117,7 @@ jest.mock('#~/components/table', () => ({
       </div>
     );
   },
-}));
-
-jest.mock('#~/concepts/dashboard/DashboardEmptyTableView', () => {
-  return function MockDashboardEmptyTableView({
+  DashboardEmptyTableView: function MockDashboardEmptyTableView({
     onClearFilters,
   }: {
     onClearFilters: (event: React.SyntheticEvent<HTMLButtonElement, Event>) => void;
@@ -132,8 +130,8 @@ jest.mock('#~/concepts/dashboard/DashboardEmptyTableView', () => {
         </button>
       </div>
     );
-  };
-});
+  },
+}));
 
 describe('HardwareProfilesTable', () => {
   const mockHardwareProfiles: HardwareProfileKind[] = [

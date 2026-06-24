@@ -23,6 +23,7 @@ import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
 import SaveAgentProfileModal from './components/SaveAgentProfileModal';
+import LoadAgentProfileModal from './components/LoadAgentProfileModal';
 import {
   useChatbotConfigStore,
   selectConfigIds,
@@ -103,10 +104,39 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, []);
 
   const [saveModalMode, setSaveModalMode] = React.useState<'save' | 'save-as' | null>(null);
+  const [loadModalOpen, setLoadModalOpen] = React.useState(false);
 
   const handleOpenSave = React.useCallback(() => setSaveModalMode('save'), []);
   const handleOpenSaveAs = React.useCallback(() => setSaveModalMode('save-as'), []);
   const handleCloseSaveModal = React.useCallback(() => setSaveModalMode(null), []);
+  const handleOpenLoad = React.useCallback(() => setLoadModalOpen(true), []);
+
+  const handleNewAgentConfiguration = React.useCallback(() => {
+    useChatbotConfigStore.getState().resetConfiguration();
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('agentProfileId');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+
+  const handleProfileSelected = React.useCallback(
+    (profileId: string) => {
+      setLoadModalOpen(false);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('agentProfileId', profileId);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   const handleProfileSaved = React.useCallback(
     (profileId: string, displayName: string, description: string) => {
@@ -215,6 +245,8 @@ const ChatbotMain: React.FunctionComponent = () => {
             <ChatbotHeaderActions
               onSave={handleOpenSave}
               onSaveAs={handleOpenSaveAs}
+              onLoad={handleOpenLoad}
+              onNew={handleNewAgentConfiguration}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
                 fireSimpleTrackingEvent('Playground View Code Selected');
@@ -290,6 +322,9 @@ const ChatbotMain: React.FunctionComponent = () => {
               hasConversationMessagesRef={hasConversationMessagesRef}
               isDrawerExpanded={isDrawerExpanded}
               setIsDrawerExpanded={setIsDrawerExpanded}
+              onOpenLoad={handleOpenLoad}
+              onOpenSave={handleOpenSave}
+              onOpenSaveAs={handleOpenSaveAs}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (
@@ -339,6 +374,12 @@ const ChatbotMain: React.FunctionComponent = () => {
           mcpConfigMapName={mcpConfigMapName}
           onClose={handleCloseSaveModal}
           onSaved={handleProfileSaved}
+        />
+      )}
+      {loadModalOpen && (
+        <LoadAgentProfileModal
+          onClose={() => setLoadModalOpen(false)}
+          onSelect={handleProfileSelected}
         />
       )}
     </>

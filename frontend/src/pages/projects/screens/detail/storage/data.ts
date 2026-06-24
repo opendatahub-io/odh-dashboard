@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import { getPvcAccessMode } from '#~/pages/projects/utils.ts';

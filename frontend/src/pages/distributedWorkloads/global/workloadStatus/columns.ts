@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { getStatusInfo } from '#~/concepts/distributedWorkloads/utils';
 import { WorkloadKind } from '#~/k8sTypes';
 

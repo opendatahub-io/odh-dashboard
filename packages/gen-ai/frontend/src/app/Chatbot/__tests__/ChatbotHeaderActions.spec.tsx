@@ -57,6 +57,8 @@ describe('ChatbotHeaderActions', () => {
     onCompareChat: jest.fn(),
     onSave: jest.fn(),
     onSaveAs: jest.fn(),
+    onLoad: jest.fn(),
+    onNew: jest.fn(),
     onSettingsClick: jest.fn(),
     isSettingsOpen: false,
     isCompareMode: false,
@@ -385,7 +387,7 @@ describe('ChatbotHeaderActions', () => {
       await user.click(screen.getByTestId('header-kebab-menu-toggle'));
 
       expect(screen.getByTestId('configure-playground-menu-item')).toHaveTextContent(
-        'Update configuration',
+        'Update playground',
       );
       expect(screen.getByTestId('delete-playground-menu-item')).toHaveTextContent(
         'Delete playground',

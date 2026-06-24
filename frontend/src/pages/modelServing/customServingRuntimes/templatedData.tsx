@@ -1,5 +1,5 @@
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 
 export const columns: SortableData<TemplateKind>[] = [
   {

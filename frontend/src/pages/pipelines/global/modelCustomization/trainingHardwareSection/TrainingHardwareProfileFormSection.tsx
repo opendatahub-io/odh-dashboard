@@ -10,13 +10,13 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { HardwareProfileKind, ContainerResources } from '@odh-dashboard/k8s-core';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { HardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import HardwareProfileCustomize from '#~/concepts/hardwareProfiles/HardwareProfileCustomize';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
 import { filterHardwareProfilesForTraining } from '#~/pages/pipelines/global/modelCustomization/utils';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 type TrainingHardwareProfileFormSectionProps = {

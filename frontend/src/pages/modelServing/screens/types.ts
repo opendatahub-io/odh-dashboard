@@ -1,5 +1,6 @@
 import { AlertVariant } from '@patternfly/react-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
+import type { ToggleState } from '@odh-dashboard/ui-core';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
   ImagePullSecret,
@@ -8,7 +9,6 @@ import {
   ServingRuntimeKind,
 } from '#~/k8sTypes';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
-import { ToggleState } from '#~/components/StateActionToggle';
 
 export enum PerformanceMetricType {
   SERVER = 'server',

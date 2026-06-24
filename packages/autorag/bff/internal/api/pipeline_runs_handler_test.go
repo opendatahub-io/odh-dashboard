@@ -82,31 +82,64 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		}
 	})
 
-	t.Run("should handle pagination parameters", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(
+	t.Run("should handle page-based pagination parameters", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+
+		rr1 := httptest.NewRecorder()
+		req1, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=10&nextPageToken=token123",
+			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=2&page=1",
 			nil,
 		)
 		assert.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
+		ctx1 := context.WithValue(req1.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx1 = context.WithValue(ctx1, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req1 = req1.WithContext(ctx1)
+		req1 = withDiscoveredPipeline(req1)
 
-		app.PipelineRunsHandler(rr, req, nil)
+		app.PipelineRunsHandler(rr1, req1, nil)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, http.StatusOK, rr1.Code)
 
-		// Verify pagination parameters were passed to the client
-		require.NotNil(t, mockClient.LastListRunsParams, "Handler should have called ListRuns")
-		assert.Equal(t, int32(10), mockClient.LastListRunsParams.PageSize,
-			"PageSize should be forwarded to client")
-		assert.Equal(t, "token123", mockClient.LastListRunsParams.PageToken,
-			"NextPageToken should be forwarded to client")
+		var page1Response PipelineRunsEnvelope
+		err = json.Unmarshal(rr1.Body.Bytes(), &page1Response)
+		assert.NoError(t, err)
+		assert.NotNil(t, page1Response.Data)
+		assert.Len(t, page1Response.Data.Runs, 2)
+		assert.Equal(t, int32(3), page1Response.Data.TotalSize)
+
+		rr2 := httptest.NewRecorder()
+		req2, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs?namespace=test-namespace&pageSize=2&page=2",
+			nil,
+		)
+		assert.NoError(t, err)
+
+		ctx2 := context.WithValue(req2.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx2 = context.WithValue(ctx2, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req2 = req2.WithContext(ctx2)
+		req2 = withDiscoveredPipeline(req2)
+
+		app.PipelineRunsHandler(rr2, req2, nil)
+
+		assert.Equal(t, http.StatusOK, rr2.Code)
+
+		var page2Response PipelineRunsEnvelope
+		err = json.Unmarshal(rr2.Body.Bytes(), &page2Response)
+		assert.NoError(t, err)
+		assert.NotNil(t, page2Response.Data)
+		assert.Len(t, page2Response.Data.Runs, 1)
+		assert.Equal(t, int32(3), page2Response.Data.TotalSize)
+
+		page1IDs := make(map[string]bool)
+		for _, run := range page1Response.Data.Runs {
+			page1IDs[run.RunID] = true
+		}
+		for _, run := range page2Response.Data.Runs {
+			assert.False(t, page1IDs[run.RunID], "run %q appears on both page 1 and page 2", run.RunID)
+		}
 	})
 }
 

@@ -2,10 +2,9 @@ import * as React from 'react';
 import { Button, ExpandableSection } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { TableVariant } from '@patternfly/react-table';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
 import { PipelinesFilter } from '#~/concepts/pipelines/types';
-import { Table } from '#~/components/table';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import usePipelineFilter, {
   FilterOptions,
   getDataValue,

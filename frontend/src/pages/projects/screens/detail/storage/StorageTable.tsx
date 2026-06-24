@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import { Table } from '#~/components/table';
+import { Table } from '@odh-dashboard/ui-core';
 import DeletePVCModal from '#~/pages/projects/pvc/DeletePVCModal';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
