@@ -108,6 +108,10 @@ func translateAgentError(err error) error {
 		return bfferrors.ErrAlreadyExists
 	}
 
+	if errors.Is(err, agents.ErrConflict) {
+		return bfferrors.ErrAlreadyExists
+	}
+
 	if errors.Is(err, agents.ErrForbidden) {
 		return bfferrors.ErrForbidden
 	}

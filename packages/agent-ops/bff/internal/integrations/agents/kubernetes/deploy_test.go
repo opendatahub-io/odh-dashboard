@@ -196,7 +196,7 @@ func TestDeployAgent_FullParams(t *testing.T) {
 		Protocol:          "a2a",
 		Framework:         "langgraph",
 		AuthBridgeEnabled: true,
-		AuthBridgeMode:    "token",
+		AuthBridgeMode:    "proxy-sidecar",
 		MTLSMode:          "strict",
 		CreateRoute:       true,
 		EnvVars: []agents.AgentEnvVar{

@@ -29,6 +29,13 @@ var validMTLSModes = map[string]bool{
 	"strict":     true,
 }
 
+var validServicePortProtocols = map[string]bool{
+	"TCP":  true,
+	"UDP":  true,
+	"SCTP": true,
+	"":     true,
+}
+
 func validateDeployRequest(req *models.DeployAgentRequest) error {
 	if !isValidDNS1123Label(req.Name) {
 		return fmt.Errorf("invalid agent name %q", req.Name)
@@ -38,6 +45,9 @@ func validateDeployRequest(req *models.DeployAgentRequest) error {
 	}
 	if req.ContainerImage == "" {
 		return fmt.Errorf("containerImage is required")
+	}
+	if strings.Contains(req.ContainerImage, ":") {
+		return fmt.Errorf("containerImage must not include a tag — use imageTag instead")
 	}
 	if req.ImageTag == "" {
 		return fmt.Errorf("imageTag is required")
@@ -71,6 +81,9 @@ func validateDeployRequest(req *models.DeployAgentRequest) error {
 		}
 		if p.TargetPort < 1 || p.TargetPort > 65535 {
 			return fmt.Errorf("servicePorts[%d].targetPort must be between 1 and 65535", i)
+		}
+		if !validServicePortProtocols[p.Protocol] {
+			return fmt.Errorf("servicePorts[%d].protocol %q must be one of TCP, UDP, SCTP", i, p.Protocol)
 		}
 	}
 	return nil
