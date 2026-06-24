@@ -149,7 +149,7 @@ describe('LoadAgentProfileModal', () => {
     renderModal();
 
     await waitFor(() => {
-      expect(screen.getByText('No agent profiles found.')).toBeInTheDocument();
+      expect(screen.getByText('No agent configurations found.')).toBeInTheDocument();
     });
   });
 
@@ -174,7 +174,7 @@ describe('LoadAgentProfileModal', () => {
     await waitFor(() => screen.getByText('Coding assistant'));
     await user.type(screen.getByPlaceholderText('Find by name'), 'xyz-no-match');
 
-    expect(screen.getByText('No profiles match your search.')).toBeInTheDocument();
+    expect(screen.getByText('No configurations match your search.')).toBeInTheDocument();
   });
 
   it('should show error state when API call fails', async () => {

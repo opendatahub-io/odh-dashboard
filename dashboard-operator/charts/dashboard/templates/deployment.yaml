@@ -52,6 +52,11 @@ spec:
                     - path: namespace
                       fieldRef:
                         fieldPath: metadata.namespace
+        {{- if .Values.webhook.enabled }}
+        - name: webhook-certs
+          secret:
+            secretName: {{ include "dashboard.webhookCertSecretName" . }}
+        {{- end }}
       containers:
         - name: manager
           image: {{ include "dashboard.image" . }}
@@ -60,11 +65,19 @@ spec:
             - name: dashboard-operator-sa-token
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
+            {{- if .Values.webhook.enabled }}
+            - name: webhook-certs
+              mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
+            {{- end }}
           args:
             - --namespace=$(OPERATOR_NAMESPACE)
             - --manifests-base-path={{ .Values.manager.manifestsBasePath }}
             {{- if .Values.manager.leaderElection }}
             - --leader-elect
+            {{- end }}
+            {{- if .Values.webhook.enabled }}
+            - --webhook-port={{ .Values.webhook.port }}
             {{- end }}
           env:
             - name: OPERATOR_NAMESPACE
@@ -82,6 +95,11 @@ spec:
             - containerPort: 8081
               name: health
               protocol: TCP
+            {{- if .Values.webhook.enabled }}
+            - containerPort: {{ .Values.webhook.port }}
+              name: webhook
+              protocol: TCP
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz
