@@ -279,3 +279,68 @@ func TestEnsurePostgres_FailsWhenOGXSelectorEmpty(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "OGXServerLabelSelector")
 }
+
+func TestSetOwnerReferences(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme()).WithInterceptorFuncs(readyDeploymentInterceptor()).Build()
+	ctx := context.Background()
+	ns := "test-ns"
+
+	_, err := EnsurePostgres(ctx, c, ns, testOpts())
+	require.NoError(t, err)
+
+	ownerRef := metav1.OwnerReference{
+		APIVersion:         "ogx.io/v1beta1",
+		Kind:               "OGXServer",
+		Name:               "my-server",
+		UID:                "test-uid-123",
+		BlockOwnerDeletion: &[]bool{false}[0],
+	}
+
+	require.NoError(t, SetOwnerReferences(ctx, c, ns, ownerRef))
+
+	// Verify each resource has the owner reference.
+	var secret corev1.Secret
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: CredentialsSecretName, Namespace: ns}, &secret))
+	require.Len(t, secret.OwnerReferences, 1)
+	assert.Equal(t, "my-server", secret.OwnerReferences[0].Name)
+
+	var cm corev1.ConfigMap
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: InitConfigMapName, Namespace: ns}, &cm))
+	require.Len(t, cm.OwnerReferences, 1)
+	assert.Equal(t, "my-server", cm.OwnerReferences[0].Name)
+
+	var pvc corev1.PersistentVolumeClaim
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: StoragePVCName, Namespace: ns}, &pvc))
+	require.Len(t, pvc.OwnerReferences, 1)
+	assert.Equal(t, "my-server", pvc.OwnerReferences[0].Name)
+
+	var deploy appsv1.Deployment
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: DeploymentName, Namespace: ns}, &deploy))
+	require.Len(t, deploy.OwnerReferences, 1)
+	assert.Equal(t, "my-server", deploy.OwnerReferences[0].Name)
+
+	var svc corev1.Service
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: ServiceName, Namespace: ns}, &svc))
+	require.Len(t, svc.OwnerReferences, 1)
+	assert.Equal(t, "my-server", svc.OwnerReferences[0].Name)
+
+	var netpol networkingv1.NetworkPolicy
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: NetworkPolicyName, Namespace: ns}, &netpol))
+	require.Len(t, netpol.OwnerReferences, 1)
+	assert.Equal(t, "my-server", netpol.OwnerReferences[0].Name)
+}
+
+func TestSetOwnerReferences_NoopWhenResourcesMissing(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme()).Build()
+	ctx := context.Background()
+
+	ownerRef := metav1.OwnerReference{
+		APIVersion: "ogx.io/v1beta1",
+		Kind:       "OGXServer",
+		Name:       "my-server",
+		UID:        "test-uid-123",
+	}
+
+	err := SetOwnerReferences(ctx, c, "empty-ns", ownerRef)
+	assert.NoError(t, err)
+}

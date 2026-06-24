@@ -1818,6 +1818,22 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
 	}
 
+	// Step 9: Set owner references on auto-provisioned pgvector resources so
+	// they are garbage-collected when the OGXServer is deleted.
+	if pgvectorProvisioned && kc.SAClient != nil {
+		ownerRef := metav1.OwnerReference{
+			APIVersion:         "ogx.io/v1beta1",
+			Kind:               "OGXServer",
+			Name:               lsdName,
+			UID:                ogxServer.UID,
+			BlockOwnerDeletion: &[]bool{false}[0],
+		}
+		if err := pgvector.SetOwnerReferences(ctx, kc.SAClient, namespace, ownerRef); err != nil {
+			kc.Logger.Warn("failed to set owner references on pgvector resources; they may not be garbage-collected",
+				"error", err, "namespace", namespace)
+		}
+	}
+
 	return ogxServer, nil
 }
 

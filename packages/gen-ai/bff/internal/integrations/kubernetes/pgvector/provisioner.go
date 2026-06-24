@@ -197,6 +197,40 @@ func DeletePostgresResources(ctx context.Context, c client.Client, namespace str
 	return nil
 }
 
+// SetOwnerReferences patches all auto-provisioned pgvector resources in the
+// namespace to include the given OwnerReference. This enables Kubernetes garbage
+// collection when the owner (e.g. OGXServer) is deleted. Resources that are not
+// found are silently skipped (they may not have been provisioned).
+func SetOwnerReferences(ctx context.Context, c client.Client, namespace string, ownerRef metav1.OwnerReference) error {
+	var errs []error
+
+	patchOwner := func(obj client.Object, kind, name string) {
+		key := client.ObjectKey{Name: name, Namespace: namespace}
+		if err := c.Get(ctx, key, obj); err != nil {
+			if !apierrors.IsNotFound(err) {
+				errs = append(errs, fmt.Errorf("get %s %s: %w", kind, name, err))
+			}
+			return
+		}
+		obj.SetOwnerReferences([]metav1.OwnerReference{ownerRef})
+		if err := c.Update(ctx, obj); err != nil {
+			errs = append(errs, fmt.Errorf("update %s %s owner: %w", kind, name, err))
+		}
+	}
+
+	patchOwner(&corev1.Secret{}, "Secret", CredentialsSecretName)
+	patchOwner(&corev1.ConfigMap{}, "ConfigMap", InitConfigMapName)
+	patchOwner(&corev1.PersistentVolumeClaim{}, "PVC", StoragePVCName)
+	patchOwner(&appsv1.Deployment{}, "Deployment", DeploymentName)
+	patchOwner(&corev1.Service{}, "Service", ServiceName)
+	patchOwner(&networkingv1.NetworkPolicy{}, "NetworkPolicy", NetworkPolicyName)
+
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to set owner references on pgvector resources: %v", errs)
+	}
+	return nil
+}
+
 // connectionFromExisting reads the existing credentials Secret and returns
 // a Connection for the already-provisioned pgvector instance.
 func connectionFromExisting(ctx context.Context, c client.Client, namespace string) (*Connection, error) {
