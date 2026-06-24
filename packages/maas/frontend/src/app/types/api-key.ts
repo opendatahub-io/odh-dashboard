@@ -1,4 +1,5 @@
 export type APIKeyStatus = 'active' | 'revoked' | 'expired';
+export type APIKeyDisplayStatus = APIKeyStatus | 'inactive';
 
 export type APIKey = {
   id: string;
@@ -67,17 +68,17 @@ export type SubscriptionOption = {
   displayName: string;
 };
 
-export const STATUS_OPTIONS: APIKeyStatus[] = ['active', 'expired', 'revoked'];
+export const STATUS_OPTIONS: APIKeyDisplayStatus[] = ['active', 'inactive', 'expired', 'revoked'];
 
 export type ApiKeyFilterDataType = {
   username: string;
-  statuses: APIKeyStatus[];
+  statuses: APIKeyDisplayStatus[];
   subscription: string;
 };
 
 export const initialApiKeyFilterData: ApiKeyFilterDataType = {
   username: '',
-  statuses: ['active', 'expired'],
+  statuses: ['active', 'inactive', 'expired'],
   subscription: '',
 };
 

@@ -184,13 +184,8 @@ func TestReconcile(t *testing.T) {
 			wantModuleCount: registrySize,
 		},
 		{
-			name:       "module statuses populated with components",
+			name:       "module statuses populated — all modules deployed by default",
 			generation: 1,
-			dashboardSpec: &v1alpha1.DashboardSpec{
-				Components: map[string]v1alpha1.ComponentAvailability{
-					"modelregistry": {ManagementState: "Managed"},
-				},
-			},
 			manifestsBase: func(t *testing.T) string {
 				return createMinimalManifests(t)
 			},
@@ -204,11 +199,14 @@ func TestReconcile(t *testing.T) {
 			wantGeneration:  1,
 			wantModuleCount: registrySize,
 			wantModulePhases: map[string]v1alpha1.ModulePhase{
-				"modelRegistry":  v1alpha1.ModulePhaseDeployed,
-				"genAi":          v1alpha1.ModulePhaseDeployed,
-				"mlflow":         v1alpha1.ModulePhaseNotDeployed,
-				"mlflowEmbedded": v1alpha1.ModulePhaseNotDeployed,
-				"perses":         v1alpha1.ModulePhaseNotDeployed,
+				"modelRegistry": v1alpha1.ModulePhaseDeployed,
+				"genAi":         v1alpha1.ModulePhaseDeployed,
+				"mlflow":        v1alpha1.ModulePhaseDeployed,
+				"maas":          v1alpha1.ModulePhaseDeployed,
+				"evalHub":       v1alpha1.ModulePhaseDeployed,
+				"automl":        v1alpha1.ModulePhaseDeployed,
+				"autorag":       v1alpha1.ModulePhaseDeployed,
+				"agentOps":      v1alpha1.ModulePhaseDeployed,
 			},
 		},
 		{
