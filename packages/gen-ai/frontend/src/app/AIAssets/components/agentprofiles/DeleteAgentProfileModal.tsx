@@ -46,15 +46,15 @@ const DeleteAgentProfileModal: React.FC<DeleteAgentProfileModalProps> = ({
       data-testid="delete-agent-profile-modal"
     >
       <ModalHeader
-        title="Delete agent profile?"
+        title="Delete agent configuration?"
         labelId="delete-agent-profile-modal-title"
         titleIconVariant="warning"
       />
       <ModalBody>
         <Content>
           <p>
-            The <strong>{profile.displayName}</strong> agent profile will be permanently deleted.
-            This action cannot be undone.
+            The <strong>{profile.displayName}</strong> agent configuration will be permanently
+            deleted. This action cannot be undone.
           </p>
           {error && (
             <HelperText>

@@ -1,4 +1,5 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 
 export type McpServerDeployModalExtension = Extension<
   'mcp-catalog.mcp-server/deploy-modal',
@@ -7,7 +8,6 @@ export type McpServerDeployModalExtension = Extension<
   }
 >;
 
-export const isMcpServerDeployModalExtension = (
-  extension: Extension,
-): extension is McpServerDeployModalExtension =>
-  extension.type === 'mcp-catalog.mcp-server/deploy-modal';
+export const isMcpServerDeployModalExtension = createExtensionGuard<McpServerDeployModalExtension>(
+  'mcp-catalog.mcp-server/deploy-modal',
+);

@@ -6,11 +6,12 @@ import {
   SelectList,
   SelectOption,
 } from '@patternfly/react-core';
-import { useNamespaceSelector } from 'mod-arch-core';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 
 const NamespaceSelector: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const { namespaces, preferredNamespace, updatePreferredNamespace } = useNamespaceSelector();
+  const { namespaces, preferredNamespace, updatePreferredNamespace } =
+    useNamespaceSelectorWithPersistence();
 
   const selectedNamespace = preferredNamespace?.name ?? namespaces[0]?.name;
 
