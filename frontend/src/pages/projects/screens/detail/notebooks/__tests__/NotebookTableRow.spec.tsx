@@ -74,9 +74,10 @@ jest.mock('#~/pages/projects/notebook/NotebookActionsColumn', () => ({
   NotebookActionsColumn: () => <div>actions</div>,
 }));
 
-jest.mock('#~/components/StateActionToggle', () => ({
-  __esModule: true,
-  default: () => <div>toggle</div>,
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  StateActionToggle: () => <div>toggle</div>,
+  ResourceNameTooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('#~/pages/projects/screens/detail/notebooks/NotebookImageDisplayName', () => ({
@@ -96,11 +97,6 @@ jest.mock('#~/pages/projects/screens/detail/notebooks/NotebookSizeDetails', () =
 jest.mock('#~/pages/projects/screens/detail/notebooks/NotebookFeatureStoreList', () => ({
   __esModule: true,
   default: () => <div>feature-store-list</div>,
-}));
-
-jest.mock('#~/components/ResourceNameTooltip', () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 const mockUseKueueConfiguration = jest.mocked(useKueueConfiguration);
