@@ -4,21 +4,17 @@ import { parseErrorStatus } from '~/app/utilities/utils';
 
 /**
  * Empty State A: true when list load failed because there is no managed pipeline server
- * (mapped BFF errors). Takes precedence over Empty State B because callers branch on
- * `loadError` before the zero-runs empty state.
- *
- * Note: "no pipelines found" errors are no longer matched here — the BFF auto-creates
- * pipelines on experiment submission, so missing pipelines are not a user-facing error.
+ * or required managed pipelines are unavailable (mapped BFF errors). Takes precedence over
+ * Empty State B because callers branch on `loadError` before the zero-runs empty state.
  */
 export function shouldShowConfigurePipelineServerEmptyState(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
   }
-  const status = getGenericErrorCode(error) ?? parseErrorStatus(error);
-  if (status === 404) {
+  const msg = error.message;
+  if (/required\s+managed\s+pipelines\s+not\s+found/i.test(msg)) {
     return true;
   }
-  const msg = error.message;
   if (/no\s+pipeline\s+server\s*\(\s*dspipelineapplication\)/i.test(msg)) {
     return true;
   }

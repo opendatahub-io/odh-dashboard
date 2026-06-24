@@ -6,7 +6,7 @@ import * as React from 'react';
 type ConfigureFormGroupProps = {
   children: React.ReactNode;
   label: string;
-  labelHelp?: { header: string; body: string };
+  labelHelp?: { header: string; body: React.ReactNode };
   description?: React.ReactNode;
   isRequired?: boolean;
 };

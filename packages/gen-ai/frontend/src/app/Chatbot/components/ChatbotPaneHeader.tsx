@@ -24,6 +24,11 @@ interface ChatbotPaneHeaderProps {
   /** Test ID prefix for the header elements */
   testIdPrefix?: string;
   isDarkMode?: boolean;
+  isDisabled?: boolean;
+  /** Name of the currently loaded agent profile, shown before the Model label */
+  agentName?: string;
+  /** When true, shows a "Preview" badge next to the agent name */
+  isPreviewMode?: boolean;
 }
 
 /**
@@ -42,6 +47,9 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   isActiveConfig,
   testIdPrefix = 'chatbot',
   isDarkMode,
+  isDisabled = false,
+  agentName,
+  isPreviewMode = false,
 }) => (
   <div
     style={{
@@ -81,6 +89,35 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                 )}
               </>
             )}
+            {agentName && !isSettingsOpen && (
+              <>
+                <FlexItem>
+                  <Content
+                    component="p"
+                    style={{
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--pf-t--global--spacer--sm)',
+                      fontSize: 'var(--pf-t--global--font--size--lg)',
+                    }}
+                  >
+                    <strong>{agentName}</strong>
+                    {isPreviewMode && (
+                      <Label isCompact color="blue" data-testid="agent-preview-label">
+                        Preview
+                      </Label>
+                    )}
+                  </Content>
+                </FlexItem>
+                <FlexItem alignSelf={{ default: 'alignSelfCenter' }}>
+                  <Divider
+                    orientation={{ default: 'vertical' }}
+                    style={{ height: 'var(--pf-t--global--font--size--body--default)' }}
+                  />
+                </FlexItem>
+              </>
+            )}
             {!isSettingsOpen && (
               <FlexItem>
                 <Content component="p" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
@@ -93,6 +130,7 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
                 testId="chatbot-model-selector-toggle"
+                isDisabled={isDisabled}
               />
             </FlexItem>
           </Flex>

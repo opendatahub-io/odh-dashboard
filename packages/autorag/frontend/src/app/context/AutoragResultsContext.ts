@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { OgxCredentials, PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 
 export type AutoragResultsContextProps = {
@@ -15,6 +16,9 @@ export type AutoragResultsContextProps = {
   parameters?: Partial<ConfigureSchema>;
   ragPatternsBasePath?: string;
   ogxCredentials?: OgxCredentials;
+  componentStageMap?: ComponentStageMap;
+  componentStageMapLoading?: boolean;
+  componentStageMapError?: boolean;
 };
 
 export const AutoragResultsContext = React.createContext<AutoragResultsContextProps | undefined>(
@@ -39,6 +43,9 @@ export function getAutoragContext({
   onRetryPatterns,
   ragPatternsBasePath,
   ogxCredentials,
+  componentStageMap,
+  componentStageMapLoading,
+  componentStageMapError,
 }: {
   pipelineRun?: PipelineRun;
   patterns?: Record<string, AutoragPattern>;
@@ -49,6 +56,9 @@ export function getAutoragContext({
   onRetryPatterns?: () => void;
   ragPatternsBasePath?: string;
   ogxCredentials?: OgxCredentials;
+  componentStageMap?: ComponentStageMap;
+  componentStageMapLoading?: boolean;
+  componentStageMapError?: boolean;
 }): AutoragResultsContextProps {
   // Validate runtime_config.parameters against ConfigureSchema to ensure type safety
   const configureSchema = createConfigureSchema();
@@ -75,5 +85,8 @@ export function getAutoragContext({
     parameters,
     ragPatternsBasePath,
     ogxCredentials,
+    componentStageMap,
+    componentStageMapLoading,
+    componentStageMapError,
   };
 }

@@ -1,12 +1,13 @@
-import type { DashboardCommonConfig, DashboardConfigKind } from '@odh-dashboard/k8s-core';
-import { EitherOrBoth } from '#~/typeHelpers';
-import {
+import { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
+import type {
+  DashboardCommonConfig,
+  DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
-  DataScienceStackComponent,
-} from '#~/types-core';
+} from '@odh-dashboard/k8s-core';
+import { EitherOrBoth } from '#~/typeHelpers';
 
-export { DataScienceStackComponent } from '#~/types-core';
+export { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
 
 export type FeatureFlag = keyof DashboardCommonConfig;
 
@@ -68,6 +69,7 @@ export enum SupportedArea {
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
+  MAAS_SETTINGS_IA_REDESIGN = 'maas-settings-ia-redesign',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',

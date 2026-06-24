@@ -15,7 +15,16 @@ type KubernetesClientInterface interface {
 	IsClusterAdmin(identity *RequestIdentity) (bool, error)
 	GetUser(identity *RequestIdentity) (string, error)
 
-	// EvalHub CR auto-discovery
+	// EvalHub service discovery
+
+	// GetEvalHubDiscoveryURL reads the EvalHubDiscovery ConfigMap from the tenant namespace
+	// and returns the service URL. This is the preferred discovery method for multi-tenant
+	// deployments where the EvalHub CR lives in a different namespace than the user's tenant.
+	// Returns ("", nil) if the ConfigMap does not exist in the namespace.
+	GetEvalHubDiscoveryURL(ctx context.Context, identity *RequestIdentity, namespace string) (string, error)
+
+	// EvalHub CR auto-discovery (fallback)
+
 	// CanListEvalHubInstances performs a SubjectAccessReview to verify the user has permission
 	// to list EvalHub custom resources in the given namespace.
 	CanListEvalHubInstances(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)

@@ -1,4 +1,5 @@
-import { KnownLabels, type ResourceRule, type RoleKind } from '#~/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
+import type { ResourceRule, RoleKind } from '#~/k8sTypes';
 import type { RuleEntry } from './types';
 
 type AssembledRole = RoleKind & { rules: ResourceRule[] };

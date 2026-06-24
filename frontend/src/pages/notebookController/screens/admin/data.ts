@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { AdminViewUserData } from './types';
 
 export const columns: SortableData<AdminViewUserData>[] = [

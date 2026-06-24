@@ -44,20 +44,68 @@ type MaaSTokenResponse struct {
 	ExpiresAt string `json:"expiresAt,omitempty"`
 }
 
-// MaaSBFFTokenRequest matches the MaaS BFF token endpoint contract (TokenRequest)
-// This is different from MaaSTokenRequest which is used for direct MaaS API key operations
-type MaaSBFFTokenRequest struct {
-	Expiration string `json:"expiration,omitempty"`
+// --- Types for inter-BFF communication with MaaS BFF ---
+
+// MaaSBFFModelDetails contains model metadata from MaaS BFF
+type MaaSBFFModelDetails struct {
+	DisplayName   string `json:"displayName,omitempty"`
+	Description   string `json:"description,omitempty"`
+	GenAIUseCase  string `json:"genaiUseCase,omitempty"`
+	ContextWindow int    `json:"contextWindow,omitempty"`
 }
 
-// MaaSBFFTokenResponseData matches the MaaS BFF token endpoint response (TokenResponse)
-type MaaSBFFTokenResponseData struct {
-	Token     string `json:"token"`
-	ExpiresAt int64  `json:"expiresAt"`
+// MaaSBFFModel represents a model from MaaS BFF with nested modelDetails
+type MaaSBFFModel struct {
+	ID            string               `json:"id"`
+	Object        string               `json:"object"`
+	Created       int64                `json:"created"`
+	OwnedBy       string               `json:"owned_by"`
+	Ready         bool                 `json:"ready"`
+	URL           string               `json:"url"`
+	ModelType     string               `json:"model_type,omitempty"`
+	ModelDetails  *MaaSBFFModelDetails `json:"modelDetails,omitempty"`
+	Subscriptions []SubscriptionInfo   `json:"subscriptions,omitempty"`
+	Kind          string               `json:"kind,omitempty"`
 }
 
-// MaaSBFFTokenResponse wraps the token response as returned by MaaS BFF
-// MaaS BFF returns responses in an envelope: {"data": {...}}
-type MaaSBFFTokenResponse struct {
-	Data MaaSBFFTokenResponseData `json:"data"`
+// MaaSBFFModelsData represents the data field in MaaS BFF models response
+type MaaSBFFModelsData struct {
+	Object string         `json:"object"`
+	Data   []MaaSBFFModel `json:"data"`
+}
+
+// MaaSBFFModelsResponse represents the full MaaS BFF models response envelope
+type MaaSBFFModelsResponse struct {
+	Data MaaSBFFModelsData `json:"data"`
+}
+
+// MaaSBFFAPIKeyRequestData represents the payload inside the envelope for API key creation.
+type MaaSBFFAPIKeyRequestData struct {
+	Name         string `json:"name"`
+	Description  string `json:"description,omitempty"`
+	ExpiresIn    string `json:"expiresIn,omitempty"`
+	Subscription string `json:"subscription"`
+	Ephemeral    bool   `json:"ephemeral"`
+}
+
+// MaaSBFFAPIKeyRequest represents the MaaS BFF API key creation request.
+// Per MaaS BFF OpenAPI spec, POST /api/v1/api-keys expects an envelope wrapper {"data": {...}}.
+type MaaSBFFAPIKeyRequest struct {
+	Data MaaSBFFAPIKeyRequestData `json:"data"`
+}
+
+// MaaSBFFAPIKeyResponseData represents the payload inside the envelope for API key response.
+type MaaSBFFAPIKeyResponseData struct {
+	Key       string  `json:"key"`
+	KeyPrefix string  `json:"keyPrefix,omitempty"`
+	ID        string  `json:"id,omitempty"`
+	Name      string  `json:"name,omitempty"`
+	CreatedAt *string `json:"createdAt,omitempty"`
+	ExpiresAt *string `json:"expiresAt,omitempty"`
+}
+
+// MaaSBFFAPIKeyResponse represents the MaaS BFF API key response.
+// Per MaaS BFF OpenAPI spec, POST /api/v1/api-keys returns an envelope wrapper {"data": {...}}.
+type MaaSBFFAPIKeyResponse struct {
+	Data MaaSBFFAPIKeyResponseData `json:"data"`
 }

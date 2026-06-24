@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import MarkdownView from '#~/components/MarkdownView';
-import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import TruncatedText from '#~/components/TruncatedText';
 
 type TableRowTitleDescriptionProps = {

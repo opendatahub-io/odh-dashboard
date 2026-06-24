@@ -14,11 +14,10 @@ import {
   MenuToggle,
   SearchInput,
 } from '@patternfly/react-core';
+import { DashboardEmptyTableView, SortableData, Table } from '@odh-dashboard/ui-core';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
-import { SortableData, Table } from '#~/components/table';
 import { ExperimentKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { experimentSelectorColumns } from '#~/concepts/pipelines/content/experiment/columns';
 import { pipelineVersionSelectorColumns } from '#~/concepts/pipelines/content/pipelineSelector/columns';
 

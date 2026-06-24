@@ -28,6 +28,8 @@ import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery, useSecretCredentialsQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
+import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import {
   formatMetricName,
@@ -43,7 +45,6 @@ type DrawerContentType =
   | { type: 'run-details' }
   | {
       type: 'playground';
-      secretName: string;
       responsesTemplate: ResponsesTemplate;
       patternInfo: PlaygroundPatternInfo;
     };
@@ -78,6 +79,7 @@ function AutoragResultsPage(): React.JSX.Element {
     isFetching: pipelineRunFetching,
     isError: pipelineRunError,
     error: pipelineRunLoadError,
+    dataUpdatedAt: pipelineRunUpdatedAt,
   } = usePipelineRunQuery(runId, namespace);
 
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
@@ -115,6 +117,15 @@ function AutoragResultsPage(): React.JSX.Element {
     refetch: refetchPatterns,
     ragPatternsBasePath,
   } = useAutoragResults(runId, namespace, pipelineRun);
+
+  const {
+    componentStageMap: rawComponentStageMap,
+    isLoading: componentStageMapLoading,
+    isError: componentStageMapError,
+  } = useComponentStageMap(runId, namespace, pipelineRun);
+
+  const { mergedStageMap: componentStageMap, isLoading: componentStatusesLoading } =
+    useComponentStatuses(runId, namespace, pipelineRun, rawComponentStageMap, pipelineRunUpdatedAt);
 
   const failedPatternsNotifiedKey = React.useRef('');
   React.useEffect(() => {
@@ -181,6 +192,9 @@ function AutoragResultsPage(): React.JSX.Element {
         onRetryPatterns: refetchPatterns,
         ragPatternsBasePath,
         ogxCredentials,
+        componentStageMap,
+        componentStageMapLoading: componentStageMapLoading || componentStatusesLoading,
+        componentStageMapError,
       }),
     [
       pipelineRun,
@@ -193,6 +207,10 @@ function AutoragResultsPage(): React.JSX.Element {
       refetchPatterns,
       ragPatternsBasePath,
       ogxCredentials,
+      componentStageMap,
+      componentStageMapLoading,
+      componentStatusesLoading,
+      componentStageMapError,
     ],
   );
 
@@ -204,8 +222,7 @@ function AutoragResultsPage(): React.JSX.Element {
         return;
       }
       const responsesTemplate = pattern.settings?.responses_template;
-      const secretName = contextValue.parameters?.ogx_secret_name;
-      if (!responsesTemplate || !secretName) {
+      if (!responsesTemplate) {
         return;
       }
 
@@ -216,7 +233,6 @@ function AutoragResultsPage(): React.JSX.Element {
       const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
       setDrawerContent({
         type: 'playground',
-        secretName,
         responsesTemplate,
         patternInfo: {
           patternName,
@@ -228,7 +244,7 @@ function AutoragResultsPage(): React.JSX.Element {
         },
       });
     },
-    [patterns, contextValue.parameters?.ogx_secret_name, pipelineRun],
+    [patterns, pipelineRun],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
@@ -262,10 +278,8 @@ function AutoragResultsPage(): React.JSX.Element {
             ) : drawerContent?.type === 'playground' ? (
               <PlaygroundDrawerPanel
                 namespace={namespace ?? ''}
-                secretName={drawerContent.secretName}
                 responsesTemplate={drawerContent.responsesTemplate}
                 patternInfo={drawerContent.patternInfo}
-                patterns={patterns}
                 onClose={handleDrawerClose}
                 onSelectPattern={handleTryPattern}
                 onViewCode={handleViewCode}

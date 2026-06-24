@@ -638,14 +638,14 @@ describe('Start Evaluation Run - Connection Validation', () => {
     startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
   });
 
-  it('should keep submit disabled when external fields are filled but not validated', () => {
+  it('should allow submit when external fields are filled without requiring validation', () => {
     navigateToBenchmarkStart();
 
     selectExternalEndpoint();
     startEvaluationRunPage.findModelNameInput().type('my-model');
     startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
 
-    startEvaluationRunPage.findSubmitButton().should('be.disabled');
+    startEvaluationRunPage.findSubmitButton().should('be.enabled');
   });
 });
 /* eslint-enable camelcase */

@@ -1,4 +1,4 @@
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { DataSet } from '../../types/dataSets';
 
 export const columns: SortableData<DataSet>[] = [

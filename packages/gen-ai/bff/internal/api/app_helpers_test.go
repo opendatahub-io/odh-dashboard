@@ -5,9 +5,9 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow/mlflowmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
@@ -34,7 +34,7 @@ func NewTestApp(cfg config.EnvConfig, logger *slog.Logger, k8sFactory k8s.Kubern
 		repositories:            repositories.NewRepositoriesWithMCP(mcpFactory, logger),
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-		maasClientFactory:       maasmocks.NewMockClientFactory(),
+		bffClientFactory:        bffmocks.NewMockClientFactory(logger),
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowmocks.NewMockClientFactory(),
 		dashboardNamespace:      "opendatahub",

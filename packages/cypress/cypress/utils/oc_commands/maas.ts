@@ -62,6 +62,37 @@ export const cleanupAuthPolicy = (
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
 
+/**
+ * Cleans up all API keys by truncating the Postgres api_keys table.
+ *
+ * Credentials are read from the `postgres-creds` secret in APPLICATIONS_NAMESPACE.
+ * Acceptable on dedicated E2E clusters where the table is exclusively test data.
+ */
+export const cleanupApiKeys = (): Cypress.Chainable<CommandLineResult> => {
+  const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string;
+  cy.log('Cleaning up API keys by truncating the Postgres api_keys table');
+  return cy
+    .exec(
+      `oc get secret postgres-creds -n ${applicationNamespace} -o jsonpath='{.data.POSTGRES_USER}' | base64 -d`,
+      { failOnNonZeroExit: false },
+    )
+    .then((userResult) => {
+      const pgUser = userResult.stdout.trim();
+      return cy
+        .exec(
+          `oc get secret postgres-creds -n ${applicationNamespace} -o jsonpath='{.data.POSTGRES_DB}' | base64 -d`,
+          { failOnNonZeroExit: false },
+        )
+        .then((dbResult) => {
+          const pgDb = dbResult.stdout.trim();
+          return cy.exec(
+            `oc exec -n ${applicationNamespace} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "TRUNCATE TABLE api_keys;"`,
+            { failOnNonZeroExit: false },
+          );
+        });
+    });
+};
+
 const ocGetIndicatesResourceNotFound = (result: Cypress.Exec): boolean => {
   const combined = `${result.stderr}\n${result.stdout}`;
   return /not found/i.test(combined) || /\bNotFound\b/.test(combined);
