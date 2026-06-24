@@ -7,7 +7,10 @@ import {
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { FlatBenchmark, Collection, InferenceServiceItem } from '~/app/types';
-import { useStartEvaluationRunForm, EXTERNAL_ENDPOINT_VALUE } from '../useStartEvaluationRunForm';
+import {
+  useStartEvaluationRunForm,
+  EXTERNAL_ENDPOINT_VALUE,
+} from '~/app/pages/useStartEvaluationRunForm';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
