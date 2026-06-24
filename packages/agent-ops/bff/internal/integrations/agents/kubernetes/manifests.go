@@ -49,7 +49,7 @@ func buildServiceAccount(name, namespace string) *corev1.ServiceAccount {
 	}
 }
 
-func buildDeployment(params *agents.DeployAgentParams) *appsv1.Deployment {
+func buildDeployment(params *agents.DeployAgentParams, ownerRef metav1.OwnerReference) *appsv1.Deployment {
 	labels := buildDeploymentLabels(params)
 
 	image := params.ContainerImage
@@ -118,10 +118,11 @@ func buildDeployment(params *agents.DeployAgentParams) *appsv1.Deployment {
 			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        params.Name,
-			Namespace:   params.Namespace,
-			Labels:      labels,
-			Annotations: annotations,
+			Name:            params.Name,
+			Namespace:       params.Namespace,
+			Labels:          labels,
+			Annotations:     annotations,
+			OwnerReferences: []metav1.OwnerReference{ownerRef},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
@@ -150,7 +151,7 @@ func buildDeployment(params *agents.DeployAgentParams) *appsv1.Deployment {
 	}
 }
 
-func buildService(params *agents.DeployAgentParams) *corev1.Service {
+func buildService(params *agents.DeployAgentParams, ownerRef metav1.OwnerReference) *corev1.Service {
 	ports := buildServicePorts(params)
 	return &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
@@ -158,9 +159,10 @@ func buildService(params *agents.DeployAgentParams) *corev1.Service {
 			Kind:       "Service",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      params.Name,
-			Namespace: params.Namespace,
-			Labels:    buildServiceLabels(params),
+			Name:            params.Name,
+			Namespace:       params.Namespace,
+			Labels:          buildServiceLabels(params),
+			OwnerReferences: []metav1.OwnerReference{ownerRef},
 		},
 		Spec: corev1.ServiceSpec{
 			Type:     corev1.ServiceTypeClusterIP,
@@ -207,7 +209,7 @@ func buildAgentRuntimeCR(params *agents.DeployAgentParams) *unstructured.Unstruc
 	return obj
 }
 
-func buildRoute(name, namespace string, port int32) *unstructured.Unstructured {
+func buildRoute(name, namespace string, port int32, ownerRef metav1.OwnerReference) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]any{
 			"apiVersion": openshiftRouteGVR.Group + "/" + openshiftRouteGVR.Version,
@@ -218,6 +220,14 @@ func buildRoute(name, namespace string, port int32) *unstructured.Unstructured {
 				"labels": map[string]any{
 					labelManagedBy: managedByValue,
 					labelAppName:   name,
+				},
+				"ownerReferences": []any{
+					map[string]any{
+						"apiVersion": ownerRef.APIVersion,
+						"kind":       ownerRef.Kind,
+						"name":       ownerRef.Name,
+						"uid":        string(ownerRef.UID),
+					},
 				},
 			},
 			"spec": map[string]any{

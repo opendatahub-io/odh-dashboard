@@ -8,6 +8,7 @@ import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // DeployAgent creates all Kubernetes resources for a new agent deployment.
@@ -57,16 +58,24 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 
 	// 2. AgentRuntime CR
 	agentRuntime := buildAgentRuntimeCR(params)
-	_, err = dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Create(ctx, agentRuntime, metav1.CreateOptions{})
+	var crUID types.UID
+	createdCR, err := dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Create(ctx, agentRuntime, metav1.CreateOptions{})
 	if err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			rollback()
 			return nil, fmt.Errorf("failed to create AgentRuntime: %w", mapK8sError(err))
 		}
+		existingCR, getErr := dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Get(ctx, params.Name, metav1.GetOptions{})
+		if getErr != nil {
+			rollback()
+			return nil, fmt.Errorf("failed to get existing AgentRuntime: %w", mapK8sError(getErr))
+		}
+		crUID = existingCR.GetUID()
 		c.logger.Debug("AgentRuntime already exists, reusing",
 			slog.String("name", params.Name),
 			slog.String("namespace", params.Namespace))
 	} else {
+		crUID = createdCR.GetUID()
 		cleanups = append(cleanups, func() {
 			if delErr := dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Delete(rollbackCtx, params.Name, metav1.DeleteOptions{}); delErr != nil {
 				c.logger.Warn("rollback: failed to delete AgentRuntime",
@@ -76,8 +85,15 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 		})
 	}
 
+	ownerRef := metav1.OwnerReference{
+		APIVersion: agentRuntimeGVR.Group + "/" + agentRuntimeGVR.Version,
+		Kind:       "AgentRuntime",
+		Name:       params.Name,
+		UID:        crUID,
+	}
+
 	// 3. Deployment
-	deployment := buildDeployment(params)
+	deployment := buildDeployment(params, ownerRef)
 	_, err = clientset.AppsV1().Deployments(params.Namespace).Create(ctx, deployment, metav1.CreateOptions{})
 	if err != nil {
 		rollback()
@@ -92,7 +108,7 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 	})
 
 	// 4. Service
-	svc := buildService(params)
+	svc := buildService(params, ownerRef)
 	_, err = clientset.CoreV1().Services(params.Namespace).Create(ctx, svc, metav1.CreateOptions{})
 	if err != nil {
 		rollback()
@@ -113,7 +129,7 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 			svcPort = params.ServicePorts[0].Port
 		}
 
-		route := buildRoute(params.Name, params.Namespace, svcPort)
+		route := buildRoute(params.Name, params.Namespace, svcPort, ownerRef)
 		_, err = dynamicClient.Resource(openshiftRouteGVR).Namespace(params.Namespace).Create(ctx, route, metav1.CreateOptions{})
 		if err != nil {
 			rollback()

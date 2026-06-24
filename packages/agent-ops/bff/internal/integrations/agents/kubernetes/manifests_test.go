@@ -7,7 +7,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
+
+var testOwnerRef = metav1.OwnerReference{
+	APIVersion: "agent.kagenti.dev/v1alpha1",
+	Kind:       "AgentRuntime",
+	Name:       "my-agent",
+	UID:        types.UID("test-uid-1234"),
+}
 
 func TestBuildServiceAccount(t *testing.T) {
 	sa := buildServiceAccount("my-agent", "test-ns")
@@ -110,7 +119,7 @@ func TestBuildDeployment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			deployment := buildDeployment(tt.params)
+			deployment := buildDeployment(tt.params, testOwnerRef)
 			require.NotNil(t, deployment)
 
 			assert.Equal(t, tt.params.Name, deployment.Name)
@@ -156,7 +165,7 @@ func TestBuildDeploymentEnvVars(t *testing.T) {
 		},
 	}
 
-	deployment := buildDeployment(params)
+	deployment := buildDeployment(params, testOwnerRef)
 	require.NotNil(t, deployment)
 	require.Len(t, deployment.Spec.Template.Spec.Containers, 1)
 
@@ -209,7 +218,7 @@ func TestBuildService(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			svc := buildService(tt.params)
+			svc := buildService(tt.params, testOwnerRef)
 			require.NotNil(t, svc)
 
 			assert.Equal(t, tt.params.Name, svc.Name)
@@ -301,7 +310,7 @@ func TestBuildAgentRuntimeCR(t *testing.T) {
 }
 
 func TestBuildRoute(t *testing.T) {
-	route := buildRoute("my-agent", "test-ns", 8080)
+	route := buildRoute("my-agent", "test-ns", 8080, testOwnerRef)
 	require.NotNil(t, route)
 
 	assert.Equal(t, "Route", route.GetKind())
