@@ -1829,8 +1829,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			BlockOwnerDeletion: &[]bool{false}[0],
 		}
 		if err := pgvector.SetOwnerReferences(ctx, kc.SAClient, namespace, ownerRef); err != nil {
-			kc.Logger.Warn("failed to set owner references on pgvector resources; they may not be garbage-collected",
-				"error", err, "namespace", namespace)
+			return nil, fmt.Errorf("failed to set owner references on pgvector resources: %w", err)
 		}
 	}
 
