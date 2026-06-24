@@ -26,8 +26,8 @@ type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 //
 // Query Parameters:
 //   - namespace: Kubernetes namespace (required, validated by middleware)
+//   - page: Page number, 1-indexed (optional, default: 1)
 //   - pageSize: Number of results per page (optional, default: 20, max: 100)
-//   - nextPageToken: Pagination token (optional)
 //
 // Error Responses:
 //   - 400: Invalid query parameters
@@ -76,20 +76,51 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		pageSize = int32(parsed)
 	}
 
-	pageToken := query.Get("nextPageToken")
+	page := int64(1)
+	if pageStr := query.Get("page"); pageStr != "" {
+		parsed, err := strconv.ParseInt(pageStr, 10, 64)
+		if err != nil || parsed <= 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid page parameter: must be a positive integer"))
+			return
+		}
+		page = parsed
+	}
 
-	// Call repository to get pipeline runs across all versions of the discovered AutoRAG pipeline.
-	runsData, err := app.repositories.PipelineRuns.GetPipelineRuns(
+	allRuns, err := app.repositories.PipelineRuns.GetAllPipelineRuns(
 		client,
 		ctx,
 		discovered.PipelineID,
-		pageSize,
-		pageToken,
 		constants.PipelineTypeAutoRAG,
 	)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline runs: %w", err))
 		return
+	}
+
+	total := len(allRuns)
+	totalSize := int32(total)
+	total64 := int64(total)
+	start64 := (page - 1) * int64(pageSize)
+	end64 := start64 + int64(pageSize)
+
+	if start64 < 0 {
+		start64 = 0
+	}
+	if start64 > total64 {
+		start64 = total64
+	}
+	if end64 < start64 {
+		end64 = start64
+	}
+	if end64 > total64 {
+		end64 = total64
+	}
+
+	pagedRuns := allRuns[int(start64):int(end64)]
+
+	runsData := &models.PipelineRunsData{
+		Runs:      pagedRuns,
+		TotalSize: totalSize,
 	}
 
 	// Wrap in envelope response

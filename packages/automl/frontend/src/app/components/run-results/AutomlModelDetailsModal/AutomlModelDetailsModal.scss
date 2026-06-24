@@ -315,8 +315,6 @@
 }
 
 .automl-model-info-list {
-  --pf-v6-c-description-list--m-horizontal__term--width: 10rem;
-
   .pf-v6-c-description-list__group {
     gap: var(--pf-t--global--spacer--xs);
     padding-bottom: var(--pf-t--global--spacer--sm);
@@ -326,10 +324,6 @@
   .pf-v6-c-description-list__term,
   .pf-v6-c-description-list__description {
     font-size: var(--pf-t--global--font--size--md);
-  }
-
-  .pf-v6-c-description-list__term {
-    white-space: nowrap;
   }
 }
 

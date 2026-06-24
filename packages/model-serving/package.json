@@ -32,6 +32,7 @@
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
     "lodash-es": "^4.18.1",
     "yaml": "^2.9.0",
     "zod": "^3.25.76"

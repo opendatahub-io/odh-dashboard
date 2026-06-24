@@ -38,6 +38,9 @@ var mcpServersFixture []byte
 //go:embed testdata/vector_stores.yaml
 var vectorStoresFixture string
 
+//go:embed testdata/custom_endpoint_models.yaml
+var customEndpointModelsFixture string
+
 // TODO: Expand this to include more test users with right permissions.
 var DefaultTestUsers = []TestUser{
 	{
@@ -387,6 +390,11 @@ func SetupMock(mockK8sClient client.Client, ctx context.Context) error {
 		}
 	}
 
+	// Create custom endpoint models ConfigMap for mock-test-namespace-2 to support custom_endpoint source tests
+	if err := createCustomEndpointModelsConfigMap(mockK8sClient, ctx, "mock-test-namespace-2"); err != nil {
+		return fmt.Errorf("failed to create custom endpoint models ConfigMap in mock-test-namespace-2: %w", err)
+	}
+
 	return nil
 }
 
@@ -419,6 +427,19 @@ func createVectorStoresConfigMap(k8sClient client.Client, ctx context.Context, n
 		},
 		Data: map[string]string{
 			"config.yaml": vectorStoresFixture,
+		},
+	}
+	return k8sClient.Create(ctx, cm)
+}
+
+func createCustomEndpointModelsConfigMap(k8sClient client.Client, ctx context.Context, namespace string) error {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "gen-ai-aa-custom-model-endpoints",
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"config.yaml": customEndpointModelsFixture,
 		},
 	}
 	return k8sClient.Create(ctx, cm)

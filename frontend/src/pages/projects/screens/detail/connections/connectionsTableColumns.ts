@@ -1,5 +1,5 @@
+import { SortableData } from '@odh-dashboard/ui-core';
 import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
-import { SortableData } from '#~/components/table';
 import { getConnectionTypeDisplayName } from '#~/concepts/connectionTypes/utils';
 
 export const getColumns = (

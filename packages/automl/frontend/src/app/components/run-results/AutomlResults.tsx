@@ -1,9 +1,13 @@
 import {
   Alert,
   AlertActionCloseButton,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   Flex,
   FlexItem,
   Label,
+  Spinner,
   Stack,
   StackItem,
   Title,
@@ -14,9 +18,10 @@ import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
+import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import { downloadBlob } from '~/app/utilities/utils';
+import { downloadBlob, isRunInTerminalState } from '~/app/utilities/utils';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
 import RegisterModelModal from './RegisterModelModal';
@@ -33,7 +38,14 @@ type NotebookDownloadError = {
 };
 
 function AutomlResults(): React.JSX.Element {
-  const { pipelineRun, models } = useAutomlResultsContext();
+  const {
+    pipelineRun,
+    models,
+    componentStageMap,
+    componentStageMapLoading,
+    componentStageMapError,
+    parameters,
+  } = useAutomlResultsContext();
   const { namespace } = useParams<{ namespace: string }>();
 
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
@@ -41,7 +53,28 @@ function AutomlResults(): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
-  const nodes = useAutomlTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
+  const stageMapNodes = React.useMemo(
+    () =>
+      componentStageMap
+        ? buildStageMapTopology(
+            componentStageMap,
+            runDetails,
+            pipelineRun?.state,
+            parameters?.top_n,
+          )
+        : [],
+    [componentStageMap, runDetails, pipelineRun?.state, parameters?.top_n],
+  );
+  const fallbackNodes = useAutomlTaskTopology(
+    pipelineRun?.pipeline_spec,
+    runDetails,
+    pipelineRun?.state,
+  );
+  const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
+  const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
+  const useStageMap = hasStageMapTask && !componentStageMapError;
+  const nodes = useStageMap ? stageMapNodes : fallbackNodes;
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);
@@ -153,12 +186,26 @@ function AutomlResults(): React.JSX.Element {
               </FlexItem>
             )}
           </Flex>
-          <PipelineTopology
-            nodes={nodes}
-            selectedIds={selectedIds}
-            onSelectionChange={setSelectedIds}
-            className="automl-topology-container"
-          />
+          {useStageMap &&
+          !componentStageMap &&
+          (componentStageMapLoading || !isRunInTerminalState(pipelineRun?.state)) ? (
+            <EmptyState
+              variant={EmptyStateVariant.sm}
+              icon={Spinner}
+              headingLevel="h3"
+              titleText="Preparing the optimization pipeline"
+              className="automl-topology-container"
+            >
+              <EmptyStateBody>This may take a moment.</EmptyStateBody>
+            </EmptyState>
+          ) : (
+            <PipelineTopology
+              nodes={nodes}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+              className="automl-topology-container"
+            />
+          )}
         </StackItem>
         <StackItem>
           <AutomlLeaderboard

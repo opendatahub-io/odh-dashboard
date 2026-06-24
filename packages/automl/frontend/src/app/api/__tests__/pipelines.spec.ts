@@ -106,19 +106,36 @@ describe('getPipelineRunsFromBFF', () => {
     );
   });
 
-  it('should include nextPageToken when provided', async () => {
+  it('should include page when provided', async () => {
     mockRestGET.mockResolvedValue({ data: { runs: [], total_size: 0, next_page_token: '' } });
     mockIsModArchResponse.mockReturnValue(true);
 
     await getPipelineRunsFromBFF('', {
       namespace: 'my-ns',
-      nextPageToken: 'page-token-xyz',
+      page: 2,
     });
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
       '/automl/api/v1/pipeline-runs',
-      expect.objectContaining({ nextPageToken: 'page-token-xyz' }),
+      expect.objectContaining({ page: '2' }),
+      {},
+    );
+  });
+
+  it('should include page when page is 0', async () => {
+    mockRestGET.mockResolvedValue({ data: { runs: [], total_size: 0, next_page_token: '' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getPipelineRunsFromBFF('', {
+      namespace: 'my-ns',
+      page: 0,
+    });
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/automl/api/v1/pipeline-runs',
+      expect.objectContaining({ page: '0' }),
       {},
     );
   });
