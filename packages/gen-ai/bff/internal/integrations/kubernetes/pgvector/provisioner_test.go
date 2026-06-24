@@ -268,3 +268,14 @@ func TestEnsurePostgres_PasswordIsRandom(t *testing.T) {
 	assert.NotEqual(t, string(s1.Data[DefaultPasswordKey]), string(s2.Data[DefaultPasswordKey]),
 		"passwords should differ between provisioning runs")
 }
+
+func TestEnsurePostgres_FailsWhenOGXSelectorEmpty(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme()).Build()
+	ctx := context.Background()
+
+	_, err := EnsurePostgres(ctx, c, "test-ns", Options{
+		Image: "registry.example.com/postgresql-16:latest",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "OGXServerLabelSelector")
+}

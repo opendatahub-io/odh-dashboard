@@ -68,6 +68,10 @@ func managedSelector() labels.Selector {
 func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts Options) (*Connection, error) {
 	log := opts.logger()
 
+	if len(opts.OGXServerLabelSelector) == 0 {
+		return nil, fmt.Errorf("OGXServerLabelSelector must be non-empty to scope the NetworkPolicy ingress rule")
+	}
+
 	// Check for an existing pgvector Deployment.
 	var existing appsv1.DeploymentList
 	if err := c.List(ctx, &existing, client.InNamespace(namespace), client.MatchingLabelsSelector{Selector: managedSelector()}); err != nil {

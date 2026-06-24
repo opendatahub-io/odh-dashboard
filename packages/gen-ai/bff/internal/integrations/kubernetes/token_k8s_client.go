@@ -1620,6 +1620,8 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		if conn.IsConfigured() {
 			pgConn = &conn
 			kc.Logger.Info("using manually configured pgvector", "host", pgConn.Host)
+		} else {
+			kc.Logger.Info("pgvector not configured (no SAClient, no PGVECTOR_HOST); vector store features will be unavailable")
 		}
 	}
 
@@ -1648,8 +1650,15 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			corev1.EnvVar{Name: pgvector.UserEnvVar, Value: pgConn.User},
 		)
 		if pgConn.PasswordSecret != nil {
+			// Use the client that provisioned the Secret: SAClient for auto-provisioned
+			// pgvector (the user's token may not have get-secrets permission), otherwise
+			// the user's token client for manually configured connections.
+			secretReader := kc.Client
+			if kc.SAClient != nil && pgvectorProvisioned {
+				secretReader = kc.SAClient
+			}
 			var secret corev1.Secret
-			if err := kc.Client.Get(ctx, types.NamespacedName{
+			if err := secretReader.Get(ctx, types.NamespacedName{
 				Name:      pgConn.PasswordSecret.Name,
 				Namespace: namespace,
 			}, &secret); err != nil {
@@ -2617,9 +2626,9 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	if kc.SAClient != nil {
 		if err := pgvector.DeletePostgresResources(ctx, kc.SAClient, namespace); err != nil {
 			kc.Logger.Error("failed to delete pgvector resources", "error", err, "namespace", namespace)
-		} else {
-			kc.Logger.Info("pgvector resources deleted", "namespace", namespace)
+			return targetServer, fmt.Errorf("OGXServer deleted but pgvector cleanup failed: %w", err)
 		}
+		kc.Logger.Info("pgvector resources deleted", "namespace", namespace)
 	}
 
 	return targetServer, nil
