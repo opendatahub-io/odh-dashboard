@@ -361,6 +361,13 @@ func buildDeployment(namespace, image string) *appsv1.Deployment {
 								},
 								PeriodSeconds: 20,
 							},
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: &[]bool{false}[0],
+								RunAsNonRoot:             &[]bool{true}[0],
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+							},
 						},
 					},
 					Volumes: []corev1.Volume{
