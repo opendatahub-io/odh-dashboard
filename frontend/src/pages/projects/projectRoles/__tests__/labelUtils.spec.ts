@@ -93,6 +93,17 @@ describe('fromK8sLabels', () => {
     expect(fromK8sLabels({})).toHaveLength(0);
   });
 
+  it('should skip labels where key is exactly the prefix with no suffix', () => {
+    const labels = {
+      [USER_LABEL_PREFIX]: 'orphan',
+      [`${USER_LABEL_PREFIX}team`]: 'platform',
+    };
+
+    const result = fromK8sLabels(labels);
+    expect(result).toHaveLength(1);
+    expect(result[0].key).toBe('team');
+  });
+
   it('should generate unique ids for each entry', () => {
     const labels = {
       [`${USER_LABEL_PREFIX}a`]: '1',
@@ -140,5 +151,14 @@ describe('getUserLabels', () => {
 
   it('should return empty object for empty object', () => {
     expect(getUserLabels({})).toStrictEqual({});
+  });
+
+  it('should skip labels where key is exactly the prefix with no suffix', () => {
+    const labels = {
+      [USER_LABEL_PREFIX]: 'orphan',
+      [`${USER_LABEL_PREFIX}team`]: 'platform',
+    };
+
+    expect(getUserLabels(labels)).toStrictEqual({ team: 'platform' });
   });
 });
