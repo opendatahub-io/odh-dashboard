@@ -18,8 +18,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
-import TableBase from '@odh-dashboard/internal/components/table/TableBase';
-import useTableColumnSort from '@odh-dashboard/internal/components/table/useTableColumnSort';
+import { TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 import SearchSelector from '@odh-dashboard/internal/components/searchSelector/SearchSelector';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useConnectedWorkbenches } from '../apiHooks/useConnectedWorkbenches';

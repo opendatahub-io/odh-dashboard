@@ -12,6 +12,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionTitles } from '#~/pages/projects/screens/detail/const';
@@ -26,7 +27,6 @@ import {
   isCurrentServingPlatformEnabled,
 } from '#~/pages/modelServing/screens/projects/utils';
 import KServeInferenceServiceTable from '#~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '#~/components/EmptyDetailsView';
 import EmptySingleModelServingCard from '#~/pages/modelServing/screens/projects/EmptySingleModelServingCard';

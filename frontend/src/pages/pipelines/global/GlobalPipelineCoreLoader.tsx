@@ -6,6 +6,7 @@ import PipelineCoreNoProjects from '#~/pages/pipelines/global/PipelineCoreNoProj
 import { PipelineContextProvider } from '#~/concepts/pipelines/context';
 import InvalidProject from '#~/concepts/projects/InvalidProject';
 import { ProjectObjectType } from '#~/concepts/design/utils';
+import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 import PipelineCoreProjectSelector from './PipelineCoreProjectSelector';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
@@ -30,6 +31,7 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const storedProject = getStoredPreferredProject(projects);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (projects.length === 0) {
@@ -56,7 +58,7 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
       ),
     };
   } else {
-    const redirectProject = preferredProject ?? projects[0];
+    const redirectProject = storedProject ?? preferredProject ?? projects[0];
     if (!strict) {
       // Redirect the namespace suffix into the URL
       return <Navigate to={getInvalidRedirectPath(redirectProject.metadata.name)} replace />;

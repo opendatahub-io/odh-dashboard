@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -1477,4 +1478,79 @@ func TestDefaultConfig_RegisteredResourcesShape(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, jsonStr, "\"models\":[]")
 	assert.Contains(t, jsonStr, "\"vector_stores\":[]")
+}
+
+func TestSetDefaultPgvectorProvider(t *testing.T) {
+	t.Run("replaces milvus with pgvector and updates default provider ID", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		require.Len(t, config.Providers.VectorIO, 1)
+		assert.Equal(t, "inline::milvus", config.Providers.VectorIO[0].ProviderType)
+		assert.Equal(t, "milvus", config.VectorStores.DefaultProviderID)
+
+		conn := pgvector.Connection{
+			Host: "pg.svc.cluster.local",
+			Port: 5432,
+			DB:   "vectordb",
+			User: "vectoruser",
+		}
+		config.SetDefaultPgvectorProvider(conn)
+
+		require.Len(t, config.Providers.VectorIO, 1, "should have exactly one vector_io provider")
+		p := config.Providers.VectorIO[0]
+		assert.Equal(t, pgvector.DefaultProviderID, p.ProviderID)
+		assert.Equal(t, pgvector.ProviderType, p.ProviderType)
+		assert.Equal(t, pgvector.DefaultProviderID, config.VectorStores.DefaultProviderID)
+	})
+
+	t.Run("provider config uses env var placeholders", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		conn := pgvector.Connection{
+			Host: "pg.svc.cluster.local",
+			Port: 5432,
+			DB:   "mydb",
+			User: "myuser",
+		}
+		config.SetDefaultPgvectorProvider(conn)
+
+		pc := config.Providers.VectorIO[0].Config
+		assert.Equal(t, "${env.PGVECTOR_HOST}", pc["host"])
+		assert.Equal(t, "${env.PGVECTOR_PORT:=5432}", pc["port"])
+		assert.Equal(t, "${env.PGVECTOR_DB:=mydb}", pc["db"])
+		assert.Equal(t, "${env.PGVECTOR_USER:=myuser}", pc["user"])
+		assert.Equal(t, "${env.PGVECTOR_PASSWORD:=}", pc["password"])
+		assert.Equal(t, pgvector.DefaultDistanceMetric, pc["distance_metric"])
+
+		persistence, ok := pc["persistence"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "kv_default", persistence["backend"])
+	})
+
+	t.Run("serializes to valid YAML with pgvector provider", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.SetDefaultPgvectorProvider(pgvector.Connection{
+			Host: "pg.svc.cluster.local",
+			Port: 5432,
+			DB:   "vectordb",
+			User: "vectoruser",
+		})
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+		assert.Contains(t, yamlStr, "remote::pgvector")
+		assert.NotContains(t, yamlStr, "inline::milvus")
+	})
+
+	t.Run("does not affect other providers or registered resources", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddModel(NewLLMModel("test-model", "test-provider", "Test"))
+
+		conn := pgvector.Connection{Host: "pg", Port: 5432, DB: "db", User: "user"}
+		config.SetDefaultPgvectorProvider(conn)
+
+		assert.Len(t, config.Providers.Inference, 1, "inference providers unchanged")
+		assert.Len(t, config.Providers.Responses, 1, "responses providers unchanged")
+		assert.Len(t, config.RegisteredResources.Models, 1, "registered models unchanged")
+		assert.Equal(t, "sentence-transformers", config.VectorStores.DefaultEmbeddingModel.ProviderID,
+			"default embedding model unchanged")
+	})
 }

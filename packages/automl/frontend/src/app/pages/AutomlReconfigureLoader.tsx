@@ -1,5 +1,4 @@
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
@@ -20,6 +19,7 @@ import {
   EVAL_METRIC_ALIASES,
 } from '~/app/utilities/const';
 import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
 const configureBasePartial = createConfigureSchema().base.partial();
@@ -34,9 +34,8 @@ const configureBasePartial = createConfigureSchema().base.partial();
  */
 function AutomlReconfigureLoader(): React.JSX.Element {
   const { namespace, runId } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =

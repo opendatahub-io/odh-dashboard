@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { TbodyProps } from '@patternfly/react-table';
-import { EitherNotBoth } from '#~/typeHelpers';
 import TableBase, { MIN_PAGE_SIZE } from './TableBase';
 import useTableColumnSort from './useTableColumnSort';
+import { EitherNotBoth } from '../types';
 
 type TableProps<DataType> = Omit<
   React.ComponentProps<typeof TableBase<DataType>>,
