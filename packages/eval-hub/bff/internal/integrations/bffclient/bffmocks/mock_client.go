@@ -46,7 +46,6 @@ func (m *MockBFFClient) handleModelCatalogCall(method, path string, response int
 		return bffclient.NewBadRequestError(m.target, fmt.Sprintf("only GET is supported, got %s", method))
 	}
 
-	uri := "oci://registry.example.com/models/granite:v1-onnx"
 	mockResp := map[string]interface{}{
 		"data": map[string]interface{}{
 			"nextPageToken": "",
@@ -54,8 +53,8 @@ func (m *MockBFFClient) handleModelCatalogCall(method, path string, response int
 			"size":          1,
 			"items": []map[string]interface{}{
 				{
-					"artifactType":         "model-artifact",
-					"uri":                  &uri,
+					"artifactType":         "metrics-artifact",
+					"metricsType":          "security-metrics",
 					"createTimeSinceEpoch": "1693526400000",
 				},
 			},

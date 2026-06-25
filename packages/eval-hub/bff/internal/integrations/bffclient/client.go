@@ -72,7 +72,7 @@ func NewHTTPBFFClient(
 }
 
 // Call makes a request to the target BFF. If AllowedPaths is configured, the
-// path must match at least one prefix or the call is rejected locally.
+// path must contain at least one allowed substring or the call is rejected locally.
 func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body interface{}, response interface{}) error {
 	if len(c.allowedPaths) > 0 && !c.isPathAllowed(path) {
 		return NewPathNotAllowedError(c.target, path)
@@ -146,8 +146,8 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 }
 
 func (c *HTTPBFFClient) isPathAllowed(path string) bool {
-	for _, prefix := range c.allowedPaths {
-		if strings.HasPrefix(path, prefix) {
+	for _, pattern := range c.allowedPaths {
+		if strings.Contains(path, pattern) {
 			return true
 		}
 	}

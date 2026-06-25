@@ -11,19 +11,19 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 )
 
-// GetCatalogModelArtifactsHandler proxies the request to the model-catalog BFF
-// to retrieve artifacts for a specific model.
+// GetCatalogModelSecurityArtifactsHandler proxies the request to the model-catalog BFF
+// to retrieve security artifacts for a specific model.
 //
-// Route: GET /api/v1/catalog/sources/:source_id/artifacts/*model_name
+// Route: GET /api/v1/catalog/sources/:source_id/security_artifacts/*model_name
 //
 // The frontend extension passes source_id and model_name; the handler forwards
 // the call to the model-catalog BFF at:
 //
-//	GET /model_catalog/sources/:source_id/artifacts/:model_name
+//	GET /model_catalog/sources/:source_id/security_artifacts/:model_name
 //
-// Only this endpoint is in the allowlist; the performance_artifacts endpoint
-// and all other model-catalog endpoints are blocked by the bffclient.
-func (app *App) GetCatalogModelArtifactsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// Only this endpoint is in the allowlist; other model-catalog endpoints
+// are blocked by the bffclient.
+func (app *App) GetCatalogModelSecurityArtifactsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
 	mcClient := bffclient.GetClient(ctx, bffclient.BFFTargetModelCatalog)
@@ -47,7 +47,7 @@ func (app *App) GetCatalogModelArtifactsHandler(w http.ResponseWriter, r *http.R
 	encodedModelName := url.PathEscape(modelName)
 
 	// The bffclient baseURL already includes /api/v1 as PathPrefix.
-	catalogPath := fmt.Sprintf("/model_catalog/sources/%s/artifacts/%s", sourceID, encodedModelName)
+	catalogPath := fmt.Sprintf("/model_catalog/sources/%s/security_artifacts/%s", sourceID, encodedModelName)
 
 	if rawQuery := r.URL.RawQuery; rawQuery != "" {
 		catalogPath += "?" + rawQuery

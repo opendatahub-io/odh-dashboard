@@ -43,12 +43,12 @@ const (
 	EvalHubCRStatusPath      = ApiPathPrefix + "/evalhub/status"
 	EvalHubServiceHealthPath = ApiPathPrefix + "/evalhub/health"
 
-	// Inter-BFF: model-catalog artifacts
-	CatalogSourceID           = "source_id"
-	CatalogModelName          = "model_name"
-	CatalogModelArtifactsPath = ApiPathPrefix + "/catalog/sources/:" + CatalogSourceID + "/artifacts/*" + CatalogModelName
-	InferenceServicesPath     = ApiPathPrefix + "/inferenceservices"
-	VerifyConnectionPath      = ApiPathPrefix + "/evaluations/verify-connection"
+	// Inter-BFF: model-catalog security artifacts
+	CatalogSourceID                   = "source_id"
+	CatalogModelName                  = "model_name"
+	CatalogModelSecurityArtifactsPath = ApiPathPrefix + "/catalog/sources/:" + CatalogSourceID + "/security_artifacts/*" + CatalogModelName
+	InferenceServicesPath             = ApiPathPrefix + "/inferenceservices"
+	VerifyConnectionPath              = ApiPathPrefix + "/evaluations/verify-connection"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -257,16 +257,10 @@ func (app *App) Routes() http.Handler {
 	// Connection verification (probes external endpoints, no EvalHub REST client needed)
 	apiRouter.POST(VerifyConnectionPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyConnectionHandler)))
 
-	// InferenceService listing (user-token dynamic client, no EvalHub REST client needed)
-	apiRouter.GET(InferenceServicesPath, app.AttachNamespace(app.RequireAccessToService(app.InferenceServicesHandler)))
-
-	// Connection verification (probes external endpoints, no EvalHub REST client needed)
-	apiRouter.POST(VerifyConnectionPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyConnectionHandler)))
-
-	// Inter-BFF: model-catalog artifacts (only artifacts endpoint is allowed; performance_artifacts is blocked by the bffclient allowlist)
-	apiRouter.GET(CatalogModelArtifactsPath, app.AttachNamespace(app.RequireAccessToService(
+	// Inter-BFF: model-catalog security artifacts (only security_artifacts endpoint is allowed by the bffclient allowlist)
+	apiRouter.GET(CatalogModelSecurityArtifactsPath, app.AttachNamespace(app.RequireAccessToService(
 		bffclient.AttachBFFClient(app.bffClientFactory, bffclient.BFFTargetModelCatalog)(
-			app.GetCatalogModelArtifactsHandler))))
+			app.GetCatalogModelSecurityArtifactsHandler))))
 
 	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
 	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.EvalHubCRStatusHandler))

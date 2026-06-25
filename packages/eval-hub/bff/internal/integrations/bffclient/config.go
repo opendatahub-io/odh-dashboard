@@ -25,8 +25,8 @@ type BFFServiceConfig struct {
 	AuthTokenHeader string
 	AuthTokenPrefix string
 
-	// AllowedPaths restricts which endpoint path prefixes this client can call.
-	// If non-empty, Call() rejects any path not matching at least one prefix.
+	// AllowedPaths restricts which endpoint paths this client can call.
+	// If non-empty, Call() rejects any path not containing at least one of these substrings.
 	// If empty/nil, all paths are allowed.
 	AllowedPaths []string
 }
@@ -55,7 +55,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",
 				AllowedPaths: []string{
-					"/model_catalog/sources/",
+					"/security_artifacts/",
 				},
 			},
 		},
