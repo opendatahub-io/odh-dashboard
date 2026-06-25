@@ -100,6 +100,12 @@ export interface ChatbotConfigStoreState {
    * Cleared by resetConfiguration() when the user starts a new configuration.
    */
   loadedProfileSpec: AgentProfileSpec | null;
+  /**
+   * Validation warnings produced during profile deserialization (e.g. model not found,
+   * MCP server unresolvable). Non-null when a profile is loaded with missing resources.
+   * Drives the warning alert and disabled Edit in OpenAgentProfileModal.
+   */
+  loadedProfileWarnings: string[] | null;
 }
 
 /**
@@ -165,6 +171,7 @@ export interface ChatbotConfigStoreActions {
    * "the last thing that was persisted."
    */
   setLoadedProfileSpec: (spec: AgentProfileSpec | null) => void;
+  setLoadedProfileWarnings: (warnings: string[] | null) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;

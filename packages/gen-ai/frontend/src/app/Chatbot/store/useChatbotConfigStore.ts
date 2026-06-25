@@ -156,6 +156,7 @@ export const createChatbotConfigStore = (
     loadedProfileDisplayName: null,
     loadedProfileDescription: null,
     loadedProfileSpec: null,
+    loadedProfileWarnings: null,
   };
 
   return create<ChatbotConfigStore>()(
@@ -633,6 +634,10 @@ const createStoreActions = (
 
   setLoadedProfileSpec: (spec) => {
     set(() => ({ loadedProfileSpec: spec }), false, 'setLoadedProfileSpec');
+  },
+
+  setLoadedProfileWarnings: (warnings) => {
+    set(() => ({ loadedProfileWarnings: warnings }), false, 'setLoadedProfileWarnings');
   },
 
   // Configuration management

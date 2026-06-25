@@ -1415,4 +1415,36 @@ describe('useChatbotConfigStore', () => {
       expect(useChatbotConfigStore.getState().loadedProfileSpec).toBeNull();
     });
   });
+
+  describe('setLoadedProfileWarnings', () => {
+    it('should store warnings', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .setLoadedProfileWarnings(['Model "x" is no longer available.']);
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toEqual([
+        'Model "x" is no longer available.',
+      ]);
+    });
+
+    it('should clear warnings when called with null', () => {
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileWarnings(['some warning']);
+        useChatbotConfigStore.getState().setLoadedProfileWarnings(null);
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toBeNull();
+    });
+
+    it('should be cleared by resetConfiguration', () => {
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileWarnings(['some warning']);
+        useChatbotConfigStore.getState().resetConfiguration();
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toBeNull();
+    });
+  });
 });
