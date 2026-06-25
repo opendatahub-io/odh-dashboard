@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   ClipboardCopyButton,
   CodeBlock,
@@ -132,6 +133,18 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
             </>
           )}
         </Content>
+        {hasCredentials && showCredentials && (
+          <Alert
+            variant="warning"
+            isInline
+            title="Credentials will be included when you copy"
+            className="pf-v6-u-mb-md"
+            data-testid="credentials-warning-alert"
+          >
+            Your real OGX hostname and API key will be copied with the snippet. Treat the copied
+            code as a secret.
+          </Alert>
+        )}
         <div className="autorag-view-code-modal__tabs-container">
           {hasCredentials && (
             <div className="autorag-view-code-modal__credentials-toggle">
@@ -160,14 +173,14 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
                         id={tab.id}
                         aria-label={tab.ariaLabel}
                         onClick={() =>
-                          handleCopy(tab.generator(responsesTemplate, decodedCredentials), index)
+                          handleCopy(tab.generator(responsesTemplate, displayCredentials), index)
                         }
                         variant="plain"
                       >
                         {copiedTab === index
                           ? 'Copied'
-                          : hasCredentials
-                            ? 'Copy with credentials included'
+                          : showCredentials && hasCredentials
+                            ? 'Copy with credentials'
                             : 'Copy'}
                       </ClipboardCopyButton>
                     </CodeBlockAction>

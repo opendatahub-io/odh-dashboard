@@ -163,16 +163,21 @@ describe('ViewCodeModal', () => {
       expect(codeBlock.textContent).not.toContain('<HOSTNAME>');
     });
 
-    it('should display "Copy with credentials" button text when credentials are provided', () => {
+    it('should show "Copy" copy button when credentials are available but toggle is off', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
-      const copyButton = screen.getByLabelText('Copy curl snippet');
-      expect(copyButton).toBeInTheDocument();
+      expect(screen.getByLabelText('Copy curl snippet')).toBeInTheDocument();
+    });
+
+    it('should show "Copy with credentials" copy button when toggle is on', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      fireEvent.click(screen.getByTestId('toggle-credentials-button'));
+      // Verify the button still exists with the same aria-label
+      expect(screen.getByLabelText('Copy curl snippet')).toBeInTheDocument();
     });
 
     it('should display copy button when no credentials', () => {
       render(<ViewCodeModal {...defaultProps} />);
-      const copyButton = screen.getByLabelText('Copy curl snippet');
-      expect(copyButton).toBeInTheDocument();
+      expect(screen.getByLabelText('Copy curl snippet')).toBeInTheDocument();
     });
 
     it('should show replacement instruction text when no credentials', () => {
@@ -185,7 +190,7 @@ describe('ViewCodeModal', () => {
       expect(screen.queryByText(/Replace/)).not.toBeInTheDocument();
     });
 
-    it('should copy snippet with real credentials to clipboard regardless of toggle state', async () => {
+    it('should copy snippet with placeholders when toggle is off', async () => {
       const writeText = jest.fn().mockResolvedValue(undefined);
       Object.assign(navigator, { clipboard: { writeText } });
 
@@ -194,10 +199,36 @@ describe('ViewCodeModal', () => {
 
       expect(writeText).toHaveBeenCalledTimes(1);
       const copiedText = writeText.mock.calls[0][0] as string;
+      expect(copiedText).toContain('<HOSTNAME>');
+      expect(copiedText).toContain('<API_KEY>');
+      expect(copiedText).not.toContain('ogx.example.com');
+    });
+
+    it('should copy snippet with real credentials when toggle is on', async () => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText } });
+
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      fireEvent.click(screen.getByTestId('toggle-credentials-button'));
+      fireEvent.click(screen.getByLabelText('Copy curl snippet'));
+
+      expect(writeText).toHaveBeenCalledTimes(1);
+      const copiedText = writeText.mock.calls[0][0] as string;
       expect(copiedText).toContain('ogx.example.com');
       expect(copiedText).toContain('sk-test-key-123');
       expect(copiedText).not.toContain('<HOSTNAME>');
       expect(copiedText).not.toContain('<API_KEY>');
+    });
+
+    it('should not show the credentials warning alert when toggle is off', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      expect(screen.queryByTestId('credentials-warning-alert')).not.toBeInTheDocument();
+    });
+
+    it('should show the credentials warning alert when toggle is on', () => {
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      fireEvent.click(screen.getByTestId('toggle-credentials-button'));
+      expect(screen.getByTestId('credentials-warning-alert')).toBeInTheDocument();
     });
 
     it('should show error notification and fall back to placeholders when credentials have invalid base64', () => {
