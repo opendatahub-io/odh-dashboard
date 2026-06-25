@@ -88,7 +88,8 @@ export const validateAgentProfileAsync: (
   if (spec.prompt) {
     if (promptOutcome.status === 'fulfilled' && promptOutcome.value) {
       result.resolvedPrompt = promptOutcome.value;
-    } else if (promptOutcome.status === 'rejected') {
+    } else {
+      // Covers both rejected promises and fulfilled-with-null (prompt not found).
       warnings.push(`Prompt "${spec.prompt.name}" is no longer available.`);
     }
   }
