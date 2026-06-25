@@ -24,8 +24,7 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*",
-    "@types/lodash-es": "^4.17.12"
+    "@odh-dashboard/tsconfig": "*"
   },
   "peerDependencies": {
     "@openshift/dynamic-plugin-sdk": "^5",
