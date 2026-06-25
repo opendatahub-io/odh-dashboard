@@ -20,7 +20,7 @@ export const generateCurlSnippet = (
   const hostname = credentials ? escapeShellDoubleQuote(credentials.hostname) : '<HOSTNAME>';
   const apiKey = credentials ? escapeShellDoubleQuote(credentials.apiKey) : '<API_KEY>';
   const body = escapeShellSingleQuote(JSON.stringify(template, null, 2));
-  return `curl -X POST https://${hostname}/v1/responses \\
+  return `curl -X POST "https://${hostname}/v1/responses" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${apiKey}" \\
   -d '${body}'`;

@@ -88,6 +88,7 @@ func (app *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
 	err = app.WriteJSON(w, http.StatusOK, envelope, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

@@ -37,125 +37,83 @@ const mockTemplate: ResponsesTemplate = {
   include: ['file_search_call.results'],
 };
 
-const mockParams = {
-  template: mockTemplate,
-  secretName: 'my-secret',
-  namespace: 'my-namespace',
-};
-
 describe('generateCurlSnippet', () => {
   it('should return a string', () => {
-    const result = generateCurlSnippet(mockParams);
-    expect(typeof result).toBe('string');
+    expect(typeof generateCurlSnippet(mockTemplate)).toBe('string');
   });
 
   it('should contain the model name from the template', () => {
-    const result = generateCurlSnippet(mockParams);
-    expect(result).toContain('test-model');
+    expect(generateCurlSnippet(mockTemplate)).toContain('test-model');
   });
 
   it('should contain curl -X POST', () => {
-    const result = generateCurlSnippet(mockParams);
-    expect(result).toContain('curl -X POST');
+    expect(generateCurlSnippet(mockTemplate)).toContain('curl -X POST');
   });
 
-  it('should contain the secret name and namespace in kubectl commands', () => {
-    const result = generateCurlSnippet(mockParams);
-    expect(result).toContain('my-secret');
-    expect(result).toContain('my-namespace');
-  });
-
-  it('should reference OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY', () => {
-    const result = generateCurlSnippet(mockParams);
-    expect(result).toContain('OGX_CLIENT_BASE_URL');
-    expect(result).toContain('OGX_CLIENT_API_KEY');
+  it('should show <HOSTNAME> and <API_KEY> placeholders when no credentials', () => {
+    const result = generateCurlSnippet(mockTemplate);
+    expect(result).toContain('<HOSTNAME>');
+    expect(result).toContain('<API_KEY>');
   });
 });
 
 describe('generateNodeSnippet', () => {
   it('should return a string', () => {
-    const result = generateNodeSnippet(mockParams);
-    expect(typeof result).toBe('string');
+    expect(typeof generateNodeSnippet(mockTemplate)).toBe('string');
   });
 
   it('should contain the model name from the template', () => {
-    const result = generateNodeSnippet(mockParams);
-    expect(result).toContain('test-model');
+    expect(generateNodeSnippet(mockTemplate)).toContain('test-model');
   });
 
   it('should contain import OpenAI', () => {
-    const result = generateNodeSnippet(mockParams);
-    expect(result).toContain('import OpenAI');
+    expect(generateNodeSnippet(mockTemplate)).toContain('import OpenAI');
   });
 
-  it('should contain the secret name and namespace', () => {
-    const result = generateNodeSnippet(mockParams);
-    expect(result).toContain('my-secret');
-    expect(result).toContain('my-namespace');
-  });
-
-  it('should use @kubernetes/client-node to fetch the secret', () => {
-    const result = generateNodeSnippet(mockParams);
-    expect(result).toContain('@kubernetes/client-node');
-    expect(result).toContain('readNamespacedSecret');
+  it('should show <HOSTNAME> and <API_KEY> placeholders when no credentials', () => {
+    const result = generateNodeSnippet(mockTemplate);
+    expect(result).toContain('<HOSTNAME>');
+    expect(result).toContain('<API_KEY>');
   });
 });
 
 describe('generateGoSnippet', () => {
   it('should return a string', () => {
-    const result = generateGoSnippet(mockParams);
-    expect(typeof result).toBe('string');
+    expect(typeof generateGoSnippet(mockTemplate)).toBe('string');
   });
 
   it('should contain the model name from the template', () => {
-    const result = generateGoSnippet(mockParams);
-    expect(result).toContain('test-model');
+    expect(generateGoSnippet(mockTemplate)).toContain('test-model');
   });
 
   it('should contain package main', () => {
-    const result = generateGoSnippet(mockParams);
-    expect(result).toContain('package main');
+    expect(generateGoSnippet(mockTemplate)).toContain('package main');
   });
 
-  it('should contain the secret name and namespace', () => {
-    const result = generateGoSnippet(mockParams);
-    expect(result).toContain('my-secret');
-    expect(result).toContain('my-namespace');
-  });
-
-  it('should use client-go to fetch the secret', () => {
-    const result = generateGoSnippet(mockParams);
-    expect(result).toContain('k8s.io/client-go');
-    expect(result).toContain('secret.Data');
+  it('should show <HOSTNAME> and <API_KEY> placeholders when no credentials', () => {
+    const result = generateGoSnippet(mockTemplate);
+    expect(result).toContain('<HOSTNAME>');
+    expect(result).toContain('<API_KEY>');
   });
 });
 
 describe('generatePythonSnippet', () => {
   it('should return a string', () => {
-    const result = generatePythonSnippet(mockParams);
-    expect(typeof result).toBe('string');
+    expect(typeof generatePythonSnippet(mockTemplate)).toBe('string');
   });
 
   it('should contain the model name from the template', () => {
-    const result = generatePythonSnippet(mockParams);
-    expect(result).toContain('test-model');
+    expect(generatePythonSnippet(mockTemplate)).toContain('test-model');
   });
 
   it('should contain from openai import OpenAI', () => {
-    const result = generatePythonSnippet(mockParams);
-    expect(result).toContain('from openai import OpenAI');
+    expect(generatePythonSnippet(mockTemplate)).toContain('from openai import OpenAI');
   });
 
-  it('should contain the secret name and namespace', () => {
-    const result = generatePythonSnippet(mockParams);
-    expect(result).toContain('my-secret');
-    expect(result).toContain('my-namespace');
-  });
-
-  it('should use the kubernetes Python client to fetch the secret', () => {
-    const result = generatePythonSnippet(mockParams);
-    expect(result).toContain('from kubernetes import client, config');
-    expect(result).toContain('read_namespaced_secret');
+  it('should show <HOSTNAME> and <API_KEY> placeholders when no credentials', () => {
+    const result = generatePythonSnippet(mockTemplate);
+    expect(result).toContain('<HOSTNAME>');
+    expect(result).toContain('<API_KEY>');
   });
 });
 
@@ -198,6 +156,18 @@ describe('credential injection', () => {
     expect(result).toContain('\\`id\\`');
     expect(result).toContain('\\$(cmd)');
     expect(result).toContain('\\`run\\`');
+  });
+
+  it('should not allow shell command injection via ; or & in curl snippet', () => {
+    const adversarial: SnippetCredentials = {
+      hostname: 'good.com;rm -rf ~',
+      apiKey: 'key&background-cmd',
+    };
+    const result = generateCurlSnippet(mockTemplate, adversarial);
+    // URL must be double-quoted so ; and & are literal, not shell separators
+    expect(result).toContain('"https://good.com;rm -rf ~/v1/responses"');
+    // apiKey is also in a double-quoted header, ; and & are safe there too
+    expect(result).toContain('Bearer key&background-cmd');
   });
 
   it.each(generators)(
