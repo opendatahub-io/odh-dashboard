@@ -12,7 +12,7 @@
   &__query {
     display: block;
     padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
-    background-color: #f9fafc;
+    background-color: var(--pf-t--global--background--color--secondary--default);
     border: 1px solid var(--pf-t--global--border--color--default);
     border-radius: var(--pf-t--global--border--radius--small);
     margin-bottom: var(--pf-t--global--spacer--sm);
@@ -81,7 +81,7 @@
   &__chunks {
     padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md)
       var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--lg);
-    background-color: #f9fafc;
+    background-color: var(--pf-t--global--background--color--secondary--default);
   }
 
   &__chunk {
