@@ -13,6 +13,7 @@ import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import ExpandedSubscriptionModelsPanel from '~/app/shared/ExpandedSubscriptionModelsPanel';
+import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
 import { subscriptionsColumns } from './columns';
 
 type ExpandedPanel = 'groups' | 'models' | null;
@@ -178,7 +179,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
           }}
           data-testid="subscription-groups-expand-btn"
         >
-          {groupsCount}
+          <CompoundExpandCountCell count={groupsCount} />
         </Td>
         <Td
           dataLabel={subscriptionsColumns[3].label}
@@ -191,7 +192,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
           }}
           data-testid="subscription-models-expand-btn"
         >
-          {modelsCount}
+          <CompoundExpandCountCell count={modelsCount} />
         </Td>
         {priorityCell}
         {actionsCell}

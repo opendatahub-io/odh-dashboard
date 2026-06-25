@@ -24,12 +24,12 @@ const ExpandedSubscriptionModelsPanel: React.FC<ExpandedSubscriptionModelsPanelP
     aria-label="Subscription models"
     data-testid="subscription-models-expanded-panel"
     variant="compact"
-    borders={false}
+    borders
   >
     <Thead>
       <Tr>
-        <Th width={60}>Model name</Th>
-        <Th width={40}>Token limits</Th>
+        <Th width={70}>Model name</Th>
+        <Th width={30}>Token limits</Th>
       </Tr>
     </Thead>
     <Tbody>

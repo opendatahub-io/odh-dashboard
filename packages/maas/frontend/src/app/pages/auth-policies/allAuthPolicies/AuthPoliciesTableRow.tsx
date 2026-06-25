@@ -13,6 +13,7 @@ import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import ExpandedAuthPolicyModelsPanel from '~/app/shared/ExpandedAuthPolicyModelsPanel';
+import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
 
 type ExpandedPanel = 'groups' | 'models' | null;
 
@@ -164,7 +165,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           }}
           data-testid="auth-policy-groups-expand-btn"
         >
-          {groupsCount}
+          <CompoundExpandCountCell count={groupsCount} />
         </Td>
         <Td
           dataLabel={columns[3].label}
@@ -177,7 +178,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           }}
           data-testid="auth-policy-models-expand-btn"
         >
-          {modelsCount}
+          <CompoundExpandCountCell count={modelsCount} />
         </Td>
         {actionsCell}
       </ResourceTr>

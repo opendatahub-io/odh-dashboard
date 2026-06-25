@@ -7,7 +7,7 @@ type ExpandedGroupsPanelProps = {
 };
 
 const ExpandedGroupsPanel: React.FC<ExpandedGroupsPanelProps> = ({ groups }) => (
-  <Table aria-label="Groups" data-testid="groups-expanded-panel" variant="compact" borders={false}>
+  <Table aria-label="Groups" data-testid="groups-expanded-panel" variant="compact" borders>
     <Thead>
       <Tr>
         <Th>Group name</Th>

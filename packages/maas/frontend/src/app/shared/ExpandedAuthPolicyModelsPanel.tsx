@@ -14,7 +14,7 @@ const ExpandedAuthPolicyModelsPanel: React.FC<ExpandedAuthPolicyModelsPanelProps
     aria-label="Auth policy models"
     data-testid="auth-policy-models-expanded-panel"
     variant="compact"
-    borders={false}
+    borders
   >
     <Thead>
       <Tr>

@@ -590,7 +590,7 @@ class SubscriptionTableRow extends TableRow {
   }
 
   findExpandedModelRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModelsExpandedPanel().find('[data-testid="expanded-subscription-model-row"]');
+    return cy.findByTestId('expanded-subscription-model-row');
   }
 
   findExpandedModelName(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1096,7 +1096,7 @@ class AuthPolicyTableRow extends TableRow {
   }
 
   findExpandedGroupItems(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findGroupsExpandedPanel().find('[data-testid="expanded-group-item"]');
+    return cy.findByTestId('expanded-group-item');
   }
 
   findExpandedGroupName(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1104,7 +1104,7 @@ class AuthPolicyTableRow extends TableRow {
   }
 
   findExpandedModelRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModelsExpandedPanel().find('[data-testid="expanded-auth-policy-model-row"]');
+    return cy.findByTestId('expanded-auth-policy-model-row');
   }
 
   findExpandedModelName(): Cypress.Chainable<JQuery<HTMLElement>> {
