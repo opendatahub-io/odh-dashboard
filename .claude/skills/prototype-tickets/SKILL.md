@@ -10,7 +10,7 @@ Reads a designer's fork diff, identifies features and interactive flows, generat
 ## Arguments
 
 ```
-/prototype-tickets <url> --fork <ssh-url> [--project RHOAIENG] [--parent RHAISTRAT-XXXXX | RHOAIENG-XXXXX]
+/prototype-tickets <url> --fork <ssh-url> [--project RHOAIENG] [--parent RHAISTRAT-XXXXX | RHOAIENG-XXXXX] [--base 3.5]
 ```
 
 - `<url>` — deployed prototype URL
@@ -20,6 +20,7 @@ Reads a designer's fork diff, identifies features and interactive flows, generat
   - **Epic** → link children under it (no new Epic)
   - **RHAISTRAT-\* or other** → read for context, create new Epic
   - **Omitted** → create new Epic
+- `--base <branch>` — (optional) upstream branch to diff against (e.g., `3.5`). If omitted, auto-detected via merge-base distance. See Procedure 2 in `.claude/rules/prototype-fork-ops.md`.
 
 ## Prerequisites
 

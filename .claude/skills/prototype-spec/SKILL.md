@@ -10,14 +10,15 @@ Two modes: **ticket mode** (one ticket → one spec) and **epic mode** (one epic
 ## Arguments
 
 ```
-/prototype-spec <url> --fork <ssh-url> --ticket RHOAIENG-12345
-/prototype-spec <url> --fork <ssh-url> --epic RHOAIENG-XXXXX
+/prototype-spec <url> --fork <ssh-url> --ticket RHOAIENG-12345 [--base 3.5]
+/prototype-spec <url> --fork <ssh-url> --epic RHOAIENG-XXXXX [--base 3.5]
 ```
 
 - `<url>` — deployed prototype URL
 - `--fork <ssh-url>` — designer's forked repo SSH clone URL
 - `--ticket <key-or-url>` — RHOAIENG Story or Task. Accepts bare key (`RHOAIENG-12345`) or full URL (`https://redhat.atlassian.net/browse/RHOAIENG-12345`). One spec.
 - `--epic <key-or-url>` — RHOAIENG Epic. Same formats as `--ticket`. All specs + execution plan. Mutually exclusive with `--ticket`.
+- `--base <branch>` — (optional) upstream branch to diff against (e.g., `3.5`). If omitted, auto-detected via merge-base distance. Use when the upstream default branch has moved since the designer forked.
 
 ## Prerequisites
 

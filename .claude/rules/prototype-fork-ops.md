@@ -93,28 +93,69 @@ git -C "$FORK_DIR" fetch upstream 2>&1
 git -C "$FORK_DIR" remote set-head upstream --auto 2>/dev/null || true
 ```
 
-## Procedure 2: Detect upstream default branch
+## Procedure 2: Detect upstream base branch
 
 **IMPORTANT:** Run Procedures 1 and 2 in the SAME bash command (or ensure Procedure 1's `fetch upstream` completed before running Procedure 2). If they run in separate bash calls, the upstream refs may not be available yet.
 
+**If `--base <branch>` was provided**, use it directly (skip auto-detection):
 ```bash
-# Ensure upstream refs exist (re-fetch if needed — idempotent, fast if already fetched)
+if [ -n "$EXPLICIT_BASE" ]; then
+  if git -C "$FORK_DIR" rev-parse --verify "upstream/$EXPLICIT_BASE" >/dev/null 2>&1; then
+    DEFAULT_BRANCH="$EXPLICIT_BASE"
+  else
+    echo "ERROR: upstream/$EXPLICIT_BASE does not exist."
+    echo "Available: $(git -C "$FORK_DIR" branch -r --list 'upstream/*' | sed 's|upstream/||' | tr '\n' ', ')"
+    # Stop here
+  fi
+fi
+```
+
+**Otherwise, auto-detect** the branch the fork was actually based on. The upstream's current default branch may have moved (e.g., `3.5` → `3.6`) after the designer forked, so diffing against the default produces a noisy diff full of upstream changes.
+
+Auto-detection uses `git merge-base` distance — the upstream branch whose merge-base is closest to the fork HEAD is the one the designer forked from:
+
+```bash
+# Ensure upstream refs exist
 if ! git -C "$FORK_DIR" branch -r --list 'upstream/*' 2>/dev/null | grep -q 'upstream/'; then
   git -C "$FORK_DIR" fetch upstream 2>&1
   git -C "$FORK_DIR" remote set-head upstream --auto 2>/dev/null || true
 fi
 
-DEFAULT_BRANCH=$(git -C "$FORK_DIR" symbolic-ref refs/remotes/upstream/HEAD 2>/dev/null | sed 's|refs/remotes/upstream/||')
-if [ -z "$DEFAULT_BRANCH" ]; then
-  # Try versioned branches: 3.5, v3.5, release-3.5, release/3.5
-  for branch in $(git -C "$FORK_DIR" branch -r --list 'upstream/*' 2>/dev/null | sed 's|upstream/||' | grep -oE '(v?|release[-/]?)[0-9]+\.[0-9]+' | sort -t. -k1,1Vr -k2,2Vr | head -5) main master; do
-    if git -C "$FORK_DIR" rev-parse --verify "upstream/$branch" >/dev/null 2>&1; then
-      DEFAULT_BRANCH="$branch"
-      break
+# Auto-detect: find the upstream branch with the shortest distance to fork HEAD
+BEST_BRANCH=""
+BEST_DISTANCE=999999
+for branch in $(git -C "$FORK_DIR" branch -r --list 'upstream/*' 2>/dev/null | sed 's|.*upstream/||' | grep -v HEAD); do
+  base=$(git -C "$FORK_DIR" merge-base HEAD "upstream/$branch" 2>/dev/null)
+  if [ -n "$base" ]; then
+    distance=$(git -C "$FORK_DIR" rev-list --count "$base..HEAD" 2>/dev/null || echo 999999)
+    if [ "$distance" -lt "$BEST_DISTANCE" ]; then
+      BEST_DISTANCE=$distance
+      BEST_BRANCH=$branch
     fi
-  done
+  fi
+done
+
+if [ -n "$BEST_BRANCH" ]; then
+  DEFAULT_BRANCH="$BEST_BRANCH"
+else
+  # Fallback: upstream HEAD or versioned branches
+  DEFAULT_BRANCH=$(git -C "$FORK_DIR" symbolic-ref refs/remotes/upstream/HEAD 2>/dev/null | sed 's|refs/remotes/upstream/||')
+  if [ -z "$DEFAULT_BRANCH" ]; then
+    for branch in $(git -C "$FORK_DIR" branch -r --list 'upstream/*' 2>/dev/null | sed 's|upstream/||' | grep -oE '(v?|release[-/]?)[0-9]+\.[0-9]+' | sort -t. -k1,1Vr -k2,2Vr | head -5) main master; do
+      if git -C "$FORK_DIR" rev-parse --verify "upstream/$branch" >/dev/null 2>&1; then
+        DEFAULT_BRANCH="$branch"
+        break
+      fi
+    done
+  fi
 fi
 DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+```
+
+**Log the detected base** so the developer knows what's being compared:
+```
+echo "=== Diffing fork against upstream/$DEFAULT_BRANCH (auto-detected) ==="
+```
 ```
 
 ## Procedure 3: Get changed files and handle zero-diff
