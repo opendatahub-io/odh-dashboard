@@ -50,6 +50,10 @@ func (c *rbacTestK8sClient) CanGetAgentInNamespace(context.Context, *k8s.Request
 	return c.getAllowed, c.err
 }
 
+func (c *rbacTestK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string, bool) (bool, error) {
+	return c.allowed, c.err
+}
+
 func (c *rbacTestK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string, string) (k8s.AgentCardEnrichmentAccess, error) {
 	if c.err != nil {
 		return k8s.AgentCardEnrichmentAccess{}, c.err

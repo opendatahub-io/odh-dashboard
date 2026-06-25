@@ -311,6 +311,70 @@ describe('createConfigureSchema', () => {
       }
     });
 
+    it('should accept description at max length (255 Unicode characters)', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        description: 'a'.repeat(255),
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'col1',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject description exceeding max length (256 Unicode characters)', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        description: 'a'.repeat(256),
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'col1',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('description');
+      }
+    });
+
+    it('should accept description with 255 emoji characters (proper Unicode counting)', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        description: '😀'.repeat(255),
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'col1',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject description with 256 emoji characters', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        description: '😀'.repeat(256),
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'col1',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('description');
+      }
+    });
+
     it('should reject invalid task_type values', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,

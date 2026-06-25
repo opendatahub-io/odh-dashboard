@@ -79,7 +79,11 @@ const ChatbotMain: React.FunctionComponent = () => {
   const agentProfileId = searchParams.get('agentProfileId');
 
   // Load agent profile from URL param — lives here so the ApplicationsPage spinner covers the fetch
-  const { error: profileLoadError } = useAgentProfileUrlParam({ mcpServers, mcpServersLoaded });
+  const { error: profileLoadError } = useAgentProfileUrlParam({
+    mcpServers,
+    mcpServersLoaded,
+    playgroundModelsLoaded: Boolean(modelsLoaded) || Boolean(modelsError),
+  });
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   // Ready when: no profile to load, fetch errored (show error state), or profile applied for this ID

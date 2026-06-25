@@ -15,8 +15,10 @@ export const techPreviewFlags = {
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
+  agentConfigManagement: false,
   vLLMDeploymentOnMaaS: false,
   llmGatewayField: false,
+  llmdTopologyConfigs: false,
   promptManagement: false,
   mySubscriptions: true,
   maasSettingsIaRedesign: false,
@@ -29,7 +31,6 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOps: false,
   roleManagement: false,
-  agentProfileManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -247,6 +248,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.VLLM_ON_MAAS]: {
     featureFlags: ['vLLMDeploymentOnMaaS'],
+    reliantAreas: [SupportedArea.LLMD_SERVING],
+  },
+  [SupportedArea.LLMD_TOPOLOGY_CONFIGS]: {
+    featureFlags: ['llmdTopologyConfigs'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_GATEWAY_FIELD]: {

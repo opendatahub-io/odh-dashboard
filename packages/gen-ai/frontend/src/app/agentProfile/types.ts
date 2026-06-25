@@ -58,10 +58,16 @@ export type AgentProfileGuardrail = {
   guardrailRef: AgentProfileResourceRef;
 };
 
+export type AgentProfileAsr = {
+  /** ASR (transcription) model reference. Same schema as AgentProfileModel. */
+  model?: AgentProfileModel;
+};
+
 export type AgentProfileSpec = {
   displayName: string;
   description?: string;
   model: AgentProfileModel;
+  asr?: AgentProfileAsr;
   prompt?: AgentProfilePrompt;
   temperature?: number;
   stream?: boolean;
