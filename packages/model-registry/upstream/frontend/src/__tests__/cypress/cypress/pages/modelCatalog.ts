@@ -507,8 +507,46 @@ class ModelCatalog {
     return cy.findByTestId('register-model-button');
   }
 
+  findRegisterCatalogModelTooltip() {
+    return cy.findByTestId('register-catalog-model-tooltip');
+  }
+
   findModelTypeSelect() {
     return cy.findByTestId('register-model-type-select');
+  }
+
+  findManageColumnsButton() {
+    return cy.findByTestId('manage-columns-button');
+  }
+
+  findManageColumnsModal() {
+    return cy.findByTestId('hardware-config-manage-columns');
+  }
+
+  findManageColumnsUpdateButton() {
+    return cy.findByTestId('hardware-config-manage-columns-update-button');
+  }
+
+  findManageColumnsCancelButton() {
+    return cy.findByTestId('hardware-config-manage-columns-cancel-button');
+  }
+
+  findManageColumnsRestoreDefaults() {
+    return cy.findByTestId('hardware-config-manage-columns-restore-defaults');
+  }
+
+  findManageColumnsSearch() {
+    return cy.findByTestId('hardware-config-manage-columns-search');
+  }
+
+  findManageColumnCheckbox(columnLabel: string) {
+    return this.findManageColumnsModal().find(`[aria-label="${columnLabel}"]`).scrollIntoView();
+  }
+
+  openManageColumnsModal() {
+    this.findManageColumnsButton().click();
+    this.findManageColumnsModal().should('be.visible');
+    return this;
   }
 }
 
