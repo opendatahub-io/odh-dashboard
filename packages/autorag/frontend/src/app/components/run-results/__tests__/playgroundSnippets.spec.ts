@@ -81,10 +81,11 @@ describe('generateNodeSnippet', () => {
     expect(result).toContain('result.output ?? result');
   });
 
-  it('should show <HOSTNAME> and <API_KEY> placeholders when no credentials', () => {
+  it('should show k8s client credential setup when no credentials', () => {
     const result = generateNodeSnippet(mockTemplate);
-    expect(result).toContain('<HOSTNAME>');
-    expect(result).toContain('<API_KEY>');
+    expect(result).toContain('k8s.KubeConfig');
+    expect(result).toContain('<SECRET_NAME>');
+    expect(result).toContain('<NAMESPACE>');
   });
 });
 
@@ -132,10 +133,11 @@ describe('generatePythonSnippet', () => {
     expect(result).toContain('result.get("output", result)');
   });
 
-  it('should show <HOSTNAME> and <API_KEY> placeholders when no credentials', () => {
+  it('should show k8s client credential setup when no credentials', () => {
     const result = generatePythonSnippet(mockTemplate);
-    expect(result).toContain('<HOSTNAME>');
-    expect(result).toContain('<API_KEY>');
+    expect(result).toContain('config.load_config');
+    expect(result).toContain('<SECRET_NAME>');
+    expect(result).toContain('<NAMESPACE>');
   });
 });
 
@@ -155,12 +157,28 @@ describe('credential injection', () => {
     expect(result).not.toContain('<API_KEY>');
   });
 
-  it.each(generators)(
-    'should use placeholders when credentials are undefined for $name',
+  it.each([
+    { name: 'curl', fn: generateCurlSnippet },
+    { name: 'Go', fn: generateGoSnippet },
+  ])(
+    'should use <HOSTNAME>/<API_KEY> placeholders when credentials are undefined for $name',
     ({ fn }) => {
       const result = fn(mockTemplate);
       expect(result).toContain('<HOSTNAME>');
       expect(result).toContain('<API_KEY>');
+      expect(result).not.toContain('ogx.example.com');
+    },
+  );
+
+  it.each([
+    { name: 'Node.js', fn: generateNodeSnippet },
+    { name: 'Python', fn: generatePythonSnippet },
+  ])(
+    'should show k8s client credential setup when credentials are undefined for $name',
+    ({ fn }) => {
+      const result = fn(mockTemplate);
+      expect(result).toContain('<SECRET_NAME>');
+      expect(result).toContain('<NAMESPACE>');
       expect(result).not.toContain('ogx.example.com');
     },
   );

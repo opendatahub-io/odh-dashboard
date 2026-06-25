@@ -30,21 +30,46 @@ export const generateNodeSnippet = (
   template: ResponsesTemplate,
   credentials?: SnippetCredentials,
 ): string => {
-  const hostname = credentials ? escapeDoubleQuotedString(credentials.hostname) : '<HOSTNAME>';
-  const apiKey = credentials ? escapeDoubleQuotedString(credentials.apiKey) : '<API_KEY>';
   const body = JSON.stringify(template, null, 2)
     .split('\n')
     .map((line, i) => (i === 0 ? line : `  ${line}`))
     .join('\n');
-  return `// Build the JSON request body
+
+  const credentialSetup = credentials
+    ? `const baseURL = "https://${escapeDoubleQuotedString(credentials.hostname)}";
+const apiKey = "${escapeDoubleQuotedString(credentials.apiKey)}";`
+    : `// Prerequisites: Node.js 18+, npm install @kubernetes/client-node
+// Save as .mjs or add "type": "module" to package.json
+import * as k8s from "@kubernetes/client-node";
+
+// Loads kubeconfig from the default location (~/.kube/config or KUBECONFIG env var).
+// Ensure you are logged in to the cluster (e.g. via "oc login") before running this script.
+const kc = new k8s.KubeConfig();
+kc.loadFromDefault();
+const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
+
+// Fetch the OGX credentials from the Kubernetes secret
+const secret = await k8sApi.readNamespacedSecret({
+  name: "<SECRET_NAME>",
+  namespace: "<NAMESPACE>",
+});
+
+// Secret values are base64-encoded; decode them to get the raw strings
+const decode = (key) => Buffer.from(secret.data[key], "base64").toString();
+const baseURL = decode("OGX_CLIENT_BASE_URL");
+const apiKey = decode("OGX_CLIENT_API_KEY");`;
+
+  return `${credentialSetup}
+
+// Build the JSON request body
 const payload = ${body};
 
 // Send a request to the Responses API
-const response = await fetch("https://${hostname}/v1/responses", {
+const response = await fetch(\`\${baseURL}/v1/responses\`, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "Authorization": "Bearer ${apiKey}",
+    "Authorization": \`Bearer \${apiKey}\`,
   },
   body: JSON.stringify(payload),
   signal: AbortSignal.timeout(30_000),
@@ -150,20 +175,39 @@ export const generatePythonSnippet = (
   template: ResponsesTemplate,
   credentials?: SnippetCredentials,
 ): string => {
-  const hostname = credentials ? escapeDoubleQuotedString(credentials.hostname) : '<HOSTNAME>';
-  const apiKey = credentials ? escapeDoubleQuotedString(credentials.apiKey) : '<API_KEY>';
   const params = jsonToPython(template, 0);
-  return `# Prerequisites: pip install requests
+
+  const credentialSetup = credentials
+    ? `base_url = "https://${escapeDoubleQuotedString(credentials.hostname)}"
+api_key = "${escapeDoubleQuotedString(credentials.apiKey)}"`
+    : `# Prerequisites: pip install kubernetes requests
+import base64
+import requests
+from kubernetes import client, config
+
+# Loads kubeconfig from the default location (~/.kube/config or KUBECONFIG env var).
+# Ensure you are logged in to the cluster (e.g. via "oc login") before running this script.
+config.load_config()
+v1 = client.CoreV1Api()
+
+# Fetch the OGX credentials from the Kubernetes secret
+secret = v1.read_namespaced_secret("<SECRET_NAME>", "<NAMESPACE>")
+
+# Secret values are base64-encoded; decode them to get the raw strings
+base_url = base64.b64decode(secret.data["OGX_CLIENT_BASE_URL"]).decode()
+api_key = base64.b64decode(secret.data["OGX_CLIENT_API_KEY"]).decode()`;
+
+  return `${credentialSetup}
 
 # Build the request payload
 payload = ${params}
 
 # Send a request to the Responses API
 response = requests.post(
-    "https://${hostname}/v1/responses",
+    f"{base_url}/v1/responses",
     headers={
         "Content-Type": "application/json",
-        "Authorization": "Bearer ${apiKey}",
+        "Authorization": f"Bearer {api_key}",
     },
     json=payload,
     timeout=30,
