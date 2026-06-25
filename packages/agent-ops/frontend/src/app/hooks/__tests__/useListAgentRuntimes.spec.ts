@@ -12,6 +12,7 @@ jest.mock('~/app/utilities/const', () => ({
 
 jest.mock('~/app/const', () => ({
   NO_REFRESH_INTERVAL: 0,
+  AGENT_RUNTIMES_REFRESH_INTERVAL: 10_000,
 }));
 
 jest.mock('mod-arch-core', () => ({
@@ -88,13 +89,33 @@ describe('useListAgentRuntimes', () => {
     expect(result.current.pageSize).toBe(10);
   });
 
-  it('should pass NO_REFRESH_INTERVAL to useFetchState', () => {
+  it('should use NO_REFRESH_INTERVAL when no namespace is provided', () => {
     testHook(useListAgentRuntimes)();
 
     expect(mockUseFetchState).toHaveBeenCalledWith(
       expect.any(Function),
       { runtimes: [] },
       { refreshRate: 0 },
+    );
+  });
+
+  it('should use AGENT_RUNTIMES_REFRESH_INTERVAL when a namespace is provided', () => {
+    testHook(useListAgentRuntimes)('agent-ops-demo');
+
+    expect(mockUseFetchState).toHaveBeenCalledWith(
+      expect.any(Function),
+      { runtimes: [] },
+      { refreshRate: 10_000 },
+    );
+  });
+
+  it('should use a custom refreshInterval when provided', () => {
+    testHook(useListAgentRuntimes)('agent-ops-demo', 5_000);
+
+    expect(mockUseFetchState).toHaveBeenCalledWith(
+      expect.any(Function),
+      { runtimes: [] },
+      { refreshRate: 5_000 },
     );
   });
 
