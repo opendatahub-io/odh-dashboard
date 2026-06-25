@@ -7,6 +7,8 @@ import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import type { AgentProfileSpec } from '~/app/agentProfile/types';
 
+import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+
 jest.mock('~/app/hooks/useFetchMCPServers', () => ({
   __esModule: true,
   default: jest.fn(() => ({ data: [], configMapName: null, loaded: true })),
@@ -128,37 +130,37 @@ describe('useIsProfileDirty', () => {
     expect(result.current).toBe(false);
   });
 
-  it('should return false when mcpServers in snapshot are in different order', () => {
-    const serverA = {
-      serverRef: { kind: 'ConfigMap', name: 'mcp-cm', key: 'server-a' },
-      allowedTools: ['tool1', 'tool2'],
-    };
-    const serverB = {
-      serverRef: { kind: 'ConfigMap', name: 'mcp-cm', key: 'server-b' },
-      allowedTools: ['tool3'],
-    };
+  it('should return false when mcpServers in snapshot are in different order than serialized config', () => {
+    // Give useFetchMCPServers real servers so serializeToAgentProfileSpec produces mcpServers.
+    jest.mocked(useFetchMCPServers).mockReturnValueOnce({
+      data: [
+        { name: 'server-a', url: 'http://server-a' },
+        { name: 'server-b', url: 'http://server-b' },
+      ] as never,
+      configMapName: 'gen-ai-aa-mcp-servers',
+      loaded: true,
+    });
 
+    // Config selects servers in [A, B] order — serialized spec will have [A, B].
+    // Snapshot has them in [B, A] order. normalizeSpec sorts both → equal → not dirty.
     useChatbotConfigStore.setState({
       profileApplied: true,
-      loadedProfileSpec: makeMatchingSpec({ mcpServers: [serverB, serverA] }),
+      loadedProfileSpec: makeMatchingSpec({
+        mcpServers: [
+          { serverRef: { kind: 'ConfigMap', name: 'gen-ai-aa-mcp-servers', key: 'server-b' } },
+          { serverRef: { kind: 'ConfigMap', name: 'gen-ai-aa-mcp-servers', key: 'server-a' } },
+        ],
+      }),
       configurations: {
         [DEFAULT_CONFIG_ID]: {
           ...DEFAULT_CONFIGURATION,
-          selectedMcpServerIds: ['server-a-url', 'server-b-url'],
+          selectedMcpServerIds: ['http://server-a', 'http://server-b'],
         },
       },
     });
 
-    // With no mcpServers data in useFetchMCPServers, the serialized config produces no mcpServers.
-    // This test verifies the order-sorting logic by using the snapshot's own comparison.
-    // Snapshot with [B, A] and [A, B] would normalize to same result.
-    const snapshotReversed = makeMatchingSpec({ mcpServers: [serverA, serverB] });
-    useChatbotConfigStore.setState({ loadedProfileSpec: snapshotReversed });
-
     const { result } = renderHook(() => useIsProfileDirty(DEFAULT_CONFIG_ID), { wrapper });
-    // Config has no MCP servers (empty mcpServers from useFetchMCPServers mock) so spec produces
-    // no mcpServers; snapshot also has mcpServers defined — they differ.
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(false);
   });
 
   it('should return false when config is undefined', () => {
