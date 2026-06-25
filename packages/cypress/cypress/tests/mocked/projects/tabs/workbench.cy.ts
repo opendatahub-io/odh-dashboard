@@ -685,18 +685,16 @@ describe('Workbench page', () => {
     const environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
     environmentVariableField
       .find()
-      .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Variable type' })
+      .findByTestId('environment-variable-type-toggle')
       .should('have.attr', 'aria-expanded', 'false')
       .click()
       .should('have.attr', 'aria-expanded', 'true');
 
-    cy.findByRole('option', { name: 'Config Map' }).click();
+    environmentVariableField.selectEnvironmentVariableTypeByTestId('Config Map');
 
     environmentVariableField
       .find()
-      .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Variable type' })
+      .findByTestId('environment-variable-type-toggle')
       .should('have.text', 'Config Map');
   });
 

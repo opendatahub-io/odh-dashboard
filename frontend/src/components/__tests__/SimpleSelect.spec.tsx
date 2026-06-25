@@ -56,6 +56,19 @@ describe('SimpleSelect', () => {
     expect(screen.getByRole('button', { name: 'Environment variable type' })).toBeInTheDocument();
   });
 
+  it('should preserve toggleProps aria-label override', () => {
+    render(
+      <SimpleSelect
+        value={undefined}
+        toggleProps={{ 'aria-label': 'Custom toggle label' }}
+        options={[{ key: 'config-map', label: 'Config map' }]}
+        onChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Custom toggle label' })).toBeInTheDocument();
+  });
+
   it('should restore modal overflow when the menu closes', async () => {
     const dialogRef = React.createRef<HTMLDivElement>();
 

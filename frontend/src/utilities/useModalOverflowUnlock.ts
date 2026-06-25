@@ -37,6 +37,7 @@ export const useModalOverflowUnlock = (
     }
     unlockCountByDialog.set(dialog, unlockCount + 1);
     dialog.setAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR, String(unlockCount + 1));
+    // Inline style required: modal overflow:auto clips portaled select menus.
     dialog.style.overflow = 'visible';
     return () => {
       const currentCount = unlockCountByDialog.get(dialog) ?? 1;

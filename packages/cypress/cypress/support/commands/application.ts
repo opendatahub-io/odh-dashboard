@@ -483,7 +483,7 @@ Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (su
       cy.wrap($el).click();
     }
     // Options may render inline or in a portal (e.g. modal dialog or document.body).
-    return cy.findByTestId(testId);
+    return cy.findAllByTestId(testId).filter(':visible').first();
   });
 });
 
@@ -525,7 +525,7 @@ Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (su
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.findByTestId(testId);
+    return cy.findAllByTestId(testId).filter(':visible').first();
   });
 });
 

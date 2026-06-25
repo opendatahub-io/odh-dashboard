@@ -133,7 +133,7 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvDataType(name: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Data type' })
+      .findByTestId('environment-variable-data-type-toggle')
       .findSelectOption(name)
       .click();
   }
@@ -141,15 +141,15 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvDataTypeByTestId(testId: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Data type' })
+      .findByTestId('environment-variable-data-type-toggle')
       .click();
-    cy.findByTestId(testId).click();
+    cy.findAllByTestId(testId).filter(':visible').first().click();
   }
 
   selectEnvironmentVariableType(name: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Variable type' })
+      .findByTestId('environment-variable-type-toggle')
       .findSelectOption(name)
       .click();
   }
@@ -157,9 +157,9 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvironmentVariableTypeByTestId(testId: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Variable type' })
+      .findByTestId('environment-variable-type-toggle')
       .click();
-    cy.findByTestId(testId).click();
+    cy.findAllByTestId(testId).filter(':visible').first().click();
   }
 
   findAnotherKeyValuePairButton() {

@@ -29,6 +29,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
           <Stack hasGutter>
             <StackItem data-testid="environment-variable-type-select">
               <SimpleSelect
+                dataTestId="environment-variable-type-toggle"
                 ariaLabel="Variable type"
                 toggleProps={{ id: selectId }}
                 popperProps={ENV_VAR_POPPER_PROPS}

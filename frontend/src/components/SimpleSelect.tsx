@@ -132,13 +132,14 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   }, [singleOptionKey, isSkeleton, autoSelectOnlyOption, value, totalOptions]);
 
   if (isSkeleton) {
-    return <Skeleton style={{ minWidth: 100 }} />;
+    return <Skeleton style={{ minWidth: 'var(--pf-t--global--spacer--3xl)' }} />;
   }
 
   const displayedLabel = toggleLabel ?? selectedLabel;
   const displayedLabelTitle = typeof displayedLabel === 'string' ? displayedLabel : undefined;
-  const toggleAriaLabel = ariaLabel ?? (toggleProps?.id ? undefined : 'Options menu');
   const togglePropsAriaLabel = toggleProps?.['aria-label'];
+  const toggleAriaLabel =
+    ariaLabel ?? togglePropsAriaLabel ?? (toggleProps?.id ? undefined : 'Options menu');
   const restToggleProps = omit(toggleProps ?? {}, ['onClick', 'aria-label']);
 
   return (
@@ -159,13 +160,11 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
         }}
         onOpenChange={setOpen}
         toggle={(toggleRef) => (
-          <div ref={menuToggleRef} style={{ display: 'contents' }}>
+          <div ref={menuToggleRef} className="simple-select__toggle-anchor">
             <MenuToggle
               innerRef={toggleRef}
               data-testid={dataTestId}
-              {...(toggleAriaLabel && !togglePropsAriaLabel
-                ? { 'aria-label': toggleAriaLabel }
-                : {})}
+              {...(toggleAriaLabel ? { 'aria-label': toggleAriaLabel } : {})}
               onClick={() => setOpen((currentOpen) => !currentOpen)}
               icon={icon}
               isExpanded={open}

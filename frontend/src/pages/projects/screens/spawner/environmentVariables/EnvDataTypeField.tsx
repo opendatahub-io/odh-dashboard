@@ -20,6 +20,7 @@ const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelectio
       <StackItem data-testid="env-data-type-field">
         <FormGroup label="Data type" fieldId={selectId}>
           <SimpleSelect
+            dataTestId="environment-variable-data-type-toggle"
             isFullWidth
             placeholder="Select one"
             ariaLabel="Data type"
