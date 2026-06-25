@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { MaaSAuthPolicy, MaaSSubscription, TokenRateLimit } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import PhaseLabel from '~/app/shared/PhaseLabel';
+import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatWindow } from '~/app/utilities/rateLimits';
 import GroupChips from './GroupChips';
 
@@ -36,6 +37,7 @@ type ExpandableItemProps = {
   linkTo: string;
   linkState: { returnTo: string };
   phase?: string;
+  resourceType: PhaseResourceType;
   statusMessage?: string;
   rowIndex: number;
   isExpanded: boolean;
@@ -50,6 +52,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   linkTo,
   linkState,
   phase,
+  resourceType,
   statusMessage,
   rowIndex,
   isExpanded,
@@ -73,7 +76,11 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                 </Link>
               </FlexItem>
               <FlexItem>
-                <PhaseLabel phase={phase} statusMessage={statusMessage} />
+                <PhaseLabel
+                  phase={phase}
+                  resourceType={resourceType}
+                  statusMessage={statusMessage}
+                />
               </FlexItem>
             </Flex>
           </Td>
@@ -184,6 +191,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
                 linkTo={`${URL_PREFIX}/subscription-management/subscriptions/view/${sub.name}`}
                 linkState={{ returnTo: `${URL_PREFIX}/subscription-management/subscriptions` }}
                 phase={sub.phase}
+                resourceType={PhaseResourceType.SUBSCRIPTION}
                 statusMessage={sub.statusMessage}
                 rowIndex={index}
                 isExpanded={expandedSubs.has(sub.name)}
@@ -239,6 +247,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
               linkTo={`${URL_PREFIX}/subscription-management/auth-policies/view/${policy.name}`}
               linkState={{ returnTo: `${URL_PREFIX}/subscription-management/auth-policies` }}
               phase={policy.phase}
+              resourceType={PhaseResourceType.AUTHPOLICY}
               statusMessage={policy.statusMessage}
               rowIndex={index}
               isExpanded={expandedPolicies.has(policy.name)}
