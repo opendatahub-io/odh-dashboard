@@ -153,9 +153,8 @@ DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
 ```
 
 **Log the detected base** so the developer knows what's being compared:
-```
+```bash
 echo "=== Diffing fork against upstream/$DEFAULT_BRANCH (auto-detected) ==="
-```
 ```
 
 ## Procedure 3: Get changed files and handle zero-diff

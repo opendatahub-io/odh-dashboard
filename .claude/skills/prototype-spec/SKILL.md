@@ -30,7 +30,7 @@ See **Prerequisites** in `.claude/rules/prototype-fork-ops.md`. Additionally:
 
 ## Step 0: Validate arguments
 
-Parse: URL (starts with `http`), `--fork`, `--ticket`, `--epic`. Order doesn't matter.
+Parse: URL (starts with `http`), `--fork`, `--ticket`, `--epic`, `--base`. Order doesn't matter.
 
 - Both `--ticket` and `--epic` → stop: "Use one or the other."
 - No URL → stop: "Prototype URL required."
@@ -106,7 +106,7 @@ Extract **exact JSX snippets** for each major UI element in scope. Capture: comp
 
 ### Step 4b: DOM extraction
 
-Run CLI in background. Falls back gracefully if unavailable. See `.claude/rules/prototype-fork-ops.md` for the CLI provisioning script.
+Run CLI in background. Falls back gracefully if unavailable. See **Procedure 4** in `.claude/rules/prototype-fork-ops.md`.
 
 ## Step 5: Scope to tickets
 

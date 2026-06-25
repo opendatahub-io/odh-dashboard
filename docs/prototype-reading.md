@@ -65,13 +65,17 @@ Reads a prototype fork and proposes Jira tickets based on the interactive flows 
 
 **When tickets already exist:** Detects the existing Epic and switches to review mode — audits existing ACs against the current prototype state.
 
+## The `--base` flag
+
+The upstream prototype repo can move its default branch (e.g., `3.5` → `3.6`) after a designer forks. If the fork is based on `3.5` but upstream HEAD is now `3.6`, the diff includes all upstream changes between versions — not just the designer's work.
+
+`--base 3.5` tells the skill to diff against `upstream/3.5` instead. If omitted, the skill auto-detects the correct base via `git merge-base` distance (picks the upstream branch closest to the fork HEAD).
+
 ## How to find the fork URL
 
 1. Go to https://gitlab.cee.redhat.com/uxd/prototypes/rhoai/-/forks
 2. Find the designer's fork (e.g., `ralombar/rhoai-rachel`)
 3. Copy the SSH clone URL
-
-The `--base` flag specifies which upstream branch to diff against. If the upstream has moved to a newer version (e.g., `3.6`) but the designer's fork is based on `3.5`, use `--base 3.5`. If omitted, the skill auto-detects via merge-base distance.
 
 ## Architecture
 

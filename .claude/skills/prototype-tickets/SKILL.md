@@ -28,7 +28,7 @@ See **Prerequisites** in `.claude/rules/prototype-fork-ops.md`.
 
 ## Step 0: Validate arguments
 
-Parse: URL (`http`), `--fork`, `--project` (default `RHOAIENG`), `--parent`. Order doesn't matter.
+Parse: URL (`http`), `--fork`, `--project` (default `RHOAIENG`), `--parent`, `--base`. Order doesn't matter.
 
 - No URL → stop: "Prototype URL required."
 - No `--fork` → stop: "Fork URL required."
