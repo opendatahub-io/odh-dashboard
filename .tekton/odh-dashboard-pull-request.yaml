@@ -32,9 +32,6 @@ spec:
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
-  - name: build-args
-    value:
-    - "BUILD_MODE=RHOAI"
   - name: pipeline-type
     value: pull-request
   pipelineRef:

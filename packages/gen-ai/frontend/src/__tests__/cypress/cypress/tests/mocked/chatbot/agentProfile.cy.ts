@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
 import {
   interceptNewAgentProfile,
@@ -17,13 +16,8 @@ const DISMISSED_KEY = 'gen-ai-agent-open-modal-dismissed';
 
 describe('Agent Profile - Playground (Mocked)', () => {
   beforeEach(() => {
-    Cypress.env('_featureFlagParams', 'agentProfileManagement=true');
     // Ensure the open-agent modal always appears by clearing the dismissed preference
     cy.clearLocalStorage(DISMISSED_KEY);
-  });
-
-  afterEach(() => {
-    Cypress.env('_featureFlagParams', '');
   });
 
   it(
@@ -32,7 +26,7 @@ describe('Agent Profile - Playground (Mocked)', () => {
     () => {
       interceptNewAgentProfile(NEW_PROFILE_ID, AGENT_NAME, TEST_NAMESPACE);
 
-      cy.step('Visit playground with agentProfileManagement flag (no agentProfileId — no modal)');
+      cy.step('Visit playground (no agentProfileId — no modal)');
       chatbotPage.visit(TEST_NAMESPACE);
 
       cy.step('Open Save As modal via kebab menu — no profile loaded yet, name is empty');

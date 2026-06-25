@@ -1,10 +1,10 @@
 import React from 'react';
 import { WorkspaceCountResult } from '~/app/hooks/useWorkspaceCountPerKind';
-import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 import { WorkspaceKindDetailsTable } from './WorkspaceKindDetailsTable';
 
 type WorkspaceDetailsImagesProps = {
-  workspaceKind: WorkspacekindsWorkspaceKind;
+  workspaceKind: WorkspacekindsWorkspaceKindListItem;
   workspaceCountResult: WorkspaceCountResult;
 };
 
@@ -13,7 +13,7 @@ export const WorkspaceKindDetailsImages: React.FunctionComponent<WorkspaceDetail
   workspaceCountResult,
 }) => (
   <WorkspaceKindDetailsTable
-    rows={workspaceKind.podTemplate.options.imageConfig.values.map((image) => ({
+    rows={(workspaceKind.podTemplate.options.imageConfig.values ?? []).map((image) => ({
       id: image.id,
       displayName: image.displayName,
       kindName: workspaceKind.name,
