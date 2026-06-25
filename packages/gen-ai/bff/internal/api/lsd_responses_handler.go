@@ -15,6 +15,7 @@ import (
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
@@ -882,16 +883,46 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 		app.logger.Warn("Unexpected type in cache, expected string", "model", modelID, "namespace", namespace, "type", fmt.Sprintf("%T", cachedValue))
 	}
 
-	// Cache miss - generate new token
-	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace, "subscription", subscription)
+	// Cache miss - generate new token via MaaS BFF
+	app.logger.Debug("No MaaS token found in cache: requesting new token via MaaS BFF", "model", modelID, "namespace", namespace, "subscription", subscription)
 
-	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
-		ExpiresIn:    constants.MaaSTokenTTLString,
-		Subscription: subscription,
-	})
-	if err != nil {
-		app.logger.Warn("Failed to issue MaaS API key", "model", modelID, "error", err)
+	// Get MaaS BFF client from context
+	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
+	if maasClient == nil {
+		app.logger.Warn("MaaS BFF client not available for token generation", "model", modelID)
 		return ""
+	}
+
+	// Build MaaS BFF API key request (envelope wrapper per OpenAPI spec)
+	bffRequest := models.MaaSBFFAPIKeyRequest{
+		Data: models.MaaSBFFAPIKeyRequestData{
+			Name:         fmt.Sprintf("genai-inference-%d", time.Now().Unix()),
+			ExpiresIn:    constants.MaaSTokenTTLString,
+			Subscription: subscription,
+			Ephemeral:    true,
+		},
+	}
+
+	// Call MaaS BFF to create API key
+	var bffResponse models.MaaSBFFAPIKeyResponse
+	err = maasClient.Call(ctx, "POST", "/api-keys", bffRequest, &bffResponse)
+	if err != nil {
+		app.logger.Warn("Failed to issue MaaS API key via BFF", "model", modelID, "error", err)
+		return ""
+	}
+
+	// Validate that MaaS BFF returned a non-empty key
+	if bffResponse.Data.Key == "" {
+		app.logger.Warn("MaaS BFF returned empty key in response", "model", modelID)
+		return ""
+	}
+
+	// Map BFF response to internal format
+	tokenResponse := &models.MaaSTokenResponse{
+		Key: bffResponse.Data.Key,
+	}
+	if bffResponse.Data.ExpiresAt != nil {
+		tokenResponse.ExpiresAt = *bffResponse.Data.ExpiresAt
 	}
 
 	// Compute cache TTL from the key's actual expiry, with a safety buffer
@@ -910,8 +941,8 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 
 	// Cache the new API key
 	app.logger.Debug("Caching MaaS API key", "model", modelID, "namespace", namespace, "subscription", subscription, "ttl", cacheTTL, "ttlSource", ttlSource, "expiresAt", tokenResponse.ExpiresAt)
-	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, cacheKey, tokenResponse.Key, cacheTTL); err != nil {
-		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", err)
+	if cacheErr := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, cacheKey, tokenResponse.Key, cacheTTL); cacheErr != nil {
+		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", cacheErr)
 	}
 
 	return tokenResponse.Key
@@ -1068,7 +1099,7 @@ func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID stri
 //  1. maas- prefix              → ephemeral MaaS token + MaaS catalog URL
 //  2. "custom_endpoint"         → URL + key from external-models ConfigMap / K8s Secret
 //  3. "namespace" or fallback   → InferenceService URL (falls back to LlamaStack config) + user JWT
-func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, identity *integrations.RequestIdentity, guardrailModelID string) (string, error) {
+func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, _ *integrations.RequestIdentity, guardrailModelID string) (string, error) {
 	bareID := guardrailModelID
 	if strings.HasPrefix(guardrailModelID, constants.MaaSProviderPrefix) {
 		if idx := strings.Index(guardrailModelID, "/"); idx != -1 {
@@ -1076,21 +1107,39 @@ func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, identity *inte
 		}
 	}
 
-	maasModels, err := app.repositories.MaaSModels.ListModels(ctx, identity.Token)
-	if err != nil {
-		return "", fmt.Errorf("failed to list MaaS models: %w", err)
+	// Get namespace from context for MaaS BFF query parameter
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", fmt.Errorf("missing namespace in context for MaaS model lookup")
 	}
 
-	for _, m := range maasModels {
+	// Get MaaS BFF client from context
+	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
+	if maasClient == nil {
+		return "", fmt.Errorf("MaaS BFF client not available")
+	}
+
+	// Call MaaS BFF to list models
+	// Per MaaS BFF OpenAPI spec, GET /models returns envelope: {"data": {"object": "list", "data": [...]}}
+	// Note: MaaS BFF determines namespace scope via the forwarded authentication token
+	// (x-forwarded-access-token header), not via query parameters
+	var bffResponse models.MaaSBFFModelsResponse
+	err := maasClient.Call(ctx, "GET", "/models", nil, &bffResponse)
+	if err != nil {
+		return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
+	}
+
+	// Search for the model in the response
+	for _, m := range bffResponse.Data.Data {
 		if m.ID == bareID {
 			// MaaS catalog returns the raw gateway URL (http, no /v1).
 			// Normalize to vLLM-compatible format (strip trailing slash, ensure /v1 suffix)
 			// so NeMo receives the correct openai_api_base.
-			url := strings.TrimSuffix(m.URL, "/")
-			if !strings.HasSuffix(url, "/v1") {
-				url += "/v1"
+			modelURL := strings.TrimSuffix(m.URL, "/")
+			if !strings.HasSuffix(modelURL, "/v1") {
+				modelURL += "/v1"
 			}
-			return url, nil
+			return modelURL, nil
 		}
 	}
 

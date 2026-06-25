@@ -6,6 +6,8 @@ import { AgentProfileMcpServer, AgentProfileSpec, AgentProfilePromptVariable } f
 export type AgentProfileSerializationContext = {
   /** Full model object needed for URI and sourceType (not stored in config) */
   model: AIModel | undefined;
+  /** Full ASR model object — when present and ASR is enabled, serialized as spec.asr.model */
+  asrModel?: AIModel | undefined;
   /** Available MCP servers, used to resolve server name → URL for tool lookup */
   mcpServers: MCPServerFromAPI[];
   /**
@@ -39,7 +41,7 @@ export const serializeToAgentProfileSpec = (
   description: string | undefined,
   context: AgentProfileSerializationContext,
 ): AgentProfileSpec => {
-  const { model, mcpServers: availableServers, mcpConfigMapName } = context;
+  const { model, asrModel, mcpServers: availableServers, mcpConfigMapName } = context;
 
   const spec: AgentProfileSpec = {
     displayName,
@@ -57,6 +59,18 @@ export const serializeToAgentProfileSpec = (
     temperature: config.temperature,
     stream: config.isStreamingEnabled,
   };
+
+  // ASR (transcription) model — serialized as spec.asr.model using the same schema
+  // as spec.model so the API can reference it via a common model-ref structure.
+  if (config.isAsrModelEnabled && config.selectedAsrModel) {
+    spec.asr = {
+      model: {
+        id: asrModel?.model_id ?? config.selectedAsrModel,
+        uri: asrModel?.internalEndpoint ?? asrModel?.externalEndpoint ?? '',
+        sourceType: asrModel?.model_source_type,
+      },
+    };
+  }
 
   // Prompt: reference the active MLflow prompt by name + version
   if (config.activePrompt) {

@@ -1,3 +1,9 @@
+##
+## WARNING: Kubernetes will REMOVE any existing content of `rules` when using `aggregationRule`. 
+##          So, we define both the `aggregate-to-kubeflow-workspaces-edit` and `kubeflow-workspaces-edit` 
+##          even though only `kubeflow-workspaces-edit` is indented to be used in a binding.
+##          https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
+##
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -21,6 +27,27 @@ aggregationRule:
   clusterRoleSelectors:
   - matchLabels:
       rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-edit: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubeflow-workspaces-view
+  labels:
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-view: "true"
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-edit: "true"
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-view: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aggregate-to-kubeflow-workspaces-edit
+  labels:
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-edit: "true"
 rules:
 - apiGroups:
   - kubeflow.org
@@ -28,9 +55,6 @@ rules:
   - workspaces
   - workspaces/status
   verbs:
-  - get
-  - list
-  - watch
   - create
   - delete
   - deletecollection
@@ -40,10 +64,9 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kubeflow-workspaces-view
+  name: aggregate-to-kubeflow-workspaces-view
   labels:
-    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-view: "true"
-    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-edit: "true"
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-view: "true"
 rules:
 - apiGroups:
   - kubeflow.org

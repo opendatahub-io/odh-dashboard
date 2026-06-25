@@ -328,22 +328,22 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                     )}
                     <DescriptionListGroup>
                       <DescriptionListTerm>Model location</DescriptionListTerm>
-                      {artifactsLoadError ? (
-                        <Alert variant="danger" isInline title={artifactsLoadError.name}>
-                          {artifactsLoadError.message}
-                        </Alert>
-                      ) : !artifactLoaded ? (
-                        <Spinner size="sm" />
-                      ) : artifacts.items.length > 0 && hasModelArtifacts(artifacts.items) ? (
-                        <DescriptionListDescription>
+                      <DescriptionListDescription>
+                        {artifactsLoadError ? (
+                          <Alert variant="danger" isInline title={artifactsLoadError.name}>
+                            {artifactsLoadError.message}
+                          </Alert>
+                        ) : !artifactLoaded ? (
+                          <Spinner size="sm" />
+                        ) : artifacts.items.length > 0 && hasModelArtifacts(artifacts.items) ? (
                           <InlineTruncatedClipboardCopy
                             testId="source-image-location"
                             textToCopy={getModelArtifactUri(artifacts.items) || ''}
                           />
-                        </DescriptionListDescription>
-                      ) : (
-                        <p className={text.textColorDisabled}>No artifacts available</p>
-                      )}
+                        ) : (
+                          'No artifacts available'
+                        )}
+                      </DescriptionListDescription>
                     </DescriptionListGroup>
                     {architectures.length > 0 && (
                       <DescriptionListGroup>

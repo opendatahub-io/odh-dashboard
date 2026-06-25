@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Pagination, Spinner, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { APIKey, SubscriptionDetail } from '~/app/types/api-key';
 import { ApiKeySortField, getVisibleApiKeyColumns } from './columns';
 import ApiKeysTableRow from './ApiKeysTableRow';
@@ -11,6 +11,7 @@ type SortDirection = 'asc' | 'desc';
 type ApiKeysTableProps = {
   apiKeys: APIKey[];
   subscriptionDetails?: Record<string, SubscriptionDetail>;
+  isKeyInactive: (key: APIKey) => boolean;
   hasMore: boolean;
   page: number;
   perPage: number;
@@ -29,6 +30,7 @@ type ApiKeysTableProps = {
 const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
   apiKeys,
   subscriptionDetails,
+  isKeyInactive,
   hasMore,
   page,
   perPage,
@@ -46,11 +48,14 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
   const visibleColumns = React.useMemo(() => getVisibleApiKeyColumns(isMaasAdmin), [isMaasAdmin]);
   const activeSortIndex = visibleColumns.findIndex((c) => c.serverSortField === sortField);
 
+  const firstIndex = (page - 1) * perPage + 1;
+  const lastIndex = firstIndex + apiKeys.length - 1;
+
   const pagination = (variant: 'top' | 'bottom') => (
     <Pagination
       toggleTemplate={
         hasMore
-          ? ({ firstIndex, lastIndex }) => (
+          ? () => (
               <>
                 <b>
                   {firstIndex} - {lastIndex}
@@ -142,6 +147,7 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
                   subscriptionDetail={
                     apiKey.subscription ? subscriptionDetails?.[apiKey.subscription] : undefined
                   }
+                  isInactive={isKeyInactive(apiKey)}
                   onRevokeApiKey={onRevokeApiKey}
                 />
               ))
