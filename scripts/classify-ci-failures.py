@@ -35,12 +35,13 @@ LOG_MAX_LINES = 2500
 ERROR_CONTEXT_LINES = 15
 
 _TEST_RUNNER_KEYWORDS = (
-    "cypress",
+    "cypress-mock",
+    "cypress e2e",
     "unit-test",
     "unit_test",
     "jest",
     "contract-test",
-    "e2e",
+    "e2e test",
     "spec",
 )
 
