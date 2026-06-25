@@ -962,8 +962,8 @@ function AutomlConfigure({
                                     label={PRESET_LABELS[preset]}
                                     description={
                                       preset === PRESET_FASTER
-                                        ? `${isTimeseries ? '4 vCPU, 16 GiB' : '8 vCPU, 32 GiB'} | A good default for most datasets.`
-                                        : `${isTimeseries ? '8 vCPU, 32 GiB' : '16 vCPU, 64 GiB'} | Prioritizes stronger accuracy, but requires longer training.`
+                                        ? '4 vCPU, 16 GiB | A good default for most datasets.'
+                                        : '8 vCPU, 32 GiB | Prioritizes stronger accuracy, but requires longer training.'
                                     }
                                     isChecked={field.value === preset}
                                     isDisabled={formIsSubmitting}
