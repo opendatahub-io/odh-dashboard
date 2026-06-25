@@ -205,7 +205,6 @@ describe('AvailableAiAssetsFields', () => {
       const { result } = renderHook(() =>
         useModelAvailabilityFields(undefined, {
           type: ServingRuntimeModelType.GENERATIVE,
-          legacyVLLM: false,
         }),
       );
       expect(result.current.showField).toBe(true);
@@ -214,7 +213,6 @@ describe('AvailableAiAssetsFields', () => {
       const { result } = renderHook(() =>
         useModelAvailabilityFields(undefined, {
           type: ServingRuntimeModelType.PREDICTIVE,
-          legacyVLLM: false,
         }),
       );
       expect(result.current.showField).toBe(false);
@@ -225,7 +223,7 @@ describe('AvailableAiAssetsFields', () => {
           useModelAvailabilityFields({ saveAsAiAsset: true, useCase: 'test' }, modelType),
         {
           initialProps: {
-            modelType: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
+            modelType: { type: ServingRuntimeModelType.GENERATIVE },
           },
         },
       );
@@ -237,7 +235,7 @@ describe('AvailableAiAssetsFields', () => {
 
       // Change to predictive model type
       rerender({
-        modelType: { type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false },
+        modelType: { type: ServingRuntimeModelType.PREDICTIVE },
       });
 
       // Data should be reset and field should be hidden

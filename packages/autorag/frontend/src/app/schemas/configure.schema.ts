@@ -45,7 +45,15 @@ function createConfigureSchema() {
           'Display name must be at most 250 characters',
         )
         .default(''),
-      description: z.string().trim().default('').optional(),
+      description: z
+        .string()
+        .trim()
+        .refine(
+          (val) => Array.from(val).length <= 255,
+          'Description must be at most 255 characters',
+        )
+        .default('')
+        .optional(),
 
       input_data_secret_name: z.string().min(1).default(''),
       input_data_bucket_name: z.string().min(1).default(''),

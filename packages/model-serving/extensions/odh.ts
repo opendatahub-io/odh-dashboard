@@ -8,11 +8,26 @@ import type {
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import type { WizardFieldExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type { DeploymentMethodSelectFieldType } from '../src/components/deploymentWizard/fields/DeploymentMethodSelectField';
 
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/internal/utilities/v2Redirect').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
   }));
+
+const deploymentMethodFieldExtension: WizardFieldExtension<DeploymentMethodSelectFieldType> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    field: () =>
+      import('../src/components/deploymentWizard/fields/DeploymentMethodSelectField').then(
+        (m) => m.DeploymentMethodSelectFieldWizardField,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.MODEL_SERVING],
+  },
+};
 
 const extensions: (
   | AreaExtension
@@ -20,6 +35,7 @@ const extensions: (
   | RouteExtension
   | OverviewSectionExtension
   | TabRouteTabExtension
+  | WizardFieldExtension<DeploymentMethodSelectFieldType>
 )[] = [
   {
     type: 'app.area',
@@ -102,6 +118,7 @@ const extensions: (
       required: [SupportedArea.MODEL_SERVING],
     },
   },
+  deploymentMethodFieldExtension,
 ];
 
 export default extensions;

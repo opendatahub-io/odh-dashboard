@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/pvcs"
@@ -48,12 +49,12 @@ type PVCCreateEnvelope Envelope[*models.PVCCreate]
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/persistentvolumeclaims/{namespace} [get]
-func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
-	namespace := ps.ByName(NamespacePathParam)
+func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	namespace := ps.ByName(constants.NamespacePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -63,7 +64,7 @@ func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, 
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbList, auth.PersistentVolumeClaims, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
@@ -99,18 +100,18 @@ func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, 
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error"
 //	@Router			/persistentvolumeclaims/{namespace} [post]
 func (a *App) CreatePVCHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+	if success := a.ValidateContentType(w, r, constants.MediaTypeJson); !success {
 		return
 	}
 
@@ -152,12 +153,13 @@ func (a *App) CreatePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbCreate, auth.PersistentVolumeClaims, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: pvcCreate.Name}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	actor, ok := a.requireAuth(w, r, authPolicies)
+	if !ok {
 		return
 	}
 	// ============================================================
 
-	createdPVC, err := a.repositories.PVC.CreatePVC(r.Context(), pvcCreate, namespace)
+	createdPVC, err := a.repositories.PVC.CreatePVC(r.Context(), actor, pvcCreate, namespace)
 	if err != nil {
 		if helper.IsInternalValidationError(err) {
 			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
@@ -203,13 +205,13 @@ func (a *App) CreatePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/persistentvolumeclaims/{namespace}/{name} [delete]
 func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
-	pvcName := ps.ByName(ResourceNamePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
+	pvcName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateKubernetesPVCName(field.NewPath(ResourceNamePathParam), pvcName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesPVCName(field.NewPath(constants.ResourceNamePathParam), pvcName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -219,7 +221,7 @@ func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbDelete, auth.PersistentVolumeClaims, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: pvcName}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
