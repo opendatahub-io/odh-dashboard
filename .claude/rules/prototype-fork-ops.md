@@ -81,7 +81,10 @@ if [ -z "$FORK_BRANCH" ]; then
   FORK_BRANCH=$(git -C "$FORK_DIR" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
 fi
 git -C "$FORK_DIR" checkout "${FORK_BRANCH:-main}" 2>&1
-git -C "$FORK_DIR" pull origin "${FORK_BRANCH:-main}" --ff-only 2>/dev/null || true
+if ! git -C "$FORK_DIR" pull origin "${FORK_BRANCH:-main}" --ff-only 2>/dev/null; then
+  echo "Fast-forward pull failed (designer may have force-pushed). Resetting to origin."
+  git -C "$FORK_DIR" reset --hard "origin/${FORK_BRANCH:-main}" 2>&1
+fi
 
 EXPECTED_UPSTREAM="git@gitlab.cee.redhat.com:uxd/prototypes/rhoai.git"
 CURRENT_UPSTREAM=$(git -C "$FORK_DIR" remote get-url upstream 2>/dev/null || echo "")

@@ -139,8 +139,9 @@ Only if no existing Epic from `--parent` AND none discovered in Step 6. **If Epi
 ```
 createJiraIssue(cloudId: "redhat.atlassian.net", projectKey: "<project>",
   issueTypeName: "Epic", summary: "...", description: "...", contentFormat: "markdown",
+  components: "AI Core Dashboard",
   additional_fields: { "customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",
-    "priority": {"name": "Major"}, "components": [{"name": "AI Core Dashboard"}] })
+    "priority": {"name": "Major"} })
 ```
 
 ### 8b: Create child tickets
