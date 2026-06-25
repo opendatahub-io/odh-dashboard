@@ -1,4 +1,5 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 
 export type ModelCatalogBannerExtension = Extension<
   'model-catalog.page/banner',
@@ -8,6 +9,6 @@ export type ModelCatalogBannerExtension = Extension<
   }
 >;
 
-export const isModelCatalogBannerExtension = (
-  extension: Extension,
-): extension is ModelCatalogBannerExtension => extension.type === 'model-catalog.page/banner';
+export const isModelCatalogBannerExtension = createExtensionGuard<ModelCatalogBannerExtension>(
+  'model-catalog.page/banner',
+);

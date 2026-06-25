@@ -282,6 +282,33 @@ describe('deserializeAgentProfile', () => {
     });
   });
 
+  describe('asr field', () => {
+    it('should restore selectedAsrModel and enable ASR when asr.model is present', () => {
+      const profile = makeProfile({
+        asr: { model: { id: 'whisper-large-v3', uri: 'http://whisper.svc/v1' } },
+      });
+      const { config } = deserializeAgentProfile(profile, makeContext());
+
+      expect(config.selectedAsrModel).toBe('whisper-large-v3');
+      expect(config.isAsrModelEnabled).toBe(true);
+    });
+
+    it('should clear ASR state when asr field is absent', () => {
+      const { config } = deserializeAgentProfile(makeProfile(), makeContext());
+
+      expect(config.selectedAsrModel).toBe('');
+      expect(config.isAsrModelEnabled).toBe(false);
+    });
+
+    it('should clear ASR state when asr.model is absent', () => {
+      const profile = makeProfile({ asr: {} });
+      const { config } = deserializeAgentProfile(profile, makeContext());
+
+      expect(config.selectedAsrModel).toBe('');
+      expect(config.isAsrModelEnabled).toBe(false);
+    });
+  });
+
   describe('guardrails', () => {
     it('should always clear guardrail state regardless of profile contents', () => {
       const profileWithGuardrail = makeProfile({

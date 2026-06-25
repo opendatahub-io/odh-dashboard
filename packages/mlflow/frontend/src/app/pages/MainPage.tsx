@@ -17,14 +17,14 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { useNamespaceSelector } from 'mod-arch-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import {
   MlflowExperimentSelector,
   type MlflowExperiment,
   type MlflowSelectorStatus,
 } from '@odh-dashboard/internal/concepts/mlflow';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { WORKSPACE_PARAM } from '~/app/utilities/const';
 
 const BffConnectionAlert: React.FC<{ selectorStatus: MlflowSelectorStatus }> = ({
@@ -53,7 +53,7 @@ const MainPage: React.FC = () => {
   const [appliedFilter, setAppliedFilter] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const { namespaces, preferredNamespace, updatePreferredNamespace, namespacesLoaded } =
-    useNamespaceSelector();
+    useNamespaceSelectorWithPersistence();
 
   const excludedNames = new Set(['default', 'system', 'openshift', 'opendatahub']);
   const filteredNamespaces = namespaces.filter(

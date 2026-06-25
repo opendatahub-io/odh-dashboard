@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Table } from '@odh-dashboard/internal/components/table/index';
-import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { getColumns } from './const';
 import TrainJobTableRow from './TrainJobTableRow';
 import RayJobTableRow from './RayJobTableRow';

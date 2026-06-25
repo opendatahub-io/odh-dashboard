@@ -377,6 +377,38 @@ describe('getAutomlContext', () => {
       expect(context.modelsLoading).toBeUndefined();
     });
   });
+
+  describe('componentStageMap fields', () => {
+    it('should pass through componentStageMap when provided', () => {
+      const mockStageMap = {
+        pipeline_id: 'test',
+        description: 'test',
+        components: [],
+        kfp_run_id: 'run-1',
+        published_at: '2026-01-01T00:00:00Z',
+      };
+      const context = getAutomlContext({
+        pipelineRun: createMockPipelineRun(),
+        componentStageMap: mockStageMap,
+        componentStageMapLoading: false,
+        componentStageMapError: false,
+      });
+
+      expect(context.componentStageMap).toBe(mockStageMap);
+      expect(context.componentStageMapLoading).toBe(false);
+      expect(context.componentStageMapError).toBe(false);
+    });
+
+    it('should default componentStageMap fields to undefined when not provided', () => {
+      const context = getAutomlContext({
+        pipelineRun: createMockPipelineRun(),
+      });
+
+      expect(context.componentStageMap).toBeUndefined();
+      expect(context.componentStageMapLoading).toBeUndefined();
+      expect(context.componentStageMapError).toBeUndefined();
+    });
+  });
 });
 
 // ============================================================================

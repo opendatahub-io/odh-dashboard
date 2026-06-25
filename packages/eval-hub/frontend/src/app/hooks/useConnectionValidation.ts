@@ -1,5 +1,10 @@
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { verifyConnection } from '~/app/api/k8s';
+import {
+  EVAL_HUB_EVENTS,
+  type ExternalConnectionTestedProperties,
+} from '~/app/tracking/evalhubTrackingConstants';
 import { getUserFriendlyConnectionError } from '~/app/utils/validationUtils';
 import type { ConnectionValidationState, SourceMode, VerifyConnectionRequest } from '~/app/types';
 
@@ -83,6 +88,12 @@ export const useConnectionValidation = ({
           status: 'success',
           message: 'Connection established successfully.',
         });
+
+        const successProps: ExternalConnectionTestedProperties = {
+          outcome: 'success',
+          endpointType: sourceMode,
+        };
+        fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, successProps);
       }
     } catch (err: unknown) {
       if (controller.signal.aborted) {
@@ -95,11 +106,19 @@ export const useConnectionValidation = ({
           errorCode = String((inner as Record<string, unknown>).code); // eslint-disable-line @typescript-eslint/consistent-type-assertions
         }
       }
+      const errorMessage = getUserFriendlyConnectionError(errorCode, sourceMode);
       setConnectionValidation({
         status: 'error',
-        message: getUserFriendlyConnectionError(errorCode, sourceMode),
+        message: errorMessage,
         errorCode,
       });
+
+      const errorProps: ExternalConnectionTestedProperties = {
+        outcome: 'error',
+        endpointType: sourceMode,
+        error: errorMessage,
+      };
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, errorProps);
     }
   }, [
     namespace,

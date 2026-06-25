@@ -10,8 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import Table from '#~/components/table/Table';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleDetailsModal from '#~/pages/projects/projectPermissions/roleDetails/RoleDetailsModal';
 import type { RoleListRow } from './types';

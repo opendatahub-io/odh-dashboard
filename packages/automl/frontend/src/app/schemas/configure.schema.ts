@@ -36,7 +36,15 @@ function createConfigureSchema() {
           'Display name must be at most 250 characters',
         )
         .default(''),
-      description: z.string().trim().default('').optional(),
+      description: z
+        .string()
+        .trim()
+        .refine(
+          (val) => Array.from(val).length <= 255,
+          'Description must be at most 255 characters',
+        )
+        .default('')
+        .optional(),
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- intentionally invalid default; validated on submit
       task_type: z.enum(TASK_TYPES).default('' as never),
       train_data_secret_name: z.string().min(1).default(''),

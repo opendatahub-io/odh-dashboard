@@ -140,6 +140,103 @@ describe('useAutoUnlock', () => {
     expect(mockOnFetchTools).toHaveBeenCalledWith('https://server1.com', '');
   });
 
+  it('should not attempt connection for auth_required server in route state path', async () => {
+    mockGetToken.mockReturnValue(undefined);
+
+    const initialServerStatuses = new Map<string, ServerStatusInfo>([
+      ['https://server1.com', { status: 'auth_required', message: 'Token required' }],
+    ]);
+
+    renderHook(() =>
+      useAutoUnlock({
+        checkServerStatus: mockCheckServerStatus,
+        selectedServers: [mockServer],
+        isInitialLoadComplete: true,
+        initialServerStatuses,
+        getToken: mockGetToken,
+        onTokenUpdate: mockOnTokenUpdate,
+        onFetchTools: mockOnFetchTools,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mockCheckServerStatus).not.toHaveBeenCalled();
+    });
+    expect(mockOnTokenUpdate).not.toHaveBeenCalled();
+  });
+
+  it('should auto-connect server in profile load path when no initialServerStatuses', async () => {
+    const mockStatusInfo: ServerStatusInfo = { status: 'connected', message: 'Connected' };
+    mockCheckServerStatus.mockResolvedValue(mockStatusInfo);
+    mockGetToken.mockReturnValue(undefined);
+    mockOnFetchTools.mockResolvedValue(undefined);
+
+    renderHook(() =>
+      useAutoUnlock({
+        checkServerStatus: mockCheckServerStatus,
+        selectedServers: [mockServer],
+        isInitialLoadComplete: true,
+        initialServerStatuses: new Map(),
+        getToken: mockGetToken,
+        onTokenUpdate: mockOnTokenUpdate,
+        onFetchTools: mockOnFetchTools,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mockOnTokenUpdate).toHaveBeenCalledWith('https://server1.com', {
+        token: '',
+        authenticated: true,
+        autoConnected: true,
+      });
+      expect(mockOnFetchTools).toHaveBeenCalledWith('https://server1.com', '');
+    });
+  });
+
+  it('should attempt connection in profile load path when server needs a token', async () => {
+    const mockStatusInfo: ServerStatusInfo = {
+      status: 'auth_required',
+      message: 'Token required',
+    };
+    mockCheckServerStatus.mockResolvedValue(mockStatusInfo);
+    mockGetToken.mockReturnValue(undefined);
+
+    renderHook(() =>
+      useAutoUnlock({
+        checkServerStatus: mockCheckServerStatus,
+        selectedServers: [mockServer],
+        isInitialLoadComplete: true,
+        initialServerStatuses: new Map(),
+        getToken: mockGetToken,
+        onTokenUpdate: mockOnTokenUpdate,
+        onFetchTools: mockOnFetchTools,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mockCheckServerStatus).toHaveBeenCalledWith('https://server1.com');
+    });
+    expect(mockOnTokenUpdate).not.toHaveBeenCalled();
+  });
+
+  it('should not auto-connect when no selected servers in profile load path', async () => {
+    renderHook(() =>
+      useAutoUnlock({
+        checkServerStatus: mockCheckServerStatus,
+        selectedServers: [],
+        isInitialLoadComplete: true,
+        initialServerStatuses: new Map(),
+        getToken: mockGetToken,
+        onTokenUpdate: mockOnTokenUpdate,
+        onFetchTools: mockOnFetchTools,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mockCheckServerStatus).not.toHaveBeenCalled();
+    });
+  });
+
   it('should handle auto-unlock failures gracefully', async () => {
     mockCheckServerStatus.mockRejectedValue(new Error('Connection failed'));
 

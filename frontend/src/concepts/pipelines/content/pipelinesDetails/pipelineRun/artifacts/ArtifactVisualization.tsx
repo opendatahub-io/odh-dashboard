@@ -13,8 +13,8 @@ import {
 } from '@patternfly/react-core';
 import { TableVariant, Td, Tr } from '@patternfly/react-table';
 
+import { Table } from '@odh-dashboard/ui-core';
 import { Artifact } from '#~/third_party/mlmd';
-import { Table } from '#~/components/table';
 import { ArtifactType } from '#~/concepts/pipelines/kfTypes';
 import {
   buildRocCurveConfig,

@@ -1,4 +1,4 @@
-import type { SortableData } from '@odh-dashboard/internal/components/table';
+import type { SortableData } from '@odh-dashboard/ui-core';
 import type { PipelineRun } from '~/app/types';
 
 export const autoragRunsColumns: SortableData<PipelineRun>[] = [

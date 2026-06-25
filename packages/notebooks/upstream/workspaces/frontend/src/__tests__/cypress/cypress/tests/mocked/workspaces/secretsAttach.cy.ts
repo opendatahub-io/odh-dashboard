@@ -11,6 +11,7 @@ import {
   buildMockWorkspaceUpdateFromWorkspace,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 
 describe('SecretsAttachModal', () => {
@@ -55,11 +56,12 @@ describe('SecretsAttachModal', () => {
       mockModArchResponse(mockWorkspaceUpdate),
     ).as('getWorkspace');
 
-    cy.intercept(
-      'GET',
-      `/api/${NOTEBOOKS_API_VERSION}/workspacekinds/${mockWorkspaceKindInfo.name}`,
-      mockModArchResponse(mockWorkspaceKindFull),
-    ).as('getWorkspaceKind');
+    cy.interceptApi(
+      'GET /api/:apiVersion/workspacekinds',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse([mockWorkspaceKindFull]),
+    ).as('getWorkspaceKinds');
+    interceptListValues(mockWorkspaceKindFull);
 
     cy.intercept('GET', `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}`, {
       data: mockSecrets,
@@ -90,7 +92,7 @@ describe('SecretsAttachModal', () => {
     cy.wait('@getWorkspaces');
     workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
     cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
     editWorkspace.clickNext();
