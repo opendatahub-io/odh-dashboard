@@ -552,7 +552,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
                   variant="danger"
                   title={alertTitle || 'Error configuring playground'}
                   isInline
-                  style={{ marginTop: '1rem' }}
+                  style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
                 >
                   {error.message}
                 </Alert>

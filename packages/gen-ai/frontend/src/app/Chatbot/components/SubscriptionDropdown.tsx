@@ -5,12 +5,12 @@ import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { SubscriptionInfo } from '~/app/types';
 import { isMaasLlamaModelId, splitLlamaModelId } from '~/app/utilities/utils';
 
-interface SubscriptionDropdownProps {
+type SubscriptionDropdownProps = {
   selectedModel: string;
   selectedSubscription: string;
   onSubscriptionChange: (subscription: string) => void;
   isDisabled?: boolean;
-}
+};
 
 const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> = ({
   selectedModel,
@@ -87,7 +87,7 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
             onClick={() => setIsOpen(!isOpen)}
             isExpanded={isOpen}
             isDisabled={isDisabled}
-            style={{ width: '100%' }}
+            className="pf-v6-u-w-100"
             data-testid="subscription-selector-toggle"
           >
             {toggleLabel}
