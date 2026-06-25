@@ -52,6 +52,7 @@ const useAgentProfileUrlParam = ({
   const applyAgentProfile = useChatbotConfigStore((s) => s.applyAgentProfile);
   const setLoadedProfileSpec = useChatbotConfigStore((s) => s.setLoadedProfileSpec);
   const setLoadedProfileWarnings = useChatbotConfigStore((s) => s.setLoadedProfileWarnings);
+  const setLoadedResourceVersion = useChatbotConfigStore((s) => s.setLoadedResourceVersion);
   const updateActivePrompt = useChatbotConfigStore((s) => s.updateActivePrompt);
   const updateSystemInstruction = useChatbotConfigStore((s) => s.updateSystemInstruction);
   const saveToolSelections = useChatbotConfigStore((s) => s.saveToolSelections);
@@ -107,6 +108,7 @@ const useAgentProfileUrlParam = ({
           profile.spec.displayName,
           profile.spec.description,
         );
+        setLoadedResourceVersion(profile.metadata.resourceVersion);
 
         // Sync warnings are set immediately so the OpenAgentProfileModal can show
         // the alert (and bypass localStorage) as soon as the profile is applied.
@@ -182,6 +184,7 @@ const useAgentProfileUrlParam = ({
     applyAgentProfile,
     setLoadedProfileSpec,
     setLoadedProfileWarnings,
+    setLoadedResourceVersion,
     updateActivePrompt,
     updateSystemInstruction,
     saveToolSelections,

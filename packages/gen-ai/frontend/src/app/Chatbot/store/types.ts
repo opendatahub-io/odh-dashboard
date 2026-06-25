@@ -101,6 +101,12 @@ export interface ChatbotConfigStoreState {
    */
   loadedProfileSpec: AgentProfileSpec | null;
   /**
+   * The Kubernetes resourceVersion of the currently loaded AgentProfile.
+   * Used for optimistic concurrency: the PUT request includes this value so the server
+   * can reject the write if the profile was modified elsewhere (409 Conflict).
+   */
+  loadedResourceVersion: string | null;
+  /**
    * Validation warnings produced during profile deserialization (e.g. model not found,
    * MCP server unresolvable). Non-null when a profile is loaded with missing resources.
    * Drives the warning alert and disabled Edit in OpenAgentProfileModal.
@@ -171,6 +177,7 @@ export interface ChatbotConfigStoreActions {
    * "the last thing that was persisted."
    */
   setLoadedProfileSpec: (spec: AgentProfileSpec | null) => void;
+  setLoadedResourceVersion: (resourceVersion: string | null) => void;
   setLoadedProfileWarnings: (warnings: string[] | null) => void;
 
   // Configuration management
