@@ -79,13 +79,13 @@ describe('Subscription Management Page', () => {
   it('should display auth policies content within the auth policies tab', () => {
     subscriptionManagementPage.visit('auth-policies');
     authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 6);
+    authPoliciesPage.findRows().should('have.length', 7);
     authPoliciesPage.findCreateAuthPolicyButton().should('exist');
 
     authPoliciesPage.findKeywordFilterInput().type('premium');
     authPoliciesPage.findRows().should('have.length', 1);
     authPoliciesPage.clearAllFilters();
-    authPoliciesPage.findRows().should('have.length', 6);
+    authPoliciesPage.findRows().should('have.length', 7);
   });
 
   it('should test sorting, expand/collapse, warning, and group chips in the overview tab', () => {
@@ -96,11 +96,11 @@ describe('Subscription Management Page', () => {
     // Sort by model name
     overviewTabPage.findColumnSortButton('Model name').click();
     overviewTabPage.findModelRows().eq(0).should('contain.text', 'Flan T5 Small');
-    overviewTabPage.findModelRows().eq(2).should('contain.text', 'Llama 3 70B Instruct');
+    overviewTabPage.findModelRows().eq(3).should('contain.text', 'Llama 3 70B Instruct');
 
     // Sort by subscriptions
     overviewTabPage.findColumnSortButton('Subscriptions').click();
-    overviewTabPage.findModelRows().eq(0).should('contain.text', 'Llama 3 70B Instruct');
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'Gemma 7B IT');
 
     // Sort by authorization policies
     overviewTabPage.findColumnSortButton('Authorization policies').click();
@@ -111,15 +111,24 @@ describe('Subscription Management Page', () => {
     overviewTabPage.findModelRows().eq(0).findByTestId('no-policies-warning').click();
     cy.contains('Configuration warning').should('be.visible');
 
+    // Check warning icon for 0 subscriptions
+    overviewTabPage.findModelRows().eq(1).findByTestId('no-subscriptions-warning').should('exist');
+    overviewTabPage.findModelRows().eq(1).findByTestId('no-subscriptions-warning').click();
+    cy.contains('Configuration warning').should('be.visible');
+
     // Expand the Llama row
     overviewTabPage.expandModelRow(0);
     overviewTabPage.findModelRows().eq(0).should('contain.text', 'No authorization policies');
     overviewTabPage.findModelRows().eq(0).should('contain.text', 'Enterprise Multi-Group Llama');
 
-    // Expand all subscriptions within Llama row
-    overviewTabPage.findExpandAllSubscriptionsInRow(0).should('contain.text', 'Expand all');
-    overviewTabPage.findExpandAllSubscriptionsInRow(0).click();
-    overviewTabPage.findExpandAllSubscriptionsInRow(0).should('contain.text', 'Collapse all');
+    // Expand the single subscription within Llama row (no "Expand all" since only 1)
+    overviewTabPage
+      .findModelRows()
+      .eq(0)
+      .contains('Enterprise Multi-Group Llama')
+      .closest('tr')
+      .find('button[aria-label="Details"]')
+      .click();
     overviewTabPage.findModelRows().eq(0).should('contain.text', 'Token limits');
     overviewTabPage.findShowMoreGroupsInRow(0).should('contain.text', '4 more');
     overviewTabPage.findShowMoreGroupsInRow(0).click();
@@ -128,28 +137,25 @@ describe('Subscription Management Page', () => {
     overviewTabPage.findShowLessGroupsInRow(0).click();
     overviewTabPage.findShowMoreGroupsInRow(0).should('exist');
 
-    // Collapse all subscriptions within Llama row
-    overviewTabPage.findExpandAllSubscriptionsInRow(0).click();
-    overviewTabPage.findExpandAllSubscriptionsInRow(0).should('contain.text', 'Expand all');
-    overviewTabPage.expandModelRow(0);
-
     // Expand Granite row
-    overviewTabPage.expandModelRow(1);
-    overviewTabPage.findExpandAllPoliciesInRow(1).should('contain.text', 'Expand all');
-    overviewTabPage.findExpandAllPoliciesInRow(1).click();
-    overviewTabPage.findExpandAllPoliciesInRow(1).should('contain.text', 'Collapse all');
-    overviewTabPage.findExpandAllPoliciesInRow(1).click();
-    overviewTabPage.findExpandAllPoliciesInRow(1).should('contain.text', 'Expand all');
+    overviewTabPage.expandModelRow(3);
+    overviewTabPage.findExpandAllPoliciesInRow(3).should('contain.text', 'Expand all');
+    overviewTabPage.findExpandAllPoliciesInRow(3).click();
+    overviewTabPage.findExpandAllPoliciesInRow(3).should('contain.text', 'Collapse all');
+    overviewTabPage.findExpandAllPoliciesInRow(3).click();
+    overviewTabPage.findExpandAllPoliciesInRow(3).should('contain.text', 'Expand all');
 
     // Test kebab menu
     overviewTabPage.findKebabToggleInRow(0).click();
     overviewTabPage.findKebabAction('Create subscription').should('be.visible').click();
     cy.url().should('include', '/subscription-management/subscriptions/create');
+    cy.findByTestId('subscription-models-table').should('contain.text', 'Llama 3 70B Instruct');
     createSubscriptionPage.findCancelButton().click();
     cy.url().should('include', '/subscription-management/overview');
     overviewTabPage.findKebabToggleInRow(0).click();
     overviewTabPage.findKebabAction('Create authorization policy').should('be.visible').click();
     cy.url().should('include', '/subscription-management/auth-policies/create');
+    cy.findByTestId('policy-models-table').should('contain.text', 'Granite 3 8B Instruct');
     policyPage.findCancelButton().click();
     cy.url().should('include', '/subscription-management/overview');
   });
