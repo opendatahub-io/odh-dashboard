@@ -5,7 +5,7 @@ import { ActionsColumn, ExpandableRowContent, Tbody, Tr, Td } from '@patternfly/
 import { useNavigate } from 'react-router-dom';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { ModelOverviewRow, overviewColumns } from './columns';
+import { ModelOverviewRow, overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
 
 type OverviewTableRowProps = {

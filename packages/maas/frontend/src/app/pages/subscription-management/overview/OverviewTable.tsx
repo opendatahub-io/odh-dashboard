@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Pagination } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Td } from '@patternfly/react-table';
 import { useTableColumnSort } from '@odh-dashboard/ui-core';
-import { ModelOverviewRow, overviewColumns } from './columns';
+import { ModelOverviewRow, overviewColumns } from './utils';
 import OverviewTableRow from './OverviewTableRow';
 
 const modelKey = (row: ModelOverviewRow): string => `${row.namespace}/${row.name}`;

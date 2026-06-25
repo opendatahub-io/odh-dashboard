@@ -149,13 +149,13 @@ describe('Subscription Management Page', () => {
     overviewTabPage.findKebabToggleInRow(0).click();
     overviewTabPage.findKebabAction('Create subscription').should('be.visible').click();
     cy.url().should('include', '/subscription-management/subscriptions/create');
-    cy.findByTestId('subscription-models-table').should('contain.text', 'Llama 3 70B Instruct');
+    createSubscriptionPage.findModelsTable().should('contain.text', 'Llama 3 70B Instruct');
     createSubscriptionPage.findCancelButton().click();
     cy.url().should('include', '/subscription-management/overview');
     overviewTabPage.findKebabToggleInRow(0).click();
     overviewTabPage.findKebabAction('Create authorization policy').should('be.visible').click();
     cy.url().should('include', '/subscription-management/auth-policies/create');
-    cy.findByTestId('policy-models-table').should('contain.text', 'Granite 3 8B Instruct');
+    policyPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
     policyPage.findCancelButton().click();
     cy.url().should('include', '/subscription-management/overview');
   });

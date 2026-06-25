@@ -10,7 +10,7 @@ import {
   ToggleGroupItem,
 } from '@patternfly/react-core';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
-import { buildModelOverviewRows } from './overview/columns';
+import { buildModelOverviewRows } from './overview/utils';
 import OverviewTable from './overview/OverviewTable';
 
 const OverviewTab: React.FC = () => {
