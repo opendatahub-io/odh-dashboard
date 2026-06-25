@@ -180,6 +180,34 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			},
 		},
 		{
+			Name:              "gemma-research-policy",
+			Namespace:         "maas-system",
+			DisplayName:       "Gemma Research Policy",
+			Description:       "Broad research access policy for Gemma across multiple teams.",
+			Phase:             "Active",
+			StatusMessage:     "successfully reconciled",
+			CreationTimestamp: timePtr(time.Date(2025, 4, 10, 9, 0, 0, 0, time.UTC)),
+			ModelRefs: []models.ModelRef{
+				{Name: "gemma-7b-it", Namespace: "maas-models"},
+			},
+			Subjects: models.SubjectSpec{
+				Groups: []models.GroupReference{
+					{Name: "data-science-team"},
+					{Name: "ml-engineers"},
+					{Name: "research-team"},
+					{Name: "analytics-team"},
+					{Name: "qa-engineers"},
+					{Name: "platform-admins"},
+					{Name: "devops-team"},
+					{Name: "security-reviewers"},
+					{Name: "product-managers"},
+					{Name: "frontend-devs"},
+					{Name: "backend-devs"},
+					{Name: "interns"},
+				},
+			},
+		},
+		{
 			Name:              "negative-priority-sub-policy",
 			Namespace:         "maas-system",
 			Phase:             "Active",
@@ -236,6 +264,18 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 			},
 			Phase:    "Ready",
 			Endpoint: "https://llama-3-70b-instruct.example.com",
+		},
+		{
+			Name:        "gemma-7b-it",
+			Namespace:   "maas-models",
+			DisplayName: "Gemma 7B IT",
+			Description: "Google Gemma 7B instruction-tuned model for general-purpose tasks.",
+			ModelRef: models.ModelReference{
+				Kind: "LLMInferenceService",
+				Name: "gemma-7b-it",
+			},
+			Phase:    "Ready",
+			Endpoint: "https://gemma-7b-it.example.com",
 		},
 	}
 }

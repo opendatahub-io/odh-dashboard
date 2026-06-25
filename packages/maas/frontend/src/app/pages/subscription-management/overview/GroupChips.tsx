@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Content, ContentVariants, Flex, FlexItem, Label } from '@patternfly/react-core';
+import { Button, Content, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { GroupReference } from '~/app/types/subscriptions';
 
 type GroupChipsProps = {
@@ -22,13 +22,13 @@ const GroupChips: React.FC<GroupChipsProps> = ({ groups, maxVisible = DEFAULT_MA
       alignItems={{ default: 'alignItemsCenter' }}
     >
       <FlexItem>
-        <Content component={ContentVariants.small} className="pf-v6-u-mb-0">
+        <Content className="pf-v6-u-mr-md">
           <strong>Groups</strong>
         </Content>
       </FlexItem>
       {groups.length === 0 ? (
         <FlexItem>
-          <Content component={ContentVariants.small}>No groups</Content>
+          <Content>No groups</Content>
         </FlexItem>
       ) : (
         <>

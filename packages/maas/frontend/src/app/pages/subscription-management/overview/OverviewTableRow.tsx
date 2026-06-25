@@ -15,6 +15,33 @@ type OverviewTableRowProps = {
 
 const RETURN_TO = `${URL_PREFIX}/subscription-management/overview`;
 
+const NoSubscriptionsWarning: React.FC = () => (
+  <Popover
+    headerContent="Configuration warning"
+    bodyContent={
+      <div>
+        <p>
+          This model has no subscriptions. Without a subscription, no token rate limits are
+          configured and the model cannot be called through the MaaS API gateway.
+        </p>
+        <p className="pf-v6-u-mt-sm">
+          <strong>How to fix this:</strong>
+        </p>
+        <p className="pf-v6-u-ml-md">
+          Create a new subscription that includes this model and at least one group.
+        </p>
+        <p className="pf-v6-u-ml-md">
+          Or add this model to an existing subscription from the Subscriptions tab.
+        </p>
+      </div>
+    }
+  >
+    <Button variant="plain" data-testid="no-subscriptions-warning">
+      <ExclamationTriangleIcon color="orange" aria-label="No subscriptions warning" />
+    </Button>
+  </Popover>
+);
+
 const NoPoliciesWarning: React.FC = () => (
   <Popover
     headerContent="Configuration warning"
@@ -51,7 +78,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({ row, rowIndex }) =>
 
   return (
     <Tbody isExpanded={isExpanded} data-testid="overview-model-row">
-      <Tr>
+      <Tr style={isExpanded ? { borderBottom: 'none' } : undefined}>
         <Td
           data-testid="expand-model"
           expand={{
@@ -68,7 +95,16 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({ row, rowIndex }) =>
             truncateDescriptionLines={2}
           />
         </Td>
-        <Td dataLabel={overviewColumns[2].label}>{row.subscriptions.length}</Td>
+        <Td dataLabel={overviewColumns[2].label}>
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>{row.subscriptions.length}</FlexItem>
+            {row.subscriptions.length === 0 && (
+              <FlexItem>
+                <NoSubscriptionsWarning />
+              </FlexItem>
+            )}
+          </Flex>
+        </Td>
         <Td dataLabel={overviewColumns[3].label}>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>{row.policies.length}</FlexItem>
@@ -87,14 +123,20 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({ row, rowIndex }) =>
                 title: 'Create subscription',
                 onClick: () =>
                   navigate(`${URL_PREFIX}/subscription-management/subscriptions/create`, {
-                    state: { returnTo: RETURN_TO },
+                    state: {
+                      returnTo: RETURN_TO,
+                      preSelectedModel: { name: row.name, namespace: row.namespace },
+                    },
                   }),
               },
               {
                 title: 'Create authorization policy',
                 onClick: () =>
                   navigate(`${URL_PREFIX}/subscription-management/auth-policies/create`, {
-                    state: { returnTo: RETURN_TO },
+                    state: {
+                      returnTo: RETURN_TO,
+                      preSelectedModel: { name: row.name, namespace: row.namespace },
+                    },
                   }),
               },
             ]}

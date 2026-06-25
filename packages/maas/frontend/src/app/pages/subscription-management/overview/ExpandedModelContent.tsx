@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Button,
-  Content,
-  ContentVariants,
-  Flex,
-  FlexItem,
-  Grid,
-  GridItem,
-} from '@patternfly/react-core';
+import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { MaaSAuthPolicy, MaaSSubscription, TokenRateLimit } from '~/app/types/subscriptions';
@@ -72,7 +64,11 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
           <Td>
             <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
               <FlexItem>
-                <Link to={linkTo} state={linkState}>
+                <Link
+                  to={linkTo}
+                  state={linkState}
+                  className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md"
+                >
                   {displayName ?? name}
                 </Link>
               </FlexItem>
@@ -151,7 +147,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           <FlexItem>
             <Content>Subscriptions</Content>
           </FlexItem>
-          {subscriptions.length > 0 && (
+          {subscriptions.length > 1 && (
             <FlexItem>
               <Button
                 variant="link"
@@ -166,7 +162,12 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           )}
         </Flex>
         {subscriptions.length === 0 ? (
-          <Content component="p">No subscriptions</Content>
+          <div className="pf-v6-u-text-align-center pf-v6-u-mt-lg">
+            <Content component="h4">No subscriptions</Content>
+            <Content component="p" className="pf-v6-u-mt-sm pf-v6-u-font-size-md">
+              No rate limits configured for this model.
+            </Content>
+          </div>
         ) : (
           subscriptions.map((sub, index) => {
             const modelRef = sub.modelRefs.find(
@@ -188,8 +189,9 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
                 isExpanded={expandedSubs.has(sub.name)}
                 onToggle={() => toggleSub(sub.name)}
               >
-                <Content component={ContentVariants.small} className="pf-v6-u-mb-xs">
-                  <strong>Token limits</strong> {formatTokenLimits(tokenLimits)}
+                <Content className="pf-v6-u-mb-sm">
+                  <strong className="pf-v6-u-mr-md">Token limits</strong>
+                  {formatTokenLimits(tokenLimits)}
                 </Content>
                 <GroupChips groups={sub.owner.groups} />
               </ExpandableItem>
@@ -206,7 +208,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           <FlexItem>
             <Content>Authorization policies</Content>
           </FlexItem>
-          {policies.length > 0 && (
+          {policies.length > 1 && (
             <FlexItem>
               <Button
                 variant="link"
@@ -222,10 +224,10 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
         </Flex>
         {policies.length === 0 ? (
           <div className="pf-v6-u-text-align-center pf-v6-u-mt-lg">
-            <Content>
-              <strong>No authorization policies</strong>
+            <Content component="h4">No authorization policies</Content>
+            <Content component="p" className="pf-v6-u-mt-sm pf-v6-u-font-size-md">
+              Access is denied by default.
             </Content>
-            <Content className="pf-v6-u-mt-sm">Access is denied by default.</Content>
           </div>
         ) : (
           policies.map((policy, index) => (

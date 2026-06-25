@@ -399,6 +399,15 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     phase: 'Ready',
     endpoint: 'https://llama-3-70b-instruct.maas-models.svc.cluster.local',
   },
+  {
+    name: 'gemma-7b-it',
+    namespace: 'maas-models',
+    displayName: 'Gemma 7B IT',
+    description: 'Google Gemma 7B instruction-tuned model for general-purpose tasks',
+    modelRef: { kind: 'InferenceService', name: 'gemma-7b-it' },
+    phase: 'Ready',
+    endpoint: 'https://gemma-7b-it.maas-models.svc.cluster.local',
+  },
 ];
 
 export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse => ({
@@ -528,6 +537,30 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     modelRefs: mockSubscriptions()[1].modelRefs,
     subjects: {
       groups: mockSubscriptions()[1].owner.groups,
+    },
+  },
+  {
+    name: 'gemma-research-policy',
+    displayName: 'Gemma Research Policy',
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    modelRefs: [{ name: 'gemma-7b-it', namespace: 'maas-models' }],
+    subjects: {
+      groups: [
+        { name: 'data-science-team' },
+        { name: 'ml-engineers' },
+        { name: 'research-team' },
+        { name: 'analytics-team' },
+        { name: 'qa-engineers' },
+        { name: 'platform-admins' },
+        { name: 'devops-team' },
+        { name: 'security-reviewers' },
+        { name: 'product-managers' },
+        { name: 'frontend-devs' },
+        { name: 'backend-devs' },
+        { name: 'interns' },
+      ],
     },
   },
   mockFailedAuthPolicy(),

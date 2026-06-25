@@ -3,7 +3,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
-import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import {
+  getBackUrl,
+  getPreSelectedModelFromState,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import PolicyForm from './policyForm/PolicyForm';
 
 const CreateAuthPolicyPage: React.FC = () => {
@@ -11,6 +14,7 @@ const CreateAuthPolicyPage: React.FC = () => {
   const { state, pathname } = useLocation();
   const backUrl = getBackUrl(pathname, state, 'auth-policies');
   const returnTo = backUrl;
+  const preSelectedModel = getPreSelectedModelFromState(state);
 
   return (
     <ApplicationsPage
@@ -26,7 +30,7 @@ const CreateAuthPolicyPage: React.FC = () => {
       empty={false}
       loadError={loadError}
     >
-      <PolicyForm formData={formData} returnTo={returnTo} />
+      <PolicyForm formData={formData} returnTo={returnTo} preSelectedModel={preSelectedModel} />
     </ApplicationsPage>
   );
 };
