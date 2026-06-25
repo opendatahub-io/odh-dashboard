@@ -152,10 +152,21 @@ def match_symptom(error_text: str) -> str | None:
     return None
 
 
+_SENSITIVE_RE = re.compile(
+    r"(?i)\b(token|password|passwd|secret|api[_-]?key|authorization|credential)"
+    r"\b\s*[:=]\s*(\S+)"
+)
+
+
+def _redact(text: str) -> str:
+    return _SENSITIVE_RE.sub(r"\1=<redacted>", text)
+
+
 def _truncate_error(error: str, max_lines: int = 3, max_chars: int = 300) -> str:
     if not error:
         return ""
-    lines = [l for l in error.splitlines() if l.strip()][:max_lines]
+    error = _redact(error)
+    lines = [line for line in error.splitlines() if line.strip()][:max_lines]
     result = "\n".join(lines)
     if len(result) > max_chars:
         result = result[:max_chars - 3] + "..."
@@ -487,7 +498,7 @@ def scan_recent_prs(
 
     prs_raw = gh_json(
         "pr", "list", "--repo", repo,
-        "--state", "all", "--limit", str(SCAN_LIMIT + 1),
+        "--state", "all", "--limit", str(SCAN_LIMIT * 3),
         "--json", "number,author,createdAt,headRefOid",
         "--search", f"created:>={since_date}",
     )
@@ -495,10 +506,10 @@ def scan_recent_prs(
         return {}, {}, 0
 
     prs = [
-        p for p in prs_raw[:SCAN_LIMIT]
+        p for p in prs_raw
         if not is_bot(p.get("author", {}))
         and str(p["number"]) != str(this_pr_number)
-    ]
+    ][:SCAN_LIMIT]
 
     check_results: dict[int, list[dict]] = {}
 
@@ -711,6 +722,7 @@ def main() -> None:
         if check_name in seen_checks:
             idx = seen_checks[check_name]
             classifications[idx]["occurrences"] += 1
+            summary[classifications[idx]["classification"]] += 1
             continue
 
         tests = tests_by_check.get(check_name, [])
