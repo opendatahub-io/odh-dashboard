@@ -31,13 +31,14 @@ import {
 } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigSelection';
 import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesSelection';
 import { WorkspaceFormData } from '~/app/types';
+import usePodTemplateOptionsListValues from '~/app/hooks/usePodTemplateOptionsListValues';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
   ApiErrorEnvelope,
-  WorkspacekindsImageConfigValue,
-  WorkspacekindsPodConfigValue,
-  WorkspacekindsWorkspaceKind,
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
+  WorkspacekindsWorkspaceKindListItem,
 } from '~/generated/data-contracts';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
@@ -52,6 +53,7 @@ enum WorkspaceFormSteps {
   ImageSelection,
   PodConfigSelection,
   Properties,
+  Summary,
 }
 
 const stepDescriptions: { [key in WorkspaceFormSteps]?: string } = {
@@ -62,6 +64,8 @@ const stepDescriptions: { [key in WorkspaceFormSteps]?: string } = {
   [WorkspaceFormSteps.PodConfigSelection]:
     'Select a pod config to use for the workspace. A pod config is a configuration that defines the resources and settings for a workspace.',
   [WorkspaceFormSteps.Properties]: 'Configure properties for your workspace.',
+  [WorkspaceFormSteps.Summary]:
+    'Review your selections before submitting. Click any section to go back and modify it.',
 };
 
 const WorkspaceForm: React.FC = () => {
@@ -83,13 +87,26 @@ const WorkspaceForm: React.FC = () => {
   const [data, setData, resetData, replaceData] =
     useGenericObjectState<WorkspaceFormData>(initialFormData);
 
+  const [allValuesData, allValuesLoaded, allValuesError] = usePodTemplateOptionsListValues({
+    kindName: data.kind?.name,
+    namespace,
+    imageId: undefined,
+  });
+
+  // Re-fetches when imageId changes to get compatibility-filtered pod configs
+  const [filteredValuesData, filteredValuesLoaded, filteredValuesError] =
+    usePodTemplateOptionsListValues({
+      kindName: data.kind?.name,
+      namespace,
+      imageId: data.imageConfig,
+    });
+
   // Store original values for edit mode diff view
   const [originalData, setOriginalData] = useState<WorkspaceFormData | undefined>(undefined);
 
   // Refs for filter control
   const imageFilterControlRef = useRef<ImageSelectionFilterHandle>(null);
   const podConfigFilterControlRef = useRef<PodConfigSelectionFilterHandle>(null);
-
   useEffect(() => {
     if (!initialFormDataLoaded || mode === 'create') {
       return;
@@ -98,6 +115,20 @@ const WorkspaceForm: React.FC = () => {
     // Store original values for diff comparison
     setOriginalData(initialFormData);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
+
+  // Apply default imageConfig and podConfig from listValues when a kind is first selected.
+  // Only sets defaults when the values are unset (undefined), so user selections are never overwritten.
+  useEffect(() => {
+    if (!allValuesData || !allValuesLoaded || !data.kind) {
+      return;
+    }
+    if (!data.imageConfig && allValuesData.imageConfig.default) {
+      setData('imageConfig', allValuesData.imageConfig.default);
+    }
+    if (!data.podConfig && allValuesData.podConfig.default) {
+      setData('podConfig', allValuesData.podConfig.default);
+    }
+  }, [allValuesData, allValuesLoaded, data.kind, data.imageConfig, data.podConfig, setData]);
 
   const getStepVariant = useCallback(
     (step: WorkspaceFormSteps) => {
@@ -123,6 +154,14 @@ const WorkspaceForm: React.FC = () => {
           return !!data.podConfig;
         case WorkspaceFormSteps.Properties:
           return !!data.properties.workspaceName.trim() && !!data.properties.homeVolume;
+        case WorkspaceFormSteps.Summary:
+          return (
+            !!data.kind &&
+            !!data.imageConfig &&
+            !!data.podConfig &&
+            !!data.properties.workspaceName.trim() &&
+            !!data.properties.homeVolume
+          );
         default:
           return false;
       }
@@ -155,19 +194,16 @@ const WorkspaceForm: React.FC = () => {
   const isCurrentStepValid = useMemo(() => isStepValid(currentStep), [isStepValid, currentStep]);
 
   const selectedImage = useMemo(
-    () =>
-      data.kind?.podTemplate.options.imageConfig.values.find(
-        (image) => image.id === data.imageConfig,
-      ),
-    [data.kind, data.imageConfig],
+    () => allValuesData?.imageConfig.values?.find((image) => image.id === data.imageConfig),
+    [allValuesData, data.imageConfig],
   );
 
   const selectedPodConfig = useMemo(
     () =>
-      data.kind?.podTemplate.options.podConfig.values.find(
+      (filteredValuesData ?? allValuesData)?.podConfig.values?.find(
         (podConfig) => podConfig.id === data.podConfig,
       ),
-    [data.kind, data.podConfig],
+    [filteredValuesData, allValuesData, data.podConfig],
   );
 
   const canGoToNextStep = useMemo(
@@ -221,30 +257,20 @@ const WorkspaceForm: React.FC = () => {
   }, [navigate]);
 
   const handleKindSelect = useCallback(
-    (kind: WorkspacekindsWorkspaceKind | undefined) => {
+    (kind: WorkspacekindsWorkspaceKindListItem | undefined) => {
       if (!kind) {
         return;
       }
       if (mode === 'create') {
         resetData();
         setData('kind', kind);
-
-        const defaultImageId = kind.podTemplate.options.imageConfig.default;
-        const defaultPodConfigId = kind.podTemplate.options.podConfig.default;
-
-        if (defaultImageId) {
-          setData('imageConfig', defaultImageId);
-        }
-        if (defaultPodConfigId) {
-          setData('podConfig', defaultPodConfigId);
-        }
       }
     },
     [mode, resetData, setData],
   );
 
   const handleImageSelect = useCallback(
-    (image: WorkspacekindsImageConfigValue | undefined) => {
+    (image: OptionsImageConfigValue | undefined) => {
       if (image) {
         // Clear filters if the selected image is hidden or redirected
         if (image.hidden || image.redirect !== undefined) {
@@ -259,7 +285,7 @@ const WorkspaceForm: React.FC = () => {
   );
 
   const handlePodConfigSelect = useCallback(
-    (podConfig: WorkspacekindsPodConfigValue | undefined) => {
+    (podConfig: OptionsPodConfigValue | undefined) => {
       if (podConfig) {
         // Clear filters if the selected pod config is hidden or redirected
         if (podConfig.hidden || podConfig.redirect !== undefined) {
@@ -276,7 +302,7 @@ const WorkspaceForm: React.FC = () => {
   // Get original values for edit mode diff
   const originalImage = useMemo(
     () =>
-      originalData?.kind?.podTemplate.options.imageConfig.values.find(
+      originalData?.kind?.podTemplate.options.imageConfig.values?.find(
         (image) => image.id === originalData.imageConfig,
       ),
     [originalData],
@@ -284,7 +310,7 @@ const WorkspaceForm: React.FC = () => {
 
   const originalPodConfig = useMemo(
     () =>
-      originalData?.kind?.podTemplate.options.podConfig.values.find(
+      originalData?.kind?.podTemplate.options.podConfig.values?.find(
         (podConfig) => podConfig.id === originalData.podConfig,
       ),
     [originalData],
@@ -298,34 +324,40 @@ const WorkspaceForm: React.FC = () => {
     return <LoadingSpinner />;
   }
 
+  const summaryPanelProps = {
+    mode,
+    selectedKind: data.kind,
+    selectedImage,
+    selectedPodConfig,
+    properties: data.properties,
+    currentStep,
+    onNavigateToStep: navigateToStep,
+    onSelectImage: handleImageSelect,
+    onSelectPodConfig: handlePodConfigSelect,
+    imageValues: allValuesData?.imageConfig.values ?? [],
+    podConfigValues: allValuesData?.podConfig.values ?? [],
+    originalKind: originalData?.kind,
+    originalImage,
+    originalPodConfig,
+    originalProperties: originalData?.properties,
+  };
+
   const panelContent = (
     <DrawerPanelContent>
       <DrawerHead>
         <Title headingLevel="h1">Summary</Title>
       </DrawerHead>
       <DrawerPanelBody className="workspace-form__drawer-panel-body">
-        <WorkspaceFormSummaryPanel
-          mode={mode}
-          selectedKind={data.kind}
-          selectedImage={selectedImage}
-          selectedPodConfig={selectedPodConfig}
-          properties={data.properties}
-          currentStep={currentStep}
-          onNavigateToStep={navigateToStep}
-          onSelectImage={handleImageSelect}
-          onSelectPodConfig={handlePodConfigSelect}
-          originalKind={originalData?.kind}
-          originalImage={originalImage}
-          originalPodConfig={originalPodConfig}
-          originalProperties={originalData?.properties}
-        />
+        <WorkspaceFormSummaryPanel {...summaryPanelProps} />
       </DrawerPanelBody>
     </DrawerPanelContent>
   );
 
   return (
-    <Drawer isInline isExpanded>
-      <DrawerContent panelContent={panelContent}>
+    <Drawer isInline isExpanded={currentStep !== WorkspaceFormSteps.Summary}>
+      <DrawerContent
+        panelContent={currentStep !== WorkspaceFormSteps.Summary ? panelContent : undefined}
+      >
         <DrawerContentBody>
           <Flex
             direction={{ default: 'column' }}
@@ -338,7 +370,9 @@ const WorkspaceForm: React.FC = () => {
                   <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapXl' }}>
                     <FlexItem>
                       <Content>
-                        <h1 data-testid="workspace-form-title">{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
+                        <h1 data-testid="workspace-form-title">
+                          {mode === 'create' ? 'Create workspace' : `Edit ${workspaceName}`}
+                        </h1>
                         <p>{stepDescriptions[currentStep]}</p>
                       </Content>
                     </FlexItem>
@@ -383,6 +417,15 @@ const WorkspaceForm: React.FC = () => {
                         >
                           Properties
                         </ProgressStep>
+                        <ProgressStep
+                          variant={getStepVariant(WorkspaceFormSteps.Summary)}
+                          isCurrent={currentStep === WorkspaceFormSteps.Summary}
+                          id="summary-step"
+                          titleId="summary-step-title"
+                          aria-label="Summary step"
+                        >
+                          Summary
+                        </ProgressStep>
                       </ProgressStepper>
                     </FlexItem>
                   </Flex>
@@ -410,24 +453,39 @@ const WorkspaceForm: React.FC = () => {
                         onSelect={handleKindSelect}
                       />
                     )}
-                    {currentStep === WorkspaceFormSteps.ImageSelection && (
-                      <WorkspaceFormImageSelection
-                        selectedImage={selectedImage}
-                        onSelect={handleImageSelect}
-                        images={data.kind?.podTemplate.options.imageConfig.values ?? []}
-                        defaultImageId={data.kind?.podTemplate.options.imageConfig.default}
-                        filterControlRef={imageFilterControlRef}
-                      />
-                    )}
-                    {currentStep === WorkspaceFormSteps.PodConfigSelection && (
-                      <WorkspaceFormPodConfigSelection
-                        selectedPodConfig={selectedPodConfig}
-                        onSelect={handlePodConfigSelect}
-                        podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
-                        defaultPodConfigId={data.kind?.podTemplate.options.podConfig.default}
-                        filterControlRef={podConfigFilterControlRef}
-                      />
-                    )}
+                    {currentStep === WorkspaceFormSteps.ImageSelection &&
+                      (allValuesError ? (
+                        <LoadError title="Failed to load image options" error={allValuesError} />
+                      ) : !allValuesLoaded ? (
+                        <LoadingSpinner />
+                      ) : (
+                        <WorkspaceFormImageSelection
+                          selectedImage={selectedImage}
+                          onSelect={handleImageSelect}
+                          images={allValuesData?.imageConfig.values ?? []}
+                          defaultImageId={allValuesData?.imageConfig.default}
+                          filterControlRef={imageFilterControlRef}
+                        />
+                      ))}
+                    {currentStep === WorkspaceFormSteps.PodConfigSelection &&
+                      (filteredValuesError || allValuesError ? (
+                        <LoadError
+                          title="Failed to load pod config options"
+                          error={(filteredValuesError ?? allValuesError)!}
+                        />
+                      ) : !(filteredValuesLoaded || allValuesLoaded) ? (
+                        <LoadingSpinner />
+                      ) : (
+                        <WorkspaceFormPodConfigSelection
+                          selectedPodConfig={selectedPodConfig}
+                          onSelect={handlePodConfigSelect}
+                          podConfigs={(filteredValuesData ?? allValuesData)?.podConfig.values ?? []}
+                          defaultPodConfigId={
+                            (filteredValuesData ?? allValuesData)?.podConfig.default
+                          }
+                          filterControlRef={podConfigFilterControlRef}
+                        />
+                      ))}
                     {currentStep === WorkspaceFormSteps.Properties && (
                       <WorkspaceFormPropertiesSelection
                         mode={mode}
@@ -435,6 +493,9 @@ const WorkspaceForm: React.FC = () => {
                         onSelect={(properties) => setData('properties', properties)}
                         homeVolumeMountPath={data.kind?.podTemplate.volumeMounts.home}
                       />
+                    )}
+                    {currentStep === WorkspaceFormSteps.Summary && (
+                      <WorkspaceFormSummaryPanel {...summaryPanelProps} compact />
                     )}
                   </StackItem>
                 </Stack>

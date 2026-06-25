@@ -87,7 +87,7 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
-    premiumRow.findPhase().should('contain.text', 'Active');
+    premiumRow.findPhase().should('contain.text', 'Ready');
     premiumRow.findName().should('contain.text', 'Premium Team Subscription');
     premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
@@ -95,14 +95,14 @@ describe('Subscriptions Page', () => {
 
     const basicRow = subscriptionsPage.getRow('Basic Team Subscription');
     basicRow.findName().should('contain.text', 'Basic Team Subscription');
-    basicRow.findPhase().should('contain.text', 'Active');
+    basicRow.findPhase().should('contain.text', 'Ready');
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
     basicRow.findPriority().should('contain.text', '0');
 
     const negativePriorityRow = subscriptionsPage.getRow('negative-priority-sub');
     negativePriorityRow.findName().should('contain.text', 'negative-priority-sub');
-    negativePriorityRow.findPhase().should('contain.text', 'Active');
+    negativePriorityRow.findPhase().should('contain.text', 'Ready');
     negativePriorityRow.findGroups().should('contain.text', '1 Group');
     negativePriorityRow.findModels().should('contain.text', '1 Model');
     negativePriorityRow.findPriority().should('contain.text', '-10000');
@@ -110,7 +110,7 @@ describe('Subscriptions Page', () => {
     const failedRow = subscriptionsPage.getRow('failed-sub');
     failedRow.findPhase().should('contain.text', 'Failed');
     failedRow.findPhaseLabel().click();
-    failedRow.findPhasePopover().should('contain.text', 'Failed');
+    failedRow.findPhasePopover().should('contain.text', 'Subscription failed');
 
     const pendingRow = subscriptionsPage.getRow('pending-sub');
     pendingRow.findPhase().should('contain.text', 'Pending');
@@ -207,8 +207,8 @@ describe('View Subscription Page', () => {
 
     viewSubscriptionPage
       .findDetailsSection()
-      .and('contain.text', 'Phase')
-      .and('contain.text', 'Active')
+      .and('contain.text', 'Status')
+      .and('contain.text', 'Ready')
       .should('contain.text', 'Premium Team Subscription')
       .and('contain.text', 'Name')
       .and('contain.text', 'Created');

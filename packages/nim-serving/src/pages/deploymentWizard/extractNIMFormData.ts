@@ -79,7 +79,6 @@ export const extractNIMModelAvailabilityData = (): {
 
 export const extractNIMModelType = (): ModelTypeFieldData => ({
   type: NIM_MODEL_TYPE,
-  legacyVLLM: false,
 });
 
 export const extractNIMModelServerTemplate = (): null => null;

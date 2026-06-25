@@ -15,7 +15,7 @@ jest.mock('../../useWizardFieldApply');
 const mockUseWizardFieldApply = jest.mocked(useWizardFieldApply);
 
 const mockModel: ModelResourceType = {
-  apiVersion: 'serving.kserve.io/v1alpha1',
+  apiVersion: 'serving.kserve.io/v1alpha2',
   kind: 'LLMInferenceService',
   metadata: {
     name: 'test-model',
@@ -26,7 +26,7 @@ const mockModel: ModelResourceType = {
 const mockDeployment: Deployment = {
   modelServingPlatformId: 'test-platform',
   model: {
-    apiVersion: 'serving.kserve.io/v1alpha1',
+    apiVersion: 'serving.kserve.io/v1alpha2',
     kind: 'LLMInferenceService',
     metadata: {
       name: 'test-model',
@@ -65,7 +65,7 @@ describe('useFormYamlResources', () => {
 
   it('should include formResources server in resources when in editor mode', () => {
     const mockServer: DeploymentAssemblyResources['server'] = {
-      apiVersion: 'serving.kserve.io/v1alpha1',
+      apiVersion: 'serving.kserve.io/v1alpha2',
       kind: 'LLMInferenceServiceConfig',
       metadata: {
         name: 'test-server',

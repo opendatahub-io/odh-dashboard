@@ -13,6 +13,7 @@ const (
 	ErrCodeMethodNotAllowed    = "METHOD_NOT_ALLOWED"
 	ErrCodeInternalServerError = "INTERNAL_SERVER_ERROR"
 	ErrCodeServiceUnavailable  = "SERVICE_UNAVAILABLE"
+	ErrCodeConflict            = "CONFLICT"
 	ErrCodeNotImplemented      = "NOT_IMPLEMENTED"
 )
 
@@ -73,6 +74,13 @@ func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Reques
 	app.LogError(r, err)
 
 	httpError := &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: ErrCodeServiceUnavailable, Message: "the service is currently unavailable"}}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.LogError(r, err)
+
+	httpError := &HTTPError{StatusCode: http.StatusConflict, Error: ErrorPayload{Code: ErrCodeConflict, Message: "the resource already exists"}}
 	app.errorResponse(w, r, httpError)
 }
 
