@@ -157,7 +157,7 @@ def match_symptom(error_text: str) -> str | None:
 
 _SENSITIVE_RE = re.compile(
     r"(?i)\b(token|password|passwd|secret|api[_-]?key|authorization|credential)"
-    r"\b\s*[:=]\s*(\S+)"
+    r"\b\s*[:=]\s*(.+)"
 )
 
 
@@ -682,7 +682,7 @@ def main() -> None:
             "classifications": [],
             "summary": {
                 "total_failures": 0, "flaky": 0, "suspected_flaky": 0,
-                "genuine": 0, "deterministic": 0, "unknown": 0,
+                "genuine": 0, "deterministic": 0, "unknown": 0, "external_unknown": 0,
             },
             "scan": {"prs_scanned": 0, "window_days": since_days},
         }, indent=2))
