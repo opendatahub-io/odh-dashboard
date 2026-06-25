@@ -139,6 +139,7 @@ describe('useIsProfileDirty', () => {
       ] as never,
       configMapName: 'gen-ai-aa-mcp-servers',
       loaded: true,
+      error: undefined,
     });
 
     // Config selects servers in [A, B] order — serialized spec will have [A, B].
