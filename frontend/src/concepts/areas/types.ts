@@ -65,6 +65,7 @@ export enum SupportedArea {
   MODEL_AS_SERVICE = 'model-as-service',
   MAAS_AUTH_POLICIES = 'maas-auth-policies',
   LLMD_SERVING = 'llmd-serving',
+  LLMD_TOPOLOGY_CONFIGS = 'llmd-topology-configs',
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',

@@ -1,8 +1,6 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent, renderHook } from '@testing-library/react';
 import { type ZodIssue } from 'zod';
-import { useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
-import type { IsAreaAvailableStatus } from '@odh-dashboard/internal/concepts/areas/types';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { mockExtensions } from '../../../../__tests__/mockUtils';
 import {
@@ -13,62 +11,29 @@ import {
 import { ModelTypeLabel } from '../../types';
 
 jest.mock('@odh-dashboard/plugin-core');
-jest.mock('@odh-dashboard/internal/concepts/areas', () => ({
-  ...jest.requireActual('@odh-dashboard/internal/concepts/areas'),
-  useIsAreaAvailable: jest.fn(),
-}));
-
-const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
-
-const mockAreaAvailabilityStatus = (status: boolean): IsAreaAvailableStatus => ({
-  status,
-  devFlags: null,
-  featureFlags: null,
-  reliantAreas: null,
-  requiredCapabilities: null,
-  requiredComponents: null,
-  customCondition: () => false,
-});
 
 describe('ModelTypeSelectField', () => {
   beforeEach(() => {
     mockExtensions([]);
-    mockUseIsAreaAvailable.mockReturnValue(mockAreaAvailabilityStatus(false));
   });
   describe('Schema validation', () => {
     it('should validate predictive', () => {
       const result = modelTypeSelectFieldSchema.safeParse({
         type: ServingRuntimeModelType.PREDICTIVE,
-        legacyVLLM: false,
       });
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
         type: ServingRuntimeModelType.PREDICTIVE,
-        legacyVLLM: false,
       });
     });
 
     it('should validate generative-model', () => {
       const result = modelTypeSelectFieldSchema.safeParse({
         type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: false,
       });
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
         type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: false,
-      });
-    });
-
-    it('should validate generative with legacyVLLM true', () => {
-      const result = modelTypeSelectFieldSchema.safeParse({
-        type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: true,
-      });
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual({
-        type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: true,
       });
     });
 
@@ -91,22 +56,20 @@ describe('ModelTypeSelectField', () => {
 
     it('should initialize with existing data', () => {
       const { result } = renderHook(() =>
-        useModelTypeField({ type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false }),
+        useModelTypeField({ type: ServingRuntimeModelType.PREDICTIVE }),
       );
       expect(result.current.data).toEqual({
         type: ServingRuntimeModelType.PREDICTIVE,
-        legacyVLLM: false,
       });
     });
 
     it('should update model type', () => {
       const { result } = renderHook(() => useModelTypeField());
       act(() => {
-        result.current.setData({ type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false });
+        result.current.setData({ type: ServingRuntimeModelType.GENERATIVE });
       });
       expect(result.current.data).toEqual({
         type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: false,
       });
     });
   });
@@ -127,7 +90,7 @@ describe('ModelTypeSelectField', () => {
     it('should render with selected value', () => {
       render(
         <ModelTypeSelectField
-          modelType={{ type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false }}
+          modelType={{ type: ServingRuntimeModelType.PREDICTIVE }}
           externalData={{ data: { extraOptions: [], forced: false } }}
         />,
       );
@@ -153,7 +116,6 @@ describe('ModelTypeSelectField', () => {
 
       expect(mockSetModelType).toHaveBeenCalledWith({
         type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: true,
       });
     });
 
@@ -205,17 +167,6 @@ describe('ModelTypeSelectField', () => {
     it('should disable model type select when forced', () => {
       render(<ModelTypeSelectField externalData={{ data: { extraOptions: [], forced: true } }} />);
       expect(screen.getByRole('button', { name: 'Options menu' })).toHaveClass('pf-m-disabled');
-    });
-
-    it('should disable legacy checkbox when forced', () => {
-      mockUseIsAreaAvailable.mockReturnValue(mockAreaAvailabilityStatus(true));
-      render(
-        <ModelTypeSelectField
-          modelType={{ type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false }}
-          externalData={{ data: { extraOptions: [], forced: true } }}
-        />,
-      );
-      expect(screen.getByTestId('legacy-mode-checkbox')).toBeDisabled();
     });
   });
 });

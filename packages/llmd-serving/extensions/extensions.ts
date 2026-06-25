@@ -92,6 +92,38 @@ const gatewaySelectExtractorExtension: WizardFieldExtractorExtension<
   },
 };
 
+const deploymentMethodExtractorExtensionLllmdOnly: WizardFieldExtractorExtension<
+  { method: string },
+  LLMdDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'deploymentMethod',
+    platform: LLMD_SERVING_ID,
+    extract: () =>
+      import('../src/deployments/model').then((m) => m.extractDeploymentMethodAlwaysLlmd),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID],
+    disallowed: [SupportedArea.VLLM_ON_MAAS],
+  },
+};
+const deploymentMethodExtractorExtensionvLLMOnMaaS: WizardFieldExtractorExtension<
+  { method: string },
+  LLMdDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'deploymentMethod',
+    platform: LLMD_SERVING_ID,
+    extract: () =>
+      import('../src/deployments/model').then((m) => m.extractDeploymentMethodvLLMOnMaaS),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS],
+  },
+};
+
 const extensions: (
   | AreaExtension
   | ModelServingPlatformWatchDeploymentsExtension<LLMdDeployment>
@@ -107,6 +139,7 @@ const extensions: (
   | WizardFieldExtension<GatewaySelectFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
+  | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
 )[] = [
   {
     type: 'app.area',
@@ -265,10 +298,38 @@ const extensions: (
       required: [LLMD_SERVING_ID],
     },
   },
+  {
+    type: 'model-serving.deployment/wizard-field-override',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/deploymentMethodField').then(
+          (m) => m.vllmDeploymentMethodOverride,
+        ),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field-override',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/deploymentMethodField').then(
+          (m) => m.llmdDeploymentMethodOverride,
+        ),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
+  },
   llmConfigOptionsFieldExtension,
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
   gatewaySelectExtractorExtension,
+  deploymentMethodExtractorExtensionLllmdOnly,
+  deploymentMethodExtractorExtensionvLLMOnMaaS,
   {
     type: 'model-serving.deployments-table/start-stop-action',
     properties: {

@@ -14,7 +14,7 @@ import {
 import { CodeIcon, ColumnsIcon, CogIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { AGENT_PROFILES } from '~/odh/extensions';
+import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
 type ChatbotHeaderActionsProps = {
@@ -51,7 +51,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configIds[0]));
   const isViewCodeDisabled = !lastInput || !selectedModel;
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
-  const [agentProfilesEnabled] = useFeatureFlag(AGENT_PROFILES);
+  const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
 
   const getDisabledReason = () => {
@@ -78,15 +78,29 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
             {/* Hide compare button when in compare mode - use close button on pane to exit */}
             {!isCompareMode && (
               <ToolbarItem>
-                <Button
-                  variant="link"
-                  aria-label="Compare chat"
-                  icon={<ColumnsIcon />}
-                  onClick={onCompareChat}
-                  data-testid="compare-chat-button"
-                >
-                  Compare chat
-                </Button>
+                {profileApplied ? (
+                  <Tooltip content="Comparison mode is not available when an agent configuration is loaded.">
+                    <Button
+                      variant="link"
+                      aria-label="Compare chat (disabled)"
+                      icon={<ColumnsIcon />}
+                      isAriaDisabled
+                      data-testid="compare-chat-button"
+                    >
+                      Compare chat
+                    </Button>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    variant="link"
+                    aria-label="Compare chat"
+                    icon={<ColumnsIcon />}
+                    onClick={onCompareChat}
+                    data-testid="compare-chat-button"
+                  >
+                    Compare chat
+                  </Button>
+                )}
               </ToolbarItem>
             )}
             <ToolbarItem>
@@ -159,43 +173,47 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
             popperProps={{ position: 'end', preventOverflow: true }}
           >
             <DropdownList>
-              {!isCompareMode && agentProfilesEnabled && (
+              {agentConfigManagementEnabled && (
                 <DropdownItem
-                  onClick={onLoad}
+                  onClick={!isCompareMode ? onLoad : undefined}
+                  isAriaDisabled={isCompareMode}
                   key="load-agent-configuration"
                   data-testid="load-agent-profile-button"
                 >
                   Load agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && profileApplied && (
+              {agentConfigManagementEnabled && profileApplied && (
                 <DropdownItem
-                  onClick={onSave}
+                  onClick={!isCompareMode ? onSave : undefined}
+                  isAriaDisabled={isCompareMode}
                   key="save-agent-configuration"
                   data-testid="save-agent-profile-button"
                 >
                   Save agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && (
+              {agentConfigManagementEnabled && (
                 <DropdownItem
-                  onClick={onSaveAs}
+                  onClick={!isCompareMode ? onSaveAs : undefined}
+                  isAriaDisabled={isCompareMode}
                   key="save-as-agent-configuration"
                   data-testid="save-as-agent-profile-button"
                 >
                   Save as agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && profileApplied && (
+              {agentConfigManagementEnabled && profileApplied && (
                 <DropdownItem
-                  onClick={onNew}
+                  onClick={!isCompareMode ? onNew : undefined}
+                  isAriaDisabled={isCompareMode}
                   key="new-agent-configuration"
                   data-testid="new-agent-configuration-button"
                 >
                   New agent configuration
                 </DropdownItem>
               )}
-              {!isCompareMode && agentProfilesEnabled && <Divider key="agent-divider" />}
+              {agentConfigManagementEnabled && <Divider key="agent-divider" />}
               <DropdownItem
                 onClick={onConfigurePlayground}
                 key="update-configuration"

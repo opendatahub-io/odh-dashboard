@@ -25,7 +25,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
-import { AGENT_PROFILES } from '~/odh/extensions';
+import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import {
   useChatbotConfigStore,
   selectSystemInstruction,
@@ -107,11 +107,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
   const [isSaveDropdownOpen, setIsSaveDropdownOpen] = React.useState(false);
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
-  const [agentProfilesEnabled] = useFeatureFlag(AGENT_PROFILES);
+  const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   const configIds = useChatbotConfigStore(selectConfigIds);
+  const isCompareMode = configIds.length > 1;
 
   // Consume store directly using configId (controlled by parent)
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
@@ -268,9 +269,14 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           </ToggleGroup>
         )}
         <DrawerActions style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
-          {agentProfilesEnabled && (
+          {agentConfigManagementEnabled && (
             <>
-              <Button variant="secondary" onClick={onLoad} data-testid="settings-panel-load-button">
+              <Button
+                variant="secondary"
+                onClick={onLoad}
+                isDisabled={isCompareMode}
+                data-testid="settings-panel-load-button"
+              >
                 Load
               </Button>
               <Dropdown
@@ -283,6 +289,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     ref={toggleRef}
                     variant="secondary"
                     isExpanded={isSaveDropdownOpen}
+                    isDisabled={isCompareMode}
                     onClick={() => setIsSaveDropdownOpen(!isSaveDropdownOpen)}
                     splitButtonItems={[
                       <MenuToggleAction
