@@ -33,21 +33,28 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   ...overrides,
 });
 
-const createMaaSModel = (overrides: Partial<AAModelResponse> = {}): AAModelResponse => ({
-  model_name: 'maas-model',
-  model_id: 'maas-model',
-  display_name: 'MaaS Model',
-  description: '',
-  endpoints: ['external:https://maas.example.com/v1'],
-  serving_runtime: 'MaaS',
-  api_protocol: 'OpenAI',
-  version: '',
-  usecase: 'LLM',
-  status: 'Running',
-  sa_token: { name: '', token_name: '', token: '' },
-  model_source_type: 'maas',
-  ...overrides,
-});
+const createMaaSModel = (overrides: Partial<AAModelResponse> = {}): AAModelResponse => {
+  const defaults = {
+    model_id: 'maas-model',
+    display_name: 'MaaS Model',
+    description: '',
+    endpoints: ['external:https://maas.example.com/v1'],
+    serving_runtime: 'MaaS',
+    api_protocol: 'OpenAI',
+    version: '',
+    usecase: 'LLM',
+    status: 'Running',
+    sa_token: { name: '', token_name: '', token: '' },
+    model_source_type: 'maas',
+  };
+
+  const merged = { ...defaults, ...overrides };
+
+  return {
+    ...merged,
+    model_name: merged.display_name || merged.model_id,
+  };
+};
 
 const mockFetchStateDefaults = {
   refresh: jest.fn(),
@@ -170,8 +177,8 @@ describe('useMergedModels', () => {
       createAIModel({ model_name: 'model-b', model_id: 'model-b' }),
     ];
     const maasModels = [
-      createMaaSModel({ model_id: 'model-b' }),
-      createMaaSModel({ model_id: 'model-c' }),
+      createMaaSModel({ model_id: 'model-b', display_name: 'model-b' }),
+      createMaaSModel({ model_id: 'model-c', display_name: 'model-c' }),
     ];
 
     mockUseFetchAIModels.mockReturnValue({

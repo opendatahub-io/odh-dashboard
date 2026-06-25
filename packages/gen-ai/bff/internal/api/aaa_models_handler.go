@@ -219,6 +219,7 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 			Status:          getMaaSModelStatus(maasModel.Ready),
 			ModelSourceType: models.ModelSourceTypeMaaS,
 			ModelType:       models.ModelTypeEnum(maasModel.ModelType),
+			Subscriptions:   maasModel.Subscriptions,
 		}
 
 		// Extract fields from nested ModelDetails if present

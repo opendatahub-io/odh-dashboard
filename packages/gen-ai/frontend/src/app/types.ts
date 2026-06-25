@@ -382,6 +382,7 @@ export interface AAModelResponse {
   model_type?: 'llm' | 'embedding';
   embedding_dimension?: number;
   capabilities?: string[];
+  subscriptions?: SubscriptionInfo[];
 }
 
 export interface AIModel extends AAModelResponse {
