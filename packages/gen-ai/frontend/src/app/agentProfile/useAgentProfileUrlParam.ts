@@ -133,7 +133,7 @@ const useAgentProfileUrlParam = ({
         // Async validation: prompt availability, vector store existence.
         // setLoadedProfileSpec and final loadedProfileWarnings are written after this
         // settles so the dirty check and warning alert have complete data.
-        const asyncOutcome = await Promise.allSettled([validateAgentProfileAsync(profile, api)]);
+        const asyncResult = await validateAgentProfileAsync(profile, api);
 
         // Bail out if a different profile has been loaded in the meantime (StrictMode /
         // rapid navigation). cancelled is intentionally NOT used here — see applyAgentProfile.
@@ -141,10 +141,8 @@ const useAgentProfileUrlParam = ({
           return;
         }
 
-        const asyncResult = asyncOutcome[0].status === 'fulfilled' ? asyncOutcome[0].value : null;
-
         // Apply the resolved prompt returned by validation (no separate fetch needed).
-        if (asyncResult?.resolvedPrompt) {
+        if (asyncResult.resolvedPrompt) {
           const { resolvedPrompt } = asyncResult;
           updateActivePrompt(DEFAULT_CONFIG_ID, resolvedPrompt);
           const instruction =
@@ -155,7 +153,7 @@ const useAgentProfileUrlParam = ({
         }
 
         // Merge sync + async warnings and update the store once.
-        const asyncWarnings = asyncResult?.warnings ?? [];
+        const asyncWarnings = asyncResult.warnings;
         const allWarnings = [...syncWarnings, ...asyncWarnings];
         setLoadedProfileWarnings(allWarnings.length > 0 ? allWarnings : null);
         setLoadedProfileSpec(profile.spec);
