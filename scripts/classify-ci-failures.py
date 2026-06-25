@@ -34,25 +34,21 @@ PARALLEL_WORKERS = 8
 LOG_MAX_LINES = 2500
 ERROR_CONTEXT_LINES = 15
 
-_DETERMINISTIC_PREFIXES = (
-    "Lint",
-    "Type-Check",
-    "Build ",
-    "Application Quality Gate",
-    "kustomize",
-    "Changelog",
-    "DCO",
-    "Setup",
-    "Get-Test-Groups",
-    "Cypress-Setup",
-    "Combine-Results",
-    "Validate",
-    "Hermetic",
-    "Phase 0:",
-    "Phase 1:",
-    "check-skip",
-    "Build Validation Summary",
-    "Dependency",
+_TEST_RUNNER_KEYWORDS = (
+    "cypress",
+    "unit-test",
+    "unit_test",
+    "jest",
+    "contract-test",
+    "e2e",
+    "spec",
+)
+
+_GITHUB_ACTIONS_KEYWORDS = (
+    "lint", "type-check", "build", "setup", "validate", "hermetic",
+    "combine", "cypress-setup", "get-test-groups", "dependency",
+    "kustomize", "changelog", "dco", "quality gate", "summary",
+    "phase 0", "phase 1", "check-skip", "tests",
 )
 
 _BOT_LOGINS = {
@@ -113,8 +109,14 @@ def strip_gh_prefix(line: str) -> str:
     return re.sub(r"^\[\d+\]\s*", "", stripped)
 
 
-def is_deterministic(name: str) -> bool:
-    return any(name.startswith(p) for p in _DETERMINISTIC_PREFIXES)
+def is_test_runner(name: str) -> bool:
+    nl = name.lower()
+    return any(kw in nl for kw in _TEST_RUNNER_KEYWORDS)
+
+
+def is_known_gha_check(name: str) -> bool:
+    nl = name.lower()
+    return is_test_runner(name) or any(kw in nl for kw in _GITHUB_ACTIONS_KEYWORDS)
 
 
 def is_bot(author: dict) -> bool:
@@ -393,7 +395,7 @@ def fetch_pr_failures(repo: str, pr_number: str) -> tuple[list[dict], list[dict]
 def fetch_tests_for_failures(failures: list[dict]) -> dict[str, list[dict]]:
     results: dict[str, list[dict]] = {}
     for f in failures:
-        if is_deterministic(f["name"]):
+        if not is_test_runner(f["name"]):
             continue
         run_id = f.get("run_id")
         if not run_id:
@@ -533,7 +535,7 @@ def scan_recent_prs(
         fetch_tasks = []
         for pr_num, checks in check_results.items():
             for check in checks:
-                if not is_deterministic(check["name"]) and check.get("run_id"):
+                if is_test_runner(check["name"]) and check.get("run_id"):
                     fetch_tasks.append(
                         (pr_num, check["run_id"], check.get("job_id"), check["name"])
                     )
@@ -562,7 +564,7 @@ def classify_failure(
     check_recurrence: dict[str, list[int]],
     test_recurrence: dict[str, list[int]],
 ) -> tuple[str, str, list[dict]]:
-    if is_deterministic(check_name):
+    if is_known_gha_check(check_name) and not is_test_runner(check_name):
         return "deterministic", "certain", []
 
     signals: list[dict] = []
@@ -617,12 +619,7 @@ def classify_failure(
     elif has_moderate:
         return "suspected_flaky", "moderate", signals
     elif not failing_tests:
-        is_external = not any(
-            check_name.startswith(p) for p in (
-                "Cypress", "Unit", "Contract", "Test", "Lint", "Type", "Build", "Setup",
-            )
-        )
-        if is_external:
+        if not is_known_gha_check(check_name):
             signals.append({
                 "type": "external_ci",
                 "strength": "none",
@@ -691,7 +688,7 @@ def main() -> None:
         return
 
     # Step 2
-    non_deterministic = [f for f in failing if not is_deterministic(f["name"])]
+    non_deterministic = [f for f in failing if is_test_runner(f["name"])]
     print(
         f"Extracting test failures from {len(non_deterministic)} "
         f"non-deterministic checks...",
