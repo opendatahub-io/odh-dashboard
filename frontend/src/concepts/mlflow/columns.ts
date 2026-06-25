@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { MlflowExperiment } from './types';
 import { EXPERIMENT_NAME_COLUMN_WIDTH, EXPERIMENT_UPDATED_COLUMN_WIDTH } from './const';
 

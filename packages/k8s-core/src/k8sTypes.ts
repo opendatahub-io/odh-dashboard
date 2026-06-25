@@ -267,8 +267,10 @@ export type DashboardCommonConfig = {
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
+  llmdTopologyConfigs?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
+  agentConfigManagement?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
@@ -277,7 +279,6 @@ export type DashboardCommonConfig = {
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
-  agentProfileManagement?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

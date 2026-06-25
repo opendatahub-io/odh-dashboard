@@ -58,7 +58,8 @@ export const deserializeAgentProfile = (
   const { playgroundModels, mcpServers = [] } = context;
 
   // Resolve AI Asset model_id → Llama Stack runtime ID (LlamaModel.id).
-  // Mirrors the isPlaygroundModelMatchForAIModel logic to handle the MaaS provider prefix.
+  // LlamaModel.modelId is the prefix-stripped form of the Llama Stack ID, which matches
+  // the AI Asset model_id stored in spec.model.id.
   const matchingPlaygroundModel = playgroundModels.find((m) => {
     if (m.modelId !== spec.model.id) {
       return false;
@@ -114,6 +115,15 @@ export const deserializeAgentProfile = (
   } else {
     config.selectedMcpServerIds = [];
     config.mcpToolSelections = {};
+  }
+
+  // ASR (transcription) model
+  if (spec.asr?.model?.id) {
+    config.selectedAsrModel = spec.asr.model.id;
+    config.isAsrModelEnabled = true;
+  } else {
+    config.selectedAsrModel = DEFAULT_CONFIGURATION.selectedAsrModel;
+    config.isAsrModelEnabled = DEFAULT_CONFIGURATION.isAsrModelEnabled;
   }
 
   // Guardrails are intentionally not deserialized — see serialize.ts for the rationale.

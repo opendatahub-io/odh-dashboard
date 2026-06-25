@@ -23,7 +23,7 @@ import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { DEFAULT_CONFIG_ID, useChatbotConfigStore } from '~/app/Chatbot/store';
-import { isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
 import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 import { MCPServerFromAPI } from '~/app/types/mcp';
@@ -50,7 +50,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   onSaved,
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
-  const { aiModels, models: playgroundModels } = React.useContext(ChatbotContext);
+  const { aiModels, maasModels, models: playgroundModels } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
 
   const config = useChatbotConfigStore((s) => s.configurations[DEFAULT_CONFIG_ID]);
@@ -72,12 +72,23 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
     () => playgroundModels.find((m) => m.id === config?.selectedModel),
     [playgroundModels, config?.selectedModel],
   );
+  const allAIModels = React.useMemo(
+    () => [...aiModels, ...maasModels.map(convertMaaSModelToAIModel)],
+    [aiModels, maasModels],
+  );
   const aiModel = React.useMemo(
     () =>
       llamaModel
-        ? aiModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai))
+        ? allAIModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai))
         : undefined,
-    [llamaModel, aiModels],
+    [llamaModel, allAIModels],
+  );
+  const asrModel = React.useMemo(
+    () =>
+      config?.isAsrModelEnabled && config.selectedAsrModel
+        ? aiModels.find((ai) => ai.model_id === config.selectedAsrModel)
+        : undefined,
+    [config?.isAsrModelEnabled, config?.selectedAsrModel, aiModels],
   );
 
   const externalVectorStoreName = React.useMemo(() => {
@@ -131,6 +142,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
         description.trim() || undefined,
         {
           model: aiModel,
+          asrModel,
           mcpServers,
           mcpConfigMapName: mcpConfigMapName ?? MCP_CONFIG_MAP_NAME_FALLBACK,
         },
@@ -155,7 +167,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
     }
   };
 
-  const title = mode === 'save' ? 'Save agent profile' : 'Save as agent profile';
+  const title = mode === 'save' ? 'Save agent configuration' : 'Save as agent configuration';
   const nameError = nameTouched && !name.trim();
   const isSaveDisabled = isSaving || !name.trim();
 
@@ -205,7 +217,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
       <ModalHeader
         title={title}
         labelId="save-agent-profile-modal-title"
-        description="Save your model, prompt, knowledge, and MCP servers as a reusable agent profile."
+        description="Save your model, prompt, knowledge, and MCP servers as a reusable agent configuration."
       />
       <ModalBody>
         <Form id="save-agent-profile-form" onSubmit={handleSubmit}>

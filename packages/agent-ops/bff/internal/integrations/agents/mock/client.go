@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"sync"
 
@@ -19,6 +20,7 @@ type Client struct {
 	ListNamespacesErr error
 	ListAgentsErr     error
 	GetAgentErr       error
+	DeployAgentErr    error
 }
 
 // NewClient returns a mock client with no data.
@@ -71,6 +73,58 @@ func (c *Client) GetAgent(ctx context.Context, namespace, name string) (*agents.
 	}
 	copy := cloneAgentDetail(detail)
 	return &copy, nil
+}
+
+// DeployAgent implements agents.Client.
+func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentParams) (*agents.DeployAgentResult, error) {
+	_ = ctx
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if params == nil {
+		return nil, fmt.Errorf("deploy params must not be nil")
+	}
+	if c.DeployAgentErr != nil {
+		return nil, c.DeployAgentErr
+	}
+	if c.Details == nil {
+		c.Details = make(map[string]agents.AgentDetail)
+	}
+	key := detailKey(params.Namespace, params.Name)
+	if _, ok := c.Details[key]; ok {
+		return nil, agents.ErrAlreadyExists
+	}
+	c.Details[key] = agents.AgentDetail{
+		Metadata: agents.AgentMetadata{
+			Name:      params.Name,
+			Namespace: params.Namespace,
+			Labels: map[string]string{
+				"kagenti.io/type": "agent",
+			},
+		},
+		WorkloadType: "Deployment",
+	}
+	return &agents.DeployAgentResult{
+		Name:      params.Name,
+		Namespace: params.Namespace,
+	}, nil
+}
+
+// DeleteAgent implements agents.Client.
+func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error {
+	_ = ctx
+	return agents.ErrUnavailable
+}
+
+// StopAgent implements agents.Client.
+func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
+	_ = ctx
+	return agents.ErrUnavailable
+}
+
+// StartAgent implements agents.Client.
+func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
+	_ = ctx
+	return agents.ErrUnavailable
 }
 
 // cloneAgentDetail returns a defensive copy of detail. Spec and Status use maps.Clone

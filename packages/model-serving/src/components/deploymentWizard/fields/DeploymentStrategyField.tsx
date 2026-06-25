@@ -3,6 +3,7 @@ import { Radio, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
 import type { ModelTypeField } from './ModelTypeSelectField';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
+import { DeploymentMethodFieldData } from './DeploymentMethodSelectField';
 import { isDeploymentStrategyFieldOverride } from '../types';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
 import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
@@ -30,6 +31,7 @@ export const useDeploymentStrategyField = (
   existingData?: DeploymentStrategyFieldData,
   modelType?: ModelTypeField,
   modelServer?: ModelServerSelectField,
+  deploymentMethod?: DeploymentMethodFieldData,
 ): DeploymentStrategyFieldHook => {
   const { data: modelServingClusterSettings } = useModelServingClusterSettings();
   const deploymentStrategyFieldOverrides = useWizardFieldOverrides(
@@ -37,6 +39,7 @@ export const useDeploymentStrategyField = (
     {
       modelType,
       modelServer,
+      deploymentMethod,
     },
   );
 

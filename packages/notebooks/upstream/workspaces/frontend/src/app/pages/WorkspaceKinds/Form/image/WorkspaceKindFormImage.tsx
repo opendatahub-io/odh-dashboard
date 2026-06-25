@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import {
@@ -33,12 +33,16 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
   updateImageConfig,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [defaultId, setDefaultId] = useState(imageConfig.default || '');
+  const [defaultId, setDefaultId] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [image, setImage] = useState<WorkspaceKindImageConfigValue>({ ...emptyImage });
+
+  useEffect(() => {
+    setDefaultId(imageConfig.default);
+  }, [imageConfig.default]);
 
   const clearForm = useCallback(() => {
     setImage({ ...emptyImage });
@@ -52,17 +56,18 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
   }, []);
 
   const handleAddOrEditSubmit = useCallback(() => {
+    const currentValues = imageConfig.values ?? [];
     if (editIndex !== null) {
-      const updated = [...imageConfig.values];
+      const updated = [...currentValues];
       updated[editIndex] = image;
       updateImageConfig({ ...imageConfig, values: updated });
     } else {
-      const images = [...imageConfig.values, image];
+      const images = [...currentValues, image];
       if (images.length === 1) {
-        updateImageConfig({ default: image.id, values: [...imageConfig.values, image] });
+        updateImageConfig({ default: image.id, values: [...currentValues, image] });
         setDefaultId(image.id);
       } else {
-        updateImageConfig({ ...imageConfig, values: [...imageConfig.values, image] });
+        updateImageConfig({ ...imageConfig, values: [...currentValues, image] });
       }
     }
     clearForm();
@@ -70,7 +75,7 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
 
   const handleEdit = useCallback(
     (index: number) => {
-      setImage(imageConfig.values[index]);
+      setImage((imageConfig.values ?? [])[index]);
       setEditIndex(index);
       setIsModalOpen(true);
     },
@@ -81,11 +86,12 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
     if (deleteIndex === null) {
       return;
     }
+    const currentValues = imageConfig.values ?? [];
     updateImageConfig({
-      default: imageConfig.values[deleteIndex].id === defaultId ? '' : defaultId,
-      values: imageConfig.values.filter((_, i) => i !== deleteIndex),
+      default: currentValues[deleteIndex].id === defaultId ? '' : defaultId,
+      values: currentValues.filter((_, i) => i !== deleteIndex),
     });
-    if (imageConfig.values[deleteIndex].id === defaultId) {
+    if (currentValues[deleteIndex].id === defaultId) {
       setDefaultId('');
     }
     setDeleteIndex(null);
@@ -111,7 +117,7 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
         isExpanded={isExpanded}
         isIndented
       >
-        {imageConfig.values.length === 0 && (
+        {(imageConfig.values ?? []).length === 0 && (
           <EmptyState titleText="Start by creating an image" headingLevel="h4" icon={CubesIcon}>
             <EmptyStateBody>Add an image configuration to your Workspace Kind</EmptyStateBody>
             <EmptyStateFooter>
@@ -119,12 +125,12 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
             </EmptyStateFooter>
           </EmptyState>
         )}
-        {imageConfig.values.length > 0 && (
+        {(imageConfig.values ?? []).length > 0 && (
           <div>
             <WorkspaceKindFormPaginatedTable
               ariaLabel="Images table"
               dataTestId="images-table"
-              rows={imageConfig.values}
+              rows={imageConfig.values ?? []}
               defaultId={defaultId}
               setDefaultId={(id) => {
                 updateImageConfig({ ...imageConfig, default: id });
