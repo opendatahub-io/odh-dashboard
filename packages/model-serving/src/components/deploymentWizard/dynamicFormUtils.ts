@@ -9,13 +9,13 @@ import {
 
 export const useWizardFieldOverrides = <T extends DeploymentWizardFieldOverride>(
   predicate: (field: DeploymentWizardFieldOverride) => field is T,
-  formData: RecursivePartial<WizardFormData['state']>,
+  formData?: RecursivePartial<WizardFormData['state']>,
 ): T[] => {
   const [extensions] = useResolvedExtensions(isDeploymentWizardFieldOverrideExtension);
 
   return React.useMemo(() => {
     const active = extensions
-      .filter((ext) => ext.properties.field.isActive(formData))
+      .filter((ext) => ext.properties.field.isActive(formData ?? {}))
       .toSorted((a, b) => a.uid.localeCompare(b.uid))
       .map((ext) => ext.properties.field)
       .filter(predicate);

@@ -118,19 +118,19 @@ describe('MaaS Auth Policies', () => {
     authPoliciesPage.findRows().should('have.length', 6);
     const premiumRow = authPoliciesPage.getRow('Premium Team Policy');
     premiumRow.findName().should('contain.text', 'Premium Team Policy');
-    premiumRow.findPhase().should('contain.text', 'Active');
+    premiumRow.findPhase().should('contain.text', 'Ready');
     premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
     const basicRow = authPoliciesPage.getRow('basic-team-policy');
     basicRow.findName().should('contain.text', 'basic-team-policy');
-    basicRow.findPhase().should('contain.text', 'Active');
+    basicRow.findPhase().should('contain.text', 'Ready');
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
 
     const failedRow = authPoliciesPage.getRow('failed-policy');
     failedRow.findPhase().should('contain.text', 'Failed');
     failedRow.findPhaseLabel().click();
-    failedRow.findPhasePopover().should('contain.text', 'Failed');
+    failedRow.findPhasePopover().should('contain.text', 'Policy failed');
 
     const pendingRow = authPoliciesPage.getRow('pending-policy');
     pendingRow.findPhase().should('contain.text', 'Pending');
@@ -273,8 +273,8 @@ describe('View Auth Policy Page', () => {
     viewAuthPolicyPage
       .findDetailsSection()
       .should('contain.text', policyName)
-      .and('contain.text', 'Phase')
-      .and('contain.text', 'Active')
+      .and('contain.text', 'Status')
+      .and('contain.text', 'Ready')
       .and('contain.text', 'Name')
       .and('contain.text', 'Resource name')
       .and('contain.text', 'Date created');

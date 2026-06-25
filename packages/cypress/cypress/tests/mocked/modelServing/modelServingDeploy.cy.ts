@@ -376,8 +376,6 @@ describe('Model Serving Deploy Wizard', () => {
       .should('exist')
       .click();
     modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
-
-    modelServingWizard.findLegacyModeCheckbox().should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -386,6 +384,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findModelDeploymentDescriptionInput().type('test-description');
+    modelServingWizard.selectDeploymentMethodByKey('legacy');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
     // Generative has no model format select (they are all vLLM)
@@ -1481,13 +1480,16 @@ describe('Model Serving Deploy Wizard', () => {
       .should('have.text', ModelTypeLabel.GENERATIVE)
       .should('be.disabled');
 
-    modelServingWizardEdit.findLegacyModeCheckbox().should('be.checked').should('be.disabled');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
     modelServingWizardEdit
       .findModelDeploymentDescriptionInput()
       .should('contain.text', 'test-description');
+    modelServingWizardEdit
+      .findDeploymentMethodSelect()
+      .should('be.disabled')
+      .should('contain.text', 'Legacy deployment');
     modelServingWizardEdit.findModelDeploymentStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 
@@ -1659,6 +1661,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.selectDeploymentMethodByKey('legacy');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
     modelServingWizard.findModelFormatSelect().should('not.exist');
@@ -1820,17 +1823,13 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findSaveConnectionCheckbox().click();
       modelServingWizard.findNextButton().should('be.enabled').click();
       modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-        .should('exist')
-        .click();
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
       // Verify yaml preview contents (use .contains() command, not .should('contain.text'),
       // because cy.contains() normalizes &nbsp; to regular spaces while the assertion does not)
       modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
       const yamlEditor = modelServingWizard.findYAMLCodeEditor();
-      yamlEditor.containsText('apiVersion: serving.kserve.io/v1alpha1');
+      yamlEditor.containsText('apiVersion: serving.kserve.io/v1alpha2');
       yamlEditor.containsText('kind: LLMInferenceService');
       yamlEditor.containsText('name: test-model');
     });
@@ -1874,11 +1873,7 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Step 2: Model deployment - set name and choose the LLMd runtime
       modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-        .should('exist')
-        .click();
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 3: Advanced options
@@ -1909,7 +1904,7 @@ describe('Model Serving Deploy Wizard', () => {
       cy.wait('@createLLMInferenceService').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.kind).to.equal('LLMInferenceService');
-        expect(interception.request.body.apiVersion).to.equal('serving.kserve.io/v1alpha1');
+        expect(interception.request.body.apiVersion).to.equal('serving.kserve.io/v1alpha2');
         expect(interception.request.body.metadata.name).to.equal('yaml-edited-model');
         expect(interception.request.body.metadata.namespace).to.equal('test-project');
       });
@@ -1990,7 +1985,7 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Set a valid LLMInferenceService YAML
       const yamlContent = [
-        'apiVersion: serving.kserve.io/v1alpha1',
+        'apiVersion: serving.kserve.io/v1alpha2',
         'kind: LLMInferenceService',
         'metadata:',
         '  name: yaml-only-model',
@@ -2009,7 +2004,7 @@ describe('Model Serving Deploy Wizard', () => {
       cy.wait('@createLLMInferenceService').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.kind).to.equal('LLMInferenceService');
-        expect(interception.request.body.apiVersion).to.equal('serving.kserve.io/v1alpha1');
+        expect(interception.request.body.apiVersion).to.equal('serving.kserve.io/v1alpha2');
         expect(interception.request.body.metadata.name).to.equal('yaml-only-model');
         expect(interception.request.body.metadata.namespace).to.equal('test-project');
         expect(interception.request.body.spec.model.uri).to.equal('hf://test/model');
@@ -2158,6 +2153,7 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findNextButton().click();
 
       // Step 6: Verify selection is cleared when model type changes
+      modelServingWizard.selectDeploymentMethodByKey('legacy');
       modelServingWizard
         .findServingRuntimeTemplateSearchSelector()
         .should('contain.text', 'Select one');
