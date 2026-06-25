@@ -70,6 +70,9 @@ class FeatureLineage extends Contextual<HTMLElement> {
 
   applyEntityFilter(entityName: string) {
     this.selectFilterType('Entity');
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(500);
+    cy.findByPlaceholderText('Filter by entity name').should('not.be.disabled').click();
     cy.findByPlaceholderText('Filter by entity name').type(entityName);
     cy.findByTestId(`select-multi-typeahead-${entityName}`).click();
     return this;
