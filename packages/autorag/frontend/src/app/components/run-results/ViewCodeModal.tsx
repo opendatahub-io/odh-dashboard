@@ -16,8 +16,10 @@ import {
 } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import React from 'react';
+import { useParams } from 'react-router';
 import type { OgxCredentials } from '~/app/types';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { useNotification } from '~/app/hooks/useNotification';
 import { formatPatternName } from '~/app/utilities/utils';
 import {
@@ -26,7 +28,7 @@ import {
   generateNodeSnippet,
   generatePythonSnippet,
 } from './playgroundSnippets';
-import type { SnippetCredentials } from './playgroundSnippets';
+import type { SnippetCredentials, SnippetParams } from './playgroundSnippets';
 
 type ViewCodeModalProps = {
   isOpen: boolean;
@@ -36,7 +38,12 @@ type ViewCodeModalProps = {
   ogxCredentials?: OgxCredentials;
 };
 
-const snippetTabs = [
+const snippetTabs: {
+  label: string;
+  generator: (params: SnippetParams, credentials?: SnippetCredentials) => string;
+  id: string;
+  ariaLabel: string;
+}[] = [
   {
     label: 'curl',
     generator: generateCurlSnippet,
@@ -73,6 +80,15 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
   responsesTemplate,
   ogxCredentials,
 }) => {
+  const { namespace } = useParams();
+  const { parameters } = useAutoragResultsContext();
+  const secretName = parameters?.ogx_secret_name ?? '';
+
+  const snippetParams: SnippetParams = React.useMemo(
+    () => ({ template: responsesTemplate, secretName, namespace: namespace ?? '' }),
+    [responsesTemplate, secretName, namespace],
+  );
+
   const [activeCodeTab, setActiveCodeTab] = React.useState(0);
   const [copiedTab, setCopiedTab] = React.useState<number | null>(null);
   const [showCredentials, setShowCredentials] = React.useState(false);
@@ -173,7 +189,7 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
                         id={tab.id}
                         aria-label={tab.ariaLabel}
                         onClick={() =>
-                          handleCopy(tab.generator(responsesTemplate, displayCredentials), index)
+                          handleCopy(tab.generator(snippetParams, displayCredentials), index)
                         }
                         variant="plain"
                       >
@@ -186,9 +202,7 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
                     </CodeBlockAction>
                   }
                 >
-                  <CodeBlockCode>
-                    {tab.generator(responsesTemplate, displayCredentials)}
-                  </CodeBlockCode>
+                  <CodeBlockCode>{tab.generator(snippetParams, displayCredentials)}</CodeBlockCode>
                 </CodeBlock>
               </Tab>
             ))}

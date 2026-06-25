@@ -6,7 +6,10 @@ import {
   generateNodeSnippet,
   generatePythonSnippet,
 } from '~/app/components/run-results/playgroundSnippets';
-import type { SnippetCredentials } from '~/app/components/run-results/playgroundSnippets';
+import type {
+  SnippetCredentials,
+  SnippetParams,
+} from '~/app/components/run-results/playgroundSnippets';
 
 const mockCredentials: SnippetCredentials = {
   hostname: 'ogx.example.com',
@@ -37,37 +40,43 @@ const mockTemplate: ResponsesTemplate = {
   include: ['file_search_call.results'],
 };
 
+const mockParams: SnippetParams = {
+  template: mockTemplate,
+  secretName: 'test-secret',
+  namespace: 'test-ns',
+};
+
 describe('generateCurlSnippet', () => {
   it('should return a string', () => {
-    expect(typeof generateCurlSnippet(mockTemplate)).toBe('string');
+    expect(typeof generateCurlSnippet(mockParams)).toBe('string');
   });
 
   it('should contain the model name from the template', () => {
-    expect(generateCurlSnippet(mockTemplate)).toContain('test-model');
+    expect(generateCurlSnippet(mockParams)).toContain('test-model');
   });
 
   it('should contain curl -X POST', () => {
-    expect(generateCurlSnippet(mockTemplate)).toContain('curl -X POST');
+    expect(generateCurlSnippet(mockParams)).toContain('curl -X POST');
   });
 
-  it('should show <HOSTNAME> and <API_KEY> placeholders when no credentials', () => {
-    const result = generateCurlSnippet(mockTemplate);
-    expect(result).toContain('<HOSTNAME>');
-    expect(result).toContain('<API_KEY>');
+  it('should show oc get secret with secretName and namespace when no credentials', () => {
+    const result = generateCurlSnippet(mockParams);
+    expect(result).toContain('oc get secret test-secret');
+    expect(result).toContain('-n test-ns');
   });
 });
 
 describe('generateNodeSnippet', () => {
   it('should return a string', () => {
-    expect(typeof generateNodeSnippet(mockTemplate)).toBe('string');
+    expect(typeof generateNodeSnippet(mockParams)).toBe('string');
   });
 
   it('should contain the model name from the template', () => {
-    expect(generateNodeSnippet(mockTemplate)).toContain('test-model');
+    expect(generateNodeSnippet(mockParams)).toContain('test-model');
   });
 
   it('should use fetch to call the OGX Responses API directly', () => {
-    const result = generateNodeSnippet(mockTemplate);
+    const result = generateNodeSnippet(mockParams);
     expect(result).toContain('await fetch(');
     expect(result).toContain('/v1/responses');
     expect(result).not.toContain('openai');
@@ -75,51 +84,52 @@ describe('generateNodeSnippet', () => {
   });
 
   it('should include request timeout and error handling', () => {
-    const result = generateNodeSnippet(mockTemplate);
+    const result = generateNodeSnippet(mockParams);
     expect(result).toContain('AbortSignal.timeout(');
     expect(result).toContain('response.ok');
     expect(result).toContain('result.output ?? result');
   });
 
-  it('should show k8s client credential setup when no credentials', () => {
-    const result = generateNodeSnippet(mockTemplate);
+  it('should show k8s client with secretName and namespace when no credentials', () => {
+    const result = generateNodeSnippet(mockParams);
     expect(result).toContain('k8s.KubeConfig');
-    expect(result).toContain('<SECRET_NAME>');
-    expect(result).toContain('<NAMESPACE>');
+    expect(result).toContain('"test-secret"');
+    expect(result).toContain('"test-ns"');
   });
 });
 
 describe('generateGoSnippet', () => {
   it('should return a string', () => {
-    expect(typeof generateGoSnippet(mockTemplate)).toBe('string');
+    expect(typeof generateGoSnippet(mockParams)).toBe('string');
   });
 
   it('should contain the model name from the template', () => {
-    expect(generateGoSnippet(mockTemplate)).toContain('test-model');
+    expect(generateGoSnippet(mockParams)).toContain('test-model');
   });
 
   it('should contain package main', () => {
-    expect(generateGoSnippet(mockTemplate)).toContain('package main');
+    expect(generateGoSnippet(mockParams)).toContain('package main');
   });
 
-  it('should show <HOSTNAME> and <API_KEY> placeholders when no credentials', () => {
-    const result = generateGoSnippet(mockTemplate);
-    expect(result).toContain('<HOSTNAME>');
-    expect(result).toContain('<API_KEY>');
+  it('should show k8s client with secretName and namespace when no credentials', () => {
+    const result = generateGoSnippet(mockParams);
+    expect(result).toContain('kubernetes.NewForConfig');
+    expect(result).toContain('"test-ns"');
+    expect(result).toContain('"test-secret"');
   });
 });
 
 describe('generatePythonSnippet', () => {
   it('should return a string', () => {
-    expect(typeof generatePythonSnippet(mockTemplate)).toBe('string');
+    expect(typeof generatePythonSnippet(mockParams)).toBe('string');
   });
 
   it('should contain the model name from the template', () => {
-    expect(generatePythonSnippet(mockTemplate)).toContain('test-model');
+    expect(generatePythonSnippet(mockParams)).toContain('test-model');
   });
 
   it('should use requests to call the OGX Responses API directly', () => {
-    const result = generatePythonSnippet(mockTemplate);
+    const result = generatePythonSnippet(mockParams);
     expect(result).toContain('requests.post');
     expect(result).toContain('/v1/responses');
     expect(result).not.toContain('from openai');
@@ -127,17 +137,17 @@ describe('generatePythonSnippet', () => {
   });
 
   it('should include request timeout and error handling', () => {
-    const result = generatePythonSnippet(mockTemplate);
+    const result = generatePythonSnippet(mockParams);
     expect(result).toContain('timeout=30');
     expect(result).toContain('raise_for_status()');
     expect(result).toContain('result.get("output", result)');
   });
 
-  it('should show k8s client credential setup when no credentials', () => {
-    const result = generatePythonSnippet(mockTemplate);
+  it('should show k8s client with secretName and namespace when no credentials', () => {
+    const result = generatePythonSnippet(mockParams);
     expect(result).toContain('config.load_config');
-    expect(result).toContain('<SECRET_NAME>');
-    expect(result).toContain('<NAMESPACE>');
+    expect(result).toContain('"test-secret"');
+    expect(result).toContain('"test-ns"');
   });
 });
 
@@ -150,36 +160,19 @@ describe('credential injection', () => {
   ];
 
   it.each(generators)('should inject credentials and remove placeholders for $name', ({ fn }) => {
-    const result = fn(mockTemplate, mockCredentials);
+    const result = fn(mockParams, mockCredentials);
     expect(result).toContain('ogx.example.com');
     expect(result).toContain('sk-test-key-123');
-    expect(result).not.toContain('<HOSTNAME>');
-    expect(result).not.toContain('<API_KEY>');
+    expect(result).not.toContain('test-secret');
+    expect(result).not.toContain('test-ns');
   });
 
-  it.each([
-    { name: 'curl', fn: generateCurlSnippet },
-    { name: 'Go', fn: generateGoSnippet },
-  ])(
-    'should use <HOSTNAME>/<API_KEY> placeholders when credentials are undefined for $name',
+  it.each(generators)(
+    'should not contain credentials when no credentials provided for $name',
     ({ fn }) => {
-      const result = fn(mockTemplate);
-      expect(result).toContain('<HOSTNAME>');
-      expect(result).toContain('<API_KEY>');
+      const result = fn(mockParams);
       expect(result).not.toContain('ogx.example.com');
-    },
-  );
-
-  it.each([
-    { name: 'Node.js', fn: generateNodeSnippet },
-    { name: 'Python', fn: generatePythonSnippet },
-  ])(
-    'should show k8s client credential setup when credentials are undefined for $name',
-    ({ fn }) => {
-      const result = fn(mockTemplate);
-      expect(result).toContain('<SECRET_NAME>');
-      expect(result).toContain('<NAMESPACE>');
-      expect(result).not.toContain('ogx.example.com');
+      expect(result).not.toContain('sk-test-key-123');
     },
   );
 
@@ -188,7 +181,7 @@ describe('credential injection', () => {
       hostname: 'host"$(whoami)`id`.com',
       apiKey: 'key"$(cmd)`run`',
     };
-    const result = generateCurlSnippet(mockTemplate, adversarial);
+    const result = generateCurlSnippet(mockParams, adversarial);
     expect(result).not.toContain('<HOSTNAME>');
     expect(result).not.toContain('<API_KEY>');
     // $ and backticks must be backslash-escaped in the output
@@ -203,7 +196,7 @@ describe('credential injection', () => {
       hostname: 'good.com;rm -rf ~',
       apiKey: 'key&background-cmd',
     };
-    const result = generateCurlSnippet(mockTemplate, adversarial);
+    const result = generateCurlSnippet(mockParams, adversarial);
     // URL must be double-quoted so ; and & are literal, not shell separators
     expect(result).toContain('"https://good.com;rm -rf ~/v1/responses"');
     // apiKey is also in a double-quoted header, ; and & are safe there too
@@ -217,7 +210,7 @@ describe('credential injection', () => {
         hostname: 'host".evil.com',
         apiKey: 'key"injection',
       };
-      const result = fn(mockTemplate, adversarial);
+      const result = fn(mockParams, adversarial);
       expect(result).not.toContain('<HOSTNAME>');
       expect(result).not.toContain('<API_KEY>');
       expect(result).not.toMatch(/[^\\]"\.evil\.com/);

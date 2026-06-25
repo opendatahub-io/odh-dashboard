@@ -16,6 +16,17 @@ jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => mockNotification,
 }));
 
+jest.mock('react-router', () => ({
+  useParams: () => ({ namespace: 'test-ns' }),
+}));
+
+jest.mock('~/app/context/AutoragResultsContext', () => ({
+  useAutoragResultsContext: () => ({
+    parameters: { ogx_secret_name: 'test-secret' },
+    patterns: {},
+  }),
+}));
+
 const mockTemplate: ResponsesTemplate = {
   model: 'vllm/llama-3',
   stream: false,
@@ -147,11 +158,11 @@ describe('ViewCodeModal', () => {
       expect(screen.queryByTestId('toggle-credentials-button')).not.toBeInTheDocument();
     });
 
-    it('should show placeholders by default when credentials are available', () => {
+    it('should show k8s credential setup by default when credentials are available but toggle is off', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
-      const codeBlock = screen.getByText(/curl -X POST/);
-      expect(codeBlock.textContent).toContain('<HOSTNAME>');
-      expect(codeBlock.textContent).toContain('<API_KEY>');
+      const [codeBlock] = screen.getAllByText(/OGX_CLIENT_BASE_URL/);
+      expect(codeBlock.textContent).toContain('oc get secret');
+      expect(codeBlock.textContent).not.toContain('ogx.example.com');
     });
 
     it('should inject credentials when show credentials is toggled', () => {
@@ -199,8 +210,7 @@ describe('ViewCodeModal', () => {
 
       expect(writeText).toHaveBeenCalledTimes(1);
       const copiedText = writeText.mock.calls[0][0] as string;
-      expect(copiedText).toContain('<HOSTNAME>');
-      expect(copiedText).toContain('<API_KEY>');
+      expect(copiedText).toContain('oc get secret');
       expect(copiedText).not.toContain('ogx.example.com');
     });
 
@@ -243,8 +253,8 @@ describe('ViewCodeModal', () => {
         expect.any(String),
       );
       expect(screen.queryByTestId('toggle-credentials-button')).not.toBeInTheDocument();
-      const codeBlock = screen.getByText(/curl -X POST/);
-      expect(codeBlock.textContent).toContain('<HOSTNAME>');
+      const [codeBlock] = screen.getAllByText(/OGX_CLIENT_BASE_URL/);
+      expect(codeBlock.textContent).toContain('oc get secret');
     });
   });
 });
