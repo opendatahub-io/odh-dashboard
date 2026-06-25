@@ -70,7 +70,7 @@ export const validateAgentProfileAsync: (
   const result: AsyncValidationResult = { warnings };
 
   const stores = spec.vectorStores?.stores ?? [];
-  const externalKeys = stores.filter((s) => s.storeRef).map((s) => s.storeRef!.key);
+  const externalKeys = stores.filter((s) => s.storeRef?.key).map((s) => s.storeRef!.key);
   const inlineIds = stores.filter((s) => s.id).map((s) => s.id!);
 
   const [promptOutcome, aaOutcome, llamaOutcome] = await Promise.allSettled([
