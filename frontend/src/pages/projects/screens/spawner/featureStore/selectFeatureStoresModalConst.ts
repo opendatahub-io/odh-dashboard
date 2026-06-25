@@ -1,4 +1,5 @@
-import type { SortableData } from '#~/components/table/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- shared table types from ui-core
+import type { SortableData } from '@odh-dashboard/ui-core';
 import type { FeatureStoreProject } from '#~/api/featureStore/custom';
 import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 

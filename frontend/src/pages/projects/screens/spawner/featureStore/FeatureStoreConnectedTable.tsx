@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Table } from '#~/components/table';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- shared table component from ui-core
+import { Table } from '@odh-dashboard/ui-core';
 import type { FeatureStoreProject } from '#~/api/featureStore/custom';
 import { FeatureStoreConnectedTableRow } from './FeatureStoreConnectedTableRow';
 import { featureStoreConnectedTableColumns } from './featureStoreConnectedTableConst';

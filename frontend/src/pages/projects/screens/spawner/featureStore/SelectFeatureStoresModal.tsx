@@ -9,10 +9,9 @@ import {
   SearchInput,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { DashboardEmptyTableView, TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
-import { TableBase, useCheckboxTableBase } from '#~/components/table';
-import useTableColumnSort from '#~/components/table/useTableColumnSort';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { useCheckboxTableBase } from '#~/components/table';
 import type { FeatureStoreProject } from '#~/api/featureStore/custom';
 import { SelectFeatureStoresModalRow } from './SelectFeatureStoresModalRow';
 import {
