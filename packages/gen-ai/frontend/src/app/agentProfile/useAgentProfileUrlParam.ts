@@ -27,18 +27,15 @@ type UseAgentProfileUrlParamResult = {
 const useAgentProfileUrlParam = ({
   mcpServers,
   mcpServersLoaded,
-  playgroundModelsLoaded,
 }: {
   mcpServers: MCPServerFromAPI[];
   mcpServersLoaded: boolean;
-  /** Wait for playground models before deserializing so selectedModel is always a full Llama Stack ID */
-  playgroundModelsLoaded: boolean;
 }): UseAgentProfileUrlParamResult => {
   const [searchParams] = useSearchParams();
   const agentProfileId = searchParams.get(AGENT_PROFILE_ID_PARAM);
 
   const { namespace } = React.useContext(GenAiContext);
-  const { models: playgroundModels, aiModels } = React.useContext(ChatbotContext);
+  const { models: playgroundModels, modelsLoaded, aiModels } = React.useContext(ChatbotContext);
   const { api, apiAvailable } = useGenAiAPI();
 
   // Refs for values used only inside the fetch callback — keep them current without
@@ -76,7 +73,7 @@ const useAgentProfileUrlParam = ({
       !namespace?.name ||
       !apiAvailable ||
       !mcpServersLoaded ||
-      !playgroundModelsLoaded ||
+      !modelsLoaded ||
       appliedProfileId.current === agentProfileId ||
       loadedProfileId === agentProfileId
     ) {
@@ -180,7 +177,7 @@ const useAgentProfileUrlParam = ({
     namespace?.name,
     apiAvailable,
     mcpServersLoaded,
-    playgroundModelsLoaded,
+    modelsLoaded,
     loadedProfileId,
     api,
     applyAgentProfile,

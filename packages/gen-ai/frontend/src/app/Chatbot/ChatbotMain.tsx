@@ -85,7 +85,6 @@ const ChatbotMain: React.FunctionComponent = () => {
   const { loading: profileLoading, error: profileLoadError } = useAgentProfileUrlParam({
     mcpServers,
     mcpServersLoaded,
-    playgroundModelsLoaded: Boolean(modelsLoaded) || Boolean(modelsError),
   });
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
