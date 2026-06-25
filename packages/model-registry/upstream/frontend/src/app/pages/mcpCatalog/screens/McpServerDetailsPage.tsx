@@ -17,6 +17,9 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ApplicationsIcon, SearchIcon } from '@patternfly/react-icons';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useMcpServerWithAPI } from '~/app/hooks/mcpServerCatalog/useMcpServer';
 import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
@@ -27,13 +30,15 @@ import {
   getMcpCardIconConfig,
 } from '~/app/pages/mcpCatalog/components/McpCatalogCardIcons';
 import { isMcpRemoteDeploymentMode } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
-import McpDeployButton from '~/odh/components/McpDeployButton';
 import McpServerDetailsView from './McpServerDetailsView';
+
+const MCP_DEPLOY_ACTION_GROUP = 'mcp-catalog.server-deploy';
 
 const McpServerDetailsPage: React.FC = () => {
   const { serverId = '' } = useParams<{ serverId: string }>();
   const { mcpApiState } = React.useContext(McpCatalogContext);
   const [server, serverLoaded, serverLoadError] = useMcpServerWithAPI(mcpApiState, serverId);
+  const actionExtensions = useExtensions(isActionExtension);
 
   const isNotFound = !server && (serverLoaded || !!serverLoadError);
 
@@ -115,7 +120,11 @@ const McpServerDetailsPage: React.FC = () => {
             </EmptyState>
           ) : undefined
         }
-        headerAction={server?.artifacts?.some((a) => a.uri) ? <McpDeployButton /> : undefined}
+        headerAction={
+          server?.artifacts?.some((a) => a.uri) ? (
+            <ExtensibleActions actions={actionExtensions} group={MCP_DEPLOY_ACTION_GROUP} />
+          ) : undefined
+        }
         loadError={isNotFound ? undefined : serverLoadError}
         loaded={isNotFound || serverLoaded}
         errorMessage="Unable to load MCP server details"
