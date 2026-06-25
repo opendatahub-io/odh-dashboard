@@ -133,6 +133,48 @@ paths:
       operationId: getAgentRuntimeDetail
       summary: Get agent runtime detail
       description: Returns full runtime detail for a single deployed agent.
+  /api/v1/agents/deploy:
+    summary: Deploy a new agent runtime.
+    description: >-
+      Creates all Kubernetes resources (ServiceAccount, AgentRuntime CR, Deployment,
+      Service, and optionally an OpenShift Route) for a new agent deployment.
+    post:
+      tags:
+        - AgentOperation
+      requestBody:
+        required: true
+        description: Agent deployment specification.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeployAgentRequest"
+            example:
+              name: my-agent
+              namespace: agent-ops-demo
+              containerImage: quay.io/example/agent
+              imageTag: v1.0.0
+              protocol: a2a
+              framework: langgraph
+              createRoute: true
+              envVars:
+                - name: LOG_LEVEL
+                  value: info
+      responses:
+        "201":
+          $ref: "#/components/responses/DeployAgentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: deployAgent
+      summary: Deploy a new agent
+      description: Creates all K8s resources for a new agent deployment.
 
 components:
   schemas:
@@ -518,6 +560,139 @@ components:
           items:
             type: string
           example: []
+    DeployAgentRequest:
+      description: Specification for deploying a new agent.
+      required:
+        - name
+        - namespace
+        - containerImage
+        - imageTag
+      type: object
+      properties:
+        name:
+          type: string
+          description: Agent name (DNS-1123 label).
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          maxLength: 63
+          example: my-agent
+        namespace:
+          type: string
+          description: Target Kubernetes namespace (DNS-1123 label).
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          maxLength: 63
+          example: agent-ops-demo
+        containerImage:
+          type: string
+          description: Container image reference (without tag).
+          example: quay.io/example/agent
+        imageTag:
+          type: string
+          description: Container image tag.
+          example: v1.0.0
+        imagePullSecret:
+          type: string
+          description: Name of an existing image pull secret in the target namespace.
+          example: my-pull-secret
+        protocol:
+          type: string
+          description: Agent communication protocol.
+          enum: [a2a, mcp]
+          default: a2a
+          example: a2a
+        framework:
+          type: string
+          description: Agent framework identifier (valid K8s label value, max 63 chars).
+          pattern: '^[a-zA-Z0-9]([-a-zA-Z0-9_.]*[a-zA-Z0-9])?$'
+          maxLength: 63
+          example: langgraph
+        envVars:
+          type: array
+          description: Environment variables injected into the agent container.
+          items:
+            $ref: "#/components/schemas/DeployAgentEnvVar"
+        servicePorts:
+          type: array
+          description: Service port mappings. Defaults to http 8080→8000/TCP if omitted.
+          items:
+            $ref: "#/components/schemas/DeployAgentServicePort"
+        createRoute:
+          type: boolean
+          description: Whether to create an OpenShift Route for external access.
+          default: false
+          example: true
+        authBridgeEnabled:
+          type: boolean
+          description: Whether to enable kagenti AuthBridge sidecar injection.
+          default: true
+          example: true
+        authBridgeMode:
+          type: string
+          description: AuthBridge sidecar mode.
+          enum: [proxy-sidecar, envoy-sidecar, lite, waypoint]
+          example: proxy-sidecar
+        mtlsMode:
+          type: string
+          description: Mutual TLS mode for the agent.
+          enum: [disabled, permissive, strict]
+          example: disabled
+    DeployAgentEnvVar:
+      description: An environment variable for an agent container.
+      required:
+        - name
+        - value
+      type: object
+      properties:
+        name:
+          type: string
+          example: LOG_LEVEL
+        value:
+          type: string
+          example: info
+    DeployAgentServicePort:
+      description: A service port mapping for an agent.
+      required:
+        - name
+        - port
+        - targetPort
+      type: object
+      properties:
+        name:
+          type: string
+          example: http
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          example: 8080
+        targetPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          example: 8000
+        protocol:
+          type: string
+          default: TCP
+          example: TCP
+    DeployAgentResult:
+      description: Result of a successful agent deployment.
+      required:
+        - success
+        - name
+        - namespace
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        name:
+          type: string
+          example: my-agent
+        namespace:
+          type: string
+          example: agent-ops-demo
+        message:
+          type: string
+          example: Agent deployed successfully
   responses:
     HealthCheckResponse:
       description: BFF service health status
@@ -543,6 +718,12 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
       description: Unauthorized
+    Conflict:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+      description: A resource with the same name already exists
     Forbidden:
       content:
         application/json:
@@ -677,6 +858,23 @@ components:
                     validSignature: true
                     linkedSkills: ["summarizer"]
       description: A response containing full agent runtime detail.
+    DeployAgentResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/components/schemas/DeployAgentResult"
+          examples:
+            default:
+              value:
+                data:
+                  success: true
+                  name: my-agent
+                  namespace: agent-ops-demo
+                  message: Agent deployed successfully
+      description: A response confirming successful agent deployment.
 
 
   parameters:

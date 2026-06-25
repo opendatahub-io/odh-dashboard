@@ -28,8 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/pvcs"
@@ -42,11 +44,13 @@ var (
 )
 
 type PVCRepository struct {
+	cfg    *config.EnvConfig
 	client client.Client
 }
 
-func NewPVCRepository(cl client.Client) *PVCRepository {
+func NewPVCRepository(cfg *config.EnvConfig, cl client.Client) *PVCRepository {
 	return &PVCRepository{
+		cfg:    cfg,
 		client: cl,
 	}
 }
@@ -188,10 +192,7 @@ func buildWorkspaceInfoMap(workspaceList *kubefloworgv1beta1.WorkspaceList) map[
 	return pvcToWsInfo
 }
 
-func (r *PVCRepository) CreatePVC(ctx context.Context, pvcCreate *models.PVCCreate, namespace string) (*models.PVCCreate, error) {
-	// TODO: get actual user email from request context
-	actor := "mock@example.com"
-
+func (r *PVCRepository) CreatePVC(ctx context.Context, actor user.Info, pvcCreate *models.PVCCreate, namespace string) (*models.PVCCreate, error) {
 	var allValErrs field.ErrorList
 
 	// get and validate the storage class

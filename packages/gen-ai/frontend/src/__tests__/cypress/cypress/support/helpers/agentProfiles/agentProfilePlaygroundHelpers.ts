@@ -194,8 +194,8 @@ export const interceptMLflowPrompt = (
   }).as('registerPrompt');
 };
 
-/** URL for a playground page with the agentProfileManagement flag enabled. */
+/** URL for a playground page, optionally with an agentProfileId query param. */
 export const playgroundUrl = (namespace: string, agentProfileId?: string): string => {
-  const base = `/gen-ai-studio/playground/${namespace}?agentProfileManagement=true`;
-  return agentProfileId ? `${base}&agentProfileId=${agentProfileId}` : base;
+  const base = `/gen-ai-studio/playground/${namespace}`;
+  return agentProfileId ? `${base}?agentProfileId=${agentProfileId}` : base;
 };
