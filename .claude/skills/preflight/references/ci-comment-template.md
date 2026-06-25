@@ -84,6 +84,11 @@ The review `body` field contains the full preflight report. Format:
 - Only include sections that have content (no empty collapsibles)
 - **Footer** is just `*Automated by ODH Dashboard Agent*` — no link
 
+**CI row with flaky classification** (when `classify-ci-failures.py` ran):
+- Mix of flaky + genuine: `| CI | ❌ | 37 passed · 2 failed: 1 genuine ❌ (\`Lint\`), 1 flaky ⚠️ (\`Cypress-Mock-Tests (pipelines/runs)\` — seen on 3 other PRs in 7d) |`
+- All flaky: `| CI | ⚠️ | 37 passed · 2 failed (all likely flaky — see details) |`
+- Classifier unavailable: `| CI | ❌ | 2 failing (classifier unavailable — reporting raw status) |`
+
 ## Inline Review Comments (Critical, Major, Minor only — NOT Nits)
 
 Format for each inline comment:

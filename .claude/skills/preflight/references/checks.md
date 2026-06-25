@@ -41,6 +41,16 @@ The script returns three things:
 
 Don't hardcode check names. Let the script discover what exists and report what it finds. The LLM interprets which checks map to lint, type-check, tests, build, etc. from the workflow names and job commands.
 
+### Flaky Test Classification
+
+When CI failures are found on a synced PR, run the classifier to distinguish genuine regressions from known flaky tests:
+
+```bash
+python3 scripts/classify-ci-failures.py "$pr_number"
+```
+
+See [ci-flake-classifier.md](ci-flake-classifier.md) for output schema, status mapping, verdict impact, and fallback behavior.
+
 ## Reviews
 
 Reviews are reported as separate rows in the results table, each with its source.

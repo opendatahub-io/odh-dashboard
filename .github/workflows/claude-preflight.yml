@@ -130,6 +130,7 @@ jobs:
           permission-contents: read
           permission-pull-requests: write
           permission-checks: write
+          permission-actions: read
 
       - name: Create check run
         id: check-run
