@@ -690,7 +690,7 @@ describe('Workbench page', () => {
       .click()
       .should('have.attr', 'aria-expanded', 'true');
 
-    environmentVariableField.selectEnvironmentVariableTypeByTestId('Config Map');
+    cy.findByTestId('Config Map').click();
 
     environmentVariableField
       .find()
