@@ -24,7 +24,7 @@ const createMaaSModel = (overrides: Partial<AAModelResponse> = {}): AAModelRespo
   usecase: 'LLM',
   status: 'Running',
   sa_token: { name: '', token_name: '', token: '' },
-  model_source_type: 'maas',
+  model_source_type: 'maas' as const,
   ...overrides,
 });
 
