@@ -71,6 +71,11 @@ type PrecisionRecallChartProps = {
 };
 
 const CHART_SIZE = 500;
+const TICK_VALUES = Array.from({ length: 11 }, (_, i) => i / 10);
+const CHART_PADDING = { bottom: 60, left: 80, right: 50, top: 20 };
+const CHART_WRAPPER_STYLE = { width: CHART_SIZE };
+const BASELINE_STYLE = { data: { strokeDasharray: '6,4', stroke: chartColorBlack500.value } };
+const voronoiLabels = ({ datum }: { datum: { name: string } }) => datum.name;
 
 const PrecisionRecallChart: React.FC<PrecisionRecallChartProps> = ({ prData }) => {
   const curveLines = React.useMemo(() => buildPRCurveLines(prData), [prData]);
@@ -86,39 +91,19 @@ const PrecisionRecallChart: React.FC<PrecisionRecallChartProps> = ({ prData }) =
   const isMulticlass = prData.task_type === 'multiclass';
 
   const chart = (
-    <div style={{ width: CHART_SIZE }}>
+    <div style={CHART_WRAPPER_STYLE}>
       <Chart
         ariaDesc="Precision-Recall Curve"
         ariaTitle="Precision-Recall Curve"
-        containerComponent={
-          <ChartVoronoiContainer constrainToVisibleArea labels={({ datum }) => datum.name} />
-        }
+        containerComponent={<ChartVoronoiContainer constrainToVisibleArea labels={voronoiLabels} />}
         height={CHART_SIZE}
         width={CHART_SIZE}
-        padding={{ bottom: 60, left: 80, right: 50, top: 20 }}
+        padding={CHART_PADDING}
       >
-        <ChartAxis
-          showGrid
-          dependentAxis
-          label="Precision"
-          tickValues={Array.from({ length: 11 }, (_, i) => i / 10)}
-        />
-        <ChartAxis
-          showGrid
-          label="Recall"
-          tickValues={Array.from({ length: 11 }, (_, i) => i / 10)}
-        />
+        <ChartAxis showGrid dependentAxis label="Precision" tickValues={TICK_VALUES} />
+        <ChartAxis showGrid label="Recall" tickValues={TICK_VALUES} />
         <ChartGroup>
-          <ChartLine
-            name="baseline"
-            data={baseLineData}
-            style={{
-              data: {
-                strokeDasharray: '6,4',
-                stroke: chartColorBlack500.value,
-              },
-            }}
-          />
+          <ChartLine name="baseline" data={baseLineData} style={BASELINE_STYLE} />
           {curveLines.map((line, idx) => (
             <ChartLine
               key={line.label}

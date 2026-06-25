@@ -73,6 +73,10 @@ const multiclassData: CurvesData = {
 };
 
 describe('buildCurveLines', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should produce a single curve for binary data', () => {
     const lines = buildCurveLines(binaryData);
     expect(lines).toHaveLength(1);

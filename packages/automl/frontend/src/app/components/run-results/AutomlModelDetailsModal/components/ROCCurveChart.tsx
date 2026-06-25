@@ -107,55 +107,41 @@ type ROCCurveChartProps = {
 };
 
 const CHART_SIZE = 500;
+const TICK_VALUES = Array.from({ length: 11 }, (_, i) => i / 10);
+const CHART_PADDING = { bottom: 60, left: 80, right: 50, top: 20 };
+const CHART_WRAPPER_STYLE = { width: CHART_SIZE };
+const BASELINE_STYLE = { data: { strokeDasharray: '3,3', stroke: chartColorBlack500.value } };
+const BASELINE_DATA = Array.from({ length: 101 }, (_, i) => ({
+  x: i / 100,
+  y: i / 100,
+  name: 'Reference (random classifier)',
+}));
+const voronoiLabels = ({ datum }: { datum: { name: string } }) => datum.name;
 
 const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
   const curveLines = React.useMemo(() => buildCurveLines(rocCurveData), [rocCurveData]);
-  const baseLineData = React.useMemo(
-    () =>
-      Array.from({ length: 101 }, (_, i) => ({
-        x: i / 100,
-        y: i / 100,
-        name: `Reference (random classifier)`,
-      })),
-    [],
-  );
   const auc = getAucValue(rocCurveData);
   const isMulticlass = rocCurveData.task_type === 'multiclass';
 
   const chart = (
-    <div style={{ width: CHART_SIZE }}>
+    <div style={CHART_WRAPPER_STYLE}>
       <Chart
         ariaDesc="ROC Curve"
         ariaTitle="ROC Curve"
-        containerComponent={
-          <ChartVoronoiContainer constrainToVisibleArea labels={({ datum }) => datum.name} />
-        }
+        containerComponent={<ChartVoronoiContainer constrainToVisibleArea labels={voronoiLabels} />}
         height={CHART_SIZE}
         width={CHART_SIZE}
-        padding={{ bottom: 60, left: 80, right: 50, top: 20 }}
+        padding={CHART_PADDING}
       >
         <ChartAxis
           showGrid
           dependentAxis
           label="True positive rate (sensitivity)"
-          tickValues={Array.from({ length: 11 }, (_, i) => i / 10)}
+          tickValues={TICK_VALUES}
         />
-        <ChartAxis
-          showGrid
-          label="False positive rate (1-specificity)"
-          tickValues={Array.from({ length: 11 }, (_, i) => i / 10)}
-        />
+        <ChartAxis showGrid label="False positive rate (1-specificity)" tickValues={TICK_VALUES} />
         <ChartGroup>
-          <ChartLine
-            name="baseline"
-            data={baseLineData}
-            style={{
-              data: {
-                strokeDasharray: '3,3',
-                stroke: chartColorBlack500.value,
-              },
-            }}
-          />
+          <ChartLine name="baseline" data={BASELINE_DATA} style={BASELINE_STYLE} />
           {curveLines.map((line, idx) => (
             <ChartLine
               key={line.label}

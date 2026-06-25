@@ -53,6 +53,13 @@ describe('PrecisionRecallTab', () => {
     expect(screen.getByTestId('precision-recall-chart')).toBeInTheDocument();
   });
 
+  it('should render loading spinner when isArtifactsLoading is true', () => {
+    render(<PrecisionRecallTab {...defaultProps} isArtifactsLoading />);
+
+    expect(screen.getByLabelText('Loading precision-recall curve data')).toBeInTheDocument();
+    expect(screen.queryByTestId('precision-recall-chart')).not.toBeInTheDocument();
+  });
+
   it('should render no-data message when curves is undefined', () => {
     render(<PrecisionRecallTab {...defaultProps} curves={undefined} />);
 
