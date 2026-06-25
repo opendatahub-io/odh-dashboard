@@ -355,7 +355,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             data-testid="no-models-warning"
           >
             There are no model endpoints available on the cluster. Deploy a model on the{' '}
-            <Link to={`${URL_PREFIX}/deployments`}>Deployments page</Link> and create a MaaSModelRef
+            <Link to="/ai-hub/models/deployments">Deployments page</Link> and create a MaaSModelRef
             before creating a subscription.
           </Alert>
         ) : (

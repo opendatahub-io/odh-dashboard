@@ -1,9 +1,9 @@
-/* eslint-disable camelcase */
 import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
 import {
   interceptNewAgentProfile,
   interceptExistingAgentProfile,
 } from '~/__tests__/cypress/cypress/support/helpers/agentProfiles/agentProfilePlaygroundHelpers';
+import { mockAgentProfiles } from '~/__tests__/cypress/cypress/__mocks__';
 
 // Use mock-test-namespace-2 which has LSD configured and ready in the BFF
 const TEST_NAMESPACE = 'mock-test-namespace-2';
@@ -16,13 +16,8 @@ const DISMISSED_KEY = 'gen-ai-agent-open-modal-dismissed';
 
 describe('Agent Profile - Playground (Mocked)', () => {
   beforeEach(() => {
-    Cypress.env('_featureFlagParams', 'agentProfileManagement=true');
     // Ensure the open-agent modal always appears by clearing the dismissed preference
     cy.clearLocalStorage(DISMISSED_KEY);
-  });
-
-  afterEach(() => {
-    Cypress.env('_featureFlagParams', '');
   });
 
   it(
@@ -31,11 +26,11 @@ describe('Agent Profile - Playground (Mocked)', () => {
     () => {
       interceptNewAgentProfile(NEW_PROFILE_ID, AGENT_NAME, TEST_NAMESPACE);
 
-      cy.step('Visit playground with agentProfileManagement flag (no agentProfileId — no modal)');
+      cy.step('Visit playground (no agentProfileId — no modal)');
       chatbotPage.visit(TEST_NAMESPACE);
 
-      cy.step('Open Save As modal — no profile loaded yet, name is empty');
-      cy.findByTestId('save-as-agent-profile-button', { timeout: 10000 }).click();
+      cy.step('Open Save As modal via kebab menu — no profile loaded yet, name is empty');
+      chatbotPage.openKebabAndClickItem('save-as-agent-profile-button');
       cy.findByTestId('save-agent-profile-modal').should('be.visible');
       cy.findByTestId('save-agent-profile-name-input').should('have.value', '');
 
@@ -55,11 +50,8 @@ describe('Agent Profile - Playground (Mocked)', () => {
       chatbotPage.clickOpenAgentEdit();
       chatbotPage.findOpenAgentModal().should('not.exist');
 
-      cy.step('Save button is now visible in edit mode');
-      cy.findByTestId('save-agent-profile-button', { timeout: 10000 }).should('be.visible');
-
-      cy.step('Open Save modal — name matches the profile that was just saved');
-      cy.findByTestId('save-agent-profile-button').click();
+      cy.step('Open Save modal via kebab — name matches the profile that was just saved');
+      chatbotPage.openKebabAndClickItem('save-agent-profile-button');
       cy.findByTestId('save-agent-profile-name-input').should('have.value', AGENT_NAME);
       cy.findByRole('button', { name: 'Cancel' }).click();
     },
@@ -80,9 +72,8 @@ describe('Agent Profile - Playground (Mocked)', () => {
       chatbotPage.clickOpenAgentEdit();
       chatbotPage.findOpenAgentModal().should('not.exist');
 
-      cy.step('Open Save modal — name is pre-filled from loaded profile');
-      cy.findByTestId('save-agent-profile-button', { timeout: 10000 }).should('be.visible');
-      cy.findByTestId('save-agent-profile-button').click();
+      cy.step('Open Save modal via kebab — name is pre-filled from loaded profile');
+      chatbotPage.openKebabAndClickItem('save-agent-profile-button');
       cy.findByTestId('save-agent-profile-modal').should('be.visible');
       cy.findByTestId('save-agent-profile-name-input').should('have.value', AGENT_NAME);
 
@@ -96,6 +87,91 @@ describe('Agent Profile - Playground (Mocked)', () => {
       cy.findByTestId('save-agent-profile-modal').should('not.exist');
     },
   );
+
+  describe('Load Agent Profile Modal', () => {
+    // Derive values from fixture so tests stay in sync with mock data automatically
+    const profileList = mockAgentProfiles();
+    const firstProfile = profileList.data.profiles[0];
+
+    beforeEach(() => {
+      cy.interceptGenAi('GET /api/v1/agent-profiles', profileList).as('listAgentProfiles');
+      interceptExistingAgentProfile(
+        firstProfile.profileId,
+        firstProfile.displayName,
+        TEST_NAMESPACE,
+      );
+      chatbotPage.visit(TEST_NAMESPACE);
+    });
+
+    it(
+      'should open the load modal and show the profile list when Load is clicked',
+      { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
+      () => {
+        cy.step('Click Load via kebab menu');
+        chatbotPage.openKebabAndClickItem('load-agent-profile-button');
+
+        cy.step('Modal is visible and profiles are listed');
+        cy.findByTestId('load-agent-profile-modal').should('be.visible');
+        cy.wait('@listAgentProfiles');
+        cy.findByTestId('load-agent-profile-modal').should('contain.text', 'Coding assistant');
+        cy.findByTestId('load-agent-profile-modal').should(
+          'contain.text',
+          'Expense report assistant',
+        );
+      },
+    );
+
+    it(
+      'should set agentProfileId in the URL and show open-agent modal when a profile row is clicked',
+      { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
+      () => {
+        cy.step('Open load modal via kebab');
+        chatbotPage.openKebabAndClickItem('load-agent-profile-button');
+        cy.wait('@listAgentProfiles');
+
+        cy.step('Click the first profile row');
+        cy.findByTestId(`load-agent-profile-row-${firstProfile.profileId}`).click();
+
+        cy.step('Load modal closes and agentProfileId appears in URL');
+        cy.findByTestId('load-agent-profile-modal').should('not.exist');
+        cy.location('search').should('include', `agentProfileId=${firstProfile.profileId}`);
+
+        cy.step('Open-agent modal appears after profile is fetched');
+        cy.wait('@getAgentProfile');
+        chatbotPage.findOpenAgentModal().should('be.visible', { timeout: 10000 });
+      },
+    );
+
+    it(
+      'should filter profiles by name in the load modal',
+      { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
+      () => {
+        cy.step('Open load modal via kebab');
+        chatbotPage.openKebabAndClickItem('load-agent-profile-button');
+        cy.wait('@listAgentProfiles');
+
+        cy.step('Type in search box to filter');
+        cy.findByTestId('load-agent-profile-search').type('Coding');
+        cy.findByTestId('load-agent-profile-modal').should('contain.text', 'Coding assistant');
+        cy.findByTestId('load-agent-profile-modal').should(
+          'not.contain.text',
+          'Expense report assistant',
+        );
+      },
+    );
+
+    it(
+      'should close the load modal when Cancel is clicked',
+      { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
+      () => {
+        cy.step('Open and then cancel the modal via kebab');
+        chatbotPage.openKebabAndClickItem('load-agent-profile-button');
+        cy.findByTestId('load-agent-profile-modal').should('be.visible');
+        cy.findByRole('button', { name: 'Cancel' }).click();
+        cy.findByTestId('load-agent-profile-modal').should('not.exist');
+      },
+    );
+  });
 
   describe('Open-Agent Modal', () => {
     beforeEach(() => {

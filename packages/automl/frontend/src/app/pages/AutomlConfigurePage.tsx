@@ -76,7 +76,7 @@ function AutomlConfigurePage({
     defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
-  const [displayName] = useWatch({
+  const [displayName, description] = useWatch({
     control: form.control,
     name: createFields,
   });
@@ -108,7 +108,10 @@ function AutomlConfigurePage({
           type="submit"
           variant="primary"
           data-testid="automl-next-button"
-          isDisabled={!configureSchema.base.shape.display_name.safeParse(displayName).success}
+          isDisabled={
+            !configureSchema.base.shape.display_name.safeParse(displayName).success ||
+            !configureSchema.base.shape.description.safeParse(description).success
+          }
         >
           Next
         </Button>

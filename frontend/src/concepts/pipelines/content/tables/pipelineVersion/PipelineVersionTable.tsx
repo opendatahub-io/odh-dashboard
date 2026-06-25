@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
-import { TableBase, getTableColumnSort } from '#~/components/table';
+import { TableBase, getTableColumnSort } from '@odh-dashboard/ui-core';
 import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { pipelineVersionColumns } from '#~/concepts/pipelines/content/tables/columns';
 import PipelineVersionTableRow from '#~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTableRow';

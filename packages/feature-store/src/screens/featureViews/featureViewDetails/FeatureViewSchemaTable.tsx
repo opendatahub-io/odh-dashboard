@@ -11,7 +11,7 @@ import {
 import { Td, Tr } from '@patternfly/react-table';
 import { SearchIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
-import Table from '@odh-dashboard/internal/components/table/Table';
+import { Table } from '@odh-dashboard/ui-core';
 import { FeatureView } from '../../../types/featureView';
 import { FeatureStoreToolbar } from '../../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';

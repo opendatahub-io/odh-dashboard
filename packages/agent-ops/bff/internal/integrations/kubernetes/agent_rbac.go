@@ -53,6 +53,57 @@ func (kc *TokenKubernetesClient) CanGetAgentInNamespace(ctx context.Context, _ *
 	return kc.selfSubjectAccessReview(ctx, namespace, name, "services", "get")
 }
 
+type deployResourceCheck struct {
+	group    string
+	resource string
+	verb     string
+}
+
+var agentDeployChecks = []deployResourceCheck{
+	{"", "serviceaccounts", "create"},
+	{"", "serviceaccounts", "get"},
+	{"apps", "deployments", "create"},
+	{"", "services", "create"},
+	{"agent.kagenti.dev", "agentruntimes", "create"},
+	{"agent.kagenti.dev", "agentruntimes", "get"},
+}
+
+var agentDeployRouteCheck = deployResourceCheck{"route.openshift.io", "routes", "create"}
+
+func (kc *InternalKubernetesClient) CanDeployAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace string, createRoute bool) (bool, error) {
+	checks := agentDeployChecks
+	if createRoute {
+		checks = append(append([]deployResourceCheck{}, checks...), agentDeployRouteCheck)
+	}
+	for _, r := range checks {
+		allowed, err := kc.subjectAccessReviewGroup(ctx, identity, namespace, "", r.group, r.resource, r.verb)
+		if err != nil {
+			return false, err
+		}
+		if !allowed {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (kc *TokenKubernetesClient) CanDeployAgentInNamespace(ctx context.Context, _ *RequestIdentity, namespace string, createRoute bool) (bool, error) {
+	checks := agentDeployChecks
+	if createRoute {
+		checks = append(append([]deployResourceCheck{}, checks...), agentDeployRouteCheck)
+	}
+	for _, r := range checks {
+		allowed, err := kc.selfSubjectAccessReviewGroup(ctx, namespace, "", r.group, r.resource, r.verb)
+		if err != nil {
+			return false, err
+		}
+		if !allowed {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 func (kc *InternalKubernetesClient) anySubjectAccessReview(
 	ctx context.Context,
 	identity *RequestIdentity,

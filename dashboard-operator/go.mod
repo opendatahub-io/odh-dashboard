@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/odh-dashboard/dashboard-operator
 
-go 1.25.7
+go 1.26
 
 require (
 	github.com/opendatahub-io/odh-platform-utilities v0.0.0-20260506180717-e15e712db78d

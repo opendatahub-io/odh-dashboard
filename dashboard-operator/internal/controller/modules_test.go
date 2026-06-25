@@ -5,129 +5,55 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
-
-func TestIsComponentAvailable(t *testing.T) {
-	tests := []struct {
-		name       string
-		components map[string]v1alpha1.ComponentAvailability
-		component  string
-		want       bool
-	}{
-		{
-			name:       "managed component is available",
-			components: map[string]v1alpha1.ComponentAvailability{"modelregistry": {ManagementState: "Managed"}},
-			component:  "modelregistry",
-			want:       true,
-		},
-		{
-			name:       "unmanaged component is available",
-			components: map[string]v1alpha1.ComponentAvailability{"modelregistry": {ManagementState: "Unmanaged"}},
-			component:  "modelregistry",
-			want:       true,
-		},
-		{
-			name:       "removed component is not available",
-			components: map[string]v1alpha1.ComponentAvailability{"modelregistry": {ManagementState: "Removed"}},
-			component:  "modelregistry",
-			want:       false,
-		},
-		{
-			name:       "missing component is not available",
-			components: map[string]v1alpha1.ComponentAvailability{},
-			component:  "modelregistry",
-			want:       false,
-		},
-		{
-			name:       "nil map",
-			components: nil,
-			component:  "modelregistry",
-			want:       false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := isComponentAvailable(tt.components, tt.component)
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
 
 func TestResolveModuleStatuses(t *testing.T) {
 	tests := []struct {
 		name        string
 		spec        v1alpha1.DashboardSpec
+		wantLen     int
 		wantPhases  map[string]v1alpha1.ModulePhase
 		wantReason  map[string]string
 		wantMessage map[string]string
 	}{
 		{
-			name: "all components available, observability enabled",
-			spec: v1alpha1.DashboardSpec{
-				Components: map[string]v1alpha1.ComponentAvailability{
-					"modelregistry":  {ManagementState: "Managed"},
-					"mlflowoperator": {ManagementState: "Managed"},
-				},
-				Observability: &v1alpha1.ObservabilitySpec{
-					Enabled:       true,
-					PersesService: &v1alpha1.ServiceTarget{Name: "perses", Namespace: "monitoring", Port: 8080},
-				},
-			},
+			name:    "default spec — all modules deployed",
+			wantLen: 8,
+			spec:    v1alpha1.DashboardSpec{},
 			wantPhases: map[string]v1alpha1.ModulePhase{
-				"modelRegistry":  v1alpha1.ModulePhaseDeployed,
-				"genAi":          v1alpha1.ModulePhaseDeployed,
-				"mlflow":         v1alpha1.ModulePhaseDeployed,
-				"mlflowEmbedded": v1alpha1.ModulePhaseDeployed,
-				"maas":           v1alpha1.ModulePhaseDeployed,
-				"evalHub":        v1alpha1.ModulePhaseDeployed,
-				"automl":         v1alpha1.ModulePhaseDeployed,
-				"autorag":        v1alpha1.ModulePhaseDeployed,
-				"perses":         v1alpha1.ModulePhaseDeployed,
-			},
-			wantMessage: map[string]string{
-				"perses": "Proxying to perses.monitoring:8080",
+				"modelRegistry": v1alpha1.ModulePhaseDeployed,
+				"genAi":         v1alpha1.ModulePhaseDeployed,
+				"mlflow":        v1alpha1.ModulePhaseDeployed,
+				"maas":          v1alpha1.ModulePhaseDeployed,
+				"evalHub":       v1alpha1.ModulePhaseDeployed,
+				"automl":        v1alpha1.ModulePhaseDeployed,
+				"autorag":       v1alpha1.ModulePhaseDeployed,
+				"agentOps":      v1alpha1.ModulePhaseDeployed,
 			},
 		},
 		{
-			name: "empty spec — modules with no deps deployed, others not",
-			spec: v1alpha1.DashboardSpec{},
-			wantPhases: map[string]v1alpha1.ModulePhase{
-				"modelRegistry":  v1alpha1.ModulePhaseNotDeployed,
-				"genAi":          v1alpha1.ModulePhaseDeployed,
-				"mlflow":         v1alpha1.ModulePhaseNotDeployed,
-				"mlflowEmbedded": v1alpha1.ModulePhaseNotDeployed,
-				"maas":           v1alpha1.ModulePhaseDeployed,
-				"evalHub":        v1alpha1.ModulePhaseDeployed,
-				"automl":         v1alpha1.ModulePhaseDeployed,
-				"autorag":        v1alpha1.ModulePhaseDeployed,
-				"perses":         v1alpha1.ModulePhaseNotDeployed,
-			},
-			wantReason: map[string]string{
-				"modelRegistry":  "ComponentNotAvailable",
-				"mlflow":         "ComponentNotAvailable",
-				"mlflowEmbedded": "ComponentNotAvailable",
-				"perses":         "ObservabilityDisabled",
-			},
-		},
-		{
-			name: "explicit disable override",
+			name:    "explicit disable override",
+			wantLen: 8,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"genAi": {State: v1alpha1.ModuleDisabled},
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
-				"genAi": v1alpha1.ModulePhaseDisabled,
+				"genAi":         v1alpha1.ModulePhaseDisabled,
+				"modelRegistry": v1alpha1.ModulePhaseDeployed,
 			},
 			wantReason: map[string]string{
 				"genAi": "ExplicitOverride",
 			},
 		},
 		{
-			name: "explicit enable bypasses DSC component check",
+			name:    "explicit enable is treated as deployed",
+			wantLen: 8,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelRegistry": {State: v1alpha1.ModuleEnabled},
@@ -136,138 +62,36 @@ func TestResolveModuleStatuses(t *testing.T) {
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDeployed,
 			},
-			wantReason: map[string]string{
-				"modelRegistry": "ExplicitOverride",
-			},
 		},
 		{
-			name: "component removed — dependent module not deployed",
-			spec: v1alpha1.DashboardSpec{
-				Components: map[string]v1alpha1.ComponentAvailability{
-					"modelregistry":  {ManagementState: "Managed"},
-					"mlflowoperator": {ManagementState: "Removed"},
-				},
-			},
-			wantPhases: map[string]v1alpha1.ModulePhase{
-				"modelRegistry":  v1alpha1.ModulePhaseDeployed,
-				"mlflow":         v1alpha1.ModulePhaseNotDeployed,
-				"mlflowEmbedded": v1alpha1.ModulePhaseNotDeployed,
-			},
-			wantReason: map[string]string{
-				"mlflow":         "ComponentNotAvailable",
-				"mlflowEmbedded": "ComponentNotAvailable",
-			},
-		},
-		{
-			name: "inter-module dep — mlflow disabled cascades to mlflowEmbedded",
-			spec: v1alpha1.DashboardSpec{
-				Components: map[string]v1alpha1.ComponentAvailability{
-					"mlflowoperator": {ManagementState: "Managed"},
-				},
-				Modules: map[string]v1alpha1.ModuleOverride{
-					"mlflow": {State: v1alpha1.ModuleDisabled},
-				},
-			},
-			wantPhases: map[string]v1alpha1.ModulePhase{
-				"mlflow":         v1alpha1.ModulePhaseDisabled,
-				"mlflowEmbedded": v1alpha1.ModulePhaseNotDeployed,
-			},
-			wantReason: map[string]string{
-				"mlflow":         "ExplicitOverride",
-				"mlflowEmbedded": "ModuleDependencyNotSatisfied",
-			},
-		},
-		{
-			name: "observability enabled without perses service config",
-			spec: v1alpha1.DashboardSpec{
-				Observability: &v1alpha1.ObservabilitySpec{
-					Enabled: true,
-				},
-			},
-			wantPhases: map[string]v1alpha1.ModulePhase{
-				"perses": v1alpha1.ModulePhaseNotDeployed,
-			},
-			wantReason: map[string]string{
-				"perses": "MissingPersesServiceConfig",
-			},
-		},
-		{
-			name: "observability disabled",
-			spec: v1alpha1.DashboardSpec{
-				Observability: &v1alpha1.ObservabilitySpec{
-					Enabled: false,
-				},
-			},
-			wantPhases: map[string]v1alpha1.ModulePhase{
-				"perses": v1alpha1.ModulePhaseNotDeployed,
-			},
-			wantReason: map[string]string{
-				"perses": "ObservabilityDisabled",
-			},
-		},
-		{
-			name: "all modules disabled via overrides",
+			name:    "all modules disabled via overrides",
+			wantLen: 8,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
-					"modelRegistry":  {State: v1alpha1.ModuleDisabled},
-					"genAi":          {State: v1alpha1.ModuleDisabled},
-					"mlflow":         {State: v1alpha1.ModuleDisabled},
-					"mlflowEmbedded": {State: v1alpha1.ModuleDisabled},
-					"maas":           {State: v1alpha1.ModuleDisabled},
-					"evalHub":        {State: v1alpha1.ModuleDisabled},
-					"automl":         {State: v1alpha1.ModuleDisabled},
-					"autorag":        {State: v1alpha1.ModuleDisabled},
+					"modelRegistry": {State: v1alpha1.ModuleDisabled},
+					"genAi":         {State: v1alpha1.ModuleDisabled},
+					"mlflow":        {State: v1alpha1.ModuleDisabled},
+					"maas":          {State: v1alpha1.ModuleDisabled},
+					"evalHub":       {State: v1alpha1.ModuleDisabled},
+					"automl":        {State: v1alpha1.ModuleDisabled},
+					"autorag":       {State: v1alpha1.ModuleDisabled},
+					"agentOps":      {State: v1alpha1.ModuleDisabled},
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
-				"modelRegistry":  v1alpha1.ModulePhaseDisabled,
-				"genAi":          v1alpha1.ModulePhaseDisabled,
-				"mlflow":         v1alpha1.ModulePhaseDisabled,
-				"mlflowEmbedded": v1alpha1.ModulePhaseDisabled,
-				"maas":           v1alpha1.ModulePhaseDisabled,
-				"evalHub":        v1alpha1.ModulePhaseDisabled,
-				"automl":         v1alpha1.ModulePhaseDisabled,
-				"autorag":        v1alpha1.ModulePhaseDisabled,
-				"perses":         v1alpha1.ModulePhaseNotDeployed,
+				"modelRegistry": v1alpha1.ModulePhaseDisabled,
+				"genAi":         v1alpha1.ModulePhaseDisabled,
+				"mlflow":        v1alpha1.ModulePhaseDisabled,
+				"maas":          v1alpha1.ModulePhaseDisabled,
+				"evalHub":       v1alpha1.ModulePhaseDisabled,
+				"automl":        v1alpha1.ModulePhaseDisabled,
+				"autorag":       v1alpha1.ModulePhaseDisabled,
+				"agentOps":      v1alpha1.ModulePhaseDisabled,
 			},
 		},
 		{
-			name: "explicit enable does not bypass inter-module deps",
-			spec: v1alpha1.DashboardSpec{
-				Modules: map[string]v1alpha1.ModuleOverride{
-					"mlflowEmbedded": {State: v1alpha1.ModuleEnabled},
-				},
-			},
-			wantPhases: map[string]v1alpha1.ModulePhase{
-				"mlflow":         v1alpha1.ModulePhaseNotDeployed,
-				"mlflowEmbedded": v1alpha1.ModulePhaseNotDeployed,
-			},
-			wantReason: map[string]string{
-				"mlflow":         "ComponentNotAvailable",
-				"mlflowEmbedded": "ModuleDependencyNotSatisfied",
-			},
-		},
-		{
-			name: "explicit enable with satisfied module deps deploys",
-			spec: v1alpha1.DashboardSpec{
-				Components: map[string]v1alpha1.ComponentAvailability{
-					"mlflowoperator": {ManagementState: "Managed"},
-				},
-				Modules: map[string]v1alpha1.ModuleOverride{
-					"mlflowEmbedded": {State: v1alpha1.ModuleEnabled},
-				},
-			},
-			wantPhases: map[string]v1alpha1.ModulePhase{
-				"mlflow":         v1alpha1.ModulePhaseDeployed,
-				"mlflowEmbedded": v1alpha1.ModulePhaseDeployed,
-			},
-			wantReason: map[string]string{
-				"mlflow":         "DependenciesSatisfied",
-				"mlflowEmbedded": "DependenciesSatisfied",
-			},
-		},
-		{
-			name: "unknown module override key produces UnknownModule status",
+			name:    "unknown module override key produces UnknownModule status",
+			wantLen: 9,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelregistry": {State: v1alpha1.ModuleEnabled},
@@ -286,7 +110,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := resolveModuleStatuses(&tt.spec)
 
-			require.GreaterOrEqual(t, len(got), len(moduleRegistry), "should include at least every registered module")
+			require.Len(t, got, tt.wantLen, "result should have exact expected cardinality")
 
 			for name, wantPhase := range tt.wantPhases {
 				status, ok := got[name]
@@ -306,31 +130,210 @@ func TestResolveModuleStatuses(t *testing.T) {
 	}
 }
 
+func TestOverlayContainerReadiness(t *testing.T) {
+	deployedStatuses := func() map[string]v1alpha1.ModuleStatus {
+		s := make(map[string]v1alpha1.ModuleStatus, len(moduleRegistry))
+		for name := range moduleRegistry {
+			s[name] = v1alpha1.ModuleStatus{
+				Phase:              v1alpha1.ModulePhaseDeployed,
+				Reason:             "Deployed",
+				Message:            "Module container deployed",
+				LastTransitionTime: metav1.Now(),
+			}
+		}
+		return s
+	}
+
+	tests := []struct {
+		name       string
+		statuses   map[string]v1alpha1.ModuleStatus
+		pods       []corev1.Pod
+		wantPhases map[string]v1alpha1.ModulePhase
+		wantReason map[string]string
+	}{
+		{
+			name:     "no pods — no changes",
+			statuses: deployedStatuses(),
+			pods:     nil,
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"genAi":    v1alpha1.ModulePhaseDeployed,
+				"agentOps": v1alpha1.ModulePhaseDeployed,
+			},
+		},
+		{
+			name:     "all containers ready — no changes",
+			statuses: deployedStatuses(),
+			pods: []corev1.Pod{
+				{
+					Status: corev1.PodStatus{
+						ContainerStatuses: []corev1.ContainerStatus{
+							{Name: "gen-ai-ui", Ready: true},
+							{Name: "agent-ops-ui", Ready: true},
+						},
+					},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"genAi":    v1alpha1.ModulePhaseDeployed,
+				"agentOps": v1alpha1.ModulePhaseDeployed,
+			},
+		},
+		{
+			name:     "container in ImagePullBackOff — module degraded",
+			statuses: deployedStatuses(),
+			pods: []corev1.Pod{
+				{
+					Status: corev1.PodStatus{
+						ContainerStatuses: []corev1.ContainerStatus{
+							{Name: "gen-ai-ui", Ready: true},
+							{
+								Name:  "agent-ops-ui",
+								Ready: false,
+								State: corev1.ContainerState{
+									Waiting: &corev1.ContainerStateWaiting{
+										Reason:  "ImagePullBackOff",
+										Message: "Back-off pulling image",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"genAi":    v1alpha1.ModulePhaseDeployed,
+				"agentOps": v1alpha1.ModulePhaseDegraded,
+			},
+			wantReason: map[string]string{
+				"agentOps": "ImagePullBackOff",
+			},
+		},
+		{
+			name:     "container in CrashLoopBackOff — module degraded",
+			statuses: deployedStatuses(),
+			pods: []corev1.Pod{
+				{
+					Status: corev1.PodStatus{
+						ContainerStatuses: []corev1.ContainerStatus{
+							{Name: "gen-ai-ui", Ready: true},
+							{
+								Name:  "mlflow-ui",
+								Ready: false,
+								State: corev1.ContainerState{
+									Waiting: &corev1.ContainerStateWaiting{
+										Reason: "CrashLoopBackOff",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"mlflow": v1alpha1.ModulePhaseDegraded,
+				"genAi":  v1alpha1.ModulePhaseDeployed,
+			},
+			wantReason: map[string]string{
+				"mlflow": "CrashLoopBackOff",
+			},
+		},
+		{
+			name: "disabled module not affected by container status",
+			statuses: func() map[string]v1alpha1.ModuleStatus {
+				s := deployedStatuses()
+				s["agentOps"] = v1alpha1.ModuleStatus{
+					Phase:  v1alpha1.ModulePhaseDisabled,
+					Reason: "ExplicitOverride",
+				}
+				return s
+			}(),
+			pods: []corev1.Pod{
+				{
+					Status: corev1.PodStatus{
+						ContainerStatuses: []corev1.ContainerStatus{
+							{
+								Name:  "agent-ops-ui",
+								Ready: false,
+								State: corev1.ContainerState{
+									Waiting: &corev1.ContainerStateWaiting{Reason: "ImagePullBackOff"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"agentOps": v1alpha1.ModulePhaseDisabled,
+			},
+		},
+		{
+			name:     "multiple pods — worst status wins",
+			statuses: deployedStatuses(),
+			pods: []corev1.Pod{
+				{
+					Status: corev1.PodStatus{
+						ContainerStatuses: []corev1.ContainerStatus{
+							{Name: "gen-ai-ui", Ready: true},
+						},
+					},
+				},
+				{
+					Status: corev1.PodStatus{
+						ContainerStatuses: []corev1.ContainerStatus{
+							{
+								Name:  "gen-ai-ui",
+								Ready: false,
+								State: corev1.ContainerState{
+									Waiting: &corev1.ContainerStateWaiting{Reason: "CrashLoopBackOff"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"genAi": v1alpha1.ModulePhaseDegraded,
+			},
+			wantReason: map[string]string{
+				"genAi": "CrashLoopBackOff",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			overlayContainerReadiness(tt.statuses, tt.pods)
+
+			for name, wantPhase := range tt.wantPhases {
+				status, ok := tt.statuses[name]
+				require.True(t, ok, "module %q should be in results", name)
+				assert.Equal(t, wantPhase, status.Phase, "module %q phase", name)
+			}
+
+			for name, wantReason := range tt.wantReason {
+				assert.Equal(t, wantReason, tt.statuses[name].Reason, "module %q reason", name)
+			}
+		})
+	}
+}
+
 func TestModuleRegistry(t *testing.T) {
-	assert.Len(t, moduleRegistry, 9, "expected 9 modules in registry")
+	assert.Len(t, moduleRegistry, 8, "expected 8 modules in registry")
 
 	for name, mod := range moduleRegistry {
 		t.Run(name, func(t *testing.T) {
 			assert.Equal(t, name, mod.Name, "module name must match registry key")
-
-			switch mod.Type {
-			case ModuleTypeBFF:
-				assert.NotEmpty(t, mod.ContainerName, "BFF module must have ContainerName")
-				assert.Greater(t, mod.Port, int32(0), "BFF module must have Port > 0")
-				assert.NotEmpty(t, mod.ImageEnvVar, "BFF module must have ImageEnvVar")
-			case ModuleTypeEmbedded, ModuleTypeProxyService:
-				assert.Empty(t, mod.ContainerName, "non-BFF module should not have ContainerName")
-				assert.Equal(t, int32(0), mod.Port, "non-BFF module should have Port == 0")
-			default:
-				t.Errorf("unknown module type: %s", mod.Type)
-			}
+			assert.NotEmpty(t, mod.ContainerName, "module must have ContainerName")
+			assert.Greater(t, mod.Port, int32(0), "module must have Port > 0")
+			assert.NotEmpty(t, mod.ImageEnvVar, "module must have ImageEnvVar")
 		})
 	}
 }
 
 func TestModuleNames(t *testing.T) {
 	names := ModuleNames()
-	assert.Len(t, names, 9)
-	assert.Equal(t, names[0], "automl", "names should be sorted alphabetically")
-	assert.Equal(t, names[len(names)-1], "perses")
+	assert.Equal(t, []string{
+		"agentOps", "automl", "autorag", "evalHub",
+		"genAi", "maas", "mlflow", "modelRegistry",
+	}, names)
 }

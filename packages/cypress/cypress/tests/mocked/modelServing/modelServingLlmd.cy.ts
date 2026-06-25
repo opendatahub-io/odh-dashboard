@@ -297,14 +297,11 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
-      cy.step('Verify LLMD runtime option is not displayed');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      cy.step('Verify LLMD deployment method option is not displayed');
       modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-        .should('not.exist');
-
-      //Just to close the runtime template search selector
-      modelServingWizard.findModelDeploymentNameInput().click();
+        .findDeploymentMethodSelect()
+        .should('be.disabled')
+        .should('contain.text', 'Legacy deployment');
       modelServingWizard.findCancelButton().click();
       modelServingWizard.findDiscardButton().click();
 
@@ -326,10 +323,9 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
-      cy.step('Verify LLMD runtime option is displayed when LLMD is enabled');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      cy.step('Verify LLMD deployment method option is displayed when LLMD is enabled');
       modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .findDeploymentMethodSelectOption('llm-inference-service-llmd')
         .should('exist');
     });
 
@@ -403,12 +399,9 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelDeploymentNameInput().type('test-llmd-model');
       modelServingWizard.findModelDeploymentDescriptionInput().type('test-llmd-description');
 
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+
       hardwareProfileSection.findSelect().should('contain.text', 'Small');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-        .should('exist')
-        .click();
 
       modelServingWizard.findNumReplicasInputField().should('have.value', '1');
       modelServingWizard.findNumReplicasPlusButton().click();
@@ -555,7 +548,6 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
       // Step 2: Model deployment
-      modelServingWizardEdit.findNextButton().should('be.disabled');
       modelServingWizardEdit.findModelDeploymentNameInput().clear().type('test-llmd-model-2');
       modelServingWizardEdit.findModelDeploymentDescriptionInput().type('test-llmd-description-2');
 
@@ -565,9 +557,9 @@ describe('Model Serving LLMD', () => {
         'Large Profile Compatible CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
       );
       modelServingWizardEdit
-        .findServingRuntimeTemplateSearchSelector()
+        .findDeploymentMethodSelect()
         .should('be.disabled')
-        .should('contain.text', 'Distributed inference with llm-d');
+        .should('contain.text', 'LLM inference service deployment with llm-d');
 
       modelServingWizardEdit.findNumReplicasInputField().should('have.value', '2');
       modelServingWizardEdit.findNumReplicasPlusButton().click();
@@ -635,7 +627,7 @@ describe('Model Serving LLMD', () => {
       });
       cy.intercept(
         'PATCH',
-        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/llminferenceservices/test-llmd-model',
+        '/api/k8s/apis/serving.kserve.io/v1alpha2/namespaces/test-project/llminferenceservices/test-llmd-model',
         (req) => {
           req.reply({
             statusCode: 200,
@@ -645,7 +637,7 @@ describe('Model Serving LLMD', () => {
       ).as('startLLMInferenceService1');
       cy.intercept(
         'PATCH',
-        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/llminferenceservices/test-llmd-model-2',
+        '/api/k8s/apis/serving.kserve.io/v1alpha2/namespaces/test-project/llminferenceservices/test-llmd-model-2',
         (req) => {
           req.reply({
             statusCode: 200,
@@ -710,11 +702,7 @@ describe('Model Serving LLMD', () => {
 
       // Step 2: Model deployment
       modelServingWizard.findModelDeploymentNameInput().type('test-gateway-model');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-        .should('exist')
-        .click();
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 3: Advanced Options — gateway select should be visible
@@ -848,6 +836,7 @@ describe('Model Serving LLMD', () => {
             displayName: 'GPU vLLM Deployment',
             baseRefs: [{ name: 'test-vllm-gpu' }],
             modelType: ServingRuntimeModelType.GENERATIVE,
+            isLLMd: false, // remove the spec.router.scheduler
           }),
         ],
       });
@@ -1048,11 +1037,12 @@ describe('Model Serving LLMD', () => {
       // Step 2: Model deployment
       modelServingWizard.findModelDeploymentNameInput().type(deploymentName);
 
-      // Open template dropdown and verify all deployment configuration options are available
+      // Select the vLLM deployment method to activate the model server field
+      modelServingWizard.findDeploymentMethodSelect().should('not.be.disabled');
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
+
+      // Open template dropdown and verify LLMInferenceServiceConfig options are available
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-        .should('exist');
       modelServingWizard
         .findGlobalScopedTemplateOption('vLLM on Gaudi LLMInferenceServiceConfig')
         .should('exist');
@@ -1142,8 +1132,10 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      // Step 2: Model deployment — open the config dropdown
+      // Step 2: Model deployment — select vLLM deployment method, then open the config dropdown
       modelServingWizard.findModelDeploymentNameInput().type('test-disabled-config');
+      modelServingWizard.findDeploymentMethodSelect().should('not.be.disabled');
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
 
       // Enabled config should be visible
@@ -1155,11 +1147,6 @@ describe('Model Serving LLMD', () => {
       modelServingWizard
         .findGlobalScopedTemplateOption('vLLM on Gaudi LLMInferenceServiceConfig')
         .should('not.exist');
-
-      // The default llm-d option should still be available
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-        .should('exist');
     });
 
     it('Edit existing LLMInferenceService preserves LLMInferenceServiceConfig and baseRef', () => {

@@ -170,7 +170,7 @@ describe('extractNIMRuntimeArgs', () => {
 
 describe('extractNIMModelType', () => {
   it('should always return NVIDIA NIM model type', () => {
-    expect(extractNIMModelType()).toEqual({ type: NIM_MODEL_TYPE, legacyVLLM: false });
+    expect(extractNIMModelType()).toEqual({ type: NIM_MODEL_TYPE });
   });
 });
 

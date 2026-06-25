@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { SortableData, kebabTableColumn } from '#~/components/table';
+import { SortableData, kebabTableColumn } from '@odh-dashboard/ui-core';
 import { StorageClassKind } from '#~/k8sTypes';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';

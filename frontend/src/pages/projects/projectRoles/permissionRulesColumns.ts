@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import type { RuleEntry } from './types';
 
 const normalizeValues = (values?: string[]): string[] =>
