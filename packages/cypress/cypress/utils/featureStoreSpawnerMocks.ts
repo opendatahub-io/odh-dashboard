@@ -126,7 +126,7 @@ export const initFeatureStoreSpawnerIntercepts = ({
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableFeatureStore: false }));
   cy.interceptOdh('GET /api/featurestores/workbench-integration', workbenchIntegration);
   if (featureStoreProjectsLoadError) {
-    cy.interceptOdh('GET /api/featurestores/projects-with-workbenches', {
+    cy.intercept('GET', '/api/featurestores/projects-with-workbenches', {
       statusCode: 500,
       body: { message: 'Internal server error' },
     });
