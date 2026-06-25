@@ -367,6 +367,34 @@ class NotebookRow extends TableRow {
     this.findHardwareProfileColumn().contains(name).should('exist');
     return this;
   }
+
+  shouldHaveFeatureStoreTitle() {
+    this.findExpansion()
+      .findByTestId('notebook-feature-store-title')
+      .should('have.text', 'Connected feature stores');
+    return this;
+  }
+
+  shouldHaveFeatureStoreNone() {
+    this.findExpansion().findByTestId('notebook-feature-store-none').should('have.text', 'None');
+    return this;
+  }
+
+  findFeatureStoreList() {
+    return this.findExpansion().findByTestId('notebook-feature-store-list');
+  }
+
+  shouldHaveFeatureStoreItems(names: string[]) {
+    this.findFeatureStoreList().find('li').should('have.length', names.length);
+    names.forEach((name) => {
+      this.findFeatureStoreList().should('contain.text', name);
+    });
+    return this;
+  }
+
+  findFeatureStoreShowAll() {
+    return this.findExpansion().findByTestId('feature-store-show-all');
+  }
 }
 
 class AttachExistingStorageModal extends Modal {

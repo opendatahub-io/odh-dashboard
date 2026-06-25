@@ -4,10 +4,10 @@ import { Link } from 'react-router-dom';
 import { Button, Flex, ToolbarGroup, ToolbarItem, Tooltip } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 
-import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
+import { useCheckboxTable } from '#~/components/table';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { pipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import PipelineRunTable from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';

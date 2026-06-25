@@ -8,8 +8,12 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
+	agentsk8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/kubernetes"
+	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
@@ -26,13 +30,38 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/mod-arch"
-	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	UserPath      = ApiPathPrefix + "/user"
-	NamespacePath = ApiPathPrefix + "/namespaces"
+	Version                = "1.0.0"
+	PathPrefix             = "/mod-arch"
+	ApiPathPrefix          = "/api/v1"
+	HealthCheckPath        = "/healthcheck"
+	UserPath               = ApiPathPrefix + "/user"
+	NamespacePath          = ApiPathPrefix + "/namespaces"
+	AgentRuntimesPath      = ApiPathPrefix + "/agents/runtimes"
+	AgentRuntimeDetailPath = ApiPathPrefix + "/agents/runtimes/:ns/:name"
+	AgentDeployPath        = ApiPathPrefix + "/agents/deploy"
 )
+
+var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
+var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
+
+func isHashedAsset(filePath string) bool {
+	match := hashPattern.FindString(path.Base(filePath))
+	return match != "" && strings.ContainsAny(match, "abcdef")
+}
+
+func isStaticAsset(filePath string) bool {
+	return staticAssetPattern.MatchString(filePath)
+}
+
+func cacheControlForStaticFile(filePath string) string {
+	if isHashedAsset(filePath) {
+		return "public, max-age=31536000, immutable"
+	}
+	if isStaticAsset(filePath) {
+		return "public, max-age=86400"
+	}
+	return "no-cache"
+}
 
 type App struct {
 	config                  config.EnvConfig
@@ -89,28 +118,34 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	if cfg.MockK8Client {
-		//mock all k8s calls with 'env test'
-		var clientset kubernetes.Interface
-		ctx, cancel := context.WithCancel(context.Background())
-		testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to setup envtest: %w", err)
-		}
-		//create mocked kubernetes client factory
-		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
-
-	} else {
-		//create kubernetes client factory
-		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
+	if cfg.AuthMethod == config.AuthMethodDisabled && !cfg.MockAgentClient {
+		return nil, fmt.Errorf("AUTH_METHOD=disabled requires MOCK_AGENT_CLIENT=true: Kubernetes-backed agent routes need authenticated access")
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+	if cfg.AuthMethod != config.AuthMethodDisabled || cfg.MockK8Client {
+		if cfg.MockK8Client {
+			//mock all k8s calls with 'env test'
+			var clientset kubernetes.Interface
+			ctx, cancel := context.WithCancel(context.Background())
+			testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+				Logger: logger,
+				Ctx:    ctx,
+				Cancel: cancel,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to setup envtest: %w", err)
+			}
+			//create mocked kubernetes client factory
+			k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+
+		} else {
+			//create kubernetes client factory
+			k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+		}
 	}
 
 	// Initialize BFF client factory for inter-BFF communication
@@ -136,11 +171,20 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
+	var agentSourceFactory agents.ClientFactory
+	if cfg.MockAgentClient {
+		logger.Warn("MOCK_AGENT_CLIENT is enabled (local development only): agent routes serve fabricated demo data without RBAC checks; do not enable in staging or production")
+		agentSourceFactory = &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
+	} else {
+		logger.Info("Using Kubernetes agent data client")
+		agentSourceFactory = agentsk8s.NewFactory(k8sFactory, logger)
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(),
+		repositories:            repositories.NewRepositories(agentSourceFactory),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		bffClientFactory:        bffFactory,
@@ -166,8 +210,20 @@ func (app *App) Routes() http.Handler {
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(UserPath, app.UserHandler)
-	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+	apiRouter.GET(UserPath, app.handlerWithOverride(HandlerUserID, func() httprouter.Handle {
+		return app.UserHandler
+	}))
+	apiRouter.GET(NamespacePath, app.handlerWithOverride(HandlerNamespacesID, func() httprouter.Handle {
+		return app.GetNamespacesHandler
+	}))
+
+	// Agent list: RequireAuthenticatedForAgents gates identity when auth is enabled; per-namespace
+	// SSAR filtering happens inside the Kubernetes agent client (ListNamespaces / ListAgents).
+	apiRouter.GET(AgentRuntimesPath, app.RequireAuthenticatedForAgents(app.ListAgentRuntimesHandler))
+	apiRouter.GET(AgentRuntimeDetailPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAccessToAgent(app.GetAgentRuntimeDetailHandler)))
+	apiRouter.POST(AgentDeployPath, app.RequireAuthenticatedForAgents(app.DeployAgentHandler))
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:
@@ -190,15 +246,18 @@ func (app *App) Routes() http.Handler {
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 		// Check if the requested file exists
-		if _, err := staticDir.Open(r.URL.Path); err == nil {
+		if f, err := staticDir.Open(r.URL.Path); err == nil {
+			f.Close()
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 			// Serve the file if it exists
+			w.Header().Set("Cache-Control", cacheControlForStaticFile(r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return
 		}
 
 		// Fallback to index.html for SPA routes
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
 	})
 

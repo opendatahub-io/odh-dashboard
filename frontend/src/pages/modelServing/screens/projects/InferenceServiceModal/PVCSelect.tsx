@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert, FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { getModelServingPVCAnnotations } from '#~/pages/modelServing/utils';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';

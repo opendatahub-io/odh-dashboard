@@ -15,8 +15,19 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
-import { APIKey, APIKeyStatus, ApiKeyFilterDataType, STATUS_OPTIONS } from '~/app/types/api-key';
 import ApiKeysActions from '~/app/pages/keys-and-subs/apiKeys/ApiKeysActions';
+import {
+  APIKey,
+  APIKeyDisplayStatus,
+  ApiKeyFilterDataType,
+  STATUS_OPTIONS,
+  SubscriptionOption,
+} from '~/app/types/api-key';
+
+const STATUS_SET: ReadonlySet<string> = new Set(STATUS_OPTIONS);
+
+const isAPIKeyDisplayStatus = (value: unknown): value is APIKeyDisplayStatus =>
+  typeof value === 'string' && STATUS_SET.has(value);
 
 type ApiKeysToolbarProps = {
   setIsModalOpen: (isOpen: boolean) => void;
@@ -24,8 +35,10 @@ type ApiKeysToolbarProps = {
   localUsername: string;
   setLocalUsername: (value: string) => void;
   onUsernameChange: (value: string) => void;
-  onStatusToggle: (status: APIKeyStatus) => void;
-  onStatusClear: (status: APIKeyStatus) => void;
+  onStatusToggle: (status: APIKeyDisplayStatus) => void;
+  onStatusClear: (status: APIKeyDisplayStatus) => void;
+  subscriptions: SubscriptionOption[];
+  onSubscriptionChange: (subscription: string) => void;
   activeApiKeys: APIKey[];
   isMaasAdmin: boolean;
   refresh: () => void;
@@ -40,12 +53,23 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   onUsernameChange,
   onStatusToggle,
   onStatusClear,
+  subscriptions,
+  onSubscriptionChange,
   activeApiKeys,
   isMaasAdmin,
   refresh,
   onClearFilters,
 }) => {
   const [isStatusSelectOpen, setIsStatusSelectOpen] = React.useState(false);
+  const [isSubscriptionSelectOpen, setIsSubscriptionSelectOpen] = React.useState(false);
+
+  const selectedSubscriptionLabel = React.useMemo(() => {
+    if (!filterData.subscription) {
+      return undefined;
+    }
+    const match = subscriptions.find((s) => s.name === filterData.subscription);
+    return match?.displayName ?? filterData.subscription;
+  }, [filterData.subscription, subscriptions]);
 
   return (
     <Toolbar
@@ -70,7 +94,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
               }))}
               deleteLabel={(_category, label) => {
                 const key = typeof label === 'string' ? label : label.key;
-                if (key === 'active' || key === 'expired' || key === 'revoked') {
+                if (isAPIKeyDisplayStatus(key)) {
                   onStatusClear(key);
                 }
               }}
@@ -81,7 +105,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
                 isOpen={isStatusSelectOpen}
                 selected={filterData.statuses}
                 onSelect={(_event, value) => {
-                  if (value === 'active' || value === 'expired' || value === 'revoked') {
+                  if (isAPIKeyDisplayStatus(value)) {
                     onStatusToggle(value);
                   }
                 }}
@@ -112,6 +136,55 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
                 </SelectList>
               </Select>
             </ToolbarFilter>
+            {subscriptions.length > 0 && (
+              <ToolbarFilter
+                labels={selectedSubscriptionLabel ? [selectedSubscriptionLabel] : []}
+                deleteLabel={() => onSubscriptionChange('')}
+                categoryName="Subscription"
+              >
+                <Select
+                  aria-label="Filter by subscription"
+                  isOpen={isSubscriptionSelectOpen}
+                  selected={filterData.subscription || undefined}
+                  onSelect={(_event, value) => {
+                    onSubscriptionChange(typeof value === 'string' ? value : '');
+                    setIsSubscriptionSelectOpen(false);
+                  }}
+                  onOpenChange={setIsSubscriptionSelectOpen}
+                  toggle={(toggleRef) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      data-testid="api-key-subscription-filter-toggle"
+                      onClick={() => setIsSubscriptionSelectOpen((prev) => !prev)}
+                      isExpanded={isSubscriptionSelectOpen}
+                    >
+                      Subscription
+                    </MenuToggle>
+                  )}
+                  popperProps={{ appendTo: 'inline' }}
+                >
+                  <SelectList>
+                    <SelectOption
+                      value=""
+                      isSelected={!filterData.subscription}
+                      data-testid="subscription-filter-option-all"
+                    >
+                      All subscriptions
+                    </SelectOption>
+                    {subscriptions.map((sub) => (
+                      <SelectOption
+                        key={sub.name}
+                        value={sub.name}
+                        isSelected={filterData.subscription === sub.name}
+                        data-testid={`subscription-filter-option-${sub.name}`}
+                      >
+                        {sub.displayName}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </Select>
+              </ToolbarFilter>
+            )}
             {isMaasAdmin && (
               <ToolbarFilter
                 labels={filterData.username ? [filterData.username] : []}

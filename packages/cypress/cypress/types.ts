@@ -282,6 +282,8 @@ export type DataScienceProjectData = {
   invalidResourceNames: string[];
   modelFormat: string;
   servingRuntime: string;
+  servingRuntimeVersion: string;
+  servingRuntimeVersionStatus: string;
   modelStatus: string;
   hardwareProfileName: string;
   resourceType: string;
@@ -302,6 +304,7 @@ export type DataScienceProjectData = {
   legacyHardwareProfileName?: string;
   subscriptionDisplayName: string;
   subscriptionName: string;
+  subscriptionNamespace: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
@@ -666,6 +669,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId2: string;
   sourceName3: string;
   redhatAiSourceId3: string;
+  toolCallingLabel: string;
+  toolCallingArg: string;
 };
 
 export type TrainJobTestData = {
@@ -750,8 +755,14 @@ export type AutomlTestData = {
   trainingDataFile: string;
   taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // AutoGluon preset ('speed' or 'balanced')
+  preset?: string;
   // Number of top models to train (min 1, default 3)
   topN?: number;
+  // Optimization metric
+  defaultMetricLabel?: string;
+  changedMetricKey?: string;
+  changedMetricLabel?: string;
   // Tabular task types (binary, multiclass, regression)
   labelColumn?: string;
   // Timeseries task type

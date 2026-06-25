@@ -297,6 +297,12 @@ func catalogCustomPropertiesWithVariant(variantGroupId string, tensorType string
 				MetadataType: "MetadataStringValue",
 			},
 		},
+		"hardware_tag": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "GPU",
+				MetadataType: "MetadataStringValue",
+			},
+		},
 	}
 
 	// Add variant_group_id if provided
@@ -362,13 +368,13 @@ func withColdStartData(props *map[string]openapi.MetadataValue, modelSize string
 			MetadataType: "MetadataStringValue",
 		},
 	}
-	(*props)["minimum_vram"] = openapi.MetadataValue{
+	(*props)["min_vram_gb"] = openapi.MetadataValue{
 		MetadataStringValue: &openapi.MetadataStringValue{
 			StringValue:  minVram,
 			MetadataType: "MetadataStringValue",
 		},
 	}
-	(*props)["hardware_configurations"] = openapi.MetadataValue{
+	(*props)["cold_start_matrix"] = openapi.MetadataValue{
 		MetadataStringValue: &openapi.MetadataStringValue{
 			StringValue:  hwConfigs,
 			MetadataType: "MetadataStringValue",
@@ -393,7 +399,7 @@ func GetCatalogModelMocks() []models.CatalogModel {
 		CustomProperties: withColdStartData(
 			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "FP16"),
 			"8B", "24GB",
-			`[{"hardware_type":"A100","cold_start_load_time_seconds":85.2,"runtime_command":"vllm serve repo1/granite-8b-code-instruct --tensor-parallel-size 1 --dtype float16"},{"hardware_type":"H100","cold_start_load_time_seconds":52.1,"runtime_command":"vllm serve repo1/granite-8b-code-instruct --tensor-parallel-size 1 --dtype float16"}]`,
+			`[{"gpu_type":"A100","gpu_count":1,"cold_start_time_to_load_seconds":85.2,"runtime_command":"vllm serve repo1/granite-8b-code-instruct --tensor-parallel-size 1 --dtype float16"},{"gpu_type":"H100","gpu_count":1,"cold_start_time_to_load_seconds":52.1,"runtime_command":"vllm serve repo1/granite-8b-code-instruct --tensor-parallel-size 1 --dtype float16"}]`,
 		),
 		ServingConfig: &models.ServingConfig{
 			ToolCalling: &models.ToolCallingConfig{
@@ -758,7 +764,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		CustomProperties: withColdStartData(
 			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT4"),
 			"8B", "12GB",
-			`[{"hardware_type":"A100","cold_start_load_time_seconds":62.4,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w4a16 --tensor-parallel-size 1 --dtype auto --quantization gptq"},{"hardware_type":"L4","cold_start_load_time_seconds":110.8,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w4a16 --tensor-parallel-size 1 --dtype auto --quantization gptq"}]`,
+			`[{"gpu_type":"A100","gpu_count":1,"cold_start_time_to_load_seconds":62.4,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w4a16 --tensor-parallel-size 1 --dtype auto --quantization gptq"},{"gpu_type":"L4","gpu_count":1,"cold_start_time_to_load_seconds":110.8,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w4a16 --tensor-parallel-size 1 --dtype auto --quantization gptq"}]`,
 		),
 		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
@@ -775,7 +781,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		CustomProperties: withColdStartData(
 			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT8"),
 			"8B", "16GB",
-			`[{"hardware_type":"A100","cold_start_load_time_seconds":73.6,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w8a8 --tensor-parallel-size 1 --dtype auto --quantization squeezellm"},{"hardware_type":"H100","cold_start_load_time_seconds":48.3,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w8a8 --tensor-parallel-size 1 --dtype auto"},{"hardware_type":"L4","cold_start_load_time_seconds":145.7,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w8a8 --tensor-parallel-size 2 --dtype auto"}]`,
+			`[{"gpu_type":"A100","gpu_count":1,"cold_start_time_to_load_seconds":73.6,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w8a8 --tensor-parallel-size 1 --dtype auto --quantization squeezellm"},{"gpu_type":"H100","gpu_count":1,"cold_start_time_to_load_seconds":48.3,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w8a8 --tensor-parallel-size 1 --dtype auto"},{"gpu_type":"L4","gpu_count":2,"cold_start_time_to_load_seconds":145.7,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-quantized.w8a8 --tensor-parallel-size 2 --dtype auto"}]`,
 		),
 		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
@@ -792,7 +798,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		CustomProperties: withColdStartData(
 			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "BF16"),
 			"8B", "24GB",
-			`[{"hardware_type":"A100","cold_start_load_time_seconds":90.1,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-bf16 --tensor-parallel-size 1 --dtype bfloat16"},{"hardware_type":"H100","cold_start_load_time_seconds":55.4,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-bf16 --tensor-parallel-size 1 --dtype bfloat16"},{"hardware_type":"H200","cold_start_load_time_seconds":47.2,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-bf16 --tensor-parallel-size 1 --dtype bfloat16"}]`,
+			`[{"gpu_type":"A100","gpu_count":1,"cold_start_time_to_load_seconds":90.1,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-bf16 --tensor-parallel-size 1 --dtype bfloat16"},{"gpu_type":"H100","gpu_count":1,"cold_start_time_to_load_seconds":55.4,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-bf16 --tensor-parallel-size 1 --dtype bfloat16"},{"gpu_type":"H200","gpu_count":1,"cold_start_time_to_load_seconds":47.2,"runtime_command":"vllm serve repo1/granite-8b-code-instruct-bf16 --tensor-parallel-size 1 --dtype bfloat16"}]`,
 		),
 		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
@@ -1709,6 +1715,130 @@ func GetCatalogAccuracyMetricsArtifactMock() []models.CatalogArtifact {
 		},
 	}
 }
+
+func securityMetricsCustomProperties(id, benchmark, description, evaluation, providerID, resultMetric, modelID string, pass bool, result, threshold float64) *map[string]openapi.MetadataValue {
+	resultMap := map[string]openapi.MetadataValue{
+		"id": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  id,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"benchmark": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  benchmark,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"category": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "security",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"description": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  description,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"evaluation": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  evaluation,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"model_id": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  modelID,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"provider_id": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  providerID,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"result_metric": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  resultMetric,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"pass": {
+			MetadataBoolValue: &openapi.MetadataBoolValue{
+				BoolValue:    pass,
+				MetadataType: "MetadataBoolValue",
+			},
+		},
+		"lower_is_better": {
+			MetadataBoolValue: &openapi.MetadataBoolValue{
+				BoolValue:    true,
+				MetadataType: "MetadataBoolValue",
+			},
+		},
+		"result": {
+			MetadataDoubleValue: &openapi.MetadataDoubleValue{
+				DoubleValue:  result,
+				MetadataType: "MetadataDoubleValue",
+			},
+		},
+		"threshold": {
+			MetadataDoubleValue: &openapi.MetadataDoubleValue{
+				DoubleValue:  threshold,
+				MetadataType: "MetadataDoubleValue",
+			},
+		},
+	}
+	return &resultMap
+}
+
+func GetCatalogSecurityMetricsArtifactMock() []models.CatalogArtifact {
+	return []models.CatalogArtifact{
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("security-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties:         securityMetricsCustomProperties("a1b2c3d4-1001-4000-a000-000000000001", "intents", "Risk assessment with a context-aware custom intent typology and probes of increasing complexity. Runs as an AI Pipeline and requires a Data Science Pipelines setup.", "Context-aware vulnerability scan (Pipeline)", "garak-kfp", "attack_success_rate", "repo1/granite-8b-code-instruct", true, 0.12, 0.3),
+		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("security-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties:         securityMetricsCustomProperties("a1b2c3d4-1001-4000-a000-000000000002", "intents", "Risk assessment with a context-aware custom intent typology and probes of increasing complexity. Standalone execution without pipeline dependencies.", "Context-aware vulnerability scan (Standalone)", "garak-standalone", "attack_success_rate", "repo1/granite-8b-code-instruct", false, 0.65, 0.3),
+		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("security-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1695200000000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1706000000000"),
+			CustomProperties:         securityMetricsCustomProperties("a1b2c3d4-1001-4000-a000-000000000003", "prompt-injection", "Evaluates model robustness against prompt injection attacks using adversarial input patterns.", "Prompt injection robustness test", "garak-standalone", "injection_success_rate", "repo1/granite-8b-code-instruct", true, 0.05, 0.1),
+		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("security-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1696300000000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1707100000000"),
+			CustomProperties:         securityMetricsCustomProperties("a1b2c3d4-1001-4000-a000-000000000004", "toxicity", "Scans model outputs for toxic, harmful, or offensive content across domain-specific scenarios.", "Domain-specific toxicity scan", "garak-kfp", "toxicity_rate", "repo1/granite-8b-code-instruct", true, 0.02, 0.05),
+		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("security-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1697400000000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1708200000000"),
+			CustomProperties:         securityMetricsCustomProperties("a1b2c3d4-1001-4000-a000-000000000005", "hallucination", "Detects factual hallucinations and unsupported claims in model responses. Runs as an AI Pipeline.", "Hallucination detection scan (Pipeline)", "garak-kfp", "hallucination_rate", "repo1/granite-8b-code-instruct", false, 0.42, 0.2),
+		},
+	}
+}
+
+func GetCatalogSecurityMetricsArtifactListMock() models.CatalogModelArtifactList {
+	allArtifactMock := GetCatalogSecurityMetricsArtifactMock()
+	return GetModelArtifactListMockWithItems(allArtifactMock, 10)
+}
+
 func GetModelArtifactListMockWithItems(items []models.CatalogArtifact, pageSize int32) models.CatalogModelArtifactList {
 	return models.CatalogModelArtifactList{
 		Items:         items,
@@ -2054,12 +2184,28 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 		},
 	}
 
-	// Cold-start load time in milliseconds
-	filterOptions["artifacts.cold_start_load_time_seconds.double_value"] = models.FilterOption{
+	// Cold-start load time in seconds
+	filterOptions["artifacts.cold_start_time_to_load_seconds.double_value"] = models.FilterOption{
 		Type: FilterOptionTypeNumber,
 		Range: &models.FilterRange{
-			Min: float32Ptr(45000),
-			Max: float32Ptr(200000),
+			Min: float32Ptr(47.2),
+			Max: float32Ptr(145.7),
+		},
+	}
+
+	filterOptions["min_vram_gb.double_value"] = models.FilterOption{
+		Type: FilterOptionTypeNumber,
+		Range: &models.FilterRange{
+			Min: float32Ptr(8),
+			Max: float32Ptr(140),
+		},
+	}
+
+	filterOptions["modelcar_image_size.double_value"] = models.FilterOption{
+		Type: FilterOptionTypeNumber,
+		Range: &models.FilterRange{
+			Min: float32Ptr(4),
+			Max: float32Ptr(230),
 		},
 	}
 
@@ -2282,7 +2428,7 @@ func GetNamedQueriesMocks() map[string]map[string]models.FieldFilter {
 			Operator: "<=",
 			Value:    float64(892.6553726196289),
 		},
-		"artifacts.cold_start_load_time_seconds.double_value": {
+		"artifacts.cold_start_time_to_load_seconds.double_value": {
 			Operator: "<=",
 			Value:    "max",
 		},

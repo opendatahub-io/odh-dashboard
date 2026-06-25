@@ -8,14 +8,9 @@ import {
   k8sUpdateResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { KnownLabels, type PodKind } from '@odh-dashboard/k8s-core';
 import { InferenceServiceModel, PodModel } from '#~/api/models';
-import {
-  InferenceServiceKind,
-  K8sAPIOptions,
-  KnownLabels,
-  PodKind,
-  DeploymentMode,
-} from '#~/k8sTypes';
+import { InferenceServiceKind, K8sAPIOptions, DeploymentMode } from '#~/k8sTypes';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { parseCommandLine } from '#~/api/k8s/utils';

@@ -13,12 +13,14 @@ type ModelDeploymentStepProps = {
   projectName?: string;
   wizardState: UseModelDeploymentWizardState;
   externalData?: ExternalDataMap;
+  hideProjectSection?: boolean;
 };
 
 export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   projectName,
   wizardState,
   externalData,
+  hideProjectSection,
 }) => {
   const modelDeploymentExtensionFields = React.useMemo(
     () =>
@@ -33,17 +35,26 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   return (
     <Form>
       <FormSection title="Model deployment">
-        <ProjectSection
-          initialProjectName={wizardState.state.project.initialProjectName}
-          projectName={wizardState.state.project.projectName}
-          setProjectName={wizardState.state.project.setProjectName}
-        />
+        {/* TODO remove ProjectSection and the hideProjectSection prop when PreconfigureDeploymentStep becomes unconditional */}
+        {!hideProjectSection && (
+          <ProjectSection
+            initialProjectName={wizardState.state.project.initialProjectName}
+            projectName={wizardState.state.project.projectName}
+            setProjectName={wizardState.state.project.setProjectName}
+          />
+        )}
         <K8sNameDescriptionField
           data={wizardState.state.k8sNameDesc.data}
           onDataChange={wizardState.state.k8sNameDesc.onDataChange}
           dataTestId="model-deployment"
           nameLabel="Model deployment name"
           nameHelperTextAbove="Name this deployment. This name is also used for the inference service created when the model is deployed."
+        />
+        <GenericFieldRenderer
+          fieldId="deploymentMethod"
+          wizardState={wizardState}
+          externalData={externalData}
+          isEditing={wizardState.initialData?.isEditing}
         />
         <ModelServingHardwareProfileSection
           project={projectName}

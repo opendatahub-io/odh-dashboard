@@ -79,7 +79,7 @@ function AutoragConfigurePage({
     defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
-  const [displayName, , ogxSecretName] = useWatch({
+  const [displayName, description, ogxSecretName] = useWatch({
     control: form.control,
     name: createFields,
   });
@@ -108,10 +108,12 @@ function AutoragConfigurePage({
     <>
       <ActionListItem>
         <Button
+          data-testid="autorag-next-button"
           type="submit"
           variant="primary"
           isDisabled={
             !configureSchema.base.shape.display_name.safeParse(displayName).success ||
+            !configureSchema.base.shape.description.safeParse(description).success ||
             !configureSchema.base.shape.ogx_secret_name.safeParse(ogxSecretName).success
           }
         >
@@ -130,6 +132,7 @@ function AutoragConfigurePage({
     <>
       <ActionListItem>
         <Button
+          data-testid="autorag-create-run-button"
           type="submit"
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}

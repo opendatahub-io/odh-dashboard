@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
@@ -209,8 +209,8 @@ func convertToResponseData(llamaResponse interface{}) ResponseData {
 	return responseData
 }
 
-// citationMarkerRegex matches OGX citation markers: UUIDs and file-prefixed IDs
-var citationMarkerRegex = regexp.MustCompile(`<\|((?:file-)?[a-zA-Z0-9_-]+)\|>`)
+// citationMarkerRegex matches OGX citation markers: UUIDs, file-prefixed IDs, and filenames
+var citationMarkerRegex = regexp.MustCompile(`<\|((?:file-)?[a-zA-Z0-9_.\-]+)\|>`)
 
 // extractAttributeString extracts a string value from an OGX attributes map.
 // Attributes can be plain strings or union-typed objects with OfString/OfFloat/OfBool fields
@@ -587,19 +587,16 @@ func (app *App) checkInputModeration(ctx context.Context, messages []nemo.Messag
 
 // handleStreamingResponse handles streaming response creation
 func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams) {
-	// Track start time for latency and TTFT calculation
 	startTime := time.Now()
 	var firstTokenTime *time.Time
 	var usage *UsageData
 
-	// Check if ResponseWriter supports streaming - fail fast if not
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming not supported by client", http.StatusNotImplemented)
 		return
 	}
 
-	// Create streaming response
 	stream, err := app.repositories.Responses.CreateResponseStream(ctx, params)
 	if err != nil {
 		app.handleLlamaStackClientError(w, r, err)
@@ -607,120 +604,34 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	}
 	defer stream.Close()
 
-	// Set SSE headers only after successful stream creation
 	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	// Heartbeat keeps the connection alive through proxies (e.g., OpenShift HAProxy
-	// 30s idle timeout) during slow inference, tool calls, or vector DB retrieval.
 	var writeMu sync.Mutex
 	hb := newSSEHeartbeat(w, flusher, &writeMu, app.logger)
 	go hb.start(ctx)
 	defer hb.stop()
 
-	// Stream events to client
-	for stream.Next() {
-		// Check if client disconnected
-		select {
-		case <-ctx.Done():
-			app.logger.Info("Client disconnected, stopping stream processing",
-				"context_error", ctx.Err())
-			return
-		default:
-			// Context still active, continue processing
-		}
-
-		event := stream.Current()
-
-		// Intercept OGX error events (type: "error") before convertToStreamingEvent
-		// which would filter them out. These are top-level errors like "model not found".
-		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
-		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
-		// 429/5xx fallback for HTTP statuses.
-		if event.Type == "error" {
-			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
-			component := llamastack.ResolveComponent(event.Code)
-			statusCode, err := strconv.Atoi(event.Code)
-			if err != nil {
-				// event.Code is not an HTTP status - isRetriable will match via code switch
-				statusCode = 0
-			}
-			retriable := app.isRetriable(event.Code, statusCode)
-			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
-			flusher.Flush()
-			return
-		}
-
-		// Convert to clean streaming event
-		streamingEvent := convertToStreamingEvent(event)
-		if streamingEvent == nil {
-			// Skip events we don't care about
-			continue
-		}
-
-		// Track TTFT on first answer token only — reasoning tokens are excluded
-		if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
-			now := time.Now()
-			firstTokenTime = &now
-		}
-
-		// Intercept response.failed — extract error details from the raw SDK event
-		// since ResponseData doesn't carry the nested error fields.
-		if streamingEvent.Type == "response.failed" {
-			errorCode := string(event.Response.Error.Code)
-			errorMessage := event.Response.Error.Message
-			if errorMessage == "" {
-				errorMessage = "Response generation failed"
-			}
-			app.logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
-			component := llamastack.ResolveComponent(errorCode)
-			retriable := app.isRetriable(errorCode, 0)
-			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(errorCode, errorMessage, component, retriable))
-			flusher.Flush()
-			return
-		}
-
-		// Extract usage and process citations from completed event
-		if streamingEvent.Type == "response.completed" {
-			usage = extractUsageFromEvent(event)
-			if streamingEvent.Response != nil {
-				processResponseCitations(streamingEvent.Response)
-			}
-		}
-
-		// Convert clean streaming event to JSON
-		eventData, err := json.Marshal(streamingEvent)
-		if err != nil {
-			app.logger.Error("Failed to marshal streaming event",
-				"error", err,
-				"event_type", streamingEvent.Type,
-				"item_id", streamingEvent.ItemID,
-				"sequence", streamingEvent.SequenceNumber)
-			continue
-		}
-
-		// Write SSE format
-		writeMu.Lock()
-		_, err = fmt.Fprintf(w, "data: %s\n\n", eventData)
-		if err != nil {
-			writeMu.Unlock()
-			app.logger.Error("Failed to write streaming event", "error", err)
-			return
-		}
-		flusher.Flush()
-		writeMu.Unlock()
+	// Use unified streaming function (no delta handler = regular streaming)
+	if err := app.streamSSEEvents(StreamConfig{
+		Stream:                stream,
+		Context:               ctx,
+		Logger:                app.logger,
+		Flusher:               flusher,
+		Writer:                w,
+		WriteMu:               &writeMu,
+		StartTime:             startTime,
+		FirstTokenTime:        &firstTokenTime,
+		Usage:                 &usage,
+		UseAdvancedErrorLogic: true,
+	}); err != nil {
+		app.logger.Error("Streaming failed", "error", err)
+		return
 	}
 
-	// Check for stream errors (transport-level: connection drops, malformed SSE)
-	if err = stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
-		message, code, component, retriable := app.extractStreamingError(err)
-		fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable))
-	}
-
-	// Send metrics event after stream completes
+	// Send metrics event
 	latencyMs := time.Since(startTime).Milliseconds()
 	metricsEvent := MetricsEvent{
 		Type: "response.metrics",
@@ -730,13 +641,13 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			Usage:              usage,
 		},
 	}
-	eventData, err := json.Marshal(metricsEvent)
-	if err != nil {
-		app.logger.Error("failed to marshal metrics event", "error", err)
+	eventData, _ := json.Marshal(metricsEvent)
+	writeMu.Lock()
+	if _, writeErr := fmt.Fprintf(w, "data: %s\n\n", eventData); writeErr != nil {
+		app.logger.Debug("Failed to write metrics event to client", "error", writeErr)
+		writeMu.Unlock()
 		return
 	}
-	writeMu.Lock()
-	fmt.Fprintf(w, "data: %s\n\n", eventData)
 	flusher.Flush()
 	writeMu.Unlock()
 }
@@ -972,16 +883,46 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 		app.logger.Warn("Unexpected type in cache, expected string", "model", modelID, "namespace", namespace, "type", fmt.Sprintf("%T", cachedValue))
 	}
 
-	// Cache miss - generate new token
-	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace, "subscription", subscription)
+	// Cache miss - generate new token via MaaS BFF
+	app.logger.Debug("No MaaS token found in cache: requesting new token via MaaS BFF", "model", modelID, "namespace", namespace, "subscription", subscription)
 
-	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
-		ExpiresIn:    constants.MaaSTokenTTLString,
-		Subscription: subscription,
-	})
-	if err != nil {
-		app.logger.Warn("Failed to issue MaaS API key", "model", modelID, "error", err)
+	// Get MaaS BFF client from context
+	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
+	if maasClient == nil {
+		app.logger.Warn("MaaS BFF client not available for token generation", "model", modelID)
 		return ""
+	}
+
+	// Build MaaS BFF API key request (envelope wrapper per OpenAPI spec)
+	bffRequest := models.MaaSBFFAPIKeyRequest{
+		Data: models.MaaSBFFAPIKeyRequestData{
+			Name:         fmt.Sprintf("genai-inference-%d", time.Now().Unix()),
+			ExpiresIn:    constants.MaaSTokenTTLString,
+			Subscription: subscription,
+			Ephemeral:    true,
+		},
+	}
+
+	// Call MaaS BFF to create API key
+	var bffResponse models.MaaSBFFAPIKeyResponse
+	err = maasClient.Call(ctx, "POST", "/api-keys", bffRequest, &bffResponse)
+	if err != nil {
+		app.logger.Warn("Failed to issue MaaS API key via BFF", "model", modelID, "error", err)
+		return ""
+	}
+
+	// Validate that MaaS BFF returned a non-empty key
+	if bffResponse.Data.Key == "" {
+		app.logger.Warn("MaaS BFF returned empty key in response", "model", modelID)
+		return ""
+	}
+
+	// Map BFF response to internal format
+	tokenResponse := &models.MaaSTokenResponse{
+		Key: bffResponse.Data.Key,
+	}
+	if bffResponse.Data.ExpiresAt != nil {
+		tokenResponse.ExpiresAt = *bffResponse.Data.ExpiresAt
 	}
 
 	// Compute cache TTL from the key's actual expiry, with a safety buffer
@@ -1000,8 +941,8 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 
 	// Cache the new API key
 	app.logger.Debug("Caching MaaS API key", "model", modelID, "namespace", namespace, "subscription", subscription, "ttl", cacheTTL, "ttlSource", ttlSource, "expiresAt", tokenResponse.ExpiresAt)
-	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, cacheKey, tokenResponse.Key, cacheTTL); err != nil {
-		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", err)
+	if cacheErr := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, cacheKey, tokenResponse.Key, cacheTTL); cacheErr != nil {
+		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", cacheErr)
 	}
 
 	return tokenResponse.Key
@@ -1158,7 +1099,7 @@ func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID stri
 //  1. maas- prefix              → ephemeral MaaS token + MaaS catalog URL
 //  2. "custom_endpoint"         → URL + key from external-models ConfigMap / K8s Secret
 //  3. "namespace" or fallback   → InferenceService URL (falls back to LlamaStack config) + user JWT
-func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, identity *integrations.RequestIdentity, guardrailModelID string) (string, error) {
+func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, _ *integrations.RequestIdentity, guardrailModelID string) (string, error) {
 	bareID := guardrailModelID
 	if strings.HasPrefix(guardrailModelID, constants.MaaSProviderPrefix) {
 		if idx := strings.Index(guardrailModelID, "/"); idx != -1 {
@@ -1166,21 +1107,39 @@ func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, identity *inte
 		}
 	}
 
-	maasModels, err := app.repositories.MaaSModels.ListModels(ctx, identity.Token)
-	if err != nil {
-		return "", fmt.Errorf("failed to list MaaS models: %w", err)
+	// Get namespace from context for MaaS BFF query parameter
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", fmt.Errorf("missing namespace in context for MaaS model lookup")
 	}
 
-	for _, m := range maasModels {
+	// Get MaaS BFF client from context
+	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
+	if maasClient == nil {
+		return "", fmt.Errorf("MaaS BFF client not available")
+	}
+
+	// Call MaaS BFF to list models
+	// Per MaaS BFF OpenAPI spec, GET /models returns envelope: {"data": {"object": "list", "data": [...]}}
+	// Note: MaaS BFF determines namespace scope via the forwarded authentication token
+	// (x-forwarded-access-token header), not via query parameters
+	var bffResponse models.MaaSBFFModelsResponse
+	err := maasClient.Call(ctx, "GET", "/models", nil, &bffResponse)
+	if err != nil {
+		return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
+	}
+
+	// Search for the model in the response
+	for _, m := range bffResponse.Data.Data {
 		if m.ID == bareID {
 			// MaaS catalog returns the raw gateway URL (http, no /v1).
 			// Normalize to vLLM-compatible format (strip trailing slash, ensure /v1 suffix)
 			// so NeMo receives the correct openai_api_base.
-			url := strings.TrimSuffix(m.URL, "/")
-			if !strings.HasSuffix(url, "/v1") {
-				url += "/v1"
+			modelURL := strings.TrimSuffix(m.URL, "/")
+			if !strings.HasSuffix(modelURL, "/v1") {
+				modelURL += "/v1"
 			}
-			return url, nil
+			return modelURL, nil
 		}
 	}
 

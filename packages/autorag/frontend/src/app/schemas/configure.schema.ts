@@ -9,7 +9,7 @@ export const MAX_RAG_PATTERNS = 20;
 // The allowlist of supported vector store provider types.
 // The BFF returns all vector_io providers; only providers with these types are shown in the UI.
 // The selected value is the provider_id.
-export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus'];
+export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus', 'remote::pgvector'];
 
 // Default in-memory vector store provider — disabled until 3.5 or later.
 // When re-enabled, this should be injected at the beginning of the provider list
@@ -45,7 +45,15 @@ function createConfigureSchema() {
           'Display name must be at most 250 characters',
         )
         .default(''),
-      description: z.string().trim().default('').optional(),
+      description: z
+        .string()
+        .trim()
+        .refine(
+          (val) => Array.from(val).length <= 255,
+          'Description must be at most 255 characters',
+        )
+        .default('')
+        .optional(),
 
       input_data_secret_name: z.string().min(1).default(''),
       input_data_bucket_name: z.string().min(1).default(''),

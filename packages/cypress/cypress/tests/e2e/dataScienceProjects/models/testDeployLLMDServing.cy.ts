@@ -81,7 +81,15 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User Can Deploy an LLMD Model in Deployments',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@LLMDServingCI',
+        '@ModelServingCI',
+      ],
     },
     () => {
       cy.step('Log into the application as admin');
@@ -112,9 +120,6 @@ describe('A user can deploy an LLMD model', () => {
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
 
-      cy.step('Verify legacy deployment checkbox appears and is unchecked');
-      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
-
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select Model deployment');
@@ -128,6 +133,8 @@ describe('A user can deploy an LLMD model', () => {
           resourceName = val as string;
         });
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
       cy.step('Verify YAML Viewer');
       // Stub clipboard API AFTER page load (window changes on navigation)
@@ -190,7 +197,15 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User can deploy an LLmd Model from Manual YAML editor',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@LLMDServingCI',
+        '@ModelServingCI',
+      ],
     },
     () => {
       cy.step('Log into the application as admin with YAML viewer feature flag enabled');

@@ -77,6 +77,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         '@Dashboard',
         '@ModelServing',
         '@ModelServingCI',
+        '@KServeCI',
         '@NonConcurrent',
       ],
     },
@@ -109,11 +110,6 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-
-      cy.step('Verify legacy deployment checkbox appears and check it');
-      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
-      modelServingWizard.findLegacyModeCheckbox().click();
-      modelServingWizard.findLegacyModeCheckbox().should('be.checked');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 2: Model deployment');
@@ -126,6 +122,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         .then((val) => {
           resourceName = val as string;
         });
+      modelServingWizard.selectDeploymentMethodByKey('legacy');
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();

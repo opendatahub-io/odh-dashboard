@@ -4,7 +4,11 @@ import { Button } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
 
-const EmptySubscriptionsPage: React.FC = () => (
+type EmptySubscriptionsPageProps = {
+  returnTo?: string;
+};
+
+const EmptySubscriptionsPage: React.FC<EmptySubscriptionsPageProps> = ({ returnTo }) => (
   <>
     <EmptyDetailsView
       title="No Subscriptions"
@@ -13,7 +17,13 @@ const EmptySubscriptionsPage: React.FC = () => (
       createButton={
         <Button
           variant="primary"
-          component={(props) => <Link {...props} to={`${URL_PREFIX}/subscriptions/create`} />}
+          component={(props) => (
+            <Link
+              {...props}
+              to={`${(returnTo ?? `${URL_PREFIX}/subscriptions`).split('?')[0]}/create`}
+              state={returnTo ? { returnTo } : undefined}
+            />
+          )}
           data-testid="create-subscription-button"
         >
           Create subscription

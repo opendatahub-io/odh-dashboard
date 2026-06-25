@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -17,7 +18,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	genaitypes "github.com/opendatahub-io/gen-ai/internal/types"
 	authnv1 "k8s.io/api/authentication/v1"
@@ -47,6 +49,8 @@ import (
 	// Import TrustyAI GuardrailsOrchestrator types
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 )
+
+var ErrSecretKeyNotFound = errors.New("secret key not found")
 
 const (
 	// GenAIAssetLabelKey is the label key used to identify GenAI assets
@@ -851,6 +855,38 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 	return allAAModels, nil
 }
 
+// parseModelCapabilities extracts recognised capabilities from the JSON
+// annotation value.  Returns a copy of DefaultCapabilities when the value
+// is empty, malformed, or yields no valid capabilities.
+func parseModelCapabilities(annotationValue string) []string {
+	if annotationValue == "" {
+		return constants.DefaultCapabilities()
+	}
+	var raw []interface{}
+	if err := json.Unmarshal([]byte(annotationValue), &raw); err != nil {
+		slog.Warn("malformed model-capabilities annotation, defaulting",
+			"value", annotationValue, "error", err)
+		return constants.DefaultCapabilities()
+	}
+	var caps []string
+	for _, v := range raw {
+		s, ok := v.(string)
+		if !ok {
+			slog.Warn("non-string value in model-capabilities, skipping", "value", v)
+			continue
+		}
+		if constants.IsAllowedCapability(s) {
+			caps = append(caps, s)
+		} else {
+			slog.Warn("unknown capability value dropped", "value", s)
+		}
+	}
+	if len(caps) == 0 {
+		return constants.DefaultCapabilities()
+	}
+	return caps
+}
+
 func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.Context, namespace string, labelSelector labels.Selector) ([]models.AAModel, error) {
 	var llmInferenceServiceList kservev1alpha1.LLMInferenceServiceList
 	listOptions := &client.ListOptions{
@@ -880,6 +916,10 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 		if llmSvc.Spec.Model.Name != nil && strings.TrimSpace(*llmSvc.Spec.Model.Name) != "" {
 			modelID = *llmSvc.Spec.Model.Name
 		}
+		if _, ok := llmSvc.Annotations[constants.ModelCapabilitiesAnnotationKey]; !ok {
+			slog.Debug("LLMInferenceService missing model-capabilities annotation, using defaults",
+				"name", llmSvc.Name, "namespace", llmSvc.Namespace)
+		}
 		aaModel := models.AAModel{
 			ModelName:       llmSvc.Name,
 			ModelID:         modelID,
@@ -891,6 +931,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			Status:          kc.extractStatusFromLLMInferenceService(&llmSvc),
 			DisplayName:     kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
+			Capabilities:    parseModelCapabilities(llmSvc.Annotations[constants.ModelCapabilitiesAnnotationKey]),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -926,6 +967,10 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			kc.Logger.Warn("failed to fetch ServingRuntime", "error", err, "servingRuntime", servingRuntimeName)
 		}
 
+		if _, ok := isvc.Annotations[constants.ModelCapabilitiesAnnotationKey]; !ok {
+			slog.Debug("InferenceService missing model-capabilities annotation, using defaults",
+				"name", isvc.Name, "namespace", isvc.Namespace)
+		}
 		aaModel := models.AAModel{
 			ModelName:       isvc.Name,
 			ModelID:         isvc.Name,
@@ -938,6 +983,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			Status:          kc.extractStatusFromInferenceService(&isvc),
 			DisplayName:     kc.extractDisplayNameFromInferenceService(&isvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
+			Capabilities:    parseModelCapabilities(isvc.Annotations[constants.ModelCapabilitiesAnnotationKey]),
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -1049,12 +1095,6 @@ func ExtractStatusFromInferenceService(isvc *kservev1beta1.InferenceService) str
 		}
 	}
 	return "Stop"
-}
-
-// ConstructLLMInferenceServiceURL constructs the internal URL for an LLMInferenceService
-// This function is exported for testing purposes
-func ConstructLLMInferenceServiceURL(scheme, serviceName, namespace string, port int32) string {
-	return fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/v1", scheme, serviceName, namespace, port)
 }
 
 // EnsureV1Suffix ensures that the URL ends with /v1 suffix
@@ -1315,6 +1355,20 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			useCases = model.Metadata.CustomGenAI.UseCases
 		}
 
+		caps := constants.DefaultCapabilities()
+		if len(model.Metadata.Capabilities) > 0 {
+			filtered := make([]string, 0, len(model.Metadata.Capabilities))
+			for _, c := range model.Metadata.Capabilities {
+				if constants.IsAllowedCapability(c) {
+					filtered = append(filtered, c)
+				} else {
+					kc.Logger.Warn("unknown external model capability dropped", "modelID", model.ModelID, "capability", c)
+				}
+			}
+			if len(filtered) > 0 {
+				caps = filtered
+			}
+		}
 		aaModel := models.AAModel{
 			ModelName:          model.ModelID,
 			ModelID:            model.ModelID,
@@ -1330,6 +1384,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			ModelSourceType:    models.ModelSourceTypeCustomEndpoint,
 			ModelType:          model.ModelType,
 			EmbeddingDimension: model.Metadata.EmbeddingDimension,
+			Capabilities:       caps,
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -1342,7 +1397,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 
 // findGuardrailsServiceAccountTokenSecret finds the token secret for the guardrails service account
 // This follows the same pattern as VLLM token discovery - finding SA token secrets by type and annotation
-func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error) {
+func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -1523,6 +1578,48 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		}
 	}
 
+	// Inject pgvector connection env vars when configured.
+	conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
+	if err != nil {
+		return nil, fmt.Errorf("invalid pgvector configuration: %w", err)
+	}
+	if conn.IsConfigured() {
+		envVars = append(envVars,
+			corev1.EnvVar{Name: pgvector.HostEnvVar, Value: conn.Host},
+			corev1.EnvVar{Name: pgvector.PortEnvVar, Value: strconv.Itoa(conn.Port)},
+			corev1.EnvVar{Name: pgvector.DBEnvVar, Value: conn.DB},
+			corev1.EnvVar{Name: pgvector.UserEnvVar, Value: conn.User},
+		)
+		if conn.PasswordSecret != nil {
+			var secret corev1.Secret
+			if err := kc.Client.Get(ctx, types.NamespacedName{
+				Name:      conn.PasswordSecret.Name,
+				Namespace: namespace,
+			}, &secret); err != nil {
+				return nil, fmt.Errorf("pgvector password secret %q not found in namespace %s: %w",
+					conn.PasswordSecret.Name, namespace, err)
+			}
+			if _, ok := secret.Data[conn.PasswordSecret.Key]; !ok {
+				return nil, fmt.Errorf("pgvector password secret %q is missing key %q",
+					conn.PasswordSecret.Name, conn.PasswordSecret.Key)
+			}
+			envVars = append(envVars, corev1.EnvVar{
+				Name: pgvector.PasswordEnvVar,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: conn.PasswordSecret.Name},
+						Key:                  conn.PasswordSecret.Key,
+					},
+				},
+			})
+		} else {
+			kc.Logger.Warn("pgvector configured without password mechanism; PostgreSQL auth may fail",
+				"host", conn.Host)
+		}
+		kc.Logger.Info("injected pgvector connection env vars for OGXServer pod",
+			"host", conn.Host, "port", conn.Port, "db", conn.DB)
+	}
+
 	// Step 5: Generate ConfigMap content first (before creating OGXServer)
 	configMapName := "llama-stack-config"
 	userAuthToken := ""
@@ -1535,7 +1632,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			break
 		}
 	}
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, maasClient, userAuthToken)
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, bffClient, userAuthToken)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
@@ -1670,6 +1767,49 @@ func ensureVLLMCompatibleURL(url string) string {
 	return url + "/v1"
 }
 
+// pgvectorConnectionFromConfig builds a pgvector.Connection from the BFF's
+// env config. Returns a zero-value Connection (IsConfigured() == false) when
+// PgvectorHost is empty.
+func pgvectorConnectionFromConfig(cfg config.EnvConfig) (pgvector.Connection, error) {
+	if cfg.PgvectorHost == "" {
+		return pgvector.Connection{}, nil
+	}
+
+	port := cfg.PgvectorPort
+	if port == 0 {
+		port = pgvector.DefaultPort
+	}
+	if port < 1 || port > 65535 {
+		return pgvector.Connection{}, fmt.Errorf("invalid PGVECTOR_PORT %d: must be between 1 and 65535", port)
+	}
+	db := cfg.PgvectorDB
+	if db == "" {
+		db = pgvector.DefaultDB
+	}
+	user := cfg.PgvectorUser
+	if user == "" {
+		user = pgvector.DefaultUser
+	}
+
+	conn := pgvector.Connection{
+		Host: cfg.PgvectorHost,
+		Port: port,
+		DB:   db,
+		User: user,
+	}
+	if cfg.PgvectorPasswordSecretName != "" {
+		key := cfg.PgvectorPasswordSecretKey
+		if key == "" {
+			key = pgvector.DefaultPasswordKey
+		}
+		conn.PasswordSecret = &pgvector.SecretRef{
+			Name: cfg.PgvectorPasswordSecretName,
+			Key:  key,
+		}
+	}
+	return conn, nil
+}
+
 // buildEmbeddingModelLookup returns a map from user-supplied embedding_model values
 // as found in entries under registered_resources > vector_stores in the gen-ai-aa-vector-stores ConfigMap,
 // to the full LlamaStack model identifier (provider_id/effective_provider_model_id),
@@ -1700,13 +1840,23 @@ func buildEmbeddingModelLookup(ms []Model) map[string]string {
 }
 
 // generateLlamaStackConfig generates the Llama Stack configuration YAML
-func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, maasClient maas.MaaSClientInterface, userAuthToken string) (string, error) {
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, bffClient bffclient.BFFClientInterface, userAuthToken string) (string, error) {
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
 
+	conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
+	if err != nil {
+		return "", fmt.Errorf("invalid pgvector configuration: %w", err)
+	}
+	if conn.IsConfigured() {
+		config.SetDefaultPgvectorProvider(conn)
+		kc.Logger.Info("using remote::pgvector as default vector_io provider",
+			"host", conn.Host, "port", conn.Port, "db", conn.DB)
+	}
+
 	// Create a map of MaaS models for efficient lookup (only call ListModels once)
 	maasModelsMap := make(map[string]*models.MaaSModel)
-	if maasClient != nil {
+	if bffClient != nil {
 		// Check if we have any MaaS models first
 		hasMaaSModels := false
 		for _, model := range installModels {
@@ -1720,19 +1870,37 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			if userAuthToken == "" {
 				return "", fmt.Errorf("user auth token is required to list MaaS models")
 			}
-			maasModels, err := maasClient.ListModels(ctx, userAuthToken)
+
+			// Call MaaS BFF /models endpoint using BFF client
+			// The response is envelope-wrapped: {"data": {"object": "list", "data": [...]}}
+			// Note: MaaS BFF determines namespace scope via the forwarded authentication token
+			// (x-forwarded-access-token header), not via query parameters
+			var bffResponse models.MaaSBFFModelsResponse
+			err := bffClient.Call(ctx, "GET", "/models", nil, &bffResponse)
 			if err != nil {
-				kc.Logger.Error("failed to list MaaS models", "error", err)
-				return "", fmt.Errorf("failed to list MaaS models: %w", err)
+				kc.Logger.Error("failed to list MaaS models via BFF", "error", err)
+				return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
 			}
 
-			// Create map for efficient lookup
-			for i := range maasModels {
-				model := &maasModels[i]
-				maasModelsMap[model.ID] = model
+			// Extract models from envelope-wrapped response and convert to MaaSModel format
+			bffModels := bffResponse.Data.Data
+
+			// Create map for efficient lookup, converting from BFF model to MaaSModel
+			for i := range bffModels {
+				bffModel := &bffModels[i]
+				// Convert MaaSBFFModel to MaaSModel
+				maasModel := &models.MaaSModel{
+					ID:      bffModel.ID,
+					Object:  bffModel.Object,
+					Created: bffModel.Created,
+					OwnedBy: bffModel.OwnedBy,
+					Ready:   bffModel.Ready,
+					URL:     bffModel.URL,
+				}
+				maasModelsMap[maasModel.ID] = maasModel
 			}
 
-			kc.Logger.Debug("loaded MaaS models into map", "count", len(maasModelsMap))
+			kc.Logger.Debug("loaded MaaS models into map via BFF", "count", len(maasModelsMap))
 		}
 	}
 
@@ -2314,41 +2482,42 @@ func (kc *TokenKubernetesClient) findLLMInferenceServiceByModelName(ctx context.
 	return nil, fmt.Errorf("LLMInferenceService with model name '%s' not found in namespace %s", modelName, namespace)
 }
 
-// extractEndpointFromLLMInferenceService extracts the endpoint URL from LLMInferenceService by constructing internal URL from its Service
-func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(ctx context.Context, llmSvc *kservev1alpha1.LLMInferenceService) (string, error) {
-	// Find services owned by this LLMInferenceService
-	services, err := kc.findServicesForKServeResource(ctx, llmSvc.Namespace, llmSvc)
-	if err != nil {
-		kc.Logger.Error("failed to find services for LLMInferenceService", "name", llmSvc.Name, "error", err)
-		return "", fmt.Errorf("failed to find services for LLMInferenceService '%s': %w", llmSvc.Name, err)
+// extractEndpointFromLLMInferenceService extracts the internal endpoint URL from LLMInferenceService
+// using the standard KServe status.addresses field. This replaces the previous workaround that
+// manually discovered K8s services and constructed URLs, which bypassed llm-d gateway routing.
+func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(_ context.Context, llmSvc *kservev1alpha1.LLMInferenceService) (string, error) {
+	for _, addr := range llmSvc.Status.Addresses {
+		if addr.URL != nil && isInternalClusterHost(addr.URL.Host) {
+			u := addr.URL.String()
+			kc.Logger.Debug("extracted internal URL from LLMInferenceService status.addresses",
+				"llmServiceName", llmSvc.Name,
+				"endpoint", EnsureV1Suffix(u))
+			return EnsureV1Suffix(u), nil
+		}
 	}
-	if len(services) == 0 {
-		kc.Logger.Error("no services found for LLMInferenceService", "name", llmSvc.Name, "namespace", llmSvc.Namespace)
-		return "", fmt.Errorf("no services found for LLMInferenceService '%s' - service may not be ready", llmSvc.Name)
+
+	if llmSvc.Status.Address != nil && llmSvc.Status.Address.URL != nil && isInternalClusterHost(llmSvc.Status.Address.URL.Host) {
+		u := llmSvc.Status.Address.URL.String()
+		kc.Logger.Debug("extracted internal URL from LLMInferenceService status.address (singular fallback)",
+			"llmServiceName", llmSvc.Name,
+			"endpoint", EnsureV1Suffix(u))
+		return EnsureV1Suffix(u), nil
 	}
 
-	// Use the first service to construct internal URL
-	svc := services[0]
-	port := kc.getServingPort(ctx, llmSvc.Namespace, svc.Name)
+	kc.Logger.Error("LLMInferenceService has no internal URL in status",
+		"name", llmSvc.Name, "namespace", llmSvc.Namespace)
+	return "", fmt.Errorf("LLMInferenceService '%s' has no internal URL in status.addresses - service may not be ready", llmSvc.Name)
+}
 
-	// Determine scheme based on authentication annotation
-	var authAnnotation string
-	if llmSvc.Annotations != nil {
-		authAnnotation = llmSvc.Annotations[authAnnotationKey]
+// isInternalClusterHost checks if a host (with optional port) is a cluster-internal address.
+// Validates the hostname suffix rather than substring to prevent spoofing via URL paths.
+func isInternalClusterHost(host string) bool {
+	hostname := host
+	if i := strings.LastIndex(host, ":"); i != -1 {
+		hostname = host[:i]
 	}
-	scheme := DetermineSchemeFromAuth(authAnnotation)
-
-	// Construct internal URL from service name with port
-	// LLMInferenceService workload services (KServe headless mode) always require port
-	internalURL := ConstructLLMInferenceServiceURL(scheme, svc.Name, llmSvc.Namespace, port)
-
-	kc.Logger.Debug("constructed internal URL for LLMInferenceService",
-		"llmServiceName", llmSvc.Name,
-		"k8sServiceName", svc.Name,
-		"port", port,
-		"endpoint", internalURL)
-
-	return internalURL, nil
+	hostname = strings.TrimPrefix(strings.TrimSuffix(hostname, "]"), "[")
+	return strings.HasSuffix(hostname, ".svc.cluster.local")
 }
 
 func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error) {
@@ -2803,7 +2972,7 @@ func (kc *TokenKubernetesClient) GetSecretValue(ctx context.Context, identity *i
 	value, ok := secret.Data[secretKey]
 	if !ok {
 		kc.Logger.Warn("secret key not found in Secret", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)
-		return "", fmt.Errorf("key '%s' not found in Secret '%s'", secretKey, secretName)
+		return "", fmt.Errorf("key '%s' not found in Secret '%s': %w", secretKey, secretName, ErrSecretKeyNotFound)
 	}
 
 	kc.Logger.Debug("successfully retrieved secret value", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)

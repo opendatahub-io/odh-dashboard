@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { useUser } from '#~/redux/selectors';
 import {
   ConnectionTypeConfigMapObj,
@@ -43,7 +44,6 @@ import {
   filterModelServingConnectionTypes,
   getModelServingCompatibility,
 } from '#~/concepts/connectionTypes/utils';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import SimpleMenuActions from '#~/components/SimpleMenuActions';
 import { joinWithCommaAnd } from '#~/utilities/string';
 import CreateConnectionTypeFooter from './ManageConnectionTypeFooter';

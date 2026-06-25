@@ -7,18 +7,34 @@ import {
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
 import { createEvaluationJob } from '~/app/api/k8s';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import {
+  EVAL_HUB_EVENTS,
+  type RunSourceSelectedProperties,
+  type RunModelSelectedProperties,
+  type RunThresholdChangedProperties,
+  type RunMetricSelectedProperties,
+  type RunParameterChangedProperties,
+} from '~/app/tracking/evalhubTrackingConstants';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
+import { getUrlValidationError } from '~/app/utils/validationUtils';
 import getErrorTitle from '~/app/utils/getErrorTitle';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
-import type { Collection, FlatBenchmark } from '~/app/types';
+import { useConnectionValidation } from '~/app/hooks/useConnectionValidation';
+import type {
+  Collection,
+  FlatBenchmark,
+  InferenceServiceItem,
+  ModelSelection,
+  SourceMode,
+} from '~/app/types';
 
-type InputMode = 'inference' | 'prerecorded';
 type ExperimentMode = 'existing' | 'new';
 
 const DEFAULT_EXPERIMENT_NAME = 'EvalHub';
 const DEFAULT_SUITE_THRESHOLD = 70;
+
+export const EXTERNAL_ENDPOINT_VALUE = '__external__';
 
 type UseStartEvaluationRunFormParams = {
   namespace: string | undefined;
@@ -41,6 +57,8 @@ export function useStartEvaluationRunForm({
   const navigate = useNavigate();
   const notification = useNotification();
 
+  // ── Threshold & primary metric ──────────────────────────────────────
+
   const defaultThreshold = React.useMemo(() => {
     if (collection?.pass_criteria) {
       return Math.round(collection.pass_criteria.threshold * 100);
@@ -56,6 +74,12 @@ export function useStartEvaluationRunForm({
 
   const availableMetrics = React.useMemo(() => benchmark?.metrics ?? [], [benchmark]);
   const defaultPrimaryMetric = benchmark?.primary_score?.metric ?? availableMetrics[0];
+
+  const benchmarkDisplayNameRef = React.useRef('');
+  const defaultPrimaryMetricRef = React.useRef(defaultPrimaryMetric);
+  React.useEffect(() => {
+    defaultPrimaryMetricRef.current = defaultPrimaryMetric;
+  }, [defaultPrimaryMetric]);
 
   const [threshold, setThreshold] = React.useState(defaultThreshold);
   const [thresholdTouched, setThresholdTouched] = React.useState(false);
@@ -79,12 +103,27 @@ export function useStartEvaluationRunForm({
   const handleThresholdChange = React.useCallback((value: number) => {
     setThreshold(value);
     setThresholdTouched(true);
+
+    const props: RunThresholdChangedProperties = {
+      thresholdValue: value,
+      benchmarkName: benchmarkDisplayNameRef.current,
+    };
+    fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, props);
   }, []);
 
   const handlePrimaryMetricChange = React.useCallback((metric: string) => {
     setPrimaryMetric(metric);
     setPrimaryMetricTouched(true);
+
+    const props: RunMetricSelectedProperties = {
+      metricName: metric,
+      isDefault: metric === defaultPrimaryMetricRef.current,
+      benchmarkName: benchmarkDisplayNameRef.current,
+    };
+    fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
   }, []);
+
+  // ── Evaluation name ─────────────────────────────────────────────────
 
   const [evaluationName, setEvaluationName] = React.useState(() =>
     new Date().toLocaleString('en-US', {
@@ -97,13 +136,75 @@ export function useStartEvaluationRunForm({
     }),
   );
 
-  const [inputMode, setInputMode] = React.useState<InputMode>('inference');
+  // ── Source mode (Model / Agent / Pre-recorded) ──────────────────────
+
+  const [sourceMode, setSourceMode] = React.useState<SourceMode>('model');
+  const [modelSelection, setModelSelection] = React.useState<ModelSelection>('cluster');
+  const [selectedInferenceService, setSelectedInferenceService] = React.useState<
+    InferenceServiceItem | undefined
+  >(undefined);
+
   const [modelName, setModelName] = React.useState('');
+  const [agentName, setAgentName] = React.useState('');
   const [endpointUrl, setEndpointUrl] = React.useState('');
   const [apiKeySecretRef, setApiKeySecretRef] = React.useState('');
   const [sourceName, setSourceName] = React.useState('');
   const [datasetUrl, setDatasetUrl] = React.useState('');
   const [accessToken, setAccessToken] = React.useState('');
+
+  // ── Connection validation ───────────────────────────────────────────
+
+  const { connectionValidation, setConnectionValidation, handleVerifyConnection } =
+    useConnectionValidation({
+      namespace,
+      sourceMode,
+      endpointUrl,
+      apiKeySecretRef,
+      datasetUrl,
+      accessToken,
+      modelName,
+      agentName,
+    });
+
+  const requiresConnectionValidation =
+    sourceMode === 'agent' || sourceMode === 'prerecorded' || modelSelection === 'external';
+
+  const handleModelDropdownSelect = React.useCallback(
+    (value: string | undefined, inferenceServices: InferenceServiceItem[]) => {
+      const isExternal = value === EXTERNAL_ENDPOINT_VALUE;
+      if (isExternal) {
+        setModelSelection('external');
+        setSelectedInferenceService(undefined);
+      } else {
+        setModelSelection('cluster');
+        const is = inferenceServices.find((s) => s.name === value);
+        setSelectedInferenceService(is);
+      }
+      setConnectionValidation({ status: 'idle' });
+
+      if (value) {
+        const props: RunModelSelectedProperties = {
+          selectedModel: isExternal ? 'Other (External endpoint)' : value,
+          isExternal,
+        };
+        fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_MODEL_SELECTED, props);
+      }
+    },
+    [setConnectionValidation],
+  );
+
+  const handleSourceModeChange = React.useCallback(
+    (mode: SourceMode) => {
+      setSourceMode(mode);
+      setConnectionValidation({ status: 'idle' });
+
+      const props: RunSourceSelectedProperties = { sourceType: mode };
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, props);
+    },
+    [setConnectionValidation],
+  );
+
+  // ── Experiment ──────────────────────────────────────────────────────
 
   const [experimentMode, setExperimentMode] = React.useState<ExperimentMode>('existing');
   const [selectedExperiment, setSelectedExperiment] = React.useState<MlflowExperiment | undefined>(
@@ -128,9 +229,13 @@ export function useStartEvaluationRunForm({
     }
   }, [experimentsLoaded, experiments, namespace, experimentAutoSelected]);
 
+  // ── Additional args ─────────────────────────────────────────────────
+
   const [showAdditionalArgs, setShowAdditionalArgs] = React.useState(false);
   const [additionalArgs, setAdditionalArgs] = React.useState('');
   const [additionalArgsFilename, setAdditionalArgsFilename] = React.useState('');
+
+  // ── Submission state ────────────────────────────────────────────────
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const abortControllerRef = React.useRef<AbortController | null>(null);
@@ -143,6 +248,8 @@ export function useStartEvaluationRunForm({
     [],
   );
 
+  // ── Derived values ──────────────────────────────────────────────────
+
   const benchmarkDisplayName = React.useMemo(() => {
     if (collection) {
       return collection.name;
@@ -152,6 +259,7 @@ export function useStartEvaluationRunForm({
     }
     return '';
   }, [benchmark, collection]);
+  benchmarkDisplayNameRef.current = benchmarkDisplayName;
 
   const hasBenchmarks =
     !!benchmark || (!!collection && !!collection.benchmarks && collection.benchmarks.length > 0);
@@ -160,24 +268,89 @@ export function useStartEvaluationRunForm({
     (experimentMode === 'existing' && !!selectedExperiment) ||
     (experimentMode === 'new' && newExperimentName.trim() !== '');
 
+  // ── Inline field validation ─────────────────────────────────────────
+
+  const [touched, setTouched] = React.useState<Record<string, boolean>>({});
+
+  const markTouched = React.useCallback((field: string) => {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  }, []);
+
+  const endpointUrlError = React.useMemo((): string | undefined => {
+    if (sourceMode === 'prerecorded') {
+      return undefined;
+    }
+    if (sourceMode === 'model' && modelSelection === 'cluster') {
+      return undefined;
+    }
+    return getUrlValidationError(endpointUrl);
+  }, [sourceMode, modelSelection, endpointUrl]);
+
+  const datasetUrlError = React.useMemo((): string | undefined => {
+    if (sourceMode !== 'prerecorded') {
+      return undefined;
+    }
+    if (datasetUrl.trim() === '') {
+      return 'Dataset URL is required.';
+    }
+    return undefined;
+  }, [sourceMode, datasetUrl]);
+
+  // ── Overall form validity ───────────────────────────────────────────
+
   const isValid = React.useMemo(() => {
     if (evaluationName.trim() === '' || !hasBenchmarks || !hasExperiment) {
       return false;
     }
-    if (inputMode === 'inference') {
-      return modelName.trim() !== '' && endpointUrl.trim() !== '';
+
+    if (sourceMode === 'model') {
+      if (modelSelection === 'cluster') {
+        return !!selectedInferenceService;
+      }
+      return modelName.trim() !== '' && !endpointUrlError;
     }
-    return sourceName.trim() !== '' && datasetUrl.trim() !== '';
+
+    if (sourceMode === 'agent') {
+      return agentName.trim() !== '' && !endpointUrlError;
+    }
+
+    return sourceName.trim() !== '' && !datasetUrlError;
   }, [
     evaluationName,
-    inputMode,
-    modelName,
-    endpointUrl,
-    sourceName,
-    datasetUrl,
     hasBenchmarks,
     hasExperiment,
+    sourceMode,
+    modelSelection,
+    selectedInferenceService,
+    modelName,
+    agentName,
+    endpointUrlError,
+    datasetUrlError,
+    sourceName,
   ]);
+
+  const canVerifyConnection = React.useMemo(() => {
+    if (!requiresConnectionValidation) {
+      return false;
+    }
+    if (connectionValidation.status === 'validating') {
+      return false;
+    }
+    if (sourceMode === 'prerecorded') {
+      return !datasetUrlError && datasetUrl.trim() !== '';
+    }
+    return !endpointUrlError && endpointUrl.trim() !== '';
+  }, [
+    requiresConnectionValidation,
+    connectionValidation.status,
+    sourceMode,
+    endpointUrlError,
+    endpointUrl,
+    datasetUrlError,
+    datasetUrl,
+  ]);
+
+  // ── Additional args handlers ────────────────────────────────────────
 
   const handleAdditionalArgsFileChange = React.useCallback(
     (
@@ -211,20 +384,29 @@ export function useStartEvaluationRunForm({
     setAdditionalArgs('');
   }, []);
 
+  // ── Cancel ──────────────────────────────────────────────────────────
+
   const handleCancel = () => {
+    const sourceTypeLabel =
+      sourceMode === 'model'
+        ? ('model' as const)
+        : sourceMode === 'agent'
+          ? ('agent' as const)
+          : ('pre_recorded_responses' as const);
+
     fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
       source: 'evaluations_page',
       evaluationName: evaluationName.trim(),
-      sourceType:
-        inputMode === 'inference'
-          ? ('inference_endpoint' as const)
-          : ('pre_recorded_responses' as const),
-      hasAPIKey: inputMode === 'inference' ? apiKeySecretRef.trim() !== '' : false,
+      sourceType: sourceTypeLabel,
+      hasAPIKey:
+        sourceMode === 'model' || sourceMode === 'agent' ? apiKeySecretRef.trim() !== '' : false,
       hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
       outcome: TrackingOutcome.cancel,
     });
     navigate(evaluationsBaseRoute(namespace));
   };
+
+  // ── Submit ──────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
     if (!isValid || isSubmitting) {
@@ -246,6 +428,17 @@ export function useStartEvaluationRunForm({
           return;
         }
         Object.assign(parsedArgs, parsed);
+
+        for (const [key, val] of Object.entries(parsedArgs)) {
+          const paramProps: RunParameterChangedProperties = {
+            parameterName: key,
+            parameterValueShape:
+              typeof val === 'string' ? `string(${val.length})` : String(typeof val),
+            benchmarkName: benchmarkDisplayName,
+            isDefault: false,
+          };
+          fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED, paramProps);
+        }
       } catch {
         notification.error(
           'Invalid benchmark parameters',
@@ -272,17 +465,46 @@ export function useStartEvaluationRunForm({
         }
       : undefined;
 
+    const resolvedModelName = (() => {
+      if (sourceMode === 'model') {
+        return modelSelection === 'cluster'
+          ? (selectedInferenceService?.name ?? '')
+          : modelName.trim();
+      }
+      if (sourceMode === 'agent') {
+        return agentName.trim();
+      }
+      return sourceName.trim();
+    })();
+
+    const resolvedEndpointUrl = (() => {
+      if (sourceMode === 'model' && modelSelection === 'cluster') {
+        return selectedInferenceService?.url ?? '';
+      }
+      if (sourceMode === 'model' || sourceMode === 'agent') {
+        return endpointUrl.trim();
+      }
+      return '';
+    })();
+
+    const resolvedAuth = (() => {
+      if (sourceMode === 'model' || sourceMode === 'agent') {
+        return apiKeySecretRef.trim();
+      }
+      return '';
+    })();
+
     const request = buildEvaluationRequest({
       evaluationName,
-      inputMode,
+      sourceMode,
       benchmark,
       collection,
-      modelName,
-      endpointUrl,
-      apiKeySecretRef,
-      sourceName,
-      datasetUrl,
-      accessToken,
+      modelName: resolvedModelName,
+      endpointUrl: resolvedEndpointUrl,
+      apiKeySecretRef: resolvedAuth,
+      sourceName: sourceName.trim(),
+      datasetUrl: datasetUrl.trim(),
+      accessToken: accessToken.trim(),
       additionalArgs: parsedArgs,
       experimentName: experimentName || undefined,
       experimentTags: undefined,
@@ -300,28 +522,33 @@ export function useStartEvaluationRunForm({
       experimentName,
     });
 
+    const sourceTypeLabel =
+      sourceMode === 'model'
+        ? ('model' as const)
+        : sourceMode === 'agent'
+          ? ('agent' as const)
+          : ('pre_recorded_responses' as const);
+
     const runTrackingProps = {
       source: 'evaluations_page',
       evaluationName: evaluationName.trim(),
-      sourceType:
-        inputMode === 'inference'
-          ? ('inference_endpoint' as const)
-          : ('pre_recorded_responses' as const),
-      modelName: inputMode === 'inference' ? modelName.trim() : undefined,
+      sourceType: sourceTypeLabel,
+      modelName: sourceMode !== 'prerecorded' ? resolvedModelName : undefined,
       endpointOrigin: (() => {
-        if (inputMode !== 'inference') {
+        if (sourceMode === 'prerecorded') {
           return undefined;
         }
         try {
-          return new URL(endpointUrl.trim()).origin;
+          return new URL(resolvedEndpointUrl).origin;
         } catch {
           return undefined;
         }
       })(),
-      hasAPIKey: inputMode === 'inference' ? apiKeySecretRef.trim() !== '' : false,
-      sourceName: inputMode === 'prerecorded' ? sourceName.trim() : undefined,
-      hasDatasetURL: inputMode === 'prerecorded' ? datasetUrl.trim() !== '' : false,
-      hasAccessToken: inputMode === 'prerecorded' ? accessToken.trim() !== '' : false,
+      hasAPIKey:
+        sourceMode === 'model' || sourceMode === 'agent' ? apiKeySecretRef.trim() !== '' : false,
+      sourceName: sourceMode === 'prerecorded' ? sourceName.trim() : undefined,
+      hasDatasetURL: sourceMode === 'prerecorded' ? datasetUrl.trim() !== '' : false,
+      hasAccessToken: sourceMode === 'prerecorded' ? accessToken.trim() !== '' : false,
       hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
       countOfAdditionalArguments: Object.keys(parsedArgs).length,
     };
@@ -361,10 +588,15 @@ export function useStartEvaluationRunForm({
   return {
     evaluationName,
     setEvaluationName,
-    inputMode,
-    setInputMode,
+    sourceMode,
+    handleSourceModeChange,
+    modelSelection,
+    selectedInferenceService,
+    handleModelDropdownSelect,
     modelName,
     setModelName,
+    agentName,
+    setAgentName,
     endpointUrl,
     setEndpointUrl,
     apiKeySecretRef,
@@ -400,6 +632,14 @@ export function useStartEvaluationRunForm({
     availableMetrics,
     primaryMetric,
     handlePrimaryMetricChange,
+    touched,
+    markTouched,
+    endpointUrlError,
+    datasetUrlError,
+    connectionValidation,
+    handleVerifyConnection,
+    canVerifyConnection,
+    requiresConnectionValidation,
   };
 }
 

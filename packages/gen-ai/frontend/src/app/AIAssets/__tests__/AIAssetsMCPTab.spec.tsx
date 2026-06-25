@@ -41,6 +41,7 @@ describe('AIAssetsMCPTab', () => {
   it('should render loading state', () => {
     mockUseFetchMCPServers.mockReturnValue({
       data: [],
+      configMapName: null,
       loaded: false,
       error: undefined,
     });
@@ -64,6 +65,7 @@ describe('AIAssetsMCPTab', () => {
   it('should render error state when fetch fails', () => {
     mockUseFetchMCPServers.mockReturnValue({
       data: [],
+      configMapName: null,
       loaded: true,
       error: new Error('ConfigMap not found'),
     });
@@ -91,6 +93,7 @@ describe('AIAssetsMCPTab', () => {
   it('should render empty state when no servers are available', () => {
     mockUseFetchMCPServers.mockReturnValue({
       data: [],
+      configMapName: null,
       loaded: true,
       error: undefined,
     });
@@ -125,6 +128,7 @@ describe('AIAssetsMCPTab', () => {
           logo: '',
         },
       ] as MCPServerFromAPI[],
+      configMapName: null,
       loaded: true,
       error: undefined,
     });

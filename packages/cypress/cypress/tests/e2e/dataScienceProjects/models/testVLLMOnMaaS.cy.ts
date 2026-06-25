@@ -82,7 +82,15 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
   it(
     'Verify User can deploy a model by selecting an LLMInferenceServiceConfig',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@ModelServingCI',
+        '@LLMDServingCI',
+      ],
     },
     () => {
       cy.step('Log into the application as admin');
@@ -107,9 +115,6 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-
-      cy.step('Verify legacy checkbox is unchecked (non-legacy MaaS path)');
-      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 2: Model deployment - select vLLM CPU LLMInferenceServiceConfig');
@@ -122,6 +127,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
         .then((val) => {
           resourceName = val as string;
         });
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard

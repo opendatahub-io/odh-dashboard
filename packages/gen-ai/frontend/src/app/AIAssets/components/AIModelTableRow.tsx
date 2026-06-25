@@ -33,7 +33,7 @@ import {
 } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
-import { isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import { isPlaygroundModelMatchForAIModel, isASRModel } from '~/app/utilities/utils';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
@@ -101,8 +101,10 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         <Td dataLabel="Model">
           <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
           <Truncate
+            data-testid="model-id-text"
             content={model.model_id}
             className="pf-v6-u-font-family-monospace pf-v6-u-font-size-xs pf-v6-u-color-200 pf-v6-u-mt-xs"
+            style={{ userSelect: 'all' }}
           />
           {model.description && (
             <Truncate
@@ -166,7 +168,14 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         </Td>
         {showPlaygroundColumn && (
           <Td dataLabel="Playground">
-            {enabledModel ? (
+            {isASRModel(model) ? (
+              <span
+                className="pf-v6-u-color-200 pf-v6-u-font-size-sm"
+                data-testid="asr-playground-info"
+              >
+                Used in Playground settings
+              </span>
+            ) : enabledModel ? (
               <>
                 {model.model_type === 'embedding' && isVectorStoresEnabled ? (
                   <Button

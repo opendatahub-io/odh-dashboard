@@ -157,9 +157,12 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 
 // handleErrorResponse maps HTTP error codes to BFF client errors
 func (c *HTTPBFFClient) handleErrorResponse(statusCode int, body []byte) error {
-	message := string(body)
+	// For 4xx client errors, use standard HTTP status text to avoid leaking
+	// upstream error details (internal error messages, stack traces, resource names).
+	// For 5xx server errors, also use status text for consistency.
+	message := http.StatusText(statusCode)
 	if message == "" {
-		message = http.StatusText(statusCode)
+		message = "unknown error"
 	}
 
 	switch statusCode {
@@ -175,8 +178,11 @@ func (c *HTTPBFFClient) handleErrorResponse(statusCode int, body []byte) error {
 		return NewServerUnavailableError(c.target)
 	default:
 		if statusCode >= 500 {
-			return NewServerUnavailableError(c.target)
+			// Preserve original 5xx status code for proper error propagation
+			// MaaS-only requests need to distinguish between 500, 502, 503, 504, etc.
+			return NewBFFClientErrorWithTarget(ErrCodeServerUnavailable, message, c.target, statusCode)
 		}
+		// For other 4xx errors, sanitize message to avoid leaking internal details
 		return NewBFFClientErrorWithTarget(ErrCodeInternalError, message, c.target, statusCode)
 	}
 }

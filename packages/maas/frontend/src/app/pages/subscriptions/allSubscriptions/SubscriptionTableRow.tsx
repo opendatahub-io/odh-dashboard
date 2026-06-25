@@ -1,35 +1,39 @@
 import * as React from 'react';
 import { ActionsColumn, Td } from '@patternfly/react-table';
-import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
+import { ResourceTr, ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { Content, Label } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions';
 import PhaseLabel from '~/app/shared/PhaseLabel';
+import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { subscriptionsColumns } from './columns';
 
 type SubscriptionTableRowProps = {
   subscription: MaaSSubscription;
   key: string;
   setDeleteSubscription: (subscription: MaaSSubscription) => void;
+  returnTo?: string;
 };
 
 const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   subscription,
   key,
   setDeleteSubscription,
+  returnTo,
 }) => {
   const navigate = useNavigate();
+  const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
+  const navState = returnTo ? { state: { returnTo } } : undefined;
 
   const onViewDetailsSubscription = (subscriptionName: string) => {
-    navigate(`${URL_PREFIX}/subscriptions/view/${subscriptionName}`);
+    navigate(`${base}/view/${subscriptionName}`, navState);
   };
   const onEditSubscription = (subscriptionName: string) => {
-    navigate(`${URL_PREFIX}/subscriptions/edit/${subscriptionName}`);
+    navigate(`${base}/edit/${subscriptionName}`, navState);
   };
   const onDeleteSubscription = (subscriptionToDelete: MaaSSubscription) => {
     setDeleteSubscription(subscriptionToDelete);
@@ -57,7 +61,10 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
               </span>
             ) : (
               <ResourceNameTooltip resource={convertSubscriptionToK8sResource(subscription)}>
-                <Link to={`${URL_PREFIX}/subscriptions/view/${subscription.name}`}>
+                <Link
+                  to={`${base}/view/${subscription.name}`}
+                  state={returnTo ? { returnTo } : undefined}
+                >
                   {subscription.displayName ?? subscription.name}
                 </Link>
               </ResourceNameTooltip>
@@ -68,7 +75,11 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         />
       </Td>
       <Td dataLabel={subscriptionsColumns[1].label}>
-        <PhaseLabel phase={subscription.phase} statusMessage={subscription.statusMessage} />
+        <PhaseLabel
+          phase={subscription.phase}
+          statusMessage={subscription.statusMessage}
+          resourceType={PhaseResourceType.SUBSCRIPTION}
+        />
       </Td>
       <Td dataLabel={subscriptionsColumns[2].label}>
         <Label color="grey">{`${subscription.owner.groups.length} Group${subscription.owner.groups.length === 1 ? '' : 's'}`}</Label>

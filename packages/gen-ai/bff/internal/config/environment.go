@@ -36,6 +36,12 @@ type EnvConfig struct {
 	// Llama Stack Configuration
 	LlamaStackURL string
 
+	// ASR Model Configuration
+	// AsrModelURL is a developer override for the ASR model endpoint.
+	// When set, the BFF uses this URL instead of the internal endpoint from KServe.
+	// Useful for local development with port-forwarding or a local Whisper container.
+	AsrModelURL string
+
 	// NeMo Guardrails Configuration
 	NemoGuardrailsURL string
 	MockNemoClient    bool
@@ -121,4 +127,13 @@ type EnvConfig struct {
 	// BFFMaaSAuthTokenPrefix specifies the prefix MaaS BFF expects in the token header.
 	// Default: "" (empty for ODH's x-forwarded-access-token)
 	BFFMaaSAuthTokenPrefix string
+
+	// When PgvectorHost is set, the BFF configures remote::pgvector as the
+	// default vector_io provider instead of inline::milvus.
+	PgvectorHost               string
+	PgvectorPort               int    // default: 5432
+	PgvectorDB                 string // default: "vectordb"
+	PgvectorUser               string // default: "vectoruser"
+	PgvectorPasswordSecretName string // K8s Secret name containing the password
+	PgvectorPasswordSecretKey  string // key inside the password Secret, default: "password"
 }

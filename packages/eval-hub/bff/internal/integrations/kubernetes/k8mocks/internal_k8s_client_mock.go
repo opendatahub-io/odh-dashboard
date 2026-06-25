@@ -30,6 +30,11 @@ func (m *InternalKubernetesClientMock) BearerToken() (string, error) {
 	return "FAKE-BEARER-TOKEN", nil
 }
 
+// GetEvalHubDiscoveryURL returns empty in tests — ConfigMap discovery falls through to CR.
+func (m *InternalKubernetesClientMock) GetEvalHubDiscoveryURL(_ context.Context, _ *k8s.RequestIdentity, _ string) (string, error) {
+	return "", nil
+}
+
 // CanListEvalHubInstances always returns true in tests — envtest SAR responses are unreliable.
 func (m *InternalKubernetesClientMock) CanListEvalHubInstances(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
 	return true, nil

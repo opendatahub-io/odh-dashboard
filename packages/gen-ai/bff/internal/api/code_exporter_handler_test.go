@@ -238,6 +238,10 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "Hello, world!")
 		assert.Contains(t, code, "llama3.2:3b")
 		assert.Contains(t, code, "You are a helpful AI assistant")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, `client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused")`)
+		assert.NotContains(t, code, "ogx_client")
+		assert.NotContains(t, code, "OgxClient")
 	})
 
 	t.Run("should generate Python code with tools", func(t *testing.T) {
@@ -388,7 +392,7 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "file_search")
 		assert.Contains(t, code, "vector_store.id")
 		assert.Contains(t, code, "FILES_BASE_PATH")
-		assert.Contains(t, code, "LLAMA_STACK_URL")
+		assert.Contains(t, code, "OGX_URL")
 	})
 
 	t.Run("should generate Python code with MCP servers", func(t *testing.T) {
@@ -742,7 +746,7 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, inputPrompt)
 		assert.Contains(t, code, `if _input_result.get("status") == "blocked"`)
 		assert.Contains(t, code, "def _guardrail_check(")
-		assert.Contains(t, code, "pip install llama-stack-client requests")
+		assert.Contains(t, code, "pip install openai requests")
 	})
 
 	t.Run("should include output guardrail check when guardrail config has output prompt", func(t *testing.T) {
@@ -822,7 +826,7 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.NotContains(t, code, "import requests")
 		assert.NotContains(t, code, "NEMO_GUARDRAILS_URL")
 		assert.NotContains(t, code, "guardrail/checks")
-		assert.Contains(t, code, "pip install llama-stack-client\n")
+		assert.Contains(t, code, "pip install openai\n")
 	})
 
 	t.Run("should not include guardrail code when input prompt is empty", func(t *testing.T) {
@@ -865,5 +869,147 @@ func TestGeneratePythonCode(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Contains(t, code, "NEMO_GUARDRAILS_URL = \"\"")
+	})
+
+	t.Run("should generate Python code with ASR transcription section when ASRModel is set", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:    "Hello, world!",
+			Model:    "llama3.2:3b",
+			ASRModel: "whisper-large-v3-turbo",
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "ASR_MODEL_URL = \"\"")
+		assert.Contains(t, code, `ASR_MODEL_NAME = "whisper-large-v3-turbo"`)
+		assert.Contains(t, code, "AUDIO_FILE_PATH = \"\"")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, "asr_client = OpenAI(")
+		assert.Contains(t, code, "audio.transcriptions.create")
+		assert.Contains(t, code, "input_text = transcription.text")
+		assert.Contains(t, code, "pip install openai\n")
+		assert.Contains(t, code, "Audio Transcription (ASR)")
+		assert.Contains(t, code, `The model "whisper-large-v3-turbo" will be used for transcription`)
+	})
+
+	t.Run("should not include ASR section when ASRModel is empty", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Hello, world!",
+			Model: "llama3.2:3b",
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "ASR_MODEL_URL")
+		assert.NotContains(t, code, "ASR_MODEL_NAME")
+		assert.NotContains(t, code, "AUDIO_FILE_PATH")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.NotContains(t, code, "asr_client")
+		assert.NotContains(t, code, "audio.transcriptions.create")
+		assert.NotContains(t, code, "Audio Transcription (ASR)")
+	})
+
+	t.Run("should include openai in pip install when both ASR and guardrails are active", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:    "Hello, world!",
+			Model:    "llama3.2:3b",
+			ASRModel: "whisper-large-v3-turbo",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "Check this: {{ user_input }}",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "pip install openai requests")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, "import requests")
+		assert.Contains(t, code, "ASR_MODEL_URL")
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL")
+	})
+
+	t.Run("should generate Python code with vision image upload section when VisionImage is true", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:       "Describe the image",
+			Model:       "llama3.2:3b",
+			VisionImage: true,
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, `IMAGE_FILE_PATH = ""`)
+		assert.Contains(t, code, "Vision (Image Input)")
+		assert.Contains(t, code, "client.files.create(file=image_file, purpose=\"vision\")")
+		assert.Contains(t, code, `"type": "input_text"`)
+		assert.Contains(t, code, `"type": "input_image"`)
+		assert.Contains(t, code, "vision_file.id")
+		assert.NotContains(t, code, `"input": input_text,`)
+	})
+
+	t.Run("should not include vision section when VisionImage is false", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Hello, world!",
+			Model: "llama3.2:3b",
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "IMAGE_FILE_PATH")
+		assert.NotContains(t, code, "Vision (Image Input)")
+		assert.NotContains(t, code, "client.files.create(file=image_file")
+		assert.NotContains(t, code, `"type": "input_image"`)
+		assert.Contains(t, code, `"input": input_text,`)
+	})
+
+	t.Run("should compose vision and ASR correctly when both are active", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:       "Describe the image",
+			Model:       "llama3.2:3b",
+			ASRModel:    "whisper-large-v3-turbo",
+			VisionImage: true,
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "ASR_MODEL_URL")
+		assert.Contains(t, code, "input_text = transcription.text")
+		assert.Contains(t, code, "IMAGE_FILE_PATH")
+		assert.Contains(t, code, "client.files.create(file=image_file, purpose=\"vision\")")
+		assert.Contains(t, code, `"type": "input_text"`)
+		assert.Contains(t, code, `"type": "input_image"`)
+		assert.Contains(t, code, "vision_file.id")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, "pip install openai\n")
 	})
 }

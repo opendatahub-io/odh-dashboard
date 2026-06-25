@@ -22,6 +22,7 @@ import {
   ModelRegistryCustomPropertyString,
   ModelRegistryCustomPropertyInt,
   ModelRegistryCustomPropertyDouble,
+  ModelRegistryCustomPropertyBool,
 } from './types';
 import {
   McpServer,
@@ -31,8 +32,9 @@ import {
 } from './mcpServerCatalogTypes';
 
 export type HardwareConfiguration = {
-  hardware_type: string;
-  cold_start_load_time_seconds: number;
+  gpu_type: string;
+  gpu_count: number;
+  cold_start_time_to_load_seconds: number;
   runtime_command: string;
 };
 
@@ -100,6 +102,8 @@ export enum CatalogArtifactType {
 export enum MetricsType {
   accuracyMetrics = 'accuracy-metrics',
   performanceMetrics = 'performance-metrics',
+  coldStartMetrics = 'cold-start-metrics',
+  securityMetrics = 'security-metrics',
 }
 
 export enum CategoryName {
@@ -162,12 +166,33 @@ export type PerformanceMetricsCustomProperties = {
   // Computed properties when targetRPS is provided
   replicas?: ModelRegistryCustomPropertyInt;
   total_requests_per_second?: ModelRegistryCustomPropertyDouble;
+  // Cold-start sub-type fields (returned by API with metricsType "performance-metrics")
+  performance_sub_type?: ModelRegistryCustomPropertyString;
+  gpu_type?: ModelRegistryCustomPropertyString;
+  gpu_count?: ModelRegistryCustomPropertyInt;
+  cold_start_time_to_load_seconds?: ModelRegistryCustomPropertyDouble;
+  runtime_command?: ModelRegistryCustomPropertyString;
 } & Partial<Record<LatencyPropertyKey, ModelRegistryCustomPropertyDouble>>;
 
 export type AccuracyMetricsCustomProperties = {
   // overall_average?: ModelRegistryCustomPropertyDouble; // NOTE: overall_average is currently omitted from the API and will be restored
   arc_v1?: ModelRegistryCustomPropertyDouble;
 } & Record<string, ModelRegistryCustomPropertyDouble>;
+
+export type SecurityMetricsCustomProperties = {
+  id?: ModelRegistryCustomPropertyString;
+  benchmark?: ModelRegistryCustomPropertyString;
+  category?: ModelRegistryCustomPropertyString;
+  description?: ModelRegistryCustomPropertyString;
+  evaluation?: ModelRegistryCustomPropertyString;
+  model_id?: ModelRegistryCustomPropertyString;
+  provider_id?: ModelRegistryCustomPropertyString;
+  result_metric?: ModelRegistryCustomPropertyString;
+  pass?: ModelRegistryCustomPropertyBool;
+  lower_is_better?: ModelRegistryCustomPropertyBool;
+  result?: ModelRegistryCustomPropertyDouble;
+  threshold?: ModelRegistryCustomPropertyDouble;
+};
 
 export type CatalogPerformanceMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
   artifactType: CatalogArtifactType.metricsArtifact;
@@ -181,9 +206,30 @@ export type CatalogAccuracyMetricsArtifact = Omit<CatalogArtifactBase, 'customPr
   customProperties?: AccuracyMetricsCustomProperties;
 };
 
+export type ColdStartMetricsCustomProperties = {
+  gpu_type?: ModelRegistryCustomPropertyString;
+  gpu_count?: ModelRegistryCustomPropertyInt;
+  cold_start_time_to_load_seconds?: ModelRegistryCustomPropertyDouble;
+  runtime_command?: ModelRegistryCustomPropertyString;
+};
+
+export type CatalogColdStartMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
+  artifactType: CatalogArtifactType.metricsArtifact;
+  metricsType: MetricsType.coldStartMetrics;
+  customProperties?: ColdStartMetricsCustomProperties;
+};
+
+export type CatalogSecurityMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
+  artifactType: CatalogArtifactType.metricsArtifact;
+  metricsType: MetricsType.securityMetrics;
+  customProperties?: SecurityMetricsCustomProperties;
+};
+
 export type CatalogMetricsArtifact =
   | CatalogPerformanceMetricsArtifact
-  | CatalogAccuracyMetricsArtifact;
+  | CatalogAccuracyMetricsArtifact
+  | CatalogColdStartMetricsArtifact
+  | CatalogSecurityMetricsArtifact;
 
 export type CatalogArtifacts = CatalogModelArtifact | CatalogMetricsArtifact;
 

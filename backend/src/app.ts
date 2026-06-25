@@ -9,6 +9,7 @@ import fastifyWebsocket from '@fastify/websocket';
 import fastifyAccepts from '@fastify/accepts';
 import type { FastifyInstance, FastifyRegisterOptions } from 'fastify';
 import ejs from 'ejs';
+import { getCacheControlForStaticFile } from './utils/cacheHeaders';
 
 const publicDir = path.join(__dirname, '../../frontend/public');
 
@@ -30,6 +31,9 @@ export const initializeApp = async (
     wildcard: false,
     // Do not auto-serve index.html for '/'; let the view route render it
     index: false,
+    setHeaders: (res, filePath) => {
+      res.setHeader('Cache-Control', getCacheControlForStaticFile(filePath));
+    },
   });
 
   // Configure EJS to use a non-conflicting delimiter

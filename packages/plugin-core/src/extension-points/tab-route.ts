@@ -1,5 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import type { NavItemProperties } from './navigation';
 import type { ComponentCodeRef } from '../core/types';
 
@@ -13,6 +13,9 @@ import type { ComponentCodeRef } from '../core/types';
  * - 0 tabs: page is not rendered, nav item is hidden
  * - 1 tab: page renders the single tab's content without a tab bar
  * - 2+ tabs: page renders a full tab bar with all tabs
+ *
+ * Set `alwaysShowTabBar: true` to render the tab bar even with a single tab
+ * (e.g. Agents → Deployments while more tabs are planned).
  */
 export type TabRoutePageExtension = Extension<
   'app.tab-route/page',
@@ -31,6 +34,8 @@ export type TabRoutePageExtension = Extension<
      * Used with TitleWithIcon to render a page-level title above the tabs.
      */
     objectType?: string;
+    /** When true, renders the tab bar even if only one tab is registered. */
+    alwaysShowTabBar?: boolean;
   }
 >;
 

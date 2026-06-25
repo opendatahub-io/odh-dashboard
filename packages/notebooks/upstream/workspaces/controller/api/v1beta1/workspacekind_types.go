@@ -78,36 +78,58 @@ type WorkspaceKindSpawner struct {
 
 	// the icon of the WorkspaceKind
 	//  - a small (favicon-sized) icon used in the Workspace Spawner UI
-	Icon WorkspaceKindIcon `json:"icon"`
+	Icon WorkspaceKindAsset `json:"icon"`
 
 	// the logo of the WorkspaceKind
 	//  - a 1:1 (card size) logo used in the Workspace Spawner UI
-	Logo WorkspaceKindIcon `json:"logo"`
+	Logo WorkspaceKindAsset `json:"logo"`
 }
 
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'url' or 'configMap'",rule="!(has(self.url) && has(self.configMap)) && (has(self.url) || has(self.configMap))"
-type WorkspaceKindIcon struct {
+type WorkspaceKindAsset struct {
+	// the URL of the asset
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example="https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
 	Url *string `json:"url,omitempty"`
 
+	// the ConfigMap reference for the asset
 	// +kubebuilder:validation:Optional
-	ConfigMap *WorkspaceKindConfigMap `json:"configMap,omitempty"`
+	ConfigMap *WorkspaceKindAssetConfigMap `json:"configMap,omitempty"`
 }
 
-type WorkspaceKindConfigMap struct {
+type WorkspaceKindAssetConfigMap struct {
+	// the name of the ConfigMap
 	// +kubebuilder:example="my-logos"
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name"`
 
-	// +kubebuilder:example="apple-touch-icon-152x152.png"
+	// the namespace of the ConfigMap
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	// +kubebuilder:example="kubeflow"
+	Namespace string `json:"namespace"`
+
+	// the key in the ConfigMap which contains the data
+	// +kubebuilder:example="jupyterlab-logo.svg"
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
 	Key string `json:"key"`
+
+	// the media type of the asset data in the ConfigMap
+	// +kubebuilder:example="image/svg+xml"
+	MediaType WorkspaceKindAssetMediaType `json:"mediaType"`
 }
+
+// +kubebuilder:validation:Enum:={"image/svg+xml"}
+type WorkspaceKindAssetMediaType string
+
+const (
+	WorkspaceKindAssetMediaTypeSVG WorkspaceKindAssetMediaType = "image/svg+xml"
+)
 
 type WorkspaceKindPodTemplate struct {
 	// metadata for Workspace Pods (MUTABLE)
@@ -142,6 +164,7 @@ type WorkspaceKindPodTemplate struct {
 	//  - the following go template functions are available:
 	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:example:={ "NB_PREFIX": "{{ httpPathPrefix 'jupyterlab' }}" }
 	// +listType:="map"
 	// +listMapKey:="name"
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
@@ -299,19 +322,21 @@ type HTTPProxy struct {
 	// header manipulation rules for incoming HTTP requests
 	//  - sets the `spec.http[].headers.request` of the Istio VirtualService
 	//    https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
-	//  - the following string templates are available:
-	//     - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/connect/{profile_name}/{workspace_name}/')
 	// +kubebuilder:validation:Optional
 	RequestHeaders *IstioHeaderOperations `json:"requestHeaders,omitempty"`
 }
 
 type IstioHeaderOperations struct {
 	// overwrite the headers specified by key with the given values
+	//  - the following go template functions are available in the values:
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ .PathPrefix }}" }
+	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ httpPathPrefix 'rstudio' }}" }
 	Set map[string]string `json:"set,omitempty"`
 
 	// append the given values to the headers specified by keys (will create a comma-separated list of values)
+	//  - the following go template functions are available in the values:
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example:={ "My-Header": "value-to-append" }
 	Add map[string]string `json:"add,omitempty"`
@@ -547,7 +572,42 @@ type WorkspaceKindStatus struct {
 
 	// metrics for podTemplate options
 	PodTemplateOptions PodTemplateOptionsMetrics `json:"podTemplateOptions"`
+
+	// status of the spawner icon
+	SpawnerIcon ImageAssetStatus `json:"spawnerIcon"`
+
+	// status of the spawner logo
+	SpawnerLogo ImageAssetStatus `json:"spawnerLogo"`
 }
+
+type ImageAssetStatus struct {
+	// sha256 hash of image asset content
+	// +kubebuilder:validation:Optional
+	Sha256 string `json:"sha256,omitempty"`
+
+	// status of the configMap reference
+	// +kubebuilder:validation:Optional
+	ConfigMap *WorkspaceKindAssetConfigMapStatus `json:"configMap,omitempty"`
+}
+
+type WorkspaceKindAssetConfigMapStatus struct {
+	// cause of the error when reading the configMap
+	// +kubebuilder:validation:Optional
+	Error *ConfigMapError `json:"errorType,omitempty"`
+
+	// error message when reading the configMap
+	// +kubebuilder:validation:Optional
+	ErrorMessage *string `json:"errorMessage,omitempty"`
+}
+
+// +kubebuilder:validation:Enum:={"NotFound","KeyNotFound","Other"}
+type ConfigMapError string
+
+const (
+	ConfigMapErrorNotFound    ConfigMapError = "NotFound"
+	ConfigMapErrorKeyNotFound ConfigMapError = "KeyNotFound"
+	ConfigMapErrorOther       ConfigMapError = "Other"
+)
 
 type PodTemplateOptionsMetrics struct {
 	// metrics about the imageConfig options

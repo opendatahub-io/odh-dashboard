@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { LabelGroup, Spinner } from '@patternfly/react-core';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import type { EitherNotBoth } from '@odh-dashboard/ui-core';
 import {
   useRelatedNotebooks,
   ConnectedNotebookContext,
@@ -9,8 +11,6 @@ import { ProjectObjectType } from '#~/concepts/design/utils';
 import ResourceLabel from '#~/pages/projects/screens/detail/connections/ResourceLabel';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
-import { EitherNotBoth } from '#~/typeHelpers';
 
 export type ConnectedResourcesProps = EitherNotBoth<
   { connection: Connection },

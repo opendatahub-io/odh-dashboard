@@ -1,18 +1,20 @@
 import React from 'react';
 import {
-  ActionList,
-  ActionListGroup,
-  ActionListItem,
   Button,
   Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
   MenuToggle,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { CodeIcon, ColumnsIcon, CogIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
 type ChatbotHeaderActionsProps = {
@@ -21,6 +23,10 @@ type ChatbotHeaderActionsProps = {
   onDeletePlayground: () => void;
   onNewChat: () => void;
   onCompareChat: () => void;
+  onSave: () => void;
+  onSaveAs: () => void;
+  onLoad: () => void;
+  onNew: () => void;
   onSettingsClick: () => void;
   isSettingsOpen: boolean;
   isCompareMode: boolean;
@@ -32,18 +38,22 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onDeletePlayground,
   onNewChat,
   onCompareChat,
+  onSave,
+  onSaveAs,
+  onLoad,
+  onNew,
   onSettingsClick,
   isSettingsOpen,
   isCompareMode,
 }) => {
   const { lsdStatus, lastInput } = React.useContext(ChatbotContext);
-  // Might need to iterate through selectedModels for each config during comparison mode
   const configIds = useChatbotConfigStore(selectConfigIds);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configIds[0]));
   const isViewCodeDisabled = !lastInput || !selectedModel;
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
+  const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
+  const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
 
-  // Get disabled reason for popover
   const getDisabledReason = () => {
     if (!lastInput && !selectedModel) {
       return 'Please input a message and select a model to generate code';
@@ -58,37 +68,42 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   };
 
   return (
-    <ActionList>
-      <ActionListGroup>
+    <Toolbar inset={{ default: 'insetNone' }} className="pf-m-full-width" style={{ padding: 0 }}>
+      <ToolbarContent
+        className="pf-v6-u-flex-nowrap"
+        style={{ padding: 0, justifyContent: 'flex-end' }}
+      >
         {lsdStatus?.phase === 'Ready' && (
           <>
             {/* Hide compare button when in compare mode - use close button on pane to exit */}
             {!isCompareMode && (
-              <ActionListItem>
-                <Button
-                  variant="link"
-                  aria-label="Compare chat"
-                  icon={<ColumnsIcon />}
-                  onClick={onCompareChat}
-                  data-testid="compare-chat-button"
-                >
-                  Compare chat
-                </Button>
-              </ActionListItem>
+              <ToolbarItem>
+                {profileApplied ? (
+                  <Tooltip content="Comparison mode is not available when an agent configuration is loaded.">
+                    <Button
+                      variant="link"
+                      aria-label="Compare chat (disabled)"
+                      icon={<ColumnsIcon />}
+                      isAriaDisabled
+                      data-testid="compare-chat-button"
+                    >
+                      Compare chat
+                    </Button>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    variant="link"
+                    aria-label="Compare chat"
+                    icon={<ColumnsIcon />}
+                    onClick={onCompareChat}
+                    data-testid="compare-chat-button"
+                  >
+                    Compare chat
+                  </Button>
+                )}
+              </ToolbarItem>
             )}
-            <ActionListItem>
-              <Button
-                variant="link"
-                aria-label="Settings"
-                aria-expanded={isSettingsOpen}
-                icon={<CogIcon />}
-                onClick={onSettingsClick}
-                data-testid="settings-button"
-              >
-                Settings
-              </Button>
-            </ActionListItem>
-            <ActionListItem>
+            <ToolbarItem>
               <Button
                 variant="link"
                 aria-label="Start a new chat session"
@@ -98,12 +113,12 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
               >
                 New chat
               </Button>
-            </ActionListItem>
-            <ActionListItem>
+            </ToolbarItem>
+            <ToolbarItem>
               {isViewCodeDisabled ? (
                 <Tooltip content={getDisabledReason()}>
                   <Button
-                    variant="secondary"
+                    variant="link"
                     aria-label="View generated code (disabled)"
                     icon={<CodeIcon />}
                     isAriaDisabled={isViewCodeDisabled}
@@ -114,19 +129,32 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 </Tooltip>
               ) : (
                 <Button
-                  variant="secondary"
+                  variant="link"
                   aria-label="View generated code"
                   icon={<CodeIcon />}
                   onClick={onViewCode}
                   data-testid="view-code-button"
                 >
-                  View Code
+                  View code
                 </Button>
               )}
-            </ActionListItem>
+            </ToolbarItem>
+            <ToolbarItem variant="separator" />
+            <ToolbarItem>
+              <Button
+                variant="link"
+                aria-label="Settings"
+                aria-expanded={isSettingsOpen}
+                icon={<CogIcon />}
+                onClick={onSettingsClick}
+                data-testid="settings-button"
+              >
+                Settings
+              </Button>
+            </ToolbarItem>
           </>
         )}
-        <ActionListItem>
+        <ToolbarItem>
           <Dropdown
             onSelect={() => setDropdownOpen(false)}
             toggle={(toggleRef) => (
@@ -145,15 +173,55 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
             popperProps={{ position: 'end', preventOverflow: true }}
           >
             <DropdownList>
+              {agentConfigManagementEnabled && (
+                <DropdownItem
+                  onClick={!isCompareMode ? onLoad : undefined}
+                  isAriaDisabled={isCompareMode}
+                  key="load-agent-configuration"
+                  data-testid="load-agent-profile-button"
+                >
+                  Load agent configuration
+                </DropdownItem>
+              )}
+              {agentConfigManagementEnabled && profileApplied && (
+                <DropdownItem
+                  onClick={!isCompareMode ? onSave : undefined}
+                  isAriaDisabled={isCompareMode}
+                  key="save-agent-configuration"
+                  data-testid="save-agent-profile-button"
+                >
+                  Save agent configuration
+                </DropdownItem>
+              )}
+              {agentConfigManagementEnabled && (
+                <DropdownItem
+                  onClick={!isCompareMode ? onSaveAs : undefined}
+                  isAriaDisabled={isCompareMode}
+                  key="save-as-agent-configuration"
+                  data-testid="save-as-agent-profile-button"
+                >
+                  Save as agent configuration
+                </DropdownItem>
+              )}
+              {agentConfigManagementEnabled && profileApplied && (
+                <DropdownItem
+                  onClick={!isCompareMode ? onNew : undefined}
+                  isAriaDisabled={isCompareMode}
+                  key="new-agent-configuration"
+                  data-testid="new-agent-configuration-button"
+                >
+                  New agent configuration
+                </DropdownItem>
+              )}
+              {agentConfigManagementEnabled && <Divider key="agent-divider" />}
               <DropdownItem
                 onClick={onConfigurePlayground}
                 key="update-configuration"
                 isDisabled={!lsdStatus}
                 data-testid="configure-playground-menu-item"
               >
-                Update configuration
+                Update playground
               </DropdownItem>
-              <Divider />
               <DropdownItem
                 onClick={onDeletePlayground}
                 key="delete-playground"
@@ -164,9 +232,9 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
               </DropdownItem>
             </DropdownList>
           </Dropdown>
-        </ActionListItem>
-      </ActionListGroup>
-    </ActionList>
+        </ToolbarItem>
+      </ToolbarContent>
+    </Toolbar>
   );
 };
 

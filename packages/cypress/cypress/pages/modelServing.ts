@@ -8,6 +8,11 @@ import { DeleteModal } from './components/DeleteModal';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
 
+type DeploymentMethodKey =
+  | 'legacy'
+  | 'llm-inference-service-simple-vllm'
+  | 'llm-inference-service-llmd';
+
 class ModelServingToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
     return this.find().pfSwitch(id).click();
@@ -695,6 +700,23 @@ class ModelServingRow extends TableRow {
   findConfirmStopModalCheckbox() {
     return this.findConfirmStopModal().findByTestId('dont-show-again-checkbox');
   }
+
+  findModelResourceNameButton() {
+    return this.find().findByTestId('resource-name-icon-button');
+  }
+
+  findModelResourceNameText() {
+    // Popover body is rendered outside the table row.
+    return cy.findByTestId('resource-name-text');
+  }
+
+  findModelResourceNameCopyButton() {
+    return this.findModelResourceNameText().find('button[aria-label="Copy"]');
+  }
+
+  findModelResourceKindText() {
+    return cy.findByTestId('resource-kind-text');
+  }
 }
 
 class KServeRow extends ModelServingRow {
@@ -911,6 +933,18 @@ class ModelServingWizard extends Wizard {
 
   findSpinner() {
     return cy.findByTestId('spinner');
+  }
+
+  findPreconfigureStep() {
+    return this.findStep('preconfigure-step');
+  }
+
+  findPreconfigureProjectSelector() {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  findPreconfigureProjectSelectorOption(name: string) {
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
   }
 
   findModelSourceStep() {
@@ -1384,8 +1418,21 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('switch-to-manual-yaml-editor');
   }
 
-  findLegacyModeCheckbox() {
-    return cy.findByTestId('legacy-mode-checkbox');
+  findDeploymentMethodSelect() {
+    return cy.findByTestId('deployment-method-select');
+  }
+
+  findDeploymentMethodSelectOption(testId: DeploymentMethodKey) {
+    this.findDeploymentMethodSelect().then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+    });
+    return cy.findByTestId(testId);
+  }
+
+  selectDeploymentMethodByKey(key: DeploymentMethodKey) {
+    this.findDeploymentMethodSelectOption(key).click();
   }
 
   findYAMLEditFallbackAlert() {

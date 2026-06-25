@@ -8,6 +8,15 @@ export const EVAL_HUB_EVENTS = {
   MLFLOW_EXPERIMENT_SELECTED: 'Evaluations MLFlow Experiment Selected',
   RESULT_BENCHMARK_CARD_SELECTED: 'Evaluations Result Benchmark Card Selected',
   BENCHMARK_RUN_SELECTED: 'Evaluations Benchmark Run Selected',
+  COMPARE_RUN_SELECTED: 'Evaluations Compare Run Selected',
+  COMPARE_INITIATED: 'Evaluations Compare Initiated',
+  COMPARE_BENCHMARK_CHOSEN: 'Evaluations Compare Benchmark Chosen',
+  RUN_SOURCE_SELECTED: 'Evaluations Run Source Selected',
+  RUN_MODEL_SELECTED: 'Evaluations Run Model Selected',
+  EXTERNAL_CONNECTION_TESTED: 'Evaluations External Connection Tested',
+  RUN_THRESHOLD_CHANGED: 'Evaluations Run Threshold Changed',
+  RUN_METRIC_SELECTED: 'Evaluations Run Metric Selected',
+  RUN_PARAMETER_CHANGED: 'Evaluations Run Parameter Changed',
 } as const;
 
 /**
@@ -69,4 +78,57 @@ export type BenchmarkRunSelectedProperties = {
   benchmarkTypes: string[];
   runType: 'single' | 'collection';
   countOfBenchmarks: number;
+};
+
+export type CompareRunSelectedProperties = {
+  evaluationName: string;
+  evaluationType: 'Benchmark' | 'Benchmark suite';
+  isSelected: boolean;
+  countOfRuns: number;
+};
+
+export type CompareInitiatedProperties = {
+  countOfRuns: number;
+  runTypes: 'all_benchmarks' | 'all_suites' | 'mixed';
+  hasCollections: boolean;
+};
+
+export type CompareBenchmarkChosenProperties = {
+  countOfBenchmarks: number;
+  totalAvailable: number;
+  benchmarkNames: string;
+};
+
+export type RunSourceSelectedProperties = {
+  sourceType: 'model' | 'agent' | 'prerecorded';
+};
+
+export type RunModelSelectedProperties = {
+  selectedModel: string;
+  isExternal: boolean;
+};
+
+export type ExternalConnectionTestedProperties = {
+  outcome: 'success' | 'error';
+  endpointType: 'model' | 'agent' | 'prerecorded';
+  error?: string;
+};
+
+export type RunThresholdChangedProperties = {
+  thresholdValue: number;
+  benchmarkName: string;
+};
+
+export type RunMetricSelectedProperties = {
+  metricName: string;
+  isDefault: boolean;
+  benchmarkName: string;
+};
+
+export type RunParameterChangedProperties = {
+  parameterName: string;
+  /** Redacted shape descriptor (e.g. "string(12)", "number", "boolean") — never the raw value. */
+  parameterValueShape: string;
+  benchmarkName: string;
+  isDefault: boolean;
 };

@@ -1,5 +1,5 @@
-import { SortableData } from '#~/components/table';
-import { NodeSelector } from '#~/types';
+import type { NodeSelector } from '@odh-dashboard/k8s-core';
+import { SortableData } from '@odh-dashboard/ui-core';
 
 export const nodeSelectorColumns: SortableData<NodeSelector>[] = [
   {

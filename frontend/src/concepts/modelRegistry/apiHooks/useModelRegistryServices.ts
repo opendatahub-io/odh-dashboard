@@ -1,10 +1,11 @@
 import React from 'react';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '#~/utilities/useFetchState';
-import { AccessReviewResourceAttributes, ServiceKind } from '#~/k8sTypes';
+import { ServiceKind } from '#~/k8sTypes';
 import { ServiceModel, useAccessReview, useRulesReview, listServices } from '#~/api';
 
 const accessReviewResource: AccessReviewResourceAttributes = {

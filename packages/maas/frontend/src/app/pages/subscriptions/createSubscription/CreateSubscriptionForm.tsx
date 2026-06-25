@@ -43,6 +43,7 @@ import EditRateLimitsModal from './EditRateLimitsModal';
 type CreateSubscriptionFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
   subscriptionInfo?: SubscriptionInfoResponse;
+  returnTo?: string;
 };
 const MAX_PRIORITY = 1000000;
 const MIN_PRIORITY = -1000000;
@@ -77,6 +78,7 @@ const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEn
 const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   formData,
   subscriptionInfo,
+  returnTo,
 }) => {
   const navigate = useNavigate();
   const isEditing = !!subscriptionInfo;
@@ -247,7 +249,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         };
         await createSubscription()(apiOpts, request);
       }
-      navigate(`${URL_PREFIX}/subscriptions`);
+      navigate(returnTo ?? `${URL_PREFIX}/subscriptions`);
     } catch (e) {
       setSubmitError(
         e instanceof Error
@@ -353,7 +355,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             data-testid="no-models-warning"
           >
             There are no model endpoints available on the cluster. Deploy a model on the{' '}
-            <Link to={`${URL_PREFIX}/deployments`}>Deployments page</Link> and create a MaaSModelRef
+            <Link to="/ai-hub/models/deployments">Deployments page</Link> and create a MaaSModelRef
             before creating a subscription.
           </Alert>
         ) : (
@@ -505,7 +507,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(`${URL_PREFIX}/subscriptions`)}
+            onClick={() => navigate(returnTo ?? `${URL_PREFIX}/subscriptions`)}
             isDisabled={isSubmitting}
             data-testid="cancel-subscription-button"
           >

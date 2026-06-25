@@ -9,7 +9,9 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -155,8 +157,8 @@ func TestCanListOGXServersSARStructure(t *testing.T) {
 
 func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 	t.Run("should handle MaaS models correctly", func(t *testing.T) {
-		// Create a mock MaaS client
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		// Create a mock BFF client for MaaS
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		// Create a token client
 		client := &TokenKubernetesClient{
@@ -172,7 +174,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token")
 
 		// This should succeed since we're only using MaaS models
 		assert.NoError(t, err)
@@ -198,7 +200,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 	t.Run("should fail when MaaS model is not ready", func(t *testing.T) {
 		// Create a mock MaaS client
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		// Create a token client
 		client := &TokenKubernetesClient{
@@ -213,7 +215,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token")
 
 		// This should fail because the model is not ready
 		assert.Error(t, err)
@@ -223,7 +225,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 	t.Run("should fail when MaaS model is not found", func(t *testing.T) {
 		// Create a mock MaaS client
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		// Create a token client
 		client := &TokenKubernetesClient{
@@ -238,7 +240,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token")
 
 		// This should fail because the model is not found
 		assert.Error(t, err)
@@ -247,7 +249,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 	})
 
 	t.Run("should fail when MaaS models are present but auth token is empty", func(t *testing.T) {
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		client := &TokenKubernetesClient{
 			Logger: slog.Default(),
@@ -259,7 +261,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		ctx := context.Background()
 
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "")
 
 		assert.Error(t, err)
 		assert.Empty(t, result)
@@ -269,7 +271,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 	t.Run("should NOT include RBAC auth when EnableLlamaStackRBAC is false", func(t *testing.T) {
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		// Create client with RBAC disabled (default)
 		client := &TokenKubernetesClient{
@@ -282,7 +284,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockMaaSClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token")
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -298,7 +300,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 	})
 
 	t.Run("should include RBAC auth when EnableLlamaStackRBAC is true", func(t *testing.T) {
-		mockMaaSClient := &maasmocks.MockMaaSClient{}
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		// Create client with RBAC enabled
 		client := &TokenKubernetesClient{
@@ -311,7 +313,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockMaaSClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token")
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -336,44 +338,158 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 	})
 }
 
-// TestLLMInferenceServiceURLConstruction tests that the URL format for LLMInferenceService
-// remains consistent and doesn't accidentally change
-func TestLLMInferenceServiceURLConstruction(t *testing.T) {
-	tests := []struct {
-		name        string
-		scheme      string
-		serviceName string
-		namespace   string
-		port        int32
-		expected    string
-	}{
-		{
-			name:        "http URL without auth",
-			scheme:      "http",
-			serviceName: "test-service",
-			namespace:   "test-namespace",
-			port:        8080,
-			expected:    "http://test-service.test-namespace.svc.cluster.local:8080/v1",
-		},
-		{
-			name:        "https URL with auth",
-			scheme:      "https",
-			serviceName: "secure-service",
-			namespace:   "prod-namespace",
-			port:        8443,
-			expected:    "https://secure-service.prod-namespace.svc.cluster.local:8443/v1",
-		},
+// TestExtractEndpointFromLLMInferenceService tests that extractEndpointFromLLMInferenceService
+// reads the internal URL from status.addresses instead of constructing it manually.
+func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
+	client := &TokenKubernetesClient{
+		Logger: slog.Default(),
 	}
+	ctx := context.Background()
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Call the actual function used in extractEndpointFromLLMInferenceService
-			actual := ConstructLLMInferenceServiceURL(tt.scheme, tt.serviceName, tt.namespace, tt.port)
+	t.Run("status.addresses with internal URL appends /v1", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://tinyllama-kserve-workload-svc.kserve-test.svc.cluster.local")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://tinyllama-kserve-workload-svc.kserve-test.svc.cluster.local/v1", endpoint)
+	})
 
-			assert.Equal(t, tt.expected, actual,
-				"LLMInferenceService URL format must remain: {scheme}://{service}.{namespace}.svc.cluster.local:{port}/v1")
-		})
-	}
+	t.Run("status.addresses with internal URL already having /v1 returns as-is", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local/v1")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://my-model.namespace.svc.cluster.local/v1", endpoint)
+	})
+
+	t.Run("status.addresses empty falls back to status.address singular", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Address: &duckv1.Addressable{URL: mustParseURL("https://fallback-svc.ns.svc.cluster.local")},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://fallback-svc.ns.svc.cluster.local/v1", endpoint)
+	})
+
+	t.Run("both addresses and address empty returns error", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{}
+		llmSvc.Name = "empty-model"
+		_, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "has no internal URL")
+	})
+
+	t.Run("multiple addresses picks internal over external", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://my-model.namespace.svc.cluster.local/v1", endpoint,
+			"should pick the internal (svc.cluster.local) address, not the external one")
+	})
+
+	t.Run("addresses with nil URL entries are skipped", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: nil},
+						{URL: mustParseURL("https://valid-svc.ns.svc.cluster.local")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://valid-svc.ns.svc.cluster.local/v1", endpoint)
+	})
+
+	t.Run("internal URL with explicit port preserves port and appends /v1", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local:8443")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://my-model.namespace.svc.cluster.local:8443/v1", endpoint)
+	})
+
+	t.Run("singular fallback with external URL returns error", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Address: &duckv1.Addressable{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+				},
+			},
+		}
+		llmSvc.Name = "external-only"
+		_, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "has no internal URL")
+	})
+
+	t.Run("URL with svc.cluster.local in path but not hostname is rejected", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://evil.com/.svc.cluster.local/proxy")},
+					},
+				},
+			},
+		}
+		llmSvc.Name = "spoofed-url"
+		_, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "has no internal URL")
+	})
+
+	t.Run("IPv6 loopback address is rejected as non-cluster-local", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://[::1]:8080/v1")},
+					},
+				},
+			},
+		}
+		llmSvc.Name = "ipv6-loopback"
+		_, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "has no internal URL")
+	})
 }
 
 // TestInferenceServiceURLSuffixConstruction tests that InferenceService URLs
@@ -959,6 +1075,88 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 	})
 }
 
+func TestGetAAModelsFromExternalModelsCapabilities(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	identity := &integrations.RequestIdentity{Token: "test-token"}
+
+	makeConfigMap := func(configYAML string) *corev1.ConfigMap {
+		return &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: "test-ns",
+			},
+			Data: map[string]string{"config.yaml": configYAML},
+		}
+	}
+
+	t.Run("no capabilities in YAML defaults to text-generation", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: my-provider
+      provider_type: remote::openai
+      config:
+        base_url: https://api.example.com
+registered_resources:
+  models:
+    - provider_id: my-provider
+      model_id: my-model
+      model_type: llm
+      metadata:
+        display_name: My Model`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
+	})
+
+	t.Run("explicit capabilities in YAML are passed through", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: my-provider
+      provider_type: remote::openai
+      config:
+        base_url: https://api.example.com
+registered_resources:
+  models:
+    - provider_id: my-provider
+      model_id: my-model
+      model_type: llm
+      metadata:
+        display_name: My Model
+        capabilities:
+          - audio-transcription
+          - vision`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{"audio-transcription", "vision"}, result[0].Capabilities)
+	})
+}
+
 func TestValidateExternalModelsConfig(t *testing.T) {
 	client := &TokenKubernetesClient{
 		Logger: slog.Default(),
@@ -1309,7 +1507,7 @@ func TestGetSecretValue(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Empty(t, value)
-		assert.Contains(t, err.Error(), "key 'wrong_key' not found in Secret")
+		assert.ErrorIs(t, err, ErrSecretKeyNotFound)
 	})
 }
 
@@ -1422,6 +1620,37 @@ func TestGetAAModelsFromLLMInferenceServiceNilName(t *testing.T) {
 		require.Len(t, result, 1)
 		assert.Equal(t, "my-llm-service", result[0].ModelID)
 		assert.Equal(t, "my-llm-service", result[0].ModelName)
+		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities,
+			"missing annotation should default to text-generation")
+	})
+
+	t.Run("annotation populates Capabilities", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "whisper-llm",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					constants.ModelCapabilitiesAnnotationKey: `["audio-transcription","vision"]`,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(llmSvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromLLMInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription, constants.CapabilityVision}, result[0].Capabilities)
 	})
 
 	t.Run("empty Spec.Model.Name falls back to metadata name", func(t *testing.T) {
@@ -1535,7 +1764,8 @@ func TestGetModelDetailsFromServingRuntimeNilName(t *testing.T) {
 	)
 	llmUID := types.UID("llm-uid-123")
 
-	// newLLMService creates an LLMInferenceService with an optional Spec.Model.Name.
+	// newLLMService creates an LLMInferenceService with an optional Spec.Model.Name
+	// and status.addresses populated (required by extractEndpointFromLLMInferenceService).
 	newLLMService := func(modelNamePtr *string) *kservev1alpha1.LLMInferenceService {
 		svc := &kservev1alpha1.LLMInferenceService{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1543,34 +1773,18 @@ func TestGetModelDetailsFromServingRuntimeNilName(t *testing.T) {
 				Namespace: namespace,
 				UID:       llmUID,
 			},
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://" + serviceName + "-workload." + namespace + ".svc.cluster.local")},
+					},
+				},
+			},
 		}
 		if modelNamePtr != nil {
 			svc.Spec.Model.Name = modelNamePtr
 		}
 		return svc
-	}
-
-	// workloadService returns a corev1.Service that extractEndpointFromLLMInferenceService
-	// will discover via label selector + owner-reference match.
-	workloadService := func() *corev1.Service {
-		return &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      serviceName + "-workload",
-				Namespace: namespace,
-				Labels: map[string]string{
-					LLMInferenceServiceName:      serviceName,
-					LLMInferenceServiceComponent: LLMInferenceServiceWorkloadComponent,
-				},
-				OwnerReferences: []metav1.OwnerReference{
-					{UID: llmUID},
-				},
-			},
-			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{
-					{Port: 8080},
-				},
-			},
-		}
 	}
 
 	modelName := "explicit-model-name"
@@ -1606,7 +1820,7 @@ func TestGetModelDetailsFromServingRuntimeNilName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(newLLMService(tt.modelNamePtr), workloadService()).
+				WithObjects(newLLMService(tt.modelNamePtr)).
 				Build()
 
 			kc := &TokenKubernetesClient{
@@ -1630,4 +1844,226 @@ func TestGetModelDetailsFromServingRuntimeNilName(t *testing.T) {
 // strPtr is a helper that returns a pointer to the given string.
 func strPtr(s string) *string {
 	return &s
+}
+
+func TestParseModelCapabilities(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "empty string returns defaults",
+			input:    "",
+			expected: []string{constants.CapabilityTextGeneration},
+		},
+		{
+			name:     "single valid capability",
+			input:    `["vision"]`,
+			expected: []string{constants.CapabilityVision},
+		},
+		{
+			name:     "multiple valid capabilities",
+			input:    `["vision", "audio-transcription"]`,
+			expected: []string{constants.CapabilityVision, constants.CapabilityAudioTranscription},
+		},
+		{
+			name:     "unknown value dropped, valid subset kept",
+			input:    `["vision", "smell"]`,
+			expected: []string{constants.CapabilityVision},
+		},
+		{
+			name:     "all unknown values returns defaults",
+			input:    `["smell", "taste"]`,
+			expected: []string{constants.CapabilityTextGeneration},
+		},
+		{
+			name:     "malformed JSON returns defaults",
+			input:    `not-json`,
+			expected: []string{constants.CapabilityTextGeneration},
+		},
+		{
+			name:     "non-array JSON returns defaults",
+			input:    `"vision"`,
+			expected: []string{constants.CapabilityTextGeneration},
+		},
+		{
+			name:     "mixed types keeps only strings",
+			input:    `["vision", 42]`,
+			expected: []string{constants.CapabilityVision},
+		},
+		{
+			name:     "empty array returns defaults",
+			input:    `[]`,
+			expected: []string{constants.CapabilityTextGeneration},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseModelCapabilities(tt.input)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func TestParseModelCapabilities_CopyOnReturn(t *testing.T) {
+	// Verify that mutating the returned slice does not affect DefaultCapabilities().
+	result := parseModelCapabilities("")
+	original := constants.DefaultCapabilities()
+	result[0] = "mutated"
+	assert.Equal(t, original, constants.DefaultCapabilities(), "DefaultCapabilities() must return independent copies")
+}
+
+func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, kservev1alpha1.AddToScheme(scheme))
+	require.NoError(t, kservev1beta1.AddToScheme(scheme))
+
+	t.Run("missing annotation defaults to text-generation", func(t *testing.T) {
+		isvc := &kservev1beta1.InferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "llama-isvc",
+				Namespace: "test-ns",
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(isvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
+	})
+
+	t.Run("annotation populates Capabilities", func(t *testing.T) {
+		isvc := &kservev1beta1.InferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "whisper-isvc",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					constants.ModelCapabilitiesAnnotationKey: `["audio-transcription"]`,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(isvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
+	})
+}
+
+func TestPgvectorConnectionFromConfig(t *testing.T) {
+	t.Run("empty host returns unconfigured connection", func(t *testing.T) {
+		cfg := config.EnvConfig{}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		assert.False(t, conn.IsConfigured())
+	})
+
+	t.Run("host set returns configured connection with defaults", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "pg.svc.cluster.local",
+		}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		assert.True(t, conn.IsConfigured())
+		assert.Equal(t, "pg.svc.cluster.local", conn.Host)
+		assert.Equal(t, 5432, conn.Port)
+		assert.Equal(t, "vectordb", conn.DB)
+		assert.Equal(t, "vectoruser", conn.User)
+		assert.Nil(t, conn.PasswordSecret)
+	})
+
+	t.Run("custom values override defaults", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "custom-host",
+			PgvectorPort: 5433,
+			PgvectorDB:   "mydb",
+			PgvectorUser: "myuser",
+		}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		assert.Equal(t, "custom-host", conn.Host)
+		assert.Equal(t, 5433, conn.Port)
+		assert.Equal(t, "mydb", conn.DB)
+		assert.Equal(t, "myuser", conn.User)
+	})
+
+	t.Run("password secret ref is set when secret name provided", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost:               "pg.svc",
+			PgvectorPasswordSecretName: "pg-creds",
+			PgvectorPasswordSecretKey:  "pg-password",
+		}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		require.NotNil(t, conn.PasswordSecret)
+		assert.Equal(t, "pg-creds", conn.PasswordSecret.Name)
+		assert.Equal(t, "pg-password", conn.PasswordSecret.Key)
+	})
+
+	t.Run("password secret key defaults to DefaultPasswordKey", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost:               "pg.svc",
+			PgvectorPasswordSecretName: "pg-creds",
+		}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		require.NotNil(t, conn.PasswordSecret)
+		assert.Equal(t, pgvector.DefaultPasswordKey, conn.PasswordSecret.Key)
+	})
+
+	t.Run("negative port returns error", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "pg.svc",
+			PgvectorPort: -1,
+		}
+		_, err := pgvectorConnectionFromConfig(cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid PGVECTOR_PORT")
+	})
+
+	t.Run("port exceeding 65535 returns error", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "pg.svc",
+			PgvectorPort: 70000,
+		}
+		_, err := pgvectorConnectionFromConfig(cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid PGVECTOR_PORT")
+	})
+
+	t.Run("secret key without secret name does not set PasswordSecret", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost:              "pg.svc",
+			PgvectorPasswordSecretKey: "my-key",
+		}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		assert.Nil(t, conn.PasswordSecret, "key alone without name should not create a SecretRef")
+	})
 }

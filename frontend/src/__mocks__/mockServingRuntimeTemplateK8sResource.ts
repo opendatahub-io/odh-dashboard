@@ -1,4 +1,4 @@
-import { K8sDSGResource, SupportedModelFormats, TemplateKind } from '#~/k8sTypes';
+import type { K8sDSGResource, SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,
