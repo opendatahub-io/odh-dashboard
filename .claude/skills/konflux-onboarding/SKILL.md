@@ -380,7 +380,7 @@ git checkout -b <component-name>-openshift-ci upstream/main
 
 Edit **only** the following file:
 
-```
+```text
 ci-operator/config/opendatahub-io/odh-dashboard/opendatahub-io-odh-dashboard-main.yaml
 ```
 
@@ -389,6 +389,7 @@ Read the existing file and add entries for the new component following the exist
 1. **Image build** — add to `images.items[]`:
 
    For Type A:
+
    ```yaml
    - context_dir: .
      dockerfile_path: ./packages/<name>/Dockerfile.workspace
@@ -396,6 +397,7 @@ Read the existing file and add entries for the new component following the exist
    ```
 
    For Type B:
+
    ```yaml
    - context_dir: .
      dockerfile_path: ./<name>/Dockerfile
