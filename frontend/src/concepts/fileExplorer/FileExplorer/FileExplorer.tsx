@@ -956,6 +956,9 @@ interface FileExplorerProps {
   /** Callback fired when the primary action button is clicked, passing the selected files. */
   onPrimary: (files: ExplorerFiles) => void;
 
+  /** Override the default search input placeholder text. When omitted, the placeholder is derived from the current folder name. */
+  searchPlaceholder?: string;
+
   /** A regex pattern describing the allowed characters in the search input. Characters not matching this pattern are stripped. */
   allowedSearchCharacters?: RegExp;
 
@@ -989,6 +992,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onSetPage,
   onPerPageSelect,
   onPrimary,
+  searchPlaceholder: searchPlaceholderProp,
   allowedSearchCharacters,
   allowedSearchCharactersLabel,
 }) => {
@@ -1163,13 +1167,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   searchInputId={`${rootId}-FileExplorer-search-input`}
                   data-testid="file-explorer-search"
                   aria-label={defaults.labels.searchAriaLabel}
-                  placeholder={defaults.labels.searchPlaceholder(
-                    folders && folders.length > 0
-                      ? folders[folders.length - 1].name
-                      : source
-                      ? `${source.name} (root)`
-                      : undefined,
-                  )}
+                  placeholder={
+                    searchPlaceholderProp ??
+                    defaults.labels.searchPlaceholder(
+                      folders && folders.length > 0
+                        ? folders[folders.length - 1].name
+                        : source
+                          ? `${source.name} (root)`
+                          : undefined,
+                    )
+                  }
                   value={searchQuery}
                   onChange={handleSearchChange}
                   onClear={handleSearchClear}

@@ -42,6 +42,29 @@ jest.mock('~/app/hooks/useNotification', () => ({
   })),
 }));
 
+jest.mock('~/app/components/configure/EvaluationFileCreator', () => ({
+  __esModule: true,
+  default: ({
+    isOpen,
+    onClose,
+    onCreated,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onCreated: (key: string) => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="evaluation-creator-modal">
+        <button data-testid="creator-close" onClick={onClose}>
+          Close
+        </button>
+        <button data-testid="creator-submit" onClick={() => onCreated('created-eval.json')}>
+          Submit
+        </button>
+      </div>
+    ) : null,
+}));
+
 jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
@@ -579,5 +602,55 @@ describe('AutoragEvaluationSelect', () => {
 
     // The S3FileExplorer should be rendered with the correct secret
     expect(screen.getByTestId('s3-file-explorer')).toBeInTheDocument();
+  });
+
+  it('should render the Create button', () => {
+    renderWithProviders(<AutoragEvaluationSelect />);
+
+    expect(screen.getByTestId('evaluation-create-button')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-create-button')).toHaveTextContent('Create');
+  });
+
+  it('should open EvaluationFileCreator when Create button is clicked', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<AutoragEvaluationSelect />);
+
+    expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('evaluation-create-button'));
+
+    expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
+  });
+
+  it('should close EvaluationFileCreator when close is triggered', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<AutoragEvaluationSelect />);
+
+    await user.click(screen.getByTestId('evaluation-create-button'));
+    expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('creator-close'));
+    expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+  });
+
+  it('should update form field when EvaluationFileCreator creates a file', async () => {
+    const user = userEvent.setup();
+    let formValues: unknown;
+    const onFormChange = (values: unknown) => {
+      formValues = values;
+    };
+
+    renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
+
+    await user.click(screen.getByTestId('evaluation-create-button'));
+    await user.click(screen.getByTestId('creator-submit'));
+
+    await waitFor(() => {
+      expect(formValues).toMatchObject({
+        test_data_key: 'created-eval.json', // eslint-disable-line camelcase
+      });
+    });
   });
 });
