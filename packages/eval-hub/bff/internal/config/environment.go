@@ -110,6 +110,14 @@ type EnvConfig struct {
 	// Default is false (secure) for production environments
 	InsecureSkipVerify bool
 
+	// ─── INTER-BFF COMMUNICATION ────────────────────────────────
+	MockBFFClients              bool
+	BFFModelCatalogServiceName  string
+	BFFModelCatalogServicePort  int
+	BFFModelCatalogTLSEnabled   bool
+	BFFModelCatalogDevURL       string
+	BFFModelCatalogAuthMethod   string
+
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility
 	// Use DeploymentMode instead
