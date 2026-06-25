@@ -15,10 +15,14 @@ import {
   BFF_API_VERSION,
   STYLE_THEME,
   MANDATORY_NAMESPACE,
-  ROUTES_PREFIX,
 } from './shared/utilities/const';
 
-const root = ReactDOM.createRoot(document.getElementById('root')!);
+const container = document.getElementById('root');
+if (!container) {
+  throw new Error('Root element not found: ensure index.html contains <div id="root">');
+}
+
+const root = ReactDOM.createRoot(container);
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DEPLOYMENT_MODE,
@@ -29,7 +33,7 @@ const modularArchConfig: ModularArchConfig = {
 
 root.render(
   <React.StrictMode>
-    <Router basename={ROUTES_PREFIX}>
+    <Router basename={URL_PREFIX}>
       <ModularArchContextProvider config={modularArchConfig}>
         <ThemeProvider theme={STYLE_THEME}>
           <BrowserStorageContextProvider>

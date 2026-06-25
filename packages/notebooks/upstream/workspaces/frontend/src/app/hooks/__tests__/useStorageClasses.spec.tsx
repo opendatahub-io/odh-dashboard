@@ -40,10 +40,30 @@ describe('useStorageClasses', () => {
       refreshAllAPI: jest.fn(),
     });
 
+    const { result, waitForNextUpdate } = renderHook(() => useStorageClasses('test-ns'));
+    await waitForNextUpdate();
+
+    expect(listStorageClasses).toHaveBeenCalledWith({ namespace: 'test-ns' });
+    expect(result.current.storageClasses).toEqual(mockClasses);
+    expect(result.current.storageClassLoadError).toBeNull();
+  });
+
+  it('calls without namespace query when no namespace provided', async () => {
+    const mockClasses = [
+      { name: 'standard', displayName: 'Standard', canUse: true, description: '' },
+    ];
+    const listStorageClasses = jest.fn().mockResolvedValue({ data: mockClasses });
+
+    mockUseNotebookAPI.mockReturnValue({
+      api: { storageClasses: { listStorageClasses } } as unknown as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+
     const { result, waitForNextUpdate } = renderHook(() => useStorageClasses());
     await waitForNextUpdate();
 
-    expect(listStorageClasses).toHaveBeenCalledTimes(1);
+    expect(listStorageClasses).toHaveBeenCalledWith(undefined);
     expect(result.current.storageClasses).toEqual(mockClasses);
     expect(result.current.storageClassLoadError).toBeNull();
   });
@@ -57,12 +77,10 @@ describe('useStorageClasses', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result, waitForNextUpdate } = renderHook(() => useStorageClasses());
+    const { result, waitForNextUpdate } = renderHook(() => useStorageClasses('test-ns'));
     await waitForNextUpdate();
 
     expect(result.current.storageClasses).toEqual([]);
-    expect(result.current.storageClassLoadError).toBe(
-      'Storage classes could not be loaded. Enter a class name manually.',
-    );
+    expect(result.current.storageClassLoadError).toBe('network error');
   });
 });
