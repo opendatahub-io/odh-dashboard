@@ -17,7 +17,9 @@ const stableStringify = (val: unknown): string =>
     return v;
   });
 
-const EXCLUDED_SPEC_KEYS = new Set(['displayName', 'description', 'guardrails']);
+// Fields excluded from dirty comparison: either not written by serializeToAgentProfileSpec
+// (maxOutputTokens is in AgentProfileSpec but never serialized from config) or metadata-only.
+const EXCLUDED_SPEC_KEYS = new Set(['displayName', 'description', 'guardrails', 'maxOutputTokens']);
 
 /**
  * Strips fields not written by serializeToAgentProfileSpec (displayName, description,
