@@ -9,7 +9,7 @@ Two modes: **ticket mode** (one ticket → one spec) and **epic mode** (one epic
 
 ## Arguments
 
-```
+```text
 /prototype-spec <url> --fork <ssh-url> --ticket RHOAIENG-12345 [--base 3.5]
 /prototype-spec <url> --fork <ssh-url> --epic RHOAIENG-XXXXX [--base 3.5]
 ```
@@ -50,13 +50,13 @@ Run simultaneously.
 **Ticket mode:** Read the ticket with `getJiraIssue`. If it's an Epic → stop: "Use `--epic` instead." Extract summary, description, ACs, type, linked tickets.
 
 **Discover parent Epic and siblings:** The `parent` field in the Jira response contains the Epic (if linked). Extract the Epic key, then find siblings:
-```
+```text
 searchJiraIssuesUsingJql(cloudId: "redhat.atlassian.net", jql: "\"Epic Link\" = <parent-epic-key> AND statusCategory != Done ORDER BY key ASC")
 ```
 If no `parent` field, check `customfield_12311140` (Epic Link). If no Epic → skip sibling discovery.
 
 **Epic mode:** Read the Epic, then ALL active children:
-```
+```text
 searchJiraIssuesUsingJql(cloudId: "redhat.atlassian.net", jql: "\"Epic Link\" = <epic-key> AND statusCategory != Done ORDER BY key ASC")
 ```
 Zero children → stop: "Create tickets first with `/prototype-tickets`."

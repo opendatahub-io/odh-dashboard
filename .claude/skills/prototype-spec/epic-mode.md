@@ -8,7 +8,7 @@
 
 Present a matrix: every prototype element assigned to exactly one ticket. No gaps, no overlaps.
 
-```
+```text
 | Prototype element    | [KEY-1] | [KEY-2] | [KEY-3] | ... |
 |---------------------|---------|---------|---------|-----|
 | [element]            | IN      | —       | —       |     |
@@ -41,7 +41,7 @@ Topological sort → group into phases. Within a phase, tickets run in parallel.
 - Common utility import paths (`useFetchState`, `SimpleSelect`, project types, etc.)
 
 **Layer 2 — Boundary summary** (~30 lines, identical for all):
-```
+```text
 SIBLINGS — do not implement, for awareness only:
 - [KEY-1] (Task): [what it builds, files it owns]
 - [KEY-2] (Story): [summary] ← THIS IS YOU
@@ -54,7 +54,7 @@ Same format as ticket mode — Design Reference, scenarios, files, testing guida
 
 ### Execution plan
 
-```
+```text
 Phase 1 — [label] (no dependencies)
   [Type] [KEY]: [summary] → Can start immediately
 

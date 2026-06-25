@@ -9,7 +9,7 @@ Reads a designer's fork diff, identifies features and interactive flows, generat
 
 ## Arguments
 
-```
+```text
 /prototype-tickets <url> --fork <ssh-url> [--project RHOAIENG] [--parent RHAISTRAT-XXXXX | RHOAIENG-XXXXX] [--base 3.5]
 ```
 
@@ -88,7 +88,8 @@ Prioritize: new files → route/page components → modal/form components → sh
 ### Re-run protection + Epic discovery
 
 Search for existing tickets referencing this prototype URL:
-```
+
+```text
 searchJiraIssuesUsingJql(cloudId: "redhat.atlassian.net", jql: "project = <project> AND text ~ \"<prototype-url>\" AND statusCategory != Done ORDER BY key ASC")
 ```
 
@@ -136,7 +137,7 @@ Do not proceed until explicitly approved. Revise and re-present on feedback.
 
 Only if no existing Epic from `--parent` AND none discovered in Step 6. **If Epic creation fails, stop entirely** — no orphaned children.
 
-```
+```text
 createJiraIssue(cloudId: "redhat.atlassian.net", projectKey: "<project>",
   issueTypeName: "Epic", summary: "...", description: "...", contentFormat: "markdown",
   components: "AI Core Dashboard",
@@ -152,12 +153,14 @@ One by one, in dependency order. Track successful creates for Step 8c.
 
 **Tasks:** Same fields, labels `["tech-debt"]`.
 
-On failure: report error, continue with next ticket.
+On failure: report error.
+If the failed ticket is a prerequisite for later tickets, stop and re-preview before continuing.
 
 ### 8c: Create dependency links
 
 **Only link successfully created tickets.** Skip links where either ticket failed.
-```
+
+```text
 createIssueLink(cloudId: "redhat.atlassian.net", type: "Blocks",
   inwardIssue: "<blocker>", outwardIssue: "<blocked>")
 ```
@@ -165,7 +168,7 @@ Link failures are non-critical — report and continue.
 
 ### 8d: Output summary
 
-```
+```text
 | # | Key | Type | Summary | Depends on |
 | 0 | RHOAIENG-XXXXX | Epic | [title] | — |
 | 1 | RHOAIENG-XXXXX | Task | [summary] | — |

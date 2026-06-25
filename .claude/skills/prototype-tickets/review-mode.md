@@ -17,7 +17,7 @@ For each active (non-Closed) child ticket:
 
 ## Review output
 
-```
+```text
 ## Epic Review — [EPIC-KEY]
 
 **Prototype**: [url] (commit: [SHA])

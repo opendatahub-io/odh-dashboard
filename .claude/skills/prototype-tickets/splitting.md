@@ -51,6 +51,7 @@
 ## Ticket format
 
 **Stories:**
+
 ```markdown
 ## Description of the enhancement
 [2-3 sentences. Reference the prototype page.]
@@ -71,6 +72,7 @@
 ```
 
 **Tasks:**
+
 ```markdown
 ## Description of the task
 [2-3 sentences.]

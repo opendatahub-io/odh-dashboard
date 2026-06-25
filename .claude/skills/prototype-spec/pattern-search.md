@@ -22,7 +22,7 @@ cat packages/<name>/frontend/package.json | grep -c 'mod-arch-core'
 ## Step 6b: Search for patterns
 
 **For host app or library plugin features:**
-```
+```text
 frontend/src/concepts/         -- domain modules (types, hooks, context)
 frontend/src/components/       -- shared components and PF wrappers
 frontend/src/utilities/        -- utility functions and hooks
@@ -33,7 +33,7 @@ frontend/src/routes/           -- route definitions
 ```
 
 **For federated package features, also check:**
-```
+```text
 packages/<name>/frontend/src/  -- the package's own components and patterns
 mod-arch-core (in node_modules) -- hooks: useFetchState, useNamespaces,
                                    useNotification, useSettings, useAPIState
@@ -60,13 +60,13 @@ If the prototype implies new API calls:
 
 If the `patternfly-docs` MCP server is configured, query it for each PF component:
 
-```
+```text
 searchPatternFlyDocs({ searchQuery: "<ComponentName>" })
 usePatternFlyDocs({ name: "<ComponentName>" })
 ```
 
 Or via MCP resources (stable across versions):
-```
+```text
 ReadMcpResourceTool(server: "patternfly-docs", uri: "patternfly://schemas/<ComponentName>")
 ```
 

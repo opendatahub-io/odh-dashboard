@@ -22,7 +22,7 @@ Extract the **owner and project name** from the SSH URL to create a unique cache
 
 - SSH: `git@gitlab.cee.redhat.com:ralombar/rhoai-rachel.git` → `ralombar/rhoai-rachel`
 - HTTPS: `https://gitlab.cee.redhat.com/ralombar/rhoai-rachel.git` → `ralombar/rhoai-rachel`
-- Nested groups: `git@gitlab.cee.redhat.com:group/subgroup/project.git` → `subgroup/project` (last two segments)
+- Nested groups: `git@gitlab.cee.redhat.com:group/subgroup/project.git` → `group/subgroup/project` (full namespace)
 
 **Validate each path segment:**
 - Must contain only `[a-zA-Z0-9_-]`
