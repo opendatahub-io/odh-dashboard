@@ -9,12 +9,19 @@ import {
 const TEST_NAMESPACE = 'test-namespace';
 
 const MAAS_MODEL_WITH_SUBS = {
-  id: 'granite-3-8b-instruct',
+  model_id: 'granite-3-8b-instruct',
+  model_name: 'Granite 3.1 8B Instruct',
   display_name: 'Granite 3.1 8B Instruct',
   description: 'Granite family of LLMs',
   usecase: 'Text Generation',
   model_type: 'llm' as const,
-  url: 'https://granite-model.apps.cluster.com',
+  endpoints: ['external:https://granite-model.apps.cluster.com'],
+  status: 'Running',
+  serving_runtime: 'MaaS',
+  api_protocol: 'OpenAI',
+  version: '',
+  sa_token: { name: '', token_name: '', token: '' },
+  model_source_type: 'maas' as const,
   subscriptions: [
     { name: 'premium-team-sub', displayName: 'Premium Subscription' },
     { name: 'basic-team-sub', displayName: 'Basic Subscription' },
@@ -22,12 +29,19 @@ const MAAS_MODEL_WITH_SUBS = {
 };
 
 const MAAS_MODEL_NO_SUBS = {
-  id: 'llama-3-8b',
+  model_id: 'llama-3-8b',
+  model_name: 'Llama 3 8B',
   display_name: 'Llama 3 8B',
   description: 'Llama family of LLMs',
   usecase: 'Text Generation',
   model_type: 'llm' as const,
-  url: 'https://llama-model.apps.cluster.com',
+  endpoints: ['external:https://llama-model.apps.cluster.com'],
+  status: 'Running',
+  serving_runtime: 'MaaS',
+  api_protocol: 'OpenAI',
+  version: '',
+  sa_token: { name: '', token_name: '', token: '' },
+  model_source_type: 'maas' as const,
   subscriptions: [],
 };
 

@@ -43,13 +43,19 @@ const AI_MODELS = [
 
 const MAAS_MODELS = [
   {
-    id: 'maas-llama-70b',
+    model_id: 'maas-llama-70b',
+    model_name: 'Llama 70B MaaS',
     display_name: 'Llama 70B MaaS',
     description: 'Llama 70B via Models as a Service',
     usecase: 'text-generation',
-    ready: true,
-    url: 'https://maas.example.com/v1/models/llama-70b',
+    status: 'Running',
+    endpoints: ['external:https://maas.example.com/v1/models/llama-70b'],
     model_type: 'llm',
+    serving_runtime: 'MaaS',
+    api_protocol: 'OpenAI',
+    version: '',
+    sa_token: { name: '', token_name: '', token: '' },
+    model_source_type: 'maas' as const,
   },
 ];
 
