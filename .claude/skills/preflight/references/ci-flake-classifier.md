@@ -33,7 +33,7 @@ Use `--deep` when multiple test checks failed and check-level signals are ambigu
   "classifications": [
     {
       "check_name": "...",
-      "classification": "flaky | suspected_flaky | genuine | deterministic | unknown",
+      "classification": "flaky | suspected_flaky | external_unknown | genuine | deterministic | unknown",
       "confidence": "certain | high | moderate | low",
       "signals": [
         {"type": "...", "strength": "...", "detail": "..."}
@@ -64,13 +64,16 @@ Use `--deep` when multiple test checks failed and check-level signals are ambigu
 |---------------|-----------------|-----------------|
 | `flaky` | ⚠️ | No |
 | `suspected_flaky` | ⚠️ | No |
+| `external_unknown` | ⚠️ | No |
 | `genuine` | ❌ | **Yes** |
 | `deterministic` | ❌ | **Yes** |
 | `unknown` | ❌ | **Yes** |
 
+`external_unknown` is for checks from external CI systems (e.g. Konflux) where logs are not accessible via GitHub API. These are non-blocking because the classifier has no way to determine if the failure is genuine, and blocking on them would permanently gate every PR with an external CI flake.
+
 ## Verdict Impact
 
-- **All failures are `flaky` or `suspected_flaky`** → READY WITH WARNINGS (not NOT READY)
+- **All failures are `flaky`, `suspected_flaky`, or `external_unknown`** → READY WITH WARNINGS (not NOT READY)
 - **Any `genuine`, `deterministic`, or `unknown`** → NOT READY
 - **Mix** → NOT READY, but clearly separate flaky from real in the report
 

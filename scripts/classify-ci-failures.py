@@ -623,15 +623,19 @@ def classify_failure(
             )
         )
         if is_external:
-            detail = "External CI (not GitHub Actions) — logs not accessible for analysis"
+            signals.append({
+                "type": "external_ci",
+                "strength": "none",
+                "detail": "External CI (not GitHub Actions) — logs not accessible for analysis",
+            })
+            return "external_unknown", "low", signals
         else:
-            detail = "Could not extract test details from CI logs"
-        signals.append({
-            "type": "no_tests_extracted",
-            "strength": "none",
-            "detail": detail,
-        })
-        return "unknown", "low", signals
+            signals.append({
+                "type": "no_tests_extracted",
+                "strength": "none",
+                "detail": "Could not extract test details from CI logs",
+            })
+            return "unknown", "low", signals
     else:
         return "genuine", "high", signals
 
@@ -715,6 +719,7 @@ def main() -> None:
         "genuine": 0,
         "deterministic": 0,
         "unknown": 0,
+        "external_unknown": 0,
     }
 
     for f in failing:
