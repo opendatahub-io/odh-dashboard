@@ -20,6 +20,22 @@ type AgentDetailsCardProps = {
   agentCard: AgentCardDetail;
 };
 
+const firstNonBlank = (...values: Array<string | undefined>): string | undefined =>
+  values.find((value) => value?.trim());
+
+const getSafeExternalUrl = (value?: string): string | undefined => {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const CopyableValue: React.FC<{ value: string; testId: string }> = ({ value, testId }) => (
   <ClipboardCopy
     variant={ClipboardCopyVariant.inlineCompact}
@@ -33,7 +49,9 @@ const CopyableValue: React.FC<{ value: string; testId: string }> = ({ value, tes
 );
 
 const AgentDetailsCard: React.FC<AgentDetailsCardProps> = ({ agentCard }) => {
-  const agentCardUrl = agentCard.externalAgentCardUrl ?? agentCard.agentCardUrl;
+  const agentCardUrl = firstNonBlank(agentCard.externalAgentCardUrl, agentCard.agentCardUrl);
+  const providerUrl = getSafeExternalUrl(agentCard.provider?.url);
+  const documentationUrl = getSafeExternalUrl(agentCard.documentationUrl);
   const { defaultInputModes } = agentCard;
   const { defaultOutputModes } = agentCard;
   const providerLabel = agentCard.provider?.organization ?? agentCard.provider?.url;
@@ -61,7 +79,7 @@ const AgentDetailsCard: React.FC<AgentDetailsCardProps> = ({ agentCard }) => {
             <DescriptionListGroup>
               <DescriptionListTerm>Version</DescriptionListTerm>
               <DescriptionListDescription data-testid="agent-card-version">
-                {agentCard.version}
+                <strong>{agentCard.version}</strong>
               </DescriptionListDescription>
             </DescriptionListGroup>
           )}
@@ -69,15 +87,13 @@ const AgentDetailsCard: React.FC<AgentDetailsCardProps> = ({ agentCard }) => {
             <DescriptionListGroup>
               <DescriptionListTerm>Provider</DescriptionListTerm>
               <DescriptionListDescription data-testid="agent-card-provider">
-                {agentCard.provider?.url ? (
+                {providerUrl ? (
                   <Button
                     variant="link"
                     isInline
                     icon={<ExternalLinkAltIcon />}
                     iconPosition="end"
-                    onClick={() => {
-                      window.open(agentCard.provider?.url, '_blank', 'noopener,noreferrer');
-                    }}
+                    onClick={() => window.open(providerUrl, '_blank', 'noopener,noreferrer')}
                   >
                     {providerLabel}
                   </Button>
@@ -95,7 +111,7 @@ const AgentDetailsCard: React.FC<AgentDetailsCardProps> = ({ agentCard }) => {
               </DescriptionListDescription>
             </DescriptionListGroup>
           )}
-          {agentCard.documentationUrl && (
+          {documentationUrl && (
             <DescriptionListGroup>
               <DescriptionListTerm>Documentation</DescriptionListTerm>
               <DescriptionListDescription data-testid="agent-card-docs">
@@ -104,9 +120,7 @@ const AgentDetailsCard: React.FC<AgentDetailsCardProps> = ({ agentCard }) => {
                   isInline
                   icon={<ExternalLinkAltIcon />}
                   iconPosition="end"
-                  onClick={() => {
-                    window.open(agentCard.documentationUrl, '_blank', 'noopener,noreferrer');
-                  }}
+                  onClick={() => window.open(documentationUrl, '_blank', 'noopener,noreferrer')}
                 >
                   View documentation
                 </Button>

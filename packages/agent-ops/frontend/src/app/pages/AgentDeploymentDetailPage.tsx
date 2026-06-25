@@ -77,7 +77,7 @@ const AgentDeploymentDetailPage: React.FC = () => {
               ? 'You do not have permission to view this agent deployment.'
               : isNotFound
                 ? `No agent "${agentId}" was found in project "${namespace}".`
-                : error.message}
+                : 'Unable to load agent details. Please try again later.'}
           </EmptyStateBody>
         </EmptyState>
       </PageSection>

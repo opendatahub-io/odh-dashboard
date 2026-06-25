@@ -18,15 +18,13 @@ const interceptDetail = (detail = mockAgentRuntimeDetail()) => {
       },
     },
     detail,
-  ).as('getAgentRuntimeDetail');
+  );
 };
 
 describe('Agent deployment detail', () => {
   it('should display agent title, description, and details sidebar', () => {
     interceptDetail();
     agentDeploymentDetailPage.visit(TEST_NAMESPACE, TEST_AGENT);
-
-    cy.wait('@getAgentRuntimeDetail');
     agentDeploymentDetailPage.findTitle().should('contain.text', TEST_AGENT);
     agentDeploymentDetailPage.findStatusLabel().should('contain.text', 'Ready');
     agentDeploymentDetailPage
@@ -46,7 +44,6 @@ describe('Agent deployment detail', () => {
     );
     agentDeploymentDetailPage.visit(TEST_NAMESPACE, TEST_AGENT);
 
-    cy.wait('@getAgentRuntimeDetail');
     agentDeploymentDetailPage.findDescriptionCard().should('not.exist');
     agentDeploymentDetailPage.findAgentDetailsCard().should('be.visible');
   });
