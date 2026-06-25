@@ -66,8 +66,19 @@ describe('generateNodeSnippet', () => {
     expect(generateNodeSnippet(mockTemplate)).toContain('test-model');
   });
 
-  it('should contain import OpenAI', () => {
-    expect(generateNodeSnippet(mockTemplate)).toContain('import OpenAI');
+  it('should use fetch to call the OGX Responses API directly', () => {
+    const result = generateNodeSnippet(mockTemplate);
+    expect(result).toContain('await fetch(');
+    expect(result).toContain('/v1/responses');
+    expect(result).not.toContain('openai');
+    expect(result).not.toContain('OpenAI');
+  });
+
+  it('should include request timeout and error handling', () => {
+    const result = generateNodeSnippet(mockTemplate);
+    expect(result).toContain('AbortSignal.timeout(');
+    expect(result).toContain('response.ok');
+    expect(result).toContain('result.output ?? result');
   });
 
   it('should show <HOSTNAME> and <API_KEY> placeholders when no credentials', () => {
@@ -106,8 +117,19 @@ describe('generatePythonSnippet', () => {
     expect(generatePythonSnippet(mockTemplate)).toContain('test-model');
   });
 
-  it('should contain from openai import OpenAI', () => {
-    expect(generatePythonSnippet(mockTemplate)).toContain('from openai import OpenAI');
+  it('should use requests to call the OGX Responses API directly', () => {
+    const result = generatePythonSnippet(mockTemplate);
+    expect(result).toContain('requests.post');
+    expect(result).toContain('/v1/responses');
+    expect(result).not.toContain('from openai');
+    expect(result).not.toContain('openai_client');
+  });
+
+  it('should include request timeout and error handling', () => {
+    const result = generatePythonSnippet(mockTemplate);
+    expect(result).toContain('timeout=30');
+    expect(result).toContain('raise_for_status()');
+    expect(result).toContain('result.get("output", result)');
   });
 
   it('should show <HOSTNAME> and <API_KEY> placeholders when no credentials', () => {

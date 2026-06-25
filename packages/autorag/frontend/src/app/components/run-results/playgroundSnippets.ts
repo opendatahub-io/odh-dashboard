@@ -36,16 +36,27 @@ export const generateNodeSnippet = (
     .split('\n')
     .map((line, i) => (i === 0 ? line : `  ${line}`))
     .join('\n');
-  return `import OpenAI from "openai";
+  return `// Build the JSON request body
+const payload = ${body};
 
-const client = new OpenAI({
-  baseURL: "https://${hostname}/v1",
-  apiKey: "${apiKey}",
+// Send a request to the Responses API
+const response = await fetch("https://${hostname}/v1/responses", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer ${apiKey}",
+  },
+  body: JSON.stringify(payload),
+  signal: AbortSignal.timeout(30_000),
 });
 
-const response = await client.responses.create(${body});
+if (!response.ok) {
+  const errorBody = await response.text();
+  throw new Error(\`Request failed (\${response.status}): \${errorBody}\`);
+}
 
-console.log(response.output);`;
+const result = await response.json();
+console.log(result.output ?? result);`;
 };
 
 export const generateGoSnippet = (
@@ -68,6 +79,7 @@ export const generateGoSnippet = (
     '\t"fmt"',
     '\t"io"',
     '\t"net/http"',
+    '\t"time"',
     ')',
     '',
     'func main() {',
@@ -81,13 +93,17 @@ export const generateGoSnippet = (
     '\treq.Header.Set("Content-Type", "application/json")',
     `\treq.Header.Set("Authorization", "Bearer ${apiKey}")`,
     '',
-    '\tresp, err := http.DefaultClient.Do(req)',
+    '\tclient := &http.Client{Timeout: 30 * time.Second}',
+    '\tresp, err := client.Do(req)',
     '\tif err != nil {',
     '\t\tpanic(err)',
     '\t}',
     '\tdefer resp.Body.Close()',
     '',
     '\tbody, _ := io.ReadAll(resp.Body)',
+    '\tif resp.StatusCode < 200 || resp.StatusCode >= 300 {',
+    '\t\tpanic(fmt.Sprintf("request failed (%d): %s", resp.StatusCode, string(body)))',
+    '\t}',
     '\tfmt.Println(string(body))',
     '}',
   ];
@@ -137,16 +153,23 @@ export const generatePythonSnippet = (
   const hostname = credentials ? escapeDoubleQuotedString(credentials.hostname) : '<HOSTNAME>';
   const apiKey = credentials ? escapeDoubleQuotedString(credentials.apiKey) : '<API_KEY>';
   const params = jsonToPython(template, 0);
-  return `from openai import OpenAI
+  return `# Prerequisites: pip install requests
 
-client = OpenAI(
-    base_url="https://${hostname}/v1",
-    api_key="${apiKey}",
+# Build the request payload
+payload = ${params}
+
+# Send a request to the Responses API
+response = requests.post(
+    "https://${hostname}/v1/responses",
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${apiKey}",
+    },
+    json=payload,
+    timeout=30,
 )
+response.raise_for_status()
 
-params = ${params}
-
-response = client.responses.create(**params)
-
-print(response.output)`;
+result = response.json()
+print(result.get("output", result))`;
 };
