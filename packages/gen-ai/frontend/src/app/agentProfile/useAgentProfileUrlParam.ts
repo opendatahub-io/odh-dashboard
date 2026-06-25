@@ -117,7 +117,11 @@ const useAgentProfileUrlParam = ({
           aiModels: aiModelsRef.current,
           mcpServers: mcpServersRef.current,
         });
-        setLoadedProfileWarnings(syncWarnings.length > 0 ? syncWarnings : null);
+        // Guard matches the check used for the async writes below — only commit warnings
+        // if this profile is still the active one (rapid navigation / Save As can change it).
+        if (useChatbotConfigStore.getState().loadedProfileId === agentProfileId) {
+          setLoadedProfileWarnings(syncWarnings.length > 0 ? syncWarnings : null);
+        }
 
         // Restore MCP tool selections — mcpServers is guaranteed loaded at this point.
         if (mcpToolsPending) {
