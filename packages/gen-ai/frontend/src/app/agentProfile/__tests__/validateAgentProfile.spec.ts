@@ -189,6 +189,18 @@ describe('validateAgentProfileAsync', () => {
       expect(result.warnings).toHaveLength(0);
     });
 
+    it('should not warn and leave resolvedPrompt undefined when getMLflowPrompt resolves null', async () => {
+      const api = makeApi({ getMLflowPrompt: jest.fn().mockResolvedValue(null) });
+      const profile = makeProfile({
+        prompt: { name: 'my-prompt', source: 'mlflow', version: '1' },
+      });
+
+      const result = await validateAgentProfileAsync(profile, api);
+
+      expect(result.resolvedPrompt).toBeFalsy();
+      expect(result.warnings).toHaveLength(0);
+    });
+
     it('should warn when getMLflowPrompt rejects', async () => {
       const api = makeApi({ getMLflowPrompt: jest.fn().mockRejectedValue(new Error('404')) });
       const profile = makeProfile({
