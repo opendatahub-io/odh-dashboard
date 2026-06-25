@@ -90,11 +90,6 @@ const useIsProfileDirty = (configId: string): boolean => {
       mcpConfigMapName: mcpConfigMapName ?? MCP_CONFIG_MAP_NAME_FALLBACK,
     });
 
-    // eslint-disable-next-line no-console
-    console.log('[useIsProfileDirty] current:', normalizeSpec(currentSpec));
-    // eslint-disable-next-line no-console
-    console.log('[useIsProfileDirty] snapshot:', normalizeSpec(loadedProfileSpec));
-
     return (
       stableStringify(normalizeSpec(currentSpec)) !==
       stableStringify(normalizeSpec(loadedProfileSpec))
