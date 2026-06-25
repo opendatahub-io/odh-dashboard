@@ -409,7 +409,8 @@ const useChatbotMessages = ({
       // Create placeholder bot message FIRST (before any validation that could throw)
       // This ensures error handling can update the message consistently
       botMessageIdRef.current = getId();
-      const placeholderBotMessage: MessageProps = {
+      const requestStartTime = Date.now();
+      const placeholderBotMessage: ChatbotMessageProps = {
         id: botMessageIdRef.current,
         role: 'bot',
         content: '',
@@ -417,6 +418,7 @@ const useChatbotMessages = ({
         avatar: botAvatar,
         isLoading: true,
         timestamp: new Date().toLocaleString(),
+        metrics: { latency_ms: 0 },
       };
       setMessages((prevMessages) => [...prevMessages, placeholderBotMessage]);
 
@@ -492,6 +494,10 @@ const useChatbotMessages = ({
         let currentPartialLine = '';
         let isInReasoningPhase = false;
 
+        // Progressive metrics tracking (updates per SSE event)
+        let firstTokenTime: number | undefined;
+        let streamedResponseBytes = 0;
+
         // Separate accumulators for reasoning content (streamed inside collapsible)
         const reasoningLines: string[] = [];
         let reasoningPartialLine = '';
@@ -543,6 +549,14 @@ const useChatbotMessages = ({
               }
             : {};
 
+          const progressiveMetrics: ResponseMetrics = {
+            latency_ms: Date.now() - requestStartTime,
+            ...(firstTokenTime && {
+              time_to_first_token_ms: firstTokenTime - requestStartTime,
+            }),
+            response_size_bytes: streamedResponseBytes,
+          };
+
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
               msg.id === botMessageIdRef.current
@@ -551,6 +565,7 @@ const useChatbotMessages = ({
                     content: displayContent,
                     isLoading: !hasContent,
                     ...thinkingExtra,
+                    metrics: progressiveMetrics,
                   }
                 : msg,
             ),
@@ -604,6 +619,14 @@ const useChatbotMessages = ({
             // Track if we have any content
             const hasAnyContent =
               completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
+
+            // Record first answer token time for TTFT
+            if (chunk && !firstTokenTime) {
+              firstTokenTime = Date.now();
+            }
+
+            // Accumulate response payload size
+            streamedResponseBytes += new TextEncoder().encode(chunk).length;
 
             // On first non-empty chunk, hide loading dots
             if (chunk && isStreamingWithoutContent) {

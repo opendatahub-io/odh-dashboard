@@ -128,6 +128,7 @@ export type ResponseMetrics = {
   time_to_first_token_ms?: number; // Only present for streaming responses
   usage?: SimplifiedUsage;
   trace_id?: string; // OTel trace ID (when tracing is enabled)
+  response_size_bytes?: number; // Response payload size (client-measured from SSE)
 };
 
 // File citation annotation from RAG responses
