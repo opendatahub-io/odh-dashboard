@@ -2416,8 +2416,11 @@ components:
               default: metrics-artifact
             metricsType:
               type: string
-              example: “accuracy-metrics”
-              description: An artifact type representing a collection of related metrics, which will either be “performance-metrics” or “accuracy-metrics”.
+              description: The category of metrics contained in this metrics artifact.
+              enum:
+                - performance-metrics
+                - accuracy-metrics
+                - security-metrics
             customProperties:
               description: User provided custom properties which are not defined by its type.
               type: object

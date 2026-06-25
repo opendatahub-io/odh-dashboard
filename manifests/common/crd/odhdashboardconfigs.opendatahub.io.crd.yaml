@@ -159,6 +159,9 @@ spec:
                     externalVectorStores:
                       type: boolean
                       description: 'When true, enables external vector store integration for RAG workflows.'
+                    agentConfigManagement:
+                      type: boolean
+                      description: 'When true, enables agent configuration management features in the Gen AI Studio.'
                     mlflow:
                       type: boolean
                       description: 'DEPRECATED: MLflow is now always enabled when the operator component is present. This field will be removed in a future version.'

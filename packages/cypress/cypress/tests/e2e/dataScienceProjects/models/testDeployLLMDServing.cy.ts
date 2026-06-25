@@ -119,6 +119,7 @@ describe('A user can deploy an LLMD model', () => {
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select Model deployment');
@@ -132,6 +133,8 @@ describe('A user can deploy an LLMD model', () => {
           resourceName = val as string;
         });
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
       cy.step('Verify YAML Viewer');
       // Stub clipboard API AFTER page load (window changes on navigation)
