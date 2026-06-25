@@ -61,7 +61,7 @@ class FeatureLineage extends Contextual<HTMLElement> {
   selectFilterType(filterLabel: string) {
     this.findLineageFilterDropdown().then(($toggle) => {
       if ($toggle.text().trim() !== filterLabel) {
-        cy.wrap($toggle).click({ force: true });
+        cy.wrap($toggle).should('be.visible').click();
         cy.findByRole('menuitem', { name: filterLabel }).click();
       }
     });
@@ -79,7 +79,9 @@ class FeatureLineage extends Contextual<HTMLElement> {
   }
 
   toggleHideNodesWithoutRelationships() {
-    cy.findByLabelText('Toggle visibility of nodes without relationships').click({ force: true });
+    cy.findByLabelText('Toggle visibility of nodes without relationships')
+      .should('be.visible')
+      .click();
     return this;
   }
 
