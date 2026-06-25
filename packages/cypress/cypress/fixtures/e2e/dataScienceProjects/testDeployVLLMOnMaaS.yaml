@@ -7,5 +7,5 @@ hardwareProfileName: 'cypress-llmd-hardware-profile-model'
 modelLocationURI: 'hf://facebook/opt-125m'
 connectionNameSuffix: '-connection'
 
-# llm-d LLMInferenceService path
+# simple vllm LLMInferenceService path
 deploymentMethod: 'llm-inference-service-simple-vllm'
