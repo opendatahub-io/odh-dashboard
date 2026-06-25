@@ -48,6 +48,7 @@ const useAgentProfileUrlParam = ({
   mcpServersRef.current = mcpServers;
 
   const applyAgentProfile = useChatbotConfigStore((s) => s.applyAgentProfile);
+  const setLoadedProfileSpec = useChatbotConfigStore((s) => s.setLoadedProfileSpec);
   const updateActivePrompt = useChatbotConfigStore((s) => s.updateActivePrompt);
   const updateSystemInstruction = useChatbotConfigStore((s) => s.updateSystemInstruction);
   const saveToolSelections = useChatbotConfigStore((s) => s.saveToolSelections);
@@ -112,26 +113,39 @@ const useAgentProfileUrlParam = ({
           }
         }
 
-        // Load the MLflow prompt asynchronously — doesn't block the profile load
+        // Load the MLflow prompt asynchronously — doesn't block the profile load.
+        // setLoadedProfileSpec is deferred until after the prompt lands so the dirty
+        // check doesn't fire a false positive while activePrompt is still null.
         if (promptRef) {
           const versionParam =
             promptRef.version !== undefined ? { version: String(promptRef.version) } : {};
           api
             .getMLflowPrompt({ name: promptRef.name, ...versionParam })
             .then((prompt) => {
-              if (cancelled) {
+              // Check the store instead of `cancelled`: StrictMode cleanup sets cancelled=true
+              // even after applyAgentProfile has committed, causing the prompt to be discarded.
+              if (useChatbotConfigStore.getState().loadedProfileId !== agentProfileId) {
                 return;
               }
               updateActivePrompt(DEFAULT_CONFIG_ID, prompt);
               const instruction =
                 prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
               updateSystemInstruction(DEFAULT_CONFIG_ID, instruction);
+              setLoadedProfileSpec(profile.spec);
             })
             .catch((promptErr) => {
-              // Prompt load failure is non-fatal — the rest of the profile is already applied
+              // Prompt load failure is non-fatal — the rest of the profile is already applied.
+              // Still set the snapshot so the dirty guard works for the non-prompt fields.
+              if (useChatbotConfigStore.getState().loadedProfileId !== agentProfileId) {
+                return;
+              }
               // eslint-disable-next-line no-console
               console.error('[useAgentProfileUrlParam] Failed to load MLflow prompt', promptErr);
+              setLoadedProfileSpec(profile.spec);
             });
+        } else {
+          // No prompt to load — set the dirty-detection baseline immediately.
+          setLoadedProfileSpec(profile.spec);
         }
 
         setLoading(false);
@@ -160,6 +174,7 @@ const useAgentProfileUrlParam = ({
     loadedProfileId,
     api,
     applyAgentProfile,
+    setLoadedProfileSpec,
     updateActivePrompt,
     updateSystemInstruction,
     saveToolSelections,

@@ -1,5 +1,6 @@
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { MLflowPromptVersion } from '~/app/types';
+import { AgentProfileSpec } from '~/app/agentProfile/types';
 
 /**
  * MCP tool selections map structure:
@@ -93,6 +94,12 @@ export interface ChatbotConfigStoreState {
   loadedProfileDisplayName: string | null;
   /** description of the currently loaded AgentProfile, for pre-filling the Save modal. */
   loadedProfileDescription: string | null;
+  /**
+   * The AgentProfileSpec that was last saved or loaded, used for dirty detection.
+   * Set by setLoadedProfileSpec() after a profile load or successful save.
+   * Cleared by resetConfiguration() when the user starts a new configuration.
+   */
+  loadedProfileSpec: AgentProfileSpec | null;
 }
 
 /**
@@ -150,6 +157,14 @@ export interface ChatbotConfigStoreActions {
   resetDirtyPrompt: (id: string) => void;
   clearPromptState: (id: string, newDirtyPrompt: MLflowPromptVersion | null) => void;
   updateVariableValues: (id: string, values: Record<string, string>) => void;
+
+  /**
+   * Store the AgentProfileSpec snapshot for dirty detection.
+   * Call after a profile is loaded (with the API response spec) or after a successful
+   * save (with the spec that was just written), so the dirty check baseline is always
+   * "the last thing that was persisted."
+   */
+  setLoadedProfileSpec: (spec: AgentProfileSpec | null) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;

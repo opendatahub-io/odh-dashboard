@@ -155,6 +155,7 @@ export const createChatbotConfigStore = (
     loadedProfileId: null,
     loadedProfileDisplayName: null,
     loadedProfileDescription: null,
+    loadedProfileSpec: null,
   };
 
   return create<ChatbotConfigStore>()(
@@ -628,6 +629,10 @@ const createStoreActions = (
       false,
       'updateHasVisionImage',
     );
+  },
+
+  setLoadedProfileSpec: (spec) => {
+    set(() => ({ loadedProfileSpec: spec }), false, 'setLoadedProfileSpec');
   },
 
   // Configuration management

@@ -160,6 +160,9 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
         });
         onSaved(loadedProfileId, response.displayName, description.trim());
       }
+      // Update the dirty-detection baseline to the spec that was just persisted.
+      // Any subsequent config changes will now be detected as unsaved.
+      useChatbotConfigStore.getState().setLoadedProfileSpec(spec);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');

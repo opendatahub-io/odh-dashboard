@@ -19,6 +19,9 @@ import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModa
 import ChatModal from '~/app/Chatbot/components/ChatModal';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
+import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
+import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
+import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
@@ -92,6 +95,9 @@ const ChatbotMain: React.FunctionComponent = () => {
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
+
+  const isProfileDirty = useIsProfileDirty(primaryConfigId);
+  useSafeBrowserUnloadBlocker(isProfileDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
   // Check if there are any models available (either AI assets or MaaS models)
@@ -386,6 +392,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           onSelect={handleProfileSelected}
         />
       )}
+      {isProfileDirty && <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty} />}
     </>
   );
 };
