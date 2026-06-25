@@ -114,6 +114,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Security**                | `security.md`                 | When working on auth, secrets, input validation, or K8s API interactions        |
 | **Testing Standards**       | `testing-standards.md`        | When working across multiple test types or choosing a testing strategy          |
 | **Third-Party Theming**     | `third-party-theming.md`      | When theming external libraries (Perses, MLflow, etc.) or mapping PF tokens into non-PF component systems |
+| **Prototype Fork Ops**      | `prototype-fork-ops.md`       | When running `/prototype-spec` or `/prototype-tickets` — shared fork clone, upstream detection, and Jira error handling |
 | **Unit Tests**              | `unit-tests.md`               | When creating or modifying Jest unit tests for utilities, hooks, or components |
 
 ## Agent Skills
