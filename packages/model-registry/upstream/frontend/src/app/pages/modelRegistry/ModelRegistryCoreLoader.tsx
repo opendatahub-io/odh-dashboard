@@ -23,6 +23,8 @@ type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type ModelRegistryCoreLoaderProps = {
   getInvalidRedirectPath: (modelRegistry: string) => string;
   emptyStatePage?: React.ReactNode;
+  isAdmin?: boolean;
+  adminAction?: React.ReactNode;
 };
 
 type ApplicationPageRenderState = Pick<
@@ -33,6 +35,8 @@ type ApplicationPageRenderState = Pick<
 const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> = ({
   getInvalidRedirectPath,
   emptyStatePage,
+  isAdmin,
+  adminAction,
 }) => {
   const { modelRegistry } = useParams<{ modelRegistry: string }>();
   const {
@@ -95,6 +99,8 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> = ({
           emptyStatePage: (
             <UnavailableModelRegistry
               registryDisplayName={foundModelRegistry.displayName || foundModelRegistry.name}
+              isAdmin={isAdmin}
+              adminAction={adminAction}
             />
           ),
           headerContent: (

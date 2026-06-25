@@ -57,6 +57,12 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
     );
   };
 
+  const adminSettingsAction = (
+    <Link to="/settings/model-resources-operations/model-registry">
+      Go to <b>Model registry settings</b>
+    </Link>
+  );
+
   // If an admin check extension is provided and loaded, use it
   if (adminCheckExtensionsLoaded && adminCheckExtensions.length > 0) {
     const AdminCheckComponent = adminCheckExtensions[0].properties.component.default;
@@ -70,6 +76,8 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
             <ModelRegistryCoreLoader
               getInvalidRedirectPath={getInvalidRedirectPath}
               emptyStatePage={createEmptyStatePage(isAdmin)}
+              isAdmin={isAdmin}
+              adminAction={adminSettingsAction}
             />
           );
         }}
