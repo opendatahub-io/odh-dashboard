@@ -11,6 +11,8 @@ import ExpandedModelContent from './ExpandedModelContent';
 type OverviewTableRowProps = {
   row: ModelOverviewRow;
   rowIndex: number;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 };
 
 const RETURN_TO = `${URL_PREFIX}/subscription-management/overview`;
@@ -72,8 +74,12 @@ const NoPoliciesWarning: React.FC = () => (
   </Popover>
 );
 
-const OverviewTableRow: React.FC<OverviewTableRowProps> = ({ row, rowIndex }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
+  row,
+  rowIndex,
+  isExpanded,
+  onToggleExpand,
+}) => {
   const navigate = useNavigate();
 
   return (
@@ -84,7 +90,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({ row, rowIndex }) =>
           expand={{
             rowIndex,
             isExpanded,
-            onToggle: () => setIsExpanded((prev) => !prev),
+            onToggle: onToggleExpand,
           }}
         />
         <Td dataLabel={overviewColumns[1].label}>
