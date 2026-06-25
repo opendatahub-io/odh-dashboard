@@ -1,13 +1,19 @@
-import { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
-import type {
-  DashboardCommonConfig,
-  DashboardConfigKind,
+import type { DashboardCommonConfig, DashboardConfigKind } from '@odh-dashboard/k8s-core';
+import {
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
+  DataScienceStackComponent,
 } from '@odh-dashboard/k8s-core';
-import { EitherOrBoth } from '#~/typeHelpers';
 
 export { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
+
+type Never<Type> = {
+  [K in keyof Type]?: never;
+};
+
+type EitherNotBoth<TypeA, TypeB> = (TypeA & Never<TypeB>) | (TypeB & Never<TypeA>);
+
+type EitherOrBoth<TypeA, TypeB> = EitherNotBoth<TypeA, TypeB> | (TypeA & TypeB);
 
 export type FeatureFlag = keyof DashboardCommonConfig;
 

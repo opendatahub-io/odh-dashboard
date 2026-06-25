@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { conditionalArea, SupportedArea } from '#~/concepts/areas';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { conditionalArea } from '#~/concepts/areas';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { CompareRunsSearchParam } from '#~/concepts/pipelines/content/types';
 import useNotification from '#~/utilities/useNotification';

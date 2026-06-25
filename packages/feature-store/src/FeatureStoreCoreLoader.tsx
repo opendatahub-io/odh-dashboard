@@ -4,7 +4,7 @@ import { CogIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { Link, Outlet, useParams } from 'react-router-dom';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';

@@ -23,8 +23,7 @@ import {
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';

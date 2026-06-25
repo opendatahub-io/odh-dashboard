@@ -10,6 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import MarkdownView from '#~/components/MarkdownView';
 import { PathProps } from '#~/concepts/pipelines/content/types';
@@ -32,7 +33,6 @@ import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
 import { isPipelineRunRegistered } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
