@@ -45,12 +45,6 @@ _TEST_RUNNER_KEYWORDS = (
     "spec",
 )
 
-_GITHUB_ACTIONS_KEYWORDS = (
-    "lint", "type-check", "build", "setup", "validate", "hermetic",
-    "combine", "cypress-setup", "get-test-groups", "dependency",
-    "kustomize", "changelog", "dco", "quality gate", "summary",
-    "phase 0", "phase 1", "check-skip", "tests",
-)
 
 _BOT_LOGINS = {
     "openshift-cherrypick-robot",
@@ -114,10 +108,6 @@ def is_test_runner(name: str) -> bool:
     nl = name.lower()
     return any(kw in nl for kw in _TEST_RUNNER_KEYWORDS)
 
-
-def is_known_gha_check(name: str) -> bool:
-    nl = name.lower()
-    return is_test_runner(name) or any(kw in nl for kw in _GITHUB_ACTIONS_KEYWORDS)
 
 
 def is_bot(author: dict) -> bool:
@@ -583,8 +573,9 @@ def classify_failure(
     rerun_checks: set[str],
     check_recurrence: dict[str, list[int]],
     test_recurrence: dict[str, list[int]],
+    has_run_id: bool = True,
 ) -> tuple[str, str, list[dict]]:
-    if is_known_gha_check(check_name) and not is_test_runner(check_name):
+    if has_run_id and not is_test_runner(check_name):
         return "deterministic", "certain", []
 
     signals: list[dict] = []
@@ -639,7 +630,7 @@ def classify_failure(
     elif has_moderate:
         return "suspected_flaky", "moderate", signals
     elif not failing_tests:
-        if not is_known_gha_check(check_name):
+        if not has_run_id:
             signals.append({
                 "type": "external_ci",
                 "strength": "none",
@@ -749,7 +740,8 @@ def main() -> None:
 
         tests = tests_by_check.get(check_name, [])
         classification, confidence, signals = classify_failure(
-            check_name, tests, rerun_checks, check_recurrence, test_recurrence
+            check_name, tests, rerun_checks, check_recurrence, test_recurrence,
+            has_run_id=bool(f.get("run_id")),
         )
         summary[classification] = summary.get(classification, 0) + 1
 
