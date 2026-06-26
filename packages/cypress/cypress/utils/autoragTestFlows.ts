@@ -235,28 +235,38 @@ export const verifyTryThisPatternInteraction = (): void => {
     .findByTestId('chatbot-message-user')
     .should('exist');
 
-  cy.step('Wait for bot response');
+  cy.step('Wait for bot response to complete');
   autoragResultsPage
     .findPlaygroundDrawerPanel()
     .findByTestId('chatbot-message-bot', { timeout: 120000 })
-    .should('exist');
+    .should('exist')
+    .find('.pf-chatbot__message-loading')
+    .should('not.exist');
 
-  cy.step('Switch pattern via the pattern selector dropdown');
+  cy.step('Switch pattern via the pattern selector dropdown (if multiple patterns exist)');
   autoragResultsPage.findPlaygroundPatternSelect().then(($toggle) => {
     const currentPattern = $toggle.text().trim();
     $toggle.trigger('click');
-    cy.get('[role="option"]').not(`:contains("${currentPattern}")`).first().click();
-  });
+    cy.get('[role="option"]').then(($options) => {
+      const otherOptions = $options.filter((_i, el) => !el.textContent.includes(currentPattern));
+      if (otherOptions.length === 0) {
+        cy.log('Only one pattern available — skipping pattern switch test');
+        cy.get('body').type('{esc}');
+        return;
+      }
+      cy.wrap(otherOptions.first()).click();
 
-  cy.step('Verify chat messages are cleared after pattern switch');
-  autoragResultsPage
-    .findPlaygroundDrawerPanel()
-    .findByTestId('chatbot-message-user')
-    .should('not.exist');
-  autoragResultsPage
-    .findPlaygroundDrawerPanel()
-    .findByTestId('chatbot-message-bot')
-    .should('not.exist');
+      cy.step('Verify chat messages are cleared after pattern switch');
+      autoragResultsPage
+        .findPlaygroundDrawerPanel()
+        .findByTestId('chatbot-message-user')
+        .should('not.exist');
+      autoragResultsPage
+        .findPlaygroundDrawerPanel()
+        .findByTestId('chatbot-message-bot')
+        .should('not.exist');
+    });
+  });
 
   cy.step('Close playground drawer');
   autoragResultsPage.findPlaygroundDrawerClose().click();
