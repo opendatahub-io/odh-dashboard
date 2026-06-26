@@ -7,6 +7,9 @@ import "encoding/json"
 // openapi package; the eval-hub frontend can decode these as needed.
 type CatalogSecurityArtifact struct {
 	ArtifactType             string           `json:"artifactType"`
+	ID                       *string          `json:"id,omitempty"`
+	Name                     *string          `json:"name,omitempty"`
+	ExternalID               *string          `json:"externalId,omitempty"`
 	MetricsType              *string          `json:"metricsType,omitempty"`
 	URI                      *string          `json:"uri,omitempty"`
 	CreateTimeSinceEpoch     *string          `json:"createTimeSinceEpoch,omitempty"`
