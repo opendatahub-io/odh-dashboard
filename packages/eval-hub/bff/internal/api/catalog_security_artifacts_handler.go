@@ -54,7 +54,7 @@ func (app *App) GetCatalogModelSecurityArtifactsHandler(w http.ResponseWriter, r
 	}
 
 	// The model-catalog BFF returns {"data": {"items":[...], "size":N, ...}}.
-	var envelope models.CatalogModelArtifactListEnvelope
+	var envelope models.CatalogSecurityArtifactListEnvelope
 	err := mcClient.Call(ctx, "GET", catalogPath, nil, &envelope)
 	if err != nil {
 		app.handleBFFClientError(w, r, err)
