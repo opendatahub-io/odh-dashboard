@@ -255,6 +255,32 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.model_source_type).toBe('maas');
     expect(result.status).toBe('Running');
   });
+
+  it('should pass through model_type field', () => {
+    const aaModel = makeAAModelResponse({
+      model_type: 'embedding',
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.model_type).toBe('embedding');
+  });
+
+  it('should pass through capabilities field', () => {
+    const aaModel = makeAAModelResponse({
+      capabilities: ['vision', 'audio-transcription'],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.capabilities).toEqual(['vision', 'audio-transcription']);
+  });
+
+  it('should handle undefined endpoints gracefully', () => {
+    const aaModel = {
+      ...makeAAModelResponse(),
+      endpoints: undefined,
+    } as unknown as AAModelResponse;
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.externalEndpoint).toBeUndefined();
+    expect(result.internalEndpoint).toBeUndefined();
+  });
 });
 
 describe('splitLlamaModelId', () => {
