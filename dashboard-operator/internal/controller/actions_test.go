@@ -44,23 +44,39 @@ func TestApplyKustomizeParams(t *testing.T) {
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte("existing-key=existing-value\n"), 0644))
 
+	modArch := filepath.Join(dir, "modular-architecture")
+	require.NoError(t, os.MkdirAll(modArch, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(modArch, "params.env"),
+		[]byte("model-registry-ui-image=quay.io/default:main\ngen-ai-ui-image=quay.io/default:main\n"), 0644))
+
+	t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:prod")
+
 	dashboard := &v1alpha1.Dashboard{
 		Spec: v1alpha1.DashboardSpec{
-			Gateway: &v1alpha1.GatewaySpec{Domain: "apps.test.com"},
+			Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.test.com"},
 		},
 	}
 
 	manifests := manifestSets(dir, cluster.SelfManagedRhoai)
 	require.NoError(t, applyKustomizeParams(dashboard, manifests, cluster.SelfManagedRhoai))
 
-	data, err := os.ReadFile(filepath.Join(overlay, "params.env"))
+	overlayData, err := os.ReadFile(filepath.Join(overlay, "params.env"))
 	require.NoError(t, err)
+	overlayContent := string(overlayData)
+	assert.Contains(t, overlayContent, "gateway-domain=rh-ai.apps.test.com")
+	assert.Contains(t, overlayContent, "dashboard-url=https://rh-ai.apps.test.com/")
+	assert.Contains(t, overlayContent, "section-title=OpenShift Self Managed Services")
+	assert.Contains(t, overlayContent, "existing-key=existing-value")
 
-	content := string(data)
-	assert.Contains(t, content, "gateway-domain=apps.test.com")
-	assert.Contains(t, content, "dashboard-url=https://odh-dashboard-apps.test.com")
-	assert.Contains(t, content, "section-title=OpenShift Self Managed Services")
-	assert.Contains(t, content, "existing-key=existing-value")
+	modArchData, err := os.ReadFile(filepath.Join(modArch, "params.env"))
+	require.NoError(t, err)
+	modArchContent := string(modArchData)
+	assert.Contains(t, modArchContent, "model-registry-ui-image=quay.io/mr:prod",
+		"RELATED_IMAGE env var should override default in modular-architecture params.env")
+	assert.Contains(t, modArchContent, "gen-ai-ui-image=quay.io/default:main",
+		"unset RELATED_IMAGE should preserve existing default")
+	assert.Contains(t, modArchContent, "gateway-domain=rh-ai.apps.test.com",
+		"computed params should also be written to modular-architecture")
 }
 
 func TestExtractDashboardURL(t *testing.T) {
@@ -72,6 +88,7 @@ func TestExtractDashboardURL(t *testing.T) {
 
 	tests := []struct {
 		name      string
+		dashboard *v1alpha1.Dashboard
 		platform  cluster.Platform
 		routes    []routev1.Route
 		wantURL   string
@@ -79,19 +96,47 @@ func TestExtractDashboardURL(t *testing.T) {
 		wantErrIs bool
 	}{
 		{
-			name:     "xKS platform returns empty URL without error",
-			platform: cluster.XKS,
+			name:      "xKS platform returns empty URL without error",
+			dashboard: &v1alpha1.Dashboard{},
+			platform:  cluster.XKS,
 		},
 		{
-			name:      "no routes",
+			name: "gateway domain takes priority over routes",
+			dashboard: &v1alpha1.Dashboard{
+				Spec: v1alpha1.DashboardSpec{
+					Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
+				},
+			},
+			platform: cluster.OpenDataHub,
+			routes: []routev1.Route{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
+							{
+								Host: "dashboard.apps.example.com",
+								Conditions: []routev1.RouteIngressCondition{
+									{Type: routev1.RouteAdmitted, Status: "True"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantURL: "https://rh-ai.apps.example.com/",
+		},
+		{
+			name:      "no gateway domain falls back to routes - no routes",
+			dashboard: &v1alpha1.Dashboard{},
 			platform:  cluster.OpenDataHub,
 			routes:    nil,
 			wantErr:   ErrDashboardRouteNotReady,
 			wantErrIs: true,
 		},
 		{
-			name:     "route without ingress",
-			platform: cluster.OpenDataHub,
+			name:      "route without ingress",
+			dashboard: &v1alpha1.Dashboard{},
+			platform:  cluster.OpenDataHub,
 			routes: []routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
@@ -101,8 +146,9 @@ func TestExtractDashboardURL(t *testing.T) {
 			wantErrIs: true,
 		},
 		{
-			name:     "route with admitted ingress",
-			platform: cluster.OpenDataHub,
+			name:      "route with admitted ingress",
+			dashboard: &v1alpha1.Dashboard{},
+			platform:  cluster.OpenDataHub,
 			routes: []routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
@@ -121,8 +167,9 @@ func TestExtractDashboardURL(t *testing.T) {
 			wantURL: "https://dashboard.apps.example.com",
 		},
 		{
-			name:     "route with non-admitted ingress",
-			platform: cluster.SelfManagedRhoai,
+			name:      "route with non-admitted ingress",
+			dashboard: &v1alpha1.Dashboard{},
+			platform:  cluster.SelfManagedRhoai,
 			routes: []routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
@@ -142,8 +189,9 @@ func TestExtractDashboardURL(t *testing.T) {
 			wantErrIs: true,
 		},
 		{
-			name:     "multiple routes",
-			platform: cluster.OpenDataHub,
+			name:      "multiple routes",
+			dashboard: &v1alpha1.Dashboard{},
+			platform:  cluster.OpenDataHub,
 			routes: []routev1.Route{
 				{ObjectMeta: metav1.ObjectMeta{Name: "r1", Namespace: namespace, Labels: partOfLabel}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "r2", Namespace: namespace, Labels: partOfLabel}},
@@ -165,7 +213,7 @@ func TestExtractDashboardURL(t *testing.T) {
 				WithRuntimeObjects(objs...).
 				Build()
 
-			url, err := extractDashboardURL(context.Background(), cli, namespace, tt.platform)
+			url, err := extractDashboardURL(context.Background(), cli, tt.dashboard, namespace, tt.platform)
 			if tt.wantErrIs {
 				assert.ErrorIs(t, err, tt.wantErr)
 				assert.Empty(t, url)

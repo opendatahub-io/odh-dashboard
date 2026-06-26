@@ -11,18 +11,19 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import {
   DSPAMlflowIntegrationMode,
   DSPipelineKind,
   DSPipelineManagedPipelinesKind,
-  ProjectKind,
 } from '#~/k8sTypes';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import ManagePipelineServerModal from '#~/concepts/pipelines/content/ManagePipelineServerModal.tsx';
 import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
-import { conditionalArea, SupportedArea } from '#~/concepts/areas';
+import { conditionalArea } from '#~/concepts/areas';
 import { DEV_MODE } from '#~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -40,7 +41,12 @@ type GetRecurringRunInformationType = ReturnType<
   typeof useRecurringRunRelatedInformation
 >['getRecurringRunInformation'];
 
-type PipelineContext = {
+type PipelineServerSettings = {
+  managedPipelines: DSPipelineManagedPipelinesKind | undefined;
+  mlflowIntegrationMode: DSPAMlflowIntegrationMode | undefined;
+};
+
+type PipelineContext = PipelineServerSettings & {
   hasCR: boolean;
   hasCompatibleVersion: boolean;
   crInitializing: boolean;
@@ -54,8 +60,6 @@ type PipelineContext = {
   getRecurringRunInformation: GetRecurringRunInformationType;
   apiState: PipelineAPIState;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
-  managedPipelines: DSPipelineManagedPipelinesKind | undefined;
-  mlflowIntegrationMode: DSPAMlflowIntegrationMode | undefined;
   isStarting?: boolean;
   startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
   /** Error from loading pipeline CR or route */
@@ -188,36 +192,35 @@ export const getPipelineServerName = (project?: ProjectKind): string => {
   return displayName ? `${displayName} ${defaultName}` : defaultName;
 };
 
-type UsePipelinesAPI = PipelineAPIState & {
-  /** The contextual namespace */
-  namespace: string;
-  /** The Project resource behind the namespace */
-  project: ProjectKind;
-  /** State of the CR */
-  pipelinesServer: {
-    initializing: boolean;
-    installed: boolean;
-    timedOut: boolean;
-    compatible: boolean;
-    name: string;
-    crStatus: DSPipelineKind['status'];
-    isStarting: boolean | undefined;
-  };
-  /** Error from loading pipeline CR or route */
-  pipelineLoadError: Error | undefined;
-  /**
-   * Allows agnostic functionality to request all watched API to be reacquired.
-   * Triggering this will invalidate the memo for API - pay attention to only calling it once per need.
-   */
-  getRecurringRunInformation: GetRecurringRunInformationType;
-  refreshAllAPI: () => void;
-  metadataStoreServiceClient: MetadataStoreServicePromiseClient;
-  refreshState: () => void;
-  managedPipelines: DSPipelineManagedPipelinesKind | undefined;
-  mlflowIntegrationMode: DSPAMlflowIntegrationMode | undefined;
+type UsePipelinesAPI = PipelineAPIState &
+  PipelineServerSettings & {
+    /** The contextual namespace */
+    namespace: string;
+    /** The Project resource behind the namespace */
+    project: ProjectKind;
+    /** State of the CR */
+    pipelinesServer: {
+      initializing: boolean;
+      installed: boolean;
+      timedOut: boolean;
+      compatible: boolean;
+      name: string;
+      crStatus: DSPipelineKind['status'];
+      isStarting: boolean | undefined;
+    };
+    /** Error from loading pipeline CR or route */
+    pipelineLoadError: Error | undefined;
+    /**
+     * Allows agnostic functionality to request all watched API to be reacquired.
+     * Triggering this will invalidate the memo for API - pay attention to only calling it once per need.
+     */
+    getRecurringRunInformation: GetRecurringRunInformationType;
+    refreshAllAPI: () => void;
+    metadataStoreServiceClient: MetadataStoreServicePromiseClient;
+    refreshState: () => void;
 
-  startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
-};
+    startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
+  };
 
 export const usePipelinesAPI = (): UsePipelinesAPI => {
   const {
@@ -329,7 +332,13 @@ export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX
   const { namespace } = React.useContext(PipelinesContext);
   const [pipelineNamespaceCR] = usePipelineNamespaceCR(namespace);
 
-  return <ManagePipelineServerModal onClose={onClose} pipelineNamespaceCR={pipelineNamespaceCR} />;
+  return (
+    <ManagePipelineServerModal
+      key={pipelineNamespaceCR?.metadata.resourceVersion}
+      onClose={onClose}
+      pipelineNamespaceCR={pipelineNamespaceCR}
+    />
+  );
 };
 
 export const PipelineServerTimedOut: React.FC = () => {

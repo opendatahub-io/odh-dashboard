@@ -1,8 +1,8 @@
 import { Truncate } from '@patternfly/react-core';
 import * as React from 'react';
 import { Link, LinkProps } from 'react-router-dom';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { ProjectKind } from '#~/k8sTypes';
 
 type ProjectLinkProps = {
   project: ProjectKind;

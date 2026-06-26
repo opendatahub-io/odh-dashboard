@@ -1,4 +1,4 @@
-import { Identifier } from '#~/types';
+import type { Identifier } from '@odh-dashboard/k8s-core';
 import {
   getValidationMessage,
   validateDefaultCount,

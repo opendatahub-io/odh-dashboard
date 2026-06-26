@@ -1,5 +1,5 @@
 import type { DashboardResource } from '@perses-dev/core';
-import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { isClusterDetailsVariable } from './variables';
 
 export const BASE_PATH = '/observe-and-monitor/dashboard';

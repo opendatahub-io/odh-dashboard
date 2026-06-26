@@ -152,52 +152,74 @@ jobs:
           set -euo pipefail
 
           echo "::group::Checking workspace dependencies"
-          # Extract workspace scope from package.json
           if command -v jq &> /dev/null; then
-            WORKSPACE_SCOPE=$(jq -r '.name | split("/")[0] | select(startswith("@"))' package.json || echo "")
+            # Only scan direct subdirectories of packages/ — top-level workspaces like
+            # backend/ and frontend/ are not Konflux module builds and must not be checked.
+            WORKSPACE_DIRS=$(find packages -mindepth 1 -maxdepth 1 -type d | sort)
 
-            if [ -z "$WORKSPACE_SCOPE" ]; then
-              echo "ℹ️  No scoped workspace detected, checking for workspace packages"
-              # Get workspace directories from package.json
-              WORKSPACE_DIRS=$(jq -r '.workspaces[]' package.json)
-            else
-              echo "ℹ️  Detected workspace scope: $WORKSPACE_SCOPE"
-              # Find all packages with this scope
-              WORKSPACE_DIRS=$(find packages -name "package.json" -exec dirname {} \;)
-            fi
-
-            echo "Workspace directories to check:"
+            echo "Workspace package directories to check:"
             echo "$WORKSPACE_DIRS"
 
-            # Check each Dockerfile for missing COPY commands
+            # Track failures — missing COPY lines are a hard build failure in Konflux.
+            # Lesson from #7855: adding a new shared package requires updating every
+            # Dockerfile.workspace that imports it.
+            WORKSPACE_COPY_FAILURES=0
+
+            # Only check Dockerfile.workspace files — those are what upstream Konflux
+            # pipelines reference (verified via .tekton/*-pull-request.yaml).
             while IFS= read -r dockerfile; do
               [ -z "$dockerfile" ] && continue
               echo ""
               echo "Checking $dockerfile..."
-
-              # Extract package imports from source files near this Dockerfile
               DOCKERFILE_DIR=$(dirname "$dockerfile")
 
-              # For each workspace dir, check if it's imported but not COPYed
               while IFS= read -r ws_dir; do
                 if [ -z "$ws_dir" ]; then continue; fi
 
-                WS_NAME=$(basename "$ws_dir")
+                # Read the actual scoped npm package name (e.g. @odh-dashboard/k8s-core)
+                PKG_JSON="$ws_dir/package.json"
+                [ ! -f "$PKG_JSON" ] && continue
+                PKG_NAME=$(jq -r '.name // empty' "$PKG_JSON" 2>/dev/null || true)
+                [ -z "$PKG_NAME" ] && continue
 
-                # Check if this workspace is referenced in source
-                IMPORTS=$(grep -r "from.*$WS_NAME" "$DOCKERFILE_DIR" 2>/dev/null || true)
+                # Match only exact scoped imports in production source files.
+                # Exclude test files and directories — they don't run inside the
+                # container and their imports (e.g. @odh-dashboard/contract-tests,
+                # @odh-dashboard/jest-config) are dev-only and never need COPYing.
+                IMPORTS=$(grep -r \
+                  --include="*.ts" --include="*.tsx" \
+                  --exclude="*.spec.ts" --exclude="*.spec.tsx" \
+                  --exclude="*.test.ts" --exclude="*.test.tsx" \
+                  --exclude="jest.config.*" \
+                  --exclude-dir="__tests__" \
+                  --exclude-dir="contract-tests" \
+                  --exclude-dir="cypress" \
+                  "from ['\"]${PKG_NAME}['\"]" "$DOCKERFILE_DIR" 2>/dev/null || true)
 
                 if [ -n "$IMPORTS" ]; then
-                  # Check if Dockerfile COPYs this workspace
-                  COPY_FOUND=$(grep "COPY.*$ws_dir" "$dockerfile" || true)
-
+                  COPY_FOUND=$(grep "COPY.*${ws_dir}/" "$dockerfile" || true)
                   if [ -z "$COPY_FOUND" ]; then
-                    echo "⚠️  WARNING: $dockerfile imports $WS_NAME but doesn't COPY $ws_dir"
-                    echo "   This may cause 'package not found' errors during build"
+                    echo "❌ FAIL: $dockerfile imports '$PKG_NAME' but is missing:"
+                    echo "   COPY --chown=default:root $ws_dir/ ./$ws_dir/"
+                    echo "   Without this, Konflux builds will fail with module-not-found errors."
+                    echo "   Example import found:"
+                    echo "$IMPORTS" | head -3 | sed 's/^/     /'
+                    WORKSPACE_COPY_FAILURES=$((WORKSPACE_COPY_FAILURES + 1))
                   fi
                 fi
               done <<< "$WORKSPACE_DIRS"
-            done < <(find . -name "Dockerfile*" -not -path "*/node_modules/*")
+            done < <(find . -name "Dockerfile.workspace" -not -path "*/node_modules/*")
+
+            if [ "$WORKSPACE_COPY_FAILURES" -gt 0 ]; then
+              echo ""
+              echo "❌ TOTAL: $WORKSPACE_COPY_FAILURES Dockerfile(s) are missing COPY instructions for workspace packages they import."
+              echo "   These will cause build failures in Konflux and downstream Dockerfile.konflux.* variants."
+              echo "   Add the missing COPY lines to each Dockerfile listed above."
+              echo "::endgroup::"
+              exit 1
+            fi
+
+            echo "✅ PASS: All Dockerfiles COPY the workspace packages they import"
           else
             echo "⚠️  WARNING: jq not installed, skipping workspace validation"
           fi

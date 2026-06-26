@@ -10,7 +10,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { SchedulingType } from '#~/types.ts';
+import { SchedulingType } from '@odh-dashboard/k8s-core';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip.tsx';
 import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const.tsx';
 import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage/types.ts';

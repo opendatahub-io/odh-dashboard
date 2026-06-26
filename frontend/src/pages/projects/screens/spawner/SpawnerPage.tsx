@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import {
+  Alert,
+  AlertActionCloseButton,
   Breadcrumb,
   BreadcrumbItem,
   Button,
@@ -13,12 +15,14 @@ import {
   StackItem,
   Truncate,
 } from '@patternfly/react-core';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '#~/types';
 import ExtendedButton from '#~/components/ExtendedButton';
 import GenericSidebar from '#~/components/GenericSidebar';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { HardwareProfileKind, NotebookKind } from '#~/k8sTypes';
+import { NotebookKind } from '#~/k8sTypes';
 import useNotebookImageData from '#~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import NotebookRestartAlert from '#~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '#~/pages/projects/notebook/useWillNotebooksRestart';
@@ -48,7 +52,6 @@ import { getPvcAccessMode } from '#~/pages/projects/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -88,6 +91,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       error: projectConnectionsLoadError,
     },
     notebooks: { data: notebooks },
+    localQueues: { data: localQueues, loaded: localQueuesLoaded },
   } = React.useContext(ProjectDetailsContext);
   const displayName = getDisplayNameFromK8sResource(currentProject);
 
@@ -254,6 +258,25 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   } = podSpecOptionsState;
 
   const profileIdentifiers = useProfileIdentifiers(hardwareProfileFormData.selectedProfile);
+
+  const [isLocalQueueWarningDismissed, setIsLocalQueueWarningDismissed] = React.useState(false);
+
+  const selectedLocalQueueName =
+    hardwareProfileFormData.selectedProfile?.spec.scheduling?.kueue?.localQueueName;
+
+  React.useEffect(() => {
+    setIsLocalQueueWarningDismissed(false);
+  }, [
+    hardwareProfileFormData.selectedProfile?.metadata.name,
+    hardwareProfileFormData.selectedProfile?.metadata.namespace,
+  ]);
+
+  const isLocalQueueMissing = React.useMemo(() => {
+    if (!selectedLocalQueueName || !localQueuesLoaded) {
+      return false;
+    }
+    return !localQueues.some((lq) => lq.metadata?.name === selectedLocalQueueName);
+  }, [selectedLocalQueueName, localQueues, localQueuesLoaded]);
 
   const isHardwareProfileSupported = React.useCallback(
     (profile: HardwareProfileKind) => {
@@ -428,6 +451,26 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       </PageSection>
       <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
         <Stack hasGutter>
+          {isLocalQueueMissing && !isLocalQueueWarningDismissed && (
+            <StackItem>
+              <Alert
+                data-testid="local-queue-missing-warning"
+                variant="warning"
+                isInline
+                title={`Local queue "${selectedLocalQueueName ?? ''}" not found in this project`}
+                actionClose={
+                  <AlertActionCloseButton
+                    data-testid="local-queue-missing-warning-close"
+                    onClose={() => setIsLocalQueueWarningDismissed(true)}
+                  />
+                }
+              >
+                The selected hardware profile references a local queue that does not exist in this
+                project. You can still {existingNotebook ? 'update' : 'create'} the workbench, but
+                it may not start until the local queue is created.
+              </Alert>
+            </StackItem>
+          )}
           {restartNotebooks.length !== 0 && (
             <StackItem>
               <NotebookRestartAlert notebooks={restartNotebooks} isCurrent={!!existingNotebook} />

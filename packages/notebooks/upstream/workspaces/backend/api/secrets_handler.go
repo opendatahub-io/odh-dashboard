@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/secrets"
@@ -49,11 +50,11 @@ type SecretCreateEnvelope Envelope[*models.SecretCreate]
 //	@Failure		422			{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error"
 //	@Router			/secrets/{namespace} [get]
-func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
-	namespace := ps.ByName(NamespacePathParam)
+func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	namespace := ps.ByName(constants.NamespacePathParam)
 
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
@@ -64,7 +65,7 @@ func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Reques
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbList, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
@@ -95,14 +96,14 @@ func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Reques
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [get]
-func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl // TODO: Abstract common API patterns once implemented
-	namespace := ps.ByName(NamespacePathParam)
-	secretName := ps.ByName(ResourceNamePathParam)
+func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	namespace := ps.ByName(constants.NamespacePathParam)
+	secretName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(constants.ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -112,7 +113,7 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbGet, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
@@ -153,18 +154,18 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error"
 //	@Router			/secrets/{namespace} [post]
 func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+	if success := a.ValidateContentType(w, r, constants.MediaTypeJson); !success {
 		return
 	}
 
@@ -206,13 +207,14 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbCreate, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretCreate.Name}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	actor, ok := a.requireAuth(w, r, authPolicies)
+	if !ok {
 		return
 	}
 	// ============================================================
 
 	// create the secret
-	secret, err := a.repositories.Secret.CreateSecret(r.Context(), secretCreate, namespace)
+	secret, err := a.repositories.Secret.CreateSecret(r.Context(), actor, secretCreate, namespace)
 	if err != nil {
 		if errors.Is(err, repository.ErrSecretAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
@@ -253,13 +255,13 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [put]
 func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
-	secretName := ps.ByName(ResourceNamePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
+	secretName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(constants.ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -269,13 +271,14 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbUpdate, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	actor, ok := a.requireAuth(w, r, authPolicies)
+	if !ok {
 		return
 	}
 	// ============================================================
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+	if success := a.ValidateContentType(w, r, constants.MediaTypeJson); !success {
 		return
 	}
 
@@ -313,7 +316,7 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	// give the request data a clear name
 	secretUpdate := bodyEnvelope.Data
 
-	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), secretUpdate, namespace, secretName)
+	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), actor, secretUpdate, namespace, secretName)
 	if err != nil {
 		if errors.Is(err, repository.ErrSecretNotFound) {
 			a.notFoundResponse(w, r)
@@ -342,14 +345,14 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Failure		404			{object}	ErrorEnvelope	"Secret not found"
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [delete]
-func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
-	namespace := ps.ByName(NamespacePathParam)
-	secretName := ps.ByName(ResourceNamePathParam)
+func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	namespace := ps.ByName(constants.NamespacePathParam)
+	secretName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(constants.ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -359,7 +362,7 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbDelete, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================

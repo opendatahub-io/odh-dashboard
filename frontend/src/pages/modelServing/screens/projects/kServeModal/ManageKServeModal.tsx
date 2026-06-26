@@ -9,6 +9,13 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import type {
+  TemplateKind,
+  ProjectKind,
+  SecretKind,
+  AccessReviewResourceAttributes,
+} from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -17,13 +24,7 @@ import {
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
-import {
-  TemplateKind,
-  ProjectKind,
-  InferenceServiceKind,
-  AccessReviewResourceAttributes,
-  SecretKind,
-} from '#~/k8sTypes';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import { getKServeContainerArgs, getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '#~/pages/modelServing/customServingRuntimes/utils';
@@ -40,7 +41,6 @@ import InferenceServiceFrameworkSection from '#~/pages/modelServing/screens/proj
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview, useTemplates } from '#~/api';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,

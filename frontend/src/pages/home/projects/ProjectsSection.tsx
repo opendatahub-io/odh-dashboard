@@ -14,11 +14,10 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import useDimensions from 'react-cool-dimensions';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import ManageProjectModal from '#~/pages/projects/screens/projects/ManageProjectModal';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
 import { useAccessReview } from '#~/api';
-import { SupportedArea } from '#~/concepts/areas';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import EvenlySpacedGallery from '#~/components/EvenlySpacedGallery';
 import { isAiProject } from '#~/concepts/projects/utils';

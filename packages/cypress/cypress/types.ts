@@ -247,6 +247,8 @@ export type TestConfig = {
   NGC_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
+  OGX_URL?: string;
+  OGX_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -282,6 +284,8 @@ export type DataScienceProjectData = {
   invalidResourceNames: string[];
   modelFormat: string;
   servingRuntime: string;
+  servingRuntimeVersion: string;
+  servingRuntimeVersionStatus: string;
   modelStatus: string;
   hardwareProfileName: string;
   resourceType: string;
@@ -753,6 +757,8 @@ export type AutomlTestData = {
   trainingDataFile: string;
   taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // AutoGluon preset ('speed' or 'balanced')
+  preset?: string;
   // Number of top models to train (min 1, default 3)
   topN?: number;
   // Optimization metric
@@ -772,4 +778,18 @@ export type MlflowExperimentsTestData = {
   experiments: MlflowExperimentData[];
   runs: MlflowExperimentRunData[];
   nonExistentExperiment: string;
+};
+
+export type AutoragTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  s3SecretName: string;
+  ogxSecretName: string;
+  runName: string;
+  runDescription: string;
+  documentFile: string;
+  evaluationFile: string;
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  maxRagPatterns: number;
+  optimizationMetric?: string;
 };

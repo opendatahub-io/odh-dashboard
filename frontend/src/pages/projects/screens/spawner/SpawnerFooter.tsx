@@ -9,6 +9,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   createNotebook,
   K8sStatusError,
@@ -28,7 +29,6 @@ import {
 } from '#~/concepts/analyticsTracking/trackingProperties';
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,

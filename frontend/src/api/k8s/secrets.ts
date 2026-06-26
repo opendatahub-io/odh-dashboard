@@ -8,7 +8,8 @@ import {
   k8sPatchResource,
   K8sResourceCommon,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, KnownLabels, SecretKind } from '#~/k8sTypes';
+import { KnownLabels, type SecretKind } from '@odh-dashboard/k8s-core';
+import { K8sAPIOptions } from '#~/k8sTypes';
 import { SecretModel } from '#~/api/models';
 import { genRandomChars } from '#~/utilities/string';
 import { translateDisplayNameForK8s } from '#~/concepts/k8s/utils';

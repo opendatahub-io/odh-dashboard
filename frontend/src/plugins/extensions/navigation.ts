@@ -4,7 +4,7 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '#~/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const ADMIN_USER = 'ADMIN_USER';
 
@@ -69,6 +69,19 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       group: '2_mcp_servers',
       section: 'ai-hub',
       objectType: 'mcp-catalog',
+    },
+  },
+  {
+    type: 'app.tab-route/page',
+    properties: {
+      id: 'agents-tab-page',
+      title: 'Agents',
+      href: '/ai-hub/agents',
+      path: '/ai-hub/agents/*',
+      group: '3_agents',
+      section: 'ai-hub',
+      objectType: 'agent-ops',
+      alwaysShowTabBar: true,
     },
   },
   {

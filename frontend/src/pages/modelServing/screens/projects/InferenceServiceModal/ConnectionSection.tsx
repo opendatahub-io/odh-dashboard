@@ -10,6 +10,8 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
@@ -42,9 +44,7 @@ import {
   isModelPathValid,
   isPVCUri,
 } from '#~/pages/modelServing/screens/projects/utils';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { AccessTypes } from '#~/pages/projects/dataConnections/const';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
 import ConnectionOciPathField from './ConnectionOciPathField';
 import { ConnectionOciAlert } from './ConnectionOciAlert';

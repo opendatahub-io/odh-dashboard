@@ -4,6 +4,7 @@ import {
   ALL_EVAL_METRICS,
   DEFAULT_EVAL_METRIC_BY_TASK,
   EVAL_METRICS_BY_TASK_TYPE,
+  MAX_DISPLAY_NAME_LENGTH,
   METRIC_ALIASES,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
@@ -246,7 +247,7 @@ export function getOptimizedMetricForTask(taskType: string): string {
   if (!(taskType in DEFAULT_EVAL_METRIC_BY_TASK)) {
     return 'Unknown metric';
   }
-  return normalizeMetricKey(DEFAULT_EVAL_METRIC_BY_TASK[taskType]);
+  return normalizeMetricKey(DEFAULT_EVAL_METRIC_BY_TASK[taskType] ?? '');
 }
 
 /**
@@ -279,12 +280,6 @@ export function computeRankMap(
 
   return Object.fromEntries(sorted.map((name, i) => [name, i + 1]));
 }
-
-/**
- * Maximum character length for a display name (matches configure.schema.ts validation).
- * Measured in Unicode code points via Array.from().
- */
-const MAX_DISPLAY_NAME_LENGTH = 250;
 
 /**
  * Generates a reconfigure display name by appending or incrementing a ` - N` suffix.
@@ -328,4 +323,21 @@ export function downloadBlob(blob: Blob, filename: string): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Find the first S3 common-prefix directory whose leaf name starts with the
+ * given pattern.  Returns the prefix without a trailing slash, or `undefined`
+ * when no match is found.
+ */
+export function findTrainingTaskPrefix(
+  commonPrefixes: { prefix: string }[],
+  pattern: string,
+): string | undefined {
+  const match = commonPrefixes.find((p) => {
+    const segments = p.prefix.split('/').filter(Boolean);
+    const dirName = segments[segments.length - 1] ?? '';
+    return dirName.startsWith(pattern);
+  });
+  return match ? match.prefix.replace(/\/$/, '') : undefined;
 }

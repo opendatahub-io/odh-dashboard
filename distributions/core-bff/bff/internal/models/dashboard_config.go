@@ -85,10 +85,12 @@ type DashboardFeatureFlags struct {
 	ProjectRBAC                  bool `json:"projectRBAC"`
 	DeploymentWizardYAMLViewer   bool `json:"deploymentWizardYAMLViewer"`
 	ExternalVectorStores         bool `json:"externalVectorStores"`
+	AgentConfigManagement        bool `json:"agentConfigManagement"`
 	VLLMDeploymentOnMaaS         bool `json:"vLLMDeploymentOnMaaS"`
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
+	MaasSettingsIaRedesign       bool `json:"maasSettingsIaRedesign"`
 }
 
 type NotebookController struct {
@@ -178,6 +180,7 @@ var BlankDashboardCR = DashboardConfig{
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
+			MaasSettingsIaRedesign:       false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

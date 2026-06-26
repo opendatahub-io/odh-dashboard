@@ -10,6 +10,13 @@ import {
   ModalHeader,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import type {
+  PersistentVolumeClaimKind,
+  ProjectKind,
+  SecretKind,
+  AccessReviewResourceAttributes,
+} from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -19,14 +26,7 @@ import {
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
-import {
-  AccessReviewResourceAttributes,
-  InferenceServiceKind,
-  PersistentVolumeClaimKind,
-  ProjectKind,
-  SecretKind,
-  ServingRuntimeKind,
-} from '#~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
@@ -45,7 +45,6 @@ import {
   translateDisplayNameForK8sAndReport,
 } from '#~/concepts/k8s/utils';
 import { getSecret, updatePvc, useAccessReview, patchInferenceServiceStoppedStatus } from '#~/api';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection, {
   PVCMode,

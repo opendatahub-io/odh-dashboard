@@ -24,8 +24,9 @@ import {
   TimestampFormat,
   LabelGroup,
   Label,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CompressAltIcon } from '@patternfly/react-icons';
+import { TimesIcon } from '@patternfly/react-icons';
 import { MLflowPromptVersion } from '~/app/types';
 
 const VersionSelect: React.FC<{
@@ -120,14 +121,16 @@ export default function PromptDrawer({
         <DrawerHead>
           <Title headingLevel="h2">{name}</Title>
           <DrawerActions>
-            <Button
-              data-testid="prompt-drawer-close"
-              variant="plain"
-              aria-label="Close drawer"
-              onClick={onClose}
-            >
-              <CompressAltIcon />
-            </Button>
+            <Tooltip content="Clear selection">
+              <Button
+                data-testid="prompt-drawer-clear-selection"
+                variant="plain"
+                aria-label="Clear selection"
+                onClick={onClose}
+              >
+                <TimesIcon />
+              </Button>
+            </Tooltip>
           </DrawerActions>
         </DrawerHead>
         <Flex

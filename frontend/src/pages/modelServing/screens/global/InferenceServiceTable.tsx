@@ -1,11 +1,10 @@
 import * as React from 'react';
-import { SortableData, Table } from '#~/components/table';
-import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type { ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
+import { DashboardEmptyTableView, ResourceTr, SortableData, Table } from '@odh-dashboard/ui-core';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
-import ResourceTr from '#~/components/ResourceTr';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';

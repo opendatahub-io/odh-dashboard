@@ -3,7 +3,7 @@ import {
   SchedulingType,
   TolerationEffect,
   TolerationOperator,
-} from '@odh-dashboard/internal/types';
+} from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 
@@ -737,6 +737,29 @@ describe('Manage Hardware Profile', () => {
 
   describe('Kueue enabled', () => {
     beforeEach(() => setupIntercepts({ disableKueue: false }));
+
+    it('shows inline error when local queue name is invalid', () => {
+      createHardwareProfile.visit();
+      createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('Test hardware profile');
+
+      // Local queue strategy is selected by default
+      createHardwareProfile.findLocalQueueRadio().should('be.checked');
+
+      // Type an invalid name (uppercase letters)
+      createHardwareProfile.findLocalQueueInput().clear().type('Invalid-Queue');
+      createHardwareProfile.findLocalQueueNameError().should('be.visible');
+      createHardwareProfile.findSubmitButton().should('be.disabled');
+
+      // Type an invalid name (leading hyphen)
+      createHardwareProfile.findLocalQueueInput().clear().type('-invalid');
+      createHardwareProfile.findLocalQueueNameError().should('be.visible');
+      createHardwareProfile.findSubmitButton().should('be.disabled');
+
+      // Type a valid name — error clears and Save becomes enabled
+      createHardwareProfile.findLocalQueueInput().clear().type('valid-queue');
+      createHardwareProfile.findLocalQueueNameError().should('not.exist');
+      createHardwareProfile.findSubmitButton().should('be.enabled');
+    });
 
     it('creating a new hardware profile', () => {
       createHardwareProfile.visit();

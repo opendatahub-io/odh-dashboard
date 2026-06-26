@@ -54,7 +54,6 @@ export const useNavigateToDeploymentWizardWithData = (
       },
       modelTypeField: {
         type: deployPrefillData.modelType ?? ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: false,
       },
       k8sNameDesc: {
         name: deployPrefillData.modelName,

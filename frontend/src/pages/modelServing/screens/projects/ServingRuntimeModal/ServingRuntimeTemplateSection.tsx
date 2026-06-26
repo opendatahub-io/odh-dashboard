@@ -12,9 +12,11 @@ import {
   Skeleton,
   Truncate,
 } from '@patternfly/react-core';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
-import { ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
+import { ServingRuntimeKind } from '#~/k8sTypes';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
@@ -23,7 +25,6 @@ import {
   getServingRuntimeVersion,
 } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithIdentifier } from '#~/pages/projects/screens/spawner/spawnerUtils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { CustomWatchK8sResult } from '#~/types';
 import { ScopedType, SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import ProjectScopedPopover from '#~/components/ProjectScopedPopover';

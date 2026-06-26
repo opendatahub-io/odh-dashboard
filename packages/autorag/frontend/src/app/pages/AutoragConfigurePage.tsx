@@ -79,7 +79,7 @@ function AutoragConfigurePage({
     defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
-  const [displayName, , ogxSecretName] = useWatch({
+  const [displayName, description, ogxSecretName] = useWatch({
     control: form.control,
     name: createFields,
   });
@@ -113,6 +113,7 @@ function AutoragConfigurePage({
           variant="primary"
           isDisabled={
             !configureSchema.base.shape.display_name.safeParse(displayName).success ||
+            !configureSchema.base.shape.description.safeParse(description).success ||
             !configureSchema.base.shape.ogx_secret_name.safeParse(ogxSecretName).success
           }
         >

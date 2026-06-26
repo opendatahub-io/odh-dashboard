@@ -1,15 +1,14 @@
 import { AlertVariant } from '@patternfly/react-core';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
+import type { ToggleState } from '@odh-dashboard/ui-core';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
   ImagePullSecret,
   InferenceServiceKind,
-  SecretKind,
   ServingContainer,
   ServingRuntimeKind,
 } from '#~/k8sTypes';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
-import { ContainerResources } from '#~/types';
-import { ToggleState } from '#~/components/StateActionToggle';
 
 export enum PerformanceMetricType {
   SERVER = 'server',
@@ -68,10 +67,7 @@ export type ServingRuntimeToken = {
   editName?: string;
 };
 
-export type ModelServingSize = {
-  name: string;
-  resources: ContainerResources;
-};
+export type { ModelServingSize } from '@odh-dashboard/k8s-core';
 
 export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & {
   project: string;
