@@ -32,6 +32,7 @@ import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
+  getExistingSecretKeyRefEnvVars,
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
@@ -186,12 +187,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     }
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
+    const existingSecretKeyRefs = getExistingSecretKeyRefEnvVars(envVariables);
     const feastData = generateFeastMetadata(selectedFeatureStores, editNotebook, true);
     const newStartNotebookData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,
       envFrom,
+      existingSecretKeyRefs,
       connections,
       feastData,
     };
@@ -231,6 +234,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     );
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
+    const existingSecretKeyRefs = getExistingSecretKeyRefEnvVars(envVariables);
     const feastData = generateFeastMetadata(selectedFeatureStores, undefined, false);
 
     const newStartData: StartNotebookData = {
@@ -238,6 +242,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom: [...envFrom],
+      existingSecretKeyRefs,
       connections,
       feastData,
     };

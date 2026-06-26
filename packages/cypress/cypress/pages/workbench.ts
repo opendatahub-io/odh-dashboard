@@ -165,6 +165,28 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   findAnotherKeyValuePairButton() {
     return this.find().findByTestId('another-key-value-pair-button');
   }
+
+  findExistingSecretSelect(instanceId: number) {
+    return this.find().findByTestId(`existing-secret-select-${instanceId}`);
+  }
+
+  selectExistingSecret(instanceId: number, secretName: string) {
+    this.findExistingSecretSelect(instanceId).click();
+    this.findExistingSecretSelect(instanceId).find('input').clear().type(secretName);
+    cy.findByTestId(`select-multi-typeahead-${secretName}`).click();
+  }
+
+  findExistingSecretAllKeysCheckbox(instanceId: number, secretName: string) {
+    return this.find().findByTestId(`existing-secret-${instanceId}-${secretName}-all-keys`);
+  }
+
+  findExistingSecretKeyCheckbox(instanceId: number, secretName: string, key: string) {
+    return this.find().findByTestId(`existing-secret-${instanceId}-${secretName}-key-${key}`);
+  }
+
+  findExistingSecretSpinner() {
+    return this.find().findByTestId('existing-secret-spinner');
+  }
 }
 
 class KeyValuePairField extends Contextual<HTMLElement> {
@@ -526,6 +548,12 @@ class NotebookImageVersionDropdown extends Contextual<HTMLElement> {
 
 class CreateSpawnerPage {
   k8sNameDescription = new K8sNameDescriptionField('workbench');
+
+  visitSpawner(projectName: string) {
+    cy.visitWithLogin(`/projects/${projectName}/spawner`);
+    cy.findByTestId('app-page-title');
+    cy.testA11y();
+  }
 
   shouldHaveAppTitle() {
     cy.findByTestId('app-page-title').should('have.text', 'Create workbench');

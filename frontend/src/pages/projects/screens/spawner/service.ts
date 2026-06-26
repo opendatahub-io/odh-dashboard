@@ -5,6 +5,7 @@ import type {
   VolumeMount,
   PersistentVolumeClaimKind,
   SecretKind,
+  EnvironmentVariable,
 } from '@odh-dashboard/k8s-core';
 import {
   assembleConfigMap,
@@ -21,6 +22,7 @@ import {
 import {
   ConfigMapCategory,
   EnvironmentFromVariable,
+  EnvironmentVariableType,
   EnvVariable,
   SecretCategory,
   StorageData,
@@ -243,3 +245,37 @@ export const updateConfigMapsAndSecretsForNotebook = async (
       !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef.name)),
   );
 };
+
+const RESERVED_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE']);
+const VALID_ENV_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+export const isValidEnvVarName = (name: string): boolean =>
+  VALID_ENV_NAME_RE.test(name) && !RESERVED_ENV_NAMES.has(name);
+
+export const getExistingSecretKeyRefEnvVars = (
+  envVariables: EnvVariable[],
+  availableSecretNames?: Set<string>,
+): EnvironmentVariable[] =>
+  envVariables
+    .filter((v) => v.type === EnvironmentVariableType.EXISTING_SECRET)
+    .flatMap((v) => v.existingSecretRefs ?? [])
+    .filter(
+      (ref) =>
+        ref.secretName &&
+        ref.selectedKeys.length > 0 &&
+        (!availableSecretNames || availableSecretNames.has(ref.secretName)),
+    )
+    .flatMap((ref) =>
+      ref.selectedKeys
+        .map((key): EnvironmentVariable | null => {
+          const envName = ref.keyAliases?.[key] ?? key;
+          if (!isValidEnvVarName(envName)) {
+            return null;
+          }
+          return {
+            name: envName,
+            valueFrom: { secretKeyRef: { name: ref.secretName, key } },
+          };
+        })
+        .filter((e): e is EnvironmentVariable => e !== null),
+    );

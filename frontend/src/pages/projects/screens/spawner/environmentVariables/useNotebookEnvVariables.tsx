@@ -7,11 +7,68 @@ import {
   ConfigMapCategory,
   EnvironmentVariableType,
   EnvVariable,
+  ExistingSecretRef,
   SecretCategory,
 } from '#~/pages/projects/types';
 import useFetchState, { NotReadyError } from '#~/utilities/useFetchState';
 import { isConnection } from '#~/concepts/connectionTypes/utils';
 import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
+
+const RESERVED_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE']);
+
+export const getSecretKeyRef = (
+  valueFrom: Record<string, unknown> | undefined,
+): { name: string; key: string } | undefined => {
+  if (!valueFrom || typeof valueFrom !== 'object') {
+    return undefined;
+  }
+  const skr = valueFrom.secretKeyRef;
+  if (!skr || typeof skr !== 'object') {
+    return undefined;
+  }
+  const record = Object.assign<Record<string, unknown>, typeof skr>({}, skr);
+  if (typeof record.name === 'string' && typeof record.key === 'string') {
+    return { name: record.name, key: record.key };
+  }
+  return undefined;
+};
+
+export const parseExistingSecretKeyRefs = (notebook: NotebookKind): EnvVariable[] => {
+  const envList = notebook.spec.template.spec.containers[0]?.env ?? [];
+  const grouped = new Map<string, { keys: string[]; aliases: Record<string, string> }>();
+
+  for (const entry of envList) {
+    const ref = getSecretKeyRef(entry.valueFrom);
+    if (ref && !RESERVED_ENV_NAMES.has(entry.name)) {
+      const group = grouped.get(ref.name) ?? { keys: [], aliases: {} };
+      group.keys.push(ref.key);
+      if (entry.name !== ref.key) {
+        group.aliases[ref.key] = entry.name;
+      }
+      grouped.set(ref.name, group);
+    }
+  }
+
+  const refs = [...grouped.entries()].map(
+    ([secretName, { keys, aliases }]): ExistingSecretRef => ({
+      secretName,
+      selectedKeys: keys,
+      allKeys: false,
+      ...(Object.keys(aliases).length > 0 ? { keyAliases: aliases } : {}),
+    }),
+  );
+
+  if (refs.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      type: EnvironmentVariableType.EXISTING_SECRET,
+      existingSecretRefs: refs,
+    },
+  ];
+};
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
@@ -41,8 +98,8 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
           v: Promise<ConfigMapKind | null> | Promise<undefined> | undefined,
         ): v is Promise<SecretKind | ConfigMapKind | null> => !!v,
       ),
-  ).then((results) =>
-    results.reduce<EnvVariable[]>((acc, resource) => {
+  ).then((results) => {
+    const envFromVars = results.reduce<EnvVariable[]>((acc, resource) => {
       if (!resource) {
         return acc;
       }
@@ -70,8 +127,11 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
         return acc;
       }
       return [...acc, envVar];
-    }, []),
-  );
+    }, []);
+
+    const secretKeyRefVars = parseExistingSecretKeyRefs(notebook);
+    return [...envFromVars, ...secretKeyRefVars];
+  });
 };
 
 export const useNotebookEnvVariables = (

@@ -1,5 +1,6 @@
 import type {
   EnvironmentFromVariable,
+  EnvironmentVariable,
   Volume,
   VolumeMount,
   PersistentVolumeClaimKind,
@@ -92,6 +93,7 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
+  existingSecretKeyRefs?: EnvironmentVariable[];
   dashboardNamespace?: string;
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
@@ -111,15 +113,24 @@ export type EnvVariableData = {
   data: EnvVariableDataEntry[];
 };
 
+export type ExistingSecretRef = {
+  secretName: string;
+  selectedKeys: string[];
+  allKeys: boolean;
+  keyAliases?: Record<string, string>;
+};
+
 export type EnvVariable = {
   type: EnvironmentVariableType | null;
   existingName?: string;
   values?: EnvVariableData;
+  existingSecretRefs?: ExistingSecretRef[];
 };
 
 export enum EnvironmentVariableType {
   CONFIG_MAP = 'Config Map',
   SECRET = 'Secret',
+  EXISTING_SECRET = 'Existing secret',
 }
 export enum SecretCategory {
   GENERIC = 'secret key-value',

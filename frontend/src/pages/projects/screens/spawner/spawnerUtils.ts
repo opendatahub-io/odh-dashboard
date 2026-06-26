@@ -4,6 +4,7 @@ import type { ImageStreamStatusTag } from '#~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
 import {
   ConfigMapCategory,
+  EnvironmentVariableType,
   EnvVariable,
   EnvVariableDataEntry,
   SecretCategory,
@@ -344,13 +345,22 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
     }
   };
 
-  const isValid = envVariables.every(
-    (envVar) =>
-      !!envVar.type &&
+  const isValid = envVariables.every((envVar) => {
+    if (!envVar.type) {
+      return false;
+    }
+    if (envVar.type === EnvironmentVariableType.EXISTING_SECRET) {
+      const refs = envVar.existingSecretRefs ?? [];
+      return (
+        refs.length > 0 && refs.every((ref) => !!ref.secretName && ref.selectedKeys.length > 0)
+      );
+    }
+    return (
       !!envVar.values &&
       !!envVar.values.category &&
-      hasValidValuesForType(envVar.values.data, envVar.values.category),
-  );
+      hasValidValuesForType(envVar.values.data, envVar.values.category)
+    );
+  });
 
   return isValid;
 };
