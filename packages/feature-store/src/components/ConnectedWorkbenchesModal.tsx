@@ -13,8 +13,6 @@ import {
   Spinner,
   Stack,
   StackItem,
-  Switch,
-  ToolbarItem,
   Truncate,
 } from '@patternfly/react-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
@@ -22,12 +20,11 @@ import { TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 import SearchSelector from '@odh-dashboard/internal/components/searchSelector/SearchSelector';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useConnectedWorkbenches } from '../apiHooks/useConnectedWorkbenches';
-import {
-  buildConnectedWorkbenchRows,
-  filterRowsByToggle,
-} from '../utils/connectedWorkbenchesUtils';
+import { buildConnectedWorkbenchRows } from '../utils/connectedWorkbenchesUtils';
 import { getConnectedWorkbenchColumns } from '../screens/connectedWorkbenches/const';
 import ConnectedWorkbenchTableRow from '../screens/connectedWorkbenches/ConnectedWorkbenchTableRow';
+import ConnectedWorkbenchesToolbar from '../screens/connectedWorkbenches/ConnectedWorkbenchesToolbar';
+import useConnectedWorkbenchFilters from '../screens/connectedWorkbenches/useConnectedWorkbenchFilters';
 import type { ConnectedWorkbenchTableRow as ConnectedWorkbenchTableRowData } from '../types/connectedWorkbenches';
 import EmptyStateFeatureStore from '../screens/components/EmptyStateFeatureStore';
 
@@ -43,8 +40,6 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
   const [selectedFeastProjectName, setSelectedFeastProjectName] = React.useState(
     initialFeastProjectName ?? '',
   );
-  const [hideProjectsWithConnectedWorkbenches, setHideProjectsWithConnectedWorkbenches] =
-    React.useState(false);
   const [searchText, setSearchText] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
@@ -61,9 +56,19 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
 
   const tableRows = React.useMemo(() => {
     const projectData = selectedFeastProjectName ? selectedProject : projects;
-    const rows = buildConnectedWorkbenchRows(projectData);
-    return filterRowsByToggle(rows, hideProjectsWithConnectedWorkbenches);
-  }, [selectedFeastProjectName, selectedProject, projects, hideProjectsWithConnectedWorkbenches]);
+    return buildConnectedWorkbenchRows(projectData);
+  }, [selectedFeastProjectName, selectedProject, projects]);
+
+  const filterState = useConnectedWorkbenchFilters(tableRows);
+
+  const { clearAllFilters } = filterState;
+  const prevFeastProjectRef = React.useRef(selectedFeastProjectName);
+  React.useEffect(() => {
+    if (prevFeastProjectRef.current !== selectedFeastProjectName) {
+      prevFeastProjectRef.current = selectedFeastProjectName;
+      clearAllFilters();
+    }
+  }, [selectedFeastProjectName, clearAllFilters]);
 
   const filteredProjects = React.useMemo(
     () =>
@@ -80,12 +85,15 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
   );
 
   const sort = useTableColumnSort<ConnectedWorkbenchTableRowData>(columns, [], 0);
-  const sortedRows = React.useMemo(() => sort.transformData(tableRows), [sort, tableRows]);
+  const sortedRows = React.useMemo(
+    () => sort.transformData(filterState.filteredRows),
+    [sort, filterState.filteredRows],
+  );
   const paginatedRows = sortedRows.slice(pageSize * (page - 1), pageSize * page);
 
   React.useEffect(() => {
     setPage(1);
-  }, [selectedFeastProjectName, hideProjectsWithConnectedWorkbenches, tableRows.length]);
+  }, [selectedFeastProjectName, filterState.filteredRows.length]);
 
   const isLoading = !loaded && !error;
 
@@ -132,7 +140,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
     <Modal
       isOpen
       onClose={onClose}
-      variant="medium"
+      variant="large"
       aria-labelledby="connected-workbenches-modal-title"
     >
       <ModalHeader
@@ -195,22 +203,38 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
                 emptyTableView={
                   <EmptyStateFeatureStore
                     testid="connected-workbenches-empty-state"
-                    title="No authorized projects found"
-                    description="No data science projects are authorized to access this feature store."
+                    title={
+                      filterState.hasActiveFilters
+                        ? 'No results found'
+                        : 'No authorized projects found'
+                    }
+                    description={
+                      filterState.hasActiveFilters
+                        ? 'No workbenches match the current filters. Try adjusting or clearing the filters.'
+                        : 'No data science projects are authorized to access this feature store.'
+                    }
                     headerIcon={SearchIcon}
                   />
                 }
+                onClearFilters={
+                  filterState.hasActiveFilters ? filterState.clearAllFilters : undefined
+                }
                 toolbarContent={
-                  <ToolbarItem alignSelf="center">
-                    <Switch
-                      id="hide-projects-with-connected-workbenches"
-                      label="Hide projects with connected workbenches"
-                      isChecked={hideProjectsWithConnectedWorkbenches}
-                      onChange={(_event, checked) =>
-                        setHideProjectsWithConnectedWorkbenches(checked)
-                      }
-                    />
-                  </ToolbarItem>
+                  <ConnectedWorkbenchesToolbar
+                    workbenchNameFilter={filterState.workbenchNameFilter}
+                    selectedProjects={filterState.selectedProjects}
+                    selectedPermissions={filterState.selectedPermissions}
+                    hideProjectsWithConnectedWorkbenches={
+                      filterState.hideProjectsWithConnectedWorkbenches
+                    }
+                    projectOptions={filterState.projectOptions}
+                    onWorkbenchNameFilterChange={filterState.setWorkbenchNameFilter}
+                    onProjectToggle={filterState.toggleProject}
+                    onPermissionToggle={filterState.togglePermission}
+                    onHideProjectsWithConnectedWorkbenchesChange={
+                      filterState.setHideProjectsWithConnectedWorkbenches
+                    }
+                  />
                 }
                 rowRenderer={(row) => <ConnectedWorkbenchTableRow key={row.id} row={row} />}
               />
