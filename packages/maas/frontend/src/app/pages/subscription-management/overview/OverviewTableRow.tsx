@@ -4,12 +4,13 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { ActionsColumn, ExpandableRowContent, Tbody, Tr, Td } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { ModelOverviewRow, overviewColumns } from './utils';
+import { overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
 
 type OverviewTableRowProps = {
-  row: ModelOverviewRow;
+  row: ModelOverviewItem;
   rowIndex: number;
   isExpanded: boolean;
   onToggleExpand: () => void;
@@ -103,9 +104,13 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
         />
         <Td dataLabel={overviewColumns[1].label}>
           <TableRowTitleDescription
-            title={<span className="pf-v6-u-font-weight-bold">{row.displayName ?? row.name}</span>}
-            subtitle={`${row.namespace}/${row.name}`}
-            description={row.description}
+            title={
+              <span className="pf-v6-u-font-weight-bold">
+                {row.modelDetails.displayName ?? row.id}
+              </span>
+            }
+            subtitle={row.id}
+            description={row.modelDetails.description}
             truncateDescriptionLines={2}
           />
         </Td>
@@ -121,8 +126,8 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
         </Td>
         <Td dataLabel={overviewColumns[3].label}>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>{row.policies.length}</FlexItem>
-            {row.policies.length === 0 && (
+            <FlexItem>{row.authPolicies.length}</FlexItem>
+            {row.authPolicies.length === 0 && (
               <FlexItem>
                 <NoPoliciesWarning />
               </FlexItem>
@@ -140,7 +145,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
                     state: {
                       returnTo: RETURN_TO,
                       breadcrumbLabel: 'Subscription management',
-                      preSelectedModel: { name: row.name, namespace: row.namespace },
+                      preSelectedModel: { name: row.id },
                     },
                   }),
               },
@@ -151,7 +156,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
                     state: {
                       returnTo: RETURN_TO,
                       breadcrumbLabel: 'Subscription management',
-                      preSelectedModel: { name: row.name, namespace: row.namespace },
+                      preSelectedModel: { name: row.id },
                     },
                   }),
               },
@@ -162,12 +167,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
       <Tr isExpanded={isExpanded}>
         <Td colSpan={overviewColumns.length}>
           <ExpandableRowContent>
-            <ExpandedModelContent
-              modelName={row.name}
-              modelNamespace={row.namespace}
-              subscriptions={row.subscriptions}
-              policies={row.policies}
-            />
+            <ExpandedModelContent subscriptions={row.subscriptions} policies={row.authPolicies} />
           </ExpandableRowContent>
         </Td>
       </Tr>

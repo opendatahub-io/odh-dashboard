@@ -44,7 +44,7 @@ export type PolicyFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
   initialPolicy?: MaaSAuthPolicy;
   returnTo?: string;
-  preSelectedModel?: { name: string; namespace: string };
+  preSelectedModel?: { name: string; namespace?: string };
 };
 
 const PolicyForm: React.FC<PolicyFormProps> = ({
@@ -83,7 +83,9 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
     }
     if (preSelectedModel) {
       const match = formData.modelRefs.find(
-        (m) => m.name === preSelectedModel.name && m.namespace === preSelectedModel.namespace,
+        (m) =>
+          m.name === preSelectedModel.name &&
+          (!preSelectedModel.namespace || m.namespace === preSelectedModel.namespace),
       );
       if (match) {
         return [match];

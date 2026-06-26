@@ -165,3 +165,31 @@ export type RateLimit = {
   time: number;
   unit: 'hour' | 'minute' | 'second';
 };
+
+export type ModelOverviewSubscription = {
+  name: string;
+  displayName?: string;
+  phase?: string;
+  groups?: string[];
+  tokenRateLimits?: TokenRateLimit[];
+};
+
+export type ModelOverviewPolicy = {
+  name: string;
+  displayName?: string;
+  phase?: string;
+  groups?: string[];
+};
+
+export type ModelOverviewDetails = {
+  displayName?: string;
+  description?: string;
+  phase?: string;
+};
+
+export type ModelOverviewItem = {
+  id: string;
+  modelDetails: ModelOverviewDetails;
+  subscriptions: ModelOverviewSubscription[];
+  authPolicies: ModelOverviewPolicy[];
+};

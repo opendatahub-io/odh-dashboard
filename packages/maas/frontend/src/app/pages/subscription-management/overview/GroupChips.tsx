@@ -1,9 +1,8 @@
 import * as React from 'react';
 import { Button, Content, Flex, FlexItem, Label } from '@patternfly/react-core';
-import { GroupReference } from '~/app/types/subscriptions';
 
 type GroupChipsProps = {
-  groups: GroupReference[];
+  groups: string[];
   maxVisible?: number;
 };
 
@@ -33,8 +32,8 @@ const GroupChips: React.FC<GroupChipsProps> = ({ groups, maxVisible = DEFAULT_MA
       ) : (
         <>
           {displayedGroups.map((group) => (
-            <FlexItem key={group.name}>
-              <Label isCompact>{group.name}</Label>
+            <FlexItem key={group}>
+              <Label isCompact>{group}</Label>
             </FlexItem>
           ))}
           {overflowCount > 0 && (

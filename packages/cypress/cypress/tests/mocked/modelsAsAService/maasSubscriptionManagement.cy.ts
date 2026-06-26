@@ -13,6 +13,7 @@ import {
   mockSubscriptions,
   mockAuthPolicies,
   mockSubscriptionFormData,
+  mockModelsOverview,
 } from '../../../utils/maasUtils';
 
 const setupCommonIntercepts = () => {
@@ -36,6 +37,7 @@ const setupCommonIntercepts = () => {
   );
   cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
   cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
+  cy.interceptOdh('GET /maas/api/v1/overview/models', { data: mockModelsOverview() });
   cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
     data: mockSubscriptionFormData(),
   });

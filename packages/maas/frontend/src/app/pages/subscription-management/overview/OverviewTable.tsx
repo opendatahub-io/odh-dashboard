@@ -2,12 +2,11 @@ import * as React from 'react';
 import { Pagination } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th } from '@patternfly/react-table';
 import { useTableColumnSort } from '@odh-dashboard/ui-core';
-import { ModelOverviewRow, overviewColumns } from './utils';
+import { ModelOverviewItem } from '~/app/types/subscriptions';
+import { overviewColumns } from './utils';
 import OverviewTableRow from './OverviewTableRow';
 
-const modelKey = (row: ModelOverviewRow): string => `${row.namespace}/${row.name}`;
-
-const OverviewTable: React.FC<{ data: ModelOverviewRow[] }> = ({ data }) => {
+const OverviewTable: React.FC<{ data: ModelOverviewItem[] }> = ({ data }) => {
   const [expandedModels, setExpandedModels] = React.useState<Set<string>>(new Set());
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
@@ -18,24 +17,23 @@ const OverviewTable: React.FC<{ data: ModelOverviewRow[] }> = ({ data }) => {
   const safePage = Math.min(page, maxPage);
   const pageData = sorted.slice(pageSize * (safePage - 1), pageSize * safePage);
 
-  const allExpanded = pageData.length > 0 && pageData.every((r) => expandedModels.has(modelKey(r)));
+  const allExpanded = pageData.length > 0 && pageData.every((r) => expandedModels.has(r.id));
 
   const toggleAll = () =>
     setExpandedModels((prev) => {
-      const keys = pageData.map(modelKey);
+      const keys = pageData.map((r) => r.id);
       return keys.every((k) => prev.has(k))
         ? new Set([...prev].filter((k) => !keys.includes(k)))
         : new Set([...prev, ...keys]);
     });
 
-  const toggleModel = (row: ModelOverviewRow) => {
-    const key = modelKey(row);
+  const toggleModel = (row: ModelOverviewItem) => {
     setExpandedModels((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
+      if (next.has(row.id)) {
+        next.delete(row.id);
       } else {
-        next.add(key);
+        next.add(row.id);
       }
       return next;
     });
@@ -70,10 +68,10 @@ const OverviewTable: React.FC<{ data: ModelOverviewRow[] }> = ({ data }) => {
         </Thead>
         {pageData.map((row, rowIndex) => (
           <OverviewTableRow
-            key={modelKey(row)}
+            key={row.id}
             row={row}
             rowIndex={rowIndex}
-            isExpanded={expandedModels.has(modelKey(row))}
+            isExpanded={expandedModels.has(row.id)}
             onToggleExpand={() => toggleModel(row)}
           />
         ))}

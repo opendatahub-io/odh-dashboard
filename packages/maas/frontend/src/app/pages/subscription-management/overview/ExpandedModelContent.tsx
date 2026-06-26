@@ -2,7 +2,11 @@ import * as React from 'react';
 import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { MaaSAuthPolicy, MaaSSubscription, TokenRateLimit } from '~/app/types/subscriptions';
+import {
+  ModelOverviewSubscription,
+  ModelOverviewPolicy,
+  TokenRateLimit,
+} from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
@@ -43,7 +47,6 @@ type ExpandableItemProps = {
   linkState: { returnTo: string; breadcrumbLabel?: string };
   phase?: string;
   resourceType: PhaseResourceType;
-  statusMessage?: string;
   rowIndex: number;
   isExpanded: boolean;
   onToggle: () => void;
@@ -58,7 +61,6 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   linkState,
   phase,
   resourceType,
-  statusMessage,
   rowIndex,
   isExpanded,
   onToggle,
@@ -81,11 +83,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                 </Link>
               </FlexItem>
               <FlexItem>
-                <PhaseLabel
-                  phase={phase}
-                  resourceType={resourceType}
-                  statusMessage={statusMessage}
-                />
+                <PhaseLabel phase={phase} resourceType={resourceType} />
               </FlexItem>
             </Flex>
           </Td>
@@ -154,17 +152,13 @@ const SectionEmptyState: React.FC<EmptyStateProps> = ({ title, subtitle }) => (
 );
 
 type SubscriptionsSectionProps = {
-  modelName: string;
-  modelNamespace: string;
-  subscriptions: MaaSSubscription[];
+  subscriptions: ModelOverviewSubscription[];
   expandedSubs: Set<string>;
   onToggleSub: (name: string) => void;
   onToggleAll: () => void;
 };
 
 const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
-  modelName,
-  modelNamespace,
   subscriptions,
   expandedSubs,
   onToggleSub,
@@ -187,42 +181,34 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
           subtitle="No rate limits configured for this model."
         />
       ) : (
-        subscriptions.map((sub, index) => {
-          const modelRef = sub.modelRefs.find(
-            (ref) => ref.name === modelName && ref.namespace === modelNamespace,
-          );
-          const tokenLimits = modelRef?.tokenRateLimits ?? [];
-
-          return (
-            <ExpandableItem
-              key={sub.name}
-              ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
-              name={sub.name}
-              displayName={sub.displayName}
-              linkTo={`${URL_PREFIX}/subscription-management/subscriptions/view/${sub.name}`}
-              linkState={OVERVIEW_LINK_STATE}
-              phase={sub.phase}
-              resourceType={PhaseResourceType.SUBSCRIPTION}
-              statusMessage={sub.statusMessage}
-              rowIndex={index}
-              isExpanded={expandedSubs.has(sub.name)}
-              onToggle={() => onToggleSub(sub.name)}
-            >
-              <Content className="pf-v6-u-mb-sm">
-                <strong className="pf-v6-u-mr-md">Token limits</strong>
-                {formatTokenLimits(tokenLimits)}
-              </Content>
-              <GroupChips groups={sub.owner.groups} />
-            </ExpandableItem>
-          );
-        })
+        subscriptions.map((sub, index) => (
+          <ExpandableItem
+            key={sub.name}
+            ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
+            name={sub.name}
+            displayName={sub.displayName}
+            linkTo={`${URL_PREFIX}/subscription-management/subscriptions/view/${sub.name}`}
+            linkState={OVERVIEW_LINK_STATE}
+            phase={sub.phase}
+            resourceType={PhaseResourceType.SUBSCRIPTION}
+            rowIndex={index}
+            isExpanded={expandedSubs.has(sub.name)}
+            onToggle={() => onToggleSub(sub.name)}
+          >
+            <Content className="pf-v6-u-mb-sm">
+              <strong className="pf-v6-u-mr-md">Token limits</strong>
+              {formatTokenLimits(sub.tokenRateLimits ?? [])}
+            </Content>
+            <GroupChips groups={sub.groups ?? []} />
+          </ExpandableItem>
+        ))
       )}
     </>
   );
 };
 
 type PoliciesSectionProps = {
-  policies: MaaSAuthPolicy[];
+  policies: ModelOverviewPolicy[];
   expandedPolicies: Set<string>;
   onTogglePolicy: (name: string) => void;
   onToggleAll: () => void;
@@ -261,12 +247,11 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
             linkState={OVERVIEW_LINK_STATE}
             phase={policy.phase}
             resourceType={PhaseResourceType.AUTHPOLICY}
-            statusMessage={policy.statusMessage}
             rowIndex={index}
             isExpanded={expandedPolicies.has(policy.name)}
             onToggle={() => onTogglePolicy(policy.name)}
           >
-            <GroupChips groups={policy.subjects.groups ?? []} />
+            <GroupChips groups={policy.groups ?? []} />
           </ExpandableItem>
         ))
       )}
@@ -275,18 +260,11 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
 };
 
 type ExpandedModelContentProps = {
-  modelName: string;
-  modelNamespace: string;
-  subscriptions: MaaSSubscription[];
-  policies: MaaSAuthPolicy[];
+  subscriptions: ModelOverviewSubscription[];
+  policies: ModelOverviewPolicy[];
 };
 
-const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
-  modelName,
-  modelNamespace,
-  subscriptions,
-  policies,
-}) => {
+const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptions, policies }) => {
   const [expandedSubs, setExpandedSubs] = React.useState<Set<string>>(new Set());
   const [expandedPolicies, setExpandedPolicies] = React.useState<Set<string>>(new Set());
 
@@ -323,8 +301,6 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
         }}
       >
         <SubscriptionsSection
-          modelName={modelName}
-          modelNamespace={modelNamespace}
           subscriptions={subscriptions}
           expandedSubs={expandedSubs}
           onToggleSub={toggleSub}

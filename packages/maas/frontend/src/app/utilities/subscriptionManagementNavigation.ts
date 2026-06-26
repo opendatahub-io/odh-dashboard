@@ -4,7 +4,7 @@ const SUBSCRIPTION_MANAGEMENT_PREFIX = `${URL_PREFIX}/subscription-management`;
 
 export const getPreSelectedModelFromState = (
   state: unknown,
-): { name: string; namespace: string } | undefined => {
+): { name: string; namespace?: string } | undefined => {
   if (state == null || typeof state !== 'object' || !('preSelectedModel' in state)) {
     return undefined;
   }
@@ -13,16 +13,16 @@ export const getPreSelectedModelFromState = (
   if (
     preSelectedModel == null ||
     typeof preSelectedModel !== 'object' ||
-    !('name' in preSelectedModel) ||
-    !('namespace' in preSelectedModel)
+    !('name' in preSelectedModel)
   ) {
     return undefined;
   }
   const model: Record<string, unknown> = Object.assign({}, preSelectedModel);
-  if (typeof model.name !== 'string' || typeof model.namespace !== 'string') {
+  if (typeof model.name !== 'string') {
     return undefined;
   }
-  return { name: model.name, namespace: model.namespace };
+  const namespace = typeof model.namespace === 'string' ? model.namespace : undefined;
+  return { name: model.name, namespace };
 };
 
 export const getReturnToFromState = (state: unknown): string | undefined => {

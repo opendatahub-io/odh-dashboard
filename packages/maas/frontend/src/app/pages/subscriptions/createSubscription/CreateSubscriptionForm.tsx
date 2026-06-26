@@ -44,7 +44,7 @@ type CreateSubscriptionFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
   subscriptionInfo?: SubscriptionInfoResponse;
   returnTo?: string;
-  preSelectedModel?: { name: string; namespace: string };
+  preSelectedModel?: { name: string; namespace?: string };
 };
 const MAX_PRIORITY = 1000000;
 const MIN_PRIORITY = -1000000;
@@ -123,7 +123,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     }
     if (preSelectedModel) {
       const match = formData.modelRefs.find(
-        (m) => m.name === preSelectedModel.name && m.namespace === preSelectedModel.namespace,
+        (m) =>
+          m.name === preSelectedModel.name &&
+          (!preSelectedModel.namespace || m.namespace === preSelectedModel.namespace),
       );
       if (match) {
         return [{ modelRefSummary: match, tokenRateLimits: [] }];
