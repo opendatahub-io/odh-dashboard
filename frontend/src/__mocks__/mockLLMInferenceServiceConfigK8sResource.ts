@@ -56,10 +56,11 @@ export const mockLLMInferenceServiceConfigK8sResource = ({
         : {}),
       ...(preInstalled ? { 'serving.kserve.io/well-known-config': 'true' as const } : {}),
     },
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     labels: {
       'opendatahub.io/config-type': topologyType ?? configType,
       ...(!preInstalled ? { 'opendatahub.io/dashboard': 'true' as const } : {}),
-    },
+    } as LLMInferenceServiceConfigKind['metadata']['labels'],
     ...(preInstalled
       ? {
           ownerReferences: [

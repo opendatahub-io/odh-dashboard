@@ -32,10 +32,10 @@ const isTopologyTypeFieldData = (data: unknown): data is TopologyTypeFieldData =
   if (data == null || typeof data !== 'object' || !('topologyType' in data)) {
     return false;
   }
-  // Safe narrowing: 'in' check above guarantees the property exists
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const val = (data as { topologyType: unknown }).topologyType;
-  return typeof val === 'string' && topologyTypeValues.includes(val);
+  const record: Record<string, unknown> = data;
+  return (
+    typeof record.topologyType === 'string' && topologyTypeValues.includes(record.topologyType)
+  );
 };
 
 type CustomTopologyConfigDependencies = {

@@ -11,6 +11,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import {
   HardwareProfileModel,
   LLMInferenceServiceConfigModel,
@@ -121,7 +122,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelect().findSelectOption('Generative AI model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
@@ -134,7 +135,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelect().findSelectOption('Generative AI model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
@@ -147,7 +148,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelect().findSelectOption('Generative AI model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
@@ -174,7 +175,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelect().findSelectOption('Generative AI model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
@@ -193,7 +194,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelect().findSelectOption('Generative AI model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
@@ -212,7 +213,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelect().findSelectOption('Generative AI model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
@@ -239,7 +240,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelect().findSelectOption('Generative AI model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');

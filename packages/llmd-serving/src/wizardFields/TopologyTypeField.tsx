@@ -1,5 +1,13 @@
 import React from 'react';
-import { FormGroup, Content, Stack, StackItem } from '@patternfly/react-core';
+import {
+  FormGroup,
+  Content,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { z } from 'zod';
 import type {
   WizardField,
@@ -119,7 +127,17 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
             }}
             value={value?.topologyType}
             dataTestId="topology-type-select"
+            toggleProps={externalData?.loadError ? { status: 'warning' } : undefined}
           />
+          {externalData?.loadError && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="warning">
+                  Failed to load topology configurations. Some options may be unavailable.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </StackItem>
       </Stack>
     </FormGroup>

@@ -129,7 +129,7 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
       'serving.kserve.io/well-known-config'?: 'true' | 'false';
     };
     labels?: {
-      'opendatahub.io/config-type'?: string;
+      'opendatahub.io/config-type'?: TopologyType | 'router' | 'accelerator';
       'opendatahub.io/dashboard'?: 'true' | 'false';
     };
   };
