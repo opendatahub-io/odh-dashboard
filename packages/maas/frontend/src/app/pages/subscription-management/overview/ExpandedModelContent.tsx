@@ -16,7 +16,7 @@ const formatTokenLimits = (limits: TokenRateLimit[]): string =>
 
 const itemBorderStyle = {
   border: '1px solid var(--pf-t--global--border--color--default)',
-  borderRadius: 'var(--pf-t--global--border--radius--small)',
+  borderRadius: 'var(--pf-t--global--border--radius--medium)',
   marginBottom: 'var(--pf-t--global--spacer--sm)',
 };
 

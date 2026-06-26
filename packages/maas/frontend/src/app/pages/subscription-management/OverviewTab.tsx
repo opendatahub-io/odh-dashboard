@@ -1,14 +1,5 @@
 import * as React from 'react';
-import {
-  Alert,
-  Bullseye,
-  Flex,
-  FlexItem,
-  PageSection,
-  Spinner,
-  ToggleGroup,
-  ToggleGroupItem,
-} from '@patternfly/react-core';
+import { Alert, Bullseye, Flex, PageSection, Spinner } from '@patternfly/react-core';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
 import { buildModelOverviewRows } from './overview/utils';
 import OverviewTable from './overview/OverviewTable';
@@ -41,25 +32,7 @@ const OverviewTab: React.FC = () => {
   return (
     <PageSection isFilled>
       {rows.length > 0 && (
-        <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} className="pf-v6-u-mb-md">
-          <FlexItem>
-            <ToggleGroup aria-label="View toggle" data-testid="overview-view-toggle">
-              <ToggleGroupItem
-                text="Model view"
-                buttonId="model-view"
-                isSelected
-                data-testid="model-view-toggle"
-              />
-              <ToggleGroupItem
-                text="Group view"
-                buttonId="group-view"
-                isSelected={false}
-                isDisabled
-                data-testid="group-view-toggle"
-              />
-            </ToggleGroup>
-          </FlexItem>
-        </Flex>
+        <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} className="pf-v6-u-mb-md" />
       )}
       <OverviewTable data={rows} />
     </PageSection>
