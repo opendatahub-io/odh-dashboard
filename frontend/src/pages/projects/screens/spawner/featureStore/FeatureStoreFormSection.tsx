@@ -12,8 +12,8 @@ import {
   FormHelperText,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import ExtendedButton from '#~/components/ExtendedButton';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import ExtendedButton from '#~/components/ExtendedButton';
 import { SpawnerPageSectionTitles } from '#~/pages/projects/screens/spawner/const';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
