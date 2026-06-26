@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v2"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,8 +32,6 @@ const (
 	otelCollectorResource = "opentelemetrycollectors"
 
 	routingConnectorKey = "routing/traces"
-	defaultPipelineKey  = "traces/default"
-	ingressPipelineKey  = "traces/ingress"
 
 	collectorPatchTimeout = 15 * time.Second
 	crDiscoveryTimeout    = 10 * time.Second
@@ -44,29 +43,35 @@ var otelCollectorGVR = schema.GroupVersionResource{
 	Resource: otelCollectorResource,
 }
 
-const defaultCollectorName = "data-science-collector"
+const (
+	platformCollectorName = "data-science-collector"
+	genaiCollectorName   = "gen-ai-trace-collector"
+)
 
-// otelConfigManager handles idempotent patching of the platform OpenTelemetryCollector CR
-// to add/remove per-namespace routing connector configuration.
+// otelConfigManager creates and manages a dedicated "gen-ai-trace-collector"
+// OpenTelemetryCollector CR for playground trace routing. This avoids patching
+// the platform "data-science-collector" CR, whose spec.config is fully rendered
+// from a Go template by an operator on reconciliation, so this avoids our changes being overwritten.
 type otelConfigManager struct {
 	dynClient           dynamic.Interface
 	logger              *slog.Logger
 	collectorNamespace  string
-	collectorName       string
 	mlflowK8sServiceURL string // in-cluster K8s service URL for collector exporter, e.g. "https://mlflow.opendatahub.svc:8443"
 	mlflowURL           string // URL reachable from BFF for API calls, e.g. "https://localhost:5001" or same as K8s service URL
 	httpClient          *http.Client
 	bearerToken         string // from kubeconfig (local dev) or SA token (in-cluster)
 }
 
-// newOTelConfigManager creates a manager using the in-cluster service account
-// (or local kubeconfig for dev), following the mlflow_cr.go pattern.
+// newOTelConfigManager creates a manager that owns a dedicated gen-ai
+// collector CR for playground trace routing.
 //
-// Discovery order for the collector CR:
-//  1. If OTEL_COLLECTOR_NAMESPACE is set, use it with OTEL_COLLECTOR_NAME (or default).
-//  2. Otherwise, list OpenTelemetryCollector CRs across all namespaces and use the
-//     first one named "data-science-collector" (the operator-provisioned default).
-//  3. If nothing is found, return nil (route management is disabled).
+// Namespace discovery order:
+//  1. OTEL_COLLECTOR_NAMESPACE env var (explicit override).
+//  2. Auto-discover from the platform "data-science-collector" CR.
+//  3. If neither found, return nil (trace route management disabled).
+//
+// The manager creates/patches its own "gen-ai-trace-collector" CR in that
+// namespace, avoiding conflicts with the operator-managed platform collector.
 func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfigManager, error) {
 	restCfg, err := rest.InClusterConfig()
 	if err != nil {
@@ -82,21 +87,19 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 
 	dynClient, err := dynamic.NewForConfig(restCfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client for collector patching: %w", err)
+		return nil, fmt.Errorf("failed to create dynamic client for collector management: %w", err)
 	}
 
+	// Discover the namespace where the platform collector runs.
+	// We create our own collector CR in the same namespace.
 	collectorNS := cfg.OTelCollectorNamespace
-	collectorName := cfg.OTelCollectorName
-	if collectorName == "" {
-		collectorName = defaultCollectorName
-	}
-
 	if collectorNS == "" {
-		collectorNS, collectorName, err = discoverCollectorCR(dynClient, logger, collectorName)
-		if err != nil {
-			logger.Info("OpenTelemetryCollector CR not found, trace route management disabled", "error", err)
+		platformNS, _, discoverErr := discoverCollectorCR(dynClient, logger, platformCollectorName)
+		if discoverErr != nil {
+			logger.Info("platform OpenTelemetryCollector CR not found, trace route management disabled", "error", discoverErr)
 			return nil, nil
 		}
+		collectorNS = platformNS
 	}
 
 	mlflowURL, err := mlflow.DiscoverMLflowURL()
@@ -115,7 +118,7 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 
 	logger.Info("OTel config manager initialized",
 		"collectorNamespace", collectorNS,
-		"collectorName", collectorName,
+		"collectorCR", genaiCollectorName,
 		"mlflowK8sServiceURL", mlflowK8sSvc,
 		"mlflowURL", mlflowBFFURL,
 	)
@@ -124,7 +127,6 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 		dynClient:           dynClient,
 		logger:              logger,
 		collectorNamespace:  collectorNS,
-		collectorName:       collectorName,
 		mlflowK8sServiceURL: mlflowK8sSvc,
 		mlflowURL:           mlflowBFFURL,
 		bearerToken:         restCfg.BearerToken,
@@ -139,28 +141,30 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 
 // discoverCollectorCR lists OpenTelemetryCollector CRs across all namespaces
 // and returns the namespace and name of the first one matching targetName.
+// Used to locate the platform "data-science-collector" CR so we know which
+// namespace to create our gen-ai collector CR in.
 func discoverCollectorCR(dynClient dynamic.Interface, logger *slog.Logger, targetName string) (string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), crDiscoveryTimeout)
 	defer cancel()
 
 	list, err := dynClient.Resource(otelCollectorGVR).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to list OpenTelemetryCollector CRs: %w", err)
+		return "", "", fmt.Errorf("failed to list OpenTelemetryCollector CRs for platform collector discovery: %w", err)
 	}
 
 	for _, item := range list.Items {
 		if item.GetName() == targetName {
-			logger.Info("auto-discovered OpenTelemetryCollector CR", "name", item.GetName(), "namespace", item.GetNamespace())
+			logger.Info("auto-discovered platform collector CR", "name", item.GetName(), "namespace", item.GetNamespace())
 			return item.GetNamespace(), item.GetName(), nil
 		}
 	}
 
-	return "", "", fmt.Errorf("no OpenTelemetryCollector CR named %q found in any namespace", targetName)
+	return "", "", fmt.Errorf("no platform collector CR named %q found in any namespace", targetName)
 }
 
 // EnsureRoute idempotently adds a routing connector entry, per-namespace
-// exporter, and pipeline for the given namespace. If the collector CR does not
-// yet have a routing connector, the base traces pipeline is restructured.
+// exporter, and pipeline for the given namespace to the gen-ai collector CR.
+// Creates the CR if it doesn't exist yet.
 //
 // This is a best-effort operation — errors are logged but not propagated so
 // that the parent install flow is not blocked.
@@ -170,7 +174,7 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, u
 
 	cr, err := m.getCollectorCR(ctx)
 	if err != nil {
-		m.logger.Warn("failed to get OpenTelemetryCollector CR, skipping route setup", "error", err, "namespace", namespace)
+		m.logger.Warn("failed to get gen-ai collector CR, skipping route setup", "error", err, "namespace", namespace)
 		return
 	}
 
@@ -200,7 +204,7 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, u
 	}
 
 	if err := m.writeBackConfig(ctx, cr, collectorCfg); err != nil {
-		m.logger.Warn("failed to patch OpenTelemetryCollector CR", "error", err, "namespace", namespace)
+		m.logger.Warn("failed to patch gen-ai collector CR", "error", err, "namespace", namespace)
 		return
 	}
 
@@ -208,15 +212,19 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, u
 }
 
 // RemoveRoute removes the routing connector entry, exporter, and pipeline
-// for the given namespace. If no namespace routes remain, the routing connector
-// is removed and the original pipeline structure is restored.
+// for the given namespace. If no namespace routes remain, the entire gen-ai
+// collector CR is deleted (it was created by EnsureRoute).
 func (m *otelConfigManager) RemoveRoute(ctx context.Context, namespace string) {
 	ctx, cancel := context.WithTimeout(ctx, collectorPatchTimeout)
 	defer cancel()
 
-	cr, err := m.getCollectorCR(ctx)
+	cr, err := m.fetchCollectorCR(ctx)
 	if err != nil {
-		m.logger.Warn("failed to get OpenTelemetryCollector CR, skipping route removal", "error", err, "namespace", namespace)
+		if apierrors.IsNotFound(err) {
+			m.logger.Info("gen-ai collector CR does not exist, nothing to remove", "namespace", namespace)
+			return
+		}
+		m.logger.Warn("failed to get gen-ai collector CR, skipping route removal", "error", err, "namespace", namespace)
 		return
 	}
 
@@ -231,11 +239,16 @@ func (m *otelConfigManager) RemoveRoute(ctx context.Context, namespace string) {
 	}
 
 	if routingTableEmpty(collectorCfg) {
-		removeRoutingConnector(collectorCfg)
+		if err := m.deleteCollectorCR(ctx); err != nil {
+			m.logger.Warn("failed to delete gen-ai collector CR after last route removed", "error", err)
+		} else {
+			m.logger.Info("deleted gen-ai collector CR (no routes remain)")
+		}
+		return
 	}
 
 	if err := m.writeBackConfig(ctx, cr, collectorCfg); err != nil {
-		m.logger.Warn("failed to patch OpenTelemetryCollector CR after route removal", "error", err, "namespace", namespace)
+		m.logger.Warn("failed to patch gen-ai collector CR after route removal", "error", err, "namespace", namespace)
 		return
 	}
 
@@ -244,10 +257,94 @@ func (m *otelConfigManager) RemoveRoute(ctx context.Context, namespace string) {
 
 // --- K8s helpers ---
 
-func (m *otelConfigManager) getCollectorCR(ctx context.Context) (*unstructured.Unstructured, error) {
+// fetchCollectorCR returns the gen-ai collector CR. Returns a NotFound error
+// if the CR doesn't exist (caller decides whether to create or skip).
+func (m *otelConfigManager) fetchCollectorCR(ctx context.Context) (*unstructured.Unstructured, error) {
 	return m.dynClient.Resource(otelCollectorGVR).
 		Namespace(m.collectorNamespace).
-		Get(ctx, m.collectorName, metav1.GetOptions{})
+		Get(ctx, genaiCollectorName, metav1.GetOptions{})
+}
+
+// getCollectorCR returns the gen-ai collector CR, creating it if it
+// doesn't exist. Used by EnsureRoute to bootstrap the collector on first use.
+func (m *otelConfigManager) getCollectorCR(ctx context.Context) (*unstructured.Unstructured, error) {
+	cr, err := m.fetchCollectorCR(ctx)
+	if err == nil {
+		return cr, nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	m.logger.Info("creating dedicated gen-ai trace collector CR", "namespace", m.collectorNamespace, "name", genaiCollectorName)
+	cr = m.buildBaseCollectorCR()
+	created, createErr := m.dynClient.Resource(otelCollectorGVR).
+		Namespace(m.collectorNamespace).
+		Create(ctx, cr, metav1.CreateOptions{})
+	if createErr != nil {
+		return nil, fmt.Errorf("failed to create gen-ai collector CR: %w", createErr)
+	}
+	m.logger.Info("created gen-ai trace collector CR", "namespace", m.collectorNamespace)
+	return created, nil
+}
+
+// deleteCollectorCR removes the gen-ai collector CR entirely.
+func (m *otelConfigManager) deleteCollectorCR(ctx context.Context) error {
+	return m.dynClient.Resource(otelCollectorGVR).
+		Namespace(m.collectorNamespace).
+		Delete(ctx, genaiCollectorName, metav1.DeleteOptions{})
+}
+
+// buildBaseCollectorCR returns a minimal gen-ai collector CR with an OTLP
+// receiver and bearer token auth. Routes/exporters are added dynamically by
+// EnsureRoute when playgrounds enable tracing.
+func (m *otelConfigManager) buildBaseCollectorCR() *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": otelCollectorGroup + "/" + otelCollectorVersion,
+			"kind":       "OpenTelemetryCollector",
+			"metadata": map[string]interface{}{
+				"name":      genaiCollectorName,
+				"namespace": m.collectorNamespace,
+			},
+			"spec": map[string]interface{}{
+				"mode":     "deployment",
+				"replicas": int64(1),
+				"config": map[string]interface{}{
+					"extensions": map[string]interface{}{
+						"bearertokenauth": map[string]interface{}{
+							"filename": "/var/run/secrets/kubernetes.io/serviceaccount/token",
+						},
+					},
+					"receivers": map[string]interface{}{
+						"otlp": map[string]interface{}{
+							"protocols": map[string]interface{}{
+								"http": map[string]interface{}{},
+							},
+						},
+					},
+					"processors": map[string]interface{}{
+						"batch": map[string]interface{}{},
+					},
+					"service": map[string]interface{}{
+						"extensions": []interface{}{"bearertokenauth"},
+						"pipelines": map[string]interface{}{
+							"traces": map[string]interface{}{
+								"receivers":  []interface{}{"otlp"},
+								"processors": []interface{}{"batch"},
+								"exporters":  []interface{}{"debug"},
+							},
+						},
+					},
+					"exporters": map[string]interface{}{
+						"debug": map[string]interface{}{
+							"verbosity": "basic",
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 // extractConfig returns the collector config as a mutable map, handling both
@@ -255,7 +352,7 @@ func (m *otelConfigManager) getCollectorCR(ctx context.Context) (*unstructured.U
 func (m *otelConfigManager) extractConfig(cr *unstructured.Unstructured) (map[string]interface{}, bool) {
 	spec, ok := cr.Object["spec"].(map[string]interface{})
 	if !ok {
-		m.logger.Warn("OpenTelemetryCollector CR has no spec field")
+		m.logger.Warn("gen-ai collector CR has no spec field")
 		return nil, false
 	}
 
@@ -270,7 +367,7 @@ func (m *otelConfigManager) extractConfig(cr *unstructured.Unstructured) (map[st
 		}
 		return parsed, true
 	default:
-		m.logger.Warn("OpenTelemetryCollector CR spec.config has unexpected type", "type", fmt.Sprintf("%T", spec["config"]))
+		m.logger.Warn("gen-ai collector CR spec.config has unexpected type", "type", fmt.Sprintf("%T", spec["config"]))
 		return nil, false
 	}
 }
@@ -477,15 +574,12 @@ func normalizeValue(v interface{}) interface{} {
 
 // ensureRoutingConnector creates the routing/traces connector alongside the
 // operator-managed traces pipeline. The operator owns the base `traces` pipeline
-// and will reconcile it back if we modify it, so we leave it untouched and add
-// a parallel routing structure:
+// ensureRoutingConnector adds the routing connector and rewires the base
+// traces pipeline to export through it. Since this is our own dedicated
+// collector CR, we own the full config and can restructure the pipeline:
 //
-//   - traces/ingress receives from otlp (same receiver as `traces`) and exports
-//     to routing/traces — this gives us a copy of all traces for routing.
-//   - routing/traces dispatches to per-namespace pipelines (or drops if no match).
-//
-// The operator's `traces` pipeline continues to send all traces to Tempo as
-// before — our routing adds MLflow export alongside it.
+//	traces: otlp → batch → routing/traces
+//	traces/<ns>: routing/traces → otlp/http/<ns>  (added per namespace)
 //
 // Returns true if the config was modified.
 func ensureRoutingConnector(cfg map[string]interface{}) bool {
@@ -499,26 +593,13 @@ func ensureRoutingConnector(cfg map[string]interface{}) bool {
 		"table":             []interface{}{},
 	}
 
-	// Read processors from the operator's traces pipeline so our ingress
-	// pipeline applies the same enrichment (k8sattributes, etc.).
+	// Rewire the base traces pipeline to export through the routing connector
 	pipelines := ensureMap(ensureMap(cfg, "service"), "pipelines")
-	var originalProcessors []interface{}
-	if tracesPipeline, ok := pipelines["traces"]; ok {
-		if tp, ok := tracesPipeline.(map[string]interface{}); ok {
-			if proc, ok := tp["processors"]; ok {
-				originalProcessors = toSlice(proc)
-			}
-		}
+	pipelines["traces"] = map[string]interface{}{
+		"receivers":  []interface{}{"otlp"},
+		"processors": []interface{}{"batch"},
+		"exporters":  []interface{}{routingConnectorKey},
 	}
-
-	ingress := map[string]interface{}{
-		"receivers": []interface{}{"otlp"},
-		"exporters": []interface{}{routingConnectorKey},
-	}
-	if len(originalProcessors) > 0 {
-		ingress["processors"] = originalProcessors
-	}
-	pipelines[ingressPipelineKey] = ingress
 
 	return true
 }
@@ -638,15 +719,9 @@ func routingTableEmpty(cfg map[string]interface{}) bool {
 	return len(table) == 0
 }
 
-// removeRoutingConnector removes the routing connector and the ingress pipeline.
-// The operator-managed `traces` pipeline is left untouched.
+// removeRoutingConnector removes the routing connector from the config.
+// Only used when cleaning up the config before patching (not CR deletion).
 func removeRoutingConnector(cfg map[string]interface{}) {
-	if svc, ok := cfg["service"].(map[string]interface{}); ok {
-		if pipelines, ok := svc["pipelines"].(map[string]interface{}); ok {
-			delete(pipelines, ingressPipelineKey)
-		}
-	}
-
 	if connectors, ok := cfg["connectors"].(map[string]interface{}); ok {
 		delete(connectors, routingConnectorKey)
 		if len(connectors) == 0 {

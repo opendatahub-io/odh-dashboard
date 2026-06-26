@@ -7,36 +7,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const baseCollectorConfigYAML = `
+// Base config matching what buildBaseCollectorCR produces (as YAML string,
+// since extractConfig may encounter string configs from the API).
+const baseGenAICollectorConfigYAML = `
 receivers:
   otlp:
     protocols:
-      grpc: {}
       http: {}
 processors:
-  memory_limiter:
-    check_interval: 1s
   batch: {}
-  k8sattributes: {}
-  resourcedetection:
-    detectors: [openshift]
 exporters:
-  otlp/tempo:
-    endpoint: tempo-simplest-distributor.redhat-ods-monitoring.svc:4317
-    tls:
-      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
-    auth:
-      authenticator: bearertokenauth
+  debug:
+    verbosity: basic
+extensions:
+  bearertokenauth:
+    filename: /var/run/secrets/kubernetes.io/serviceaccount/token
 service:
+  extensions: [bearertokenauth]
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, k8sattributes, resourcedetection, batch]
-      exporters: [otlp/tempo]
+      processors: [batch]
+      exporters: [debug]
 `
 
 func TestEnsureRoutingConnector_FirstCall(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 
 	changed := ensureRoutingConnector(cfg)
@@ -52,20 +48,16 @@ func TestEnsureRoutingConnector_FirstCall(t *testing.T) {
 	svc := cfg["service"].(map[string]interface{})
 	pipelines := svc["pipelines"].(map[string]interface{})
 
-	// Operator-managed traces pipeline should remain untouched.
-	_, hasTraces := pipelines["traces"]
-	assert.True(t, hasTraces, "operator-managed traces pipeline should remain")
-
-	// Our ingress pipeline should exist alongside it.
-	ingress, ok := pipelines[ingressPipelineKey].(map[string]interface{})
-	require.True(t, ok, "traces/ingress pipeline should exist")
-	assert.Equal(t, []interface{}{"otlp"}, ingress["receivers"])
-	assert.Equal(t, []interface{}{routingConnectorKey}, ingress["exporters"])
-	assert.Equal(t, []interface{}{"memory_limiter", "k8sattributes", "resourcedetection", "batch"}, ingress["processors"])
+	// Base traces pipeline should be rewired to export via the routing connector.
+	traces, ok := pipelines["traces"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, []interface{}{"otlp"}, traces["receivers"])
+	assert.Equal(t, []interface{}{"batch"}, traces["processors"])
+	assert.Equal(t, []interface{}{routingConnectorKey}, traces["exporters"])
 }
 
 func TestEnsureRoutingConnector_Idempotent(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 
 	ensureRoutingConnector(cfg)
@@ -76,14 +68,14 @@ func TestEnsureRoutingConnector_Idempotent(t *testing.T) {
 func TestEnsureRoutingConnector_StructuredConfig(t *testing.T) {
 	cfg := map[string]interface{}{
 		"exporters": map[string]interface{}{
-			"otlp/tempo": map[string]interface{}{"endpoint": "tempo.svc:4317"},
+			"debug": map[string]interface{}{"verbosity": "basic"},
 		},
 		"service": map[string]interface{}{
 			"pipelines": map[string]interface{}{
 				"traces": map[string]interface{}{
 					"receivers":  []interface{}{"otlp"},
-					"processors": []interface{}{"batch", "k8sattributes"},
-					"exporters":  []interface{}{"otlp/tempo"},
+					"processors": []interface{}{"batch"},
+					"exporters":  []interface{}{"debug"},
 				},
 			},
 		},
@@ -95,17 +87,12 @@ func TestEnsureRoutingConnector_StructuredConfig(t *testing.T) {
 	svc := cfg["service"].(map[string]interface{})
 	pipelines := svc["pipelines"].(map[string]interface{})
 
-	// Operator-managed traces pipeline must remain.
-	_, hasTraces := pipelines["traces"]
-	assert.True(t, hasTraces, "operator-managed traces pipeline must remain")
-
-	// Ingress pipeline should copy processors from traces.
-	ingress := pipelines[ingressPipelineKey].(map[string]interface{})
-	assert.Equal(t, []interface{}{"batch", "k8sattributes"}, ingress["processors"])
+	traces := pipelines["traces"].(map[string]interface{})
+	assert.Equal(t, []interface{}{routingConnectorKey}, traces["exporters"])
 }
 
 func TestAddNamespaceRoute(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
 
@@ -137,7 +124,7 @@ func TestAddNamespaceRoute(t *testing.T) {
 }
 
 func TestAddNamespaceRoute_Idempotent(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
 	addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces", "1")
@@ -147,7 +134,7 @@ func TestAddNamespaceRoute_Idempotent(t *testing.T) {
 }
 
 func TestAddMultipleNamespaceRoutes(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
 	addNamespaceRoute(cfg, "ns-alpha", "https://mlflow.svc/traces", "1")
@@ -166,7 +153,7 @@ func TestAddMultipleNamespaceRoutes(t *testing.T) {
 }
 
 func TestRemoveNamespaceRoute(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
 	addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces", "1")
@@ -190,7 +177,7 @@ func TestRemoveNamespaceRoute(t *testing.T) {
 }
 
 func TestRemoveNamespaceRoute_NotPresent(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
 
@@ -199,7 +186,7 @@ func TestRemoveNamespaceRoute_NotPresent(t *testing.T) {
 }
 
 func TestRemoveOneOfMultipleRoutes(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
 	addNamespaceRoute(cfg, "ns-alpha", "https://mlflow.svc/traces", "1")
@@ -220,7 +207,7 @@ func TestRemoveOneOfMultipleRoutes(t *testing.T) {
 }
 
 func TestRemoveLastRoute_CleansUpRouting(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 	ensureRoutingConnector(cfg)
 	addNamespaceRoute(cfg, "chrjones", "https://mlflow.svc/traces", "1")
@@ -229,26 +216,12 @@ func TestRemoveLastRoute_CleansUpRouting(t *testing.T) {
 	assert.True(t, routingTableEmpty(cfg))
 	removeRoutingConnector(cfg)
 
-	// Routing connector should be gone.
 	_, hasConnectors := cfg["connectors"]
 	assert.False(t, hasConnectors, "connectors section should be removed when empty")
-
-	svc := cfg["service"].(map[string]interface{})
-	pipelines := svc["pipelines"].(map[string]interface{})
-
-	// Ingress pipeline should be gone.
-	_, hasIngress := pipelines[ingressPipelineKey]
-	assert.False(t, hasIngress, "ingress pipeline should be removed")
-
-	// Operator-managed traces pipeline should still be there.
-	traces, ok := pipelines["traces"].(map[string]interface{})
-	require.True(t, ok, "operator-managed traces pipeline must remain")
-	assert.Equal(t, []interface{}{"otlp"}, traces["receivers"])
-	assert.Equal(t, []interface{}{"otlp/tempo"}, traces["exporters"])
 }
 
 func TestRoutingTableEmpty(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 
 	assert.True(t, routingTableEmpty(cfg), "no connectors = empty")
@@ -275,7 +248,7 @@ func TestParseCollectorConfig_Invalid(t *testing.T) {
 }
 
 func TestSerializeRoundTrip(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 
 	serialized, err := serializeCollectorConfig(cfg)
@@ -293,7 +266,7 @@ func TestCollectorNamingConventions(t *testing.T) {
 }
 
 func TestFullLifecycle(t *testing.T) {
-	cfg, err := parseCollectorConfig(baseCollectorConfigYAML)
+	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
 
 	// Add two namespaces.
@@ -319,17 +292,15 @@ func TestFullLifecycle(t *testing.T) {
 	// Clean up routing.
 	removeRoutingConnector(cfg)
 
-	// Operator-managed pipeline should remain.
+	// Base traces pipeline should still exist.
 	svc := cfg["service"].(map[string]interface{})
 	pipelines := svc["pipelines"].(map[string]interface{})
 	_, ok := pipelines["traces"].(map[string]interface{})
-	assert.True(t, ok, "operator-managed traces pipeline must survive full lifecycle")
+	assert.True(t, ok, "base traces pipeline must survive full lifecycle")
 
 	// No routing artifacts should remain.
 	_, hasConnectors := cfg["connectors"]
 	assert.False(t, hasConnectors)
-	_, hasIngress := pipelines[ingressPipelineKey]
-	assert.False(t, hasIngress)
 
 	_, err = serializeCollectorConfig(cfg)
 	assert.NoError(t, err)

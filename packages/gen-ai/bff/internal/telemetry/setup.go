@@ -93,7 +93,10 @@ func detectNamespace() string {
 	return ""
 }
 
-const defaultCollectorName = "data-science-collector"
+const (
+	platformCollectorName = "data-science-collector"
+	genaiCollectorName   = "gen-ai-trace-collector"
+)
 
 var otelCollectorGVR = schema.GroupVersionResource{
 	Group:    "opentelemetry.io",
@@ -101,9 +104,12 @@ var otelCollectorGVR = schema.GroupVersionResource{
 	Resource: "opentelemetrycollectors",
 }
 
-// discoverCollectorEndpoint lists OpenTelemetryCollector CRs across all
-// namespaces and returns the OTLP/HTTP endpoint for the first one named
-// "data-science-collector". Returns "" if not found.
+// discoverCollectorEndpoint determines the OTLP/HTTP endpoint for the gen-ai
+// trace collector. The gen-ai collector CR may not exist yet at BFF startup —
+// it's created on first playground install with tracing enabled. We construct
+// the endpoint deterministically from the namespace where the platform
+// collector lives, so the OTel SDK exporter retries in the background until
+// the gen-ai collector is created by EnsureRoute.
 func discoverCollectorEndpoint(logger *slog.Logger) string {
 	restCfg, err := rest.InClusterConfig()
 	if err != nil {
@@ -131,11 +137,25 @@ func discoverCollectorEndpoint(logger *slog.Logger) string {
 		return ""
 	}
 
+	// Find the namespace from either the gen-ai collector or the platform
+	// collector, then always target the gen-ai collector endpoint.
 	for _, item := range list.Items {
-		if item.GetName() == defaultCollectorName {
+		name := item.GetName()
+		ns := item.GetNamespace()
+		if name == genaiCollectorName {
+			endpoint := fmt.Sprintf("http://%s-collector.%s.svc:4318", genaiCollectorName, ns)
+			logger.Info("auto-discovered gen-ai trace collector endpoint", "endpoint", endpoint)
+			return endpoint
+		}
+	}
+
+	// Gen-ai collector doesn't exist yet — derive its future endpoint from
+	// the platform collector's namespace (same namespace used by EnsureRoute).
+	for _, item := range list.Items {
+		if item.GetName() == platformCollectorName {
 			ns := item.GetNamespace()
-			endpoint := fmt.Sprintf("http://%s-collector.%s.svc:4318", defaultCollectorName, ns)
-			logger.Info("auto-discovered OTel collector endpoint", "endpoint", endpoint)
+			endpoint := fmt.Sprintf("http://%s-collector.%s.svc:4318", genaiCollectorName, ns)
+			logger.Info("gen-ai collector not yet created, targeting future endpoint from platform collector namespace", "endpoint", endpoint)
 			return endpoint
 		}
 	}

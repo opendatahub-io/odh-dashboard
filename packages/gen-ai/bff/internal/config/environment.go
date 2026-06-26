@@ -129,12 +129,8 @@ type EnvConfig struct {
 	BFFMaaSAuthTokenPrefix string
 
 	// ─── OTEL COLLECTOR ─────────────────────────────────────────
-	// OTelCollectorNamespace is the namespace where the platform OpenTelemetryCollector CR lives.
-	// RHOAI: "redhat-ods-monitoring", ODH: "opendatahub".
-	// When empty, collector routing is skipped (OGX OTel instrumentation still works).
+	// OTelCollectorNamespace is the namespace where the platform collector CR lives.
+	// Used to determine where to create the gen-ai trace collector CR.
+	// When empty, auto-discovered from the "data-science-collector" CR.
 	OTelCollectorNamespace string
-
-	// OTelCollectorName is the name of the OpenTelemetryCollector CR.
-	// Default: "data-science-collector".
-	OTelCollectorName string
 }
