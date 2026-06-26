@@ -8,7 +8,7 @@ import {
   type UrlValidationResultWithLocation,
   VALID_STATUS_CODES,
 } from '../../../utils/urlFormatters';
-import { getErrorType } from '../../../utils/urlValidator';
+import { getErrorType } from '../../../utils/urlValidatorShared';
 
 interface ManifestTestConfig {
   excludedSubstrings?: string[];

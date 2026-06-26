@@ -8,7 +8,7 @@
  * - formatValidationMessage(): Returns formatted message with url's successful or failed validation result
  */
 
-import { getErrorType } from './urlValidator';
+import { getErrorType } from './urlValidatorShared';
 
 export interface UrlLocation {
   url: string;

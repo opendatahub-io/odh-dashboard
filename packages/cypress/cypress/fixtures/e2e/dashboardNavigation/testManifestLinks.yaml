@@ -8,9 +8,14 @@ excludedSubstrings:
   - project-simple
   - example.apps
   - localhost
+  - 127.0.0.1
   - console-openshift-console.apps.test-cluster.example.com/
   - console-openshift-console.apps.test-cluster.example.com
   - figma.com/figma/ns
   - scikit-learn.org/stable/getting_started.html
   - 2Fopentracker
   - 2Ftracker.openbittorrent
+  - ww3.
+  - www3.
+  - w3.org
+  - serif.com
