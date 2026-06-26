@@ -21,7 +21,7 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, MinusCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { searchApiKeys, bulkRevokeApiKeys } from '~/app/api/api-keys';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -207,9 +207,17 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
                             <Td dataLabel="Name">{key.name}</Td>
                             <Td dataLabel="Status">
                               {inactive ? (
-                                <Label variant="filled">{capitalize('inactive')}</Label>
+                                <Label variant="filled" icon={<MinusCircleIcon />}>
+                                  {capitalize('inactive')}
+                                </Label>
                               ) : (
-                                <Label color="green">{capitalize(key.status)}</Label>
+                                <Label
+                                  variant="outline"
+                                  status="success"
+                                  icon={<CheckCircleIcon />}
+                                >
+                                  {capitalize(key.status)}
+                                </Label>
                               )}
                             </Td>
                             <Td dataLabel="Last used">
