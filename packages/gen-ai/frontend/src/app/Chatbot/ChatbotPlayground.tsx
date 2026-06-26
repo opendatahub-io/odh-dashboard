@@ -266,27 +266,33 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
+  const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
   const [showOpenAgentModal, setShowOpenAgentModal] = React.useState(false);
   const modalShownForProfileRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
-    let isDismissed = false;
-    try {
-      isDismissed = !!localStorage.getItem(OPEN_AGENT_MODAL_DISMISSED_KEY);
-    } catch {
-      // SecurityError in private browsing — treat as not dismissed
-    }
     if (
-      profileApplied &&
-      loadedProfileId &&
-      loadedProfileId === agentProfileIdParam &&
-      modalShownForProfileRef.current !== loadedProfileId &&
-      !isDismissed
+      !profileApplied ||
+      !loadedProfileId ||
+      loadedProfileId !== agentProfileIdParam ||
+      modalShownForProfileRef.current === loadedProfileId
     ) {
+      return;
+    }
+    const hasWarnings = !!loadedProfileWarnings?.length;
+    let isDismissed = false;
+    if (!hasWarnings) {
+      try {
+        isDismissed = !!localStorage.getItem(OPEN_AGENT_MODAL_DISMISSED_KEY);
+      } catch {
+        // SecurityError in private browsing — treat as not dismissed
+      }
+    }
+    if (!isDismissed) {
       modalShownForProfileRef.current = loadedProfileId;
       setShowOpenAgentModal(true);
     }
-  }, [profileApplied, loadedProfileId, agentProfileIdParam]);
+  }, [profileApplied, loadedProfileId, agentProfileIdParam, loadedProfileWarnings]);
 
   const handleOpenAgentPreview = React.useCallback(() => {
     useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, true);
@@ -952,6 +958,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   isDisabled={primaryIsPreview}
                   agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
                   isPreviewMode={primaryIsPreview}
+                  onExitPreview={primaryIsPreview ? handleOpenAgentEdit : undefined}
+                  hasValidationWarnings={!!loadedProfileWarnings?.length}
                 />
               )}
 
@@ -1075,6 +1083,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       {showOpenAgentModal && (
         <OpenAgentProfileModal
           displayName={loadedProfileDisplayName ?? 'Agent'}
+          validationWarnings={loadedProfileWarnings ?? undefined}
           onPreview={handleOpenAgentPreview}
           onEdit={handleOpenAgentEdit}
           onCancel={handleOpenAgentCancel}

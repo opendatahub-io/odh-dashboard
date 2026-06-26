@@ -7,6 +7,7 @@ import type {
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
 } from '@odh-dashboard/k8s-core';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ClusterState, UserState } from '#~/redux/selectors/types';
 import { useUser, useClusterInfo } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
@@ -18,7 +19,6 @@ import { StorageClassKind } from '#~/k8sTypes';
 import { FetchState } from '#~/utilities/useFetchState';
 import AboutDialog from '#~/app/AboutDialog';
 import { useWatchOperatorSubscriptionStatus } from '#~/utilities/useWatchOperatorSubscriptionStatus';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 jest.mock('#~/app/AppContext', () => ({
   __esModule: true,

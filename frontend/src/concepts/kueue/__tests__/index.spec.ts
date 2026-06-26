@@ -13,10 +13,13 @@ const baseWorkload: WorkloadKind = {
   },
 };
 
-function workloadWithConditions(conditions: WorkloadCondition[]): WorkloadKind {
+function workloadWithConditions(
+  conditions: WorkloadCondition[],
+  requeueState?: { count?: number; requeueAt?: string },
+): WorkloadKind {
   return {
     ...baseWorkload,
-    status: { conditions },
+    status: { conditions, ...(requeueState ? { requeueState } : {}) },
   };
 }
 
@@ -65,19 +68,111 @@ describe('getKueueWorkloadStatusWithMessage', () => {
     expect(result.message).toBeDefined();
   });
 
-  it('should return Preempted when Evicted condition is True', () => {
-    const workload = workloadWithConditions([
-      {
-        type: 'Evicted',
-        status: 'True',
-        reason: 'Preempted',
-        message: 'Preempted by higher priority workload',
-        lastTransitionTime: '2026-02-16T08:00:00Z',
-      },
-    ]);
-    const result = getKueueWorkloadStatusWithMessage(workload);
-    expect(result.status).toBe(KueueWorkloadStatus.Preempted);
-    expect(result.message).toContain('Preempted');
+  describe('Evicted condition reason mapping', () => {
+    it('should return Preempted when Evicted reason is Preempted', () => {
+      const workload = workloadWithConditions([
+        {
+          type: 'Evicted',
+          status: 'True',
+          reason: 'Preempted',
+          message: 'Preempted by higher priority workload',
+          lastTransitionTime: '2026-02-16T08:00:00Z',
+        },
+      ]);
+      const result = getKueueWorkloadStatusWithMessage(workload);
+      expect(result.status).toBe(KueueWorkloadStatus.Preempted);
+      expect(result.message).toContain('Preempted');
+    });
+
+    it('should return Evicted when Evicted reason is ClusterQueueStopped', () => {
+      const workload = workloadWithConditions([
+        {
+          type: 'Evicted',
+          status: 'True',
+          reason: 'ClusterQueueStopped',
+          message: 'ClusterQueue cluster-queue is stopped',
+          lastTransitionTime: '2026-02-16T08:00:00Z',
+        },
+      ]);
+      const result = getKueueWorkloadStatusWithMessage(workload);
+      expect(result.status).toBe(KueueWorkloadStatus.Evicted);
+      expect(result.message).toContain('stopped');
+    });
+
+    it('should return Evicted when Evicted reason is Deactivated', () => {
+      const workload = workloadWithConditions([
+        {
+          type: 'Evicted',
+          status: 'True',
+          reason: 'Deactivated',
+          message: 'Workload was deactivated',
+          lastTransitionTime: '2026-02-16T08:00:00Z',
+        },
+      ]);
+      const result = getKueueWorkloadStatusWithMessage(workload);
+      expect(result.status).toBe(KueueWorkloadStatus.Evicted);
+    });
+
+    it('should return Evicted when Evicted reason is AdmissionCheck', () => {
+      const workload = workloadWithConditions([
+        {
+          type: 'Evicted',
+          status: 'True',
+          reason: 'AdmissionCheck',
+          message: 'At least one admission check transitioned to Retry',
+          lastTransitionTime: '2026-02-16T08:00:00Z',
+        },
+      ]);
+      const result = getKueueWorkloadStatusWithMessage(workload);
+      expect(result.status).toBe(KueueWorkloadStatus.Evicted);
+    });
+
+    it('should return Requeued when Evicted reason is PodsReadyTimeout with requeueState', () => {
+      const workload = workloadWithConditions(
+        [
+          {
+            type: 'Evicted',
+            status: 'True',
+            reason: 'PodsReadyTimeout',
+            message: 'Pods were not ready in time',
+            lastTransitionTime: '2026-02-16T08:00:00Z',
+          },
+        ],
+        { count: 2, requeueAt: '2026-02-16T08:05:00Z' },
+      );
+      const result = getKueueWorkloadStatusWithMessage(workload);
+      expect(result.status).toBe(KueueWorkloadStatus.Requeued);
+      expect(result.requeueInfo).toEqual({ count: 2, requeueAt: '2026-02-16T08:05:00Z' });
+    });
+
+    it('should return Evicted when Evicted reason is PodsReadyTimeout without requeueState', () => {
+      const workload = workloadWithConditions([
+        {
+          type: 'Evicted',
+          status: 'True',
+          reason: 'PodsReadyTimeout',
+          message: 'Pods were not ready in time',
+          lastTransitionTime: '2026-02-16T08:00:00Z',
+        },
+      ]);
+      const result = getKueueWorkloadStatusWithMessage(workload);
+      expect(result.status).toBe(KueueWorkloadStatus.Evicted);
+    });
+
+    it('should return Evicted for unknown eviction reasons', () => {
+      const workload = workloadWithConditions([
+        {
+          type: 'Evicted',
+          status: 'True',
+          reason: 'SomeNewReason',
+          message: 'Evicted for a new reason',
+          lastTransitionTime: '2026-02-16T08:00:00Z',
+        },
+      ]);
+      const result = getKueueWorkloadStatusWithMessage(workload);
+      expect(result.status).toBe(KueueWorkloadStatus.Evicted);
+      expect(result.message).toBe('Evicted for a new reason');
+    });
   });
 
   it('should return Preempted when Preempted condition is True', () => {
@@ -273,7 +368,7 @@ describe('getKueueWorkloadStatusWithMessage', () => {
     expect(result.status).toBe(KueueWorkloadStatus.Failed);
   });
 
-  it('should respect priority order: Preempted before Queued', () => {
+  it('should respect priority order: Evicted before Queued', () => {
     const workload = workloadWithConditions([
       {
         type: 'QuotaReserved',
@@ -292,6 +387,35 @@ describe('getKueueWorkloadStatusWithMessage', () => {
     ]);
     const result = getKueueWorkloadStatusWithMessage(workload);
     expect(result.status).toBe(KueueWorkloadStatus.Preempted);
+  });
+
+  it('should respect priority order: Evicted before Inadmissible (ClusterQueueStopped)', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'Evicted',
+        status: 'True',
+        reason: 'ClusterQueueStopped',
+        message: 'ClusterQueue default is inactive',
+        lastTransitionTime: '2026-02-16T08:00:01Z',
+      },
+      {
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Inadmissible',
+        message: 'ClusterQueue default is inactive',
+        lastTransitionTime: '2026-02-16T08:00:01Z',
+      },
+      {
+        type: 'Admitted',
+        status: 'False',
+        reason: 'NoReservation',
+        message: 'The workload has no reservation',
+        lastTransitionTime: '2026-02-16T08:00:01Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Evicted);
+    expect(result.message).toBe('ClusterQueue default is inactive');
   });
 
   it('should return Queued when workload has no conditions', () => {
@@ -320,6 +444,38 @@ describe('getKueueWorkloadStatusWithMessage', () => {
     const result = getKueueWorkloadStatusWithMessage(workload);
     expect(result.message).toBe('Custom message');
   });
+
+  describe('unknown condition fallback', () => {
+    it('should show raw message for unrecognized condition type', () => {
+      const workload = workloadWithConditions([
+        {
+          type: 'SomeNewCondition' as WorkloadCondition['type'],
+          status: 'True',
+          reason: 'NewReason',
+          message: 'This is a new condition from a newer Kueue version',
+          lastTransitionTime: '2026-02-16T08:00:00Z',
+        },
+      ]);
+      const result = getKueueWorkloadStatusWithMessage(workload);
+      expect(result.status).toBe(KueueWorkloadStatus.Queued);
+      expect(result.message).toBe('This is a new condition from a newer Kueue version');
+    });
+
+    it('should not show blank for unrecognized condition without message', () => {
+      const workload = workloadWithConditions([
+        {
+          type: 'SomeNewCondition' as WorkloadCondition['type'],
+          status: 'True',
+          reason: 'NewReason',
+          message: '',
+          lastTransitionTime: '2026-02-16T08:00:00Z',
+        },
+      ]);
+      const result = getKueueWorkloadStatusWithMessage(workload);
+      expect(result.status).toBe(KueueWorkloadStatus.Queued);
+      expect(result.message).toBe('NewReason');
+    });
+  });
 });
 
 describe('getKueueStatusInfo', () => {
@@ -340,6 +496,18 @@ describe('getKueueStatusInfo', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Preempted);
     expect(info.label).toBe('Preempted');
     expect(info.status).toBe('warning');
+  });
+
+  it('should return correct info for Evicted', () => {
+    const info = getKueueStatusInfo(KueueWorkloadStatus.Evicted);
+    expect(info.label).toBe('Evicted');
+    expect(info.status).toBe('warning');
+  });
+
+  it('should return correct info for Requeued', () => {
+    const info = getKueueStatusInfo(KueueWorkloadStatus.Requeued);
+    expect(info.label).toBe('Requeued');
+    expect(info.color).toBe('blue');
   });
 
   it('should return correct info for Inadmissible', () => {

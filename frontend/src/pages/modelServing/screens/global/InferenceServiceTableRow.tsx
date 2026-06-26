@@ -6,11 +6,10 @@ import {
   ResourceNameTooltip,
   StateActionToggle,
 } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 
-import { SupportedArea } from '#~/concepts/areas';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';

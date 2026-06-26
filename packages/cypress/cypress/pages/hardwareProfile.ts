@@ -372,6 +372,10 @@ class ManageHardwareProfile {
     return cy.findByTestId('kueue-disabled-tooltip');
   }
 
+  findLocalQueueNameError() {
+    return cy.findByTestId('local-queue-name-error');
+  }
+
   getTolerationTableRow(name: string) {
     return new TolerationRow(() =>
       this.findTolerationTable().find(`[data-label=Key]`).contains(name).parents('tr'),
