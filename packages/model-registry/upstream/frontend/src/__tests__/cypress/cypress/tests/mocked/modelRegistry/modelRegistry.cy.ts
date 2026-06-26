@@ -201,7 +201,7 @@ describe('Model Registry core', () => {
     cy.contains('The Unavailable Registry Example registry is currently unavailable').should(
       'be.visible',
     );
-    cy.findByTestId('whos-my-admin-link').should('exist');
+    modelRegistry.findWhosMyAdministratorLink().should('exist');
     // View details button should not be present when registry is unavailable
     modelRegistry.findViewDetailsButton().should('not.exist');
   });

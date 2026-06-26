@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, Divider, Flex, FlexItem, Label, Spinner, Content } from '@patternfly/react-core';
-import { TimesIcon } from '@patternfly/react-icons';
+import { PencilAltIcon, TimesIcon } from '@patternfly/react-icons';
 import { ChatbotHeaderMain } from '@patternfly/chatbot';
 import { ResponseMetrics } from '~/app/types';
 import { formatDuration } from '~/app/Chatbot/ChatbotMessagesMetrics';
@@ -29,6 +29,10 @@ interface ChatbotPaneHeaderProps {
   agentName?: string;
   /** When true, shows a "Preview" badge next to the agent name */
   isPreviewMode?: boolean;
+  /** Called when the user clicks the edit icon to exit preview mode */
+  onExitPreview?: () => void;
+  /** When true, the edit icon is disabled (e.g. validation warnings prevent editing) */
+  hasValidationWarnings?: boolean;
 }
 
 /**
@@ -50,6 +54,8 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   isDisabled = false,
   agentName,
   isPreviewMode = false,
+  onExitPreview,
+  hasValidationWarnings = false,
 }) => (
   <div
     style={{
@@ -104,9 +110,21 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                   >
                     <strong>{agentName}</strong>
                     {isPreviewMode && (
-                      <Label isCompact color="blue" data-testid="agent-preview-label">
-                        Preview
-                      </Label>
+                      <>
+                        <Label isCompact color="blue" data-testid="agent-preview-label">
+                          Preview
+                        </Label>
+                        {onExitPreview && (
+                          <Button
+                            variant="plain"
+                            aria-label="Edit agent configuration"
+                            icon={<PencilAltIcon />}
+                            isDisabled={hasValidationWarnings}
+                            onClick={onExitPreview}
+                            data-testid="agent-exit-preview-button"
+                          />
+                        )}
+                      </>
                     )}
                   </Content>
                 </FlexItem>

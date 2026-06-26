@@ -5,7 +5,7 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '#~/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const extensions: (AreaExtension | TaskGroupExtension | TaskItemExtension)[] = [
   {

@@ -1,5 +1,9 @@
 import type { DashboardCommonConfig } from '@odh-dashboard/k8s-core';
-import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from './types';
+import {
+  SupportedArea,
+  type SupportedAreasState,
+  DataScienceStackComponent,
+} from '@odh-dashboard/plugin-core/areas';
 
 export const techPreviewFlags = {
   genAiStudio: false,

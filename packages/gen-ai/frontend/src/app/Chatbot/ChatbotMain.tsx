@@ -19,6 +19,9 @@ import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModa
 import ChatModal from '~/app/Chatbot/components/ChatModal';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
+import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
+import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
+import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
@@ -79,19 +82,23 @@ const ChatbotMain: React.FunctionComponent = () => {
   const agentProfileId = searchParams.get('agentProfileId');
 
   // Load agent profile from URL param — lives here so the ApplicationsPage spinner covers the fetch
-  const { error: profileLoadError } = useAgentProfileUrlParam({
+  const { loading: profileLoading, error: profileLoadError } = useAgentProfileUrlParam({
     mcpServers,
     mcpServersLoaded,
-    playgroundModelsLoaded: Boolean(modelsLoaded) || Boolean(modelsError),
   });
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
-  // Ready when: no profile to load, fetch errored (show error state), or profile applied for this ID
+  // Ready when: no profile to load, fetch errored, or profile fully applied (async assets settled)
   const profileReady =
-    !agentProfileId || !!profileLoadError || (profileApplied && loadedProfileId === agentProfileId);
+    !agentProfileId ||
+    !!profileLoadError ||
+    (profileApplied && loadedProfileId === agentProfileId && !profileLoading);
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
+
+  const isProfileDirty = useIsProfileDirty(primaryConfigId);
+  useSafeBrowserUnloadBlocker(isProfileDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
   // Check if there are any models available (either AI assets or MaaS models)
@@ -386,6 +393,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           onSelect={handleProfileSelected}
         />
       )}
+      {isProfileDirty && <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty} />}
     </>
   );
 };

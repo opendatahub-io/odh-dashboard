@@ -8,8 +8,7 @@ import {
   LimitNameResourceType,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useAccessReview } from '@odh-dashboard/internal/api/index';
-import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';

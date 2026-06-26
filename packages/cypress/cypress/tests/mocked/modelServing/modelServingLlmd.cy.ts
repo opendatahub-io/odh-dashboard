@@ -28,7 +28,7 @@ import {
   mockCustomSecretK8sResource,
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,

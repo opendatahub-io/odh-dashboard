@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 // eslint-disable-next-line no-restricted-syntax
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 // eslint-disable-next-line no-restricted-syntax

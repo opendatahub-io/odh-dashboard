@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Alert, Skeleton } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ImageStreamKind } from '#~/k8sTypes';
 import {
   getDefaultVersionForImageStream,
@@ -9,7 +10,6 @@ import {
 import { ImageStreamAndVersion } from '#~/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import useBuildStatuses from '#~/pages/projects/screens/spawner/useBuildStatuses';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import ImageStreamSelector from './ImageStreamSelector';
 import ImageVersionSelector from './ImageVersionSelector';
