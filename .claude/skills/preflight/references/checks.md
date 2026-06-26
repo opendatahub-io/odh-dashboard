@@ -43,13 +43,13 @@ Don't hardcode check names. Let the script discover what exists and report what 
 
 ### Flaky Test Classification
 
-When CI failures are found on a synced PR, run the classifier to distinguish genuine regressions from known flaky tests:
+When CI failures are found on a synced PR, run the `/ci-flake-classifier` skill to distinguish genuine regressions from known flaky tests:
 
 ```bash
 python3 scripts/classify-ci-failures.py "$pr_number"
 ```
 
-See [ci-flake-classifier.md](ci-flake-classifier.md) for output schema, status mapping, verdict impact, and fallback behavior.
+The skill is defined in `.claude/skills/ci-flake-classifier/SKILL.md`. See [ci-flake-classifier.md](ci-flake-classifier.md) for how to map the output to preflight statuses and verdicts.
 
 ## Reviews
 

@@ -1,6 +1,6 @@
 # CI Flake Classifier Integration
 
-How preflight consumes `scripts/classify-ci-failures.py` to distinguish flaky tests from genuine regressions.
+How preflight consumes the `/ci-flake-classifier` skill (defined in `.claude/skills/ci-flake-classifier/`) to distinguish flaky tests from genuine regressions. The skill wraps `scripts/classify-ci-failures.py`.
 
 ## When to Run
 
