@@ -62,6 +62,25 @@ class AgentDeploymentsPage {
     return cy.findByTestId('agent-runtimes-filter-input');
   }
 
+  findFilterDropdownToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('filter-toolbar-dropdown');
+  }
+
+  selectFilterOption(option: 'name' | 'project' | 'status') {
+    this.findFilterDropdownToggle().click();
+    cy.findByTestId(`filter-toolbar-option-${option}`).click();
+  }
+
+  findProjectFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('agent-runtimes-filter-project-input');
+  }
+
+  selectStatusFilter(status: 'Running' | 'Pending' | 'Failed') {
+    this.selectFilterOption('status');
+    cy.findByTestId('agent-runtimes-filter-status').click();
+    cy.findByTestId(status).click();
+  }
+
   findLoadingSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByLabelText('Loading agent deployments');
   }
