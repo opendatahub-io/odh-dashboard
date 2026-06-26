@@ -165,10 +165,14 @@ def _redact(text: str) -> str:
     return _SENSITIVE_RE.sub(r"\1=<redacted>", text)
 
 
+def _sanitize_control_chars(text: str) -> str:
+    return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
+
+
 def _truncate_error(error: str, max_lines: int = 3, max_chars: int = 300) -> str:
     if not error:
         return ""
-    error = _redact(error)
+    error = _sanitize_control_chars(_redact(error))
     lines = [line for line in error.splitlines() if line.strip()][:max_lines]
     result = "\n".join(lines)
     if len(result) > max_chars:
@@ -453,6 +457,9 @@ def detect_reruns(repo: str, head_sha: str) -> set[str]:
 def fetch_pr_check_summary(
     repo: str, sha: str
 ) -> list[dict]:
+    failing: list[dict] = []
+
+    # 1. Check Runs API (GitHub Actions checks)
     try:
         check_runs: list[dict] = []
         page = 1
@@ -461,32 +468,44 @@ def fetch_pr_check_summary(
                          f"repos/{repo}/commits/{sha}/check-runs"
                          f"?per_page=100&page={page}")
             if isinstance(raw, subprocess.CalledProcessError) or raw.returncode != 0:
-                return []
+                break
             data = json.loads(raw.stdout)
             runs = data.get("check_runs", [])
             check_runs.extend(runs)
             if len(runs) < 100:
                 break
             page += 1
+
+        by_name: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
+        for run in check_runs:
+            name = run.get("name", "")
+            conclusion = (run.get("conclusion") or "").lower()
+            started_at = run.get("started_at") or ""
+            html_url = run.get("html_url") or ""
+            if name and conclusion:
+                by_name[name].append((started_at, conclusion, html_url))
+
+        seen_names: set[str] = set()
+        for name, attempts in by_name.items():
+            seen_names.add(name)
+            attempts.sort(key=lambda x: x[0])
+            _, latest_conclusion, latest_url = attempts[-1]
+            if latest_conclusion in ("failure", "timed_out"):
+                run_id, job_id = extract_run_job_ids(latest_url)
+                failing.append({"name": name, "run_id": run_id, "job_id": job_id})
     except (json.JSONDecodeError, ValueError):
-        return []
+        seen_names = set()
 
-    by_name: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
-    for run in check_runs:
-        name = run.get("name", "")
-        conclusion = (run.get("conclusion") or "").lower()
-        started_at = run.get("started_at") or ""
-        html_url = run.get("html_url") or ""
-        if name and conclusion:
-            by_name[name].append((started_at, conclusion, html_url))
-
-    failing: list[dict] = []
-    for name, attempts in by_name.items():
-        attempts.sort(key=lambda x: x[0])
-        _, latest_conclusion, latest_url = attempts[-1]
-        if latest_conclusion in ("failure", "timed_out"):
-            run_id, job_id = extract_run_job_ids(latest_url)
-            failing.append({"name": name, "run_id": run_id, "job_id": job_id})
+    # 2. Commit Statuses API (status-based checks like Cypress E2E Tests)
+    status_data = gh_json("api", f"repos/{repo}/commits/{sha}/status")
+    if isinstance(status_data, dict):
+        for s in status_data.get("statuses", []):
+            name = s.get("context", "")
+            state = (s.get("state") or "").lower()
+            url = s.get("target_url") or ""
+            if name and name not in seen_names and state in ("failure", "error"):
+                run_id, job_id = extract_run_job_ids(url)
+                failing.append({"name": name, "run_id": run_id, "job_id": job_id})
 
     return failing
 
