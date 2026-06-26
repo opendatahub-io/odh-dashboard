@@ -82,7 +82,7 @@ describe('useFetchMaaSModels', () => {
         version: '',
         usecase: 'LLM',
         description: '',
-        endpoints: [],
+        endpoints: ['external: https://external.example.com', 'https://internal.example.com'],
         status: 'Running',
         display_name: 'model-1',
         sa_token: { name: '', token_name: '', token: '' },
