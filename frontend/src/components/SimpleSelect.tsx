@@ -160,7 +160,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
         }}
         onOpenChange={setOpen}
         toggle={(toggleRef) => (
-          <div ref={menuToggleRef} className="simple-select__toggle-anchor">
+          <div ref={menuToggleRef} className="odh-simple-select__toggle-anchor">
             <MenuToggle
               innerRef={toggleRef}
               data-testid={dataTestId}

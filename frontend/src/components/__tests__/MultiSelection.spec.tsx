@@ -349,4 +349,35 @@ describe('MultiSelection', () => {
     expect(within(dialog).getByRole('option', { name: 'Connection 1' })).toBeInTheDocument();
     expect(within(dialog).getByRole('option', { name: 'Connection 2' })).toBeInTheDocument();
   });
+
+  it('should select options when option id is numeric', async () => {
+    const setValue = jest.fn();
+    const numericOptions: SelectionOptions[] = [
+      { id: 1, name: 'One', selected: false },
+      { id: 2, name: 'Two', selected: false },
+    ];
+
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Items"
+        value={numericOptions}
+        setValue={setValue}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Items' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'Enter' });
+    });
+
+    expect(setValue).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 1, selected: true })]),
+    );
+  });
 });
