@@ -90,6 +90,24 @@ describe('useKueueNotebookAlerts', () => {
       expect(mockNotification.error).not.toHaveBeenCalled();
     });
 
+    it('should not fire notification for notebook that appears after baseline is set', () => {
+      const states = [notebookState('nb1')];
+      const initialStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
+      };
+
+      const { rerender } = renderAlertHook({ states, statusMap: initialStatus, loaded: true });
+
+      const newStates = [notebookState('nb1'), notebookState('nb2')];
+      const updatedStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Queued, 'Waiting'),
+        nb2: kueueStatus(KueueWorkloadStatus.Preempted, 'Preempted'),
+      };
+      rerender({ states: newStates, statusMap: updatedStatus, loaded: true });
+
+      expect(mockNotification.warning).not.toHaveBeenCalled();
+    });
+
     it('should fire notification for transition that happens after initial load', () => {
       const states = [notebookState('nb1')];
       const initialStatus: StatusMap = {
@@ -192,6 +210,27 @@ describe('useKueueNotebookAlerts', () => {
       expect(mockNotification.warning).toHaveBeenCalledWith(
         expect.stringContaining('was preempted'),
         expect.stringContaining('higher-priority job'),
+        expect.arrayContaining([expect.objectContaining({ title: 'View details' })]),
+      );
+    });
+
+    it('should fire warning notification when transitioning to Evicted', () => {
+      const states = [notebookState('nb1')];
+      const initialStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Running, 'Running'),
+      };
+
+      const { rerender } = renderAlertHook({ states, statusMap: initialStatus, loaded: true });
+
+      const evictedStatus: StatusMap = {
+        nb1: kueueStatus(KueueWorkloadStatus.Evicted, 'ClusterQueue was stopped'),
+      };
+      rerender({ states, statusMap: evictedStatus, loaded: true });
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        expect.stringContaining('was evicted'),
+        expect.stringContaining('queue was stopped'),
         expect.arrayContaining([expect.objectContaining({ title: 'View details' })]),
       );
     });
