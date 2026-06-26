@@ -17,7 +17,7 @@ import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributed
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { RefreshIntervalTitle } from '@odh-dashboard/internal/concepts/metrics/types';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   ClusterQueueModel,
   LocalQueueModel,

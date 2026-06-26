@@ -94,7 +94,7 @@ describe('A user can deploy an LLMD model', () => {
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -198,8 +198,7 @@ describe('A user can deploy an LLMD model', () => {
     'Verify User can deploy an LLmd Model from Manual YAML editor',
     {
       tags: [
-        '@Smoke',
-        '@SmokeSet3',
+        '@Featureflagged',
         '@Dashboard',
         '@ModelServing',
         '@NonConcurrent',

@@ -25,42 +25,76 @@ const buildPatchCommand = (resource: string, patchJson: object, namespace: strin
 };
 
 /**
- * Check whether the AutoML feature flag is currently enabled.
+ * Check whether a dashboard feature flag is currently enabled.
  */
-export const isAutomlEnabled = (): Cypress.Chainable<boolean> =>
+const isFeatureFlagEnabled = (flag: string): Cypress.Chainable<boolean> =>
   cy
     .exec(
-      `oc get OdhDashboardConfig -A -o json | jq -e '.items[].spec.dashboardConfig.automl == true'`,
+      `oc get OdhDashboardConfig -A -o json | jq -e '.items[].spec.dashboardConfig.${flag} == true'`,
       { failOnNonZeroExit: false },
     )
     .then((result) => result.exitCode === 0);
 
 /**
- * Set the AutoML feature flag in OdhDashboardConfig.
- * When enabling, polls until the flag is confirmed true.
+ * Set a dashboard feature flag and optionally poll until it is confirmed.
  */
-export const setAutomlEnabled = (enabled: boolean): Cypress.Chainable<Cypress.Exec> => {
+const setFeatureFlag = (
+  flag: string,
+  enabled: boolean,
+  label: string,
+): Cypress.Chainable<Cypress.Exec> => {
   const namespace = getApplicationsNamespace();
-  const patchSpec = { spec: { dashboardConfig: { automl: enabled } } };
+  const patchSpec = { spec: { dashboardConfig: { [flag]: enabled } } };
 
-  cy.step(`${enabled ? 'Enable' : 'Disable'} AutoML feature flag`);
+  cy.step(`${enabled ? 'Enable' : 'Disable'} ${label} feature flag`);
   return cy
     .exec(buildPatchCommand(DASHBOARD_CONFIG, patchSpec, namespace))
     .then((result) => {
       if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
-        throw new Error(`Failed to set AutoML feature flag to ${enabled}: ${maskedStderr}`);
+        throw new Error(`Failed to set ${label} feature flag to ${enabled}: ${maskedStderr}`);
       }
     })
     .then(() => {
       if (enabled) {
-        cy.step('Wait for automl feature flag to be set');
+        cy.step(`Wait for ${flag} feature flag to be set`);
         return pollUntilSuccess(
-          `oc get OdhDashboardConfig -A -o json | jq -e '.items[].spec.dashboardConfig.automl == true'`,
-          'automl feature flag to be true',
+          `oc get OdhDashboardConfig -A -o json | jq -e '.items[].spec.dashboardConfig.${flag} == true'`,
+          `${flag} feature flag to be true`,
           { maxAttempts: 30, pollIntervalMs: 2000 },
         );
       }
-      return cy.exec('echo "AutoML feature flag disabled"');
+      return cy.exec(`echo "${label} feature flag disabled"`);
     });
+};
+
+// ── AutoML ───────────────────────────────────────────────────────────
+
+export const isAutomlEnabled = (): Cypress.Chainable<boolean> => isFeatureFlagEnabled('automl');
+
+export const setAutomlEnabled = (enabled: boolean): Cypress.Chainable<Cypress.Exec> =>
+  setFeatureFlag('automl', enabled, 'AutoML');
+
+// ── AutoRAG ──────────────────────────────────────────────────────────
+
+export const isAutoragEnabled = (): Cypress.Chainable<boolean> => isFeatureFlagEnabled('autorag');
+
+/**
+ * Set the AutoRAG feature flag in OdhDashboardConfig.
+ * AutoRAG requires genAiStudio — enables it only if not already set.
+ * When disabling, only the autorag flag is removed (genAiStudio is left as-is).
+ */
+export const setAutoragEnabled = (enabled: boolean): Cypress.Chainable<Cypress.Exec> => {
+  if (enabled) {
+    return isFeatureFlagEnabled('genAiStudio').then((genAiAlreadyEnabled) => {
+      if (genAiAlreadyEnabled) {
+        cy.log('Gen AI Studio already enabled, skipping');
+        return setFeatureFlag('autorag', true, 'AutoRAG');
+      }
+      return setFeatureFlag('genAiStudio', true, 'Gen AI Studio').then(() =>
+        setFeatureFlag('autorag', true, 'AutoRAG'),
+      );
+    });
+  }
+  return setFeatureFlag('autorag', false, 'AutoRAG');
 };

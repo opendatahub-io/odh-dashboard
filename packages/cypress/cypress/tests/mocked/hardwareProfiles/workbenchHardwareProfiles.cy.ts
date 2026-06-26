@@ -20,7 +20,7 @@ import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mo
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import type { PodKind } from '@odh-dashboard/k8s-core';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { projectDetails } from '../../../pages/projects';
 import { workbenchPage, editSpawnerPage } from '../../../pages/workbench';

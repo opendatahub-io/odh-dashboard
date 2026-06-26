@@ -20,7 +20,7 @@ import {
 import type { DataScienceClusterKindStatus } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import {
   mockGlobalScopedHardwareProfiles,

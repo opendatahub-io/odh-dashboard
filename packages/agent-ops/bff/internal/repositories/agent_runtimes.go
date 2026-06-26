@@ -25,22 +25,35 @@ func NewAgentRuntimesRepository(agentSourceFactory agents.ClientFactory) *AgentR
 	return &AgentRuntimesRepository{agentSourceFactory: agentSourceFactory}
 }
 
-// ListAgentRuntimes returns deployed agent runtimes across enabled namespaces.
+// ListAgentRuntimes returns deployed agent runtimes. When opts.Namespace is set,
+// only agents from that namespace are returned; otherwise all enabled namespaces are queried.
 func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context, opts models.ListAgentRuntimesOptions) (*models.AgentRuntimesResponse, error) {
 	client, err := r.agentSourceFactory.GetClient(ctx)
 	if err != nil {
 		return nil, translateAgentError(err)
 	}
 
-	namespaces, err := client.ListNamespaces(ctx, true)
-	if err != nil {
-		return nil, translateAgentError(err)
+	var namespaces []string
+	if opts.Namespace != "" {
+		allowed, err := client.CanListAgentsInNamespace(ctx, opts.Namespace)
+		if err != nil || !allowed {
+			return nil, bfferrors.ErrForbidden
+		}
+		namespaces = []string{opts.Namespace}
+	} else {
+		namespaces, err = client.ListNamespaces(ctx, true)
+		if err != nil {
+			return nil, translateAgentError(err)
+		}
 	}
 
 	runtimes := make([]models.AgentRuntime, 0)
 	for _, namespace := range namespaces {
 		list, err := client.ListAgents(ctx, namespace)
 		if err != nil {
+			if opts.Namespace != "" {
+				return nil, translateAgentError(err)
+			}
 			slog.Warn("failed to list agents in namespace, skipping",
 				slog.String("namespace", namespace),
 				slog.Any("error", err))

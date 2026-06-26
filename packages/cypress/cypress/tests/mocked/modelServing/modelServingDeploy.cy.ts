@@ -17,7 +17,7 @@ import {
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
 } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   mockCustomSecretK8sResource,
   mockURISecretK8sResource,
