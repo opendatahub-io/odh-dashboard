@@ -43,7 +43,7 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*",
     "@perses-dev/bar-chart-plugin": "^0.9.0",
-    "@perses-dev/components": "^0.52.0",
+    "@perses-dev/components": "^0.53.0",
     "@perses-dev/core": "^0.52.0",
     "@perses-dev/dashboards": "^0.52.0",
     "@perses-dev/datasource-variable-plugin": "^0.3.2",
