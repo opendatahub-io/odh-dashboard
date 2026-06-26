@@ -1443,6 +1443,14 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('topology-type-select');
   }
 
+  findTopologyTypeOption(topologyType: string) {
+    return cy.findByTestId(`topology-type-${topologyType}`);
+  }
+
+  findTopologyConfigOption(configName: string) {
+    return cy.findByTestId(`topology-config-option-${configName}`);
+  }
+
   findCustomTopologyConfigSelect() {
     return cy.findByTestId('custom-topology-config-select');
   }

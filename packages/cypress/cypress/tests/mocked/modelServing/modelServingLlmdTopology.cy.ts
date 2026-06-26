@@ -1,5 +1,14 @@
+// Type-only import avoids webpack bundling the full module (which triggers scss/svg resolution)
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { TopologyType } from '@odh-dashboard/llmd-serving/types';
+import { type TopologyType } from '@odh-dashboard/llmd-serving/types';
+
+// Runtime values inlined to avoid value import from llmd-serving/types
+const TOPOLOGY_TYPES = {
+  SINGLE_NODE: 'workload-single-node' as TopologyType,
+  MULTI_NODE: 'workload-multi-node-data-parallel' as TopologyType,
+  SINGLE_NODE_DISAGGREGATED: 'workload-single-node-pd' as TopologyType,
+  MULTI_NODE_DISAGGREGATED: 'workload-multi-node-data-parallel-pd' as TopologyType,
+};
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
@@ -27,17 +36,17 @@ const mockTopologyConfigs = [
   mockLLMInferenceServiceConfigK8sResource({
     name: 'single-node-config',
     displayName: 'Single Node Config',
-    topologyType: TopologyType.SINGLE_NODE,
+    topologyType: TOPOLOGY_TYPES.SINGLE_NODE,
   }),
   mockLLMInferenceServiceConfigK8sResource({
     name: 'multi-node-config',
     displayName: 'Multi-node Data Parallel',
-    topologyType: TopologyType.MULTI_NODE,
+    topologyType: TOPOLOGY_TYPES.MULTI_NODE,
   }),
   mockLLMInferenceServiceConfigK8sResource({
     name: 'disabled-config',
     displayName: 'Disabled Config',
-    topologyType: TopologyType.MULTI_NODE,
+    topologyType: TOPOLOGY_TYPES.MULTI_NODE,
     disabled: true,
   }),
 ];
@@ -54,7 +63,6 @@ const initIntercepts = ({
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
       },
     }),
   );
@@ -157,28 +165,20 @@ describe('Model Serving LLMD Topology', () => {
       modelServingWizard.findTopologyTypeSelect().click();
 
       // Single node and Multi-node should be enabled
-      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).should(
-        'not.have.attr',
-        'aria-disabled',
-        'true',
-      );
-      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).should(
-        'not.have.attr',
-        'aria-disabled',
-        'true',
-      );
+      modelServingWizard
+        .findTopologyTypeOption(TOPOLOGY_TYPES.SINGLE_NODE)
+        .should('not.have.attr', 'aria-disabled', 'true');
+      modelServingWizard
+        .findTopologyTypeOption(TOPOLOGY_TYPES.MULTI_NODE)
+        .should('not.have.attr', 'aria-disabled', 'true');
 
       // Disaggregated types should be disabled (no configs)
-      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE_DISAGGREGATED}`).should(
-        'have.attr',
-        'aria-disabled',
-        'true',
-      );
-      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE_DISAGGREGATED}`).should(
-        'have.attr',
-        'aria-disabled',
-        'true',
-      );
+      modelServingWizard
+        .findTopologyTypeOption(TOPOLOGY_TYPES.SINGLE_NODE_DISAGGREGATED)
+        .should('have.attr', 'aria-disabled', 'true');
+      modelServingWizard
+        .findTopologyTypeOption(TOPOLOGY_TYPES.MULTI_NODE_DISAGGREGATED)
+        .should('have.attr', 'aria-disabled', 'true');
     });
 
     it('should always enable Single node even without configs', () => {
@@ -194,11 +194,9 @@ describe('Model Serving LLMD Topology', () => {
       modelServingWizard.findTopologyTypeSelect().click();
 
       // Single node should always be enabled
-      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).should(
-        'not.have.attr',
-        'aria-disabled',
-        'true',
-      );
+      modelServingWizard
+        .findTopologyTypeOption(TOPOLOGY_TYPES.SINGLE_NODE)
+        .should('not.have.attr', 'aria-disabled', 'true');
     });
   });
 
@@ -215,13 +213,13 @@ describe('Model Serving LLMD Topology', () => {
 
       // Select Multi-node topology
       modelServingWizard.findTopologyTypeSelect().click();
-      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
+      modelServingWizard.findTopologyTypeOption(TOPOLOGY_TYPES.MULTI_NODE).click();
 
       // Custom config dropdown should show only multi-node configs (not disabled ones)
       modelServingWizard.findCustomTopologyConfigSelect().should('exist').click();
-      cy.findByTestId('topology-config-option-multi-node-config').should('exist');
-      cy.findByTestId('topology-config-option-single-node-config').should('not.exist');
-      cy.findByTestId('topology-config-option-disabled-config').should('not.exist');
+      modelServingWizard.findTopologyConfigOption('multi-node-config').should('exist');
+      modelServingWizard.findTopologyConfigOption('single-node-config').should('not.exist');
+      modelServingWizard.findTopologyConfigOption('disabled-config').should('not.exist');
     });
 
     it('should reset custom config when topology type changes', () => {
@@ -236,9 +234,9 @@ describe('Model Serving LLMD Topology', () => {
 
       // Select Multi-node and pick a config
       modelServingWizard.findTopologyTypeSelect().click();
-      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
+      modelServingWizard.findTopologyTypeOption(TOPOLOGY_TYPES.MULTI_NODE).click();
       modelServingWizard.findCustomTopologyConfigSelect().click();
-      cy.findByTestId('topology-config-option-multi-node-config').click();
+      modelServingWizard.findTopologyConfigOption('multi-node-config').click();
 
       // Verify config is selected
       modelServingWizard
@@ -247,7 +245,7 @@ describe('Model Serving LLMD Topology', () => {
 
       // Change topology type back to Single node
       modelServingWizard.findTopologyTypeSelect().click();
-      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).click();
+      modelServingWizard.findTopologyTypeOption(TOPOLOGY_TYPES.SINGLE_NODE).click();
 
       // Config should be reset (single-node has its own configs)
       modelServingWizard
@@ -262,7 +260,7 @@ describe('Model Serving LLMD Topology', () => {
           mockLLMInferenceServiceConfigK8sResource({
             name: 'single-node-only',
             displayName: 'Single Node Only',
-            topologyType: TopologyType.SINGLE_NODE,
+            topologyType: TOPOLOGY_TYPES.SINGLE_NODE,
           }),
         ],
       });

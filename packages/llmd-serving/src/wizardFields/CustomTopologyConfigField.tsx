@@ -1,5 +1,13 @@
 import React from 'react';
-import { FormGroup, Content, Stack, StackItem } from '@patternfly/react-core';
+import {
+  FormGroup,
+  Content,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import type {
   WizardField,
   WizardReviewSection,
@@ -14,10 +22,21 @@ import {
   type TopologyTypeFieldData,
   type TopologyTypeExternalData,
 } from './TopologyTypeField';
-import { type LLMInferenceServiceConfigKind, type TopologyType } from '../types';
+import { TopologyType, type LLMInferenceServiceConfigKind } from '../types';
 import { isLLMInferenceServiceActive } from '../formUtils';
 
 // --- Dependencies ---
+
+const topologyTypeValues: string[] = Object.values(TopologyType);
+const isTopologyTypeFieldData = (data: unknown): data is TopologyTypeFieldData => {
+  if (data == null || typeof data !== 'object' || !('topologyType' in data)) {
+    return false;
+  }
+  // Safe narrowing: 'in' check above guarantees the property exists
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const val = (data as { topologyType: unknown }).topologyType;
+  return typeof val === 'string' && topologyTypeValues.includes(val);
+};
 
 type CustomTopologyConfigDependencies = {
   topologyType?: TopologyTypeFieldData;
@@ -61,20 +80,31 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
     [configsByTopology, topologyType],
   );
 
-  const options: SimpleSelectOption[] = React.useMemo(
-    () =>
-      filteredConfigs.map((config) => ({
-        key: config.metadata.name,
-        label: getDisplayNameFromK8sResource(config),
-        description: config.metadata.annotations?.['openshift.io/description'],
-        dataTestId: `topology-config-option-${config.metadata.name}`,
-      })),
-    [filteredConfigs],
-  );
+  const existingSelection = value?.selectedConfig;
+  const noConfigsAvailable = filteredConfigs.length === 0 && !existingSelection;
 
-  if (filteredConfigs.length === 0) {
-    return null;
-  }
+  const options: SimpleSelectOption[] = React.useMemo(() => {
+    const result = filteredConfigs.map((config) => ({
+      key: config.metadata.name,
+      label: getDisplayNameFromK8sResource(config),
+      description: config.metadata.annotations?.['openshift.io/description'],
+      dataTestId: `topology-config-option-${config.metadata.name}`,
+    }));
+
+    if (
+      existingSelection &&
+      !filteredConfigs.some((c) => c.metadata.name === existingSelection.metadata.name)
+    ) {
+      result.push({
+        key: existingSelection.metadata.name,
+        label: getDisplayNameFromK8sResource(existingSelection),
+        description: existingSelection.metadata.annotations?.['openshift.io/description'],
+        dataTestId: `topology-config-option-${existingSelection.metadata.name}`,
+      });
+    }
+
+    return result;
+  }, [filteredConfigs, existingSelection]);
 
   return (
     <FormGroup fieldId="custom-topology-config" label="Custom topology configurations">
@@ -94,12 +124,23 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
                 return;
               }
               const config = filteredConfigs.find((c) => c.metadata.name === key);
-              onChange({ selectedConfig: config });
+              onChange({ selectedConfig: config ?? value?.selectedConfig });
             }}
             placeholder="Select custom configuration (optional)"
             value={value?.selectedConfig?.metadata.name}
             dataTestId="custom-topology-config-select"
+            isDisabled={noConfigsAvailable}
           />
+          {noConfigsAvailable && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="warning">
+                  No topology configurations found for this topology type. Contact your
+                  administrator to create one.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </StackItem>
       </Stack>
     </FormGroup>
@@ -144,10 +185,12 @@ export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType
   type: 'addition',
   isActive,
   reducerFunctions: {
-    resolveDependencies: (formData) => ({
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      topologyType: formData['llmd-serving/topology-type'] as TopologyTypeFieldData | undefined,
-    }),
+    resolveDependencies: (formData) => {
+      const rawTopologyData = formData['llmd-serving/topology-type'];
+      return {
+        topologyType: isTopologyTypeFieldData(rawTopologyData) ? rawTopologyData : undefined,
+      };
+    },
     setFieldData: (value: CustomTopologyConfigFieldData) => value,
     getInitialFieldData: (
       existingFieldData?: CustomTopologyConfigFieldData,
