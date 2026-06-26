@@ -1,7 +1,13 @@
 import * as React from 'react';
-import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
-import { Button } from '@patternfly/react-core';
+import {
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateActions,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import { URL_PREFIX } from '~/app/utilities/const';
 
 type EmptySubscriptionsPageProps = {
@@ -10,26 +16,35 @@ type EmptySubscriptionsPageProps = {
 
 const EmptySubscriptionsPage: React.FC<EmptySubscriptionsPageProps> = ({ returnTo }) => (
   <>
-    <EmptyDetailsView
-      title="No Subscriptions"
-      description="To get started, create a subscription."
-      imageAlt="create a subscription"
-      createButton={
-        <Button
-          variant="primary"
-          component={(props) => (
-            <Link
-              {...props}
-              to={`${(returnTo ?? `${URL_PREFIX}/subscriptions`).split('?')[0]}/create`}
-              state={returnTo ? { returnTo } : undefined}
-            />
-          )}
-          data-testid="create-subscription-button"
-        >
-          Create subscription
-        </Button>
-      }
-    />
+    <EmptyState
+      titleText="No subscriptions"
+      headingLevel="h3"
+      variant="lg"
+      data-testid="empty-subscriptions-page"
+      icon={PlusCircleIcon}
+    >
+      <EmptyStateBody>
+        Subscriptions define rate limits and token quotas for MaaS model access. Create a
+        subscription to control how much each group can consume.
+      </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Button
+            variant="primary"
+            component={(props) => (
+              <Link
+                {...props}
+                to={`${(returnTo ?? `${URL_PREFIX}/subscriptions`).split('?')[0]}/create`}
+                state={returnTo ? { returnTo } : undefined}
+              />
+            )}
+            data-testid="create-subscription-button"
+          >
+            Create subscription
+          </Button>
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    </EmptyState>
   </>
 );
 
