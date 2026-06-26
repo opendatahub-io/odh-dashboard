@@ -10,7 +10,7 @@ import {
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
@@ -171,8 +171,7 @@ describe('MaaS Deployment Wizard', () => {
     modelServingWizard
       .findModelDeploymentDescriptionInput()
       .type('Test LLM Inference Service Description');
-    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('Distributed inference with llm-d').click();
+    modelServingWizardEdit.selectDeploymentMethodByKey('llm-inference-service-llmd');
     modelServingWizard.findNextButton().click();
 
     // Focus on MaaS feature testing
@@ -399,8 +398,7 @@ describe('MaaS Deployment Wizard', () => {
     modelServingWizard
       .findModelDeploymentDescriptionInput()
       .type('Test LLM Inference Service Description');
-    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('Distributed inference with llm-d').click();
+    modelServingWizardEdit.selectDeploymentMethodByKey('llm-inference-service-llmd');
     modelServingWizard.findNextButton().click();
 
     // Focus on MaaS feature testing

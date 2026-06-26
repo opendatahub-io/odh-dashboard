@@ -4,6 +4,7 @@ import {
   ALL_EVAL_METRICS,
   DEFAULT_EVAL_METRIC_BY_TASK,
   EVAL_METRICS_BY_TASK_TYPE,
+  MAX_DISPLAY_NAME_LENGTH,
   METRIC_ALIASES,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
@@ -279,12 +280,6 @@ export function computeRankMap(
 
   return Object.fromEntries(sorted.map((name, i) => [name, i + 1]));
 }
-
-/**
- * Maximum character length for a display name (matches configure.schema.ts validation).
- * Measured in Unicode code points via Array.from().
- */
-const MAX_DISPLAY_NAME_LENGTH = 250;
 
 /**
  * Generates a reconfigure display name by appending or incrementing a ` - N` suffix.

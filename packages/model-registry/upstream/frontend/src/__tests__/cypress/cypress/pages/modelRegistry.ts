@@ -94,6 +94,10 @@ class ModelRegistry {
     return cy.findByTestId('unavailable-model-registry');
   }
 
+  findWhosMyAdministratorLink() {
+    return cy.findByTestId('whos-my-admin-link');
+  }
+
   shouldregisteredModelsEmpty() {
     cy.findByTestId('empty-registered-models').should('exist');
   }

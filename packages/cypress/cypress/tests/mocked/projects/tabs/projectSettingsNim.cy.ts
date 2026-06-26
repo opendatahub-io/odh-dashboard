@@ -8,7 +8,7 @@ import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { projectDetailsSettingsTab } from '../../../../pages/projects';
 import {
   NIMAccountModel,

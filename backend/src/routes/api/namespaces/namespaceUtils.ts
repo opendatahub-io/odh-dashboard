@@ -6,7 +6,7 @@ import { isK8sStatus } from '../../../utils/pass-through';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { createSelfSubjectAccessReview } from '../../../utils/authUtils';
 
-const checkAdminNamespacePermission = (
+export const checkAdminNamespacePermission = (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   name: string,
@@ -34,6 +34,37 @@ const checkEditNamespacePermission = (
     namespace: name,
   });
 
+export const MERGE_PATCH_OPTIONS = {
+  headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+};
+
+export const validateNotSystemNamespace = (name: string): void => {
+  if (name.startsWith('openshift') || name.startsWith('kube')) {
+    throw createCustomError(
+      'Invalid namespace target',
+      'Cannot mutate namespaces with "openshift" or "kube"',
+      400,
+    );
+  }
+};
+
+export const ensureNamespaceAccessPermission = async (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  name: string,
+  checkFn: typeof checkAdminNamespacePermission,
+  forbiddenMessage = "You don't have permission to manage this namespace.",
+): Promise<void> => {
+  const review = await checkFn(fastify, request, name);
+  if (isK8sStatus(review)) {
+    throw createCustomError(review.reason, review.message, review.code);
+  }
+  if (!review.status.allowed) {
+    fastify.log.error(`SSAR denied for namespace "${name}": ${review.status.reason}`);
+    throw createCustomError('Forbidden', forbiddenMessage, 403);
+  }
+};
+
 export const applyNamespaceChange = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
@@ -41,14 +72,7 @@ export const applyNamespaceChange = async (
   context: NamespaceApplicationCase,
   dryRun?: string,
 ): Promise<{ applied: boolean }> => {
-  if (name.startsWith('openshift') || name.startsWith('kube')) {
-    // Kubernetes and OpenShift namespaces are off limits to this flow
-    throw createCustomError(
-      'Invalid namespace target',
-      'Cannot mutate namespaces with "openshift" or "kube"',
-      400,
-    );
-  }
+  validateNotSystemNamespace(name);
 
   let annotations = {};
   let labels = {};
@@ -95,22 +119,13 @@ export const applyNamespaceChange = async (
       500,
     );
   }
-  const selfSubjectAccessReview = await checkPermissionsFn(fastify, request, name);
-  if (isK8sStatus(selfSubjectAccessReview)) {
-    throw createCustomError(
-      selfSubjectAccessReview.reason,
-      selfSubjectAccessReview.message,
-      selfSubjectAccessReview.code,
-    );
-  }
-  if (!selfSubjectAccessReview.status.allowed) {
-    fastify.log.error(`Unable to access the namespace, ${selfSubjectAccessReview.status.reason}`);
-    throw createCustomError(
-      'Forbidden',
-      "You don't have permission to update serving platform labels on the current project.",
-      403,
-    );
-  }
+  await ensureNamespaceAccessPermission(
+    fastify,
+    request,
+    name,
+    checkPermissionsFn,
+    "You don't have permission to update serving platform labels on the current project.",
+  );
 
   return fastify.kube.coreV1Api
     .patchNamespace(
@@ -120,9 +135,7 @@ export const applyNamespaceChange = async (
       dryRun,
       undefined,
       undefined,
-      {
-        headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-      },
+      MERGE_PATCH_OPTIONS,
     )
     .then(() => ({ applied: true }))
     .catch((e) => {
