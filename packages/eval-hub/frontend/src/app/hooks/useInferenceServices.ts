@@ -42,7 +42,7 @@ export const useInferenceServices = (namespace: string): UseInferenceServicesRes
   }, [loaded, response.warning]);
 
   return {
-    inferenceServices: response.items.filter((item) => item.ready),
+    inferenceServices: response.items,
     loaded,
     loadError,
     warning,
