@@ -164,8 +164,7 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
 
   const defaultTab = getDefaultTab(pageId, tabExtensions);
 
-  const isSingleTab =
-    tabExtensions.length === 1 && !extension.properties.alwaysShowTabBar;
+  const isSingleTab = tabExtensions.length === 1 && !extension.properties.alwaysShowTabBar;
   const singleTab = isSingleTab ? tabExtensions[0] : undefined;
 
   // Resolve the displayed title and icon:
