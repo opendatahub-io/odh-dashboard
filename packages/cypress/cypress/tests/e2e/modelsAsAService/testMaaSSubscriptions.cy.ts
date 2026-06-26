@@ -109,7 +109,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         cleanupSubscription(`${subscriptionName}-2`, subscriptionNamespace);
         cleanupAuthPolicy(`${subscriptionName}-policy`, subscriptionNamespace);
         cleanupAuthPolicy(`${subscriptionName}-2-policy`, subscriptionNamespace);
-        cleanupApiKeys();
+        cleanupApiKeys(apiKeyName);
 
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
@@ -156,7 +156,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
     cleanupAuthPolicy(`${subscriptionName}-2-policy`, subscriptionNamespace);
 
     cy.log('Cleaning up API keys');
-    cleanupApiKeys();
+    cleanupApiKeys(apiKeyName);
 
     // Delete the LLMInferenceService before the project to prevent KServe finalizer hangs
     // that would time out deleteOpenShiftProject and orphan subscriptions (RHOAIENG-68936)

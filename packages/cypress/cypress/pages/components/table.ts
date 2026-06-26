@@ -21,6 +21,11 @@ export class TableRow extends Contextual<HTMLTableRowElement> {
     return verify ? kebabAction.should('exist').and('be.visible') : kebabAction;
   }
 
+  findKebabActionByTestId(testId: string, verify = true): Cypress.Chainable<JQuery<HTMLElement>> {
+    const kebabAction = this.find().findKebabActionByTestId(testId);
+    return verify ? kebabAction.should('exist').and('be.visible') : kebabAction;
+  }
+
   findKebab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findKebab();
   }

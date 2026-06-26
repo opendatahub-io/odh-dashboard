@@ -65,14 +65,18 @@ export const cleanupAuthPolicy = (
 };
 
 /**
- * Cleans up all API keys by truncating the Postgres api_keys table.
+ * Deletes a single API key row from the Postgres `api_keys` table by name.
  *
  * Credentials are read from the `postgres-creds` secret in APPLICATIONS_NAMESPACE.
- * Acceptable on dedicated E2E clusters where the table is exclusively test data.
+ * Intended for E2E cleanup of keys created by Cypress tests (matched on `name`).
+ *
+ * @param apiKeyName Display name of the API key to delete (same value used in the UI).
  */
-export const cleanupApiKeys = (): Cypress.Chainable<CommandLineResult> => {
+export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<CommandLineResult> => {
   const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string;
-  cy.log('Cleaning up API keys by truncating the Postgres api_keys table');
+  const escapedName = apiKeyName.replace(/'/g, "''");
+  cy.log(`Deleting API key "${apiKeyName}" from Postgres api_keys table`);
+
   return cy
     .exec(
       `oc get secret postgres-creds -n ${applicationNamespace} -o jsonpath='{.data.POSTGRES_USER}' | base64 -d`,
@@ -88,7 +92,7 @@ export const cleanupApiKeys = (): Cypress.Chainable<CommandLineResult> => {
         .then((dbResult) => {
           const pgDb = dbResult.stdout.trim();
           return cy.exec(
-            `oc exec -n ${applicationNamespace} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "TRUNCATE TABLE api_keys;"`,
+            `oc exec -n ${applicationNamespace} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "DELETE FROM api_keys WHERE name = '${escapedName}';"`,
             { failOnNonZeroExit: false },
           );
         });
@@ -162,30 +166,253 @@ EOF`;
   });
 };
 
+/**
+ * Type for MaaS Resource Condition
+ */
+type MaaSResourceCondition = {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+  observedGeneration?: number;
+};
+
+/**
+ * Type for MaaS ModelRef Status
+ */
+type MaaSModelRefStatus = {
+  name: string;
+  namespace: string;
+  ready?: boolean;
+  reason?: string;
+  message?: string;
+};
+
+/**
+ * Type for MaaS TokenRateLimit Status
+ */
+type MaaSTokenRateLimitStatus = {
+  name: string;
+  namespace: string;
+  model?: string;
+  ready?: boolean;
+  reason?: string;
+  message?: string;
+};
+
+/**
+ * Type for MaaS Resource Status
+ */
+type MaaSResourceStatus = {
+  phase?: string;
+  conditions?: MaaSResourceCondition[];
+  modelRefStatuses?: MaaSModelRefStatus[];
+  tokenRateLimitStatuses?: MaaSTokenRateLimitStatus[];
+};
+
+/**
+ * Type for MaaS named reference (group or model ref name)
+ */
+type MaaSNamedReference = {
+  name: string;
+  namespace?: string;
+};
+
+/**
+ * Type for MaaS subscription model ref spec entry
+ */
+type MaaSSubscriptionModelRef = {
+  name: string;
+  namespace: string;
+  tokenRateLimits?: {
+    limit: number;
+    window: string;
+  }[];
+};
+
+/**
+ * Type for MaaSSubscription State
+ */
+type MaaSSubscriptionState = {
+  kind?: string;
+  metadata?: {
+    name?: string;
+    namespace?: string;
+    annotations?: Record<string, string>;
+  };
+  spec?: {
+    modelRefs?: MaaSSubscriptionModelRef[];
+    owner?: {
+      groups?: MaaSNamedReference[];
+    };
+    priority?: number;
+  };
+  status?: MaaSResourceStatus;
+};
+
+/**
+ * Type for MaaSAuthPolicy State
+ */
+type MaaSAuthPolicyState = {
+  kind?: string;
+  metadata?: {
+    name?: string;
+    namespace?: string;
+    annotations?: Record<string, string>;
+  };
+  spec?: {
+    subjects?: {
+      groups?: MaaSNamedReference[];
+    };
+    modelRefs?: MaaSNamedReference[];
+  };
+  status?: MaaSResourceStatus;
+};
+
 export type CheckMaaSOptions = {
   expectDeleted?: boolean;
   groups?: string[];
   models?: string[];
+  phase?: string;
+  maxAttempts?: number;
+  pollIntervalMs?: number;
 };
 
-const getAuthPolicyGroupNames = (doc: Record<string, unknown>): string[] => {
-  const { spec } = doc;
-  if (!isRecord(spec)) {
-    throw new Error('MaaSAuthPolicy spec missing');
+const MAAS_RESOURCE_DEFAULT_MAX_ATTEMPTS = 60;
+const MAAS_RESOURCE_DEFAULT_POLL_INTERVAL_MS = 5000;
+
+const parseMaaSSubscriptionDoc = (
+  subscriptionName: string,
+  stdout: string,
+): MaaSSubscriptionState => {
+  let doc: MaaSSubscriptionState;
+  try {
+    doc = JSON.parse(stdout) as MaaSSubscriptionState;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to parse MaaSSubscription JSON for ${subscriptionName}: ${errorMsg}`);
   }
-  const { subjects } = spec;
-  if (!isRecord(subjects)) {
-    throw new Error('MaaSAuthPolicy spec.subjects missing');
+
+  expect(doc.kind).to.equal('MaaSSubscription');
+  expect(doc.metadata?.name).to.equal(subscriptionName);
+
+  return doc;
+};
+
+const parseMaaSAuthPolicyDoc = (policyName: string, stdout: string): MaaSAuthPolicyState => {
+  let doc: MaaSAuthPolicyState;
+  try {
+    doc = JSON.parse(stdout) as MaaSAuthPolicyState;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to parse MaaSAuthPolicy JSON for ${policyName}: ${errorMsg}`);
   }
-  const { groups } = subjects;
-  if (!Array.isArray(groups)) {
-    throw new Error('MaaSAuthPolicy spec.subjects.groups missing or not an array');
+
+  expect(doc.kind).to.equal('MaaSAuthPolicy');
+  expect(doc.metadata?.name).to.equal(policyName);
+
+  return doc;
+};
+
+const subscriptionOptionsMet = (
+  doc: MaaSSubscriptionState,
+  options: CheckMaaSOptions,
+): string | undefined => {
+  if (options.models) {
+    const modelNames = getSubscriptionModelRefNames(doc);
+    const expected = [...options.models].toSorted();
+    const actual = [...modelNames].toSorted();
+    if (expected.length !== actual.length || !expected.every((name, i) => name === actual[i])) {
+      return `models: expected [${expected.join(', ')}], got [${actual.join(', ')}]`;
+    }
+  }
+  if (options.phase && doc.status?.phase !== options.phase) {
+    return `phase: expected ${options.phase}, got ${doc.status?.phase ?? 'Unknown'}`;
+  }
+  return undefined;
+};
+
+const authPolicyOptionsMet = (
+  doc: MaaSAuthPolicyState,
+  options: CheckMaaSOptions,
+): string | undefined => {
+  if (options.groups) {
+    const groupNames = getAuthPolicyGroupNames(doc);
+    const expected = [...options.groups].toSorted();
+    const actual = [...groupNames].toSorted();
+    if (expected.length !== actual.length || !expected.every((name, i) => name === actual[i])) {
+      return `groups: expected [${expected.join(', ')}], got [${actual.join(', ')}]`;
+    }
+  }
+  if (options.phase && doc.status?.phase !== options.phase) {
+    return `phase: expected ${options.phase}, got ${doc.status?.phase ?? 'Unknown'}`;
+  }
+  return undefined;
+};
+
+const pollMaaSResourceCheck = <T extends MaaSSubscriptionState | MaaSAuthPolicyState>({
+  resourceLabel,
+  ocCommand,
+  options,
+  parseDoc,
+  optionsMet,
+}: {
+  resourceLabel: string;
+  ocCommand: string;
+  options: CheckMaaSOptions;
+  parseDoc: (stdout: string) => T;
+  optionsMet: (doc: T) => string | undefined;
+}): Cypress.Chainable<CommandLineResult> => {
+  const maxAttempts = options.maxAttempts ?? MAAS_RESOURCE_DEFAULT_MAX_ATTEMPTS;
+  const pollIntervalMs = options.pollIntervalMs ?? MAAS_RESOURCE_DEFAULT_POLL_INTERVAL_MS;
+
+  const check = (attemptNumber = 1): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+      const doc = parseDoc(result.stdout);
+      const failureReason = optionsMet(doc);
+
+      if (!failureReason) {
+        cy.log(`✅ ${resourceLabel} conditions met`);
+        return cy.wrap(result);
+      }
+
+      if (attemptNumber >= maxAttempts) {
+        throw new Error(`${resourceLabel} did not meet expected state. ${failureReason}`);
+      }
+
+      cy.log(`${resourceLabel} waiting (${failureReason}) — retry ${attemptNumber}/${maxAttempts}`);
+      // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll until MaaS resource is ready
+      return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+    });
+
+  cy.step(`Polling for ${resourceLabel}`);
+  return check();
+};
+
+const getAuthPolicyGroupNames = (doc: MaaSAuthPolicyState): string[] => {
+  const groups = doc.spec?.subjects?.groups;
+  if (!groups) {
+    throw new Error('MaaSAuthPolicy spec.subjects.groups missing');
   }
   return groups.map((group, index) => {
-    if (!isRecord(group) || typeof group.name !== 'string') {
+    if (!group.name) {
       throw new Error(`MaaSAuthPolicy spec.subjects.groups[${index}] is missing name`);
     }
     return group.name;
+  });
+};
+
+const getSubscriptionModelRefNames = (doc: MaaSSubscriptionState): string[] => {
+  const modelRefs = doc.spec?.modelRefs;
+  if (!modelRefs) {
+    throw new Error('MaaSSubscription spec.modelRefs missing');
+  }
+  return modelRefs.map((modelRef, index) => {
+    if (!modelRef.name) {
+      throw new Error(`MaaSSubscription spec.modelRefs[${index}] is missing name`);
+    }
+    return modelRef.name;
   });
 };
 
@@ -217,30 +444,22 @@ export const checkMaaSSubscriptionState = (
       );
     });
   }
-
   cy.log(`Checking MaaSSubscription exists: ${subscriptionName} in namespace ${namespace}`);
+  const resourceLabel = `MaaSSubscription ${subscriptionName} in namespace ${namespace}`;
+
+  if (options.phase || options.models) {
+    return pollMaaSResourceCheck({
+      resourceLabel,
+      ocCommand,
+      options,
+      parseDoc: (stdout) => parseMaaSSubscriptionDoc(subscriptionName, stdout),
+      optionsMet: (doc) => subscriptionOptionsMet(doc, options),
+    });
+  }
+
   return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    let doc: unknown;
-    try {
-      doc = JSON.parse(result.stdout);
-    } catch {
-      throw new Error(
-        `Failed to parse MaaSSubscription JSON for ${subscriptionName}: ${result.stdout}`,
-      );
-    }
-
-    if (!isRecord(doc)) {
-      throw new Error('Invalid MaaSSubscription JSON');
-    }
-    const { metadata } = doc;
-    if (!isRecord(metadata)) {
-      throw new Error('MaaSSubscription metadata missing');
-    }
-
-    expect(doc.kind).to.equal('MaaSSubscription');
-    expect(metadata.name).to.equal(subscriptionName);
-
-    cy.log(`✅ MaaSSubscription ${subscriptionName} exists in namespace ${namespace}`);
+    parseMaaSSubscriptionDoc(subscriptionName, result.stdout);
+    cy.log(`✅ ${resourceLabel} exists`);
     return cy.wrap(result);
   });
 };
@@ -269,29 +488,21 @@ export const checkMaaSAuthPolicyState = (
   }
 
   cy.log(`Checking MaaSAuthPolicy exists: ${policyName} in namespace ${namespace}`);
+  const resourceLabel = `MaaSAuthPolicy ${policyName} in namespace ${namespace}`;
+
+  if (options.phase || options.groups) {
+    return pollMaaSResourceCheck({
+      resourceLabel,
+      ocCommand,
+      options,
+      parseDoc: (stdout) => parseMaaSAuthPolicyDoc(policyName, stdout),
+      optionsMet: (doc) => authPolicyOptionsMet(doc, options),
+    });
+  }
+
   return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    let doc: unknown;
-    try {
-      doc = JSON.parse(result.stdout);
-    } catch {
-      throw new Error(`Failed to parse MaaSAuthPolicy JSON for ${policyName}: ${result.stdout}`);
-    }
-
-    if (!isRecord(doc)) {
-      throw new Error('Invalid MaaSAuthPolicy JSON');
-    }
-    const { metadata } = doc;
-    if (!isRecord(metadata)) {
-      throw new Error('MaaSAuthPolicy metadata missing');
-    }
-
-    expect(doc.kind).to.equal('MaaSAuthPolicy');
-    expect(metadata.name).to.equal(policyName);
-    if (options.groups) {
-      expect(getAuthPolicyGroupNames(doc)).to.have.members(options.groups);
-    }
-
-    cy.log(`✅ MaaSAuthPolicy ${policyName} exists in namespace ${namespace}`);
+    parseMaaSAuthPolicyDoc(policyName, result.stdout);
+    cy.log(`✅ ${resourceLabel} exists`);
     return cy.wrap(result);
   });
 };
