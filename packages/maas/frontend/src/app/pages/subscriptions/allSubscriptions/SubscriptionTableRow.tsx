@@ -2,8 +2,7 @@ import * as React from 'react';
 import { ResourceTr, ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import { Content, ContentVariants, Label } from '@patternfly/react-core';
-import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
+import { Content, ContentVariants } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { MaaSSubscription } from '~/app/types/subscriptions';
@@ -12,8 +11,8 @@ import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions'
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
-import ExpandedSubscriptionModelsPanel from '~/app/shared/ExpandedSubscriptionModelsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
+import ExpandedModelsPanel from '~/app/shared/ExpandedModelsPanel';
 import { subscriptionsColumns } from './columns';
 
 type ExpandedPanel = 'groups' | 'models' | null;
@@ -34,8 +33,6 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   const navigate = useNavigate();
   const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
   const navState = returnTo ? { state: { returnTo } } : undefined;
-  const dashboardConfig = React.useContext(DashboardConfigContext);
-  const isIARedesign = !!dashboardConfig?.dashboardConfig.maasSettingsIaRedesign;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
 
   const togglePanel = (panel: 'groups' | 'models') => {
@@ -137,25 +134,6 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
     </Td>
   );
 
-  if (!isIARedesign) {
-    return (
-      <Tbody>
-        <ResourceTr resource={subscriptionResource} data-testid="subscription-row">
-          {nameCell}
-          {phaseCell}
-          <Td dataLabel={subscriptionsColumns[2].label}>
-            <Label color="grey">{`${groupsCount} Group${groupsCount === 1 ? '' : 's'}`}</Label>
-          </Td>
-          <Td dataLabel={subscriptionsColumns[3].label}>
-            <Label color="grey">{`${modelsCount} Model${modelsCount === 1 ? '' : 's'}`}</Label>
-          </Td>
-          {priorityCell}
-          {actionsCell}
-        </ResourceTr>
-      </Tbody>
-    );
-  }
-
   const isRowExpanded = expandedPanel !== null;
 
   return (
@@ -207,7 +185,11 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
       <Tr isExpanded={expandedPanel === 'models'}>
         <Td colSpan={subscriptionsColumns.length + 1}>
           <ExpandableRowContent>
-            <ExpandedSubscriptionModelsPanel models={subscription.modelRefs} />
+            <ExpandedModelsPanel
+              models={subscription.modelRefs}
+              testIdResource="subscription"
+              showTokenLimits
+            />
           </ExpandableRowContent>
         </Td>
       </Tr>

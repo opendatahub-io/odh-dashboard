@@ -2,8 +2,6 @@ import * as React from 'react';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { SortableData, ResourceNameTooltip, ResourceTr } from '@odh-dashboard/ui-core';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import { Label } from '@patternfly/react-core';
-import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
@@ -12,8 +10,8 @@ import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
-import ExpandedAuthPolicyModelsPanel from '~/app/shared/ExpandedAuthPolicyModelsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
+import ExpandedModelsPanel from '~/app/shared/ExpandedModelsPanel';
 
 type ExpandedPanel = 'groups' | 'models' | null;
 
@@ -36,8 +34,6 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
   const navState = returnTo ? { state: { returnTo } } : undefined;
   const policyNameSegment = (name: string) => encodeURIComponent(name);
-  const dashboardConfig = React.useContext(DashboardConfigContext);
-  const isIARedesign = !!dashboardConfig?.dashboardConfig.maasSettingsIaRedesign;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
 
   const togglePanel = (panel: 'groups' | 'models') => {
@@ -124,24 +120,6 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
     </Td>
   );
 
-  if (!isIARedesign) {
-    return (
-      <Tbody>
-        <ResourceTr resource={policyResource} data-testid="auth-policy-row">
-          {nameCell}
-          {phaseCell}
-          <Td dataLabel={columns[2].label}>
-            <Label color="grey">{`${groupsCount} Group${groupsCount === 1 ? '' : 's'}`}</Label>
-          </Td>
-          <Td dataLabel={columns[3].label}>
-            <Label color="grey">{`${modelsCount} Model${modelsCount === 1 ? '' : 's'}`}</Label>
-          </Td>
-          {actionsCell}
-        </ResourceTr>
-      </Tbody>
-    );
-  }
-
   const isRowExpanded = expandedPanel !== null;
 
   return (
@@ -192,7 +170,11 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
       <Tr isExpanded={expandedPanel === 'models'}>
         <Td colSpan={columns.length + 1}>
           <ExpandableRowContent>
-            <ExpandedAuthPolicyModelsPanel models={authPolicy.modelRefs} />
+            <ExpandedModelsPanel
+              models={authPolicy.modelRefs}
+              testIdResource="auth-policy"
+              showTokenLimits={false}
+            />
           </ExpandableRowContent>
         </Td>
       </Tr>
