@@ -206,10 +206,10 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 	// Convert MaaS models to AAModel format
 	aaModels := make([]models.AAModel, 0, len(bffResponse.Data.Data))
 	for _, maasModel := range bffResponse.Data.Data {
-		// Build endpoints array, skipping empty URLs
+		// Build endpoints array with external: prefix, skipping empty URLs
 		var endpoints []string
 		if maasModel.URL != "" {
-			endpoints = []string{maasModel.URL}
+			endpoints = []string{"external:" + maasModel.URL}
 		}
 
 		aaModel := models.AAModel{
