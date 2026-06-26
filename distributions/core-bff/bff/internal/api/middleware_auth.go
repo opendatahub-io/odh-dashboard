@@ -51,7 +51,7 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 					Token:       k8s.NewBearerToken(config.DefaultDisabledAuthToken),
 					DevFallback: true,
 				}
-				app.logger.Debug("dev-mode identity fallback activated", slog.String("user", identity.UserID))
+				app.logger.Warn("dev-mode identity fallback activated", slog.String("user", identity.UserID))
 			} else {
 				app.unauthorizedResponse(w, r, err)
 				return
@@ -143,7 +143,7 @@ func (app *App) secureAdminRoute(next httprouter.Handle) httprouter.Handle {
 		}
 		if !isAdmin {
 			app.emitAuditLog(username, r, true, false)
-			app.unauthorizedResponse(w, r, fmt.Errorf("insufficient permissions to make this request"))
+			app.forbiddenResponse(w, r, fmt.Errorf("insufficient permissions to make this request"))
 			return
 		}
 

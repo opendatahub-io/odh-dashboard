@@ -133,14 +133,14 @@ func TestQueryClusterID_ForbiddenReturnsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "ClusterVersion probe failed")
 }
 
-func TestResolveStartupPlatform_ProbeError_DefaultsToOpenShift(t *testing.T) {
+func TestResolveStartupPlatform_ProbeError_DefaultsToXKS(t *testing.T) {
 	ci := clusterInfo{}
 	probeErr := k8serrors.NewForbidden(
 		schema.GroupResource{Group: "config.openshift.io", Resource: "clusterversions"},
 		clusterVersionName, nil,
 	)
 	result := resolveStartupPlatform(ci, probeErr, false, "", testLogger())
-	assert.Equal(t, config.PlatformOpenShift, result)
+	assert.Equal(t, config.PlatformXKS, result)
 }
 
 func TestResolveStartupPlatform_NoError_DetectsXKS(t *testing.T) {

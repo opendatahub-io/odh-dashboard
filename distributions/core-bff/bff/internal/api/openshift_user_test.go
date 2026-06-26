@@ -1,14 +1,20 @@
 package api
 
 import (
+	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8stesting "k8s.io/client-go/testing"
+
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 )
 
@@ -160,4 +166,48 @@ func TestResolveUserViaOpenShiftAPI_OpenShiftResolvesUser(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "~", username)
 	assert.Equal(t, []string{"dev-team", "editors"}, groups)
+}
+
+func TestResolveUserViaOpenShiftAPI_DiscoveryErrorReturnsNil(t *testing.T) {
+	scheme := runtime.NewScheme()
+	fakeDyn := dynamicfake.NewSimpleDynamicClient(scheme)
+	fakeDyn.PrependReactor("get", "users", func(_ k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, &k8serrors.StatusError{ErrStatus: metav1.Status{
+			Code:   http.StatusNotFound,
+			Reason: metav1.StatusReasonNotFound,
+		}}
+	})
+
+	client := &stubDynClient{dyn: fakeDyn}
+	app := newTestApp(func(a *App) {
+		a.config.PlatformType = config.PlatformOpenShift
+	})
+
+	username, groups, err := app.resolveUserViaOpenShiftAPI(t.Context(), client)
+	assert.NoError(t, err)
+	assert.Equal(t, "", username)
+	assert.Nil(t, groups)
+}
+
+func TestResolveUserViaOpenShiftAPI_ForbiddenErrorPropagates(t *testing.T) {
+	scheme := runtime.NewScheme()
+	fakeDyn := dynamicfake.NewSimpleDynamicClient(scheme)
+	fakeDyn.PrependReactor("get", "users", func(_ k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewForbidden(
+			schema.GroupResource{Group: "user.openshift.io", Resource: "users"},
+			"~",
+			fmt.Errorf("access denied"),
+		)
+	})
+
+	client := &stubDynClient{dyn: fakeDyn}
+	app := newTestApp(func(a *App) {
+		a.config.PlatformType = config.PlatformOpenShift
+	})
+
+	username, groups, err := app.resolveUserViaOpenShiftAPI(t.Context(), client)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to query OpenShift User API")
+	assert.Equal(t, "", username)
+	assert.Nil(t, groups)
 }

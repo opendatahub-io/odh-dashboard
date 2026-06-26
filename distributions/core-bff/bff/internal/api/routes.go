@@ -115,6 +115,12 @@ func (app *App) Routes() http.Handler {
 	return combinedMux
 }
 
+// Auth contract: every route in the register* functions below must be wrapped
+// with secureRoute (authenticated) or secureAdminRoute (admin-only).
+// The only exception is APIHealthCheckPath which is unauthenticated by convention
+// (K8s probes use /healthcheck which bypasses auth entirely).
+// When adding a new route, choose the appropriate wrapper explicitly.
+
 func (app *App) registerStarterRoutes(r *httprouter.Router) {
 	r.GET(APIHealthCheckPath, app.HealthcheckHandler)
 	r.GET(UserPath, app.secureRoute(app.UserHandler))

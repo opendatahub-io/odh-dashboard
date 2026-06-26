@@ -189,7 +189,7 @@ func TestSecureAdminRoute_EmitsAuditLogOnNonAdminDenial(t *testing.T) {
 
 	handler(rr, req, nil)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusForbidden, rr.Code)
 
 	rec := ch.findAuditRecord()
 	require.NotNil(t, rec, "expected audit log on non-admin denial")
@@ -198,6 +198,40 @@ func TestSecureAdminRoute_EmitsAuditLogOnNonAdminDenial(t *testing.T) {
 	assert.False(t, auditAttrBool(rec, "isAdmin"))
 	assert.Equal(t, "test-ns", auditAttr(rec, "namespace"))
 	assert.NotEmpty(t, auditAttr(rec, "timestamp"))
+}
+
+func TestSecureRoute_EmitsAuditLogWithAdminCheckError(t *testing.T) {
+	ch := &captureHandler{}
+	logger := slog.New(ch)
+
+	app := newTestApp(func(a *App) {
+		a.logger = logger
+		a.config.Namespace = "test-ns"
+		a.kubernetesClientFactory = &failingAdminCheckFactory{username: "test-user"}
+	})
+
+	handler := app.secureRoute(dummyHandler)
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: "test-user",
+		Token:  k8s.NewBearerToken("some-token"),
+	})
+
+	handler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Eventually(t, func() bool {
+		return ch.findAuditRecord() != nil
+	}, 2*time.Second, 10*time.Millisecond, "expected async audit log record")
+
+	rec := ch.findAuditRecord()
+	require.NotNil(t, rec)
+	assert.Equal(t, "test-user", auditAttr(rec, "user"))
+	assert.False(t, auditAttrBool(rec, "isAdmin"))
+	assert.NotEmpty(t, auditAttr(rec, "adminCheckError"))
 }
 
 func TestSecureAdminRoute_EmitsAuditLogOnGetClientFailure(t *testing.T) {

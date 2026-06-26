@@ -123,9 +123,9 @@ func queryClusterBranding(client kubernetes.Interface, logger *slog.Logger) stri
 // This lets operators force a platform for testing or mixed environments.
 func resolveStartupPlatform(ci clusterInfo, probeErr error, explicit bool, configured config.PlatformType, logger *slog.Logger) config.PlatformType {
 	if !explicit && probeErr != nil {
-		logger.Warn("ClusterVersion probe returned ambiguous error, defaulting to OpenShift",
+		logger.Warn("ClusterVersion probe returned ambiguous error, defaulting to XKS (least privilege); set PLATFORM_TYPE to override",
 			slog.Any("error", probeErr))
-		return config.PlatformOpenShift
+		return config.PlatformXKS
 	}
 
 	detected := inferPlatform(ci)

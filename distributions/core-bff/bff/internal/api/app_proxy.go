@@ -69,6 +69,9 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 			app.logger.Warn("Failed to get kubeconfig for dev fallback token", slog.Any("error", kcErr))
 		} else if kc != nil {
 			devFallbackToken = kc.BearerToken
+			if devFallbackToken == "" {
+				app.logger.Warn("Kubeconfig has no bearer token; dev fallback will use request identity")
+			}
 		}
 	}
 

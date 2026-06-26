@@ -11,8 +11,8 @@ import {
 
 describe('Core BFF Status - OpenShift Platform', () => {
   describe('Allowed Users', () => {
-    it('should return 401 for non-admin', async () => {
-      expectError(await restrictedClient.get('/api/status/opendatahub/allowedUsers'), 401);
+    it('should return 403 for non-admin', async () => {
+      expectError(await restrictedClient.get('/api/status/opendatahub/allowedUsers'), 403);
     });
 
     it('should return 401 when no auth token is provided', async () => {

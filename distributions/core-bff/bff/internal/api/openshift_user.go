@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -31,8 +32,11 @@ func (app *App) resolveUserViaOpenShiftAPI(ctx context.Context, client k8s.Kuber
 
 	result, err := dynClient.Resource(gvr).Get(ctx, "~", metav1.GetOptions{})
 	if err != nil {
-		app.logger.Debug("OpenShift User API unavailable or returned error", slog.Any("error", err))
-		return "", nil, nil
+		if k8sutil.IsDiscoveryError(err) {
+			app.logger.Debug("OpenShift User API not available", slog.Any("error", err))
+			return "", nil, nil
+		}
+		return "", nil, fmt.Errorf("failed to query OpenShift User API: %w", err)
 	}
 
 	username, _ := unstructuredString(result.Object, "metadata", "name")

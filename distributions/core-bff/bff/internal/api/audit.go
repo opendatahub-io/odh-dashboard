@@ -23,7 +23,12 @@ func (app *App) emitAuditLogAsync(ctx context.Context, client k8s.KubernetesClie
 		if err != nil {
 			app.logger.Warn("audit log admin check failed", slog.Any("error", err))
 		}
-		app.emitAuditLog(username, &http.Request{Method: method, URL: &url}, needsAdmin, isAdmin)
+		r := &http.Request{Method: method, URL: &url}
+		if err != nil {
+			app.emitAuditLogWithError(username, r, needsAdmin, isAdmin, err)
+		} else {
+			app.emitAuditLog(username, r, needsAdmin, isAdmin)
+		}
 	}()
 }
 
@@ -36,6 +41,21 @@ func (app *App) emitAuditLog(username string, r *http.Request, needsAdmin bool, 
 		slog.String("endpoint", r.URL.Path),
 		slog.Bool("isAdmin", isAdmin),
 		slog.Bool("needsAdmin", needsAdmin),
+		slog.String("timestamp", time.Now().UTC().Format(time.RFC3339)),
+	)
+}
+
+// emitAuditLogWithError writes a structured audit log entry with an admin check error,
+// so log consumers can distinguish "confirmed non-admin" from "couldn't determine."
+func (app *App) emitAuditLogWithError(username string, r *http.Request, needsAdmin bool, isAdmin bool, adminErr error) {
+	app.logger.Info("audit",
+		slog.String("user", username),
+		slog.String("namespace", app.config.Namespace),
+		slog.String("action", r.Method),
+		slog.String("endpoint", r.URL.Path),
+		slog.Bool("isAdmin", isAdmin),
+		slog.Bool("needsAdmin", needsAdmin),
+		slog.String("adminCheckError", adminErr.Error()),
 		slog.String("timestamp", time.Now().UTC().Format(time.RFC3339)),
 	)
 }

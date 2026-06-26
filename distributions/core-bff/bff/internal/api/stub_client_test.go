@@ -73,3 +73,35 @@ func (f *failingGetUserFactory) ValidateRequestIdentity(_ *k8s.RequestIdentity) 
 func (f *failingGetUserFactory) GetClient(_ context.Context) (k8s.KubernetesClientInterface, error) {
 	return &failingGetUserClient{}, nil
 }
+
+// failingAdminCheckClient is a KubernetesClientInterface where GetUser succeeds
+// but IsUserAdmin always fails. Used to test the adminCheckError audit path.
+type failingAdminCheckClient struct {
+	stubDynClient
+	username string
+}
+
+func (f *failingAdminCheckClient) GetUser(_ context.Context, _ *k8s.RequestIdentity) (string, error) {
+	return f.username, nil
+}
+
+func (f *failingAdminCheckClient) IsUserAdmin(_ context.Context, _ *k8s.RequestIdentity) (bool, error) {
+	return false, fmt.Errorf("SSAR check failed: connection refused")
+}
+
+// failingAdminCheckFactory is a KubernetesClientFactory that returns a failingAdminCheckClient.
+type failingAdminCheckFactory struct {
+	username string
+}
+
+func (f *failingAdminCheckFactory) ExtractRequestIdentity(_ http.Header) (*k8s.RequestIdentity, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (f *failingAdminCheckFactory) ValidateRequestIdentity(_ *k8s.RequestIdentity) error {
+	return nil
+}
+
+func (f *failingAdminCheckFactory) GetClient(_ context.Context) (k8s.KubernetesClientInterface, error) {
+	return &failingAdminCheckClient{username: f.username}, nil
+}

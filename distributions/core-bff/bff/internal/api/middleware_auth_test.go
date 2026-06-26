@@ -316,7 +316,7 @@ func TestSecureAdminRoute_AdminUserPassesThrough(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
-func TestSecureAdminRoute_NonAdminUserGets401(t *testing.T) {
+func TestSecureAdminRoute_NonAdminUserGets403(t *testing.T) {
 	app := newTestApp()
 	userA := k8mocks.DefaultTestUsers[1]
 
@@ -334,7 +334,7 @@ func TestSecureAdminRoute_NonAdminUserGets401(t *testing.T) {
 	handler(rr, req, nil)
 
 	assert.False(t, *called, "handler must not be invoked for non-admin users")
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusForbidden, rr.Code)
 
 	var body map[string]any
 	err := json.Unmarshal(rr.Body.Bytes(), &body)
@@ -342,7 +342,7 @@ func TestSecureAdminRoute_NonAdminUserGets401(t *testing.T) {
 
 	errObj, ok := body["error"].(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, "UNAUTHORIZED", errObj["code"])
+	assert.Equal(t, "FORBIDDEN", errObj["code"])
 }
 
 func TestSecureAdminRoute_MissingIdentityGets401(t *testing.T) {
