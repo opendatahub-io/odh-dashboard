@@ -4,7 +4,7 @@ import React from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { NotebookKind } from '#~/k8sTypes';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';

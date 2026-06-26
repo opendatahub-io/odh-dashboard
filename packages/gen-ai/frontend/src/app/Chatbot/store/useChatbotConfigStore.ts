@@ -155,6 +155,9 @@ export const createChatbotConfigStore = (
     loadedProfileId: null,
     loadedProfileDisplayName: null,
     loadedProfileDescription: null,
+    loadedProfileSpec: null,
+    loadedProfileWarnings: null,
+    loadedResourceVersion: null,
   };
 
   return create<ChatbotConfigStore>()(
@@ -628,6 +631,18 @@ const createStoreActions = (
       false,
       'updateHasVisionImage',
     );
+  },
+
+  setLoadedProfileSpec: (spec) => {
+    set(() => ({ loadedProfileSpec: spec }), false, 'setLoadedProfileSpec');
+  },
+
+  setLoadedProfileWarnings: (warnings) => {
+    set(() => ({ loadedProfileWarnings: warnings }), false, 'setLoadedProfileWarnings');
+  },
+
+  setLoadedResourceVersion: (resourceVersion) => {
+    set(() => ({ loadedResourceVersion: resourceVersion }), false, 'setLoadedResourceVersion');
   },
 
   // Configuration management

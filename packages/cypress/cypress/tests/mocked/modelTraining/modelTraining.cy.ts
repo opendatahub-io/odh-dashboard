@@ -26,7 +26,7 @@ import {
 } from '@odh-dashboard/internal/api/models';
 import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
 import {
   modelTrainingGlobal,

@@ -72,3 +72,39 @@ export const filterRowsByToggle = (
   }
   return rows.filter((row) => !row.hasConnectedWorkbench);
 };
+
+export type ConnectedWorkbenchFilters = {
+  workbenchName: string;
+  projects: string[];
+  permissions: string[];
+};
+
+export const filterConnectedWorkbenchRows = (
+  rows: ConnectedWorkbenchTableRow[],
+  filters: ConnectedWorkbenchFilters,
+): ConnectedWorkbenchTableRow[] => {
+  const { workbenchName, projects, permissions } = filters;
+  if (!workbenchName && projects.length === 0 && permissions.length === 0) {
+    return rows;
+  }
+
+  const nameLower = workbenchName.toLowerCase();
+
+  return rows.filter((row) => {
+    if (nameLower && !(row.workbenchName ?? '').toLowerCase().includes(nameLower)) {
+      return false;
+    }
+    if (projects.length > 0 && !projects.includes(row.authorizedProject)) {
+      return false;
+    }
+    if (
+      permissions.length > 0 &&
+      !permissions.some((p) =>
+        row.permissionLevel.some((rp) => rp.toLowerCase() === p.toLowerCase()),
+      )
+    ) {
+      return false;
+    }
+    return true;
+  });
+};

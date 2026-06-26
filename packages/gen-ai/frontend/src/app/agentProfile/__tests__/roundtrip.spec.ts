@@ -217,6 +217,43 @@ describe('serialize → deserialize round-trip', () => {
     expect(restored.activePrompt).toBeNull(); // requires async load
   });
 
+  it('should round-trip ASR model selection', () => {
+    const asrAIModel = makeModel({
+      model_id: 'whisper-large-v3',
+      model_name: 'whisper-large-v3',
+      internalEndpoint: 'http://whisper.svc/v1',
+      model_source_type: 'namespace',
+    });
+    const config: ChatbotConfiguration = {
+      ...DEFAULT_CONFIGURATION,
+      isAsrModelEnabled: true,
+      selectedAsrModel: 'whisper-large-v3',
+    };
+    const { config: restored } = roundTrip(config, 'Test', {
+      model: makeModel(),
+      asrModel: asrAIModel,
+      mcpServers: [],
+    });
+
+    expect(restored.isAsrModelEnabled).toBe(true);
+    expect(restored.selectedAsrModel).toBe('whisper-large-v3');
+  });
+
+  it('should restore ASR disabled state when profile has no asr field', () => {
+    const config: ChatbotConfiguration = {
+      ...DEFAULT_CONFIGURATION,
+      isAsrModelEnabled: false,
+      selectedAsrModel: '',
+    };
+    const { config: restored } = roundTrip(config, 'Test', {
+      model: makeModel(),
+      mcpServers: [],
+    });
+
+    expect(restored.isAsrModelEnabled).toBe(false);
+    expect(restored.selectedAsrModel).toBe('');
+  });
+
   it('should produce empty MCP state when no servers are configured', () => {
     const { config: restored, mcpToolsPending } = roundTrip(DEFAULT_CONFIGURATION, 'Test', {
       model: makeModel(),
