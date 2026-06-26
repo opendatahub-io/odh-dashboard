@@ -1,4 +1,5 @@
 import { MLflowPromptVersion } from '~/app/types';
+import { AgentProfileSpec } from '~/app/agentProfile/types';
 import { ChatbotConfigStore, DEFAULT_CONFIGURATION, McpToolSelectionsMap } from './types';
 
 // Field-specific selectors
@@ -121,3 +122,6 @@ export const selectIsPreview =
 
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;
+
+export const selectLoadedProfileSpec = (state: ChatbotConfigStore): AgentProfileSpec | null =>
+  state.loadedProfileSpec;

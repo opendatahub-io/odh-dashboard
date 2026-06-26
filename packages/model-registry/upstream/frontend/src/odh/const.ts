@@ -6,3 +6,6 @@ export const DEPLOY_BUTTON_TOOLTIP = {
 };
 
 export const DEPLOYMENTS_TAB_EXTENSION_ID = 'deployments';
+
+export const REGISTRY_SETTINGS_PAGE_TITLE = 'Model registry settings';
+export const REGISTRY_SETTINGS_URL = '/settings/model-resources-operations/model-registry';

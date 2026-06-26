@@ -134,4 +134,57 @@ describe('OpenAgentProfileModal', () => {
       expect(localStorage.getItem(OPEN_AGENT_MODAL_DISMISSED_KEY)).toBeNull();
     });
   });
+
+  describe('validation warnings', () => {
+    const warnings = [
+      'Model "fake-model" is no longer available.',
+      'MCP server "gone-server" is no longer available.',
+    ];
+
+    it('should render the warning alert listing each warning', () => {
+      render(<OpenAgentProfileModal {...defaultProps} validationWarnings={warnings} />);
+
+      expect(screen.getByTestId('open-agent-profile-warning-alert')).toBeInTheDocument();
+      expect(screen.getByText('Model "fake-model" is no longer available.')).toBeInTheDocument();
+      expect(
+        screen.getByText('MCP server "gone-server" is no longer available.'),
+      ).toBeInTheDocument();
+    });
+
+    it('should disable the Edit button when warnings are present', () => {
+      render(<OpenAgentProfileModal {...defaultProps} validationWarnings={warnings} />);
+
+      expect(screen.getByTestId('open-agent-profile-edit-button')).toBeDisabled();
+    });
+
+    it('should hide the "Don\'t show this message again" checkbox when warnings are present', () => {
+      render(<OpenAgentProfileModal {...defaultProps} validationWarnings={warnings} />);
+
+      expect(
+        screen.queryByRole('checkbox', { name: /don't show this message again/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should not write to localStorage even if Preview is clicked when warnings are present', async () => {
+      const user = userEvent.setup();
+      render(<OpenAgentProfileModal {...defaultProps} validationWarnings={warnings} />);
+
+      await user.click(screen.getByTestId('open-agent-profile-preview-button'));
+
+      expect(localStorage.getItem(OPEN_AGENT_MODAL_DISMISSED_KEY)).toBeNull();
+    });
+
+    it('should not render the warning alert when validationWarnings is empty', () => {
+      render(<OpenAgentProfileModal {...defaultProps} validationWarnings={[]} />);
+
+      expect(screen.queryByTestId('open-agent-profile-warning-alert')).not.toBeInTheDocument();
+      expect(screen.getByTestId('open-agent-profile-edit-button')).not.toBeDisabled();
+    });
+
+    it('should not render the warning alert when validationWarnings is undefined', () => {
+      render(<OpenAgentProfileModal {...defaultProps} />);
+
+      expect(screen.queryByTestId('open-agent-profile-warning-alert')).not.toBeInTheDocument();
+    });
+  });
 });

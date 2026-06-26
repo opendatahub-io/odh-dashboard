@@ -1,5 +1,5 @@
 import {
-  commonFetchText,
+  commonFetch,
   getK8sResourceURL,
   k8sGetResource,
   k8sListResource,
@@ -25,22 +25,25 @@ export const getPod = (namespace: string, name: string): Promise<PodKind> =>
     },
   });
 
-export const getPodContainerLogText = (
+export const getPodContainerLogText = async (
   namespace: string,
   podName: string,
   containerName: string,
   tail?: number,
-): Promise<string> =>
-  commonFetchText(
+): Promise<string> => {
+  const response = await commonFetch(
     getK8sResourceURL(PodModel, undefined, {
       name: podName,
       ns: namespace,
       path: `log?container=${containerName}${tail ? `&tailLines=${tail}` : ''}`,
     }),
-    undefined,
+    { headers: { Accept: 'text/plain, application/json' } },
     undefined,
     true,
   );
+
+  return response.text();
+};
 
 export const getPodsForKserve = (namespace: string, modelName: string): Promise<PodKind[]> =>
   k8sListResource<PodKind>({

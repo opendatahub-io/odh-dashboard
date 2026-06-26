@@ -1370,4 +1370,81 @@ describe('useChatbotConfigStore', () => {
       expect(newConfig?.isAsrModelEnabled).toBe(true);
     });
   });
+
+  describe('setLoadedProfileSpec', () => {
+    it('should store the spec', () => {
+      const spec = {
+        displayName: 'My Agent',
+        model: { id: 'llama-3', uri: 'http://llama.svc' },
+        temperature: 0.7,
+        stream: true,
+      };
+
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileSpec(spec);
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileSpec).toEqual(spec);
+    });
+
+    it('should clear the spec when called with null', () => {
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileSpec({
+          displayName: 'A',
+          model: { id: 'x', uri: '' },
+          temperature: 0.1,
+          stream: false,
+        });
+        useChatbotConfigStore.getState().setLoadedProfileSpec(null);
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileSpec).toBeNull();
+    });
+
+    it('should be cleared by resetConfiguration', () => {
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileSpec({
+          displayName: 'A',
+          model: { id: 'x', uri: '' },
+          temperature: 0.1,
+          stream: false,
+        });
+        useChatbotConfigStore.getState().resetConfiguration();
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileSpec).toBeNull();
+    });
+  });
+
+  describe('setLoadedProfileWarnings', () => {
+    it('should store warnings', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .setLoadedProfileWarnings(['Model "x" is no longer available.']);
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toEqual([
+        'Model "x" is no longer available.',
+      ]);
+    });
+
+    it('should clear warnings when called with null', () => {
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileWarnings(['some warning']);
+        useChatbotConfigStore.getState().setLoadedProfileWarnings(null);
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toBeNull();
+    });
+
+    it('should be cleared by resetConfiguration', () => {
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileWarnings(['some warning']);
+        useChatbotConfigStore.getState().resetConfiguration();
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toBeNull();
+    });
+  });
 });

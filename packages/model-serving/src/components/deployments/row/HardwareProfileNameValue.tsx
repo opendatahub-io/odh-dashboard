@@ -13,7 +13,7 @@ import {
 } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import ScopedLabel from '@odh-dashboard/internal/components/ScopedLabel';
 import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas/index';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import type { ModelResourceType } from '../../../../extension-points';
 

@@ -1,7 +1,7 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockDashboardConfig, mockServingRuntimeK8sResource } from '#~/__mocks__';
-import * as areasUtils from '#~/concepts/areas';
 import * as appContext from '#~/app/AppContext';
 import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
 import { useModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
@@ -26,8 +26,8 @@ const DEFAULT_MODEL_SIZES: ModelServingSize[] = [
   },
 ];
 
-jest.mock('#~/concepts/areas', () => ({
-  ...jest.requireActual('#~/concepts/areas'),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 

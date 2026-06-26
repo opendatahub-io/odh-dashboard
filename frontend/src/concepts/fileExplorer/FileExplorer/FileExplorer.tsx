@@ -140,7 +140,7 @@ const defaults = {
       }
       return '';
     },
-    modalPrimaryCTA: 'Select files',
+    modalPrimaryCTA: 'Select',
     modalSecondaryCTA: 'Cancel',
 
     folderType: 'Folder',
