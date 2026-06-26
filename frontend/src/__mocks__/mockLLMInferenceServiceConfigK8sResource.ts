@@ -8,8 +8,8 @@ type MockLLMInferenceServiceConfigType = {
   name?: string;
   namespace?: string;
   displayName?: string;
-  configType?: TopologyType | 'router' | 'accelerator';
-  topologyType?: TopologyType;
+  configType?: string;
+  topologyType?: string;
   routingType?: RoutingType;
   supportedTopologies?: TopologyType[];
   recommendedAccelerators?: string;
