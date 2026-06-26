@@ -137,7 +137,8 @@ module.exports = {
           'error',
           ...typescriptBaseNoRestrictedSyntax,
           {
-            selector: "ImportDeclaration[importKind!='type']",
+            selector:
+              "ImportDeclaration[importKind!='type'][source.value!='@odh-dashboard/plugin-core/areas']",
             message:
               "Must use 'import type' when importing. Use dynamic imports for code references (eg. `() => import('#~/Test')`).",
           },

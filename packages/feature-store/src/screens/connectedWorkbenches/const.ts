@@ -1,4 +1,4 @@
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { ConnectedWorkbenchTableRow } from '../../types/connectedWorkbenches';
 
 export const CONNECTED_WORKBENCH_PERMISSION_LABEL_THRESHOLD = 4;

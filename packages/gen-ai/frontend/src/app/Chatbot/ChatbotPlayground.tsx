@@ -131,6 +131,9 @@ type ChatbotPlaygroundProps = {
   setIsDrawerExpanded?: (expanded: boolean) => void;
   welcomeContent?: React.ReactNode;
   placeholderBotContent?: string;
+  onOpenLoad?: () => void;
+  onOpenSave?: () => void;
+  onOpenSaveAs?: () => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -147,6 +150,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setIsDrawerExpanded: setIsDrawerExpandedProp,
   welcomeContent,
   placeholderBotContent,
+  onOpenLoad,
+  onOpenSave,
+  onOpenSaveAs,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -905,7 +911,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       )}
 
       {/* Main layout */}
-      <Drawer isExpanded={isDrawerExpanded && !isEmbedded} isInline position="left">
+      <Drawer isExpanded={isDrawerExpanded && !isEmbedded} isInline position="right">
         <Divider />
         <DrawerContent
           panelContent={
@@ -925,6 +931,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 onCloseClick={() => setIsDrawerExpanded(false)}
                 onActiveConfigChange={setActivePaneConfigId}
                 defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
+                onLoad={onOpenLoad}
+                onSave={onOpenSave}
+                onSaveAs={onOpenSaveAs}
               />
             ) : undefined
           }
@@ -941,6 +950,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   hasDivider
                   isDarkMode={isDarkMode}
                   isDisabled={primaryIsPreview}
+                  agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
+                  isPreviewMode={primaryIsPreview}
                 />
               )}
 

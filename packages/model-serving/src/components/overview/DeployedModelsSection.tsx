@@ -27,7 +27,7 @@ import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/Pr
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
+import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import {
   useProjectServingPlatform,

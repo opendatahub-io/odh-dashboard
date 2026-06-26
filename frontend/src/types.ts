@@ -12,7 +12,7 @@ import type {
   PodContainer,
   Volume,
 } from '@odh-dashboard/k8s-core';
-import { FeatureFlag } from '#~/concepts/areas/types';
+import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';

@@ -88,7 +88,7 @@ class APIKeysPage {
   }
 
   findStatusFilterOption(status: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('menuitem', { name: new RegExp(status, 'i') });
+    return cy.findByRole('menuitem', { name: new RegExp(`^${status}$`, 'i') });
   }
 
   findSubscriptionFilterToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -224,6 +224,18 @@ class SubscriptionPopover {
 }
 
 export const subscriptionPopover = new SubscriptionPopover();
+
+class InactiveStatusPopover {
+  findHeader(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByText('Subscription unavailable');
+  }
+
+  shouldBeVisible(): void {
+    this.findHeader().should('be.visible');
+  }
+}
+
+export const inactiveStatusPopover = new InactiveStatusPopover();
 
 class BulkRevokeAPIKeyModal extends Modal {
   constructor() {
@@ -525,7 +537,7 @@ class SubscriptionTableRow extends TableRow {
   }
 
   findPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Phase"]');
+    return this.find().find('[data-label="Status"]');
   }
 
   findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -978,7 +990,7 @@ class AuthPolicyTableRow extends TableRow {
   }
 
   findPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Phase"]');
+    return this.find().find('[data-label="Status"]');
   }
 
   findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -19,10 +19,15 @@ package workspacekinds
 import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 )
 
 // NewWorkspaceKindModelFromWorkspaceKind creates a WorkspaceKind model from a WorkspaceKind object.
-func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceKind {
+// Asset SHA256 hashes and error codes are read directly from the WorkspaceKind status.
+func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceKindListItem {
 	podLabels := make(map[string]string)
 	podAnnotations := make(map[string]string)
 	if wsk.Spec.PodTemplate.PodMetadata != nil {
@@ -34,31 +39,27 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 			podAnnotations[k] = v
 		}
 	}
-	statusImageConfigMap := buildOptionMetricsMap(wsk.Status.PodTemplateOptions.ImageConfig)
-	statusPodConfigMap := buildOptionMetricsMap(wsk.Status.PodTemplateOptions.PodConfig)
 
-	iconRef := ImageRef{
-		// TODO: icons MUST be either set to remote URL or read from a ConfigMap
-		//       we can remove this fallback once we implement the ConfigMap option.
-		URL: ptr.Deref(wsk.Spec.Spawner.Icon.Url, "__UNKNOWN_ICON_URL__"),
-	}
-	logoRef := ImageRef{
-		// TODO: logos MUST be either set to remote URL or read from a ConfigMap
-		//       we can remove this fallback once we implement the ConfigMap option.
-		URL: ptr.Deref(wsk.Spec.Spawner.Logo.Url, "__UNKNOWN_LOGO_URL__"),
+	//
+	// TODO: remove these once frontend migrates to the new listValues endpoint for both create/update and wsk admin views
+	//
+	listValuesRequest := &options.ListValuesRequest{}
+	podTemplateOptions, err := options.NewPodTemplateOptionsModelFromWorkspaceKind(wsk, listValuesRequest)
+	if err != nil {
+		panic("invalid call to NewPodTemplateOptionsModelFromWorkspaceKind: " + err.Error())
 	}
 
-	return WorkspaceKind{
+	return WorkspaceKindListItem{
 		Name:               wsk.Name,
 		DisplayName:        wsk.Spec.Spawner.DisplayName,
 		Description:        wsk.Spec.Spawner.Description,
 		Deprecated:         ptr.Deref(wsk.Spec.Spawner.Deprecated, false),
 		DeprecationMessage: ptr.Deref(wsk.Spec.Spawner.DeprecationMessage, ""),
 		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
-		Icon:               iconRef,
-		Logo:               logoRef,
+		Icon:               assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
+		Logo:               assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
 		// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
-		ClusterMetrics: clusterMetrics{
+		ClusterMetrics: ClusterKindMetrics{
 			Workspaces: wsk.Status.Workspaces,
 		},
 		PodTemplate: PodTemplate{
@@ -69,104 +70,7 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 			VolumeMounts: PodVolumeMounts{
 				Home: wsk.Spec.PodTemplate.VolumeMounts.Home,
 			},
-			Options: PodTemplateOptions{
-				ImageConfig: ImageConfig{
-					Default: wsk.Spec.PodTemplate.Options.ImageConfig.Spawner.Default,
-					Values:  buildImageConfigValues(wsk.Spec.PodTemplate.Options.ImageConfig, statusImageConfigMap),
-				},
-				PodConfig: PodConfig{
-					Default: wsk.Spec.PodTemplate.Options.PodConfig.Spawner.Default,
-					Values:  buildPodConfigValues(wsk.Spec.PodTemplate.Options.PodConfig, statusPodConfigMap),
-				},
-			},
+			Options: *podTemplateOptions,
 		},
-	}
-}
-
-func buildOptionMetricsMap(metrics []kubefloworgv1beta1.OptionMetric) map[string]int32 {
-	resultMap := make(map[string]int32)
-	for _, metric := range metrics {
-		resultMap[metric.Id] = metric.Workspaces
-	}
-	return resultMap
-}
-
-func buildImageConfigValues(imageConfig kubefloworgv1beta1.ImageConfig, statusImageConfigMap map[string]int32) []ImageConfigValue {
-	imageConfigValues := make([]ImageConfigValue, len(imageConfig.Values))
-	for i := range imageConfig.Values {
-		option := imageConfig.Values[i]
-		imageConfigValues[i] = ImageConfigValue{
-			Id:          option.Id,
-			DisplayName: option.Spawner.DisplayName,
-			Description: ptr.Deref(option.Spawner.Description, ""),
-			Labels:      buildOptionLabels(option.Spawner.Labels),
-			Hidden:      ptr.Deref(option.Spawner.Hidden, false),
-			Redirect:    buildOptionRedirect(option.Redirect),
-			// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
-			ClusterMetrics: clusterMetrics{
-				Workspaces: statusImageConfigMap[option.Id],
-			},
-		}
-	}
-	return imageConfigValues
-}
-
-func buildPodConfigValues(podConfig kubefloworgv1beta1.PodConfig, statusPodConfigMap map[string]int32) []PodConfigValue {
-	podConfigValues := make([]PodConfigValue, len(podConfig.Values))
-	for i := range podConfig.Values {
-		option := podConfig.Values[i]
-		podConfigValues[i] = PodConfigValue{
-			Id:          option.Id,
-			DisplayName: option.Spawner.DisplayName,
-			Description: ptr.Deref(option.Spawner.Description, ""),
-			Labels:      buildOptionLabels(option.Spawner.Labels),
-			Hidden:      ptr.Deref(option.Spawner.Hidden, false),
-			Redirect:    buildOptionRedirect(option.Redirect),
-			// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
-			ClusterMetrics: clusterMetrics{
-				Workspaces: statusPodConfigMap[option.Id],
-			},
-		}
-	}
-	return podConfigValues
-}
-
-func buildOptionLabels(labels []kubefloworgv1beta1.OptionSpawnerLabel) []OptionLabel {
-	optionLabels := make([]OptionLabel, len(labels))
-	for i := range labels {
-		optionLabels[i] = OptionLabel{
-			Key:   labels[i].Key,
-			Value: labels[i].Value,
-		}
-	}
-	return optionLabels
-}
-
-func buildOptionRedirect(redirect *kubefloworgv1beta1.OptionRedirect) *OptionRedirect {
-	if redirect == nil {
-		return nil
-	}
-
-	var message *RedirectMessage
-	if redirect.Message != nil {
-		messageLevel := RedirectMessageLevelInfo
-		switch redirect.Message.Level {
-		case kubefloworgv1beta1.RedirectMessageLevelInfo:
-			messageLevel = RedirectMessageLevelInfo
-		case kubefloworgv1beta1.RedirectMessageLevelWarning:
-			messageLevel = RedirectMessageLevelWarning
-		case kubefloworgv1beta1.RedirectMessageLevelDanger:
-			messageLevel = RedirectMessageLevelDanger
-		}
-
-		message = &RedirectMessage{
-			Text:  redirect.Message.Text,
-			Level: messageLevel,
-		}
-	}
-
-	return &OptionRedirect{
-		To:      redirect.To,
-		Message: message,
 	}
 }

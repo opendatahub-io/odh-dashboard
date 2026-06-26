@@ -2,10 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
-import { useIsAreaAvailable } from '#~/concepts/areas';
 import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { createPipelinesCR, deleteSecret } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
@@ -23,11 +23,9 @@ jest.mock('#~/pages/projects/screens/detail/connections/usePipelinesConnections'
   default: jest.fn(),
 }));
 
-jest.mock('#~/concepts/areas', () => ({
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
-  SupportedArea: {
-    FINE_TUNING: 'fine-tuning',
-  },
 }));
 
 jest.mock('#~/api', () => ({

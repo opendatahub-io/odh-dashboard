@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Content, ContentVariants } from '@patternfly/react-core';
-import type { SortableData } from '#~/components/table/types';
+import type { SortableData } from '@odh-dashboard/ui-core';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import type { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
 import { AssignmentStatus } from '#~/pages/projects/projectPermissions/types';

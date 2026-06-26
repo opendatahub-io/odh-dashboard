@@ -40,6 +40,8 @@ export const TASK_TYPE_BINARY = 'binary';
 export const TASK_TYPE_MULTICLASS = 'multiclass';
 export const TASK_TYPE_REGRESSION = 'regression';
 export const TASK_TYPE_TIMESERIES = 'timeseries';
+const TABULAR_TASK_TYPES = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION] as const;
+export const TASK_TYPES = [...TABULAR_TASK_TYPES, TASK_TYPE_TIMESERIES] as const;
 
 export const DEFAULT_EVAL_METRIC_BY_TASK: Partial<Record<string, EvalMetric>> = {
   [TASK_TYPE_BINARY]: 'accuracy',
@@ -61,6 +63,13 @@ export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, re
   {
     s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
   };
+
+export const MAX_DISPLAY_NAME_LENGTH = 250;
+export const MAX_DESCRIPTION_LENGTH = 255;
+export const MIN_TOP_N = 1;
+export const MAX_TOP_N_TABULAR = 10;
+export const MAX_TOP_N_TIMESERIES = 7;
+export const MAX_PREDICTION_LENGTH = 100;
 
 export const PRESET_FASTER = 'speed';
 export const PRESET_BETTER_QUALITY = 'balanced';

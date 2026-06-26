@@ -51,7 +51,7 @@ const EditAgentProfileModal: React.FC<EditAgentProfileModalProps> = ({
       })
       .catch(() => {
         if (!controller.signal.aborted) {
-          setError('Failed to load agent profile. Please close and try again.');
+          setError('Failed to load agent configuration. Please close and try again.');
         }
       })
       .finally(() => {
@@ -98,7 +98,7 @@ const EditAgentProfileModal: React.FC<EditAgentProfileModalProps> = ({
       aria-labelledby="edit-agent-profile-modal-title"
       data-testid="edit-agent-profile-modal"
     >
-      <ModalHeader title="Edit agent profile" labelId="edit-agent-profile-modal-title" />
+      <ModalHeader title="Edit agent configuration" labelId="edit-agent-profile-modal-title" />
       <ModalBody>
         <Form id="edit-agent-profile-form" onSubmit={handleSubmit}>
           <FormGroup label="Name" isRequired fieldId="agent-profile-name">
