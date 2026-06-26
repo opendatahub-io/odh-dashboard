@@ -1,4 +1,4 @@
-import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import { RecursivePartial } from '@odh-dashboard/ui-core/utilities';
 import type {
   ModelTypeFieldOverride,
   WizardFormData,

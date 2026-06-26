@@ -13,7 +13,7 @@ import type {
   SupportedModelFormats,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
-import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import type { RecursivePartial } from '@odh-dashboard/ui-core/utilities';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import {
