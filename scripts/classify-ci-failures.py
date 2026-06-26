@@ -367,6 +367,8 @@ def fetch_pr_failures(repo: str, pr_number: str) -> tuple[list[dict], list[dict]
     for check in checks_raw:
         bucket = check.get("bucket", "")
         name = check.get("name", "")
+        if not name:
+            continue
         link = check.get("link", "")
         run_id, job_id = extract_run_job_ids(link)
 
@@ -532,8 +534,11 @@ def scan_recent_prs(
     with ThreadPoolExecutor(max_workers=PARALLEL_WORKERS) as ex:
         futures = {ex.submit(_fetch, pr): pr["number"] for pr in prs}
         for future in as_completed(futures):
-            pr_num, failing = future.result()
-            check_results[pr_num] = failing
+            try:
+                pr_num, failing = future.result()
+                check_results[pr_num] = failing
+            except Exception:
+                pass
 
     check_index: dict[str, list[int]] = defaultdict(list)
     for pr_num, checks in check_results.items():
@@ -552,7 +557,10 @@ def scan_recent_prs(
 
         def _fetch_tests(task: tuple) -> tuple[int, list[dict]]:
             pr_num, run_id, job_id, check_name = task
-            return pr_num, extract_tests_from_log(run_id, job_id, check_name)
+            try:
+                return pr_num, extract_tests_from_log(run_id, job_id, check_name)
+            except Exception:
+                return pr_num, []
 
         with ThreadPoolExecutor(max_workers=PARALLEL_WORKERS) as ex:
             for pr_num, tests in ex.map(_fetch_tests, fetch_tasks):
