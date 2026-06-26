@@ -1,7 +1,7 @@
 import React from 'react';
 import { Checkbox, FormGroup, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
-import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import type { RecursivePartial } from '@odh-dashboard/ui-core/utilities';
 import type { WizardFormData, WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
 import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';

@@ -8,7 +8,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ODH_PRODUCT_NAME } from '@odh-dashboard/internal/utilities/const';
+import { ODH_PRODUCT_NAME } from '@odh-dashboard/ui-core/utilities';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 

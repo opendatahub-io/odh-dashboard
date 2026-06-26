@@ -6,7 +6,7 @@ import { PluginStore } from '@odh-dashboard/plugin-core';
 import { RenderOptions } from '@testing-library/react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { definedFeatureFlags } from '#~/concepts/areas/const';
 import axios from '#~/utilities/axios';
 import useDevFeatureFlags from '#~/app/featureFlags/useDevFeatureFlags';
@@ -17,7 +17,7 @@ jest.mock('react-router-dom', () => ({
     jest.fn(),
   ]),
 }));
-jest.mock('#~/components/browserStorage/BrowserStorageContext', () => ({
+jest.mock('@odh-dashboard/ui-core/utilities', () => ({
   useBrowserStorage: jest.fn(() => [null, jest.fn()]),
 }));
 jest.mock('#~/utilities/axios', () => ({

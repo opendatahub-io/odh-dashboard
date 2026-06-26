@@ -9,7 +9,7 @@ import {
 import * as _ from 'lodash-es';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
-import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import type { RecursivePartial } from '@odh-dashboard/ui-core/utilities';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';

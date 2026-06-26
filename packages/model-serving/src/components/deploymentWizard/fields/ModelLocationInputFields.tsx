@@ -24,7 +24,7 @@ import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWa
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
-import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/internal/utilities/string';
+import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
