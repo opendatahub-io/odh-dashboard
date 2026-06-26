@@ -129,6 +129,10 @@ func (app *App) newCombinedMux(serviceMux *http.ServeMux, staticHandler http.Han
 	mux.Handle(PathPrefix+"/", authedHandler)
 	mux.Handle(proxy.WssProxyPrefix, authedHandler)
 
+	// Exact-path handlers prevent ServeMux from 307-redirecting bare roots to subtree patterns.
+	mux.HandleFunc(APIPathPrefix, app.notFoundResponse)
+	mux.HandleFunc(PathPrefix, app.notFoundResponse)
+
 	return mux
 }
 
