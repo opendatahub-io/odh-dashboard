@@ -49,3 +49,4 @@ spec:
               name: s3-credentials-secret
           grpc: true
           restAPI: true
+    runFeastApplyOnInit: false

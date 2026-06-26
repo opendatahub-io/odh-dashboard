@@ -191,14 +191,11 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				Hidden:             ptr.To(false),
 				Deprecated:         ptr.To(false),
 				DeprecationMessage: ptr.To("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
-				Icon: kubefloworgv1beta1.WorkspaceKindIcon{
+				Icon: kubefloworgv1beta1.WorkspaceKindAsset{
 					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
-				Logo: kubefloworgv1beta1.WorkspaceKindIcon{
-					ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
-						Name: "my-logos",
-						Key:  "apple-touch-icon-152x152.png",
-					},
+				Logo: kubefloworgv1beta1.WorkspaceKindAsset{
+					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
 			},
 			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
@@ -668,6 +665,17 @@ func NewExampleWorkspaceKindWithInvalidExtraEnvValue(name string) *kubefloworgv1
 		{
 			Name:  "NB_PREFIX",
 			Value: `{{ httpPathPrefix "jupyterlab" }`,
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidRequestHeadersValue returns a WorkspaceKind with an invalid requestHeaders value.
+func NewExampleWorkspaceKindWithInvalidRequestHeadersValue(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RequestHeaders = &kubefloworgv1beta1.IstioHeaderOperations{
+		Set: map[string]string{
+			"X-RStudio-Root-Path": `{{ httpPathPrefix "jupyterlab" }`,
 		},
 	}
 	return workspaceKind

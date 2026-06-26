@@ -1,13 +1,19 @@
-import { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
-import type {
-  DashboardCommonConfig,
-  DashboardConfigKind,
+import type { DashboardCommonConfig, DashboardConfigKind } from '@odh-dashboard/k8s-core';
+import {
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
+  DataScienceStackComponent,
 } from '@odh-dashboard/k8s-core';
-import { EitherOrBoth } from '#~/typeHelpers';
 
 export { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
+
+type Never<Type> = {
+  [K in keyof Type]?: never;
+};
+
+type EitherNotBoth<TypeA, TypeB> = (TypeA & Never<TypeB>) | (TypeB & Never<TypeA>);
+
+type EitherOrBoth<TypeA, TypeB> = EitherNotBoth<TypeA, TypeB> | (TypeA & TypeB);
 
 export type FeatureFlag = keyof DashboardCommonConfig;
 
@@ -65,6 +71,7 @@ export enum SupportedArea {
   MODEL_AS_SERVICE = 'model-as-service',
   MAAS_AUTH_POLICIES = 'maas-auth-policies',
   LLMD_SERVING = 'llmd-serving',
+  LLMD_TOPOLOGY_CONFIGS = 'llmd-topology-configs',
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',

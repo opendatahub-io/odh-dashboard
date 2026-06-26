@@ -74,4 +74,59 @@ describe('Agent Ops API Contract Tests', () => {
       });
     });
   });
+
+  describe('Deploy Agent Endpoint', () => {
+    it('should deploy an agent with minimal params', async () => {
+      const result = await apiClient.post('/api/v1/agents/deploy', {
+        name: 'contract-test-agent',
+        namespace: 'default',
+        containerImage: 'quay.io/example/agent',
+        imageTag: 'latest',
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/DeployAgentResponse/content/application~1json/schema',
+        status: 201,
+      });
+    });
+
+    it('should return 400 for missing required fields', async () => {
+      const result = await apiClient.post('/api/v1/agents/deploy', {
+        name: 'bad-agent',
+        namespace: 'default',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+      }
+    });
+
+    it('should return 400 for an invalid namespace', async () => {
+      const result = await apiClient.post('/api/v1/agents/deploy', {
+        name: 'bad-agent',
+        namespace: 'INVALID_NS',
+        containerImage: 'quay.io/example/agent',
+        imageTag: 'latest',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+      }
+    });
+
+    it('should return 409 for duplicate deployment', async () => {
+      const body = {
+        name: 'dup-agent',
+        namespace: 'default',
+        containerImage: 'quay.io/example/agent',
+        imageTag: 'latest',
+      };
+      const firstResult = await apiClient.post('/api/v1/agents/deploy', body);
+      expect(firstResult.success).toBe(true);
+      const result = await apiClient.post('/api/v1/agents/deploy', body);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(409);
+      }
+    });
+  });
 });

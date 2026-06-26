@@ -1,20 +1,23 @@
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { isGenerativeNonLegacy, isLLMInferenceServiceActive } from '../formUtils';
-import { LLMD_OPTION } from '../deployments/server';
+import { isSimpleLLMInferenceService, isLLMInferenceServiceActive } from '../formUtils';
+import {
+  LLMD_DEPLOYMENT_METHOD_KEY,
+  SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,
+} from '../wizardFields/deploymentMethodField';
 
 describe('isLLMInferenceServiceActive', () => {
-  it('returns true when the llm-d option is selected by name', () => {
+  it('returns true when the simple vLLM deployment method is selected', () => {
     expect(
       isLLMInferenceServiceActive({
-        modelServer: { data: { selection: { name: LLMD_OPTION.name } } },
+        deploymentMethod: { method: SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY },
       }),
     ).toBe(true);
   });
 
-  it('returns true when an LLMInferenceServiceConfig template is selected', () => {
+  it('returns true when the llm-d deployment method is selected', () => {
     expect(
       isLLMInferenceServiceActive({
-        modelServer: { data: { selection: { template: { kind: 'LLMInferenceServiceConfig' } } } },
+        deploymentMethod: { method: LLMD_DEPLOYMENT_METHOD_KEY },
       }),
     ).toBe(true);
   });
@@ -25,53 +28,61 @@ describe('isLLMInferenceServiceActive', () => {
     ).toBe(true);
   });
 
-  it('returns false when a different serving runtime is selected', () => {
+  it('returns false when a different deployment method is selected', () => {
     expect(
       isLLMInferenceServiceActive({
-        modelServer: { data: { selection: { name: 'other-runtime' } } },
+        deploymentMethod: { method: 'other-method' },
       }),
     ).toBe(false);
   });
 
-  it('returns false when no model server selection or resource is provided', () => {
+  it('returns false when no deployment method or resource is provided', () => {
     expect(isLLMInferenceServiceActive({})).toBe(false);
   });
 });
 
-describe('isGenerativeNonLegacy', () => {
-  it('returns true for GENERATIVE model type with legacyVLLM false and vLLMDeploymentOnMaaS enabled', () => {
+describe('isSimpleLLMInferenceService', () => {
+  it('returns true for GENERATIVE model type with simple vLLM deployment method and vLLMDeploymentOnMaaS enabled', () => {
     expect(
-      isGenerativeNonLegacy({
-        modelType: { data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false } },
+      isSimpleLLMInferenceService({
+        modelType: { data: { type: ServingRuntimeModelType.GENERATIVE } },
+        deploymentMethod: { method: SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY },
         devFeatureFlags: { vLLMDeploymentOnMaaS: true },
       }),
     ).toBe(true);
   });
 
-  it('returns false for GENERATIVE model type with legacyVLLM false when vLLMDeploymentOnMaaS is disabled', () => {
+  it('returns false for GENERATIVE model type with simple vLLM deployment method when vLLMDeploymentOnMaaS is disabled', () => {
     expect(
-      isGenerativeNonLegacy({
-        modelType: { data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false } },
+      isSimpleLLMInferenceService({
+        modelType: { data: { type: ServingRuntimeModelType.GENERATIVE } },
+        deploymentMethod: { method: SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY },
         devFeatureFlags: { vLLMDeploymentOnMaaS: false },
       }),
     ).toBe(false);
   });
 
-  it('returns false for GENERATIVE model type with legacyVLLM true', () => {
+  it('returns false for GENERATIVE model type with llm-d deployment method', () => {
     expect(
-      isGenerativeNonLegacy({
-        modelType: { data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: true } },
+      isSimpleLLMInferenceService({
+        modelType: { data: { type: ServingRuntimeModelType.GENERATIVE } },
+        deploymentMethod: { method: LLMD_DEPLOYMENT_METHOD_KEY },
+        devFeatureFlags: { vLLMDeploymentOnMaaS: true },
       }),
     ).toBe(false);
   });
 
   it('returns false for PREDICTIVE model type', () => {
     expect(
-      isGenerativeNonLegacy({ modelType: { data: { type: ServingRuntimeModelType.PREDICTIVE } } }),
+      isSimpleLLMInferenceService({
+        modelType: { data: { type: ServingRuntimeModelType.PREDICTIVE } },
+        deploymentMethod: { method: SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY },
+        devFeatureFlags: { vLLMDeploymentOnMaaS: true },
+      }),
     ).toBe(false);
   });
 
   it('returns false when modelType is not set', () => {
-    expect(isGenerativeNonLegacy({})).toBe(false);
+    expect(isSimpleLLMInferenceService({})).toBe(false);
   });
 });

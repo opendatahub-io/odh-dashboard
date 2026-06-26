@@ -3,7 +3,7 @@ import { Button, Icon, Label, LabelGroup, Popover, Flex } from '@patternfly/reac
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 
 const CustomServingRuntimeHeaderLabels: React.FC = () => {
   const kServeEnabled = useIsAreaAvailable(SupportedArea.K_SERVE).status;

@@ -17,7 +17,7 @@ The FileExplorer will open as a reusable modal.
 It will primarily render a table of files and folders. 
 A details panel will show info to the user including any files selected and their metadata.
 Breadcrumbs, search and pagination will help the user navigate the source of files.
-Two CTAs render at the bottom: **Select files** and **Cancel**, allowing the user to continue in the wizard with their chosen file(s).
+Two CTAs render at the bottom: **Select** and **Cancel**, allowing the user to continue in the wizard with their chosen file(s).
 
 Since both Files and Folders are rendered in the table, selection (multi/singular) can apply to both.
 
