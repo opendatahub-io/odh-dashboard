@@ -26,9 +26,12 @@ type UseAgentProfileUrlParamResult = {
 const useAgentProfileUrlParam = ({
   mcpServers,
   mcpServersLoaded,
+  playgroundModelsLoaded,
 }: {
   mcpServers: MCPServerFromAPI[];
   mcpServersLoaded: boolean;
+  /** Wait for playground models before deserializing so selectedModel is always a full Llama Stack ID */
+  playgroundModelsLoaded: boolean;
 }): UseAgentProfileUrlParamResult => {
   const [searchParams] = useSearchParams();
   const agentProfileId = searchParams.get(AGENT_PROFILE_ID_PARAM);
@@ -36,6 +39,13 @@ const useAgentProfileUrlParam = ({
   const { namespace } = React.useContext(GenAiContext);
   const { models: playgroundModels } = React.useContext(ChatbotContext);
   const { api, apiAvailable } = useGenAiAPI();
+
+  // Refs for values used only inside the fetch callback — keep them current without
+  // adding to the effect dep array, which would cancel in-flight fetches on every render.
+  const playgroundModelsRef = React.useRef(playgroundModels);
+  playgroundModelsRef.current = playgroundModels;
+  const mcpServersRef = React.useRef(mcpServers);
+  mcpServersRef.current = mcpServers;
 
   const applyAgentProfile = useChatbotConfigStore((s) => s.applyAgentProfile);
   const updateActivePrompt = useChatbotConfigStore((s) => s.updateActivePrompt);
@@ -61,6 +71,7 @@ const useAgentProfileUrlParam = ({
       !namespace?.name ||
       !apiAvailable ||
       !mcpServersLoaded ||
+      !playgroundModelsLoaded ||
       appliedProfileId.current === agentProfileId ||
       loadedProfileId === agentProfileId
     ) {
@@ -81,8 +92,8 @@ const useAgentProfileUrlParam = ({
         }
 
         const { config, promptRef, mcpToolsPending } = deserializeAgentProfile(profile, {
-          playgroundModels,
-          mcpServers,
+          playgroundModels: playgroundModelsRef.current,
+          mcpServers: mcpServersRef.current,
         });
 
         applyAgentProfile(
@@ -136,16 +147,18 @@ const useAgentProfileUrlParam = ({
 
     return () => {
       cancelled = true;
+      // Reset so a re-mount (e.g. React StrictMode double-invoke) can retry the fetch.
+      // Once the profile lands, loadedProfileId === agentProfileId prevents re-fetching.
+      appliedProfileId.current = null;
     };
   }, [
     agentProfileId,
     namespace?.name,
     apiAvailable,
     mcpServersLoaded,
+    playgroundModelsLoaded,
     loadedProfileId,
     api,
-    playgroundModels,
-    mcpServers,
     applyAgentProfile,
     updateActivePrompt,
     updateSystemInstruction,

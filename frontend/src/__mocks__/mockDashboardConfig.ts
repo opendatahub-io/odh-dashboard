@@ -44,6 +44,7 @@ export type MockDashboardConfigType = {
   modelAsService?: boolean;
   maasAuthPolicies?: boolean;
   externalVectorStores?: boolean;
+  agentConfigManagement?: boolean;
   aiAssetCustomEndpoints?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
@@ -63,6 +64,7 @@ export type MockDashboardConfigType = {
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
+  globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -118,6 +120,7 @@ export const mockDashboardConfig = ({
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
+  agentConfigManagement = false,
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
   promptManagement = false,
@@ -127,6 +130,7 @@ export const mockDashboardConfig = ({
   agentOps = false,
   roleManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
+  globalMLflowNamespaces = [],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
       externalProviders: false,
@@ -304,6 +308,7 @@ export const mockDashboardConfig = ({
       disableLLMd,
       deploymentWizardYAMLViewer,
       externalVectorStores,
+      agentConfigManagement,
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,
@@ -326,6 +331,7 @@ export const mockDashboardConfig = ({
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
     hardwareProfileOrder,
+    globalMLflowNamespaces,
     genAiStudioConfig,
   },
 });

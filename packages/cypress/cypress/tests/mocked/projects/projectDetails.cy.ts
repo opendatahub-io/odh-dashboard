@@ -26,7 +26,7 @@ import {
   mockMLflowLink,
 } from '@odh-dashboard/internal/__mocks__/mockConsoleLinks';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { deleteProjectModal, editProjectModal, projectDetails } from '../../../pages/projects';
 import {
   DataSciencePipelineApplicationModel,

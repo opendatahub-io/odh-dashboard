@@ -1,6 +1,6 @@
 import React from 'react';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { storageClassSchema } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';

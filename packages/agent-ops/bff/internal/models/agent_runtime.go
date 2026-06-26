@@ -18,8 +18,9 @@ type AgentRuntimesResponse struct {
 	ContinueToken *string        `json:"continueToken,omitempty"`
 }
 
-// ListAgentRuntimesOptions controls pagination for runtime list queries.
+// ListAgentRuntimesOptions controls pagination and filtering for runtime list queries.
 type ListAgentRuntimesOptions struct {
+	Namespace     string
 	Limit         int
 	ContinueToken string
 }

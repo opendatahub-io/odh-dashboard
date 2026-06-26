@@ -18,6 +18,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isProjectDetailsSettingsCardExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
@@ -26,7 +27,6 @@ import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
 import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
 import ProjectRoles from '#~/pages/projects/projectRoles/ProjectRoles';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import {

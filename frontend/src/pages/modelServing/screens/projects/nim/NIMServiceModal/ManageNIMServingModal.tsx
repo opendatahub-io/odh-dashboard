@@ -16,6 +16,7 @@ import type {
   SecretKind,
   AccessReviewResourceAttributes,
 } from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -44,7 +45,6 @@ import {
   translateDisplayNameForK8sAndReport,
 } from '#~/concepts/k8s/utils';
 import { getSecret, updatePvc, useAccessReview, patchInferenceServiceStoppedStatus } from '#~/api';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection, {
   PVCMode,
