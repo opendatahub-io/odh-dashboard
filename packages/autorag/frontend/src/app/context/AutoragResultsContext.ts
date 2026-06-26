@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { PipelineRun } from '~/app/types';
+import type { OgxCredentials, PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
@@ -15,6 +15,7 @@ export type AutoragResultsContextProps = {
   onRetryPatterns?: () => void;
   parameters?: Partial<ConfigureSchema>;
   ragPatternsBasePath?: string;
+  ogxCredentials?: OgxCredentials;
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
@@ -41,6 +42,7 @@ export function getAutoragContext({
   patternsLoadError,
   onRetryPatterns,
   ragPatternsBasePath,
+  ogxCredentials,
   componentStageMap,
   componentStageMapLoading,
   componentStageMapError,
@@ -53,6 +55,7 @@ export function getAutoragContext({
   patternsLoadError?: Error;
   onRetryPatterns?: () => void;
   ragPatternsBasePath?: string;
+  ogxCredentials?: OgxCredentials;
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
@@ -81,6 +84,7 @@ export function getAutoragContext({
     onRetryPatterns,
     parameters,
     ragPatternsBasePath,
+    ogxCredentials,
     componentStageMap,
     componentStageMapLoading,
     componentStageMapError,
