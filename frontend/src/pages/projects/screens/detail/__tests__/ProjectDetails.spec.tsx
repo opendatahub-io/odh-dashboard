@@ -2,6 +2,7 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import ProjectDetails from '#~/pages/projects/screens/detail/ProjectDetails';
 import {
   ProjectDetailsContext,
@@ -11,7 +12,6 @@ import {
   useKueueConfiguration,
   KueueFilteringState,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
-import { useIsAreaAvailable } from '#~/concepts/areas';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
 import {
   useProjectPermissionsTabVisible,
@@ -31,8 +31,8 @@ jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
   useKueueConfiguration: jest.fn(),
 }));
 
-jest.mock('#~/concepts/areas', () => ({
-  ...jest.requireActual('#~/concepts/areas'),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 
