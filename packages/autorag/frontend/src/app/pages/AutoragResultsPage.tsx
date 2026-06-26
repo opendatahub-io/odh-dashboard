@@ -168,7 +168,19 @@ function AutoragResultsPage(): React.JSX.Element {
       ? pipelineRun.runtime_config.parameters.ogx_secret_name
       : undefined;
 
-  const { data: secretData } = useSecretCredentialsQuery(namespace, ogxSecretName);
+  const { data: secretData, isError: secretFetchError } = useSecretCredentialsQuery(
+    namespace,
+    ogxSecretName,
+  );
+
+  React.useEffect(() => {
+    if (secretFetchError) {
+      notification.warning(
+        'Could not load Open GenAI Stack credentials',
+        'Credentials could not be fetched.',
+      );
+    }
+  }, [secretFetchError, notification]);
 
   const ogxCredentials = React.useMemo(() => {
     if (!secretData?.OGX_CLIENT_BASE_URL || !secretData.OGX_CLIENT_API_KEY) {
