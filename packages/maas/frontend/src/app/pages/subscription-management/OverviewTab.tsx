@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Bullseye, Flex, PageSection, Spinner } from '@patternfly/react-core';
+import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
 import { buildModelOverviewRows } from './overview/utils';
 import OverviewTable from './overview/OverviewTable';
@@ -31,9 +31,6 @@ const OverviewTab: React.FC = () => {
 
   return (
     <PageSection isFilled>
-      {rows.length > 0 && (
-        <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} className="pf-v6-u-mb-md" />
-      )}
       <OverviewTable data={rows} />
     </PageSection>
   );

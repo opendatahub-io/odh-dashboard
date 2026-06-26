@@ -9,6 +9,11 @@ import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatWindow } from '~/app/utilities/rateLimits';
 import GroupChips from './GroupChips';
 
+const OVERVIEW_LINK_STATE = {
+  returnTo: `${URL_PREFIX}/subscription-management/overview`,
+  breadcrumbLabel: 'Subscription management',
+};
+
 const formatTokenLimits = (limits: TokenRateLimit[]): string =>
   limits.length === 0
     ? '—'
@@ -35,7 +40,7 @@ type ExpandableItemProps = {
   name: string;
   displayName?: string;
   linkTo: string;
-  linkState: { returnTo: string };
+  linkState: { returnTo: string; breadcrumbLabel?: string };
   phase?: string;
   resourceType: PhaseResourceType;
   statusMessage?: string;
@@ -95,6 +100,180 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   </div>
 );
 
+type SectionHeaderProps = {
+  title: string;
+  showToggle: boolean;
+  allExpanded: boolean;
+  onToggleAll: () => void;
+  testId: string;
+};
+
+const SectionHeader: React.FC<SectionHeaderProps> = ({
+  title,
+  showToggle,
+  allExpanded,
+  onToggleAll,
+  testId,
+}) => (
+  <Flex
+    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+    alignItems={{ default: 'alignItemsCenter' }}
+    className="pf-v6-u-mb-sm"
+  >
+    <FlexItem>
+      <Content>{title}</Content>
+    </FlexItem>
+    {showToggle && (
+      <FlexItem>
+        <Button
+          variant="link"
+          isInline
+          onClick={onToggleAll}
+          style={{ textDecoration: 'none' }}
+          data-testid={testId}
+        >
+          {allExpanded ? 'Collapse all' : 'Expand all'}
+        </Button>
+      </FlexItem>
+    )}
+  </Flex>
+);
+
+type EmptyStateProps = {
+  title: string;
+  subtitle: string;
+};
+
+const SectionEmptyState: React.FC<EmptyStateProps> = ({ title, subtitle }) => (
+  <div className="pf-v6-u-text-align-center pf-v6-u-mt-lg">
+    <Content component="h4">{title}</Content>
+    <Content component="p" className="pf-v6-u-mt-sm pf-v6-u-font-size-md">
+      {subtitle}
+    </Content>
+  </div>
+);
+
+type SubscriptionsSectionProps = {
+  modelName: string;
+  modelNamespace: string;
+  subscriptions: MaaSSubscription[];
+  expandedSubs: Set<string>;
+  onToggleSub: (name: string) => void;
+  onToggleAll: () => void;
+};
+
+const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
+  modelName,
+  modelNamespace,
+  subscriptions,
+  expandedSubs,
+  onToggleSub,
+  onToggleAll,
+}) => {
+  const allExpanded = subscriptions.length > 0 && expandedSubs.size === subscriptions.length;
+
+  return (
+    <>
+      <SectionHeader
+        title="Subscriptions"
+        showToggle={subscriptions.length > 1}
+        allExpanded={allExpanded}
+        onToggleAll={onToggleAll}
+        testId="expand-all-subscriptions"
+      />
+      {subscriptions.length === 0 ? (
+        <SectionEmptyState
+          title="No subscriptions"
+          subtitle="No rate limits configured for this model."
+        />
+      ) : (
+        subscriptions.map((sub, index) => {
+          const modelRef = sub.modelRefs.find(
+            (ref) => ref.name === modelName && ref.namespace === modelNamespace,
+          );
+          const tokenLimits = modelRef?.tokenRateLimits ?? [];
+
+          return (
+            <ExpandableItem
+              key={sub.name}
+              ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
+              name={sub.name}
+              displayName={sub.displayName}
+              linkTo={`${URL_PREFIX}/subscription-management/subscriptions/view/${sub.name}`}
+              linkState={OVERVIEW_LINK_STATE}
+              phase={sub.phase}
+              resourceType={PhaseResourceType.SUBSCRIPTION}
+              statusMessage={sub.statusMessage}
+              rowIndex={index}
+              isExpanded={expandedSubs.has(sub.name)}
+              onToggle={() => onToggleSub(sub.name)}
+            >
+              <Content className="pf-v6-u-mb-sm">
+                <strong className="pf-v6-u-mr-md">Token limits</strong>
+                {formatTokenLimits(tokenLimits)}
+              </Content>
+              <GroupChips groups={sub.owner.groups} />
+            </ExpandableItem>
+          );
+        })
+      )}
+    </>
+  );
+};
+
+type PoliciesSectionProps = {
+  policies: MaaSAuthPolicy[];
+  expandedPolicies: Set<string>;
+  onTogglePolicy: (name: string) => void;
+  onToggleAll: () => void;
+};
+
+const PoliciesSection: React.FC<PoliciesSectionProps> = ({
+  policies,
+  expandedPolicies,
+  onTogglePolicy,
+  onToggleAll,
+}) => {
+  const allExpanded = policies.length > 0 && expandedPolicies.size === policies.length;
+
+  return (
+    <>
+      <SectionHeader
+        title="Authorization policies"
+        showToggle={policies.length > 1}
+        allExpanded={allExpanded}
+        onToggleAll={onToggleAll}
+        testId="expand-all-policies"
+      />
+      {policies.length === 0 ? (
+        <SectionEmptyState
+          title="No authorization policies"
+          subtitle="Access is denied by default."
+        />
+      ) : (
+        policies.map((policy, index) => (
+          <ExpandableItem
+            key={policy.name}
+            ariaLabel={`Policy ${policy.displayName ?? policy.name}`}
+            name={policy.name}
+            displayName={policy.displayName}
+            linkTo={`${URL_PREFIX}/subscription-management/auth-policies/view/${policy.name}`}
+            linkState={OVERVIEW_LINK_STATE}
+            phase={policy.phase}
+            resourceType={PhaseResourceType.AUTHPOLICY}
+            statusMessage={policy.statusMessage}
+            rowIndex={index}
+            isExpanded={expandedPolicies.has(policy.name)}
+            onToggle={() => onTogglePolicy(policy.name)}
+          >
+            <GroupChips groups={policy.subjects.groups ?? []} />
+          </ExpandableItem>
+        ))
+      )}
+    </>
+  );
+};
+
 type ExpandedModelContentProps = {
   modelName: string;
   modelNamespace: string;
@@ -134,9 +313,6 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
     });
   }, [policies]);
 
-  const allSubsExpanded = subscriptions.length > 0 && expandedSubs.size === subscriptions.length;
-  const allPoliciesExpanded = policies.length > 0 && expandedPolicies.size === policies.length;
-
   return (
     <Grid hasGutter>
       <GridItem
@@ -146,117 +322,22 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           paddingRight: 'var(--pf-t--global--spacer--lg)',
         }}
       >
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsCenter' }}
-          className="pf-v6-u-mb-sm"
-        >
-          <FlexItem>
-            <Content>Subscriptions</Content>
-          </FlexItem>
-          {subscriptions.length > 1 && (
-            <FlexItem>
-              <Button
-                variant="link"
-                isInline
-                onClick={toggleAllSubs}
-                style={{ textDecoration: 'none' }}
-                data-testid="expand-all-subscriptions"
-              >
-                {allSubsExpanded ? 'Collapse all' : 'Expand all'}
-              </Button>
-            </FlexItem>
-          )}
-        </Flex>
-        {subscriptions.length === 0 ? (
-          <div className="pf-v6-u-text-align-center pf-v6-u-mt-lg">
-            <Content component="h4">No subscriptions</Content>
-            <Content component="p" className="pf-v6-u-mt-sm pf-v6-u-font-size-md">
-              No rate limits configured for this model.
-            </Content>
-          </div>
-        ) : (
-          subscriptions.map((sub, index) => {
-            const modelRef = sub.modelRefs.find(
-              (ref) => ref.name === modelName && ref.namespace === modelNamespace,
-            );
-            const tokenLimits = modelRef?.tokenRateLimits ?? [];
-
-            return (
-              <ExpandableItem
-                key={sub.name}
-                ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
-                name={sub.name}
-                displayName={sub.displayName}
-                linkTo={`${URL_PREFIX}/subscription-management/subscriptions/view/${sub.name}`}
-                linkState={{ returnTo: `${URL_PREFIX}/subscription-management/subscriptions` }}
-                phase={sub.phase}
-                resourceType={PhaseResourceType.SUBSCRIPTION}
-                statusMessage={sub.statusMessage}
-                rowIndex={index}
-                isExpanded={expandedSubs.has(sub.name)}
-                onToggle={() => toggleSub(sub.name)}
-              >
-                <Content className="pf-v6-u-mb-sm">
-                  <strong className="pf-v6-u-mr-md">Token limits</strong>
-                  {formatTokenLimits(tokenLimits)}
-                </Content>
-                <GroupChips groups={sub.owner.groups} />
-              </ExpandableItem>
-            );
-          })
-        )}
+        <SubscriptionsSection
+          modelName={modelName}
+          modelNamespace={modelNamespace}
+          subscriptions={subscriptions}
+          expandedSubs={expandedSubs}
+          onToggleSub={toggleSub}
+          onToggleAll={toggleAllSubs}
+        />
       </GridItem>
       <GridItem span={6}>
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsCenter' }}
-          className="pf-v6-u-mb-sm"
-        >
-          <FlexItem>
-            <Content>Authorization policies</Content>
-          </FlexItem>
-          {policies.length > 1 && (
-            <FlexItem>
-              <Button
-                variant="link"
-                isInline
-                onClick={toggleAllPolicies}
-                style={{ textDecoration: 'none' }}
-                data-testid="expand-all-policies"
-              >
-                {allPoliciesExpanded ? 'Collapse all' : 'Expand all'}
-              </Button>
-            </FlexItem>
-          )}
-        </Flex>
-        {policies.length === 0 ? (
-          <div className="pf-v6-u-text-align-center pf-v6-u-mt-lg">
-            <Content component="h4">No authorization policies</Content>
-            <Content component="p" className="pf-v6-u-mt-sm pf-v6-u-font-size-md">
-              Access is denied by default.
-            </Content>
-          </div>
-        ) : (
-          policies.map((policy, index) => (
-            <ExpandableItem
-              key={policy.name}
-              ariaLabel={`Policy ${policy.displayName ?? policy.name}`}
-              name={policy.name}
-              displayName={policy.displayName}
-              linkTo={`${URL_PREFIX}/subscription-management/auth-policies/view/${policy.name}`}
-              linkState={{ returnTo: `${URL_PREFIX}/subscription-management/auth-policies` }}
-              phase={policy.phase}
-              resourceType={PhaseResourceType.AUTHPOLICY}
-              statusMessage={policy.statusMessage}
-              rowIndex={index}
-              isExpanded={expandedPolicies.has(policy.name)}
-              onToggle={() => togglePolicy(policy.name)}
-            >
-              <GroupChips groups={policy.subjects.groups ?? []} />
-            </ExpandableItem>
-          ))
-        )}
+        <PoliciesSection
+          policies={policies}
+          expandedPolicies={expandedPolicies}
+          onTogglePolicy={togglePolicy}
+          onToggleAll={toggleAllPolicies}
+        />
       </GridItem>
     </Grid>
   );

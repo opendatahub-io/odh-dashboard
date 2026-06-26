@@ -47,6 +47,14 @@ export const getReturnToFromState = (state: unknown): string | undefined => {
   return undefined;
 };
 
+export const getBreadcrumbLabelFromState = (state: unknown): string | undefined => {
+  if (state == null || typeof state !== 'object' || !('breadcrumbLabel' in state)) {
+    return undefined;
+  }
+  const obj: Record<string, unknown> = Object.assign({}, state);
+  return typeof obj.breadcrumbLabel === 'string' ? obj.breadcrumbLabel : undefined;
+};
+
 export const getBackUrl = (
   pathname: string,
   state: unknown,

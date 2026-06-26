@@ -38,8 +38,12 @@ const NoSubscriptionsWarning: React.FC = () => (
       </div>
     }
   >
-    <Button variant="plain" data-testid="no-subscriptions-warning">
-      <ExclamationTriangleIcon color="orange" aria-label="No subscriptions warning" />
+    <Button
+      variant="plain"
+      data-testid="no-subscriptions-warning"
+      aria-label="No subscriptions warning"
+    >
+      <ExclamationTriangleIcon color="orange" />
     </Button>
   </Popover>
 );
@@ -68,8 +72,12 @@ const NoPoliciesWarning: React.FC = () => (
       </div>
     }
   >
-    <Button variant="plain" data-testid="no-policies-warning">
-      <ExclamationTriangleIcon color="orange" aria-label="No authorization policies warning" />
+    <Button
+      variant="plain"
+      data-testid="no-policies-warning"
+      aria-label="No authorization policies warning"
+    >
+      <ExclamationTriangleIcon color="orange" />
     </Button>
   </Popover>
 );
@@ -131,6 +139,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
                   navigate(`${URL_PREFIX}/subscription-management/subscriptions/create`, {
                     state: {
                       returnTo: RETURN_TO,
+                      breadcrumbLabel: 'Subscription management',
                       preSelectedModel: { name: row.name, namespace: row.namespace },
                     },
                   }),
@@ -141,6 +150,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
                   navigate(`${URL_PREFIX}/subscription-management/auth-policies/create`, {
                     state: {
                       returnTo: RETURN_TO,
+                      breadcrumbLabel: 'Subscription management',
                       preSelectedModel: { name: row.name, namespace: row.namespace },
                     },
                   }),

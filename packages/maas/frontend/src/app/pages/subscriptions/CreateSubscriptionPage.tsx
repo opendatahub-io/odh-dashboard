@@ -4,6 +4,7 @@ import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import {
   getBackUrl,
+  getBreadcrumbLabelFromState,
   getPreSelectedModelFromState,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
@@ -14,6 +15,7 @@ const CreateSubscriptionPage: React.FC = () => {
   const { state, pathname } = useLocation();
   const backUrl = getBackUrl(pathname, state, 'subscriptions');
   const returnTo = backUrl;
+  const breadcrumbLabel = getBreadcrumbLabelFromState(state) ?? 'Subscriptions';
   const preSelectedModel = getPreSelectedModelFromState(state);
 
   return (
@@ -21,7 +23,7 @@ const CreateSubscriptionPage: React.FC = () => {
       title="Create subscription"
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to={backUrl}>Subscriptions</Link>} />
+          <BreadcrumbItem render={() => <Link to={backUrl}>{breadcrumbLabel}</Link>} />
           <BreadcrumbItem isActive>Create subscription</BreadcrumbItem>
         </Breadcrumb>
       }

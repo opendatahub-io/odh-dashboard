@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Pagination } from '@patternfly/react-core';
-import { Table, Thead, Tr, Th, Td } from '@patternfly/react-table';
+import { Table, Thead, Tr, Th } from '@patternfly/react-table';
 import { useTableColumnSort } from '@odh-dashboard/ui-core';
 import { ModelOverviewRow, overviewColumns } from './utils';
 import OverviewTableRow from './OverviewTableRow';
@@ -63,7 +63,7 @@ const OverviewTable: React.FC<{ data: ModelOverviewRow[] }> = ({ data }) => {
                   {col.label}
                 </Th>
               ) : (
-                <Td key={col.field} />
+                <Th key={col.field} />
               ),
             )}
           </Tr>
