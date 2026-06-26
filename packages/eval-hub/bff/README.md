@@ -206,7 +206,7 @@ cd packages/eval-hub && MOCK_BFF_CLIENTS=true make dev-start
 ### Eval-Hub Inter-BFF Environment Variables
 
 | Variable | Description | Default |
-|----------|-------------|---------|
+| -------- | ----------- | ------- |
 | `MOCK_BFF_CLIENTS` | Enable mock BFF clients | `false` |
 | `BFF_MODEL_CATALOG_DEV_URL` | Dev override URL (e.g., `http://localhost:4000/api/v1`) | - |
 | `BFF_MODEL_CATALOG_SERVICE_NAME` | K8s service name | `odh-dashboard` |
@@ -232,7 +232,7 @@ curl -s -H "kubeflow-userid: test@example.com" \
 ### Implementation Files
 
 | File | Purpose |
-|------|---------|
+| ---- | ------- |
 | `internal/integrations/bffclient/` | Reusable BFF client package (client, factory, config, errors, middleware) |
 | `internal/integrations/bffclient/bffmocks/` | Mock BFF client for local development |
 | `internal/api/catalog_security_artifacts_handler.go` | Security artifacts endpoint handler |

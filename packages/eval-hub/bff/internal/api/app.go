@@ -186,6 +186,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		if cfg.BFFModelCatalogAuthMethod != "" {
 			mcConfig.AuthMethod = cfg.BFFModelCatalogAuthMethod
 		}
+		if cfg.BFFModelCatalogAuthTokenHeader != "" {
+			mcConfig.AuthTokenHeader = cfg.BFFModelCatalogAuthTokenHeader
+		}
+		// AuthTokenPrefix can be empty (which is the ODH default)
+		mcConfig.AuthTokenPrefix = cfg.BFFModelCatalogAuthTokenPrefix
 	}
 
 	var bffFactory bffclient.BFFClientFactory
