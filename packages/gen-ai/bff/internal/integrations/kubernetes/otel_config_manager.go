@@ -45,7 +45,7 @@ var otelCollectorGVR = schema.GroupVersionResource{
 
 const (
 	platformCollectorName = "data-science-collector"
-	genaiCollectorName   = "gen-ai-trace-collector"
+	genaiCollectorName    = "gen-ai-trace-collector"
 )
 
 // otelConfigManager creates and manages a dedicated "gen-ai-trace-collector"

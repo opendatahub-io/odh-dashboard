@@ -102,6 +102,10 @@ const extensions: (
       id: TRACING,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [TRACING],
+      customCondition: ({ dsciStatus }) =>
+        !!dsciStatus?.conditions.some(
+          (c) => c.type === 'OpenTelemetryCollectorAvailable' && c.status === 'True',
+        ),
     },
   },
   {

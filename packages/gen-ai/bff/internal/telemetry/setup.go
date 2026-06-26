@@ -95,7 +95,7 @@ func detectNamespace() string {
 
 const (
 	platformCollectorName = "data-science-collector"
-	genaiCollectorName   = "gen-ai-trace-collector"
+	genaiCollectorName    = "gen-ai-trace-collector"
 )
 
 var otelCollectorGVR = schema.GroupVersionResource{
