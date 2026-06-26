@@ -18,10 +18,15 @@ export const agentRuntimesFilterOptions: Record<AgentRuntimesFilterOption, strin
   [AgentRuntimesFilterOption.Status]: 'Status',
 };
 
+export type AgentRuntimeStatusFilterOption = {
+  label: AgentRuntimeStatusFilter;
+  value: AgentRuntimeStatusFilter;
+};
+
 export type AgentRuntimesFilterData = {
   [AgentRuntimesFilterOption.Name]: string | undefined;
   [AgentRuntimesFilterOption.Project]: string | undefined;
-  [AgentRuntimesFilterOption.Status]: { label: string; value: string } | undefined;
+  [AgentRuntimesFilterOption.Status]: AgentRuntimeStatusFilterOption | undefined;
 };
 
 export const emptyAgentRuntimesFilterData: AgentRuntimesFilterData = {

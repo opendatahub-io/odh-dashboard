@@ -81,6 +81,19 @@ class AgentDeploymentsPage {
     cy.findByTestId(status).click();
   }
 
+  findActiveFilterChips(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[data-testid$="-filter-chip"]');
+  }
+
+  findStatusFilterChip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('status-filter-chip');
+  }
+
+  expectSingleStatusFilterChip(label: string) {
+    this.findActiveFilterChips().should('have.length', 1);
+    this.findStatusFilterChip().should('contain.text', label);
+  }
+
   findLoadingSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByLabelText('Loading agent deployments');
   }

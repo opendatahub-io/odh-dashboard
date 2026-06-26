@@ -229,20 +229,25 @@ describe('Agent Deployments', () => {
     agentDeploymentsPage.findTable().should('be.visible');
 
     agentDeploymentsPage.selectStatusFilter('Pending');
+    agentDeploymentsPage.expectSingleStatusFilterChip('Pending');
     agentDeploymentsPage.findTableRows().should('have.length', 1);
     agentDeploymentsPage
       .getRow(TEST_NAMESPACE, 'pending-agent')
       .findStatusLabel()
       .should('contain.text', 'Pending');
 
+    agentDeploymentsPage.expectSingleStatusFilterChip('Pending');
     agentDeploymentsPage.selectStatusFilter('Failed');
+    agentDeploymentsPage.expectSingleStatusFilterChip('Failed');
     agentDeploymentsPage.findTableRows().should('have.length', 1);
     agentDeploymentsPage
       .getRow(TEST_NAMESPACE, 'failed-agent')
       .findStatusLabel()
       .should('contain.text', 'Failed');
 
+    agentDeploymentsPage.expectSingleStatusFilterChip('Failed');
     agentDeploymentsPage.selectStatusFilter('Running');
+    agentDeploymentsPage.expectSingleStatusFilterChip('Running');
     agentDeploymentsPage.findTableRows().should('have.length', 1);
     agentDeploymentsPage
       .getRow(TEST_NAMESPACE, 'sample-support-agent')

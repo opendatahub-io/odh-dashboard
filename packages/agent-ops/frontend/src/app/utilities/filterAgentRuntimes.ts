@@ -9,7 +9,14 @@ import {
   mapAgentRuntimeStatus,
 } from '~/app/utilities/agentRuntimeStatus';
 
-const matchesStatusFilter = (runtimeStatus: string, filterStatus: string): boolean => {
+const assertNever = (value: never): never => {
+  throw new Error(`Unhandled AgentRuntimeStatusFilter: ${String(value)}`);
+};
+
+const matchesStatusFilter = (
+  runtimeStatus: string,
+  filterStatus: AgentRuntimeStatusFilter,
+): boolean => {
   const { displayStatus } = mapAgentRuntimeStatus(runtimeStatus);
 
   switch (filterStatus) {
@@ -20,7 +27,7 @@ const matchesStatusFilter = (runtimeStatus: string, filterStatus: string): boole
     case AgentRuntimeStatusFilter.Failed:
       return displayStatus === AgentRuntimeDisplayStatus.Failed;
     default:
-      return false;
+      return assertNever(filterStatus);
   }
 };
 
@@ -60,5 +67,5 @@ export const hasActiveAgentRuntimesFilters = (filters: AgentRuntimesFilterData):
   Boolean(
     filters[AgentRuntimesFilterOption.Name]?.trim() ||
     filters[AgentRuntimesFilterOption.Project]?.trim() ||
-    filters[AgentRuntimesFilterOption.Status],
+    filters[AgentRuntimesFilterOption.Status]?.value,
   );

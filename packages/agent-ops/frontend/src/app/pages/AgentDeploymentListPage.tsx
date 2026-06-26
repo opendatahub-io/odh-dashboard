@@ -90,10 +90,15 @@ const AgentDeploymentListPage: React.FC = () => {
 
   const onFilterUpdate = React.useCallback(
     (key: AgentRuntimesFilterOption, value?: string | { label: string; value: string }) => {
-      setFilterData((prev) => ({
-        ...prev,
-        [key]: typeof value === 'string' ? value || undefined : value?.value ? value : undefined,
-      }));
+      setFilterData((prev) => {
+        if (typeof value === 'string') {
+          return { ...prev, [key]: value || undefined };
+        }
+        if (value?.value) {
+          return { ...prev, [key]: value };
+        }
+        return { ...prev, [key]: undefined };
+      });
     },
     [],
   );

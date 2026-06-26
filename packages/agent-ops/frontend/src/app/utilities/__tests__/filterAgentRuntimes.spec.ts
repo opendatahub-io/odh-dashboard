@@ -3,6 +3,7 @@ import {
   AgentRuntimesFilterOption,
   emptyAgentRuntimesFilterData,
 } from '~/app/pages/agentRuntimes/const';
+import { mockAgentRuntime } from '~/__mocks__/mockAgentRuntime';
 import {
   createFailedRuntime,
   createPendingRuntime,
@@ -15,12 +16,23 @@ import {
 } from '~/app/utilities/filterAgentRuntimes';
 
 describe('filterAgentRuntimes', () => {
-  const runtimes = [
+  const agentOpsRuntimes = [
     createReadyRuntime(),
     createPendingRuntime(),
     createFailedRuntime(),
     createToolRuntime(),
   ];
+  const otherProjectRuntime = mockAgentRuntime({
+    name: 'other-project-agent',
+    namespace: 'other-project',
+    status: 'Stopped',
+    endpointUrl: '',
+  });
+  const runtimes = [...agentOpsRuntimes, otherProjectRuntime];
+  const projectDisplayNames = {
+    'agent-ops-demo': 'Agent Ops Demo',
+    'other-project': 'Other Project',
+  };
 
   it('returns all runtimes when no filters are active', () => {
     expect(filterAgentRuntimes(runtimes, emptyAgentRuntimesFilterData)).toEqual(runtimes);
@@ -35,7 +47,7 @@ describe('filterAgentRuntimes', () => {
     ).toEqual([createPendingRuntime()]);
   });
 
-  it('filters runtimes by project', () => {
+  it('filters runtimes by project namespace', () => {
     expect(
       filterAgentRuntimes(
         runtimes,
@@ -43,9 +55,9 @@ describe('filterAgentRuntimes', () => {
           ...emptyAgentRuntimesFilterData,
           [AgentRuntimesFilterOption.Project]: 'agent-ops',
         },
-        { 'agent-ops-demo': 'Agent Ops Demo' },
+        projectDisplayNames,
       ),
-    ).toEqual(runtimes);
+    ).toEqual(agentOpsRuntimes);
   });
 
   it('filters runtimes by project display name', () => {
@@ -56,9 +68,22 @@ describe('filterAgentRuntimes', () => {
           ...emptyAgentRuntimesFilterData,
           [AgentRuntimesFilterOption.Project]: 'demo',
         },
-        { 'agent-ops-demo': 'Agent Ops Demo' },
+        projectDisplayNames,
       ),
-    ).toEqual(runtimes);
+    ).toEqual(agentOpsRuntimes);
+  });
+
+  it('excludes runtimes that do not match the project filter', () => {
+    expect(
+      filterAgentRuntimes(
+        runtimes,
+        {
+          ...emptyAgentRuntimesFilterData,
+          [AgentRuntimesFilterOption.Project]: 'other-project',
+        },
+        projectDisplayNames,
+      ),
+    ).toEqual([otherProjectRuntime]);
   });
 
   it('filters runtimes by Running status', () => {
