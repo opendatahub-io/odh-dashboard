@@ -244,7 +244,10 @@ export const getSourceLabelColor = (sourceLabel: string): 'blue' | 'green' | 'or
  */
 export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => {
   // Defensive guard against BFF omitting endpoints field despite type contract
-  const endpoints = Array.isArray(aaModel.endpoints) ? aaModel.endpoints : [];
+  // and filter out non-string entries to prevent runtime errors
+  const endpoints = Array.isArray(aaModel.endpoints)
+    ? aaModel.endpoints.filter((e): e is string => typeof e === 'string')
+    : [];
 
   // Parse endpoints - AAModel already has the correct structure from BFF transformation
   const externalEndpoint = parseEndpointByPrefix(endpoints, 'external');

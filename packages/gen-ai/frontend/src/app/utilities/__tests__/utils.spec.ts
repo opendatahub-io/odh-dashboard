@@ -281,6 +281,16 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.externalEndpoint).toBeUndefined();
     expect(result.internalEndpoint).toBeUndefined();
   });
+
+  it('should filter out non-string entries in endpoints array', () => {
+    const aaModel = {
+      ...makeAAModelResponse(),
+      endpoints: ['external:https://valid.com', null, 123, 'http://internal', undefined],
+    } as unknown as AAModelResponse;
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.externalEndpoint).toBe('https://valid.com');
+    expect(result.internalEndpoint).toBe('http://internal');
+  });
 });
 
 describe('splitLlamaModelId', () => {

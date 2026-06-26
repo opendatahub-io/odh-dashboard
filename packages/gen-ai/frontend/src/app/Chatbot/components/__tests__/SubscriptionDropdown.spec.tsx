@@ -275,4 +275,25 @@ describe('SubscriptionDropdown', () => {
 
     expect(onSubscriptionChange).not.toHaveBeenCalled();
   });
+
+  it('handles malformed subscriptions data gracefully', () => {
+    const onSubscriptionChange = jest.fn();
+    const modelWithInvalidSubs = {
+      ...createMaaSModel({ model_id: 'test-model' }),
+      subscriptions: null,
+    } as unknown as AAModelResponse;
+
+    const { container } = render(
+      <TestWrapper contextValue={createContextValue([], [modelWithInvalidSubs])}>
+        <SubscriptionDropdown
+          selectedModel="maas-provider/test-model"
+          selectedSubscription=""
+          onSubscriptionChange={onSubscriptionChange}
+        />
+      </TestWrapper>,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    expect(onSubscriptionChange).not.toHaveBeenCalled();
+  });
 });
