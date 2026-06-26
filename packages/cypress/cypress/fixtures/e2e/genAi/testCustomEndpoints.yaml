@@ -1,0 +1,4 @@
+modelId: 'gemini-2.5-flash'
+displayName: 'E2E Custom Endpoint Test'
+endpointUrl: 'https://generativelanguage.googleapis.com/v1beta/openai'
+testMessage: 'Hello, this is a test message from Cypress E2E.'

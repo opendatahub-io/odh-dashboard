@@ -1,5 +1,6 @@
 import { checkInferenceServiceState } from './modelServing';
 import { createCleanHardwareProfile } from './hardwareProfiles';
+import { patchOpenShiftResource } from './baseCommands';
 import type { GenAiTestData } from '../../types';
 
 /**
@@ -54,6 +55,48 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
 
   cy.step('Wait for InferenceService to be Ready');
   checkInferenceServiceState(inferenceServiceName, projectName, { checkReady: true });
+};
+
+/**
+ * Enable externalProviders in OdhDashboardConfig so that non-cluster-local
+ * endpoint URLs are accepted by the custom endpoints form.
+ */
+export const enableExternalProviders = (): void => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const patchContent = JSON.stringify({
+    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: true } } },
+  });
+  patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, namespace);
+};
+
+/**
+ * Disable externalProviders in OdhDashboardConfig (revert to default).
+ */
+export const disableExternalProviders = (): void => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const patchContent = JSON.stringify({
+    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: false } } },
+  });
+  patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, namespace);
+};
+
+/**
+ * Verify that no ConfigMap or Secret referencing the given model ID
+ * remains in the namespace after endpoint deletion.
+ */
+export const verifyEndpointResourcesCleanedUp = (modelId: string, namespace: string): void => {
+  cy.exec(
+    `oc get configmap -n ${namespace} -o jsonpath='{.items[*].metadata.name}' | grep -c "${modelId}" || echo "0"`,
+    { failOnNonZeroExit: false },
+  ).then((result) => {
+    expect(result.stdout.trim()).to.equal('0');
+  });
+  cy.exec(
+    `oc get secret -n ${namespace} -o jsonpath='{.items[*].metadata.name}' | grep -c "${modelId}" || echo "0"`,
+    { failOnNonZeroExit: false },
+  ).then((result) => {
+    expect(result.stdout.trim()).to.equal('0');
+  });
 };
 
 export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';

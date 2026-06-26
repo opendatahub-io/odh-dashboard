@@ -636,6 +636,13 @@ export type GenAiTestData = {
   servingRuntimesPath: string;
 };
 
+export type CustomEndpointTestData = {
+  modelId: string;
+  displayName: string;
+  endpointUrl: string;
+  testMessage: string;
+};
+
 /** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
 export type EvalHubTestData = {
   projectNamePrefix: string;
