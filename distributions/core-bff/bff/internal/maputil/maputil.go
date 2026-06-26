@@ -26,7 +26,11 @@ func DeepMerge(defaults, overrides map[string]interface{}) map[string]interface{
 	return result
 }
 
-// DeepCopyMap returns a recursive deep copy of a map[string]any.
+// DeepCopyMap returns a recursive copy of a map[string]any.
+// Only nested map[string]any values are deep-copied; other composite types
+// (slices, pointers) are shallow-copied. This is sufficient for the
+// dashboard-config merge path where post-merge mutations target only
+// nested map values, never slices.
 func DeepCopyMap(m map[string]any) map[string]any {
 	cp := make(map[string]any, len(m))
 	for k, v := range m {

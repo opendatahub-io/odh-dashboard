@@ -12,15 +12,13 @@ const useHttpProbe = (path: string | null): ProbeResult => {
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
     const doProbe = async () => {
       try {
-        const resp = await fetch(`${URL_PREFIX}${path}`);
-        if (!cancelled) {
-          setState({ status: resp.status, loaded: true });
-        }
+        const resp = await fetch(`${URL_PREFIX}${path}`, { signal: controller.signal });
+        setState({ status: resp.status, loaded: true });
       } catch {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setState({ status: null, loaded: true });
         }
       }
@@ -30,7 +28,7 @@ const useHttpProbe = (path: string | null): ProbeResult => {
     doProbe();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [path]);
 

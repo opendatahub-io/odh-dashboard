@@ -7,13 +7,15 @@ import (
 
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // resolveUserViaOpenShiftAPI queries user.openshift.io/v1 to resolve the current user's
 // identity. Only available on OpenShift.
 // Returns ("", nil, nil) if the User API is unavailable (e.g., CRD not installed).
+// TODO: Wire into secureRoute/secureAdminRoute to enrich audit logs with the OpenShift
+// username and group memberships resolved from the bearer token.
 func (app *App) resolveUserViaOpenShiftAPI(ctx context.Context, client k8s.KubernetesClientInterface) (string, []string, error) {
 	if app.config.PlatformType.IsXKS() {
 		return "", nil, nil
@@ -24,13 +26,7 @@ func (app *App) resolveUserViaOpenShiftAPI(ctx context.Context, client k8s.Kuber
 		return "", nil, fmt.Errorf("failed to get dynamic client: %w", err)
 	}
 
-	gvr := schema.GroupVersionResource{
-		Group:    "user.openshift.io",
-		Version:  "v1",
-		Resource: "users",
-	}
-
-	result, err := dynClient.Resource(gvr).Get(ctx, "~", metav1.GetOptions{})
+	result, err := dynClient.Resource(models.OpenShiftUserGVR).Get(ctx, "~", metav1.GetOptions{})
 	if err != nil {
 		if k8sutil.IsDiscoveryError(err) {
 			app.logger.Debug("OpenShift User API not available", slog.Any("error", err))

@@ -11,25 +11,10 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 )
-
-func requiresAuth(path string) bool {
-	return strings.HasPrefix(path, APIPathPrefix) ||
-		strings.HasPrefix(path, PathPrefix+APIPathPrefix) ||
-		strings.HasPrefix(path, proxy.K8sProxyPrefix) ||
-		strings.HasPrefix(path, PathPrefix+proxy.K8sProxyPrefix) ||
-		strings.HasPrefix(path, proxy.WssProxyPrefix) ||
-		strings.HasPrefix(path, PathPrefix+proxy.WssProxyPrefix)
-}
 
 func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !requiresAuth(r.URL.Path) {
-			next.ServeHTTP(w, r)
-			return
-		}
-
 		if app.config.AuthMethod == config.AuthMethodDisabled {
 			identity := &k8s.RequestIdentity{
 				Token: k8s.NewBearerToken(config.DefaultDisabledAuthToken),
@@ -65,11 +50,42 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 
 // auditUser returns the best available user identifier for audit logging.
 // Falls back to "unknown" when the identity has no resolved UserID.
-func auditUser(identity *k8s.RequestIdentity) string {
+func auditUser(identity *k8s.RequestIdentity, logger *slog.Logger) string {
 	if identity != nil && identity.UserID != "" {
 		return identity.UserID
 	}
+	logger.Warn("could not resolve user identity for audit log")
 	return "unknown"
+}
+
+// resolveRequestAuth extracts the identity from context, obtains a k8s client, and
+// resolves the username via SelfSubjectReview. On failure it writes the appropriate
+// error response and returns false. needsAdmin is forwarded to the audit log.
+func (app *App) resolveRequestAuth(w http.ResponseWriter, r *http.Request, needsAdmin bool) (string, k8s.KubernetesClientInterface, *k8s.RequestIdentity, bool) {
+	ctx := r.Context()
+
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	if !ok || identity == nil {
+		app.emitAuditLog("unknown", r, needsAdmin, false)
+		app.unauthorizedResponse(w, r, fmt.Errorf("missing identity"))
+		return "", nil, nil, false
+	}
+
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.emitAuditLog(auditUser(identity, app.logger), r, needsAdmin, false)
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+		return "", nil, nil, false
+	}
+
+	username, err := client.GetUser(ctx, nil)
+	if err != nil {
+		app.emitAuditLog(auditUser(identity, app.logger), r, needsAdmin, false)
+		app.unauthorizedResponse(w, r, fmt.Errorf("invalid or expired token: %w", err))
+		return "", nil, nil, false
+	}
+
+	return username, client, identity, true
 }
 
 // secureRoute wraps a handler with token validation and audit logging.
@@ -77,67 +93,29 @@ func auditUser(identity *k8s.RequestIdentity) string {
 // Namespace validation is handled separately by isAllowedNamespace.
 func (app *App) secureRoute(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		ctx := r.Context()
-
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-		if !ok || identity == nil {
-			app.emitAuditLog("unknown", r, false, false)
-			app.unauthorizedResponse(w, r, fmt.Errorf("missing identity"))
+		username, _, _, ok := app.resolveRequestAuth(w, r, false)
+		if !ok {
 			return
 		}
 
-		client, err := app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.emitAuditLog(auditUser(identity), r, false, false)
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-			return
-		}
-
-		username, err := client.GetUser(ctx, nil)
-		if err != nil {
-			app.emitAuditLog(auditUser(identity), r, false, false)
-			app.unauthorizedResponse(w, r, fmt.Errorf("invalid or expired token: %w", err))
-			return
-		}
-
-		app.emitAuditLogAsync(ctx, client, username, identity, r, false)
+		app.emitAuditLog(username, r, false, false)
 		next(w, r, ps)
 	}
 }
 
 // secureAdminRoute wraps a handler with token validation, admin check, and audit logging.
 // Returns 401 for unauthenticated or non-admin users.
-// Audit logging is synchronous here (unlike secureRoute) because admin status is already
-// known from the SSAR guard check - no background resolution needed.
 func (app *App) secureAdminRoute(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		ctx := r.Context()
-
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-		if !ok || identity == nil {
-			app.emitAuditLog("unknown", r, true, false)
-			app.unauthorizedResponse(w, r, fmt.Errorf("missing identity"))
+		username, client, identity, ok := app.resolveRequestAuth(w, r, true)
+		if !ok {
 			return
 		}
 
-		client, err := app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.emitAuditLog(auditUser(identity), r, true, false)
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-			return
-		}
-
-		username, err := client.GetUser(ctx, nil)
-		if err != nil {
-			app.emitAuditLog(auditUser(identity), r, true, false)
-			app.unauthorizedResponse(w, r, fmt.Errorf("invalid or expired token: %w", err))
-			return
-		}
-
-		isAdmin, err := client.IsUserAdmin(ctx, identity)
+		isAdmin, err := client.IsUserAdmin(r.Context(), identity)
 		if err != nil {
 			app.logger.Warn("admin SAR check failed, denying by default", slog.Any("error", err))
-			app.emitAuditLog(username, r, true, false)
+			app.emitAuditLogWithAdminCheckError(username, r, err)
 			app.unauthorizedResponse(w, r, fmt.Errorf("insufficient permissions to make this request"))
 			return
 		}
@@ -177,6 +155,18 @@ func (app *App) isAllowedNamespace(namespace string) bool {
 		wbNS = app.config.Namespace
 	}
 	return namespace == wbNS
+}
+
+// publicRoute wraps a handler to explicitly mark it as unauthenticated.
+// No auth enforcement is applied. Use this on combinedMux registrations
+// that intentionally skip authentication (healthcheck, OpenAPI, static files).
+func (app *App) publicRoute(next http.Handler) http.Handler {
+	return app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(next)))
+}
+
+// publicRouteFunc is a convenience wrapper for publicRoute with a plain handler function.
+func (app *App) publicRouteFunc(f func(http.ResponseWriter, *http.Request)) http.Handler {
+	return app.publicRoute(http.HandlerFunc(f))
 }
 
 // parseDevGroups splits a comma-separated group string into a slice.

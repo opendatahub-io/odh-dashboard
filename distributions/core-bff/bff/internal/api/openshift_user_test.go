@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -134,10 +135,6 @@ func TestResolveUserViaOpenShiftAPI_XKSReturnsEarly(t *testing.T) {
 // object must be named "~". This still exercises the full code path (GVR
 // construction, dynamic Get, unstructured parsing of username and groups).
 func TestResolveUserViaOpenShiftAPI_OpenShiftResolvesUser(t *testing.T) {
-	userGVR := schema.GroupVersionResource{
-		Group: "user.openshift.io", Version: "v1", Resource: "users",
-	}
-
 	userObj := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "user.openshift.io/v1",
@@ -152,7 +149,7 @@ func TestResolveUserViaOpenShiftAPI_OpenShiftResolvesUser(t *testing.T) {
 	scheme := runtime.NewScheme()
 	fakeDyn := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(
 		scheme,
-		map[schema.GroupVersionResource]string{userGVR: "UserList"},
+		map[schema.GroupVersionResource]string{models.OpenShiftUserGVR: "UserList"},
 		userObj,
 	)
 

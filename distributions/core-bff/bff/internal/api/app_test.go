@@ -329,6 +329,43 @@ func TestRoutes_OpenShiftRoutesAccessibleWhenPlatformSet(t *testing.T) {
 			"if this fails, requirePlatform is rejecting the request because PlatformType is not set")
 }
 
+func TestRoutes_AuthEnforcement(t *testing.T) {
+	tmpDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.html"), []byte("<html></html>"), 0600))
+
+	app := newTestApp(func(a *App) {
+		a.config.StaticAssetsDir = tmpDir
+		a.config.AuthMethod = config.AuthMethodUser
+	})
+
+	ts := httptest.NewServer(app.Routes())
+	defer ts.Close()
+
+	tests := []struct {
+		name       string
+		path       string
+		wantStatus int
+	}{
+		{"healthcheck bypasses auth", HealthCheckPath, http.StatusOK},
+		{"static files bypass auth", "/", http.StatusOK},
+		{"openapi json bypasses auth", OpenAPIJSONPath, http.StatusOK},
+		{"openapi yaml bypasses auth", OpenAPIYAMLPath, http.StatusOK},
+		{"api route requires auth", APIPathPrefix + APIVersion + "/user", http.StatusUnauthorized},
+		{"prefixed api route requires auth", PathPrefix + APIPathPrefix + APIVersion + "/user", http.StatusUnauthorized},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := http.Get(ts.URL + tt.path)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.wantStatus, resp.StatusCode,
+				"path %s should return %d without auth token", tt.path, tt.wantStatus)
+		})
+	}
+}
+
 func TestRoutes_OpenShiftRoutesReturn404OnNonOpenShift(t *testing.T) {
 	tmpDir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.html"), []byte("<html></html>"), 0600))

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -92,7 +93,7 @@ func TestQueryClusterID_Success(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
 		map[schema.GroupVersionResource]string{
-			clusterVersionGVR: "ClusterVersionList",
+			models.ClusterVersionGVR: "ClusterVersionList",
 		}, cv)
 
 	clusterID, err := queryClusterID(dynClient, testLogger())
@@ -118,7 +119,7 @@ func TestQueryClusterID_ForbiddenReturnsError(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
 		map[schema.GroupVersionResource]string{
-			clusterVersionGVR: "ClusterVersionList",
+			models.ClusterVersionGVR: "ClusterVersionList",
 		})
 	dynClient.PrependReactor("get", "clusterversions", func(action k8stesting.Action) (bool, runtime.Object, error) {
 		return true, nil, k8serrors.NewForbidden(
@@ -221,7 +222,7 @@ func TestQueryClusterInfo_BothSucceed(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
 		map[schema.GroupVersionResource]string{
-			clusterVersionGVR: "ClusterVersionList",
+			models.ClusterVersionGVR: "ClusterVersionList",
 		}, cv)
 
 	info, err := queryClusterInfo(typedClient, dynClient, testLogger())

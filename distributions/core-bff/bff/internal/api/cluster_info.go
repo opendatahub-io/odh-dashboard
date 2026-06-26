@@ -9,9 +9,9 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -24,12 +24,6 @@ const (
 	defaultClusterBranding  = "okd"
 	clusterInfoQueryTimeout = 10 * time.Second
 )
-
-var clusterVersionGVR = schema.GroupVersionResource{
-	Group:    "config.openshift.io",
-	Version:  "v1",
-	Resource: "clusterversions",
-}
 
 type clusterInfo struct {
 	clusterID       string
@@ -61,7 +55,7 @@ func queryClusterID(dynClient dynamic.Interface, logger *slog.Logger) (string, e
 	ctx, cancel := context.WithTimeout(context.Background(), clusterInfoQueryTimeout)
 	defer cancel()
 
-	obj, err := dynClient.Resource(clusterVersionGVR).Get(ctx, clusterVersionName, metav1.GetOptions{})
+	obj, err := dynClient.Resource(models.ClusterVersionGVR).Get(ctx, clusterVersionName, metav1.GetOptions{})
 	if err != nil {
 		if k8sutil.IsResourceUnavailable(err) {
 			logger.Debug("ClusterVersion CRD not available (non-OpenShift cluster)", slog.Any("error", err))

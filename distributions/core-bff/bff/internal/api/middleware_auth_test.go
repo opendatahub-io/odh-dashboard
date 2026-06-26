@@ -84,28 +84,6 @@ func TestInjectRequestIdentity_MissingToken(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
-func TestInjectRequestIdentity_SkipsNonAPIRoutes(t *testing.T) {
-	app := newTestApp(func(a *App) {
-		a.config.AuthMethod = config.AuthMethodUser
-	})
-
-	var called bool
-	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		identity := r.Context().Value(constants.RequestIdentityKey)
-		assert.Nil(t, identity, "non-API routes should not have identity injected")
-	})
-
-	handler := app.InjectRequestIdentity(inner)
-
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/some-static-page", nil)
-	handler.ServeHTTP(rr, req)
-
-	assert.True(t, called)
-	assert.Equal(t, http.StatusOK, rr.Code)
-}
-
 func TestInjectRequestIdentity_WssPath_DisabledAuth(t *testing.T) {
 	app := newTestApp()
 
@@ -536,16 +514,16 @@ func TestDevModeFallback_GetClientSucceedsForDevFallbackIdentity(t *testing.T) {
 
 func TestAuditUser_ReturnsUserIDWhenPresent(t *testing.T) {
 	identity := &k8s.RequestIdentity{UserID: "jane"}
-	assert.Equal(t, "jane", auditUser(identity))
+	assert.Equal(t, "jane", auditUser(identity, testLogger()))
 }
 
 func TestAuditUser_ReturnsUnknownForEmptyUserID(t *testing.T) {
 	identity := &k8s.RequestIdentity{UserID: ""}
-	assert.Equal(t, "unknown", auditUser(identity))
+	assert.Equal(t, "unknown", auditUser(identity, testLogger()))
 }
 
 func TestAuditUser_ReturnsUnknownForNilIdentity(t *testing.T) {
-	assert.Equal(t, "unknown", auditUser(nil))
+	assert.Equal(t, "unknown", auditUser(nil, testLogger()))
 }
 
 func TestDevModeFallback_DoesNotActivateInProduction(t *testing.T) {

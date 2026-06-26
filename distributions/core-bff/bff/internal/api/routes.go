@@ -49,8 +49,14 @@ const (
 
 // Routes builds the full HTTP handler tree: API router, proxies, static files, and middleware.
 func (app *App) Routes() http.Handler {
-	apiRouter := httprouter.New()
+	serviceMux := app.newServiceMux()
+	staticHandler := app.newStaticHandler()
+	return app.newCombinedMux(serviceMux, staticHandler)
+}
 
+// newServiceMux creates the mux for API routes and proxies (all require authentication).
+func (app *App) newServiceMux() *http.ServeMux {
+	apiRouter := httprouter.New()
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
@@ -59,31 +65,33 @@ func (app *App) Routes() http.Handler {
 	app.registerConnectionTypeRoutes(apiRouter)
 	app.registerOpenShiftRoutes(apiRouter)
 
-	appMux := http.NewServeMux()
-
-	appMux.Handle(APIPathPrefix+"/", apiRouter)
-	appMux.Handle(PathPrefix+APIPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
-	appMux.HandleFunc(APIPathPrefix, func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.Handle(APIPathPrefix+"/", apiRouter)
+	mux.Handle(PathPrefix+APIPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
+	mux.HandleFunc(APIPathPrefix, func(w http.ResponseWriter, r *http.Request) {
 		app.notFoundResponse(w, r)
 	})
-	appMux.HandleFunc(PathPrefix+APIPathPrefix, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(PathPrefix+APIPathPrefix, func(w http.ResponseWriter, r *http.Request) {
 		app.notFoundResponse(w, r)
 	})
 
-	// K8s API proxy and WebSocket proxy
 	if app.k8sProxy != nil {
-		appMux.Handle(proxy.K8sProxyPrefix, app.k8sProxy)
-		appMux.Handle(PathPrefix+proxy.K8sProxyPrefix, http.StripPrefix(PathPrefix, app.k8sProxy))
+		mux.Handle(proxy.K8sProxyPrefix, app.k8sProxy)
+		mux.Handle(PathPrefix+proxy.K8sProxyPrefix, http.StripPrefix(PathPrefix, app.k8sProxy))
 	}
 	if app.wsProxy != nil {
-		appMux.Handle(proxy.WssProxyPrefix, app.wsProxy)
-		appMux.Handle(PathPrefix+proxy.WssProxyPrefix, http.StripPrefix(PathPrefix, app.wsProxy))
+		mux.Handle(proxy.WssProxyPrefix, app.wsProxy)
+		mux.Handle(PathPrefix+proxy.WssProxyPrefix, http.StripPrefix(PathPrefix, app.wsProxy))
 	}
 
-	// SPA static file server with index.html fallback
+	return mux
+}
+
+// newStaticHandler creates the SPA static file server with index.html fallback.
+func (app *App) newStaticHandler() http.Handler {
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
-	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helpers.GetContextLoggerFromReq(r)
 		if f, err := staticDir.Open(r.URL.Path); err == nil {
 			f.Close()
@@ -94,25 +102,34 @@ func (app *App) Routes() http.Handler {
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
 	})
+}
 
-	// Healthcheck bypasses auth for k8s liveness/readiness probes (matches Fastify)
-	healthcheckMux := http.NewServeMux()
+// newCombinedMux wires public and authenticated routes into the top-level mux.
+// New service prefixes are secure by default - only publicRoute paths skip auth.
+func (app *App) newCombinedMux(serviceMux *http.ServeMux, staticHandler http.Handler) *http.ServeMux {
+	authedHandler := app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(serviceMux))))
+
 	healthcheckRouter := httprouter.New()
 	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
-	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
 
-	// Top-level mux: healthcheck + OpenAPI (no auth), everything else through middleware
-	combinedMux := http.NewServeMux()
-	combinedMux.Handle(HealthCheckPath, healthcheckMux)
-	combinedMux.HandleFunc(OpenAPIJSONPath, app.openAPI.HandleOpenAPIJSONWrapper)
-	combinedMux.HandleFunc(OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
+	mux := http.NewServeMux()
+
+	// Public routes (no authentication required)
+	mux.Handle(HealthCheckPath, app.publicRoute(healthcheckRouter))
+	mux.Handle(OpenAPIJSONPath, app.publicRouteFunc(app.openAPI.HandleOpenAPIJSONWrapper))
+	mux.Handle(OpenAPIYAMLPath, app.publicRouteFunc(app.openAPI.HandleOpenAPIYAMLWrapper))
 	if app.config.DevMode {
-		combinedMux.HandleFunc(SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
-		combinedMux.HandleFunc(OpenAPIPath, app.openAPI.HandleOpenAPIRedirectWrapper)
+		mux.Handle(SwaggerUIPath, app.publicRouteFunc(app.openAPI.HandleSwaggerUIWrapper))
+		mux.Handle(OpenAPIPath, app.publicRouteFunc(app.openAPI.HandleOpenAPIRedirectWrapper))
 	}
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
+	mux.Handle("/", app.publicRoute(staticHandler))
 
-	return combinedMux
+	// Authenticated routes (token required)
+	mux.Handle(APIPathPrefix+"/", authedHandler)
+	mux.Handle(PathPrefix+"/", authedHandler)
+	mux.Handle(proxy.WssProxyPrefix, authedHandler)
+
+	return mux
 }
 
 // Auth contract: every route in the register* functions below must be wrapped

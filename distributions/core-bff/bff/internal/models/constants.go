@@ -40,3 +40,17 @@ var OdhApplicationGVR = schema.GroupVersionResource{
 	Version:  "v1",
 	Resource: "odhapplications",
 }
+
+// ClusterVersionGVR is the GroupVersionResource for OpenShift ClusterVersion.
+var ClusterVersionGVR = schema.GroupVersionResource{
+	Group:    "config.openshift.io",
+	Version:  "v1",
+	Resource: "clusterversions",
+}
+
+// OpenShiftUserGVR is the GroupVersionResource for OpenShift User.
+var OpenShiftUserGVR = schema.GroupVersionResource{
+	Group:    "user.openshift.io",
+	Version:  "v1",
+	Resource: "users",
+}
