@@ -75,7 +75,6 @@ describe('ChatbotFileSearchResults', () => {
       render(<ChatbotFileSearchResults fileSearchData={defaultFileSearchData} />);
 
       expect(screen.getByTestId('file-search-results-toggle')).toBeInTheDocument();
-      // The ExpandableSection is rendered but collapsed (hidden via CSS)
       expect(screen.getByTestId('file-search-results-toggle')).toHaveTextContent(
         '2 sources retrieved',
       );
@@ -132,10 +131,12 @@ describe('ChatbotFileSearchResults', () => {
       render(<ChatbotFileSearchResults fileSearchData={defaultFileSearchData} />);
       fireEvent.click(screen.getByTestId('file-search-results-toggle'));
 
-      expect(screen.queryByTestId('file-search-group-0-chunk-0')).not.toBeInTheDocument();
+      const contentSection = document.getElementById('file-search-group-0-content')!;
+      expect(contentSection).toHaveAttribute('hidden');
 
       fireEvent.click(screen.getByTestId('file-search-group-0-toggle'));
 
+      expect(contentSection).not.toHaveAttribute('hidden');
       expect(screen.getByTestId('file-search-group-0-chunk-0')).toBeInTheDocument();
       expect(screen.getByTestId('file-search-group-0-chunk-1')).toBeInTheDocument();
     });
@@ -220,13 +221,14 @@ describe('ChatbotFileSearchResults', () => {
       fireEvent.click(screen.getByTestId('file-search-results-toggle'));
 
       const toggle = screen.getByTestId('file-search-group-0-toggle');
-      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      // DataListToggle wraps a button with aria-expanded
+      const toggleButton = toggle.querySelector('button') ?? toggle;
 
       fireEvent.click(toggle);
-      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
 
       fireEvent.click(toggle);
-      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
     });
   });
 
@@ -240,7 +242,7 @@ describe('ChatbotFileSearchResults', () => {
       render(<ChatbotFileSearchResults fileSearchData={data} />);
       fireEvent.click(screen.getByTestId('file-search-results-toggle'));
 
-      expect(screen.getByTestId('file-search-group-0-toggle')).toHaveTextContent('abc-123');
+      expect(screen.getByText('abc-123')).toBeInTheDocument();
     });
 
     it('should fall back to "Unknown" when both filename and file_id are missing', () => {
@@ -252,7 +254,7 @@ describe('ChatbotFileSearchResults', () => {
       render(<ChatbotFileSearchResults fileSearchData={data} />);
       fireEvent.click(screen.getByTestId('file-search-results-toggle'));
 
-      expect(screen.getByTestId('file-search-group-0-toggle')).toHaveTextContent('Unknown');
+      expect(screen.getByText('Unknown')).toBeInTheDocument();
     });
   });
 });

@@ -19,24 +19,8 @@
     color: var(--pf-t--global--text--color--subtle);
   }
 
-  &__query-label {
-    font-weight: var(--pf-t--global--font--weight--body--bold);
-  }
-
-  &__table {
-    border: 1px solid var(--pf-t--global--border--color--default);
-    border-radius: var(--pf-t--global--border--radius--small);
-    width: 100%;
-  }
-
-  &__file-group {
-    & + & {
-      border-top: 1px solid var(--pf-t--global--border--color--default);
-    }
-
-    &.m-highlighted {
-      background-color: var(--pf-t--global--background--color--primary--default);
-    }
+  &__file-group--highlighted.pf-v6-c-data-list__item {
+    animation: chatbot-file-search-highlight-fade 2s ease-out forwards;
   }
 
   &__citation-badge {
@@ -46,55 +30,54 @@
     margin-left: var(--pf-t--global--spacer--xs);
   }
 
-  &__row-toggle {
-    all: unset;
-    box-sizing: border-box;
-    cursor: pointer;
-    display: block;
-    width: 100%;
-    padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+  .pf-v6-c-data-list {
+    --pf-v6-c-data-list--BorderBlockStartWidth: 0;
+    border: 1px solid var(--pf-t--global--border--color--default);
+    border-radius: var(--pf-t--global--border--radius--small);
+    overflow: hidden;
 
-    &:focus-visible {
-      outline: 2px solid var(--pf-t--global--border--color--clicked);
-      outline-offset: -2px;
-      border-radius: var(--pf-t--global--border--radius--small);
+    > :last-child > .pf-v6-c-data-list__item {
+      --pf-v6-c-data-list__item--BorderBlockEndWidth: 0;
     }
   }
 
-  &__row-toggle-icon {
-    flex-shrink: 0;
-    font-size: var(--pf-t--global--font--size--sm);
-    color: var(--pf-t--global--text--color--subtle);
+  // Remove DataListContent's built-in padding/margin so the darker background is flush
+  .pf-v6-c-data-list__expandable-content {
+    --pf-v6-c-data-list__expandable-content--MarginBlockEnd: 0;
+    --pf-v6-c-data-list__expandable-content--MarginInlineStart: 0;
+    --pf-v6-c-data-list__expandable-content--MarginInlineEnd: 0;
+    --pf-v6-c-data-list__expandable-content-body--BorderRadius: 0;
+    border: none;
   }
 
-  &__filename {
-    font-weight: var(--pf-t--global--font--weight--body--bold);
-    font-size: var(--pf-t--global--font--size--sm);
-    color: var(--pf-t--global--text--color--regular);
-  }
-
-  &__chunk-count {
-    font-weight: var(--pf-t--global--font--weight--body--bold);
-    font-size: var(--pf-t--global--font--size--sm);
+  .pf-v6-c-data-list__expandable-content-body {
+    padding: 0;
   }
 
   &__chunks {
-    padding: 0 var(--pf-t--global--spacer--md)
-      var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--lg);
     background-color: var(--pf-t--global--background--color--secondary--default);
+    padding: var(--pf-t--global--spacer--sm) 0;
   }
 
   &__chunk {
-    padding: var(--pf-t--global--spacer--sm) 0;
-    border-top: 1px solid var(--pf-t--global--border--color--default);
-    margin-left: calc(-1 * var(--pf-t--global--spacer--lg));
-    margin-right: calc(-1 * var(--pf-t--global--spacer--md));
-    padding-left: var(--pf-t--global--spacer--lg);
-    padding-right: var(--pf-t--global--spacer--md);
+    padding: var(--pf-t--global--spacer--md);
+    padding-left: var(--pf-v6-c-data-list__item-row--PaddingInlineStart, var(--pf-t--global--spacer--lg));
+    padding-right: var(--pf-v6-c-data-list__item-row--PaddingInlineEnd, var(--pf-t--global--spacer--lg));
+
+    & + & {
+      border-top: 1px solid var(--pf-t--global--border--color--default);
+    }
   }
 
-  &__chunk-label {
-    font-weight: var(--pf-t--global--font--weight--body--bold);
+  @keyframes chatbot-file-search-highlight-fade {
+    0%,
+    50% {
+      background-color: var(--pf-t--color--blue--10);
+    }
+
+    100% {
+      background-color: transparent;
+    }
   }
 
   &__snippet {
@@ -103,25 +86,5 @@
     color: var(--pf-t--global--text--color--subtle);
     white-space: pre-wrap;
     overflow-wrap: break-word;
-  }
-
-  &__show-more {
-    all: unset;
-    display: block;
-    cursor: pointer;
-    color: var(--pf-t--global--text--color--link--default);
-    font-size: var(--pf-t--global--font--size--xs);
-    font-weight: var(--pf-t--global--font--weight--body--bold);
-    margin-top: var(--pf-t--global--spacer--xs);
-
-    &:hover {
-      color: var(--pf-t--global--text--color--link--hover);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--pf-t--global--border--color--clicked);
-      outline-offset: 1px;
-      border-radius: var(--pf-t--global--border--radius--tiny);
-    }
   }
 }

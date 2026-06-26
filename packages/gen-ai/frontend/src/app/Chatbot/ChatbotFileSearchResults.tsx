@@ -1,13 +1,20 @@
 import * as React from 'react';
 import {
+  Button,
   Content,
+  DataList,
+  DataListCell,
+  DataListContent,
+  DataListItem,
+  DataListItemCells,
+  DataListItemRow,
+  DataListToggle,
   ExpandableSection,
   ExpandableSectionToggle,
   Flex,
   FlexItem,
   Label,
 } from '@patternfly/react-core';
-import { AngleRightIcon, AngleDownIcon } from '@patternfly/react-icons';
 import { FileSearchCallData, FileSearchResult } from '~/app/types';
 import './ChatbotFileSearchResults.scss';
 
@@ -111,7 +118,7 @@ const ChunkRow: React.FC<ChunkRowProps> = ({ chunk, index, groupIndex }) => {
         alignItems={{ default: 'alignItemsCenter' }}
       >
         <FlexItem>
-          <Content component="small" className="chatbot-file-search__chunk-label">
+          <Content component="small" className="pf-v6-u-font-weight-bold">
             Chunk {index + 1}
           </Content>
         </FlexItem>
@@ -133,16 +140,14 @@ const ChunkRow: React.FC<ChunkRowProps> = ({ chunk, index, groupIndex }) => {
         >
           &ldquo;{isShowingMore ? chunk.text : truncated}&rdquo;
           {isTruncated && (
-            <>
-              {' '}
-              <button
-                type="button"
-                className="chatbot-file-search__show-more"
-                onClick={() => setIsShowingMore((prev) => !prev)}
-              >
-                {isShowingMore ? 'Show less' : 'Show more'}
-              </button>
-            </>
+            <Button
+              variant="link"
+              isInline
+              className="pf-v6-u-font-size-xs pf-v6-u-display-block pf-v6-u-mt-xs"
+              onClick={() => setIsShowingMore((prev) => !prev)}
+            >
+              {isShowingMore ? 'Show less' : 'Show more'}
+            </Button>
           )}
         </Content>
       )}
@@ -154,6 +159,7 @@ type FileGroupRowProps = {
   group: FileGroup;
   index: number;
   isForceExpanded?: boolean;
+  isHighlighted?: boolean;
   collapseKey: number;
 };
 
@@ -161,11 +167,11 @@ const FileGroupRow: React.FC<FileGroupRowProps> = ({
   group,
   index,
   isForceExpanded,
+  isHighlighted,
   collapseKey,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const expanded = isForceExpanded || isExpanded;
-  const ToggleIcon = expanded ? AngleDownIcon : AngleRightIcon;
   const chunkCount = group.chunks.length;
   const groupRef = React.useRef<HTMLDivElement>(null);
 
@@ -181,57 +187,68 @@ const FileGroupRow: React.FC<FileGroupRowProps> = ({
   }, [collapseKey]);
 
   return (
-    <div
-      ref={groupRef}
-      className={`chatbot-file-search__file-group${isForceExpanded ? ' m-highlighted' : ''}`}
-      data-testid={`file-search-group-${index}`}
-    >
-      <button
-        type="button"
-        className="chatbot-file-search__row-toggle"
-        onClick={() => setIsExpanded((prev) => !prev)}
-        aria-expanded={expanded}
-        data-testid={`file-search-group-${index}-toggle`}
+    <div ref={groupRef}>
+      <DataListItem
+        aria-labelledby={`file-search-group-${index}-name`}
+        isExpanded={expanded}
+        data-testid={`file-search-group-${index}`}
+        className={isHighlighted ? 'chatbot-file-search__file-group--highlighted' : undefined}
       >
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsCenter' }}
+        <DataListItemRow>
+          <DataListToggle
+            onClick={() => setIsExpanded((prev) => !prev)}
+            isExpanded={expanded}
+            id={`file-search-group-${index}-toggle`}
+            aria-controls={`file-search-group-${index}-content`}
+            data-testid={`file-search-group-${index}-toggle`}
+          />
+          <DataListItemCells
+            dataListCells={[
+              <DataListCell key="name">
+                <span
+                  id={`file-search-group-${index}-name`}
+                  className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm"
+                >
+                  {group.filename}
+                </span>
+                {group.citationNumber != null && (
+                  <span
+                    className="chatbot-file-search__citation-badge"
+                    data-testid={`file-search-group-${index}-citation`}
+                  >
+                    [{group.citationNumber}]
+                  </span>
+                )}
+              </DataListCell>,
+              <DataListCell key="count" alignRight isFilled={false}>
+                <span
+                  className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm"
+                  style={{ color: getChunkCountColor(group.bestScore) }}
+                  data-testid={`file-search-group-${index}-chunk-count`}
+                >
+                  {chunkCount} chunk{chunkCount !== 1 ? 's' : ''}
+                </span>
+              </DataListCell>,
+            ]}
+          />
+        </DataListItemRow>
+        <DataListContent
+          aria-label={`${group.filename} chunks`}
+          id={`file-search-group-${index}-content`}
+          isHidden={!expanded}
         >
-          <FlexItem>
-            <ToggleIcon className="chatbot-file-search__row-toggle-icon" />
-            <span className="chatbot-file-search__filename">{group.filename}</span>
-            {group.citationNumber != null && (
-              <span
-                className="chatbot-file-search__citation-badge"
-                data-testid={`file-search-group-${index}-citation`}
-              >
-                [{group.citationNumber}]
-              </span>
-            )}
-          </FlexItem>
-          <FlexItem>
-            <span
-              className="chatbot-file-search__chunk-count"
-              style={{ color: getChunkCountColor(group.bestScore) }}
-              data-testid={`file-search-group-${index}-chunk-count`}
-            >
-              {chunkCount} chunk{chunkCount !== 1 ? 's' : ''}
-            </span>
-          </FlexItem>
-        </Flex>
-      </button>
-      {expanded && (
-        <div className="chatbot-file-search__chunks">
-          {group.chunks.map((chunk, chunkIndex) => (
-            <ChunkRow
-              key={`${chunk.file_id ?? 'chunk'}-${chunkIndex}`}
-              chunk={chunk}
-              index={chunkIndex}
-              groupIndex={index}
-            />
-          ))}
-        </div>
-      )}
+          <div className="chatbot-file-search__chunks">
+            {group.chunks.map((chunk, chunkIndex) => (
+              <ChunkRow
+                key={`${chunk.file_id ?? 'chunk'}-${chunkIndex}`}
+                chunk={chunk}
+                index={chunkIndex}
+                groupIndex={index}
+              />
+            ))}
+          </div>
+        </DataListContent>
+      </DataListItem>
     </div>
   );
 };
@@ -244,6 +261,7 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [collapseKey, setCollapseKey] = React.useState(0);
+  const [highlightedCitation, setHighlightedCitation] = React.useState<number | undefined>();
   const toggleId = React.useId();
   const contentId = React.useId();
 
@@ -257,12 +275,15 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
   const totalSources = fileGroups.length;
   const citedSources = citationMap ? fileGroups.filter((g) => g.citationNumber != null).length : 0;
 
-  // Auto-expand when a citation is clicked
   React.useEffect(() => {
     if (expandedCitation != null) {
       setIsExpanded(true);
+      setHighlightedCitation(expandedCitation);
       onCitationExpanded?.();
+      const timer = window.setTimeout(() => setHighlightedCitation(undefined), 2100);
+      return () => clearTimeout(timer);
     }
+    return undefined;
   }, [expandedCitation, onCitationExpanded]);
 
   return (
@@ -298,11 +319,11 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
               className="chatbot-file-search__query"
               data-testid="file-search-query"
             >
-              <span className="chatbot-file-search__query-label">Embedding query:</span> &ldquo;
+              <span className="pf-v6-u-font-weight-bold">Embedding query:</span> &ldquo;
               {queries[0]}&rdquo;
             </Content>
           )}
-          <div className="chatbot-file-search__table">
+          <DataList aria-label="File search results" isCompact>
             {fileGroups.map((group, index) => (
               <FileGroupRow
                 key={group.filename}
@@ -312,9 +333,12 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
                 isForceExpanded={
                   expandedCitation != null && group.citationNumber === expandedCitation
                 }
+                isHighlighted={
+                  highlightedCitation != null && group.citationNumber === highlightedCitation
+                }
               />
             ))}
-          </div>
+          </DataList>
         </div>
       </ExpandableSection>
     </div>
