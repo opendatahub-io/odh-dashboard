@@ -67,7 +67,7 @@ const snippetTabs: {
 const decodeCredentials = (ogxCredentials: OgxCredentials): SnippetCredentials => {
   const decodedBaseUrl = atob(ogxCredentials.baseUrl);
   return {
-    hostname: decodedBaseUrl.replace(/^https?:\/\//, ''),
+    hostname: decodedBaseUrl.replace(/^https?:\/\//i, '').replace(/\/$/, ''),
     apiKey: atob(ogxCredentials.apiKey),
   };
 };
@@ -182,7 +182,11 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
                     <CodeBlockAction>
                       <ClipboardCopyButton
                         id={tab.id}
-                        aria-label={tab.ariaLabel}
+                        aria-label={
+                          showCredentials && hasCredentials
+                            ? `${tab.ariaLabel} with credentials`
+                            : tab.ariaLabel
+                        }
                         onClick={() =>
                           handleCopy(tab.generator(snippetParams, displayCredentials), index)
                         }

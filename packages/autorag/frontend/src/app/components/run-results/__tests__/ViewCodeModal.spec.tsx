@@ -178,11 +178,10 @@ describe('ViewCodeModal', () => {
       expect(screen.getByLabelText('Copy curl snippet')).toBeInTheDocument();
     });
 
-    it('should show "Copy with credentials" copy button when toggle is on', () => {
+    it('should update copy button aria-label to include "with credentials" when toggle is on', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
       fireEvent.click(screen.getByTestId('toggle-credentials-button'));
-      // Verify the button still exists with the same aria-label
-      expect(screen.getByLabelText('Copy curl snippet')).toBeInTheDocument();
+      expect(screen.getByLabelText('Copy curl snippet with credentials')).toBeInTheDocument();
     });
 
     it('should display copy button when no credentials', () => {
@@ -223,7 +222,7 @@ describe('ViewCodeModal', () => {
 
       render(<ViewCodeModal {...propsWithCredentials} />);
       fireEvent.click(screen.getByTestId('toggle-credentials-button'));
-      fireEvent.click(screen.getByLabelText('Copy curl snippet'));
+      fireEvent.click(screen.getByLabelText('Copy curl snippet with credentials'));
 
       expect(writeText).toHaveBeenCalledTimes(1);
       const copiedText = writeText.mock.calls[0][0] as string;
