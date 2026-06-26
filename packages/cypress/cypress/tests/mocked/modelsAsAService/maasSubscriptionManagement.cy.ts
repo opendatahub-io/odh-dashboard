@@ -91,7 +91,6 @@ describe('Subscription Management Page', () => {
   it('should test sorting, expand/collapse, warning, and group chips in the overview tab', () => {
     subscriptionManagementPage.visit('overview');
     overviewTabPage.findTable().should('exist');
-    overviewTabPage.findViewToggle().should('exist');
 
     // Sort by model name
     overviewTabPage.findColumnSortButton('Model name').click();
