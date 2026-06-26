@@ -28,6 +28,7 @@ metadata:
 spec:
   feastProject: credit_scoring_local
   services:
+    runFeastApplyOnInit: false
     onlineStore:
       persistence:
         store:

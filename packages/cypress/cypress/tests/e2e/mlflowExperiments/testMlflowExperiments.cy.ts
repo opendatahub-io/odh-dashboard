@@ -185,7 +185,7 @@ describe('Verify MLflow Experiments page', () => {
       mlflowExperiments.findExperimentInTable(experimentName).should('be.visible');
 
       // =======================================================================
-      // Rename experiment
+      // Edit experiment (rename)
       // =======================================================================
 
       cy.step('Click experiment to open detail page');
@@ -194,14 +194,18 @@ describe('Verify MLflow Experiments page', () => {
       cy.step('Open overflow menu on detail page');
       mlflowExperiments.findOverflowMenuTrigger().click();
 
-      cy.step('Click rename action');
-      mlflowExperiments.findRenameAction().click();
+      cy.step('Click edit experiment action');
+      mlflowExperiments.findEditExperimentAction().click();
 
       cy.step('Clear and type new name');
-      mlflowExperiments.findRenameInput().should('be.visible').clear().type(renamedExperimentName);
+      mlflowExperiments
+        .findEditExperimentNameInput()
+        .should('be.visible')
+        .clear()
+        .type(renamedExperimentName);
 
-      cy.step('Submit rename');
-      mlflowExperiments.findRenameSubmitButton().click();
+      cy.step('Submit edit experiment');
+      mlflowExperiments.findEditExperimentSubmitButton().click();
       mlflowExperiments.findExperimentDetailHeading(renamedExperimentName).should('be.visible');
       uiExperimentName = renamedExperimentName;
 
