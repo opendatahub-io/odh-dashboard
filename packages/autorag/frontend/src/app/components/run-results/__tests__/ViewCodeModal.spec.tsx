@@ -147,10 +147,10 @@ describe('ViewCodeModal', () => {
       ogxCredentials: mockOgxCredentials,
     };
 
-    it('should render the show credentials toggle button', () => {
+    it('should render the inject credentials toggle', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
       expect(screen.getByTestId('toggle-credentials-button')).toBeInTheDocument();
-      expect(screen.getByTestId('toggle-credentials-button')).toHaveTextContent('Show credentials');
+      expect(screen.getByText('Inject credentials')).toBeInTheDocument();
     });
 
     it('should not render the toggle button when credentials are not provided', () => {
@@ -165,10 +165,9 @@ describe('ViewCodeModal', () => {
       expect(codeBlock.textContent).not.toContain('ogx.example.com');
     });
 
-    it('should inject credentials when show credentials is toggled', () => {
+    it('should inject credentials when the toggle is switched on', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
       fireEvent.click(screen.getByTestId('toggle-credentials-button'));
-      expect(screen.getByTestId('toggle-credentials-button')).toHaveTextContent('Hide credentials');
       const codeBlock = screen.getByText(/curl -X POST/);
       expect(codeBlock.textContent).toContain('ogx.example.com');
       expect(codeBlock.textContent).not.toContain('<HOSTNAME>');
@@ -191,14 +190,18 @@ describe('ViewCodeModal', () => {
       expect(screen.getByLabelText('Copy curl snippet')).toBeInTheDocument();
     });
 
-    it('should show replacement instruction text when no credentials', () => {
+    it('should explain credentials are fetched from cluster when no credentials', () => {
       render(<ViewCodeModal {...defaultProps} />);
-      expect(screen.getByText(/Replace/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/fetches your Open GenAI Stack credentials from the cluster/),
+      ).toBeInTheDocument();
     });
 
-    it('should not show replacement instruction text when credentials are available', () => {
+    it('should not show the cluster fetch description when credentials are available', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
-      expect(screen.queryByText(/Replace/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/fetches your Open GenAI Stack credentials from the cluster/),
+      ).not.toBeInTheDocument();
     });
 
     it('should copy snippet with placeholders when toggle is off', async () => {
@@ -232,7 +235,8 @@ describe('ViewCodeModal', () => {
 
     it('should not show the credentials warning alert when toggle is off', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
-      expect(screen.queryByTestId('credentials-warning-alert')).not.toBeInTheDocument();
+      const alert = screen.getByTestId('credentials-warning-alert');
+      expect(alert.closest('[aria-hidden="true"]')).toBeInTheDocument();
     });
 
     it('should show the credentials warning alert when toggle is on', () => {

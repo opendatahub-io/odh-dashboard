@@ -1,6 +1,5 @@
 import {
   Alert,
-  Button,
   ClipboardCopyButton,
   CodeBlock,
   CodeBlockAction,
@@ -10,11 +9,11 @@ import {
   Modal,
   ModalBody,
   ModalHeader,
+  Switch,
   Tab,
   Tabs,
   TabTitleText,
 } from '@patternfly/react-core';
-import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useParams } from 'react-router';
 import type { OgxCredentials } from '~/app/types';
@@ -139,39 +138,35 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
       <ModalHeader title={`${formatPatternName(patternName)} — Response payload`} />
       <ModalBody className="autorag-view-code-modal__body">
         <Content component={ContentVariants.p} className="pf-v6-u-mb-md">
-          {hasCredentials ? (
-            'Use these code snippets to query this pattern programmatically via the Responses API.'
-          ) : (
-            <>
-              Use these code snippets to query this pattern programmatically via the Responses API.
-              Replace <code>&lt;HOSTNAME&gt;</code> and <code>&lt;API_KEY&gt;</code> with your OGX
-              instance URL and credentials.
-            </>
-          )}
+          {hasCredentials
+            ? 'Use these code snippets to query this pattern programmatically via the Responses API.'
+            : 'Use these code snippets to query this pattern programmatically via the Responses API. Each snippet fetches your Open GenAI Stack credentials from the cluster automatically.'}
         </Content>
-        {hasCredentials && showCredentials && (
-          <Alert
-            variant="warning"
-            isInline
-            title="Credentials will be included when you copy"
-            className="pf-v6-u-mb-md"
-            data-testid="credentials-warning-alert"
+        {hasCredentials && (
+          <div
+            className={`autorag-view-code-modal__credentials-alert${showCredentials ? ' autorag-view-code-modal__credentials-alert--visible' : ''}`}
+            aria-hidden={!showCredentials}
           >
-            Your real OGX hostname and API key will be copied with the snippet. Treat the copied
-            code as a secret.
-          </Alert>
+            <Alert
+              variant="warning"
+              isInline
+              title="Credentials will be included when you copy"
+              data-testid="credentials-warning-alert"
+            >
+              Your real Open GenAI Stack hostname and API key will be copied with the snippet. Treat
+              the copied code as a secret.
+            </Alert>
+          </div>
         )}
         <div className="autorag-view-code-modal__tabs-container">
           {hasCredentials && (
             <div className="autorag-view-code-modal__credentials-toggle">
-              <Button
-                variant="link"
-                icon={showCredentials ? <EyeSlashIcon /> : <EyeIcon />}
-                onClick={() => setShowCredentials((prev) => !prev)}
+              <Switch
+                label="Inject credentials"
+                isChecked={showCredentials}
+                onChange={(_e, checked) => setShowCredentials(checked)}
                 data-testid="toggle-credentials-button"
-              >
-                {showCredentials ? 'Hide credentials' : 'Show credentials'}
-              </Button>
+              />
             </div>
           )}
           <Tabs
