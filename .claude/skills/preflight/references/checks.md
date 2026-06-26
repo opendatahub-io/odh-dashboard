@@ -49,7 +49,14 @@ When CI failures are found on a synced PR, run the `/ci-flake-classifier` skill 
 python3 scripts/classify-ci-failures.py "$pr_number"
 ```
 
-The skill is defined in `.claude/skills/ci-flake-classifier/SKILL.md`. See [ci-flake-classifier.md](ci-flake-classifier.md) for how to map the output to preflight statuses and verdicts.
+The skill is defined in `.claude/skills/ci-flake-classifier/SKILL.md`. Map the output classifications to preflight statuses:
+
+- `flaky`, `suspected_flaky`, `external_unknown` → ⚠️ (does not block verdict)
+- `genuine`, `deterministic`, `unknown` → ❌ (blocks verdict)
+
+If only non-blocking classifications → READY WITH WARNINGS. If any blocking → NOT READY. If the classifier is unavailable or fails, fall back to reporting all failures as ❌.
+
+CI row examples: `37 passed · 2 failed: 1 genuine ❌, 1 flaky ⚠️ (seen on 3 other PRs)` or `37 passed · 2 failed (all likely flaky — see details)`.
 
 ## Reviews
 
