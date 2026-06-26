@@ -871,6 +871,7 @@ declare global {
                 configName: string;
                 projectName: string;
                 hasAccessToFeatureStore: boolean;
+                permissionLevel: string[];
               }>;
             }>;
           }>,

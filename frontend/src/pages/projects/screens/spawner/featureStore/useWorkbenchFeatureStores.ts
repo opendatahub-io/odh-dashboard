@@ -12,6 +12,7 @@ export type WorkbenchFeatureStoreConfig = {
   projectName: string;
   configMap: ConfigMapKind | null;
   hasAccessToFeatureStore: boolean;
+  permissionLevel: string[];
 };
 
 type UseWorkbenchFeatureStoresReturn = {
@@ -37,6 +38,7 @@ export const useWorkbenchFeatureStores = (): UseWorkbenchFeatureStoresReturn => 
             projectName: config.projectName,
             configMap: null,
             hasAccessToFeatureStore: config.hasAccessToFeatureStore,
+            permissionLevel: config.permissionLevel,
           }))
         : [],
     );

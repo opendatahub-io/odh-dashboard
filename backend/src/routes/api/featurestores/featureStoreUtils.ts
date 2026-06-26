@@ -310,6 +310,44 @@ export function extractPermissionLevel(data: FeastPermissionsResponse): string[]
 }
 
 /**
+ * Fetches the user's Feast permissions for a project. Returns [] on any failure.
+ */
+export async function getProjectPermissions(
+  fastify: KubeFastifyInstance,
+  crd: FeatureStoreCRD,
+  projectName: string,
+  token: string,
+): Promise<string[]> {
+  try {
+    const { serviceName, namespace, protocol, port } = getServiceFromCRD(crd);
+    const permissionsUrl = constructRegistryProxyUrl(
+      serviceName,
+      namespace,
+      `api/v1/permissions?project=${encodeURIComponent(projectName)}`,
+      true,
+      protocol,
+      port,
+    );
+    const { data, statusCode } = await makeAuthenticatedHttpRequest<FeastPermissionsResponse>(
+      fastify,
+      permissionsUrl,
+      token,
+      {},
+    );
+    if (statusCode < 200 || statusCode >= 300) {
+      throw new Error(`Permissions endpoint returned ${statusCode}`);
+    }
+    return extractPermissionLevel(data);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    fastify.log.warn(
+      `Permission lookup for ${crd.metadata.namespace}/${crd.metadata.name} project=${projectName}: ${errorMsg}`,
+    );
+    return [];
+  }
+}
+
+/**
  * Maps feast project name → workbenches that reference it via the feast-config annotation.
  */
 export function buildWorkbenchesByFeastProjectMap(
