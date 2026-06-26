@@ -1,15 +1,26 @@
 /**
  * Test utility to validate HTTP and HTTPS URLs with retry logic and error handling.
  *
+ * Node.js-only module - runs as Cypress task in cypress.config.ts.
+ * Do not import directly in test files - use urlValidatorShared.ts for browser-safe utilities.
+ *
  * Including:
  * - validateHttpsUrls(): Validate multiple URLs with proxy support and retries
- * - getErrorType(): Categorize HTTP status codes and network errors
  */
 
 import * as http from 'http';
 import * as https from 'https';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const HttpsProxyAgent: new (options: string | object) => https.Agent = require('https-proxy-agent');
+
+// Re-export browser-safe utilities from shared module
+export {
+  VALID_STATUS_CODES,
+  TRANSIENT_ERROR_CODES,
+  PERMANENT_ERROR_CODES,
+  getErrorType,
+  validateUrlFormat,
+} from './urlValidatorShared';
 
 // Result interface for URL validation responses
 interface UrlValidationResult {
@@ -23,7 +34,40 @@ interface UrlValidationResult {
 const commonUserAgent =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const maxRedirects = 5;
-const requestTimeout = 3000;
+
+// Tiered timeout strategy for different URL types
+const TIMEOUT_TIERS = {
+  INTERNAL: 5000, // Internal Red Hat domains (*.redhat.com, *.openshift.com)
+  NORMAL: 15000, // Most external URLs
+  SLOW: 30000, // Known slow services (catalogs, CDNs, etc.)
+};
+
+// Domains known to have slower response times
+const SLOW_DOMAINS = [
+  'catalog.redhat.com', // Red Hat container catalog - often slow from CI
+  'quay.io', // Container registry - can be slow
+  'registry.redhat.io', // Red Hat registry - can be slow
+];
+
+// Internal/fast domains
+const INTERNAL_DOMAINS = ['.redhat.com', '.openshift.com', 'redhat.com', 'openshift.com'];
+
+// Determine appropriate timeout based on URL
+const getTimeoutForUrl = (url: string): number => {
+  // Check if it's a known slow domain
+  if (SLOW_DOMAINS.some((domain) => url.includes(domain))) {
+    return TIMEOUT_TIERS.SLOW;
+  }
+
+  // Check if it's an internal domain
+  if (INTERNAL_DOMAINS.some((domain) => url.includes(domain))) {
+    return TIMEOUT_TIERS.INTERNAL;
+  }
+
+  // Default to normal timeout
+  return TIMEOUT_TIERS.NORMAL;
+};
+
 const maxRetries = 3;
 const initialRetryDelay = 1000;
 
@@ -50,12 +94,15 @@ const sleep = (ms: number): Promise<void> =>
 // Check if an error is retryable based on error codes and messages
 const isRetryableError = (error: Error & { code?: string }): boolean => {
   const retryableCodes = ['ENETUNREACH', 'ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED'];
-  // Only retry errors with known retryable codes or timeout-related errors without codes
   return (
     retryableCodes.includes(error.code || '') ||
     (!error.code && error.message.includes('timed out'))
   );
 };
+
+// 5xx status codes are sometimes transient server and throttling related errors worth retrying
+const isRetryableStatusCode = (statusCode: number): boolean =>
+  statusCode >= 500 && statusCode < 600;
 
 // Make HTTP/HTTPS request with retry logic, redirect handling, and proxy support
 const makeRequest = async (
@@ -77,6 +124,7 @@ const makeRequest = async (
 
   const effectiveOriginalUrl = originalUrl || urlToTest;
   const effectiveProxyUrl = proxyUrlFromTask || process.env.https_proxy || process.env.HTTPS_PROXY;
+  const requestTimeout = getTimeoutForUrl(urlToTest);
   let agent: http.Agent | undefined;
 
   // Setup proxy agent for HTTPS requests if proxy is configured
@@ -110,6 +158,12 @@ const makeRequest = async (
     const statusCode = response.statusCode || 0;
     const { location } = response.headers;
 
+    // Consume response data to properly close the connection
+    await new Promise<void>((resolve) => {
+      response.on('data', () => undefined);
+      response.on('end', resolve);
+    });
+
     // Handle HTTP redirects (3xx status codes)
     if (statusCode >= 300 && statusCode < 400 && location) {
       try {
@@ -132,11 +186,17 @@ const makeRequest = async (
       }
     }
 
-    // Consume response data to properly close the connection
-    await new Promise<void>((resolve) => {
-      response.on('data', () => undefined);
-      response.on('end', resolve);
-    });
+    if (isRetryableStatusCode(statusCode) && retryCount < maxRetries) {
+      const delay = initialRetryDelay * Math.pow(2, retryCount);
+      await sleep(delay);
+      return await makeRequest(
+        urlToTest,
+        proxyUrlFromTask,
+        redirectCount,
+        retryCount + 1,
+        effectiveOriginalUrl,
+      );
+    }
 
     return { url: urlToTest, originalUrl: effectiveOriginalUrl, status: statusCode };
   } catch (err: unknown) {
@@ -169,40 +229,21 @@ const makeRequest = async (
   }
 };
 
-// Validate multiple URLs concurrently with proxy support and retry logic
+const CONCURRENCY_LIMIT = 10;
+
+// Validate multiple URLs with proxy support, retries, and concurrency limiting
 export async function validateHttpsUrls(
   urls: string[],
   proxyUrlFromTask?: string,
 ): Promise<UrlValidationResult[]> {
-  return Promise.all(urls.map((url) => makeRequest(url, proxyUrlFromTask)));
+  const uniqueUrls = [...new Set(urls)];
+  const results: UrlValidationResult[] = [];
+
+  for (let i = 0; i < uniqueUrls.length; i += CONCURRENCY_LIMIT) {
+    const batch = uniqueUrls.slice(i, i + CONCURRENCY_LIMIT);
+    const batchResults = await Promise.all(batch.map((url) => makeRequest(url, proxyUrlFromTask)));
+    results.push(...batchResults);
+  }
+
+  return results;
 }
-
-// Categorize HTTP status codes and network errors into error types
-export const getErrorType = (status: number, error?: string): string => {
-  if (status >= 400 && status < 500) {
-    return 'CLIENT_ERROR';
-  }
-  if (status >= 500 && status < 600) {
-    return 'SERVER_ERROR';
-  }
-
-  if (status === 0 && error) {
-    if (error.includes('timed out')) {
-      return 'TIMEOUT';
-    }
-    if (error.includes('Too many redirects')) {
-      return 'REDIRECT_MAX';
-    }
-    if (error.includes('Invalid redirect URL')) {
-      return 'REDIRECT_INVALID';
-    }
-    if (error.includes('aborted')) {
-      return 'ABORTED';
-    }
-    if (error.includes('Code:')) {
-      return 'NETWORK_ERROR';
-    }
-  }
-
-  return 'UNKNOWN';
-};
