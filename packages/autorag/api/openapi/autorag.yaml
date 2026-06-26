@@ -1782,6 +1782,8 @@ components:
         application/json:
           schema:
             type: object
+            required:
+              - data
             properties:
               metadata:
                 type: object

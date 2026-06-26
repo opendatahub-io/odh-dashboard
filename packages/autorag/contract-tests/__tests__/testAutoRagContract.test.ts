@@ -571,6 +571,7 @@ describe('AutoRAG API Contract Tests', () => {
           status: 200,
         });
 
+        expect(result.success).toBe(true);
         if (result.success) {
           const responseData = result.response.data as { data?: Record<string, string> };
           expect(responseData.data).toBeDefined();
