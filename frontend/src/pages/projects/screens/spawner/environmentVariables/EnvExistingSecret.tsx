@@ -29,8 +29,13 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
   const [availableKeys, setAvailableKeys] = React.useState<string[]>([]);
   const [isLoadingKeys, setIsLoadingKeys] = React.useState(false);
   const [keyLoadError, setKeyLoadError] = React.useState<string | null>(null);
+  const envRef = React.useRef(env);
 
   const selectedSecretName = env.secretName || '';
+
+  React.useEffect(() => {
+    envRef.current = env;
+  }, [env]);
 
   const selectedKeys = React.useMemo(() => {
     return env.data.map((entry) => entry.key);
@@ -68,7 +73,8 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
       };
     }
     return undefined;
-  }, [selectedSecretName, namespace, selectedSecret]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedSecret is read-only state gate
+  }, [selectedSecretName, namespace]);
 
   const handleSecretSelection = React.useCallback(
     (_event: React.MouseEvent | React.KeyboardEvent | undefined, selection: string | number) => {
@@ -84,7 +90,7 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
 
           // Initialize with empty selection
           onUpdate({
-            ...env,
+            ...envRef.current,
             data: [],
             allKeys: false,
             secretName,
@@ -99,7 +105,7 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
           setIsLoadingKeys(false);
         });
     },
-    [namespace, env, onUpdate],
+    [namespace, onUpdate],
   );
 
   const handleAllKeysChange = React.useCallback(
@@ -108,20 +114,20 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
         // Select all keys
         const allKeyEntries = availableKeys.map((key) => ({ key, value: '' }));
         onUpdate({
-          ...env,
+          ...envRef.current,
           data: allKeyEntries,
           allKeys: true,
         });
       } else {
         // Deselect all
         onUpdate({
-          ...env,
+          ...envRef.current,
           data: [],
           allKeys: false,
         });
       }
     },
-    [availableKeys, env, onUpdate],
+    [availableKeys, onUpdate],
   );
 
   const handleKeySelection = React.useCallback(
@@ -129,21 +135,21 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
       if (checked) {
         // Add key
         onUpdate({
-          ...env,
-          data: [...env.data, { key, value: '' }],
+          ...envRef.current,
+          data: [...envRef.current.data, { key, value: '' }],
           allKeys: false,
         });
       } else {
         // Remove key
-        const newData = env.data.filter((entry) => entry.key !== key);
+        const newData = envRef.current.data.filter((entry) => entry.key !== key);
         onUpdate({
-          ...env,
+          ...envRef.current,
           data: newData,
           allKeys: false,
         });
       }
     },
-    [env, onUpdate],
+    [onUpdate],
   );
 
   if (!namespace) {

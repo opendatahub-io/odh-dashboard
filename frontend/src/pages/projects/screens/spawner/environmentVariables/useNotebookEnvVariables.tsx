@@ -16,7 +16,8 @@ import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const container = notebook.spec.template.spec.containers[0];
   const envFromList = container.envFrom || [];
-  const envList = container.env;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- env can be undefined in K8s API responses
+  const envList = container.env || [];
 
   // Process envFrom entries (existing behavior)
   const envFromPromise = Promise.all(

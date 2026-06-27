@@ -119,7 +119,8 @@ export const detectEnvVarConflicts = (
       sources.push({ name: sourceName, keys });
     } else if (
       envVar.values.category === SecretCategory.GENERIC ||
-      envVar.values.category === SecretCategory.UPLOAD
+      envVar.values.category === SecretCategory.UPLOAD ||
+      envVar.values.category === SecretCategory.AWS
     ) {
       const existingInline = sources.find((s) => s.name === 'Inline secret');
       if (existingInline) {
