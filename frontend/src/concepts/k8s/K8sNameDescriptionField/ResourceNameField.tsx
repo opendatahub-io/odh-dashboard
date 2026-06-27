@@ -12,6 +12,7 @@ import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitio
 import {
   HelperTextItemMaxLength,
   HelperTextItemResourceNameTaken,
+  HelperTextItemRouteNameTooLong,
   HelperTextItemValidCharacters,
 } from '#~/concepts/k8s/K8sNameDescriptionField/HelperTextItemVariants';
 import {
@@ -53,6 +54,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   if (
     k8sName.state.invalidLength ||
     k8sName.state.invalidCharacters ||
+    k8sName.state.routeNameTooLong ||
     !!resourceNameTakenHelperText
   ) {
     validated = ValidatedOptions.error;
@@ -94,6 +96,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
       <HelperText>
         <HelperTextItemMaxLength k8sName={k8sName} />
         <HelperTextItemValidCharacters k8sName={k8sName} />
+        <HelperTextItemRouteNameTooLong k8sName={k8sName} />
         {resourceNameTakenHelperText && (
           <HelperTextItemResourceNameTaken resourceNameTakenMessage={resourceNameTakenHelperText} />
         )}
