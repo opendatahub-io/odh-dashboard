@@ -34,6 +34,7 @@ import {
 } from '#~/utilities/valueUnits';
 import { WorkloadWithUsage } from '#~/api';
 import { isEnumMember } from '#~/utilities/utils';
+import { INADMISSIBLE_MESSAGE_REGEX } from '#~/concepts/kueue';
 
 export enum WorkloadStatusType {
   Pending = 'Pending',
@@ -128,8 +129,10 @@ export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo => {
     ),
     Evicted: conditions?.find(({ type, status }) => type === 'Evicted' && status === 'True'),
     Inadmissible: conditions?.find(
-      ({ type, status, reason }) =>
-        type === 'QuotaReserved' && status === 'False' && reason === 'Inadmissible',
+      ({ type, status, reason, message }) =>
+        type === 'QuotaReserved' &&
+        status === 'False' &&
+        (reason === 'Inadmissible' || INADMISSIBLE_MESSAGE_REGEX.test(message || '')),
     ),
     Pending: conditions?.find(({ type, status }) => type === 'QuotaReserved' && status === 'False'),
     Running: conditions?.find(({ type, status }) => type === 'PodsReady' && status === 'True'),
