@@ -19,7 +19,7 @@ export const EnvVarConflictWarning: React.FC<Props> = ({ conflicts }) => {
       Environment variables from multiple sources conflict. When environment variables conflict,
       only one of the values is used in the workbench.
       <ExpandableSection
-        toggleText={showConflicts ? 'Show conflicts' : 'Show conflicts'}
+        toggleText={showConflicts ? 'Hide conflicts' : 'Show conflicts'}
         onToggle={() => setShowConflicts((prev) => !prev)}
         isExpanded={showConflicts}
         isIndented
