@@ -54,6 +54,37 @@ export const getDeletedConfigMapOrSecretVariables = (
       deletedSecrets.push(env.secretRef.name);
     }
   });
+
+  // Process env entries with valueFrom.secretKeyRef (existing secret refs)
+  const envList = notebook?.spec.template.spec.containers[0].env || [];
+  const secretKeyRefEntries = envList.filter(
+    (envVar) => envVar.valueFrom && 'secretKeyRef' in envVar.valueFrom,
+  );
+
+  // Group by secret name to find which secrets are in the notebook CR
+  const secretsInNotebook = new Set(
+    secretKeyRefEntries.map((envVar) => {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const secretRef = envVar.valueFrom.secretKeyRef as { name: string; key: string };
+      return secretRef.name;
+    }),
+  );
+
+  // Get set of secret names currently in form state (EXISTING category)
+  const existingSecretNames = new Set(
+    envVariables
+      .filter((envVar) => envVar.values?.category === SecretCategory.EXISTING)
+      .map((envVar) => envVar.values?.secretName)
+      .filter((name): name is string => !!name),
+  );
+
+  // Find secrets that are in the notebook CR but not in current form state
+  secretsInNotebook.forEach((secretName) => {
+    if (!existingSecretNames.has(secretName) && !excludedResources.includes(secretName)) {
+      deletedSecrets.push(secretName);
+    }
+  });
+
   return { deletedSecrets, deletedConfigMaps };
 };
 
