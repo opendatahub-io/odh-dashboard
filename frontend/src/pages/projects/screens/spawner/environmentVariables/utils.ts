@@ -1,6 +1,6 @@
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
-import { EnvVariable } from '#~/pages/projects/types';
+import { EnvVariable, SecretCategory } from '#~/pages/projects/types';
 
 export const updateArrayValue = <T>(values: T[], index: number, partialValue: Partial<T>): T[] =>
   values.map((v, i) => (i === index ? { ...v, ...partialValue } : v));
@@ -20,6 +20,10 @@ export const isStringKeyValuePairObject = (object: unknown): object is Record<st
   Object.entries(object).every(
     ([key, value]) => typeof key === 'string' && typeof value === 'string',
   );
+
+export const isExistingSecretCategory = (
+  category: SecretCategory | null | undefined,
+): category is SecretCategory.EXISTING => category === SecretCategory.EXISTING;
 
 export const getDeletedConfigMapOrSecretVariables = (
   notebook: NotebookKind | undefined,
