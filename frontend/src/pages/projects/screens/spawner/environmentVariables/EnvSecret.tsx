@@ -10,7 +10,7 @@ import EnvExistingSecret from './EnvExistingSecret';
 type EnvSecretProps = {
   env?: EnvVariableData;
   onUpdate: (envVariableData: EnvVariableData) => void;
-  namespace?: string;
+  namespace: string;
 };
 
 const DEFAULT_ENV: EnvVariableData = {
@@ -18,7 +18,7 @@ const DEFAULT_ENV: EnvVariableData = {
   data: [],
 };
 
-const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate, namespace = '' }) => (
+const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate, namespace }) => (
   <EnvDataTypeField
     selection={env.category || ''}
     onSelection={(value) =>

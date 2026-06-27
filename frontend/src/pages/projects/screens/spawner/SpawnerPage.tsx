@@ -66,6 +66,8 @@ import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
 import AlertWarningText from './environmentVariables/AlertWarningText';
+import { EnvVarConflictWarning } from './environmentVariables/EnvVarConflictWarning';
+import { detectEnvVarConflicts } from './environmentVariables/utils';
 import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
 import { defaultClusterStorage } from './storage/constants';
@@ -291,6 +293,13 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
 
   const { dashboardNamespace } = useDashboardNamespace();
 
+  const envVarConflicts = React.useMemo(
+    () => detectEnvVarConflicts(envVariables, notebookConnections),
+    [envVariables, notebookConnections],
+  );
+
+  const hasConflicts = envVarConflicts.length > 0;
+
   return (
     <ApplicationsPage
       title={existingNotebook ? `Edit ${editNotebookDisplayName}` : 'Create workbench'}
@@ -373,8 +382,17 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   deletedSecrets={deletedSecrets}
                 />
               )}
-              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
+              <EnvironmentVariables
+                envVariables={envVariables}
+                setEnvVariables={setEnvVariables}
+                namespace={currentProject.metadata.name}
+              />
             </FormSection>
+            {hasConflicts && (
+              <FormSection>
+                <EnvVarConflictWarning conflicts={envVarConflicts} />
+              </FormSection>
+            )}
             <FormSection
               title={
                 <Flex
@@ -495,6 +513,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
+                  hasConflicts={hasConflicts}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

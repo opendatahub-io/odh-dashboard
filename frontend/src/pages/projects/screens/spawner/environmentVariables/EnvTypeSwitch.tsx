@@ -6,14 +6,15 @@ import EnvSecret from './EnvSecret';
 type EnvTypeSwitchProps = {
   env: EnvVariable;
   onUpdate: (envVariableData: EnvVariableData) => void;
+  namespace: string;
 };
 
-const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({ env, onUpdate }) => {
+const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({ env, onUpdate, namespace }) => {
   switch (env.type) {
     case EnvironmentVariableType.CONFIG_MAP:
       return <EnvConfigMap env={env.values} onUpdate={onUpdate} />;
     case EnvironmentVariableType.SECRET:
-      return <EnvSecret env={env.values} onUpdate={onUpdate} />;
+      return <EnvSecret env={env.values} onUpdate={onUpdate} namespace={namespace} />;
     default:
       return null;
   }
