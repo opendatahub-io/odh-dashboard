@@ -5,10 +5,12 @@ import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
 import EnvUploadField from './EnvUploadField';
+import EnvExistingSecret from './EnvExistingSecret';
 
 type EnvSecretProps = {
   env?: EnvVariableData;
   onUpdate: (envVariableData: EnvVariableData) => void;
+  namespace?: string;
 };
 
 const DEFAULT_ENV: EnvVariableData = {
@@ -16,7 +18,7 @@ const DEFAULT_ENV: EnvVariableData = {
   data: [],
 };
 
-const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate }) => (
+const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate, namespace = '' }) => (
   <EnvDataTypeField
     selection={env.category || ''}
     onSelection={(value) =>
@@ -42,6 +44,10 @@ const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate }) =>
             translateValue={(value) => atob(value)}
           />
         ),
+      },
+      [SecretCategory.EXISTING]: {
+        label: 'Existing secret',
+        render: <EnvExistingSecret env={env} onUpdate={onUpdate} namespace={namespace} />,
       },
     }}
   />
