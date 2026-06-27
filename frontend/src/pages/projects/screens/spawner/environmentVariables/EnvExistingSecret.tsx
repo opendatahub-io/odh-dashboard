@@ -67,6 +67,7 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
         abortController.abort();
       };
     }
+    return undefined;
   }, [selectedSecretName, namespace, selectedSecret]);
 
   const handleSecretSelection = React.useCallback(
