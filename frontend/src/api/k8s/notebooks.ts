@@ -326,6 +326,14 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.volumes = [];
   container.volumeMounts = [];
 
+  // Clear old env array, keeping only static entries (NOTEBOOK_ARGS, JUPYTER_IMAGE)
+  // to prevent lodash merge from merging by array index
+  const staticEnvNames = ['NOTEBOOK_ARGS', 'JUPYTER_IMAGE'];
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  container.env = (container.env || []).filter(
+    (envVar) => envVar.name && staticEnvNames.includes(envVar.name),
+  );
+
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(
       {

@@ -173,7 +173,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     await Promise.all(restartConnectedNotebooksPromises);
 
-    const envFrom = await updateConfigMapsAndSecretsForNotebook(
+    const { envFrom, existingSecretEnvVars } = await updateConfigMapsAndSecretsForNotebook(
       projectName,
       editNotebook,
       envVariables,
@@ -182,7 +182,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     );
 
     const annotations = { ...editNotebook.metadata.annotations };
-    if (envFrom.length > 0) {
+    if (envFrom.length > 0 || existingSecretEnvVars.length > 0) {
       annotations['notebooks.opendatahub.io/notebook-restart'] = 'true';
     }
 
@@ -193,6 +193,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom,
+      existingSecretEnvVars,
       connections,
       feastData,
     };
