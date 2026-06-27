@@ -32,6 +32,7 @@ import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
+  extractExistingSecretEnvVars,
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
@@ -230,6 +231,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dryRun,
     );
 
+    const existingSecretEnvVars = extractExistingSecretEnvVars(envVariables);
+
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, undefined, false);
 
@@ -240,6 +243,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       envFrom: [...envFrom],
       connections,
       feastData,
+      existingSecretEnvVars,
     };
     return createNotebook(newStartData, username, canEnablePipelines, { dryRun });
   };

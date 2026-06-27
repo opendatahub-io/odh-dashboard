@@ -44,6 +44,7 @@ export const assembleNotebook = (
     hardwareProfileOptions,
     feastData,
     mlflowEnabled,
+    existingSecretEnvVars,
   } = data;
   const {
     name: notebookName,
@@ -84,6 +85,17 @@ export const assembleNotebook = (
   const connectionsAnnotation = connections
     ?.map((connection) => `${connection.metadata.namespace}/${connection.metadata.name}`)
     .join(',');
+
+  const existingSecretEnv =
+    existingSecretEnvVars?.map(({ name, key }) => ({
+      name: key,
+      valueFrom: {
+        secretKeyRef: {
+          name,
+          key,
+        },
+      },
+    })) || [];
 
   const baseResource: NotebookKind = {
     apiVersion: 'kubeflow.org/v1',
@@ -134,6 +146,7 @@ export const assembleNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...existingSecretEnv,
               ],
               envFrom,
               volumeMounts,

@@ -22,6 +22,7 @@ import {
   ConfigMapCategory,
   EnvironmentFromVariable,
   EnvVariable,
+  ExistingSecretEnvVar,
   SecretCategory,
   StorageData,
   StorageType,
@@ -74,6 +75,36 @@ export const updatePvcDataForNotebook = async (
   return { volumes, volumeMounts };
 };
 
+export const extractExistingSecretEnvVars = (
+  envVariables: EnvVariable[],
+): ExistingSecretEnvVar[] => {
+  const result: ExistingSecretEnvVar[] = [];
+
+  envVariables.forEach((envVar) => {
+    if (
+      !envVar.values ||
+      envVar.values.category !== SecretCategory.EXISTING ||
+      !envVar.values.secretName
+    ) {
+      return;
+    }
+
+    const { secretName, data } = envVar.values;
+    if (data.length === 0) {
+      return;
+    }
+
+    data.forEach((entry) => {
+      result.push({
+        name: secretName,
+        key: entry.key,
+      });
+    });
+  });
+
+  return result;
+};
+
 const getPromisesForConfigMapsAndSecrets = (
   projectName: string,
   envVariables: EnvVariable[],
@@ -106,6 +137,8 @@ const getPromisesForConfigMapsAndSecrets = (
             : replaceSecret(assembleSecret(projectName, dataAsRecord, 'aws', envVar.existingName), {
                 dryRun,
               });
+        case SecretCategory.EXISTING:
+          return null;
         case ConfigMapCategory.GENERIC:
         case ConfigMapCategory.UPLOAD:
           return type === 'create'
