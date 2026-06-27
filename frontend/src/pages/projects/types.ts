@@ -116,6 +116,7 @@ export type EnvVariableData = {
   category: SecretCategory | ConfigMapCategory | null;
   data: EnvVariableDataEntry[];
   allKeys?: boolean;
+  secretName?: string;
 };
 
 export type EnvVariable = {

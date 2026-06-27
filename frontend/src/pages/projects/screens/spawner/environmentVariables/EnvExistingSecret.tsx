@@ -4,6 +4,7 @@ import {
   Checkbox,
   FormGroup,
   FormHelperText,
+  Spinner,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -27,13 +28,9 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
   const [selectedSecret, setSelectedSecret] = React.useState<SecretKind | null>(null);
   const [availableKeys, setAvailableKeys] = React.useState<string[]>([]);
   const [isLoadingKeys, setIsLoadingKeys] = React.useState(false);
+  const [keyLoadError, setKeyLoadError] = React.useState<string | null>(null);
 
-  const selectedSecretName = React.useMemo(() => {
-    if (env.data.length > 0) {
-      return env.data[0]?.key.split('/')[0];
-    }
-    return '';
-  }, [env.data]);
+  const selectedSecretName = env.secretName || '';
 
   const selectedKeys = React.useMemo(() => {
     return env.data.map((entry) => entry.key);
@@ -42,19 +39,33 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
   React.useEffect(() => {
     if (selectedSecretName && !selectedSecret) {
       setIsLoadingKeys(true);
+      setKeyLoadError(null);
+      const abortController = new AbortController();
+
       getSecret(namespace, selectedSecretName)
         .then((secret) => {
-          setSelectedSecret(secret);
-          const keys = Object.keys(secret.data || {});
-          setAvailableKeys(keys);
+          if (!abortController.signal.aborted) {
+            setSelectedSecret(secret);
+            const keys = Object.keys(secret.data || {});
+            setAvailableKeys(keys);
+          }
         })
-        .catch(() => {
-          setSelectedSecret(null);
-          setAvailableKeys([]);
+        .catch((err) => {
+          if (!abortController.signal.aborted) {
+            setSelectedSecret(null);
+            setAvailableKeys([]);
+            setKeyLoadError(err.message || 'Failed to load secret keys');
+          }
         })
         .finally(() => {
-          setIsLoadingKeys(false);
+          if (!abortController.signal.aborted) {
+            setIsLoadingKeys(false);
+          }
         });
+
+      return () => {
+        abortController.abort();
+      };
     }
   }, [selectedSecretName, namespace, selectedSecret]);
 
@@ -62,6 +73,7 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
     (_event: React.MouseEvent | React.KeyboardEvent | undefined, selection: string | number) => {
       const secretName = String(selection);
       setIsLoadingKeys(true);
+      setKeyLoadError(null);
 
       getSecret(namespace, secretName)
         .then((secret) => {
@@ -74,11 +86,13 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
             ...env,
             data: [],
             allKeys: false,
+            secretName,
           });
         })
-        .catch(() => {
+        .catch((err) => {
           setSelectedSecret(null);
           setAvailableKeys([]);
+          setKeyLoadError(err.message || 'Failed to load secret keys');
         })
         .finally(() => {
           setIsLoadingKeys(false);
@@ -186,10 +200,17 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({ env, onUpdate, na
         <StackItem>
           <IndentSection>
             <Stack hasGutter>
+              {keyLoadError && (
+                <StackItem>
+                  <Alert variant="danger" isInline title="Error loading keys">
+                    {keyLoadError}
+                  </Alert>
+                </StackItem>
+              )}
               <StackItem>
                 <FormGroup label="Keys" fieldId="secret-keys">
                   {isLoadingKeys ? (
-                    <div>Loading keys...</div>
+                    <Spinner size="md" aria-label="Loading secret keys" />
                   ) : (
                     <Stack hasGutter>
                       <StackItem>
