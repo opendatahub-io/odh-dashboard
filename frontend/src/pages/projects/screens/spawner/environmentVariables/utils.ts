@@ -61,13 +61,10 @@ export const getDeletedConfigMapOrSecretVariables = (
     (envVar) => envVar.valueFrom && 'secretKeyRef' in envVar.valueFrom,
   );
 
-  // Group by secret name to find which secrets are in the notebook CR
   const secretsInNotebook = new Set(
-    secretKeyRefEntries.map((envVar) => {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const secretRef = envVar.valueFrom.secretKeyRef as { name: string; key: string };
-      return secretRef.name;
-    }),
+    secretKeyRefEntries
+      .map((envVar) => envVar.valueFrom?.secretKeyRef?.name)
+      .filter((name): name is string => !!name),
   );
 
   // Get set of secret names currently in form state (EXISTING category)
@@ -85,7 +82,10 @@ export const getDeletedConfigMapOrSecretVariables = (
     }
   });
 
-  return { deletedSecrets, deletedConfigMaps };
+  return {
+    deletedSecrets: Array.from(new Set(deletedSecrets)),
+    deletedConfigMaps: Array.from(new Set(deletedConfigMaps)),
+  };
 };
 
 export type EnvVarConflict = {
