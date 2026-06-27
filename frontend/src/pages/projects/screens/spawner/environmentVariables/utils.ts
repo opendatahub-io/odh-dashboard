@@ -1,5 +1,6 @@
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
+import { Connection } from '#~/concepts/connectionTypes/types';
 import { EnvVariable, SecretCategory } from '#~/pages/projects/types';
 
 export const updateArrayValue = <T>(values: T[], index: number, partialValue: Partial<T>): T[] =>
@@ -54,4 +55,77 @@ export const getDeletedConfigMapOrSecretVariables = (
     }
   });
   return { deletedSecrets, deletedConfigMaps };
+};
+
+export type EnvVarConflict = {
+  source1: string;
+  source2: string;
+  keys: string[];
+};
+
+export const detectEnvVarConflicts = (
+  envVariables: EnvVariable[],
+  connections: Connection[],
+): EnvVarConflict[] => {
+  const conflicts: EnvVarConflict[] = [];
+
+  type Source = {
+    name: string;
+    keys: string[];
+  };
+
+  const sources: Source[] = [];
+
+  envVariables.forEach((envVar) => {
+    if (!envVar.values?.data) {
+      return;
+    }
+
+    const keys = envVar.values.data.map((entry) => entry.key);
+
+    if (envVar.values.category === SecretCategory.EXISTING) {
+      const sourceName = envVar.values.secretName || 'Existing secret';
+      sources.push({ name: sourceName, keys });
+    } else if (
+      envVar.values.category === SecretCategory.GENERIC ||
+      envVar.values.category === SecretCategory.UPLOAD
+    ) {
+      const existingInline = sources.find((s) => s.name === 'Inline secret');
+      if (existingInline) {
+        existingInline.keys.push(...keys);
+      } else {
+        sources.push({ name: 'Inline secret', keys });
+      }
+    }
+  });
+
+  connections.forEach((connection) => {
+    if (!connection.data) {
+      return;
+    }
+
+    const keys = Object.keys(connection.data);
+    const displayName =
+      connection.metadata.annotations['openshift.io/display-name'] || connection.metadata.name;
+    sources.push({ name: displayName, keys });
+  });
+
+  for (let i = 0; i < sources.length; i++) {
+    for (let j = i + 1; j < sources.length; j++) {
+      const first = sources[i];
+      const second = sources[j];
+
+      const duplicateKeys = first.keys.filter((key) => second.keys.includes(key));
+
+      if (duplicateKeys.length > 0) {
+        conflicts.push({
+          source1: first.name,
+          source2: second.name,
+          keys: duplicateKeys,
+        });
+      }
+    }
+  }
+
+  return conflicts;
 };
