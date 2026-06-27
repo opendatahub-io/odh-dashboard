@@ -46,6 +46,10 @@ var otelCollectorGVR = schema.GroupVersionResource{
 const (
 	platformCollectorName = "data-science-collector"
 	genaiCollectorName    = "gen-ai-trace-collector"
+
+	// Reuse the platform collector's SA so the gen-ai collector inherits its
+	// MLflow integration ClusterRoleBinding without needing additional RBAC.
+	platformCollectorSAName = platformCollectorName + "-collector"
 )
 
 // otelConfigManager creates and manages a dedicated "gen-ai-trace-collector"
@@ -308,8 +312,9 @@ func (m *otelConfigManager) buildBaseCollectorCR() *unstructured.Unstructured {
 				"namespace": m.collectorNamespace,
 			},
 			"spec": map[string]interface{}{
-				"mode":     "deployment",
-				"replicas": int64(1),
+				"mode":           "deployment",
+				"replicas":       int64(1),
+				"serviceAccount": platformCollectorSAName,
 				"config": map[string]interface{}{
 					"extensions": map[string]interface{}{
 						"bearertokenauth": map[string]interface{}{
