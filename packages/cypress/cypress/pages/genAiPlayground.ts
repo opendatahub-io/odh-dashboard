@@ -60,6 +60,10 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-message-user');
   }
 
+  findAssistantMessage(options?: { timeout?: number }) {
+    return cy.findByTestId('chatbot-message-bot', options);
+  }
+
   sendMessage(message: string) {
     this.findMessageInput().should('be.visible').and('be.enabled').clear().type(message);
     this.findMessageInput().type('{enter}');
@@ -134,8 +138,12 @@ class GenAiPlayground {
     return cy.findByTestId('ai-models-table');
   }
 
-  findModelActionsKebab() {
-    return cy.findByTestId('model-actions-kebab');
+  findModelActionsKebab(modelName: string) {
+    return this.findAiModelsTable()
+      .find('tr')
+      .contains(modelName)
+      .parents('tr')
+      .findByTestId('model-actions-kebab');
   }
 
   findRemoveAssetAction() {
@@ -147,7 +155,7 @@ class GenAiPlayground {
   }
 
   findDeleteModelConfirmButton() {
-    return cy.findByTestId('delete-model-modal').find('button.pf-m-danger');
+    return cy.findByTestId('delete-model-modal').findByRole('button', { name: /^delete$/i });
   }
 
   findTryInPlaygroundButton() {

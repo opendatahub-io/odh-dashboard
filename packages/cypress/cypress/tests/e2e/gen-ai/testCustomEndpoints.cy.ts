@@ -20,12 +20,20 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 
 const LSD_SERVICE_NAME = 'lsd-genai-playground-service';
+const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
 describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
   let testData: CustomEndpointTestData;
   const projectName = `custom-ep-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
+    const apiKey = Cypress.env('GEMINI_API_KEY');
+    if (!apiKey) {
+      throw new Error(
+        'GEMINI_API_KEY is not set in test-variables.yml — cannot run custom endpoint tests',
+      );
+    }
+
     cy.fixture('e2e/genAi/testCustomEndpoints.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as CustomEndpointTestData;
     });
@@ -80,6 +88,11 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       genAiPlayground.findDisplayNameInput().clear().type(testData.displayName);
 
       cy.step('Fill in Endpoint URL');
+      const endpointHost = new URL(testData.endpointUrl).hostname;
+      expect(ALLOWED_ENDPOINT_HOSTS).to.include(
+        endpointHost,
+        `Fixture endpoint host "${endpointHost}" is not in the allowlist — refusing to send API key`,
+      );
       genAiPlayground.findEndpointUrlInput().clear().type(testData.endpointUrl);
 
       cy.step('Fill in API key');
@@ -138,13 +151,14 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       cy.step('Verify user message appears in chat');
       genAiPlayground.findUserMessage().should('exist').and('contain', testData.testMessage);
 
+      cy.step('Verify assistant response is received');
+      genAiPlayground.findAssistantMessage({ timeout: 60000 }).should('exist').and('not.be.empty');
+
       cy.step('Navigate back to AI Assets to delete the endpoint');
       genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
 
       cy.step('Open kebab menu for the custom endpoint model');
-      genAiPlayground.findAiModelsTable().within(() => {
-        genAiPlayground.findModelActionsKebab().click();
-      });
+      genAiPlayground.findModelActionsKebab(testData.displayName).click();
 
       cy.step('Click Delete endpoint action');
       genAiPlayground.findRemoveAssetAction().click();

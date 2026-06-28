@@ -70,7 +70,7 @@ export const enableExternalProviders = (): void => {
 
   cy.step('Wait for externalProviders to be confirmed in config');
   pollUntilSuccess(
-    `oc get OdhDashboardConfig -A -o json | jq -e '.items[].spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == true'`,
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == true'`,
     'externalProviders to be true',
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
@@ -86,12 +86,14 @@ export const forceDashboardConfigRefresh = (): void => {
   cy.request({
     url: '/api/config',
     headers: { 'Cache-Control': 'no-cache' },
-    failOnStatusCode: false,
-  });
+  })
+    .its('status')
+    .should('eq', 200);
 };
 
 /**
  * Disable externalProviders in OdhDashboardConfig (revert to default).
+ * Polls until the change is confirmed so later specs don't race on the stale flag.
  */
 export const disableExternalProviders = (): void => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
@@ -99,25 +101,55 @@ export const disableExternalProviders = (): void => {
     spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: false } } },
   });
   patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, namespace);
+
+  pollUntilSuccess(
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == false'`,
+    'externalProviders to be false',
+    { maxAttempts: 15, pollIntervalMs: 2000 },
+  );
 };
 
 /**
  * Verify that no ConfigMap or Secret referencing the given model ID
  * remains in the namespace after endpoint deletion.
+ * Uses polling to account for asynchronous controller cleanup, and
+ * grep -F for literal string matching (avoids regex metacharacters in model IDs).
  */
-export const verifyEndpointResourcesCleanedUp = (modelId: string, namespace: string): void => {
-  cy.exec(
-    `oc get configmap -n ${namespace} -o jsonpath='{.items[*].metadata.name}' | grep -c "${modelId}"`,
-    { failOnNonZeroExit: false },
-  ).then((result) => {
-    expect(result.stdout.trim()).to.equal('0');
-  });
-  cy.exec(
-    `oc get secret -n ${namespace} -o jsonpath='{.items[*].metadata.name}' | grep -c "${modelId}"`,
-    { failOnNonZeroExit: false },
-  ).then((result) => {
-    expect(result.stdout.trim()).to.equal('0');
-  });
+export const verifyEndpointResourcesCleanedUp = (
+  modelId: string,
+  namespace: string,
+  maxAttempts = 10,
+  pollIntervalMs = 3000,
+): void => {
+  const checkCleanup = (attempt: number): void => {
+    cy.exec(
+      `oc get configmap -n ${namespace} -o jsonpath='{.items[*].metadata.name}' | grep -cF "${modelId}"`,
+      { failOnNonZeroExit: false },
+    ).then((cmResult) => {
+      cy.exec(
+        `oc get secret -n ${namespace} -o jsonpath='{.items[*].metadata.name}' | grep -cF "${modelId}"`,
+        { failOnNonZeroExit: false },
+      ).then((secretResult) => {
+        const cmCount = parseInt(cmResult.stdout.trim(), 10) || 0;
+        const secretCount = parseInt(secretResult.stdout.trim(), 10) || 0;
+
+        if (cmCount === 0 && secretCount === 0) {
+          cy.log(`Resources for "${modelId}" cleaned up (attempt ${attempt}/${maxAttempts})`);
+          return;
+        }
+        if (attempt >= maxAttempts) {
+          throw new Error(
+            `Resources for "${modelId}" still exist after ${maxAttempts} attempts: ` +
+              `${cmCount} ConfigMap(s), ${secretCount} Secret(s)`,
+          );
+        }
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        cy.wait(pollIntervalMs).then(() => checkCleanup(attempt + 1));
+      });
+    });
+  };
+
+  checkCleanup(1);
 };
 
 /**
@@ -135,11 +167,11 @@ export const waitForModelInLSD = (
   const serviceUrl = `http://${serviceName}.${namespace}.svc.cluster.local:8321/v1/models`;
 
   const check = (attempt: number): void => {
-    cy.exec(`oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s ${serviceUrl}`, {
-      failOnNonZeroExit: false,
-      timeout: 30000,
-    }).then((result) => {
-      if (result.exitCode === 0 && result.stdout.includes(modelId)) {
+    cy.exec(
+      `oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
+      { failOnNonZeroExit: false, timeout: 30000 },
+    ).then((result) => {
+      if (result.exitCode === 0 && result.stdout.trim().length > 0) {
         cy.log(`Model "${modelId}" registered in LSD (attempt ${attempt}/${maxAttempts})`);
         return;
       }
