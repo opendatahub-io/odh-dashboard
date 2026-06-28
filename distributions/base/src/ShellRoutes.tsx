@@ -5,7 +5,9 @@ import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core'
 import {
   isRouteExtension,
   isTabRoutePageExtension,
+  isTabRouteTabExtension,
   type TabRoutePageExtension,
+  type TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import NotFound from './NotFound';
 import TabRoutePage from './TabRoutePage';
@@ -20,6 +22,15 @@ const fallback = (
 const ShellRoutes: React.FC = () => {
   const routeExtensions = useExtensions(isRouteExtension);
   const tabRoutePageExtensions = useExtensions<TabRoutePageExtension>(isTabRoutePageExtension);
+  const tabRouteTabExtensions = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension);
+
+  const usableTabRoutePages = React.useMemo(
+    () =>
+      tabRoutePageExtensions.filter((page) =>
+        tabRouteTabExtensions.some((tab) => tab.properties.pageId === page.properties.id),
+      ),
+    [tabRoutePageExtensions, tabRouteTabExtensions],
+  );
 
   const dynamicRoutes = React.useMemo(
     () =>
@@ -43,7 +54,7 @@ const ShellRoutes: React.FC = () => {
 
   const tabRoutePages = React.useMemo(
     () =>
-      tabRoutePageExtensions.map((pageExtension) => (
+      usableTabRoutePages.map((pageExtension) => (
         <Route
           key={pageExtension.uid}
           path={pageExtension.properties.path}
@@ -54,10 +65,10 @@ const ShellRoutes: React.FC = () => {
           }
         />
       )),
-    [tabRoutePageExtensions],
+    [usableTabRoutePages],
   );
 
-  const hasRoutes = dynamicRoutes.length > 0 || tabRoutePages.length > 0;
+  const hasRoutes = dynamicRoutes.length > 0 || usableTabRoutePages.length > 0;
 
   return (
     <React.Suspense fallback={fallback}>
