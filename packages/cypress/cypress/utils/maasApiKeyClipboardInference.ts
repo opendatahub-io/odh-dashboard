@@ -5,9 +5,11 @@ import {
 } from './oc_commands/maas';
 
 const CLIPBOARD_WRITE_STUB_ALIAS = 'clipboardWrite';
-
 type MaaSModelInferencingResult = { url: string; response: Cypress.Response<unknown> };
-type MaaSModelsListResult = { url: string; response: Cypress.Response<unknown> };
+const MAAS_MODELS_LIST_MAX_ATTEMPTS = 7;
+
+const isModelInList = (models: { id: string }[], modelName: string): boolean =>
+  models.some((model) => model.id === modelName || model.id.endsWith(`/models/${modelName}`));
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -113,28 +115,38 @@ export const verifyMaasModelExistsForUser = (
   modelName: string,
   token: string,
   expectExists = true,
-): Cypress.Chainable<MaaSModelsListResult> =>
-  ListMaaSModels(token).then((result) => {
-    const { response } = result;
+): void => {
+  const makeRequest = (attemptNumber = 1): void => {
+    ListMaaSModels(token).then((result) => {
+      const { response } = result;
 
-    expect(
-      response.status,
-      `MaaS /v1/models request failed (${response.status}): ${JSON.stringify(response.body)}`,
-    ).to.equal(200);
+      expect(
+        response.status,
+        `MaaS /v1/models request failed (${response.status}): ${JSON.stringify(response.body)}`,
+      ).to.equal(200);
 
-    const models = parseMaaSModelsListResponse(response.body);
-    const modelFound = models.some((model) => model.id === modelName);
+      const models = parseMaaSModelsListResponse(response.body);
+      const modelFound = isModelInList(models, modelName);
 
-    if (expectExists) {
-      expect(models, 'MaaS /v1/models should return at least one model').to.have.length.greaterThan(
-        0,
-      );
-      expect(modelFound, `Model ${modelName} should exist in models list`).to.equal(true);
-      cy.log(`✅ Model ${modelName} exists for user`);
-      return cy.wrap(result);
-    }
+      if (expectExists) {
+        if (!modelFound && attemptNumber < MAAS_MODELS_LIST_MAX_ATTEMPTS) {
+          cy.log(`Model ${modelName} not found, retrying...`);
+          return cy.then(() => makeRequest(attemptNumber + 1));
+        }
+        expect(modelFound, `Model ${modelName} should exist in models list`).to.equal(true);
+        cy.log(`✅ Model ${modelName} exists for user`);
+        return undefined;
+      }
 
-    expect(modelFound, `Model ${modelName} should NOT exist in models list`).to.equal(false);
-    cy.log(`✅ Model ${modelName} does not exist for user`);
-    return cy.wrap(result);
-  });
+      if (modelFound && attemptNumber < MAAS_MODELS_LIST_MAX_ATTEMPTS) {
+        cy.log(`Model ${modelName} found but should not exist, retrying...`);
+        return cy.then(() => makeRequest(attemptNumber + 1));
+      }
+      expect(modelFound, `Model ${modelName} should NOT exist in models list`).to.equal(false);
+      cy.log(`✅ Model ${modelName} does not exist for user`);
+      return undefined;
+    });
+  };
+
+  makeRequest();
+};

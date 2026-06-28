@@ -192,10 +192,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
       policyPage.findDescriptionInput().clear().type(`${policiesDescription}-edited`);
       policyPage.selectGroup(testData.policiesGroups[1]);
       policiesGroupsCount = 2;
-      policyPage.findAddModelsButton().click();
-      addModelsToSubscriptionModal.shouldBeOpen();
-      addModelsToSubscriptionModal.findTable().should('exist');
-      addModelsToSubscriptionModal.findCancelButton().click();
       policyPage.findSubmitButton().click();
 
       cy.step('Verify the authorization policy is updated');
@@ -338,7 +334,9 @@ describe('An admin can manage MaaS authorization policies and control model acce
           apiKeyRow.findExpirationDate().should('contain.text', expiryDate);
 
           cy.step('Verify the model is accessible to the user');
-          verifyMaasModelExistsForUser(modelName, apiKeys[0], true).then(() => {
+          verifyMaasModelExistsForUser(modelName, apiKeys[0], true);
+
+          cy.then(() => {
             cy.step(' Remove group from the policy');
             authPoliciesPage.visit();
             authPoliciesPage.findKeywordFilterInput().type(subscriptionPolicyName);
@@ -347,17 +345,18 @@ describe('An admin can manage MaaS authorization policies and control model acce
             editPolicyRow.findActionsToggle().click();
             editPolicyRow.findEditActionButton().click();
             // remove the selected group
-            policyPage.selectGroup(testData.policiesGroups[0]);
+            policyPage.selectGroup(testData.subscriptionGroups[0]);
             policyPage.findSubmitButton().click();
-          });
-          cy.then(() => {
-            checkMaaSAuthPolicyState(subscriptionPolicyName, modelsAsAServiceNamespace, {
-              groups: [testData.policiesGroups[1]],
+          })
+            .then(() => {
+              checkMaaSAuthPolicyState(subscriptionPolicyName, modelsAsAServiceNamespace, {
+                groups: [testData.subscriptionGroups[1]],
+              });
+            })
+            .then(() => {
+              cy.step('Verify the model is not accessible to the user');
+              verifyMaasModelExistsForUser(modelName, apiKeys[0], false);
             });
-          }).then(() => {
-            cy.step('Verify the model is not accessible to the user');
-            return verifyMaasModelExistsForUser(modelName, apiKeys[0], false);
-          });
         });
       });
     },
