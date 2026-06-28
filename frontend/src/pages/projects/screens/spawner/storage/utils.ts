@@ -1,6 +1,10 @@
 import * as React from 'react';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '@odh-dashboard/k8s-core';
+import {
   CreatingStorageObjectForNotebook,
   ExistingStorageObjectForNotebook,
   StorageData,
@@ -11,10 +15,6 @@ import {
   ConnectedNotebookContext,
 } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
-import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
 import useDefaultPvcSize from './useDefaultPvcSize';
 import { MountPathFormat, PvcModelAnnotation } from './types';
 import { MOUNT_PATH_PREFIX } from './const';

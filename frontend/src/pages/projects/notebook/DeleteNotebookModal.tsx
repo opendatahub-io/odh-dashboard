@@ -1,18 +1,15 @@
 import * as React from 'react';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { NotebookKind } from '#~/k8sTypes';
 import {
   DATA_CONNECTION_PREFIX,
-  deleteConfigMap,
-  deleteNotebook,
-  deleteSecret,
-  isGeneratedConfigMapName,
+  getDisplayNameFromK8sResource,
   isGeneratedSecretName,
-} from '#~/api';
+} from '@odh-dashboard/k8s-core';
+import { NotebookKind } from '#~/k8sTypes';
+import { deleteConfigMap, deleteNotebook, deleteSecret, isGeneratedConfigMapName } from '#~/api';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { getEnvFromList } from '#~/pages/projects/pvc/utils';
 import { ConfigMapRef, SecretRef } from '#~/pages/projects/types';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 type DeleteNotebookModalProps = {
   notebook: NotebookKind;

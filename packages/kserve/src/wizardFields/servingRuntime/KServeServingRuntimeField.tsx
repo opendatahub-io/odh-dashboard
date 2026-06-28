@@ -10,10 +10,10 @@ import ModelServerTemplateSelectField, {
 import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import type {
   HardwareProfileKind,
+  RecursivePartial,
   SupportedModelFormats,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
-import type { RecursivePartial } from '@odh-dashboard/ui-core/utilities';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import {

@@ -12,10 +12,11 @@ import {
   getUniqueId,
 } from '@patternfly/react-core';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAccessReview } from '#~/api/useAccessReview';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { getDisplayNameFromK8sResource, isValidK8sLabelKeyValue } from '#~/concepts/k8s/utils';
+import { isValidK8sLabelKeyValue } from '#~/concepts/k8s/utils';
 import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { RoleKind } from '#~/k8sTypes';
 import { createRole } from '#~/api';

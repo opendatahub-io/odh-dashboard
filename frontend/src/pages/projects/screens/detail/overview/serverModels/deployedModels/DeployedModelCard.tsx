@@ -12,6 +12,7 @@ import {
 import { Link } from 'react-router-dom';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import InferenceServiceStatus from '#~/pages/modelServing/screens/global/InferenceServiceStatus';
@@ -20,7 +21,6 @@ import InferenceServiceEndpoint from '#~/pages/modelServing/screens/global/Infer
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled.ts';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;

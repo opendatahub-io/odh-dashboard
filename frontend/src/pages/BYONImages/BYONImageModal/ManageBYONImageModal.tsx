@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { BYONImage, BYONImagePackage } from '#~/types';
 import { useAppSelector } from '#~/redux/hooks';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
@@ -20,7 +21,6 @@ import { filterBlankPackages } from '#~/pages/BYONImages/utils';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { HardwareProfileIdentifierMultiselect } from '#~/pages/BYONImages/BYONImageModal/HardwareProfileIdentifierMultiselect';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { createBYONImageStream, updateBYONImageStream } from '#~/api/k8s/imageStreams.ts';
