@@ -22,6 +22,12 @@ class GenAiPlayground {
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
+  navigateToPlaygroundWithRetry(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-model-selector-toggle', { timeout: 120000 }).should('be.visible');
+  }
+
   findEmptyState() {
     return cy.findByTestId('empty-state');
   }
@@ -86,6 +92,10 @@ class GenAiPlayground {
   // Custom endpoint methods
   findCreateEndpointButton() {
     return cy.findByTestId('create-endpoint-button');
+  }
+
+  findEmptyStateCreateEndpointButton() {
+    return cy.findByTestId('empty-state-secondary-action-button');
   }
 
   findCreateExternalModelModal() {

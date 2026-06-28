@@ -5,11 +5,13 @@ import {
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { checkLlamaStackDistributionReady } from '../../../utils/oc_commands/llamaStackDistribution';
-import { waitForResource } from '../../../utils/oc_commands/baseCommands';
+import { waitForResource, waitForPodReady } from '../../../utils/oc_commands/baseCommands';
 import {
   enableExternalProviders,
   disableExternalProviders,
   verifyEndpointResourcesCleanedUp,
+  waitForModelInLSD,
+  forceDashboardConfigRefresh,
 } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -59,11 +61,14 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
+      cy.step('Force backend to refresh config from cluster');
+      forceDashboardConfigRefresh();
+
       cy.step('Navigate to AI asset endpoints page with custom endpoints enabled');
       genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
 
-      cy.step('Click Create endpoint button');
-      genAiPlayground.findCreateEndpointButton().should('be.visible').click();
+      cy.step('Click Create endpoint button from empty state');
+      genAiPlayground.findEmptyStateCreateEndpointButton().should('be.visible').click();
 
       cy.step('Verify Create endpoint modal is open');
       genAiPlayground.findCreateExternalModelModal().should('be.visible');
@@ -98,7 +103,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
 
       cy.step('Verify configuration modal opens with model pre-selected');
       genAiPlayground.findConfigurationTable().should('be.visible');
-      genAiPlayground.ensureModelCheckboxIsChecked(testData.displayName);
+      genAiPlayground.ensureModelCheckboxIsChecked(testData.modelId);
 
       cy.step('Click Create in the configuration modal');
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
@@ -109,8 +114,14 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       cy.step('Wait for playground service to be created');
       waitForResource('service', LSD_SERVICE_NAME, projectName);
 
-      cy.step('Navigate to playground with custom endpoints enabled');
-      genAiPlayground.navigateWithCustomEndpoints(projectName);
+      cy.step('Wait for LSD pod to be fully ready');
+      waitForPodReady('lsd-genai-playground', '120s', projectName);
+
+      cy.step('Wait for custom model to be registered in LSD');
+      waitForModelInLSD(LSD_SERVICE_NAME, testData.modelId, projectName);
+
+      cy.step('Navigate to playground and wait for model selector');
+      genAiPlayground.navigateToPlaygroundWithRetry(projectName);
 
       cy.step(`Select ${testData.displayName} model from dropdown`);
       genAiPlayground.selectModelFromDropdown(testData.displayName);
@@ -142,9 +153,9 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       genAiPlayground.findDeleteModelModal().should('be.visible');
       genAiPlayground.findDeleteModelConfirmButton().click();
 
-      cy.step('Verify model is removed from the table');
-      genAiPlayground.findDeleteModelModal().should('not.exist');
-      genAiPlayground.findAiModelsTable().should('not.contain', testData.displayName);
+      cy.step('Reload page and verify endpoint is deleted');
+      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
+      genAiPlayground.findEmptyStateCreateEndpointButton().should('be.visible');
 
       cy.step('Verify ConfigMap and Secret are cleaned up');
       verifyEndpointResourcesCleanedUp(testData.modelId, projectName);
