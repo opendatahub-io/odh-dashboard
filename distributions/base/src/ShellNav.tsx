@@ -13,10 +13,14 @@ import {
   isNavExtension,
   isHrefNavItemExtension,
   isNavSectionExtension,
+  isTabRoutePageExtension,
+  isTabRouteTabExtension,
   type NavExtension,
   type HrefNavItemExtension,
   type NavSectionExtension,
   type NavItemProperties,
+  type TabRoutePageExtension,
+  type TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 
@@ -24,6 +28,7 @@ import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 // frontend/src/app/navigation/utils.ts. Move to plugin-core when consolidating.
 const DEFAULT_GROUP = '5_default';
 
+type AnyNavExtension = NavExtension | TabRoutePageExtension;
 type NavLikeExtension = Extension<string, NavItemProperties>;
 
 const compareNavItemGroups = <T extends NavLikeExtension>(a: T, b: T): number =>
@@ -88,6 +93,31 @@ const NavHrefItem: React.FC<{ extension: LoadedExtension<HrefNavItemExtension> }
   );
 };
 
+const NavTabRouteItem: React.FC<{ extension: LoadedExtension<TabRoutePageExtension> }> = ({
+  extension: {
+    properties: { id, href, path, dataAttributes, title },
+  },
+}) => {
+  const allTabExtensions = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension);
+  const tabs = React.useMemo(
+    () => allTabExtensions.filter((tab) => tab.properties.pageId === id),
+    [allTabExtensions, id],
+  );
+  const isMatch = !!useMatch(path);
+
+  if (tabs.length === 0) {
+    return null;
+  }
+
+  return (
+    <NavItem isActive={isMatch}>
+      <Link {...dataAttributes} to={href}>
+        {title}
+      </Link>
+    </NavItem>
+  );
+};
+
 const NavSectionItem: React.FC<{ extension: LoadedExtension<NavSectionExtension> }> = ({
   extension: {
     properties: { id, title },
@@ -95,10 +125,25 @@ const NavSectionItem: React.FC<{ extension: LoadedExtension<NavSectionExtension>
 }) => {
   const { pathname } = useLocation();
   const allNavExtensions = useExtensions<NavExtension>(isNavExtension);
-  const children = React.useMemo(
+  const tabRoutePageExtensions = useExtensions<TabRoutePageExtension>(isTabRoutePageExtension);
+  const tabRouteTabExtensions = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension);
+
+  const tabRoutePagesWithTabs = React.useMemo(
     () =>
-      allNavExtensions.filter((e) => e.properties.section === id).toSorted(compareNavItemGroups),
-    [id, allNavExtensions],
+      tabRoutePageExtensions.filter((page) =>
+        tabRouteTabExtensions.some((tab) => tab.properties.pageId === page.properties.id),
+      ),
+    [tabRoutePageExtensions, tabRouteTabExtensions],
+  );
+
+  const allExtensions: LoadedExtension<AnyNavExtension>[] = React.useMemo(
+    () => [...allNavExtensions, ...tabRoutePagesWithTabs],
+    [allNavExtensions, tabRoutePagesWithTabs],
+  );
+
+  const children = React.useMemo(
+    () => allExtensions.filter((e) => e.properties.section === id).toSorted(compareNavItemGroups),
+    [id, allExtensions],
   );
 
   const isActive = React.useMemo(
@@ -107,6 +152,9 @@ const NavSectionItem: React.FC<{ extension: LoadedExtension<NavSectionExtension>
         if (isHrefNavItemExtension(child)) {
           const matchTarget = child.properties.path ?? child.properties.href;
           return !!matchPath(matchTarget, pathname);
+        }
+        if (isTabRoutePageExtension(child)) {
+          return !!matchPath(child.properties.path, pathname);
         }
         return false;
       }),
@@ -139,9 +187,14 @@ const NavSectionItem: React.FC<{ extension: LoadedExtension<NavSectionExtension>
   );
 };
 
-const ShellNavItem: React.FC<{ extension: LoadedExtension<NavExtension> }> = ({ extension }) => {
+const ShellNavItem: React.FC<{
+  extension: LoadedExtension<NavExtension> | LoadedExtension<TabRoutePageExtension>;
+}> = ({ extension }) => {
   if (isNavSectionExtension(extension)) {
     return <NavSectionItem extension={extension} />;
+  }
+  if (isTabRoutePageExtension(extension)) {
+    return <NavTabRouteItem extension={extension} />;
   }
   if (isHrefNavItemExtension(extension)) {
     return <NavHrefItem extension={extension} />;
@@ -151,9 +204,10 @@ const ShellNavItem: React.FC<{ extension: LoadedExtension<NavExtension> }> = ({ 
 
 const ShellNav: React.FC = () => {
   const navExtensions = useExtensions<NavExtension>(isNavExtension);
+  const tabRouteExtensions = useExtensions<TabRoutePageExtension>(isTabRoutePageExtension);
   const topLevelExtensions = React.useMemo(
-    () => getTopLevelExtensions(navExtensions),
-    [navExtensions],
+    () => getTopLevelExtensions([...navExtensions, ...tabRouteExtensions]),
+    [navExtensions, tabRouteExtensions],
   );
 
   return (

@@ -27,10 +27,14 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   render(): React.ReactNode {
     if (this.state.hasError) {
+      const { error } = this.state;
       return (
         <PageSection hasBodyWrapper={false}>
-          <Alert variant="danger" isInline title="Something went wrong">
-            An unexpected error occurred. Please try again or contact support.
+          <Alert variant="danger" isInline isExpandable title="Something went wrong">
+            <p>An unexpected error occurred while loading this content.</p>
+            <p>
+              <strong>{error.name}:</strong> {error.message}
+            </p>
           </Alert>
         </PageSection>
       );
