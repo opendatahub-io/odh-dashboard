@@ -3,6 +3,7 @@ import {
   checkMaaSAuthPolicyState,
   cleanupAuthPolicy,
   cleanupSubscription,
+  cleanupApiKeys,
   createLLMInferenceServiceWithMaaSEnabled,
   createMaaSModelRef,
   modelsAsAServiceNamespace,
@@ -127,6 +128,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
     cy.log(`Cleaning up Subscription: ${subscriptionName}`);
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
     cleanupAuthPolicy(`${subscriptionName}-policy`, modelsAsAServiceNamespace);
+    cleanupApiKeys(apiKeyName);
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
   it(

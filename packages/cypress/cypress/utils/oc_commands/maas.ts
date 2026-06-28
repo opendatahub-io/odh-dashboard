@@ -46,124 +46,9 @@ const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
   return httpsUrl ?? candidates[0];
 };
 
-export const cleanupSubscription = (
-  subscriptionName: string,
-  namespace: string,
-): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete MaaSSubscription ${subscriptionName} -n ${namespace}`;
-  cy.log(`Executing delete subscription command: ${ocCommand}`);
-  return cy.exec(ocCommand, { failOnNonZeroExit: false });
-};
-
-export const cleanupAuthPolicy = (
-  authPolicyName: string,
-  namespace: string,
-): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete MaaSAuthPolicy ${authPolicyName} -n ${namespace}`;
-  cy.log(`Executing delete auth policy command: ${ocCommand}`);
-  return cy.exec(ocCommand, { failOnNonZeroExit: false });
-};
-
-/**
- * Deletes a single API key row from the Postgres `api_keys` table by name.
- *
- * Credentials are read from the `postgres-creds` secret in APPLICATIONS_NAMESPACE.
- * Intended for E2E cleanup of keys created by Cypress tests (matched on `name`).
- *
- * @param apiKeyName Display name of the API key to delete (same value used in the UI).
- */
-export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<CommandLineResult> => {
-  const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string;
-  const escapedName = apiKeyName.replace(/'/g, "''");
-  cy.log(`Deleting API key "${apiKeyName}" from Postgres api_keys table`);
-
-  return cy
-    .exec(
-      `oc get secret postgres-creds -n ${applicationNamespace} -o jsonpath='{.data.POSTGRES_USER}' | base64 -d`,
-      { failOnNonZeroExit: false },
-    )
-    .then((userResult) => {
-      const pgUser = userResult.stdout.trim();
-      return cy
-        .exec(
-          `oc get secret postgres-creds -n ${applicationNamespace} -o jsonpath='{.data.POSTGRES_DB}' | base64 -d`,
-          { failOnNonZeroExit: false },
-        )
-        .then((dbResult) => {
-          const pgDb = dbResult.stdout.trim();
-          return cy.exec(
-            `oc exec -n ${applicationNamespace} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "DELETE FROM api_keys WHERE name = '${escapedName}';"`,
-            { failOnNonZeroExit: false },
-          );
-        });
-    });
-};
-
 const ocGetIndicatesResourceNotFound = (result: Cypress.Exec): boolean => {
   const combined = `${result.stderr}\n${result.stdout}`;
   return /not found/i.test(combined) || /\bNotFound\b/.test(combined);
-};
-
-/**
- * Creates an LLMInferenceService with MaaS enabled by applying a YAML fixture.
- * Substitutes `{{PROJECT_NAME}}` and `{{MODEL_NAME}}` placeholders in the fixture.
- *
- * @param projectName - The namespace/project where the LLMInferenceService will be created
- * @param modelName - The name for the LLMInferenceService and model
- * @param fixturePath - Path to the YAML fixture file (relative to cypress/fixtures)
- * @returns Cypress.Chainable with the command result
- */
-export const createLLMInferenceServiceWithMaaSEnabled = (
-  projectName: string,
-  modelName: string,
-  connectionName: string,
-  fixturePath: string,
-): Cypress.Chainable<CommandLineResult> => {
-  cy.log(`Creating LLMInferenceService "${modelName}" in namespace "${projectName}"`);
-
-  return cy.fixture(fixturePath).then((yamlContent: string) => {
-    const processedYaml = yamlContent
-      .replace(/\{\{PROJECT_NAME\}\}/g, projectName)
-      .replace(/\{\{MODEL_NAME\}\}/g, modelName)
-      .replace(/\{\{CONNECTION_NAME\}\}/g, connectionName);
-
-    const ocCommand = `cat <<'EOF' | oc apply -f -
-${processedYaml}
-EOF`;
-
-    cy.log(`Applying LLMInferenceService YAML for "${modelName}" in "${projectName}"`);
-    return cy.exec(ocCommand, { failOnNonZeroExit: false });
-  });
-};
-
-/**
- * Creates a MaaSModelRef by applying a YAML fixture.
- * Substitutes `{{PROJECT_NAME}}` and `{{MODEL_NAME}}` placeholders in the fixture.
- *
- * @param projectName - The namespace/project where the MaaSModelRef will be created
- * @param modelName - The name for the MaaSModelRef (should match the LLMInferenceService name)
- * @param fixturePath - Path to the YAML fixture file (relative to cypress/fixtures)
- * @returns Cypress.Chainable with the command result
- */
-export const createMaaSModelRef = (
-  projectName: string,
-  modelName: string,
-  fixturePath = 'resources/modelsAsService/MaaSModelRef.yaml',
-): Cypress.Chainable<CommandLineResult> => {
-  cy.log(`Creating MaaSModelRef "${modelName}" in namespace "${projectName}"`);
-
-  return cy.fixture(fixturePath).then((yamlContent: string) => {
-    const processedYaml = yamlContent
-      .replace(/\{\{PROJECT_NAME\}\}/g, projectName)
-      .replace(/\{\{MODEL_NAME\}\}/g, modelName);
-
-    const ocCommand = `cat <<'EOF' | oc apply -f -
-${processedYaml}
-EOF`;
-
-    cy.log(`Applying MaaSModelRef YAML for "${modelName}" in "${projectName}"`);
-    return cy.exec(ocCommand, { failOnNonZeroExit: false });
-  });
 };
 
 /**
@@ -275,12 +160,122 @@ export type CheckMaaSOptions = {
   groups?: string[];
   models?: string[];
   phase?: string;
-  maxAttempts?: number;
-  pollIntervalMs?: number;
 };
 
-const MAAS_RESOURCE_DEFAULT_MAX_ATTEMPTS = 60;
-const MAAS_RESOURCE_DEFAULT_POLL_INTERVAL_MS = 5000;
+export const cleanupSubscription = (
+  subscriptionName: string,
+  namespace: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc delete MaaSSubscription ${subscriptionName} -n ${namespace}`;
+  cy.log(`Executing delete subscription command: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
+};
+
+export const cleanupAuthPolicy = (
+  authPolicyName: string,
+  namespace: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc delete MaaSAuthPolicy ${authPolicyName} -n ${namespace}`;
+  cy.log(`Executing delete auth policy command: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
+};
+
+/**
+ * Deletes a single API key row from the Postgres `api_keys` table by name.
+ *
+ * Credentials are read from the `postgres-creds` secret in APPLICATIONS_NAMESPACE.
+ * Intended for E2E cleanup of keys created by Cypress tests (matched on `name`).
+ *
+ * @param apiKeyName Display name of the API key to delete (same value used in the UI).
+ */
+export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<CommandLineResult> => {
+  const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string;
+  const escapedName = apiKeyName.replace(/'/g, "''");
+  cy.log(`Deleting API key "${apiKeyName}" from Postgres api_keys table`);
+
+  return cy
+    .exec(
+      `oc get secret postgres-creds -n ${applicationNamespace} -o jsonpath='{.data.POSTGRES_USER}' | base64 -d`,
+      { failOnNonZeroExit: false },
+    )
+    .then((userResult) => {
+      const pgUser = userResult.stdout.trim();
+      return cy
+        .exec(
+          `oc get secret postgres-creds -n ${applicationNamespace} -o jsonpath='{.data.POSTGRES_DB}' | base64 -d`,
+          { failOnNonZeroExit: false },
+        )
+        .then((dbResult) => {
+          const pgDb = dbResult.stdout.trim();
+          return cy.exec(
+            `oc exec -n ${applicationNamespace} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "DELETE FROM api_keys WHERE name = '${escapedName}';"`,
+            { failOnNonZeroExit: false },
+          );
+        });
+    });
+};
+
+/**
+ * Creates an LLMInferenceService with MaaS enabled by applying a YAML fixture.
+ * Substitutes `{{PROJECT_NAME}}` and `{{MODEL_NAME}}` placeholders in the fixture.
+ *
+ * @param projectName - The namespace/project where the LLMInferenceService will be created
+ * @param modelName - The name for the LLMInferenceService and model
+ * @param fixturePath - Path to the YAML fixture file (relative to cypress/fixtures)
+ * @returns Cypress.Chainable with the command result
+ */
+export const createLLMInferenceServiceWithMaaSEnabled = (
+  projectName: string,
+  modelName: string,
+  connectionName: string,
+  fixturePath: string,
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Creating LLMInferenceService "${modelName}" in namespace "${projectName}"`);
+
+  return cy.fixture(fixturePath).then((yamlContent: string) => {
+    const processedYaml = yamlContent
+      .replace(/\{\{PROJECT_NAME\}\}/g, projectName)
+      .replace(/\{\{MODEL_NAME\}\}/g, modelName)
+      .replace(/\{\{CONNECTION_NAME\}\}/g, connectionName);
+
+    const ocCommand = `cat <<'EOF' | oc apply -f -
+${processedYaml}
+EOF`;
+
+    cy.log(`Applying LLMInferenceService YAML for "${modelName}" in "${projectName}"`);
+    return cy.exec(ocCommand, { failOnNonZeroExit: false });
+  });
+};
+
+/**
+ * Creates a MaaSModelRef by applying a YAML fixture.
+ * Substitutes `{{PROJECT_NAME}}` and `{{MODEL_NAME}}` placeholders in the fixture.
+ *
+ * @param projectName - The namespace/project where the MaaSModelRef will be created
+ * @param modelName - The name for the MaaSModelRef (should match the LLMInferenceService name)
+ * @param fixturePath - Path to the YAML fixture file (relative to cypress/fixtures)
+ * @returns Cypress.Chainable with the command result
+ */
+export const createMaaSModelRef = (
+  projectName: string,
+  modelName: string,
+  fixturePath = 'resources/modelsAsService/MaaSModelRef.yaml',
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Creating MaaSModelRef "${modelName}" in namespace "${projectName}"`);
+
+  return cy.fixture(fixturePath).then((yamlContent: string) => {
+    const processedYaml = yamlContent
+      .replace(/\{\{PROJECT_NAME\}\}/g, projectName)
+      .replace(/\{\{MODEL_NAME\}\}/g, modelName);
+
+    const ocCommand = `cat <<'EOF' | oc apply -f -
+${processedYaml}
+EOF`;
+
+    cy.log(`Applying MaaSModelRef YAML for "${modelName}" in "${projectName}"`);
+    return cy.exec(ocCommand, { failOnNonZeroExit: false });
+  });
+};
 
 const parseMaaSSubscriptionDoc = (
   subscriptionName: string,
@@ -351,45 +346,6 @@ const authPolicyOptionsMet = (
   return undefined;
 };
 
-const pollMaaSResourceCheck = <T extends MaaSSubscriptionState | MaaSAuthPolicyState>({
-  resourceLabel,
-  ocCommand,
-  options,
-  parseDoc,
-  optionsMet,
-}: {
-  resourceLabel: string;
-  ocCommand: string;
-  options: CheckMaaSOptions;
-  parseDoc: (stdout: string) => T;
-  optionsMet: (doc: T) => string | undefined;
-}): Cypress.Chainable<CommandLineResult> => {
-  const maxAttempts = options.maxAttempts ?? MAAS_RESOURCE_DEFAULT_MAX_ATTEMPTS;
-  const pollIntervalMs = options.pollIntervalMs ?? MAAS_RESOURCE_DEFAULT_POLL_INTERVAL_MS;
-
-  const check = (attemptNumber = 1): Cypress.Chainable<CommandLineResult> =>
-    cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-      const doc = parseDoc(result.stdout);
-      const failureReason = optionsMet(doc);
-
-      if (!failureReason) {
-        cy.log(`✅ ${resourceLabel} conditions met`);
-        return cy.wrap(result);
-      }
-
-      if (attemptNumber >= maxAttempts) {
-        throw new Error(`${resourceLabel} did not meet expected state. ${failureReason}`);
-      }
-
-      cy.log(`${resourceLabel} waiting (${failureReason}) — retry ${attemptNumber}/${maxAttempts}`);
-      // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll until MaaS resource is ready
-      return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
-    });
-
-  cy.step(`Polling for ${resourceLabel}`);
-  return check();
-};
-
 const getAuthPolicyGroupNames = (doc: MaaSAuthPolicyState): string[] => {
   const groups = doc.spec?.subjects?.groups;
   if (!groups) {
@@ -447,23 +403,26 @@ export const checkMaaSSubscriptionState = (
   cy.log(`Checking MaaSSubscription exists: ${subscriptionName} in namespace ${namespace}`);
   const resourceLabel = `MaaSSubscription ${subscriptionName} in namespace ${namespace}`;
 
-  if (options.phase || options.models) {
-    return pollMaaSResourceCheck({
-      resourceLabel,
-      ocCommand,
-      options,
-      parseDoc: (stdout) => parseMaaSSubscriptionDoc(subscriptionName, stdout),
-      optionsMet: (doc) => subscriptionOptionsMet(doc, options),
-    });
-  }
-
   return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    parseMaaSSubscriptionDoc(subscriptionName, result.stdout);
-    cy.log(`✅ ${resourceLabel} exists`);
+    const doc = parseMaaSSubscriptionDoc(subscriptionName, result.stdout);
+
+    if (options.phase || options.models) {
+      const failureReason = subscriptionOptionsMet(doc, options);
+      if (failureReason) {
+        throw new Error(`${resourceLabel} did not meet expected state. ${failureReason}`);
+      }
+      cy.log(`✅ ${resourceLabel} conditions met`);
+    } else {
+      cy.log(`✅ ${resourceLabel} exists`);
+    }
+
     return cy.wrap(result);
   });
 };
 
+/**
+ * Verifies `MaaSAuthPolicy` state on the cluster. Validatest the groups and phase in the policy.
+ */
 export const checkMaaSAuthPolicyState = (
   policyName: string,
   namespace = modelsAsAServiceNamespace,
@@ -490,19 +449,19 @@ export const checkMaaSAuthPolicyState = (
   cy.log(`Checking MaaSAuthPolicy exists: ${policyName} in namespace ${namespace}`);
   const resourceLabel = `MaaSAuthPolicy ${policyName} in namespace ${namespace}`;
 
-  if (options.phase || options.groups) {
-    return pollMaaSResourceCheck({
-      resourceLabel,
-      ocCommand,
-      options,
-      parseDoc: (stdout) => parseMaaSAuthPolicyDoc(policyName, stdout),
-      optionsMet: (doc) => authPolicyOptionsMet(doc, options),
-    });
-  }
-
   return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    parseMaaSAuthPolicyDoc(policyName, result.stdout);
-    cy.log(`✅ ${resourceLabel} exists`);
+    const doc = parseMaaSAuthPolicyDoc(policyName, result.stdout);
+
+    if (options.phase || options.groups) {
+      const failureReason = authPolicyOptionsMet(doc, options);
+      if (failureReason) {
+        throw new Error(`${resourceLabel} did not meet expected state. ${failureReason}`);
+      }
+      cy.log(`✅ ${resourceLabel} conditions met`);
+    } else {
+      cy.log(`✅ ${resourceLabel} exists`);
+    }
+
     return cy.wrap(result);
   });
 };
