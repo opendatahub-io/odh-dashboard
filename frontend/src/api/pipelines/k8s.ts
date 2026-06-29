@@ -7,6 +7,7 @@ import {
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
+import { kindApiVersion } from '@odh-dashboard/k8s-core';
 import { DataSciencePipelineApplicationModel } from '#~/api/models';
 import {
   DSPipelineKind,
@@ -21,7 +22,6 @@ import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { DEFAULT_PIPELINE_DEFINITION_NAME } from '#~/concepts/pipelines/const';
 import { ELYRA_SECRET_NAME } from '#~/concepts/pipelines/elyra/const';
 import { DEV_MODE } from '#~/utilities/const';
-import { kindApiVersion } from '#~/concepts/k8s/utils';
 
 export const getElyraSecret = async (namespace: string, opts: K8sAPIOptions): Promise<SecretKind> =>
   getSecret(namespace, ELYRA_SECRET_NAME, opts);

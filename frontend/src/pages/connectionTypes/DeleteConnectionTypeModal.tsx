@@ -1,6 +1,6 @@
 import React from 'react';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { deleteConnectionType } from '#~/services/connectionTypesService';
 

@@ -70,7 +70,7 @@ describe('ModelSourceStep', () => {
   describe('Schema validation', () => {
     it('should validate complete data', () => {
       const validData: ModelSourceStepData = {
-        modelType: { type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false },
+        modelType: { type: ServingRuntimeModelType.PREDICTIVE },
         modelLocationData: {
           type: ModelLocationType.PVC,
           fieldValues: {
@@ -182,7 +182,7 @@ describe('ModelSourceStep', () => {
             projectName: 'test-project',
           },
           modelType: {
-            data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
+            data: { type: ServingRuntimeModelType.GENERATIVE },
           },
           createConnectionData: {
             data: {

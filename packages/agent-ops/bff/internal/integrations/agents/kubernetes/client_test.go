@@ -55,6 +55,10 @@ func (c *permissiveK8sClient) CanGetAgentInNamespace(context.Context, *k8s.Reque
 	return true, nil
 }
 
+func (c *permissiveK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string, bool) (bool, error) {
+	return true, nil
+}
+
 func (c *permissiveK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string, string) (k8s.AgentCardEnrichmentAccess, error) {
 	return k8s.AgentCardEnrichmentAccess{
 		AgentRuntime: true,
@@ -233,6 +237,10 @@ func (c *failingNamespacesK8sClient) CanListAgentsInNamespace(context.Context, *
 
 func (c *failingNamespacesK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
 	return true, nil
+}
+
+func (c *failingNamespacesK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string, bool) (bool, error) {
+	return false, nil
 }
 
 func (c *failingNamespacesK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string, string) (k8s.AgentCardEnrichmentAccess, error) {

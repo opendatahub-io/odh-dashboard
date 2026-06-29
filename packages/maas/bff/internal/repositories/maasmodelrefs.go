@@ -191,7 +191,7 @@ func buildModelRefUnstructured(name, namespace string, modelRef models.ModelRefe
 			{
 				UID:                types.UID(uid),
 				Name:               name,
-				APIVersion:         "serving.kserve.io/v1alpha1",
+				APIVersion:         "serving.kserve.io/v1alpha2",
 				Kind:               "LLMInferenceService",
 				BlockOwnerDeletion: &[]bool{false}[0],
 			},

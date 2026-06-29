@@ -5,6 +5,7 @@ import type {
   PersistentVolumeClaimKind,
   ContainerResources,
 } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import {
   isCpuResourceEqual,
   isCpuLimitLarger,
@@ -36,7 +37,6 @@ import {
   RoleKind,
   ServingContainer,
 } from '#~/k8sTypes';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,

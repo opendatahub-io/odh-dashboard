@@ -7,6 +7,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { CubesIcon, ErrorCircleOIcon } from '@patternfly/react-icons';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
 import useKserveMetricsConfigMap from '#~/concepts/metrics/kserve/useKserveMetricsConfigMap';
 import useNimMetricsGraphDefinitions from '#~/concepts/metrics/kserve/useNimMetricsGraphDefinition';
@@ -14,7 +15,7 @@ import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { RefreshIntervalValue } from '#~/concepts/metrics/const';
 import { RefreshIntervalTitle, TimeframeTitle } from '#~/concepts/metrics/types';
 import { NimMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
-import { conditionalArea, SupportedArea } from '#~/concepts/areas';
+import { conditionalArea } from '#~/concepts/areas';
 
 type NimMetricsContextProps = {
   namespace: string;

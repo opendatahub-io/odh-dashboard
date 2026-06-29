@@ -3,7 +3,7 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { DEFAULT_LIST_WATCH_RESULT } from '@odh-dashboard/internal/utilities/const';
 import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useTrainJobs, useRayJobs } from '../api';
 import { TrainJobKind, RayJobKind } from '../k8sTypes';
 

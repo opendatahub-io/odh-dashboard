@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ExperimentKF, PipelineRunKF, RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '#~/components/table';
 import {
@@ -33,7 +34,6 @@ import { getDashboardMainContainer } from '#~/utilities/utils';
 import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import { useFetchRunArtifact } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
 import {
   FilterOptions,

@@ -1,5 +1,9 @@
 import * as React from 'react';
-import { DataScienceStackComponent, SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import {
+  DataScienceStackComponent,
+  SupportedArea,
+  useIsAreaAvailable,
+} from '@odh-dashboard/plugin-core/areas';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
 import { useIsNIMAvailable } from '#~/pages/modelServing/screens/projects/nim/useIsNIMAvailable';
 

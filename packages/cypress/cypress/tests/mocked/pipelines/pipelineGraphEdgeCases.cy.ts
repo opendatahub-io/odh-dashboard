@@ -11,7 +11,7 @@ import { mockRouteK8sResource } from '@odh-dashboard/internal/__mocks__/mockRout
 import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { buildMockPipeline } from '@odh-dashboard/internal/__mocks__';
 import { ArtifactType } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { initMlmdIntercepts } from './mlmdUtils';
 import { pipelineDetails } from '../../../pages/pipelines';
 import {
