@@ -67,10 +67,13 @@ const DocumentsDropdown: React.FC<{ documentIds: string[] }> = ({ documentIds })
 };
 
 type EvaluationRow = {
+  id: number;
   question: string;
   correctAnswer: string;
   documentIds: string[];
 };
+
+let nextRowId = 0;
 
 type EvaluationFileCreatorProps = {
   isOpen: boolean;
@@ -145,6 +148,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
     setRows((prev) => [
       ...prev,
       {
+        id: nextRowId++,
         question: question.trim(),
         correctAnswer: correctAnswer.trim(),
         documentIds: [...effectiveDocumentIds],
@@ -190,14 +194,13 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
     try {
       const response = await uploadMutation.mutateAsync({ file });
       onCreated(response.key);
-      handleClose();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       notification.error('Failed to create evaluation file', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
-  }, [rows, experimentName, uploadMutation, onCreated, handleClose, notification]);
+  }, [rows, experimentName, uploadMutation, onCreated, notification]);
 
   if (!isOpen) {
     return null;
@@ -351,7 +354,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
                     </Tr>
                   ) : (
                     rows.map((row, index) => (
-                      <Tr key={index}>
+                      <Tr key={row.id}>
                         <Td dataLabel="Question">
                           <div
                             className="autorag-evaluation-creator__cell-truncate"

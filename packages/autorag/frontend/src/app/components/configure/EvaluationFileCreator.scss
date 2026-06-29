@@ -37,6 +37,8 @@
   min-height: 0;
 }
 
+// TODO: PF FormGroup does not expose layout variables for label alignment or control flex.
+// These overrides are scoped to the creator's document section to make the list fill available height.
 .autorag-evaluation-creator__documents .pf-v6-c-form__group-label {
   align-items: center;
 }
@@ -48,8 +50,8 @@
   min-height: 0;
 }
 
-.autorag-evaluation-creator__table-container .pf-v6-c-table tbody td {
-  vertical-align: middle;
+.autorag-evaluation-creator__table-container .pf-v6-c-table {
+  --pf-v6-c-table--cell--VerticalAlign: middle;
 }
 
 .autorag-evaluation-creator__cell-truncate {

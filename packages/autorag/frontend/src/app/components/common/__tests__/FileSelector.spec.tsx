@@ -275,8 +275,6 @@ describe('FileSelector', () => {
     const extraBtn = screen.getByTestId('extra-btn');
     expect(extraBtn).toBeInTheDocument();
 
-    // The extra button must be inside a portal-injected input-group__item
-    // that is nested within the FileUpload's input-group
     const portalItem = extraBtn.closest('.pf-v6-c-input-group__item');
     expect(portalItem).not.toBeNull();
 
@@ -288,27 +286,8 @@ describe('FileSelector', () => {
   });
 
   it('should not render extra buttons container when extraButtons is not provided', () => {
-    const { container } = render(
-      <FileSelector id="test-selector" onUpload={mockOnUpload} onClear={mockOnClear} />,
-    );
+    render(<FileSelector id="test-selector" onUpload={mockOnUpload} onClear={mockOnClear} />);
 
-    // No portal-injected input-group__item should exist outside of FileUpload's own items
-    const fileUploadInputGroup = container.querySelector(
-      '.pf-v6-c-file-upload .pf-v6-c-input-group',
-    );
-
-    if (fileUploadInputGroup) {
-      const portalItems = fileUploadInputGroup.querySelectorAll(
-        ':scope > .pf-v6-c-input-group__item',
-      );
-      // None of the direct input-group__item children should contain an extra-btn
-      const hasExtraBtn = Array.from(portalItems).some(
-        (el) => el.querySelector('[data-testid="extra-btn"]') !== null,
-      );
-      expect(hasExtraBtn).toBe(false);
-    }
-
-    // Also verify no extra-btn exists anywhere in the document
     expect(screen.queryByTestId('extra-btn')).not.toBeInTheDocument();
   });
 
