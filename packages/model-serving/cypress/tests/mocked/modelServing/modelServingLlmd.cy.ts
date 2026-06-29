@@ -29,10 +29,6 @@ import {
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { deleteModal } from '@odh-dashboard/cypress/cypress/pages/components/DeleteModal';
 import { hardwareProfileSection } from '@odh-dashboard/cypress/cypress/pages/components/HardwareProfileSection';
 import {
@@ -56,6 +52,10 @@ import {
   modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import { projectDetailsOverviewTab } from '@odh-dashboard/cypress/cypress/pages/projects';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 
 const initIntercepts = ({
   llmInferenceServices = [],

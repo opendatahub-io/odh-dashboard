@@ -4,8 +4,14 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
 import { initInterceptsToEnableNim } from '@odh-dashboard/cypress/cypress/utils/legacyNimUtils';
-import { InferenceServiceModel, ServingRuntimeModel } from '@odh-dashboard/cypress/cypress/utils/models';
-import { modelServingGlobal, modelServingSection } from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import {
+  InferenceServiceModel,
+  ServingRuntimeModel,
+} from '@odh-dashboard/cypress/cypress/utils/models';
+import {
+  modelServingGlobal,
+  modelServingSection,
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
 
 describe('NIM Models Deployments', () => {
   it('should be listed in the global models list', () => {
