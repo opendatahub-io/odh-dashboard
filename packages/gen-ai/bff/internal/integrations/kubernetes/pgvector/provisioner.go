@@ -34,7 +34,7 @@ var ErrResourcesTerminating = errors.New("previous pgvector resources are still 
 
 // Options configures the pgvector provisioner.
 type Options struct {
-	// Image is the PostgreSQL container image (from RELATED_IMAGE_PGVECTOR).
+	// Image is the PostgreSQL container image (from RELATED_IMAGE_POSTGRESQL_16_IMAGE).
 	Image string
 	// OGXServerLabelSelector is the pod label selector for the OGXServer workload,
 	// used to scope the NetworkPolicy ingress rule.

@@ -28,9 +28,8 @@ const (
 	ManagedLabel      = "gen-ai.opendatahub.io/pgvector"
 	ManagedLabelValue = "true"
 
-	// Image configuration.
-	RelatedImageEnvVar = "RELATED_IMAGE_PGVECTOR"
-	DefaultImage       = "registry.redhat.io/rhel9/postgresql-16"
+	// Image configuration — injected by the operator via params.env substitution.
+	RelatedImageEnvVar = "RELATED_IMAGE_POSTGRESQL_16_IMAGE"
 
 	// PostgreSQL container env vars.
 	pgDBEnvVar       = "POSTGRESQL_DATABASE"

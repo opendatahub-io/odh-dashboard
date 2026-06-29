@@ -138,6 +138,6 @@ type EnvConfig struct {
 	PgvectorPasswordSecretKey  string // key inside the password Secret, default: "password"
 
 	// PgvectorImage is the container image for auto-provisioned pgvector.
-	// Set via RELATED_IMAGE_PGVECTOR (mirrored in disconnected installs).
+	// Injected by the operator via RELATED_IMAGE_POSTGRESQL_16_IMAGE.
 	PgvectorImage string
 }

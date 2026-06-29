@@ -1595,15 +1595,15 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			return nil, fmt.Errorf("user is not authorized to manage OGXServers in namespace %s", namespace)
 		}
 
+		if kc.EnvConfig.PgvectorImage == "" {
+			return nil, fmt.Errorf("pgvector image not configured: set %s via the operator or the --pgvector-image flag", pgvector.RelatedImageEnvVar)
+		}
 		opts := pgvector.Options{
 			Image: kc.EnvConfig.PgvectorImage,
 			OGXServerLabelSelector: map[string]string{
 				"app.kubernetes.io/instance": lsdName,
 			},
 			Logger: kc.Logger,
-		}
-		if opts.Image == "" {
-			opts.Image = pgvector.DefaultImage
 		}
 		provisioned, err := pgvector.EnsurePostgres(ctx, kc.SAClient, namespace, opts)
 		if err != nil {
