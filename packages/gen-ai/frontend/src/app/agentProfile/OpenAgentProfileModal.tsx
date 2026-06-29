@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Checkbox,
   Content,
@@ -13,6 +14,7 @@ export const OPEN_AGENT_MODAL_DISMISSED_KEY = 'gen-ai-agent-open-modal-dismissed
 
 type OpenAgentProfileModalProps = {
   displayName: string;
+  validationWarnings?: string[];
   onPreview: () => void;
   onEdit: () => void;
   onCancel: () => void;
@@ -20,14 +22,16 @@ type OpenAgentProfileModalProps = {
 
 const OpenAgentProfileModal: React.FC<OpenAgentProfileModalProps> = ({
   displayName,
+  validationWarnings,
   onPreview,
   onEdit,
   onCancel,
 }) => {
   const [doNotShow, setDoNotShow] = React.useState(false);
+  const hasWarnings = !!validationWarnings?.length;
 
   const persist = () => {
-    if (doNotShow) {
+    if (doNotShow && !hasWarnings) {
       try {
         localStorage.setItem(OPEN_AGENT_MODAL_DISMISSED_KEY, 'true');
       } catch {
@@ -46,6 +50,21 @@ const OpenAgentProfileModal: React.FC<OpenAgentProfileModalProps> = ({
     >
       <ModalHeader title="Open this agent?" labelId="open-agent-profile-modal-title" />
       <ModalBody>
+        {hasWarnings && (
+          <Alert
+            variant="warning"
+            isInline
+            title="Some resources from this agent configuration are no longer available"
+            className="pf-v6-u-mb-md"
+            data-testid="open-agent-profile-warning-alert"
+          >
+            <ul>
+              {validationWarnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ul>
+          </Alert>
+        )}
         <Content>
           <Content component="p">
             You are opening <strong>{displayName}</strong>. Preview keeps agent configuration
@@ -53,12 +72,14 @@ const OpenAgentProfileModal: React.FC<OpenAgentProfileModalProps> = ({
             changes.
           </Content>
         </Content>
-        <Checkbox
-          id="open-agent-do-not-show"
-          label="Don't show this message again"
-          isChecked={doNotShow}
-          onChange={(_e, checked) => setDoNotShow(checked)}
-        />
+        {!hasWarnings && (
+          <Checkbox
+            id="open-agent-do-not-show"
+            label="Don't show this message again"
+            isChecked={doNotShow}
+            onChange={(_e, checked) => setDoNotShow(checked)}
+          />
+        )}
       </ModalBody>
       <ModalFooter>
         <Button
@@ -73,6 +94,7 @@ const OpenAgentProfileModal: React.FC<OpenAgentProfileModalProps> = ({
         </Button>
         <Button
           variant="primary"
+          isDisabled={hasWarnings}
           data-testid="open-agent-profile-edit-button"
           onClick={() => {
             persist();

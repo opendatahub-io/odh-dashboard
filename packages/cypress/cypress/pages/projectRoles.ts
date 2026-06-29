@@ -126,6 +126,42 @@ class ProjectRolesTab {
     return cy.findByTestId('dashboard-empty-table-state');
   }
 
+  findFormYamlToggle() {
+    return cy.findByTestId('form-yaml-toggle');
+  }
+
+  findFormViewToggle() {
+    return cy.findByTestId('form-view-toggle');
+  }
+
+  findYamlViewToggle() {
+    return cy.findByTestId('yaml-view-toggle');
+  }
+
+  findYamlView() {
+    return cy.findByTestId('create-role-yaml-view');
+  }
+
+  findYamlViewTitle() {
+    return cy.findByTestId('yaml-view-title');
+  }
+
+  findYamlViewDescription() {
+    return cy.findByTestId('yaml-view-description');
+  }
+
+  findYamlCodeEditor() {
+    return cy.findByTestId('yaml-code-editor');
+  }
+
+  findYamlEditorContainer() {
+    return cy.findByTestId('yaml-editor-container');
+  }
+
+  findYamlFullscreenToggle() {
+    return cy.findByTestId('yaml-fullscreen-toggle');
+  }
+
   findPreviewYAMLModal() {
     return cy.findByTestId('preview-yaml-modal');
   }

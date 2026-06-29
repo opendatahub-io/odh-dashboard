@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useOutletContext } from 'react-router';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import BiasConfigurationPage from '#~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationPage';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { ProjectModelMetricsOutletContextProps } from './ProjectModelMetricsWrapper';
 
 const ProjectModelMetricsConfigurationPage: React.FC = () => {

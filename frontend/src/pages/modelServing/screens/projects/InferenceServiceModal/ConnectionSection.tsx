@@ -12,12 +12,12 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '#~/concepts/connectionTypes/types';
-import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
   getConnectionTypeRef,
   isModelServingCompatible,

@@ -38,6 +38,7 @@ const (
 	UserPath            = ApiPathPrefix + "/user"
 	NamespacePath       = ApiPathPrefix + "/namespaces"
 	SecretsPath         = ApiPathPrefix + "/secrets"
+	SecretPath          = ApiPathPrefix + "/secret/:name"
 	S3FilePath          = ApiPathPrefix + "/s3/files/:key"
 	S3FilesPath         = ApiPathPrefix + "/s3/files"
 	OGXModelsPath       = ApiPathPrefix + "/ogx/models"
@@ -276,6 +277,7 @@ func (app *App) Routes() http.Handler {
 
 	// Secrets
 	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
+	apiRouter.GET(SecretPath, app.AttachNamespace(app.GetSecretHandler))
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).

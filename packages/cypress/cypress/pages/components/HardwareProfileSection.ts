@@ -40,6 +40,10 @@ export class HardwareProfileSection {
     return cy.findByTestId('hardware-profile-details-popover');
   }
 
+  findKueueFilteringInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('kueue-filtering-info');
+  }
+
   findCustomizeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-customize').findByRole('button', {
       name: 'Customize resource requests and limits',

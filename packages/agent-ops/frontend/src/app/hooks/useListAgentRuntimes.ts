@@ -1,7 +1,7 @@
 import React from 'react';
 import { useFetchState, type FetchStateCallbackPromise } from 'mod-arch-core';
 import { listAgentRuntimes } from '~/app/api/agentRuntimes';
-import { NO_REFRESH_INTERVAL } from '~/app/const';
+import { NO_REFRESH_INTERVAL, AGENT_RUNTIMES_REFRESH_INTERVAL } from '~/app/const';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -20,12 +20,12 @@ export type ListAgentRuntimesResult = {
 
 /**
  * Fetches agent runtimes for the deployments list with BFF cursor pagination.
- * Polling is added in a follow-up PR (RHOAIENG-62705); this hook loads once per
- * namespace or page change. Per-namespace RBAC is enforced by the BFF; selected
- * project scoping is applied client-side until the list API supports a namespace
- * query parameter.
+ * Polls every `refreshInterval` ms (default 10 s) when a namespace is selected;
  */
-export const useListAgentRuntimes = (namespace?: string): ListAgentRuntimesResult => {
+export const useListAgentRuntimes = (
+  namespace?: string,
+  refreshInterval = AGENT_RUNTIMES_REFRESH_INTERVAL,
+): ListAgentRuntimesResult => {
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const pageTokensRef = React.useRef<(string | undefined)[]>([]);
@@ -52,7 +52,7 @@ export const useListAgentRuntimes = (namespace?: string): ListAgentRuntimesResul
     fetchCallback,
     { runtimes: [] },
     {
-      refreshRate: NO_REFRESH_INTERVAL,
+      refreshRate: namespace ? refreshInterval : NO_REFRESH_INTERVAL,
     },
   );
 

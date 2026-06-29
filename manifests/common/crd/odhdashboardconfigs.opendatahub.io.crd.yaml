@@ -345,6 +345,15 @@ spec:
                     isLLMdDefault:
                       description: 'When true, sets LLMd as the default serving platform for new model deployments.'
                       type: boolean
+                globalMLflowNamespaces:
+                  description: >-
+                    List of namespaces designated as global MLflow workspaces for shared
+                    resources. Currently limited to a single namespace.
+                  type: array
+                  maxItems: 1
+                  items:
+                    type: string
+                    minLength: 1
                 genAiStudioConfig:
                   description: 'Configuration options for Gen AI Studio features'
                   type: object

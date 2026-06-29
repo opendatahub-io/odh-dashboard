@@ -1,5 +1,4 @@
-import { SupportedArea } from '#~/concepts/areas/types';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useIsComponentIntegrationEnabled } from '#~/concepts/integrations/useIsComponentIntegrationEnabled';
 
 export const useIsNIMAvailable = (): [

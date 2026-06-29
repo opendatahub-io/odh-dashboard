@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { TrustyAIKind } from '#~/k8sTypes';
 
 /** { [namespace]: uid } */

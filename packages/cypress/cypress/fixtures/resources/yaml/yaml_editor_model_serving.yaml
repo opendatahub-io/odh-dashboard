@@ -16,9 +16,16 @@ spec:
       - name: main
         image: quay.io/pierdipi/vllm-cpu:latest
         securityContext:
-          # The image is not built in a way that can run as non-root
-          runAsNonRoot: false
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+              - ALL
         env:
+          - name: HF_HOME
+            value: /tmp/hf_home
           - name: VLLM_LOGGING_LEVEL
             value: DEBUG
         resources:

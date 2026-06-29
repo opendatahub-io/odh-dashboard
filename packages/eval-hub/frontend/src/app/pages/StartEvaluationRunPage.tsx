@@ -14,6 +14,7 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Icon,
   MenuToggle,
   PageSection,
   Radio,
@@ -22,6 +23,7 @@ import {
   SelectOption,
   Spinner,
   TextInput,
+  Tooltip,
   EmptyState,
   EmptyStateBody,
   EmptyStateActions,
@@ -370,12 +372,24 @@ const StartEvaluationRunPage: React.FC = () => {
                           key={is.name}
                           value={is.name}
                           data-testid={`model-option-${is.name}`}
+                          isDisabled={!is.ready}
                           isSelected={
                             form.modelSelection === 'cluster' &&
                             form.selectedInferenceService?.name === is.name
                           }
                         >
                           {is.name}
+                          {!is.ready && (
+                            <Tooltip content="This model is unavailable. Check the model's deployment status.">
+                              <Icon
+                                status="danger"
+                                iconSize="sm"
+                                style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                              >
+                                <ExclamationCircleIcon />
+                              </Icon>
+                            </Tooltip>
+                          )}
                         </SelectOption>
                       ))}
                       <Divider />

@@ -6,14 +6,14 @@ import {
   isK8sDSGResource,
   isValidK8sName,
   translateDisplayNameForK8s,
-} from '#~/concepts/k8s/utils';
-import { RecursivePartial } from '#~/typeHelpers';
-import {
+} from './k8sResourceUtils';
+import type {
+  RecursivePartial,
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunctionInternal,
   K8sNameDescriptionType,
   UseK8sNameDescriptionDataConfiguration,
-} from './types';
+} from './k8sNameDescriptionFieldTypes';
 
 /**
  * Those used in OpenShift Routes need to be less than 63 between namespace & resource name.

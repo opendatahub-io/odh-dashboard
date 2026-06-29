@@ -7,22 +7,22 @@ import {
   MenuToggleStatus,
   Truncate,
 } from '@patternfly/react-core';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+  getResourceNameFromK8sResource,
+} from '@odh-dashboard/k8s-core';
+import type {
+  K8sNameDescriptionFieldData,
+  K8sNameDescriptionFieldUpdateFunction,
+} from '@odh-dashboard/k8s-core';
 import ConnectionTypeFormFields from '#~/concepts/connectionTypes/fields/ConnectionTypeFormFields';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '#~/concepts/connectionTypes/types';
-import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-  getResourceNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
 import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
 import K8sNameDescriptionField from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import {
-  K8sNameDescriptionFieldData,
-  K8sNameDescriptionFieldUpdateFunction,
-} from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import { ConnectionTypeDetailsHelperText } from './ConnectionTypeDetailsHelperText';
 
 const createSelectOption = (
