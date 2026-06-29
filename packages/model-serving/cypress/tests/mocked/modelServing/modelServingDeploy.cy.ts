@@ -30,10 +30,6 @@ import {
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
 import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
-import {
   initMockConnectionSecretIntercepts,
   initMockModelAuthIntercepts,
 } from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
@@ -57,6 +53,10 @@ import {
   modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import { hardwareProfileSection } from '@odh-dashboard/cypress/cypress/pages/components/HardwareProfileSection';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/types/form-data';
 
 const initIntercepts = ({
   modelType,

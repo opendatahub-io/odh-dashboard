@@ -11,7 +11,10 @@ import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
 } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import { modelServingGlobal, modelServingSection } from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import {
+  modelServingGlobal,
+  modelServingSection,
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import {
   InferenceServiceModel,
   ProjectModel,
