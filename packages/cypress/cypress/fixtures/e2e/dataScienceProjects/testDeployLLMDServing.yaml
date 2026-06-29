@@ -1,13 +1,20 @@
 # testDeployLLMDServing.cy.ts Test Data #
+
+# resource kind
+resourceType: 'llminferenceservice'
+resourceApiVersion: 'apiVersion: serving.kserve.io/v1alpha2'
+
+# form data
 projectResourceName: 'test-llmd-deployment'
 singleModelName: 'test-llmd-model'
 hardwareProfileName: 'cypress-llmd-hardware-profile-model'
 modelType: 'Generative AI model (Example, LLM)'
 modelLocationURI: 'hf://facebook/opt-125m'
-servingRuntime: 'Distributed inference with llm-d'
-resourceType: 'llminferenceservice'
 existingImage: '- name: main'
 replaceImage: "- name: main\n        image: quay.io/pierdipi/vllm-cpu:latest"
 connectionNameSuffix: '-connection'
 yamlEditorModelName: 'facebook-opt-125m-single'
-legacyServingRuntime: 'vLLM CPU .x86. ServingRuntime for KServe'
+
+# llm-d LLMInferenceService path
+deploymentMethod: 'llm-inference-service-llmd'
+servingRuntime: 'Distributed inference with llm-d'
