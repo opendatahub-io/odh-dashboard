@@ -37,11 +37,12 @@ const TemplateCategoryGroup: React.FC<TemplateCategoryGroupProps> = ({
         <DataListItemRow>
           <DataListToggle
             id={`toggle-${category.id}`}
-            aria-controls={`category-${category.id}`}
             onClick={() => setIsExpanded((prev) => !prev)}
             isExpanded={isExpanded}
             aria-label={`Toggle ${category.name}`}
             data-testid={`toggle-category-${category.id}`}
+            // Override PF's buggy default of aria-controls="false" when no controlled region exists
+            buttonProps={{ 'aria-controls': undefined }}
           />
           <DataListItemCells
             dataListCells={[
