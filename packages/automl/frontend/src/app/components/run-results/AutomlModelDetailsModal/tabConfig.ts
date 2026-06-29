@@ -19,6 +19,7 @@ import FeatureSummaryTab from './tabs/FeatureSummaryTab';
 import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 import PrecisionRecallTab from './tabs/PrecisionRecallTab';
+import BacktestingTab from './tabs/BacktestingTab';
 
 export type TabContentProps = {
   model: AutomlModel;
@@ -96,6 +97,14 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     section: 'Evaluation',
     visibleFor: CLASSIFICATION_TYPES,
     component: PrecisionRecallTab,
+  },
+  {
+    key: 'back-testing',
+    label: 'Back-testing',
+    tooltip: 'Per-window validation metrics and best/worst series forecast accuracy',
+    section: 'Evaluation',
+    visibleFor: TASK_TYPE_TIMESERIES,
+    component: BacktestingTab,
   },
 ];
 
