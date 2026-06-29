@@ -1,4 +1,4 @@
-import { useBrowserStorage } from '@odh-dashboard/internal/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 
 const usePauseRayJobModalAvailability = (): [boolean, (v: boolean) => void] =>
   useBrowserStorage<boolean>('odh.dashboard.model-training.pause-ray-job.modal.preference', false);

@@ -1026,20 +1026,21 @@ export type WorkloadKind = K8sResourceCommon & {
   };
 };
 
+export type WorkloadConditionType =
+  | 'QuotaReserved'
+  | 'Admitted'
+  | 'PodsReady'
+  | 'Finished'
+  | 'Evicted'
+  | 'Preempted';
+
 export type WorkloadCondition = {
   lastTransitionTime: string;
   message: string;
   observedGeneration?: number;
   reason: string;
   status: 'True' | 'False' | 'Unknown';
-  type:
-    | 'QuotaReserved'
-    | 'Admitted'
-    | 'PodsReady'
-    | 'Finished'
-    | 'Evicted'
-    | 'Preempted'
-    | 'Failed';
+  type: WorkloadConditionType | (string & NonNullable<unknown>);
 };
 
 export type WorkloadPriorityClassKind = K8sResourceCommon & {

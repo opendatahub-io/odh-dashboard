@@ -9,7 +9,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import { TrainJobKind } from '../../k8sTypes';
 

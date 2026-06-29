@@ -1,4 +1,14 @@
-import { fetchS3File, fetchS3Json } from '~/app/hooks/queries';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react';
+import React from 'react';
+import { fetchS3File, fetchS3Json, useSecretCredentialsQuery } from '~/app/hooks/queries';
+import { getSecretByName } from '~/app/api/k8s';
+
+jest.mock('~/app/api/k8s', () => ({
+  getSecretByName: jest.fn(),
+}));
+
+const getSecretByNameMock = jest.mocked(getSecretByName);
 
 global.fetch = jest.fn();
 
@@ -182,5 +192,81 @@ describe('fetchS3Json', () => {
     await expect(fetchS3Json('ns', 'missing.json')).rejects.toThrow(
       'Failed to fetch file: Not Found',
     );
+  });
+});
+
+describe('useSecretCredentialsQuery', () => {
+  const createWrapper = () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+    return Wrapper;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should be disabled when namespace is undefined', () => {
+    const { result } = renderHook(() => useSecretCredentialsQuery(undefined, 'secret'), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.isFetching).toBe(false);
+    expect(result.current.data).toBeUndefined();
+    expect(getSecretByNameMock).not.toHaveBeenCalled();
+  });
+
+  it('should be disabled when secretName is undefined', () => {
+    const { result } = renderHook(() => useSecretCredentialsQuery('ns', undefined), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.isFetching).toBe(false);
+    expect(result.current.data).toBeUndefined();
+    expect(getSecretByNameMock).not.toHaveBeenCalled();
+  });
+
+  it('should be disabled when both params are undefined', () => {
+    const { result } = renderHook(() => useSecretCredentialsQuery(undefined, undefined), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.isFetching).toBe(false);
+    expect(result.current.data).toBeUndefined();
+    expect(getSecretByNameMock).not.toHaveBeenCalled();
+  });
+
+  it('should fetch when both namespace and secretName are provided', async () => {
+    const mockData = { OGX_CLIENT_API_KEY: 'key', OGX_CLIENT_BASE_URL: 'url' };
+    getSecretByNameMock.mockReturnValue((() => () => Promise.resolve(mockData)) as never);
+
+    const { result } = renderHook(() => useSecretCredentialsQuery('test-ns', 'my-secret'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toEqual(mockData);
+  });
+
+  it('should return error when fetch fails', async () => {
+    getSecretByNameMock.mockReturnValue(
+      (() => () => Promise.reject(new Error('Not found'))) as never,
+    );
+
+    const { result } = renderHook(() => useSecretCredentialsQuery('test-ns', 'bad-secret'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(result.current.error?.message).toBe('Not found');
   });
 });

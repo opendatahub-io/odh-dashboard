@@ -2945,6 +2945,17 @@ components:
           type: integer
           example: 1536
           description: Output vector size for embedding models (required for embedding models)
+        capabilities:
+          type: array
+          items:
+            type: string
+            enum:
+              - vision
+              - audio-transcription
+          description: >-
+            Optional model capabilities beyond text generation.
+            text-generation is always included implicitly by the BFF.
+          example: ["vision"]
 
     # Verify External Model Request Schema
     # Uses oneOf to enforce conditional requirements based on model_type

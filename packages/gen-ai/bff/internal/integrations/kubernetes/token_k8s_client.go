@@ -1355,19 +1355,14 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			useCases = model.Metadata.CustomGenAI.UseCases
 		}
 
-		caps := constants.DefaultCapabilities()
-		if len(model.Metadata.Capabilities) > 0 {
-			filtered := make([]string, 0, len(model.Metadata.Capabilities))
-			for _, c := range model.Metadata.Capabilities {
-				if constants.IsAllowedCapability(c) {
-					filtered = append(filtered, c)
-				} else {
-					kc.Logger.Warn("unknown external model capability dropped", "modelID", model.ModelID, "capability", c)
-				}
+		for _, c := range model.Metadata.Capabilities {
+			if !constants.IsAllowedCapability(c) {
+				kc.Logger.Warn("unknown external model capability dropped", "modelID", model.ModelID, "capability", c)
 			}
-			if len(filtered) > 0 {
-				caps = filtered
-			}
+		}
+		caps := constants.BuildCapabilities(model.Metadata.Capabilities)
+		if caps == nil {
+			caps = constants.DefaultCapabilities()
 		}
 		aaModel := models.AAModel{
 			ModelName:          model.ModelID,
@@ -2778,6 +2773,7 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		Metadata: models.RegisteredModelMetadata{
 			DisplayName:        req.ModelDisplayName,
 			EmbeddingDimension: req.EmbeddingDimension,
+			Capabilities:       constants.BuildCapabilities(req.Capabilities),
 		},
 	}
 

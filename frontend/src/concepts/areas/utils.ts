@@ -3,7 +3,11 @@ import type {
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
 } from '@odh-dashboard/k8s-core';
-import { IsAreaAvailableStatus, FeatureFlag, SupportedAreaType } from './types';
+import type {
+  IsAreaAvailableStatus,
+  FeatureFlag,
+  SupportedAreaType,
+} from '@odh-dashboard/plugin-core/areas';
 import { definedFeatureFlags, SupportedAreasStateMap } from './const';
 
 export const isDefinedFeatureFlag = (key: string): key is FeatureFlag =>

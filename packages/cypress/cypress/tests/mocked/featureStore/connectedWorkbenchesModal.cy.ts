@@ -12,7 +12,7 @@ import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { featureStoreGlobal } from '../../../pages/featureStore/featureStoreGlobal';
 import { ProjectModel, ServiceModel } from '../../../utils/models';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
@@ -270,5 +270,110 @@ describe('Connected Workbenches modal', () => {
     cy.findByText(
       'To create and connect workbenches, you must first have a project with access permission. Update project permissions.',
     ).should('be.visible');
+  });
+
+  describe('filter toolbar', () => {
+    const multiProjectResponse = [
+      {
+        feastProjectName: fsProjectName,
+        namespace: k8sNamespace,
+        permissionLevel: ['Read', 'Write'],
+        connectedWorkbenches: [
+          {
+            workbenchName: 'wb-alpha',
+            workbenchNamespace: 'proj-a',
+            projectName: 'proj-a',
+          },
+          {
+            workbenchName: 'wb-beta',
+            workbenchNamespace: 'proj-b',
+            projectName: 'proj-b',
+          },
+        ],
+      },
+      {
+        feastProjectName: 'second_project',
+        namespace: k8sNamespace,
+        permissionLevel: ['Delete'],
+        connectedWorkbenches: [] as Array<{
+          workbenchName: string;
+          workbenchNamespace: string;
+          projectName: string;
+        }>,
+      },
+    ];
+
+    const openModalWithMultiProjectData = () => {
+      interceptConnectedWorkbenches(multiProjectResponse);
+      featureStoreGlobal.visitEntities(fsProjectName);
+      openConnectedWorkbenchesModalAndWait();
+      featureStoreGlobal.findConnectedWorkbenchesModalProjectSelector().click();
+      cy.findByRole('menuitem', { name: 'All feature stores' }).click();
+    };
+
+    it('should switch filter types and filter by workbench name', () => {
+      openModalWithMultiProjectData();
+
+      featureStoreGlobal.findFilterTypeToggle().should('have.text', 'Authorized project');
+      featureStoreGlobal.findFilterTypeToggle().click();
+      featureStoreGlobal.findFilterTypeOption('workbenchName').should('be.visible').click();
+      featureStoreGlobal.findFilterTypeToggle().should('have.text', 'Workbench name');
+
+      featureStoreGlobal.findWorkbenchNameFilterInput().type('alpha');
+      featureStoreGlobal
+        .findConnectedWorkbenchesTable()
+        .find('tbody')
+        .findAllByRole('row')
+        .should('have.length', 1)
+        .first()
+        .should('contain.text', 'wb-alpha');
+    });
+
+    it('should filter by authorized project and show grouped options', () => {
+      openModalWithMultiProjectData();
+
+      featureStoreGlobal.findProjectFilterToggle().click();
+      featureStoreGlobal.findProjectGroupHeader('with').should('be.visible');
+      featureStoreGlobal.findProjectGroupHeader('without').should('be.visible');
+
+      featureStoreGlobal.findProjectOption('proj-a').should('be.visible').click();
+      featureStoreGlobal
+        .findConnectedWorkbenchesTable()
+        .find('tbody')
+        .findAllByRole('row')
+        .should('have.length', 1)
+        .first()
+        .should('contain.text', 'wb-alpha');
+    });
+
+    it('should filter by permission', () => {
+      openModalWithMultiProjectData();
+
+      featureStoreGlobal.findFilterTypeToggle().click();
+      featureStoreGlobal.findFilterTypeOption('permission').should('be.visible').click();
+      featureStoreGlobal.findPermissionFilterToggle().click();
+      featureStoreGlobal.findPermissionOption('Delete').should('be.visible').click();
+
+      featureStoreGlobal
+        .findConnectedWorkbenchesTable()
+        .find('tbody')
+        .findAllByRole('row')
+        .should('have.length', 1)
+        .first()
+        .should('contain.text', 'Delete');
+    });
+
+    it('should hide projects with connected workbenches using the toggle', () => {
+      openModalWithMultiProjectData();
+
+      featureStoreGlobal.findHideConnectedWorkbenchesSwitch().click();
+      featureStoreGlobal
+        .findConnectedWorkbenchesTable()
+        .find('tbody')
+        .findAllByRole('row')
+        .should('have.length', 1)
+        .first()
+        .should('contain.text', k8sNamespace);
+    });
   });
 });

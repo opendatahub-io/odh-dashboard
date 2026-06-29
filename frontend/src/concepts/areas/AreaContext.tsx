@@ -1,6 +1,12 @@
 import * as React from 'react';
 import { Bullseye, Page, Spinner } from '@patternfly/react-core';
 import { useExtensions } from '@odh-dashboard/plugin-core';
+import {
+  AreaContext,
+  type IsAreaAvailableStatus,
+  type SupportedAreaType,
+  type SupportedComponentFlagValue,
+} from '@odh-dashboard/plugin-core/areas';
 import { isAreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type {
   DataScienceClusterInitializationKindStatus,
@@ -12,30 +18,10 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useAppContext } from '#~/app/AppContext';
-import {
-  IsAreaAvailableStatus,
-  SupportedAreaType,
-  SupportedComponentFlagValue,
-} from '#~/concepts/areas/types';
 import { FlagState, getFlags, isAreaAvailable } from '#~/concepts/areas/utils';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
 
-type AreaContextState = {
-  /**
-   * If value is `null`:
-   *   Using the v1 Operator, no status to pull
-   *   TODO: Remove when we no longer want to support v1
-   */
-  dscStatus: DataScienceClusterKindStatus | null;
-  dsciStatus: DataScienceClusterInitializationKindStatus | null;
-  areasStatus: Record<SupportedAreaType, IsAreaAvailableStatus | undefined>;
-};
-
-export const AreaContext = React.createContext<AreaContextState>({
-  dscStatus: null,
-  dsciStatus: null,
-  areasStatus: {},
-});
+export { AreaContext } from '@odh-dashboard/plugin-core/areas';
 
 type InnerProps = {
   dscStatus: DataScienceClusterKindStatus | null;

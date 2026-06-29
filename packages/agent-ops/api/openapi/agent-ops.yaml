@@ -79,6 +79,17 @@ paths:
       tags:
         - AgentOperation
       parameters:
+        - name: namespace
+          in: query
+          required: false
+          description: >-
+            Kubernetes namespace to scope results to. When provided, only agents
+            from this namespace are returned. When omitted, agents from all
+            enabled namespaces are returned.
+          schema:
+            type: string
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+            maxLength: 63
         - name: limit
           in: query
           required: false
@@ -97,8 +108,12 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/AgentRuntimesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: listAgentRuntimes

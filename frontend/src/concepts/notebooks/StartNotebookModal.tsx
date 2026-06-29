@@ -50,10 +50,11 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { getClusterQueueNameFromLocalQueues } from '#~/pages/hardwareProfiles/utils';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import {
+  KueueWorkloadStatus,
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
 } from '#~/concepts/kueue/types';
-import { getHumanReadableKueueMessage } from '#~/concepts/kueue/messageUtils';
+import { getHumanReadableKueueMessage, getRequeuedMessage } from '#~/concepts/kueue/messageUtils';
 import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import NotebookStatusLabel from './NotebookStatusLabel';
@@ -187,7 +188,13 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     }
 
     const kueueTitle = showKueueMessage
-      ? getHumanReadableKueueMessage(kueueStatus.status, kueueStatus.message, kueueStatus.queueName)
+      ? kueueStatus.status === KueueWorkloadStatus.Requeued
+        ? getRequeuedMessage(kueueStatus)
+        : getHumanReadableKueueMessage(
+            kueueStatus.status,
+            kueueStatus.message,
+            kueueStatus.queueName,
+          )
       : null;
     const workbenchTitle =
       notebookStatus?.currentEvent ||
