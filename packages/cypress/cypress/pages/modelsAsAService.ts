@@ -1159,6 +1159,52 @@ class SubscriptionsTab {
   }
 }
 
+class OverviewTabPage {
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('overview-table');
+  }
+
+  findModelRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().findAllByTestId('overview-model-row');
+  }
+
+  findColumnSortButton(label: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('thead').contains('th', label).findByRole('button');
+  }
+
+  findViewToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('overview-view-toggle');
+  }
+
+  expandModelRow(index: number): void {
+    this.findModelRows().eq(index).findByTestId('expand-model').find('button').click();
+  }
+
+  findExpandAllSubscriptionsInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRows().eq(index).findByTestId('expand-all-subscriptions');
+  }
+
+  findExpandAllPoliciesInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRows().eq(index).findByTestId('expand-all-policies');
+  }
+
+  findShowMoreGroupsInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRows().eq(index).findByTestId('show-more-groups');
+  }
+
+  findShowLessGroupsInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRows().eq(index).findByTestId('show-less-groups');
+  }
+
+  findKebabToggleInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRows().eq(index).findByLabelText('Kebab toggle');
+  }
+
+  findKebabAction(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name });
+  }
+}
+
 class SubscriptionManagementPage {
   visit(tab?: string): void {
     const path = tab ? `/maas/subscription-management/${tab}` : '/maas/subscription-management';
@@ -1212,4 +1258,5 @@ export const authPoliciesPage = new AuthPoliciesPage();
 export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();
 export const viewAuthPolicyPage = new ViewAuthPolicyPage();
 export const mySubscriptionsPage = new MySubscriptionsPage();
+export const overviewTabPage = new OverviewTabPage();
 export const subscriptionManagementPage = new SubscriptionManagementPage();

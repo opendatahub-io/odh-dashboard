@@ -6,6 +6,7 @@ import type {
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
 import type {
   MaaSSubscription,
+  ModelOverviewItem,
   SubscriptionInfoResponse,
   UserSubscription,
   MaaSModelRefSummary,
@@ -206,6 +207,43 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     ],
     creationTimestamp: '2025-03-18T03:00:00Z',
   },
+  {
+    name: 'multi-group-llama-sub',
+    displayName: 'Enterprise Multi-Group Llama Access',
+    description: 'Broad access to Llama 3 70B for multiple teams across the organization',
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    priority: 5,
+    owner: {
+      groups: [
+        { name: 'platform-admins' },
+        { name: 'data-science-team' },
+        { name: 'ml-engineers' },
+        { name: 'analytics-team' },
+        { name: 'qa-engineers' },
+        { name: 'devops-team' },
+        { name: 'security-reviewers' },
+        { name: 'product-managers' },
+        { name: 'research-team' },
+        { name: 'frontend-devs' },
+        { name: 'backend-devs' },
+        { name: 'interns' },
+      ],
+    },
+    modelRefs: [
+      {
+        name: 'llama-3-70b-instruct',
+        namespace: 'maas-models',
+        tokenRateLimits: [
+          { limit: 2000, window: '1m' },
+          { limit: 80000, window: '1h' },
+          { limit: 600000, window: '24h' },
+        ],
+      },
+    ],
+    creationTimestamp: '2025-04-01T09:00:00Z',
+  },
   mockFailedSubscription(),
   mockPendingSubscription(),
   mockDeletingSubscription(),
@@ -353,14 +391,201 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     phase: 'Ready',
     endpoint: 'https://flan-t5-small.maas-models.svc.cluster.local',
   },
+  {
+    name: 'llama-3-70b-instruct',
+    namespace: 'maas-models',
+    displayName: 'Llama 3 70B Instruct',
+    description: 'A large open-weight model for complex reasoning and multi-turn dialogue',
+    modelRef: { kind: 'InferenceService', name: 'llama-3-70b-instruct' },
+    phase: 'Ready',
+    endpoint: 'https://llama-3-70b-instruct.maas-models.svc.cluster.local',
+  },
+  {
+    name: 'gemma-7b-it',
+    namespace: 'maas-models',
+    displayName: 'Gemma 7B IT',
+    description: 'Google Gemma 7B instruction-tuned model for general-purpose tasks',
+    modelRef: { kind: 'InferenceService', name: 'gemma-7b-it' },
+    phase: 'Ready',
+    endpoint: 'https://gemma-7b-it.maas-models.svc.cluster.local',
+  },
 ];
 
 export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse => ({
-  groups: ['system:authenticated', 'premium-users', 'enterprise-users', 'beta-testers'],
+  groups: [
+    'system:authenticated',
+    'premium-users',
+    'enterprise-users',
+    'beta-testers',
+    'platform-admins',
+    'data-science-team',
+    'ml-engineers',
+    'analytics-team',
+    'qa-engineers',
+    'devops-team',
+    'security-reviewers',
+    'product-managers',
+    'research-team',
+    'frontend-devs',
+    'backend-devs',
+    'interns',
+  ],
   modelRefs: mockModelRefSummaries(),
   subscriptions: mockSubscriptions(),
   policies: mockAuthPolicies(),
 });
+
+export const mockModelsOverview = (): ModelOverviewItem[] => [
+  {
+    id: 'granite-3-8b-instruct',
+    modelDetails: {
+      displayName: 'Granite 3 8B Instruct',
+      description: 'A large language model for instruction following',
+      phase: 'Ready',
+    },
+    subscriptions: [
+      {
+        name: 'premium-team-sub',
+        displayName: 'Premium Team Subscription',
+        phase: 'Active',
+        groups: ['premium-users'],
+        tokenRateLimits: [{ limit: 100000, window: '24h' }],
+      },
+      {
+        name: 'failed-sub',
+        phase: 'Failed',
+        groups: ['system:authenticated'],
+        tokenRateLimits: [{ limit: 9999999, window: '24h' }],
+      },
+      {
+        name: 'deleting-sub',
+        phase: 'Active',
+        groups: ['premium-users'],
+        tokenRateLimits: [{ limit: 50000, window: '24h' }],
+      },
+    ],
+    authPolicies: [
+      {
+        name: 'test-subscription-policy',
+        phase: 'Active',
+        groups: ['premium-users', 'my-custom-group'],
+      },
+      {
+        name: 'premium-team-policy',
+        displayName: 'Premium Team Policy',
+        phase: 'Active',
+        groups: ['premium-users'],
+      },
+      { name: 'failed-policy', phase: 'Failed', groups: ['system:authenticated'] },
+      { name: 'deleting-policy', phase: 'Active', groups: ['premium-users'] },
+    ],
+  },
+  {
+    id: 'flan-t5-small',
+    modelDetails: {
+      displayName: 'Flan T5 Small',
+      description: 'A compact text-to-text model',
+      phase: 'Ready',
+    },
+    subscriptions: [
+      {
+        name: 'premium-team-sub',
+        displayName: 'Premium Team Subscription',
+        phase: 'Active',
+        groups: ['premium-users'],
+        tokenRateLimits: [{ limit: 200000, window: '24h' }],
+      },
+      {
+        name: 'basic-team-sub',
+        displayName: 'Basic Team Subscription',
+        phase: 'Active',
+        groups: ['system:authenticated'],
+        tokenRateLimits: [{ limit: 10000, window: '24h' }],
+      },
+      {
+        name: 'negative-priority-sub',
+        phase: 'Active',
+        groups: ['system:authenticated'],
+        tokenRateLimits: [{ limit: 10000, window: '24h' }],
+      },
+      {
+        name: 'pending-sub',
+        phase: 'Pending',
+        groups: ['beta-testers'],
+        tokenRateLimits: [{ limit: 5000, window: '1h' }],
+      },
+    ],
+    authPolicies: [
+      { name: 'basic-team-policy', phase: 'Active', groups: ['system:authenticated'] },
+      { name: 'pending-policy', phase: 'Pending', groups: ['beta-testers'] },
+    ],
+  },
+  {
+    id: 'llama-3-70b-instruct',
+    modelDetails: {
+      displayName: 'Llama 3 70B Instruct',
+      description: 'A large open-weight model for complex reasoning and multi-turn dialogue',
+      phase: 'Ready',
+    },
+    subscriptions: [
+      {
+        name: 'multi-group-llama-sub',
+        displayName: 'Enterprise Multi-Group Llama Access',
+        phase: 'Active',
+        groups: [
+          'platform-admins',
+          'data-science-team',
+          'ml-engineers',
+          'analytics-team',
+          'qa-engineers',
+          'devops-team',
+          'security-reviewers',
+          'product-managers',
+          'research-team',
+          'frontend-devs',
+          'backend-devs',
+          'interns',
+        ],
+        tokenRateLimits: [
+          { limit: 2000, window: '1m' },
+          { limit: 80000, window: '1h' },
+          { limit: 600000, window: '24h' },
+        ],
+      },
+    ],
+    authPolicies: [],
+  },
+  {
+    id: 'gemma-7b-it',
+    modelDetails: {
+      displayName: 'Gemma 7B IT',
+      description: 'Google Gemma 7B instruction-tuned model for general-purpose tasks',
+      phase: 'Ready',
+    },
+    subscriptions: [],
+    authPolicies: [
+      {
+        name: 'gemma-research-policy',
+        displayName: 'Gemma Research Policy',
+        phase: 'Active',
+        groups: [
+          'data-science-team',
+          'ml-engineers',
+          'research-team',
+          'analytics-team',
+          'qa-engineers',
+          'platform-admins',
+          'devops-team',
+          'security-reviewers',
+          'product-managers',
+          'frontend-devs',
+          'backend-devs',
+          'interns',
+        ],
+      },
+    ],
+  },
+];
 
 export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => ({
   subscription: {
@@ -465,6 +690,30 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     modelRefs: mockSubscriptions()[1].modelRefs,
     subjects: {
       groups: mockSubscriptions()[1].owner.groups,
+    },
+  },
+  {
+    name: 'gemma-research-policy',
+    displayName: 'Gemma Research Policy',
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    modelRefs: [{ name: 'gemma-7b-it', namespace: 'maas-models' }],
+    subjects: {
+      groups: [
+        { name: 'data-science-team' },
+        { name: 'ml-engineers' },
+        { name: 'research-team' },
+        { name: 'analytics-team' },
+        { name: 'qa-engineers' },
+        { name: 'platform-admins' },
+        { name: 'devops-team' },
+        { name: 'security-reviewers' },
+        { name: 'product-managers' },
+        { name: 'frontend-devs' },
+        { name: 'backend-devs' },
+        { name: 'interns' },
+      ],
     },
   },
   mockFailedAuthPolicy(),
