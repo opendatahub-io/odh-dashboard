@@ -130,6 +130,7 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
             value={value?.selectedConfig?.metadata.name}
             dataTestId="custom-topology-config-select"
             isDisabled={noConfigsAvailable}
+            autoSelectOnlyOption={false}
           />
           {noConfigsAvailable && (
             <FormHelperText>

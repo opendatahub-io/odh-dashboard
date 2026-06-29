@@ -115,6 +115,13 @@ const initIntercepts = ({
   );
 };
 
+const navigateToModelDeploymentStep = () => {
+  modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+  modelServingWizard.findUrilocationInput().type('hf://test/model');
+  modelServingWizard.findSaveConnectionCheckbox().click();
+  modelServingWizard.findNextButton().click();
+};
+
 describe('Model Serving LLMD Topology', () => {
   describe('topology type field', () => {
     it('should show topology type dropdown when llmdTopologyConfigs flag is enabled and llm-d is active', () => {
@@ -122,8 +129,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-      modelServingWizard.findNextButton().click();
+      navigateToModelDeploymentStep();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
@@ -135,8 +141,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-      modelServingWizard.findNextButton().click();
+      navigateToModelDeploymentStep();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
@@ -148,8 +153,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-      modelServingWizard.findNextButton().click();
+      navigateToModelDeploymentStep();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
@@ -175,8 +179,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-      modelServingWizard.findNextButton().click();
+      navigateToModelDeploymentStep();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
@@ -194,8 +197,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-      modelServingWizard.findNextButton().click();
+      navigateToModelDeploymentStep();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
@@ -213,8 +215,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-      modelServingWizard.findNextButton().click();
+      navigateToModelDeploymentStep();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
@@ -240,8 +241,7 @@ describe('Model Serving LLMD Topology', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-      modelServingWizard.findNextButton().click();
+      navigateToModelDeploymentStep();
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
