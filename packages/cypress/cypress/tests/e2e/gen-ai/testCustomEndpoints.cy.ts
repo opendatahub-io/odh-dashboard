@@ -19,7 +19,6 @@ import type { CustomEndpointTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 
-const LSD_SERVICE_NAME = 'lsd-genai-playground-service';
 const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
 describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
@@ -58,11 +57,9 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
   it(
     'Verify custom endpoint full lifecycle: create, verify, playground, delete',
     {
-      tags: ['@GenAI', '@NonConcurrent'],
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
-      const apiKey = Cypress.env('GEMINI_API_KEY');
-
       cy.step('Log into the application with custom endpoints enabled');
       cy.visitWithLogin(
         `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true`,
@@ -96,7 +93,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       genAiPlayground.findEndpointUrlInput().clear().type(testData.endpointUrl);
 
       cy.step('Fill in API key');
-      genAiPlayground.findTokenInput().clear().type(apiKey, { log: false });
+      genAiPlayground.findTokenInput().clear().type(Cypress.env('GEMINI_API_KEY'), { log: false });
 
       cy.step('Click Verify model button');
       genAiPlayground.findVerifyModelButton().should('be.enabled').click();
@@ -125,13 +122,13 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       checkLlamaStackDistributionReady(projectName);
 
       cy.step('Wait for playground service to be created');
-      waitForResource('service', LSD_SERVICE_NAME, projectName);
+      waitForResource('service', testData.lsdServiceName, projectName);
 
       cy.step('Wait for LSD pod to be fully ready');
-      waitForPodReady('lsd-genai-playground', '120s', projectName);
+      waitForPodReady(testData.lsdPodPrefix, testData.lsdPodReadyTimeout, projectName);
 
       cy.step('Wait for custom model to be registered in LSD');
-      waitForModelInLSD(LSD_SERVICE_NAME, testData.modelId, projectName);
+      waitForModelInLSD(testData.lsdServiceName, testData.modelId, projectName);
 
       cy.step('Navigate to playground and wait for model selector');
       genAiPlayground.navigateToPlaygroundWithRetry(projectName);

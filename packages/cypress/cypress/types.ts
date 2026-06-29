@@ -642,6 +642,9 @@ export type CustomEndpointTestData = {
   displayName: string;
   endpointUrl: string;
   testMessage: string;
+  lsdServiceName: string;
+  lsdPodPrefix: string;
+  lsdPodReadyTimeout: string;
 };
 
 /** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
