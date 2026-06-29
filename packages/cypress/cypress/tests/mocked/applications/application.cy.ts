@@ -8,7 +8,7 @@ import {
   mockMLflowLink,
   mockOpenDataHubConsoleLink,
 } from '@odh-dashboard/internal/__mocks__/mockConsoleLinks';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { OdhPlatformType } from '@odh-dashboard/internal/types';
 import { appChrome } from '../../../pages/appChrome';
 import { asDisallowedUser, asProductAdminUser } from '../../../utils/mockUsers';

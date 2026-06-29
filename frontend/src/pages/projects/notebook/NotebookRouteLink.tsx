@@ -5,8 +5,8 @@ import {
   t_global_font_size_body_default as DefaultFontSize,
   t_global_font_size_body_sm as SmallFontSize,
 } from '@patternfly/react-tokens';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { NotebookKind } from '#~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { isWorkbenchMigrated } from '#~/concepts/notebooks/utils';
 import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';

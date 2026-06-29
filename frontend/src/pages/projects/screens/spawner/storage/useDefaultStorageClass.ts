@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { AppContext } from '#~/app/AppContext';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
 import { StorageClassKind } from '#~/k8sTypes';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';

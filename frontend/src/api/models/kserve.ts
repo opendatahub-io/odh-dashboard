@@ -15,14 +15,14 @@ export const InferenceServiceModel: K8sModelCommon = {
 };
 
 export const LLMInferenceServiceModel: K8sModelCommon = {
-  apiVersion: 'v1alpha1',
+  apiVersion: 'v1alpha2',
   apiGroup: 'serving.kserve.io',
   kind: 'LLMInferenceService',
   plural: 'llminferenceservices',
 };
 
 export const LLMInferenceServiceConfigModel: K8sModelCommon = {
-  apiVersion: 'v1alpha1',
+  apiVersion: 'v1alpha2',
   apiGroup: 'serving.kserve.io',
   kind: 'LLMInferenceServiceConfig',
   plural: 'llminferenceserviceconfigs',

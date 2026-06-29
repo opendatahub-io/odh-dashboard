@@ -1,7 +1,7 @@
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { SortableData } from '@odh-dashboard/ui-core';
 import { InferenceServiceKind } from '#~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
 
 export enum ColumnField {

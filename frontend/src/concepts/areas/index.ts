@@ -8,5 +8,3 @@
   determine the state we are in.
 */
 export { default as AreaComponent, conditionalArea } from './AreaComponent';
-export { DataScienceStackComponent, SupportedArea } from './types';
-export { default as useIsAreaAvailable } from './useIsAreaAvailable';

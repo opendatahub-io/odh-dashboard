@@ -14,7 +14,7 @@ import {
 import { CodeIcon, ColumnsIcon, CogIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { AGENT_PROFILES } from '~/odh/extensions';
+import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
 type ChatbotHeaderActionsProps = {
@@ -51,7 +51,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configIds[0]));
   const isViewCodeDisabled = !lastInput || !selectedModel;
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
-  const [agentProfilesEnabled] = useFeatureFlag(AGENT_PROFILES);
+  const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
 
   const getDisabledReason = () => {
@@ -173,7 +173,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
             popperProps={{ position: 'end', preventOverflow: true }}
           >
             <DropdownList>
-              {agentProfilesEnabled && (
+              {agentConfigManagementEnabled && (
                 <DropdownItem
                   onClick={!isCompareMode ? onLoad : undefined}
                   isAriaDisabled={isCompareMode}
@@ -183,7 +183,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   Load agent configuration
                 </DropdownItem>
               )}
-              {agentProfilesEnabled && profileApplied && (
+              {agentConfigManagementEnabled && profileApplied && (
                 <DropdownItem
                   onClick={!isCompareMode ? onSave : undefined}
                   isAriaDisabled={isCompareMode}
@@ -193,7 +193,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   Save agent configuration
                 </DropdownItem>
               )}
-              {agentProfilesEnabled && (
+              {agentConfigManagementEnabled && (
                 <DropdownItem
                   onClick={!isCompareMode ? onSaveAs : undefined}
                   isAriaDisabled={isCompareMode}
@@ -203,7 +203,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   Save as agent configuration
                 </DropdownItem>
               )}
-              {agentProfilesEnabled && profileApplied && (
+              {agentConfigManagementEnabled && profileApplied && (
                 <DropdownItem
                   onClick={!isCompareMode ? onNew : undefined}
                   isAriaDisabled={isCompareMode}
@@ -213,7 +213,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   New agent configuration
                 </DropdownItem>
               )}
-              {agentProfilesEnabled && <Divider key="agent-divider" />}
+              {agentConfigManagementEnabled && <Divider key="agent-divider" />}
               <DropdownItem
                 onClick={onConfigurePlayground}
                 key="update-configuration"

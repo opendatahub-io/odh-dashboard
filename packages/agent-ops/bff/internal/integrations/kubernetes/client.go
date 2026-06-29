@@ -24,6 +24,10 @@ type KubernetesClientInterface interface {
 	// CanGetAgentInNamespace checks whether the user can get an agent workload
 	// (deployment, statefulset, or job) and its service in the namespace.
 	CanGetAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace, name string) (bool, error)
+	// CanDeployAgentInNamespace checks whether the user can create all resources
+	// required for an agent deployment (serviceaccounts, deployments, services, agentruntimes,
+	// and routes when createRoute is true).
+	CanDeployAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace string, createRoute bool) (bool, error)
 	// CanAccessAgentCardEnrichment checks SAR/SSAR for optional card enrichment sources.
 	CanAccessAgentCardEnrichment(ctx context.Context, identity *RequestIdentity, namespace, agentRuntimeName string) (AgentCardEnrichmentAccess, error)
 	// KubernetesClientset exposes the underlying clientset for workload reads.

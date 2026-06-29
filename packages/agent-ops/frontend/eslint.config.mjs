@@ -270,6 +270,14 @@ export default tseslint.config(
     },
   },
 
+  // Workspace packages: disable import/no-extraneous-dependencies for @odh-dashboard packages
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'import/no-extraneous-dependencies': 'off',
+    },
+  },
+
   // TypeScript files - no type assertions in production code
   {
     files: ['**/*.ts', '**/*.tsx'],

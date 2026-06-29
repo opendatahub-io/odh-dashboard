@@ -21,7 +21,7 @@ import {
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -355,7 +355,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             data-testid="no-models-warning"
           >
             There are no model endpoints available on the cluster. Deploy a model on the{' '}
-            <Link to={`${URL_PREFIX}/deployments`}>Deployments page</Link> and create a MaaSModelRef
+            <Link to="/ai-hub/models/deployments">Deployments page</Link> and create a MaaSModelRef
             before creating a subscription.
           </Alert>
         ) : (

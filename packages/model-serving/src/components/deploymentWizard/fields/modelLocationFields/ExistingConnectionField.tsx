@@ -4,7 +4,7 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
-} from '@odh-dashboard/internal/concepts/k8s/utils';
+} from '@odh-dashboard/k8s-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/internal/components/TypeaheadSelect';

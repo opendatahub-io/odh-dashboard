@@ -130,6 +130,7 @@ jobs:
           permission-contents: read
           permission-pull-requests: write
           permission-checks: write
+          permission-actions: read
 
       - name: Create check run
         id: check-run
@@ -195,6 +196,8 @@ jobs:
             --permission-mode acceptEdits
             --allowedTools "Bash(gh *)"
             --allowedTools "Bash(git *)"
+            --allowedTools "Bash(npm *)"
+            --allowedTools "Bash(npx *)"
             --allowedTools "Bash(bash *)"
             --allowedTools "mcp__jira__*"
             --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian==0.21.1"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
@@ -202,7 +205,7 @@ jobs:
 
       # ── Tag trace with PR context ──
       - name: Tag preflight trace
-        if: always() && env.HEAD_REPO == github.repository
+        if: always()
         continue-on-error: true
         env:
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
@@ -247,7 +250,7 @@ jobs:
 
       # ── Evaluate trace ──
       - name: Evaluate preflight trace
-        if: always() && env.HEAD_REPO == github.repository
+        if: always()
         continue-on-error: true
         env:
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}

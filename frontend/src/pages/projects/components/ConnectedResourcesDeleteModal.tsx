@@ -7,8 +7,8 @@ import {
   Bullseye,
   Spinner,
 } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { InferenceServiceKind, NotebookKind } from '#~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { useNotebooksStates } from '#~/pages/projects/notebook/useNotebooksStates';
 
 type ConnectedResourcesDeleteModalProps = {
