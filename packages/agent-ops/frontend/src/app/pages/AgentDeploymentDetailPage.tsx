@@ -103,7 +103,9 @@ const AgentDeploymentDetailPage: React.FC = () => {
     </PageSection>
   );
 
-  const descriptionText = detail?.description || detail?.agentCard?.description;
+  const descriptionText = [detail?.description, detail?.agentCard?.description]
+    .map((value) => value?.trim())
+    .find((value): value is string => Boolean(value));
   const hasDescription = Boolean(descriptionText);
 
   return (
