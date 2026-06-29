@@ -1148,6 +1148,9 @@ export const deleteAgentProfile =
     ).then(() => undefined);
   };
 
+// Custom implementation that bypasses handleRestFailures so the raw error code is
+// preserved in the thrown error. Callers can inspect err.code to distinguish
+// 409 Conflict ('conflict') from 404 Not Found ('not_found') and other faults.
 export const updateAgentProfile =
   (
     hostPath: string,
@@ -1162,16 +1165,14 @@ export const updateAgentProfile =
       return Promise.reject(new Error('id parameter is required'));
     }
     const path = `/agent-profiles/${encodeURIComponent(id)}`;
-    return handleRestFailures(
-      restUPDATE<AgentProfileUpdateResponse>(
-        hostPath,
-        path,
-        { spec, resourceVersion },
-        baseQueryParams,
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<AgentProfileUpdateResponse>(response)) {
+    return restUPDATE<{
+      data?: AgentProfileUpdateResponse;
+      error?: { code: string; message: string };
+    }>(hostPath, path, { spec, resourceVersion }, baseQueryParams, opts).then((response) => {
+      if (response.error) {
+        throw Object.assign(new Error(response.error.message), { code: response.error.code });
+      }
+      if (response.data) {
         return response.data;
       }
       throw new Error('Invalid response format');

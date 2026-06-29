@@ -13,6 +13,10 @@ class RolesTableRow extends TableRow {
     return this.find().find('[data-label="Type"]');
   }
 
+  findLabelsCell() {
+    return this.find().findByTestId('role-labels-cell');
+  }
+
   shouldHaveName(name: string) {
     this.findNameLink().should('have.text', name);
     return this;
@@ -124,6 +128,42 @@ class ProjectRolesTab {
 
   findEmptyFilterState() {
     return cy.findByTestId('dashboard-empty-table-state');
+  }
+
+  findFormYamlToggle() {
+    return cy.findByTestId('form-yaml-toggle');
+  }
+
+  findFormViewToggle() {
+    return cy.findByTestId('form-view-toggle');
+  }
+
+  findYamlViewToggle() {
+    return cy.findByTestId('yaml-view-toggle');
+  }
+
+  findYamlView() {
+    return cy.findByTestId('create-role-yaml-view');
+  }
+
+  findYamlViewTitle() {
+    return cy.findByTestId('yaml-view-title');
+  }
+
+  findYamlViewDescription() {
+    return cy.findByTestId('yaml-view-description');
+  }
+
+  findYamlCodeEditor() {
+    return cy.findByTestId('yaml-code-editor');
+  }
+
+  findYamlEditorContainer() {
+    return cy.findByTestId('yaml-editor-container');
+  }
+
+  findYamlFullscreenToggle() {
+    return cy.findByTestId('yaml-fullscreen-toggle');
   }
 
   findPreviewYAMLModal() {

@@ -4,23 +4,32 @@ import {
   BreadcrumbItem,
   Bullseye,
   Button,
+  Flex,
   PageSection,
   Spinner,
+  ToggleGroup,
+  ToggleGroupItem,
   getUniqueId,
 } from '@patternfly/react-core';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAccessReview } from '#~/api/useAccessReview';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { getDisplayNameFromK8sResource, isValidK8sLabelKeyValue } from '#~/concepts/k8s/utils';
+import { isValidK8sLabelKeyValue } from '#~/concepts/k8s/utils';
 import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { RoleKind } from '#~/k8sTypes';
 import { createRole } from '#~/api';
 import CreateRoleForm from './CreateRoleForm';
 import CreateRoleFooter from './CreateRoleFooter';
 import CreateRoleConfirmModal from './CreateRoleConfirmModal';
+import CreateRoleYamlView from './CreateRoleYamlView';
 import assembleRole from './assembleRole';
+import { fromK8sLabels, toK8sLabels } from './labelUtils';
+import { USER_LABEL_PREFIX } from './const';
 import type { LabelEntry, RuleEntry } from './types';
+
+type ViewMode = 'form' | 'yaml';
 
 type CreateRolePageProps = {
   existingRole?: RoleKind;
@@ -46,16 +55,9 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
   const [description, setDescription] = React.useState(
     () => existingRole?.metadata.annotations?.['openshift.io/description'] ?? '',
   );
-  const [labels, setLabels] = React.useState<LabelEntry[]>(() => {
-    if (!existingRole?.metadata.labels) {
-      return [];
-    }
-    return Object.entries(existingRole.metadata.labels).map(([key, value]) => ({
-      id: getUniqueId('label'),
-      key,
-      value,
-    }));
-  });
+  const [labels, setLabels] = React.useState<LabelEntry[]>(() =>
+    fromK8sLabels(existingRole?.metadata.labels),
+  );
   const [rules, setRules] = React.useState<RuleEntry[]>(() => {
     if (!existingRole?.rules) {
       return [];
@@ -66,6 +68,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
     }));
   });
 
+  const [viewMode, setViewMode] = React.useState<ViewMode>('form');
   const [submitError, setSubmitError] = React.useState<Error>();
   const [showNoRulesConfirm, setShowNoRulesConfirm] = React.useState(false);
 
@@ -101,7 +104,12 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
     setSubmitError(undefined);
     const k8sName = k8sNameDescriptionData.data.k8sName.value;
     const roleDisplayName = k8sNameDescriptionData.data.name || k8sName;
-    const labelRecord = Object.fromEntries(labels.map((l) => [l.key, l.value]));
+    const preservedLabels = Object.fromEntries(
+      Object.entries(existingRole?.metadata.labels ?? {}).filter(
+        ([key]) => !key.startsWith(USER_LABEL_PREFIX),
+      ),
+    );
+    const labelRecord = { ...preservedLabels, ...toK8sLabels(labels) };
     const role = assembleRole(namespace, k8sName, roleDisplayName, description, rules, labelRecord);
     try {
       await createRole(role);
@@ -111,7 +119,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
       setSubmitError(error);
       throw error;
     }
-  }, [namespace, k8sNameDescriptionData.data, description, rules, labels, navigate]);
+  }, [namespace, k8sNameDescriptionData.data, description, rules, labels, navigate, existingRole]);
 
   const handleSubmit = React.useCallback(async () => {
     if (rules.length === 0) {
@@ -150,24 +158,56 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
         }
         description="Create a custom role to control what users can see and do across your cluster resources. Define permissions, navigation access, and resource scopes to implement fine-grained access control."
         headerAction={
-          // TODO: Enable when template selection modal is implemented (RHOAIENG-63156)
-          <Button variant="secondary" data-testid="select-role-template-button" isDisabled>
-            Select role template
-          </Button>
+          <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+            {/* TODO: Enable when template selection modal is implemented (RHOAIENG-63156) */}
+            <Button variant="secondary" data-testid="select-role-template-button" isDisabled>
+              Select role template
+            </Button>
+            <ToggleGroup aria-label="Form or YAML view toggle" data-testid="form-yaml-toggle">
+              <ToggleGroupItem
+                text="Form"
+                buttonId="form-view-toggle"
+                data-testid="form-view-toggle"
+                isSelected={viewMode === 'form'}
+                onChange={() => setViewMode('form')}
+              />
+              <ToggleGroupItem
+                text="YAML (read-only)"
+                buttonId="yaml-view-toggle"
+                data-testid="yaml-view-toggle"
+                isSelected={viewMode === 'yaml'}
+                onChange={() => setViewMode('yaml')}
+              />
+            </ToggleGroup>
+          </Flex>
         }
         loaded
         empty={false}
       >
         <PageSection hasBodyWrapper={false} isFilled data-testid="create-role-page">
-          <CreateRoleForm
-            nameDescriptionData={k8sNameDescriptionData}
-            description={description}
-            onDescriptionChange={handleDescriptionChange}
-            labels={labels}
-            onLabelsChange={handleLabelsChange}
-            rules={rules}
-            onRulesChange={handleRulesChange}
-          />
+          <div hidden={viewMode !== 'form'}>
+            <CreateRoleForm
+              nameDescriptionData={k8sNameDescriptionData}
+              description={description}
+              onDescriptionChange={handleDescriptionChange}
+              labels={labels}
+              onLabelsChange={handleLabelsChange}
+              rules={rules}
+              onRulesChange={handleRulesChange}
+            />
+          </div>
+          {viewMode === 'yaml' && (
+            <CreateRoleYamlView
+              namespace={namespace}
+              k8sName={k8sNameDescriptionData.data.k8sName.value}
+              displayName={
+                k8sNameDescriptionData.data.name || k8sNameDescriptionData.data.k8sName.value
+              }
+              description={description}
+              rules={rules}
+              labels={labels}
+            />
+          )}
         </PageSection>
         <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
           <CreateRoleFooter

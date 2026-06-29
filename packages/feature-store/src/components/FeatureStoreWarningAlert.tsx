@@ -8,7 +8,7 @@ import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils
 import { useClusterInfo } from '@odh-dashboard/internal/redux/selectors/clusterInfo';
 import { getOpenShiftConsoleAction } from '@odh-dashboard/internal/app/AppLauncher';
 import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';
-import { ODH_PRODUCT_NAME } from '@odh-dashboard/internal/utilities/const';
+import { ODH_PRODUCT_NAME } from '@odh-dashboard/ui-core/utilities';
 import { FeatureStoreContext } from '../FeatureStoreContext';
 
 const FeatureStoreWarningAlert: React.FC = () => {

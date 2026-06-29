@@ -5,7 +5,7 @@ import useFetch, {
   type FetchOptions,
   type FetchStateObject,
 } from '@odh-dashboard/internal/utilities/useFetch';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '@odh-dashboard/internal/const';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '@odh-dashboard/ui-core/utilities';
 import { getSecretsByLabel } from '@odh-dashboard/internal/api/index';
 import type { Deployment } from '../../extension-points';
 
