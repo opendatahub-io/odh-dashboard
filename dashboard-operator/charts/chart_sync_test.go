@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
@@ -66,24 +67,131 @@ func TestDashboardChartWebhookCertManagerTemplatesOffline(t *testing.T) {
 
 	root := ".."
 	chartDir := filepath.Join(root, "charts", "dashboard")
+	const webhookTLSSecret = "dashboard-operator-webhook-tls"
 
-	output, err := renderChartTemplate(chartDir, "--namespace", "opendatahub")
-	if err != nil {
-		t.Fatalf("render chart: %v", err)
-	}
+	t.Run("operator values render cert-manager TLS contract", func(t *testing.T) {
+		output, err := renderChartTemplate(
+			chartDir,
+			"--namespace", "opendatahub",
+			"--set", "namePrefix=",
+			"--set", "webhook.enabled=true",
+			"--set", "webhook.certManager.enabled=true",
+		)
+		if err != nil {
+			t.Fatalf("render chart: %v", err)
+		}
 
-	required := []string{
-		"kind: Certificate",
-		"kind: Issuer",
-		"apiVersion: cert-manager.io/v1",
-		"name: webhook-certs",
-		"secretName: odh-dashboard-operator-webhook-tls",
-	}
-	for _, fragment := range required {
-		if !strings.Contains(output, fragment) {
-			t.Fatalf("expected offline helm template to include %q; cert-manager resources must not depend on .Capabilities.APIVersions", fragment)
+		certificate, issuer := findWebhookCertManagerResources(t, output)
+		if certificate.Metadata.Name != "dashboard-operator-webhook-cert" {
+			t.Fatalf("expected Certificate metadata.name dashboard-operator-webhook-cert, got %q", certificate.Metadata.Name)
+		}
+		if certificate.Spec.SecretName != webhookTLSSecret {
+			t.Fatalf("expected Certificate spec.secretName %q, got %q", webhookTLSSecret, certificate.Spec.SecretName)
+		}
+		if issuer.Metadata.Name != "dashboard-operator-selfsigned" {
+			t.Fatalf("expected Issuer metadata.name dashboard-operator-selfsigned, got %q", issuer.Metadata.Name)
+		}
+
+		deploymentSecret := findDeploymentWebhookSecretName(t, output)
+		if deploymentSecret != webhookTLSSecret {
+			t.Fatalf("expected Deployment webhook-certs secretName %q, got %q", webhookTLSSecret, deploymentSecret)
+		}
+	})
+
+	t.Run("cert-manager disabled omits Issuer and Certificate", func(t *testing.T) {
+		output, err := renderChartTemplate(
+			chartDir,
+			"--namespace", "opendatahub",
+			"--set", "webhook.certManager.enabled=false",
+		)
+		if err != nil {
+			t.Fatalf("render chart: %v", err)
+		}
+
+		if strings.Contains(output, "kind: Certificate") || strings.Contains(output, "kind: Issuer") {
+			t.Fatal("expected cert-manager resources to be omitted when webhook.certManager.enabled=false")
+		}
+	})
+}
+
+type webhookCertificate struct {
+	Metadata struct {
+		Name string `yaml:"name"`
+	} `yaml:"metadata"`
+	Spec struct {
+		SecretName string `yaml:"secretName"`
+	} `yaml:"spec"`
+}
+
+type webhookIssuer struct {
+	Metadata struct {
+		Name string `yaml:"name"`
+	} `yaml:"metadata"`
+}
+
+func findWebhookCertManagerResources(t *testing.T, rendered string) (webhookCertificate, webhookIssuer) {
+	t.Helper()
+
+	var certificate webhookCertificate
+	var issuer webhookIssuer
+	foundCert := false
+	foundIssuer := false
+
+	for _, doc := range strings.Split(rendered, "---") {
+		doc = strings.TrimSpace(doc)
+		if doc == "" {
+			continue
+		}
+
+		if strings.Contains(doc, "kind: Certificate") {
+			if err := yaml.Unmarshal([]byte(doc), &certificate); err != nil {
+				t.Fatalf("parse Certificate: %v", err)
+			}
+			foundCert = true
+			continue
+		}
+
+		if strings.Contains(doc, "kind: Issuer") {
+			if err := yaml.Unmarshal([]byte(doc), &issuer); err != nil {
+				t.Fatalf("parse Issuer: %v", err)
+			}
+			foundIssuer = true
 		}
 	}
+
+	if !foundCert {
+		t.Fatal("expected Certificate in rendered chart output")
+	}
+	if !foundIssuer {
+		t.Fatal("expected Issuer in rendered chart output")
+	}
+
+	return certificate, issuer
+}
+
+func findDeploymentWebhookSecretName(t *testing.T, rendered string) string {
+	t.Helper()
+
+	for _, doc := range strings.Split(rendered, "---") {
+		doc = strings.TrimSpace(doc)
+		if doc == "" || !strings.Contains(doc, "kind: Deployment") {
+			continue
+		}
+
+		var deployment appsv1.Deployment
+		if err := yaml.Unmarshal([]byte(doc), &deployment); err != nil {
+			t.Fatalf("parse Deployment: %v", err)
+		}
+
+		for _, volume := range deployment.Spec.Template.Spec.Volumes {
+			if volume.Name == "webhook-certs" && volume.Secret != nil {
+				return volume.Secret.SecretName
+			}
+		}
+	}
+
+	t.Fatal("expected Deployment volume webhook-certs with secretName")
+	return ""
 }
 
 func TestDashboardChartRBACInSync(t *testing.T) {
