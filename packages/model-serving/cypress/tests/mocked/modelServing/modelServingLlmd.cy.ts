@@ -33,12 +33,12 @@ import {
   ModelLocationSelectOption,
   ModelTypeLabel,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
-import { deleteModal } from '../../../pages/components/DeleteModal';
-import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
+import { deleteModal } from '@odh-dashboard/cypress/cypress/pages/components/DeleteModal';
+import { hardwareProfileSection } from '@odh-dashboard/cypress/cypress/pages/components/HardwareProfileSection';
 import {
   initMockGatewayIntercepts,
   initMockModelAuthIntercepts,
-} from '../../../utils/modelServingUtils';
+} from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -48,14 +48,14 @@ import {
   TemplateModel,
   SecretModel,
   LLMInferenceServiceModel,
-} from '../../../utils/models';
+} from '@odh-dashboard/cypress/cypress/utils/models';
 import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
   modelServingWizardEdit,
-} from '../../../pages/modelServing';
-import { projectDetailsOverviewTab } from '../../../pages/projects';
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { projectDetailsOverviewTab } from '@odh-dashboard/cypress/cypress/pages/projects';
 
 const initIntercepts = ({
   llmInferenceServices = [],

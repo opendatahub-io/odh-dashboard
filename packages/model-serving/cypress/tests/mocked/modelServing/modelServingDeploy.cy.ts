@@ -36,7 +36,7 @@ import {
 import {
   initMockConnectionSecretIntercepts,
   initMockModelAuthIntercepts,
-} from '../../../utils/modelServingUtils';
+} from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -49,14 +49,14 @@ import {
   ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '../../../utils/models';
+} from '@odh-dashboard/cypress/cypress/utils/models';
 import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
   modelServingWizardEdit,
-} from '../../../pages/modelServing';
-import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { hardwareProfileSection } from '@odh-dashboard/cypress/cypress/pages/components/HardwareProfileSection';
 
 const initIntercepts = ({
   modelType,
