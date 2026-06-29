@@ -372,6 +372,9 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-1');
+    expect(document.getElementById('test-select-option-1')).toBeInTheDocument();
+
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'Enter' });
     });

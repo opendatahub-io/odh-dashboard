@@ -15,7 +15,10 @@ import {
 } from '@patternfly/react-core';
 import { omit } from 'lodash-es';
 import TruncatedText from '#~/components/TruncatedText';
-import { useModalOverflowUnlock } from '#~/utilities/useModalOverflowUnlock';
+import {
+  resolveSelectPopperAppendTo,
+  useModalOverflowUnlock,
+} from '#~/utilities/useModalOverflowUnlock';
 
 import './SimpleSelect.scss';
 
@@ -93,13 +96,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
       maxWidth: 'trigger' as const,
       ...popperProps,
       // Portal into the dialog only inside modals; otherwise keep PatternFly inline default.
-      appendTo: () => {
-        const dialog = menuToggleRef.current?.closest<HTMLElement>('[role="dialog"]');
-        if (dialog) {
-          return dialog;
-        }
-        return menuToggleRef.current?.parentElement ?? document.body;
-      },
+      appendTo: () => resolveSelectPopperAppendTo(menuToggleRef.current),
     };
   }, [popperProps]);
 
@@ -140,6 +137,12 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   const togglePropsAriaLabel = toggleProps?.['aria-label'];
   const toggleAriaLabel =
     ariaLabel ?? togglePropsAriaLabel ?? (toggleProps?.id ? undefined : 'Options menu');
+  if (process.env.NODE_ENV === 'development' && !toggleAriaLabel && toggleProps?.id) {
+    console.warn(
+      `SimpleSelect: toggleProps.id="${toggleProps.id}" provided without ariaLabel. ` +
+        `Ensure a <label htmlFor="${toggleProps.id}"> exists, or pass ariaLabel explicitly.`,
+    );
+  }
   const restToggleProps = omit(toggleProps ?? {}, ['onClick', 'aria-label']);
 
   return (
