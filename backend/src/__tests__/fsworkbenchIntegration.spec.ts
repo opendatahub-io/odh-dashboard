@@ -7,7 +7,7 @@ import {
   handleError,
   isRegistryReady,
   getServiceFromCRD,
-  getProjectPermissions,
+  fetchPermissionLevel,
   constructRegistryProxyUrl,
   type FeatureStoreCRD,
 } from '../routes/api/featurestores/featureStoreUtils';
@@ -26,7 +26,7 @@ const mockMakeAuthenticatedHttpRequest = jest.mocked(makeAuthenticatedHttpReques
 const mockHandleError = jest.mocked(handleError);
 const mockIsRegistryReady = jest.mocked(isRegistryReady);
 const mockGetServiceFromCRD = jest.mocked(getServiceFromCRD);
-const mockGetProjectPermissions = jest.mocked(getProjectPermissions);
+const mockFetchPermissionLevel = jest.mocked(fetchPermissionLevel);
 const mockConstructRegistryProxyUrl = jest.mocked(constructRegistryProxyUrl);
 
 const TOKEN = 'test-token';
@@ -124,7 +124,7 @@ describe('fsworkbenchIntegration routes', () => {
 
       await workbenchHandler({ params: {}, headers: {} }, mockReply);
 
-      expect(mockGetProjectPermissions).not.toHaveBeenCalled();
+      expect(mockFetchPermissionLevel).not.toHaveBeenCalled();
       expect(mockReply.send).toHaveBeenCalledWith({ namespaces: [] });
     });
 
@@ -138,11 +138,11 @@ describe('fsworkbenchIntegration routes', () => {
         data: { projects: [{ name: CRD_NAME }] },
         statusCode: 200,
       });
-      mockGetProjectPermissions.mockResolvedValue(['Read', 'Write']);
+      mockFetchPermissionLevel.mockResolvedValue(['Read', 'Write']);
 
       await workbenchHandler({ params: {}, headers: {} }, mockReply);
 
-      expect(mockGetProjectPermissions).toHaveBeenCalledWith(
+      expect(mockFetchPermissionLevel).toHaveBeenCalledWith(
         mockFastify,
         expect.objectContaining({ metadata: { name: CRD_NAME, namespace: NAMESPACE } }),
         CRD_NAME,
@@ -178,13 +178,13 @@ describe('fsworkbenchIntegration routes', () => {
         data: { projects: [{ name: 'store-a' }, { name: 'store-b' }] },
         statusCode: 200,
       });
-      mockGetProjectPermissions
+      mockFetchPermissionLevel
         .mockResolvedValueOnce(['Read', 'Write', 'Describe'])
         .mockResolvedValueOnce(['Read']);
 
       await workbenchHandler({ params: {}, headers: {} }, mockReply);
 
-      expect(mockGetProjectPermissions).toHaveBeenCalledTimes(2);
+      expect(mockFetchPermissionLevel).toHaveBeenCalledTimes(2);
       const response = mockReply.send.mock.calls[0][0];
       expect(response.namespaces[0].clientConfigs).toEqual([
         {
@@ -215,7 +215,7 @@ describe('fsworkbenchIntegration routes', () => {
         data: { projects: [{ name: 'store-a' }, { name: 'store-b' }] },
         statusCode: 200,
       });
-      mockGetProjectPermissions.mockResolvedValueOnce([]).mockResolvedValueOnce(['Read', 'Write']);
+      mockFetchPermissionLevel.mockResolvedValueOnce([]).mockResolvedValueOnce(['Read', 'Write']);
 
       await workbenchHandler({ params: {}, headers: {} }, mockReply);
 

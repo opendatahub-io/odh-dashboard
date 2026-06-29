@@ -10,7 +10,7 @@ import {
   handleError,
   isRegistryReady,
   getServiceFromCRD,
-  getProjectPermissions,
+  fetchPermissionLevel,
   type FeatureStoreCRD,
   type FeastProjectsResponse,
 } from './featureStoreUtils';
@@ -104,7 +104,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
                 const projectName = crd.spec?.feastProject ?? crd.metadata.name;
                 const hasAccess = await hasAccessToProject(fastify, crd, token);
                 const permissionLevel = hasAccess
-                  ? await getProjectPermissions(fastify, crd, projectName, token)
+                  ? await fetchPermissionLevel(fastify, crd, projectName, token)
                   : [];
                 return {
                   configName: crd.metadata.name,

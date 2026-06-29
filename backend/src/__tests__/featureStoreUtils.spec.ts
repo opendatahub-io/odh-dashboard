@@ -25,7 +25,7 @@ import {
   fetchFeastProjectsFromRegistry,
   getFeastProjectRegistryInfo,
   extractPermissionLevel,
-  getProjectPermissions,
+  fetchPermissionLevel,
   buildWorkbenchesByFeastProjectMap,
   type FeatureStoreCRD,
   type FeastIntegrationNotebook,
@@ -1120,9 +1120,17 @@ describe('featureStoreUtils', () => {
 
       expect(result).toEqual(['read']);
     });
+
+    it('should filter out non-string entries from actions', () => {
+      const result = extractPermissionLevel({
+        permissions: [{ spec: { actions: ['read', 123, null, 'write', undefined] as unknown as string[] } }],
+      });
+
+      expect(result).toEqual(['read', 'write']);
+    });
   });
 
-  describe('getProjectPermissions', () => {
+  describe('fetchPermissionLevel', () => {
     let mockFastify: ReturnType<typeof createMockKubeFastify>;
     const originalEnv = process.env;
 
@@ -1141,7 +1149,7 @@ describe('featureStoreUtils', () => {
     it('should return empty array and log warning on HTTP error', async () => {
       mockHttpsJsonResponse(500, { error: 'internal server error' });
 
-      const result = await getProjectPermissions(
+      const result = await fetchPermissionLevel(
         mockFastify,
         createFeatureStoreCRD(),
         PROJECT.BANKING,
@@ -1149,9 +1157,9 @@ describe('featureStoreUtils', () => {
       );
 
       expect(result).toEqual([]);
-      expect(mockFastify.log.warn).toHaveBeenCalledWith(
+      expect(mockFastify.log.info).toHaveBeenCalledWith(
         expect.stringContaining(
-          `Permission lookup for ${NAMESPACE.VIEWER}/${PROJECT.BANKING} project=${PROJECT.BANKING}`,
+          `Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`,
         ),
       );
     });
@@ -1159,7 +1167,7 @@ describe('featureStoreUtils', () => {
     it('should return empty array and log warning on network error', async () => {
       mockHttpsJsonResponse(200, {}, { requestError: new Error('ECONNREFUSED') });
 
-      const result = await getProjectPermissions(
+      const result = await fetchPermissionLevel(
         mockFastify,
         createFeatureStoreCRD(),
         PROJECT.BANKING,
@@ -1167,9 +1175,9 @@ describe('featureStoreUtils', () => {
       );
 
       expect(result).toEqual([]);
-      expect(mockFastify.log.warn).toHaveBeenCalledWith(
+      expect(mockFastify.log.info).toHaveBeenCalledWith(
         expect.stringContaining(
-          `Permission lookup for ${NAMESPACE.VIEWER}/${PROJECT.BANKING} project=${PROJECT.BANKING}`,
+          `Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`,
         ),
       );
     });
@@ -1177,7 +1185,7 @@ describe('featureStoreUtils', () => {
     it('should return empty array on malformed response (no permissions key)', async () => {
       mockHttpsJsonResponse(200, { unexpected: 'data' });
 
-      const result = await getProjectPermissions(
+      const result = await fetchPermissionLevel(
         mockFastify,
         createFeatureStoreCRD(),
         PROJECT.BANKING,
@@ -1198,7 +1206,7 @@ describe('featureStoreUtils', () => {
         return req;
       });
 
-      const result = await getProjectPermissions(
+      const result = await fetchPermissionLevel(
         mockFastify,
         createFeatureStoreCRD(),
         PROJECT.BANKING,
@@ -1206,9 +1214,9 @@ describe('featureStoreUtils', () => {
       );
 
       expect(result).toEqual([]);
-      expect(mockFastify.log.warn).toHaveBeenCalledWith(
+      expect(mockFastify.log.info).toHaveBeenCalledWith(
         expect.stringContaining(
-          `Permission lookup for ${NAMESPACE.VIEWER}/${PROJECT.BANKING} project=${PROJECT.BANKING}`,
+          `Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`,
         ),
       );
     });
@@ -1221,7 +1229,7 @@ describe('featureStoreUtils', () => {
         ],
       });
 
-      const result = await getProjectPermissions(
+      const result = await fetchPermissionLevel(
         mockFastify,
         createFeatureStoreCRD(),
         PROJECT.BANKING,
