@@ -93,7 +93,10 @@ const AgentDetailsCard: React.FC<AgentDetailsCardProps> = ({ agentCard }) => {
                     isInline
                     icon={<ExternalLinkAltIcon />}
                     iconPosition="end"
-                    onClick={() => window.open(providerUrl, '_blank', 'noopener,noreferrer')}
+                    component="a"
+                    href={providerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     {providerLabel}
                   </Button>
@@ -120,7 +123,10 @@ const AgentDetailsCard: React.FC<AgentDetailsCardProps> = ({ agentCard }) => {
                   isInline
                   icon={<ExternalLinkAltIcon />}
                   iconPosition="end"
-                  onClick={() => window.open(documentationUrl, '_blank', 'noopener,noreferrer')}
+                  component="a"
+                  href={documentationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   View documentation
                 </Button>

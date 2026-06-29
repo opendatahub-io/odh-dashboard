@@ -25,6 +25,9 @@
       "~/*": [
         "./*"
       ],
+      "#~/*": [
+        "../../../frontend/src/*"
+      ],
       "@odh-dashboard/internal/*": [
         "../../../frontend/src/*"
       ]
