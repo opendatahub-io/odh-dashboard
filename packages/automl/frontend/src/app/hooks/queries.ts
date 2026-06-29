@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import type {
+  BackTestingData,
   ConfusionMatrixData,
   CurvesData,
   FeatureImportanceData,
@@ -379,6 +380,53 @@ const CurvesDataSchema = z.discriminatedUnion('task_type', [
   BinaryCurvesDataSchema,
   MulticlassCurvesDataSchema,
 ]);
+
+const BackTestingForecastPointSchema = z.object({
+  timestamp: z.string(),
+  actual: z.number(),
+  predicted: z.number(),
+  lower_bound: z.number(),
+  upper_bound: z.number(),
+  lower_quantile: z.number().optional(),
+  upper_quantile: z.number().optional(),
+});
+
+const BackTestingWindowEntrySchema = z.object({
+  window_id: z.number().int(),
+  metrics: z.record(z.string(), z.number()),
+  forecast_data: z.array(BackTestingForecastPointSchema),
+});
+
+const BackTestingSeriesPerformerSchema = z.object({
+  item_id: z.string(),
+  avg_metrics: z.record(z.string(), z.number()),
+  windows: z.array(BackTestingWindowEntrySchema),
+});
+
+const BackTestingDataSchema = z.object({
+  schema_version: z.number().int().optional(),
+  model_name: z.string(),
+  prediction_length: z.number().int(),
+  num_val_windows: z.number().int(),
+  eval_metric: z.string(),
+  target: z.string(),
+  id_column: z.string(),
+  timestamp_column: z.string(),
+  per_window_metrics: z.array(
+    z.object({
+      window_id: z.number().int(),
+      cutoff: z.number().int().optional(),
+      test_start: z.string(),
+      test_end: z.string(),
+      metrics: z.record(z.string(), z.number()),
+    }),
+  ),
+  series_analysis: z.object({
+    num_series_evaluated: z.number().int(),
+    best_performer: BackTestingSeriesPerformerSchema,
+    worst_performer: BackTestingSeriesPerformerSchema,
+  }),
+});
 /* eslint-enable camelcase */
 
 /**
@@ -506,10 +554,12 @@ export function useModelEvaluationArtifactsQuery(
   namespace?: string,
   modelDirectory?: string,
   isClassification?: boolean,
+  isTimeseries?: boolean,
 ): {
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
   curves?: CurvesData;
+  backTesting?: BackTestingData;
   isLoading: boolean;
 } {
   const baseDir = modelDirectory?.endsWith('/') ? modelDirectory : `${modelDirectory}/`;
@@ -549,14 +599,33 @@ export function useModelEvaluationArtifactsQuery(
         enabled: Boolean(namespace && modelDirectory && isClassification),
         retry: false,
       },
+      {
+        queryKey: ['backTesting', namespace, modelDirectory],
+        queryFn: ({ signal }) =>
+          fetchS3Json<BackTestingData>(namespace!, `${baseDir}metrics/back_testing.json`, {
+            signal,
+            schema: BackTestingDataSchema,
+          }),
+        enabled: Boolean(namespace && modelDirectory && isTimeseries),
+        retry: false,
+      },
     ],
-    combine: ([featureImportanceResult, confusionMatrixResult, curvesResult]) => ({
+    combine: ([
+      featureImportanceResult,
+      confusionMatrixResult,
+      curvesResult,
+      backTestingResult,
+    ]) => ({
       featureImportance: featureImportanceResult.data,
       confusionMatrix: confusionMatrixResult.data,
       curves: curvesResult.data,
-      isLoading: [featureImportanceResult, confusionMatrixResult, curvesResult].some(
-        (r) => r.isLoading,
-      ),
+      backTesting: backTestingResult.data,
+      isLoading: [
+        featureImportanceResult,
+        confusionMatrixResult,
+        curvesResult,
+        backTestingResult,
+      ].some((r) => r.isLoading),
     }),
   });
 }

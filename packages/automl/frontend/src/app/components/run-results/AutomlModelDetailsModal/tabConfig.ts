@@ -1,5 +1,11 @@
 import type React from 'react';
-import type { TaskType, FeatureImportanceData, ConfusionMatrixData, CurvesData } from '~/app/types';
+import type {
+  TaskType,
+  FeatureImportanceData,
+  ConfusionMatrixData,
+  CurvesData,
+  BackTestingData,
+} from '~/app/types';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -25,6 +31,7 @@ export type TabContentProps = {
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
   curves?: CurvesData;
+  backTesting?: BackTestingData;
   isArtifactsLoading?: boolean;
 };
 
@@ -122,5 +129,7 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
 ];
 
 export function getVisibleTabs(taskType: TaskType): TabDefinition[] {
-  return TAB_DEFINITIONS.filter((tab) => tab.visibleFor.includes(taskType));
+  return TAB_DEFINITIONS.filter((tab) =>
+    Array.isArray(tab.visibleFor) ? tab.visibleFor.includes(taskType) : tab.visibleFor === taskType,
+  );
 }
