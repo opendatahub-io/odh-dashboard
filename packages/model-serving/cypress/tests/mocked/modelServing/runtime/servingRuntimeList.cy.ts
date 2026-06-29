@@ -34,9 +34,9 @@ import {
   ModelStateToggleLabel,
   ModelStateLabel,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
-import { modelServingGlobal, modelServingSection } from '../../../../pages/modelServing';
-import { projectDetails } from '../../../../pages/projects';
-import { be } from '../../../../utils/should';
+import { modelServingGlobal, modelServingSection } from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { projectDetails } from '@odh-dashboard/cypress/cypress/pages/projects';
+import { be } from '@odh-dashboard/cypress/cypress/utils/should';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -47,7 +47,7 @@ import {
   SecretModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '../../../../utils/models';
+} from '@odh-dashboard/cypress/cypress/utils/models';
 
 type HandlersProps = {
   disableKServe?: boolean;
