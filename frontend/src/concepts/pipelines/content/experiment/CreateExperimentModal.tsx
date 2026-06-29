@@ -14,10 +14,10 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useCreateExperimentData from '#~/concepts/pipelines/content/experiment/useCreateExperimentData';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
   DESCRIPTION_CHARACTER_LIMIT,
   NAME_CHARACTER_LIMIT,

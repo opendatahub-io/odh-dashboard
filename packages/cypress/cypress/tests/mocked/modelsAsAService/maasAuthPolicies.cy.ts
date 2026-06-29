@@ -1,5 +1,5 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { pageNotfound } from '../../../pages/pageNotFound';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {

@@ -593,6 +593,14 @@ class CreateSpawnerPage {
     return cy.findByTestId('submit-button');
   }
 
+  findLocalQueueMissingWarning() {
+    return cy.findByTestId('local-queue-missing-warning');
+  }
+
+  findLocalQueueMissingWarningCloseButton() {
+    return cy.findByTestId('local-queue-missing-warning-close');
+  }
+
   handleConflictIfPresent() {
     // Wait for the submit API call to complete: the button is disabled while
     // the request is in-flight, then either removed (success) or re-enabled (error).

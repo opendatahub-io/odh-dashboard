@@ -24,12 +24,12 @@ import {
   InfoCircleIcon,
   InProgressIcon,
 } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   NotebookImageAvailability,
   NotebookImageStatus,
 } from '#~/pages/projects/screens/detail/notebooks/const';
 import { NotebookImage } from '#~/pages/projects/screens/detail/notebooks/types';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import {
   getImageVersionBuildDate,

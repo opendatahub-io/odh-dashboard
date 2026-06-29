@@ -3,14 +3,22 @@ import {
   HealthCheckHealthCheck,
   HealthCheckServiceStatus,
   NamespacesNamespace,
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
   PvcsPVCCreate,
   PvcsPVCListItem,
+  V1Beta1ImageConfigValue,
+  V1Beta1OptionRedirect,
+  V1Beta1PodConfigValue,
+  V1Beta1ImagePortProtocol,
+  V1Beta1RedirectMessageLevel,
   V1PersistentVolumeAccessMode,
   V1PersistentVolumeMode,
+  V1PullPolicy,
   SecretsSecretListItem,
   StorageclassesStorageClassListItem,
-  WorkspacekindsRedirectMessageLevel,
-  WorkspacekindsWorkspaceKind,
+  OptionsRedirectMessageLevel,
+  WorkspacekindsWorkspaceKindListItem,
   WorkspacesImageConfig,
   WorkspacesOptionInfo,
   WorkspacesPodConfig,
@@ -27,6 +35,7 @@ import {
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceListItem,
   V1Beta1WorkspaceState,
+  WorkspacekindsWorkspaceKindUpdate,
   WorkspacesWorkspaceUpdate,
 } from '~/generated/data-contracts';
 
@@ -54,7 +63,7 @@ export const buildMockWorkspaceKindInfo = (
     url: 'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
   },
   logo: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
+    url: '/api/v1/workspacekinds/jupyter/assets/logo.svg',
   },
   ...workspaceKindInfo,
 });
@@ -432,8 +441,8 @@ export const buildMockWorkspace = (
 });
 
 export const buildMockWorkspaceKind = (
-  workspaceKind?: Partial<WorkspacekindsWorkspaceKind>,
-): WorkspacekindsWorkspaceKind => ({
+  workspaceKind?: Partial<WorkspacekindsWorkspaceKindListItem>,
+): WorkspacekindsWorkspaceKindListItem => ({
   name: 'jupyterlab',
   displayName: 'JupyterLab Notebook',
   description: 'A Workspace which runs JupyterLab in a Pod',
@@ -445,7 +454,7 @@ export const buildMockWorkspaceKind = (
     url: 'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
   },
   logo: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
+    url: '/api/v1/workspacekinds/jupyter/assets/logo.svg',
   },
   clusterMetrics: {
     workspacesCount: 10,
@@ -482,24 +491,29 @@ export const buildMockWorkspaceKind = (
               to: 'jupyterlab_scipy_190',
               message: {
                 text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
               },
             },
           },
           {
             id: 'jupyterlab_scipy_190',
             displayName: 'jupyter-scipy:v1.9.0',
-            description: 'JupyterLab, with SciPy Packages',
+            description:
+              'JupyterLab with SciPy Packages — includes NumPy, pandas, and other commonly used scientific computing libraries pre-installed for data analysis and machine learning workflows',
             labels: [
               { key: 'pythonVersion', value: '3.12' },
               { key: 'jupyterlabVersion', value: '1.9.0' },
+              { key: 'gpuSupport', value: 'enabled' },
+              { key: 'arch', value: 'amd64' },
+              { key: 'framework', value: 'scipy' },
+              { key: 'maintainer', value: 'kubeflow' },
             ],
             hidden: false,
             redirect: {
               to: 'jupyterlab_scipy_200',
               message: {
                 text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
               },
             },
             clusterMetrics: {
@@ -519,7 +533,7 @@ export const buildMockWorkspaceKind = (
               to: 'jupyterlab_scipy_210',
               message: {
                 text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
               },
             },
             clusterMetrics: {
@@ -529,10 +543,16 @@ export const buildMockWorkspaceKind = (
           {
             id: 'jupyterlab_scipy_210',
             displayName: 'jupyter-scipy:v2.1.0',
-            description: 'JupyterLab, with SciPy Packages',
+            description:
+              'JupyterLab with SciPy Packages — latest stable release featuring improved kernel management, enhanced JupyterLab extensions support, and optimized container image size for faster startup times in cloud environments',
             labels: [
               { key: 'pythonVersion', value: '3.13' },
               { key: 'jupyterlabVersion', value: '2.1.0' },
+              { key: 'gpuSupport', value: 'enabled' },
+              { key: 'arch', value: 'amd64' },
+              { key: 'framework', value: 'scipy' },
+              { key: 'maintainer', value: 'kubeflow' },
+              { key: 'status', value: 'stable' },
             ],
             hidden: false,
             clusterMetrics: {
@@ -570,7 +590,7 @@ export const buildMockWorkspaceKind = (
               to: 'small_cpu',
               message: {
                 text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
               },
             },
             clusterMetrics: {
@@ -611,7 +631,7 @@ export const buildMockWorkspaceKind = (
               to: 'large_cpu_hidden',
               message: {
                 text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
               },
             },
             clusterMetrics: {
@@ -637,6 +657,90 @@ export const buildMockWorkspaceKind = (
     },
   },
   ...workspaceKind,
+});
+
+const convertOptionsRedirect = (
+  redirect?: OptionsImageConfigValue['redirect'],
+): V1Beta1OptionRedirect | undefined => {
+  if (!redirect) {
+    return undefined;
+  }
+  return {
+    to: redirect.to,
+    message: redirect.message
+      ? {
+          level: redirect.message.level as unknown as V1Beta1RedirectMessageLevel,
+          text: redirect.message.text,
+        }
+      : undefined,
+  };
+};
+
+const convertImageConfigValue = (v: OptionsImageConfigValue): V1Beta1ImageConfigValue => ({
+  id: v.id,
+  spawner: {
+    displayName: v.displayName,
+    description: v.description,
+    hidden: v.hidden,
+    labels: v.labels,
+  },
+  spec: {
+    image: `mock-registry.io/${v.id}:latest`,
+    imagePullPolicy: V1PullPolicy.PullIfNotPresent,
+    ports: [{ id: 'http', port: 8888 }],
+  },
+  redirect: convertOptionsRedirect(v.redirect),
+});
+
+const convertPodConfigValue = (v: OptionsPodConfigValue): V1Beta1PodConfigValue => ({
+  id: v.id,
+  spawner: {
+    displayName: v.displayName,
+    description: v.description,
+    hidden: v.hidden,
+    labels: v.labels,
+  },
+  spec: {},
+  redirect: convertOptionsRedirect(v.redirect),
+});
+
+export const buildMockWorkspaceKindUpdate = (
+  listItem: WorkspacekindsWorkspaceKindListItem,
+): WorkspacekindsWorkspaceKindUpdate => ({
+  revision: '1',
+  spawner: {
+    displayName: listItem.displayName,
+    description: listItem.description,
+    deprecated: listItem.deprecated,
+    deprecationMessage: listItem.deprecationMessage,
+    hidden: listItem.hidden,
+    icon: listItem.icon,
+    logo: listItem.logo,
+  },
+  podTemplate: {
+    options: {
+      imageConfig: {
+        spawner: { default: listItem.podTemplate.options.imageConfig.default },
+        values: (listItem.podTemplate.options.imageConfig.values ?? []).map(
+          convertImageConfigValue,
+        ),
+      },
+      podConfig: {
+        spawner: { default: listItem.podTemplate.options.podConfig.default },
+        values: (listItem.podTemplate.options.podConfig.values ?? []).map(convertPodConfigValue),
+      },
+    },
+    podMetadata: listItem.podTemplate.podMetadata,
+    ports: [
+      {
+        id: 'http',
+        defaultDisplayName: 'HTTP',
+        protocol: V1Beta1ImagePortProtocol.ImagePortProtocolHTTP,
+      },
+    ],
+    serviceAccount: { name: 'default-editor' },
+    volumeMounts: listItem.podTemplate.volumeMounts,
+  },
 });
 
 export const buildMockActionsWorkspaceActionPause = (

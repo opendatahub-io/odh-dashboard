@@ -17,7 +17,7 @@ import {
   TRANSIENT_ERROR_CODES,
   PERMANENT_ERROR_CODES,
   VALID_STATUS_CODES,
-} from './urlValidator';
+} from './urlValidatorShared';
 import { processAndValidateResults } from './urlResultProcessor';
 
 interface UrlExtractionResult {
@@ -123,12 +123,18 @@ const validateUrlFormats = (
  */
 const reportFormatErrors = (formatErrors: FormatError[]): void => {
   cy.step(`❌ Found ${formatErrors.length} URLs with format errors:`);
+
+  // Also log to console so errors appear in test output
+  console.log(`\n❌ Found ${formatErrors.length} URLs with format errors:`);
+
   formatErrors.forEach(({ url, error, locations }) => {
     const locationInfo = locations
       .map((loc) => `${loc.file.split('/').pop() || loc.file}:${loc.line}`)
       .join(', ');
     cy.step(`  ❌ ${url} [${locationInfo}] - ${error}`);
+    console.log(`  ❌ ${url} [${locationInfo}] - ${error}`);
   });
+
   throw new Error(`${formatErrors.length} URL(s) have format errors. See logs for details.`);
 };
 

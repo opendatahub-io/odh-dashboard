@@ -43,8 +43,11 @@ jest.mock('mod-arch-core', () => ({
 const mockUsePipelineRunQuery = jest.fn();
 const mockUseAutoragResults = jest.fn();
 
+const mockUseSecretCredentialsQuery = jest.fn();
+
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
+  useSecretCredentialsQuery: (...args: unknown[]) => mockUseSecretCredentialsQuery(...args),
 }));
 
 jest.mock('~/app/hooks/useAutoragResults', () => ({
@@ -299,6 +302,12 @@ describe('AutoragResultsPage', () => {
       isPending: false,
     });
 
+    mockUseSecretCredentialsQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: undefined,
+    });
+
     mockUseAutoragResults.mockReturnValue({
       patterns: {},
       failedPatterns: [],
@@ -511,6 +520,81 @@ describe('AutoragResultsPage', () => {
       expect(capturedContext).toMatchObject({
         patterns: {},
       });
+    });
+
+    it('should pass ogxCredentials through context when secret data is available', () => {
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        ogx_secret_name: 'my-ogx-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseSecretCredentialsQuery.mockReturnValue({
+        data: {
+          OGX_CLIENT_BASE_URL: btoa('https://ogx.example.com'),
+          OGX_CLIENT_API_KEY: btoa('sk-test-key'),
+        },
+        isLoading: false,
+        error: undefined,
+      });
+
+      renderPage();
+
+      expect(mockUseSecretCredentialsQuery).toHaveBeenCalledWith('test-ns', 'my-ogx-secret');
+      expect(capturedContext).toMatchObject({
+        ogxCredentials: {
+          baseUrl: btoa('https://ogx.example.com'),
+          apiKey: btoa('sk-test-key'),
+        },
+      });
+    });
+
+    it('should not pass ogxCredentials when secret data is missing required keys', () => {
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        ogx_secret_name: 'my-ogx-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseSecretCredentialsQuery.mockReturnValue({
+        data: { SOME_OTHER_KEY: 'value' },
+        isLoading: false,
+        error: undefined,
+      });
+
+      renderPage();
+
+      expect(capturedContext).toMatchObject({
+        ogxCredentials: undefined,
+      });
+    });
+
+    it('should not fetch credentials when ogx_secret_name is absent', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(mockUseSecretCredentialsQuery).toHaveBeenCalledWith('test-ns', undefined);
     });
   });
 

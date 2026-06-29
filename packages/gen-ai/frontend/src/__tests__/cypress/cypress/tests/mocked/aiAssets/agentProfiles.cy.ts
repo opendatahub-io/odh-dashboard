@@ -2,12 +2,11 @@ import { aiAssetsPage } from '~/__tests__/cypress/cypress/pages/aiAssetsPage';
 import { setupAgentProfilesIntercepts } from '~/__tests__/cypress/cypress/support/helpers/agentProfiles/agentProfilesTestHelpers';
 
 const TEST_NAMESPACE = 'mock-test-namespace-2';
-const AGENT_PROFILE_PARAMS = { agentProfileManagement: 'true' };
 
 describe('AI Assets - Agent Profiles', () => {
   beforeEach(() => {
     setupAgentProfilesIntercepts({ namespace: TEST_NAMESPACE });
-    aiAssetsPage.visit(TEST_NAMESPACE, AGENT_PROFILE_PARAMS);
+    aiAssetsPage.visit(TEST_NAMESPACE);
     aiAssetsPage.switchToAgentProfilesTab();
     cy.wait('@listAgentProfiles');
   });
@@ -125,7 +124,7 @@ describe('AI Assets - Agent Profiles', () => {
 describe('AI Assets - Agent Profiles (empty state)', () => {
   beforeEach(() => {
     setupAgentProfilesIntercepts({ namespace: TEST_NAMESPACE, empty: true });
-    aiAssetsPage.visit(TEST_NAMESPACE, AGENT_PROFILE_PARAMS);
+    aiAssetsPage.visit(TEST_NAMESPACE);
     aiAssetsPage.switchToAgentProfilesTab();
     cy.wait('@listAgentProfiles');
   });

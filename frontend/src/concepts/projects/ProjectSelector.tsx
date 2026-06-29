@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import SearchSelector from '#~/components/searchSelector/SearchSelector';
 import ProjectNavigatorLink from '#~/concepts/projects/ProjectNavigatorLink';
 import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize';

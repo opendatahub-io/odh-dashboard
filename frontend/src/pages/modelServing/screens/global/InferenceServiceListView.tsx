@@ -1,8 +1,8 @@
 import * as React from 'react';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { getInferenceServiceProjectDisplayName } from './utils';
 import InferenceServiceTable from './InferenceServiceTable';
 import ModelServingToolbar from './ModelServingToolbar';

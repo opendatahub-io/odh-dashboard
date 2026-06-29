@@ -2,7 +2,16 @@ import { createDataConnection } from './oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from './oc_commands/dspa';
 import { AWS_BUCKETS } from './s3Buckets';
 import { createCleanProject } from './projectChecker';
-import type { DataConnectionReplacements, DspaSecretReplacements } from '../types';
+import type {
+  DataConnectionReplacements,
+  DspaReplacements,
+  DspaSecretReplacements,
+} from '../types';
+
+type AutoXDspaReplacements = DspaReplacements & {
+  AWS_S3_HOST: string;
+  AWS_S3_SCHEME: string;
+};
 
 /**
  * Parse an S3 endpoint URL into host and scheme components.
@@ -60,7 +69,7 @@ export const provisionProjectForAutoX = (
   };
   createDSPASecret(dspaSecretReplacements);
 
-  const dspaReplacements = {
+  const dspaReplacements: AutoXDspaReplacements = {
     DSPA_SECRET_NAME: dspaSecretName,
     NAMESPACE: projectName,
     AWS_S3_BUCKET: bucketConfig.NAME,

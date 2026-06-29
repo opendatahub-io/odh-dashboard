@@ -6,7 +6,7 @@ import {
   NotificationWatcherContext,
 } from '@odh-dashboard/internal/concepts/notificationWatcher/NotificationWatcherContext';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import { FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
+import { FAST_POLL_INTERVAL } from '@odh-dashboard/ui-core/utilities';
 import { useResolvedDeploymentExtension } from '../concepts/extensionUtils';
 import {
   Deployment,

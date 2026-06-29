@@ -1223,6 +1223,14 @@ declare global {
           type: 'GET /maas/api/v1/subscriptions/:id',
           options: { path: { id: string } },
           response: OdhResponse<{ data: UserSubscription }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /api/mlflow-global-namespace',
+          response: OdhResponse<{
+            success: boolean;
+            globalMLflowNamespaces: string[];
+            warnings?: string[];
+          }>,
         ) => Cypress.Chainable<null>);
     }
   }

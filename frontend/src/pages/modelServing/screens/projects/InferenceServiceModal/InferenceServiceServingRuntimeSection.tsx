@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Alert, FormGroup, Content } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '#~/k8sTypes';
 import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 
 type InferenceServiceServingRuntimeSectionProps = {
