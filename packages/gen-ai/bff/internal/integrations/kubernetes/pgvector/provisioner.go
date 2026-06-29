@@ -292,6 +292,9 @@ func validateExistingManagedResources(ctx context.Context, c client.Client, name
 			return fmt.Errorf("%w: %s %q is still terminating — please wait a moment and try again",
 				ErrResourcesTerminating, check.kind, check.name)
 		}
+		if check.obj.GetLabels()[ManagedLabel] != ManagedLabelValue {
+			return fmt.Errorf("pgvector %s %q exists but was not created by the provisioner (missing %s label)", check.kind, check.name, ManagedLabel)
+		}
 	}
 	return nil
 }
