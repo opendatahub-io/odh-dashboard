@@ -34,7 +34,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
           placeholder="Filter by name or description"
           onChange={(_event, value) => onChange(value)}
           data-testid="auth-policies-filter-name-input"
-          style={{ width: '30ch' }}
+          style={{ minWidth: '350px' }}
         />
       ),
     }}
