@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Button,
   Card,
   CardBody,
   CardTitle,
@@ -13,7 +12,7 @@ import {
   Label,
   LabelGroup,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import ExternalLink from '@odh-dashboard/internal/components/ExternalLink';
 import { AgentCardDetail } from '~/app/types/agentRuntimes';
 
 type AgentDetailsCardProps = {
@@ -88,18 +87,7 @@ const AgentDetailsCard: React.FC<AgentDetailsCardProps> = ({ agentCard }) => {
               <DescriptionListTerm>Provider</DescriptionListTerm>
               <DescriptionListDescription data-testid="agent-card-provider">
                 {providerUrl ? (
-                  <Button
-                    variant="link"
-                    isInline
-                    icon={<ExternalLinkAltIcon />}
-                    iconPosition="end"
-                    component="a"
-                    href={providerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {providerLabel}
-                  </Button>
+                  <ExternalLink text={providerLabel} to={providerUrl} />
                 ) : (
                   providerLabel
                 )}
@@ -118,18 +106,7 @@ const AgentDetailsCard: React.FC<AgentDetailsCardProps> = ({ agentCard }) => {
             <DescriptionListGroup>
               <DescriptionListTerm>Documentation</DescriptionListTerm>
               <DescriptionListDescription data-testid="agent-card-docs">
-                <Button
-                  variant="link"
-                  isInline
-                  icon={<ExternalLinkAltIcon />}
-                  iconPosition="end"
-                  component="a"
-                  href={documentationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View documentation
-                </Button>
+                <ExternalLink text="View documentation" to={documentationUrl} />
               </DescriptionListDescription>
             </DescriptionListGroup>
           )}

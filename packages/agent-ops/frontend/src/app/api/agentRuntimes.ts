@@ -1,6 +1,5 @@
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { normalizeAgentRuntimeDetail } from '~/app/utilities/normalizeAgentRuntimeDetail';
 import { AgentRuntime, AgentRuntimeDetail, AgentRuntimesList } from '~/app/types/agentRuntimes';
 
 export type ListAgentRuntimesParams = {
@@ -49,11 +48,7 @@ export const getAgentRuntimeDetail =
       ),
     ).then((response) => {
       if (isModArchResponse<AgentRuntimeDetail>(response)) {
-        const normalized = normalizeAgentRuntimeDetail(response.data);
-        if (!normalized) {
-          throw new Error('Invalid response format');
-        }
-        return normalized;
+        return response.data;
       }
       throw new Error('Invalid response format');
     });
