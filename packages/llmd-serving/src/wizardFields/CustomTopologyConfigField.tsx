@@ -15,7 +15,7 @@ import type {
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   useTopologyTypeData,
