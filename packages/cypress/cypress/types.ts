@@ -289,6 +289,7 @@ export type DataScienceProjectData = {
   modelStatus: string;
   hardwareProfileName: string;
   resourceType: string;
+  resourceApiVersion: string;
   existingImage: string;
   replaceImage: string;
   serviceAccountName1: string;
@@ -310,6 +311,7 @@ export type DataScienceProjectData = {
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
+  deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
 };
 
 export type NotebookImageData = {
