@@ -244,11 +244,19 @@ export const getSourceLabelColor = (sourceLabel: string): 'blue' | 'green' | 'or
  */
 export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => {
   // Defensive guard against BFF omitting endpoints field despite type contract
-  // Filter out non-string entries and blank/whitespace-only strings, then trim to normalize
+  // Filter out non-string entries, blank strings, and prefix-only entries (e.g., "external:   ")
   const endpoints = Array.isArray(aaModel.endpoints)
     ? aaModel.endpoints
         .filter((e): e is string => typeof e === 'string' && e.trim() !== '')
         .map((e) => e.trim())
+        .filter((e) => {
+          // Reject entries that are only "prefix:" with no actual URL
+          if (e.startsWith('external:') || e.startsWith('internal:')) {
+            const url = e.replace(/^(external|internal):/, '').trim();
+            return url !== '';
+          }
+          return true;
+        })
     : [];
 
   // Parse endpoints - AAModel already has the correct structure from BFF transformation
