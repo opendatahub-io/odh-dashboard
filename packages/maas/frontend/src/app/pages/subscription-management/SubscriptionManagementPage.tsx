@@ -43,13 +43,11 @@ const SubscriptionManagementPage: React.FC = () => {
     ],
   );
 
-  const loaded = React.useMemo(() => formDataLoaded, [formDataLoaded]);
-
   return (
     <ApplicationsPage
       title="Subscription management"
       description="Manage subscriptions and authorization policies to control the MaaS models that each user group in your organization can access."
-      loaded={loaded}
+      loaded={formDataLoaded}
       empty={empty}
       emptyStatePage={<EmptyOverviewPage returnTo={`${URL_PREFIX}/subscription-management`} />}
     >
