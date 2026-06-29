@@ -54,12 +54,20 @@ describe('getVisibleTabs', () => {
     }
   });
 
-  it('should exclude confusion matrix and feature summary for timeseries', () => {
+  it('should show back-testing tab for timeseries and exclude classification tabs', () => {
     const tabs = getVisibleTabs('timeseries');
     const keys = tabs.map((t) => t.key);
-    expect(keys).toEqual(['model-information', 'model-evaluation']);
+    expect(keys).toEqual(['model-information', 'model-evaluation', 'back-testing']);
     expect(keys).not.toContain('confusion-matrix');
     expect(keys).not.toContain('feature-summary');
+    expect(keys).not.toContain('precision-recall');
+  });
+
+  it('should not show back-testing tab for binary, multiclass, or regression', () => {
+    for (const taskType of ['binary', 'multiclass', 'regression'] as const) {
+      const keys = getVisibleTabs(taskType).map((t) => t.key);
+      expect(keys).not.toContain('back-testing');
+    }
   });
 
   it('should have a non-empty tooltip for every tab', () => {
