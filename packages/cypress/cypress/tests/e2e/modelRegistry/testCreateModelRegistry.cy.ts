@@ -75,6 +75,10 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings
         .findFormField(FormFieldSelector.PASSWORD)
         .type(testData.databasePassword);
+      modelRegistrySettings
+        .findFormField(FormFieldSelector.DATABASE)
+        .clear()
+        .type(testData.defaultDatabaseName);
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify it is available in the UI');
@@ -133,7 +137,7 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings
         .findFormField(FormFieldSelector.DATABASE)
         .clear()
-        .type(testData.defaultDatabaseName);
+        .type(testData.defaultPostgresDatabaseName);
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify it is available in the UI');
