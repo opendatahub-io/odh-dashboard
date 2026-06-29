@@ -28,15 +28,19 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			},
 			ModelRefs: []models.ModelSubscriptionRef{
 				{
-					Name:      "granite-3-8b-instruct",
-					Namespace: "maas-models",
+					Name:        "granite-3-8b-instruct",
+					Namespace:   "maas-models",
+					DisplayName: "Granite 3 8B Instruct",
+					Description: "IBM Granite 3 8B instruction-tuned language model.",
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 100000, Window: "24h"},
 					},
 				},
 				{
-					Name:      "flan-t5-small",
-					Namespace: "maas-models",
+					Name:        "flan-t5-small",
+					Namespace:   "maas-models",
+					DisplayName: "Flan T5 Small",
+					Description: "Google Flan T5 small text-to-text transfer transformer model.",
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 200000, Window: "24h"},
 					},
@@ -63,8 +67,10 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			},
 			ModelRefs: []models.ModelSubscriptionRef{
 				{
-					Name:      "flan-t5-small",
-					Namespace: "maas-models",
+					Name:        "flan-t5-small",
+					Namespace:   "maas-models",
+					DisplayName: "Flan T5 Small",
+					Description: "Google Flan T5 small text-to-text transfer transformer model.",
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 10000, Window: "24h"},
 					},
@@ -125,8 +131,10 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			DeletionTimestamp: timePtr(time.Date(2025, 4, 1, 12, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelSubscriptionRef{
 				{
-					Name:      "flan-t5-small",
-					Namespace: "maas-models",
+					Name:        "flan-t5-small",
+					Namespace:   "maas-models",
+					DisplayName: "Flan T5 Small",
+					Description: "Google Flan T5 small text-to-text transfer transformer model.",
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 10000, Window: "24h"},
 					},
@@ -149,8 +157,8 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			StatusMessage:     "successfully reconciled",
 			CreationTimestamp: timePtr(time.Date(2025, 3, 1, 10, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelRef{
-				{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
-				{Name: "flan-t5-small", Namespace: "maas-models"},
+				{Name: "granite-3-8b-instruct", Namespace: "maas-models", DisplayName: "Granite 3 8B Instruct", Description: "IBM Granite 3 8B instruction-tuned language model."},
+				{Name: "flan-t5-small", Namespace: "maas-models", DisplayName: "Flan T5 Small", Description: "Google Flan T5 small text-to-text transfer transformer model."},
 			},
 			Subjects: models.SubjectSpec{
 				Groups: []models.GroupReference{
@@ -171,7 +179,7 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			StatusMessage:     "successfully reconciled",
 			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelRef{
-				{Name: "flan-t5-small", Namespace: "maas-models"},
+				{Name: "flan-t5-small", Namespace: "maas-models", DisplayName: "Flan T5 Small", Description: "Google Flan T5 small text-to-text transfer transformer model."},
 			},
 			Subjects: models.SubjectSpec{
 				Groups: []models.GroupReference{
@@ -214,8 +222,8 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			DeletionTimestamp: timePtr(time.Date(2025, 4, 1, 12, 0, 0, 0, time.UTC)),
 			StatusMessage:     "successfully reconciled",
 			ModelRefs: []models.ModelRef{
-				{Name: "flan-t5-small", Namespace: "maas-models"},
-				{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+				{Name: "flan-t5-small", Namespace: "maas-models", DisplayName: "Flan T5 Small", Description: "Google Flan T5 small text-to-text transfer transformer model."},
+				{Name: "granite-3-8b-instruct", Namespace: "maas-models", DisplayName: "Granite 3 8B Instruct", Description: "IBM Granite 3 8B instruction-tuned language model."},
 			},
 			Subjects: models.SubjectSpec{
 				Groups: []models.GroupReference{

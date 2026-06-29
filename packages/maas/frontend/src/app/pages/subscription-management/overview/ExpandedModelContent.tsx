@@ -2,26 +2,17 @@ import * as React from 'react';
 import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import {
-  ModelOverviewSubscription,
-  ModelOverviewPolicy,
-  TokenRateLimit,
-} from '~/app/types/subscriptions';
+import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
-import { formatWindow } from '~/app/utilities/rateLimits';
+import { formatTokenLimits } from '~/app/utilities/rateLimits';
 import GroupChips from './GroupChips';
 
 const OVERVIEW_LINK_STATE = {
   returnTo: `${URL_PREFIX}/subscription-management/overview`,
   breadcrumbLabel: 'Subscription management',
 };
-
-const formatTokenLimits = (limits: TokenRateLimit[]): string =>
-  limits.length === 0
-    ? '—'
-    : limits.map((l) => `${l.limit.toLocaleString('en-US')}/${formatWindow(l.window)}`).join(' | ');
 
 const itemBorderStyle = {
   border: '1px solid var(--pf-t--global--border--color--default)',

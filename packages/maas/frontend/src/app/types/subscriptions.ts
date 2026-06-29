@@ -16,6 +16,8 @@ export type MaaSSubscription = {
 export type ModelSubscriptionRef = {
   name: string;
   namespace: string;
+  displayName?: string;
+  description?: string;
   tokenRateLimits: TokenRateLimit[];
   billingRate?: BillingRate;
 };
@@ -51,6 +53,8 @@ export type MaaSSubscriptionListResponse = {
 export type ModelRef = {
   name: string;
   namespace: string;
+  displayName?: string;
+  description?: string;
 };
 
 export type ModelReference = {

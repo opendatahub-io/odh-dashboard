@@ -119,13 +119,13 @@ describe('MaaS Auth Policies', () => {
     const premiumRow = authPoliciesPage.getRow('Premium Team Policy');
     premiumRow.findName().should('contain.text', 'Premium Team Policy');
     premiumRow.findPhase().should('contain.text', 'Ready');
-    premiumRow.findGroups().should('contain.text', '1 Group');
-    premiumRow.findModels().should('contain.text', '2 Models');
+    premiumRow.findGroups().should('contain.text', '1');
+    premiumRow.findModels().should('contain.text', '2');
     const basicRow = authPoliciesPage.getRow('basic-team-policy');
     basicRow.findName().should('contain.text', 'basic-team-policy');
     basicRow.findPhase().should('contain.text', 'Ready');
-    basicRow.findGroups().should('contain.text', '1 Group');
-    basicRow.findModels().should('contain.text', '1 Model');
+    basicRow.findGroups().should('contain.text', '1');
+    basicRow.findModels().should('contain.text', '1');
 
     const failedRow = authPoliciesPage.getRow('failed-policy');
     failedRow.findPhase().should('contain.text', 'Failed');

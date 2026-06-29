@@ -89,22 +89,22 @@ describe('Subscriptions Page', () => {
     const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
     premiumRow.findPhase().should('contain.text', 'Ready');
     premiumRow.findName().should('contain.text', 'Premium Team Subscription');
-    premiumRow.findGroups().should('contain.text', '1 Group');
-    premiumRow.findModels().should('contain.text', '2 Models');
+    premiumRow.findGroups().should('contain.text', '1');
+    premiumRow.findModels().should('contain.text', '2');
     premiumRow.findPriority().should('contain.text', '10');
 
     const basicRow = subscriptionsPage.getRow('Basic Team Subscription');
     basicRow.findName().should('contain.text', 'Basic Team Subscription');
     basicRow.findPhase().should('contain.text', 'Ready');
-    basicRow.findGroups().should('contain.text', '1 Group');
-    basicRow.findModels().should('contain.text', '1 Model');
+    basicRow.findGroups().should('contain.text', '1');
+    basicRow.findModels().should('contain.text', '1');
     basicRow.findPriority().should('contain.text', '0');
 
     const negativePriorityRow = subscriptionsPage.getRow('negative-priority-sub');
     negativePriorityRow.findName().should('contain.text', 'negative-priority-sub');
     negativePriorityRow.findPhase().should('contain.text', 'Ready');
-    negativePriorityRow.findGroups().should('contain.text', '1 Group');
-    negativePriorityRow.findModels().should('contain.text', '1 Model');
+    negativePriorityRow.findGroups().should('contain.text', '1');
+    negativePriorityRow.findModels().should('contain.text', '1');
     negativePriorityRow.findPriority().should('contain.text', '-10000');
 
     const failedRow = subscriptionsPage.getRow('failed-sub');

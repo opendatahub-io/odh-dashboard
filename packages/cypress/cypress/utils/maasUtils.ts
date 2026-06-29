@@ -155,11 +155,16 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
       {
         name: 'granite-3-8b-instruct',
         namespace: 'maas-models',
+        displayName: 'Granite 3 8B Instruct',
+        description:
+          'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
         tokenRateLimits: [{ limit: 100000, window: '24h' }],
       },
       {
         name: 'flan-t5-small',
         namespace: 'maas-models',
+        displayName: 'Flan T5 Small',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         tokenRateLimits: [{ limit: 200000, window: '24h' }],
       },
     ],
@@ -183,6 +188,8 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
       {
         name: 'flan-t5-small',
         namespace: 'maas-models',
+        displayName: 'Flan T5 Small',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         tokenRateLimits: [{ limit: 10000, window: '24h' }],
       },
     ],
@@ -202,6 +209,8 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
       {
         name: 'flan-t5-small',
         namespace: 'maas-models',
+        displayName: 'Flan T5 Small',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         tokenRateLimits: [{ limit: 10000, window: '24h' }],
       },
     ],
@@ -377,7 +386,7 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     name: 'granite-3-8b-instruct',
     namespace: 'maas-models',
     displayName: 'Granite 3 8B Instruct',
-    description: 'A large language model for instruction following',
+    description: 'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
     modelRef: { kind: 'InferenceService', name: 'granite-3-8b-instruct' },
     phase: 'Ready',
     endpoint: 'https://granite-3-8b-instruct.maas-models.svc.cluster.local',
@@ -639,7 +648,15 @@ export const mockFailedAuthPolicy = (): MaaSAuthPolicy => ({
   namespace: 'maas-system',
   phase: 'Failed',
   statusMessage: 'all 2 model references are invalid or missing',
-  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      displayName: 'Granite 3 8B Instruct',
+      description:
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+    },
+  ],
   subjects: { groups: [{ name: 'system:authenticated' }] },
 });
 
@@ -648,7 +665,14 @@ export const mockPendingAuthPolicy = (): MaaSAuthPolicy => ({
   namespace: 'maas-system',
   phase: 'Pending',
   statusMessage: '',
-  modelRefs: [{ name: 'flan-t5-small', namespace: 'maas-models' }],
+  modelRefs: [
+    {
+      name: 'flan-t5-small',
+      namespace: 'maas-models',
+      displayName: 'Flan T5 Small',
+      description: 'Flan T5 Small is a small language model that is used for basic tasks.',
+    },
+  ],
   subjects: { groups: [{ name: 'beta-testers' }] },
 });
 
@@ -657,7 +681,15 @@ export const mockDeletingAuthPolicy = (): MaaSAuthPolicy => ({
   namespace: 'maas-system',
   phase: 'Active',
   statusMessage: 'successfully reconciled',
-  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      displayName: 'Granite 3 8B Instruct',
+      description:
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+    },
+  ],
   subjects: { groups: [{ name: 'premium-users' }] },
   deletionTimestamp: '2025-04-07T12:00:00Z',
 });
@@ -668,7 +700,15 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
-    modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+    modelRefs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        displayName: 'Granite 3 8B Instruct',
+        description:
+          'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+      },
+    ],
     subjects: { groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }] },
   },
   {

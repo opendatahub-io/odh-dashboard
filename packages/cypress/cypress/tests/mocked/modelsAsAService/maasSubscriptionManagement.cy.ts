@@ -78,6 +78,46 @@ describe('Subscription Management Page', () => {
     subscriptionsPage.findRows().should('have.length', 7);
   });
 
+  it('should expand and collapse inline rows in the subscriptions tab', () => {
+    subscriptionManagementPage.visit('subscriptions');
+
+    const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
+
+    // Expand the groups panel
+    premiumRow.findExpandGroupButton().click();
+    premiumRow.findExpandedGroupName().should('exist');
+    premiumRow.findExpandedGroupName().should('have.length', 1);
+    premiumRow.findExpandedGroupName().eq(0).should('contain.text', 'premium-users');
+    premiumRow.findExpandedModelName().should('not.be.visible');
+
+    // Clicking models while groups is open replaces the panel
+    premiumRow.findExpandModelButton().click();
+    premiumRow.findExpandedModelName().should('exist');
+    premiumRow.findExpandedModelName().should('have.length', 2);
+    premiumRow.findExpandedModelName().eq(0).should('contain.text', 'Granite 3 8B Instruct');
+    premiumRow.findExpandedModelDescription().should('have.length', 2);
+    premiumRow
+      .findExpandedModelDescription()
+      .eq(0)
+      .should(
+        'contain.text',
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+      );
+    premiumRow.findExpandedModelResourceName().should('have.length', 2);
+    premiumRow
+      .findExpandedModelResourceName()
+      .eq(0)
+      .should('contain.text', 'granite-3-8b-instruct');
+    premiumRow.findExpandedModelTokenLimits().should('have.length', 2);
+    premiumRow.findExpandedModelTokenLimits().eq(0).should('contain.text', '100,000 / 24 hours');
+    premiumRow.findExpandedGroupName().should('not.be.visible');
+
+    // Clicking models again collapses it
+    premiumRow.findExpandModelButton().click();
+    premiumRow.findExpandedModelName().should('not.be.visible');
+    premiumRow.findExpandedGroupName().should('not.be.visible');
+  });
+
   it('should display auth policies content within the auth policies tab', () => {
     subscriptionManagementPage.visit('auth-policies');
     authPoliciesPage.findTable().should('exist');
@@ -159,5 +199,43 @@ describe('Subscription Management Page', () => {
     policyPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
     policyPage.findCancelButton().click();
     cy.url().should('include', '/subscription-management/overview');
+  });
+
+  it('should expand and collapse inline rows in the auth policies tab', () => {
+    subscriptionManagementPage.visit('auth-policies');
+
+    const premiumPolicy = authPoliciesPage.getRow('Premium Team Policy');
+
+    // Expand the groups panel
+    premiumPolicy.findExpandGroupButton().click();
+    premiumPolicy.findExpandedGroupName().should('exist');
+    premiumPolicy.findExpandedGroupName().should('have.length', 1);
+    premiumPolicy.findExpandedGroupName().eq(0).should('contain.text', 'premium-users');
+    premiumPolicy.findExpandedModelName().should('not.be.visible');
+
+    // Clicking models while groups is open replaces the panel
+    premiumPolicy.findExpandModelButton().click();
+    premiumPolicy.findExpandedModelName().should('exist');
+    premiumPolicy.findExpandedModelName().should('have.length', 2);
+    premiumPolicy.findExpandedModelName().eq(0).should('contain.text', 'Granite 3 8B Instruct');
+    premiumPolicy.findExpandedModelDescription().should('have.length', 2);
+    premiumPolicy
+      .findExpandedModelDescription()
+      .eq(0)
+      .should(
+        'contain.text',
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+      );
+    premiumPolicy.findExpandedModelResourceName().should('have.length', 2);
+    premiumPolicy
+      .findExpandedModelResourceName()
+      .eq(0)
+      .should('contain.text', 'granite-3-8b-instruct');
+    premiumPolicy.findExpandedGroupName().should('not.be.visible');
+
+    // Clicking models again collapses it
+    premiumPolicy.findExpandModelButton().click();
+    premiumPolicy.findExpandedModelName().should('not.be.visible');
+    premiumPolicy.findExpandedGroupName().should('not.be.visible');
   });
 });
