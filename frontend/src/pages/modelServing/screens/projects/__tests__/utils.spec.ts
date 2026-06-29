@@ -639,7 +639,7 @@ describe('translateModelServingError', () => {
       });
       error.statusObject.details = { name, kind: resource };
       expect(translateModelServingError(error)).toBe(
-        `A model deployment with the name "${name}" already exists. Please choose a different Model deployment name.`,
+        `A model deployment with the name "${name}" already exists. Please choose a different model deployment name.`,
       );
     },
   );
@@ -654,7 +654,7 @@ describe('translateModelServingError', () => {
       code: 409,
     });
     expect(translateModelServingError(error)).toBe(
-      'A model deployment with this name already exists. Please choose a different Model deployment name.',
+      'A model deployment with this name already exists. Please choose a different model deployment name.',
     );
   });
 
@@ -677,7 +677,7 @@ describe('translateModelServingError', () => {
       'servingruntimes.serving.kserve.io is forbidden: User cannot create',
     );
     expect(translateModelServingError(k8sError)).toBe(
-      'model deployment is forbidden: User cannot create',
+      'serving runtime is forbidden: User cannot create',
     );
   });
 
