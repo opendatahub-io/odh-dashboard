@@ -7,7 +7,7 @@ import ModelServerTemplateSelectField, {
   modelServerSelectFieldSchema,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';

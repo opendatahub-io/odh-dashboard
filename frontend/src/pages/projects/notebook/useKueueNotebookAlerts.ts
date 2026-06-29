@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import useNotification from '#~/utilities/useNotification';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   getHumanReadableKueueMessage,

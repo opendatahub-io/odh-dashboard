@@ -1,5 +1,11 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { LimitNameResourceType } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { LimitNameResourceType } from './k8sNameDescriptionFieldUtils';
+
+export type RecursivePartial<T> = T extends object
+  ? {
+      [P in keyof T]?: RecursivePartial<T[P]>;
+    }
+  : T;
 
 export type K8sNameDescriptionFieldData = {
   name: string;
@@ -66,7 +72,7 @@ export type UseK8sNameDescriptionDataConfiguration = {
 
 type K8sNameDescriptionFieldUpdateFunctionTemplate<T> = (
   key: keyof K8sNameDescriptionFieldData,
-  value: string, // always the value; directly or k8sName.value
+  value: string,
 ) => T;
 export type K8sNameDescriptionFieldUpdateFunction =
   K8sNameDescriptionFieldUpdateFunctionTemplate<void>;

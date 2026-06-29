@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Spinner, EmptyStateVariant, EmptyState, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import {
   PipelineRecurringRunKF,
   PipelineRunKF,
@@ -20,7 +21,6 @@ import { isPipelineRun, isPipelineRecurringRun } from '#~/concepts/pipelines/con
 import { PipelineVersionLink } from '#~/concepts/pipelines/content/PipelineVersionLink';
 import usePipelineVersionById from '#~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '#~/concepts/pipelines/apiHooks/usePipelineById';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { RecurringRunTrigger } from '#~/concepts/pipelines/content/tables/renderUtils';
 import { Artifact } from '#~/third_party/mlmd';
 import { getIsArtifactModelRegistered } from '#~/pages/pipelines/global/experiments/artifacts/utils';

@@ -144,6 +144,8 @@ describe('SaveAgentProfileModal', () => {
         );
         expect(mockOnSaved).toHaveBeenCalledWith('new-uuid', 'Test Agent', '');
         expect(mockOnClose).toHaveBeenCalledTimes(1);
+        // resourceVersion from the create response must be stored so subsequent saves work
+        expect(useChatbotConfigStore.getState().loadedResourceVersion).toBe('rv-1');
       });
     });
 

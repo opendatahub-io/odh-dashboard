@@ -2,12 +2,12 @@ import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Icon, LabelGroup, Truncate } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
-import { TableRowTitleDescription } from '#~/components/table';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+} from '@odh-dashboard/k8s-core';
+import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import { TableRowTitleDescription } from '#~/components/table';
 import {
   getConnectionTypeDisplayName,
   getModelServingCompatibility,

@@ -1,7 +1,7 @@
 import { SortableData } from '@odh-dashboard/ui-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { getNotebookStatusPriority } from '#~/pages/projects/utils';
 import { NotebookState } from '#~/pages/projects/notebook/types';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 export const columns: SortableData<NotebookState>[] = [
   {

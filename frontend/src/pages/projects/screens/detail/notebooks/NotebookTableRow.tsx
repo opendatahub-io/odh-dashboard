@@ -9,13 +9,13 @@ import {
   StateActionToggle,
 } from '@odh-dashboard/ui-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { getDescriptionFromK8sResource } from '@odh-dashboard/k8s-core';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookKind } from '#~/k8sTypes';
 import NotebookImagePackageDetails from '#~/pages/projects/notebook/NotebookImagePackageDetails';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { TableRowTitleDescription } from '#~/components/table';
-import { getDescriptionFromK8sResource } from '#~/concepts/k8s/utils';
 import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
 import { NotebookActionsColumn } from '#~/pages/projects/notebook/NotebookActionsColumn';
 import { startNotebook, stopNotebook, getMlflowInstancePatch } from '#~/api';
