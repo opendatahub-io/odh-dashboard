@@ -5,6 +5,8 @@ import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/compon
 import DeployAgentButton from '~/app/components/DeployAgentButton';
 import {
   agentRuntimeStatusFilterOptions,
+  AgentRuntimeStatusFilter,
+  AgentRuntimeStatusFilterOption,
   AgentRuntimesFilterData,
   AgentRuntimesFilterOption,
   agentRuntimesFilterOptions,
@@ -15,9 +17,26 @@ type AgentRuntimesToolbarProps = {
   filterData: AgentRuntimesFilterData;
   onFilterUpdate: (
     key: AgentRuntimesFilterOption,
-    value?: string | { label: string; value: string },
+    value?: string | AgentRuntimeStatusFilterOption,
   ) => void;
   onDeployAgent: () => void;
+};
+
+const adaptFilterUpdateValue = (
+  key: AgentRuntimesFilterOption,
+  value?: string | { label: string; value: string },
+): string | AgentRuntimeStatusFilterOption | undefined => {
+  if (typeof value === 'string') {
+    return value || undefined;
+  }
+  if (key !== AgentRuntimesFilterOption.Status || !value?.value) {
+    return undefined;
+  }
+  const status = value.value;
+  if (!agentRuntimeStatusFilterOptions.includes(status as AgentRuntimeStatusFilter)) {
+    return undefined;
+  }
+  return { label: status as AgentRuntimeStatusFilter, value: status as AgentRuntimeStatusFilter };
 };
 
 const statusSelectOptions: SimpleSelectOption[] = agentRuntimeStatusFilterOptions.map(
@@ -79,7 +98,9 @@ const AgentRuntimesToolbar: React.FC<AgentRuntimesToolbarProps> = ({
       ),
     }}
     filterData={filterData}
-    onFilterUpdate={onFilterUpdate}
+    onFilterUpdate={(filterType, value) =>
+      onFilterUpdate(filterType, adaptFilterUpdateValue(filterType, value))
+    }
   >
     <ToolbarGroup>
       <ToolbarItem>

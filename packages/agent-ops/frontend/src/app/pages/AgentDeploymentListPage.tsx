@@ -27,7 +27,11 @@ import {
 import AgentDeploymentsEmptyState from './AgentDeploymentsEmptyState';
 import AgentRuntimesTable from './agentRuntimes/AgentRuntimesTable';
 import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
-import { AgentRuntimesFilterOption, emptyAgentRuntimesFilterData } from './agentRuntimes/const';
+import {
+  AgentRuntimeStatusFilterOption,
+  AgentRuntimesFilterOption,
+  emptyAgentRuntimesFilterData,
+} from './agentRuntimes/const';
 
 const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -89,7 +93,7 @@ const AgentDeploymentListPage: React.FC = () => {
   );
 
   const onFilterUpdate = React.useCallback(
-    (key: AgentRuntimesFilterOption, value?: string | { label: string; value: string }) => {
+    (key: AgentRuntimesFilterOption, value?: string | AgentRuntimeStatusFilterOption) => {
       setFilterData((prev) => {
         if (typeof value === 'string') {
           return { ...prev, [key]: value || undefined };
