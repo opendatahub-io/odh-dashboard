@@ -7,7 +7,7 @@ import {
   ChartLine,
   ChartVoronoiContainer,
 } from '@patternfly/react-charts/victory';
-import { Flex, FlexItem, Title } from '@patternfly/react-core';
+import { Title } from '@patternfly/react-core';
 import type { BackTestingForecastPoint, BackTestingSeriesPerformer } from '~/app/types';
 import { COLOR_SCALE } from './chartConstants';
 
@@ -54,16 +54,11 @@ function buildSeriesData(points: BackTestingForecastPoint[]): {
   };
 }
 
-const CHART_SIZE = 400;
+const CHART_HEIGHT = 220;
 const CHART_PADDING = { bottom: 60, left: 80, right: 40, top: 20 };
 const OBSERVED_STYLE = { data: { stroke: COLOR_SCALE[0] } };
 const PREDICTED_STYLE = { data: { stroke: COLOR_SCALE[1] } };
 const BAND_STYLE = { data: { fill: COLOR_SCALE[1], opacity: 0.15, stroke: 'none' } };
-const LEGEND_ITEMS = [
-  { color: COLOR_SCALE[0], label: 'Observed' },
-  { color: COLOR_SCALE[1], label: 'Forecast' },
-  { color: COLOR_SCALE[1], label: 'Confidence interval', opacity: 0.4 },
-];
 
 const ForecastChart: React.FC<ForecastChartProps> = ({ performer, title }) => {
   const allPoints = React.useMemo(
@@ -78,9 +73,22 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ performer, title }) => {
 
   const { observed, predicted, band } = React.useMemo(() => buildSeriesData(sorted), [sorted]);
 
+  // Only label the first point of each window to avoid x-axis crowding
+  const windowBoundaryIndices = React.useMemo(() => {
+    let cumulative = 0;
+    return performer.windows.map((w) => {
+      const idx = cumulative;
+      cumulative += w.forecast_data.length;
+      return idx;
+    });
+  }, [performer]);
+
   const tickFormat = React.useCallback(
-    (val: number) => (val < sorted.length ? formatTimestamp(sorted[val].timestamp) : ''),
-    [sorted],
+    (val: number) => {
+      const windowIndex = windowBoundaryIndices.indexOf(val);
+      return windowIndex !== -1 ? `Window ${windowIndex + 1}` : '';
+    },
+    [windowBoundaryIndices],
   );
 
   const tickValues = React.useMemo(() => sorted.map((_, i) => i), [sorted]);
@@ -100,14 +108,10 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ performer, title }) => {
             labels={({ datum }: { datum: IndexedPoint }) => datum.name}
           />
         }
-        height={CHART_SIZE}
+        height={CHART_HEIGHT}
         padding={CHART_PADDING}
       >
-        <ChartAxis
-          tickFormat={tickFormat}
-          tickValues={tickValues}
-          style={{ tickLabels: { angle: -30, fontSize: 10 } }}
-        />
+        <ChartAxis tickFormat={tickFormat} tickValues={tickValues} />
         <ChartAxis dependentAxis showGrid />
         <ChartGroup>
           <ChartArea data={band} style={BAND_STYLE} />
@@ -115,23 +119,6 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ performer, title }) => {
           <ChartLine data={predicted} style={PREDICTED_STYLE} />
         </ChartGroup>
       </Chart>
-      <Flex spaceItems={{ default: 'spaceItemsMd' }} className="pf-v6-u-mt-sm">
-        {LEGEND_ITEMS.map(({ color, label, opacity }) => (
-          <FlexItem key={label}>
-            <Flex
-              spaceItems={{ default: 'spaceItemsSm' }}
-              alignItems={{ default: 'alignItemsCenter' }}
-            >
-              <FlexItem>
-                <svg width="20" height="4">
-                  <rect width="20" height="4" fill={color} opacity={opacity ?? 1} />
-                </svg>
-              </FlexItem>
-              <FlexItem>{label}</FlexItem>
-            </Flex>
-          </FlexItem>
-        ))}
-      </Flex>
     </div>
   );
 };
