@@ -26,13 +26,12 @@ rules:
     resources:
       - subjectaccessreviews
   # pgvector auto-provisioning (RHOAIENG-68914)
-  # create/list are broad (resourceNames cannot restrict them in k8s RBAC).
+  # create is broad (resourceNames cannot restrict it in k8s RBAC).
   # get/update/delete are scoped to the deterministic pgvector resource names.
   - apiGroups:
       - ""
     verbs:
       - create
-      - list
     resources:
       - secrets
       - services
@@ -58,7 +57,6 @@ rules:
       - apps
     verbs:
       - create
-      - list
     resources:
       - deployments
   - apiGroups:
@@ -75,7 +73,6 @@ rules:
       - networking.k8s.io
     verbs:
       - create
-      - list
     resources:
       - networkpolicies
   - apiGroups:
