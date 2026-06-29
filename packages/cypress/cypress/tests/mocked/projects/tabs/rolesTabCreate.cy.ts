@@ -194,4 +194,41 @@ describe('Create Role submit', () => {
       );
     });
   });
+
+  it('should send labels with labels.opendatahub.io/ prefix', () => {
+    cy.interceptK8s(
+      'POST',
+      { model: RoleModel, ns: NAMESPACE },
+      mockRoleK8sResource({ name: 'labeled-role', namespace: NAMESPACE }),
+    ).as('createRole');
+
+    projectRoles.visitCreateRole(NAMESPACE);
+    projectRoles.findRoleNameInput().type('labeled-role');
+
+    projectRoles.findAddLabelButton().click();
+    projectRoles.findLabelKeyInput(0).type('team');
+    projectRoles.findLabelValueInput(0).type('platform');
+
+    projectRoles.findAddLabelButton().click();
+    projectRoles.findLabelKeyInput(1).type('env');
+    projectRoles.findLabelValueInput(1).type('production');
+
+    projectRoles.findSubmitButton().click();
+    projectRoles.findConfirmCreateButton().click();
+
+    cy.wait('@createRole').then((interception) => {
+      expect(interception.request.body.metadata.labels).to.have.property(
+        'labels.opendatahub.io/team',
+        'platform',
+      );
+      expect(interception.request.body.metadata.labels).to.have.property(
+        'labels.opendatahub.io/env',
+        'production',
+      );
+      expect(interception.request.body.metadata.labels).to.have.property(
+        'opendatahub.io/dashboard',
+        'true',
+      );
+    });
+  });
 });
