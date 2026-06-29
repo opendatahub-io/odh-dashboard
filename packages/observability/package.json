@@ -49,7 +49,7 @@
     "@perses-dev/datasource-variable-plugin": "^0.3.2",
     "@perses-dev/explore": "^0.52.0",
     "@perses-dev/flame-chart-plugin": "^0.3.0",
-    "@perses-dev/gauge-chart-plugin": "^0.9.0",
+    "@perses-dev/gauge-chart-plugin": "^0.12.0",
     "@perses-dev/heatmap-chart-plugin": "^0.2.1",
     "@perses-dev/histogram-chart-plugin": "^0.9.0",
     "@perses-dev/loki-plugin": "^0.1.1",
