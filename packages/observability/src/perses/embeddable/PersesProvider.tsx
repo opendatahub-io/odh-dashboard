@@ -162,12 +162,14 @@ const PersesProvider: React.FC<PersesProviderProps> = ({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PersesProviderCore
-        {...rest}
-        initialTimeRange={{ pastDuration: defaultDuration }}
-        initialRefreshInterval={defaultRefreshInterval}
-        syncToUrl={false}
-      />
+      <PanelFocusProvider>
+        <PersesProviderCore
+          {...rest}
+          initialTimeRange={{ pastDuration: defaultDuration }}
+          initialRefreshInterval={defaultRefreshInterval}
+          syncToUrl={false}
+        />
+      </PanelFocusProvider>
     </QueryClientProvider>
   );
 };
