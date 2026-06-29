@@ -39,7 +39,10 @@ export const getGenericErrorCode = (error: unknown): number | undefined => {
   return undefined;
 };
 
-const K8S_SERVING_RESOURCE_PATTERN = /(?:servingruntimes|inferenceservices)\.serving\.kserve\.io/i;
+const K8S_RESOURCE_REPLACEMENTS: [RegExp, string][] = [
+  [/inferenceservices\.serving\.kserve\.io/i, 'model deployment'],
+  [/servingruntimes\.serving\.kserve\.io/i, 'serving runtime'],
+];
 
 export const translateModelServingError = (error: unknown): string => {
   if (
@@ -49,12 +52,15 @@ export const translateModelServingError = (error: unknown): string => {
   ) {
     const name = error.statusObject.details?.name;
     return name
-      ? `A model deployment with the name "${name}" already exists. Please choose a different Model deployment name.`
-      : 'A model deployment with this name already exists. Please choose a different Model deployment name.';
+      ? `A model deployment with the name "${name}" already exists. Please choose a different model deployment name.`
+      : 'A model deployment with this name already exists. Please choose a different model deployment name.';
   }
 
-  const message = error instanceof Error ? error.message : String(error || 'Unknown error');
-  return message.replace(K8S_SERVING_RESOURCE_PATTERN, 'model deployment');
+  let message = error instanceof Error ? error.message : String(error || 'Unknown error');
+  for (const [pattern, replacement] of K8S_RESOURCE_REPLACEMENTS) {
+    message = message.replace(pattern, replacement);
+  }
+  return message;
 };
 
 export const createModelServingError = (error: unknown): Error =>
