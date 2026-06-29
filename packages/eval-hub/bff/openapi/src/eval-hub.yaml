@@ -1839,37 +1839,6 @@ components:
         type: string
       required: false
       description: Number of entities in each page
-    nextPageToken:
-      in: query
-      name: nextPageToken
-      schema:
-        type: string
-      required: false
-      description: Token to use to retrieve the next page of results
-    orderBy:
-      in: query
-      name: orderBy
-      schema:
-        type: string
-        enum:
-          - ASC
-          - DESC
-      required: false
-      description: Ordering for sorting results
-    sortOrder:
-      in: query
-      name: sortOrder
-      schema:
-        type: string
-      required: false
-      description: Field to sort by
-    pageSize:
-      in: query
-      name: pageSize
-      schema:
-        type: string
-      required: false
-      description: Number of entities in each page
       examples:
         pageSize:
           value: '100'
