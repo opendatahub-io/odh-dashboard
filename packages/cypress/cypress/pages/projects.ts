@@ -190,6 +190,14 @@ class ProjectDetails {
     return cy.findByTestId(`${sectionId}-tab`);
   }
 
+  findModelServingTab() {
+    return this.findSectionTab('model-server');
+  }
+
+  findClusterStorageTab() {
+    return cy.findByTestId('cluster-storages-tab');
+  }
+
   private wait(section = 'overview') {
     cy.findByTestId(`section-${section}`);
     cy.testA11y();
