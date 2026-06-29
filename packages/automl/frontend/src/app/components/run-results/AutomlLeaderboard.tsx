@@ -1,6 +1,8 @@
 import {
   Bullseye,
   Button,
+  Content,
+  ContentVariants,
   EmptyState,
   EmptyStateActions,
   EmptyStateBody,
@@ -27,10 +29,7 @@ import {
 } from '@patternfly/react-table';
 import React from 'react';
 import { Link, useParams } from 'react-router';
-import {
-  ColumnManagementModal,
-  type ColumnManagementModalColumn,
-} from '@patternfly/react-component-groups';
+import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
 import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgress';
 import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
 import { RuntimeStateKF } from '~/app/types/pipeline';
@@ -40,6 +39,7 @@ import {
   isRunInProgress,
   resolveEvalMetric,
 } from '~/app/utilities/utils';
+import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutomlLeaderboard.scss';
 
 type LeaderboardEntry = {
@@ -439,15 +439,14 @@ function AutomlLeaderboard({
     [metricKeys, optimizedMetric],
   );
 
-  // Column definitions — source of truth for column IDs, labels, and visibility
-  const columnDefs = React.useMemo<{ id: string; label: string; isAlwaysVisible?: boolean }[]>(
+  // Column definitions — source of truth for column IDs, labels, and default order
+  const columnDefs = React.useMemo<{ id: string; label: string }[]>(
     () => [
-      { id: 'rank', label: 'Rank', isAlwaysVisible: true },
-      { id: 'model', label: 'Model name', isAlwaysVisible: true },
+      { id: 'rank', label: 'Rank' },
+      { id: 'model', label: 'Model name' },
       {
         id: 'optimized-metric',
         label: `${formatMetricName(optimizedMetric)} (optimized)`,
-        isAlwaysVisible: true,
       },
       ...nonOptimizedMetricKeys.map((key) => ({
         id: `metric:${key}`,
@@ -457,35 +456,62 @@ function AutomlLeaderboard({
     [nonOptimizedMetricKeys, optimizedMetric],
   );
 
-  // Column visibility state
-  const [hiddenColumnIds, setHiddenColumnIds] = React.useState<Set<string>>(new Set());
+  // Column visibility and ordering state — whitelist approach so new columns are hidden by default
+  const DEFAULT_VISIBLE_IDS = React.useMemo(
+    () => new Set(['rank', 'model', 'optimized-metric']),
+    [],
+  );
+  const [visibleColumnIds, setVisibleColumnIds] = React.useState<Set<string>>(
+    () => new Set(DEFAULT_VISIBLE_IDS),
+  );
+  const [columnOrder, setColumnOrder] = React.useState<string[] | null>(null);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
 
-  // Bridge to PF ColumnManagementModal format
-  const managedColumns: ColumnManagementModalColumn[] = React.useMemo(
+  // Default columns in original order with default visibility — used by "Reset to default"
+  const defaultColumns: ColumnManagementModalColumn[] = React.useMemo(
     () =>
       columnDefs.map((col) => ({
         key: col.id,
         title: col.label,
-        isShownByDefault: true,
-        isShown: !hiddenColumnIds.has(col.id),
-        isUntoggleable: 'isAlwaysVisible' in col ? Boolean(col.isAlwaysVisible) : undefined,
+        isShownByDefault: DEFAULT_VISIBLE_IDS.has(col.id),
+        isShown: DEFAULT_VISIBLE_IDS.has(col.id),
       })),
-    [columnDefs, hiddenColumnIds],
+    [columnDefs, DEFAULT_VISIBLE_IDS],
   );
 
+  // Bridge to ManageColumnsModal format — preserves user's drag order
+  const managedColumns: ColumnManagementModalColumn[] = React.useMemo(() => {
+    let ordered = columnDefs;
+    if (columnOrder) {
+      const orderMap = new Map(columnOrder.map((key, i) => [key, i]));
+      ordered = columnDefs.toSorted(
+        (a, b) =>
+          (orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+          (orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+      );
+    }
+
+    return ordered.map((col) => ({
+      key: col.id,
+      title: col.label,
+      isShownByDefault: DEFAULT_VISIBLE_IDS.has(col.id),
+      isShown: visibleColumnIds.has(col.id),
+    }));
+  }, [columnDefs, visibleColumnIds, columnOrder, DEFAULT_VISIBLE_IDS]);
+
   const handleApplyColumns = React.useCallback((newColumns: ColumnManagementModalColumn[]) => {
-    const newHiddenIds = new Set<string>();
+    const newVisibleIds = new Set<string>();
     newColumns.forEach((col) => {
-      if (!col.isShown) {
-        newHiddenIds.add(col.key);
+      if (col.isShown) {
+        newVisibleIds.add(col.key);
       }
     });
-    setHiddenColumnIds(newHiddenIds);
+    setVisibleColumnIds(newVisibleIds);
+    setColumnOrder(newColumns.map((col) => col.key));
 
     // Reset sort to default if the currently sorted column is being hidden
     setActiveSortId((currentId) => {
-      if (newHiddenIds.has(currentId)) {
+      if (!newVisibleIds.has(currentId)) {
         setActiveSortDirection('asc');
         return 'rank';
       }
@@ -493,16 +519,24 @@ function AutomlLeaderboard({
     });
   }, []);
 
+  // All visible columns in user order, used for both header and body rendering
+  const visibleColumns = React.useMemo(() => {
+    let ordered = columnDefs;
+    if (columnOrder) {
+      const orderMap = new Map(columnOrder.map((key, i) => [key, i]));
+      ordered = columnDefs.toSorted(
+        (a, b) =>
+          (orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+          (orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+      );
+    }
+    return ordered.filter((col) => visibleColumnIds.has(col.id));
+  }, [columnDefs, visibleColumnIds, columnOrder]);
+
   // Column IDs in render order (visible only) — bridges PF's numeric sort index API
   const sortableColumnIds = React.useMemo(
-    () => columnDefs.filter((col) => !hiddenColumnIds.has(col.id)).map((col) => col.id),
-    [columnDefs, hiddenColumnIds],
-  );
-
-  // Visible non-optimized metric keys for header/body rendering
-  const visibleNonOptimizedMetricKeys = React.useMemo(
-    () => nonOptimizedMetricKeys.filter((key) => !hiddenColumnIds.has(`metric:${key}`)),
-    [nonOptimizedMetricKeys, hiddenColumnIds],
+    () => visibleColumns.map((col) => col.id),
+    [visibleColumns],
   );
 
   // Transform models into LeaderboardEntry array
@@ -650,11 +684,120 @@ function AutomlLeaderboard({
     [sortableColumnIds, activeSortId, activeSortDirection, handleSort],
   );
 
+  // "Organize by" presets for the manage columns modal
+  const columnPresets: ColumnPreset[] = React.useMemo(() => {
+    const leadingKeys = ['rank', 'model', 'optimized-metric'];
+    const metricColumnKeys = nonOptimizedMetricKeys.map((key) => `metric:${key}`);
+    return [
+      {
+        label: 'All metrics',
+        visibleColumnKeys: [...leadingKeys, ...metricColumnKeys],
+      },
+    ];
+  }, [nonOptimizedMetricKeys]);
+
   // Handler for viewing model details
   const handleViewDetails = (modelName: string, rank: number) => {
     if (onViewDetails) {
       onViewDetails(modelName, rank);
     }
+  };
+
+  // -- Column render helpers (used in the unified column loop) --
+
+  const getHeaderTestId = (colId: string): string | undefined => {
+    if (colId === 'rank') {
+      return 'rank-header';
+    }
+    if (colId === 'model') {
+      return 'model-name-header';
+    }
+    if (colId === 'optimized-metric') {
+      return `metric-header-${optimizedMetric}`;
+    }
+    if (colId.startsWith('metric:')) {
+      return `metric-header-${colId.slice('metric:'.length)}`;
+    }
+    return undefined;
+  };
+
+  const getCellTestId = (colId: string, rank: number): string | undefined => {
+    if (colId === 'rank') {
+      return `rank-${rank}`;
+    }
+    if (colId === 'model') {
+      return `model-name-${rank}`;
+    }
+    if (colId === 'optimized-metric') {
+      return `metric-${optimizedMetric}-${rank}`;
+    }
+    if (colId.startsWith('metric:')) {
+      return `metric-${colId.slice('metric:'.length)}-${rank}`;
+    }
+    return undefined;
+  };
+
+  const renderHeaderContent = (col: { id: string; label: string }): React.ReactNode => {
+    if (col.id === 'optimized-metric') {
+      return (
+        <>
+          {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}{' '}
+          <span
+            data-testid="optimized-indicator"
+            className="automl-leaderboard__optimized-indicator"
+          >
+            (optimized)
+          </span>
+        </>
+      );
+    }
+    return getColumnHeader(col.id, col.label);
+  };
+
+  const getHeaderInfoProps = (colId: string): ThProps['info'] | undefined => {
+    if (colId === 'optimized-metric') {
+      const metricName =
+        getColumnMeta(`metric:${optimizedMetric}`)?.name ?? formatMetricName(optimizedMetric);
+      const hasBrackets = metricName.includes('(');
+      return getColumnInfoProps(
+        `metric:${optimizedMetric}`,
+        `${metricName} ${hasBrackets ? '[optimized]' : '(optimized)'}`,
+        'AutoML prioritized performance of this metric and used it to rank models.',
+      );
+    }
+    return getColumnInfoProps(colId);
+  };
+
+  const renderCellContent = (col: { id: string }, entry: LeaderboardEntry): React.ReactNode => {
+    if (col.id === 'rank') {
+      return entry.rank === 1 ? (
+        <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
+          {entry.rank}
+        </Label>
+      ) : (
+        entry.rank
+      );
+    }
+    if (col.id === 'model') {
+      return (
+        <Button
+          variant="link"
+          isInline
+          onClick={() => handleViewDetails(entry.modelKey, entry.rank)}
+          data-testid={`model-link-${entry.rank}`}
+        >
+          {entry.displayName}
+        </Button>
+      );
+    }
+    if (col.id === 'optimized-metric') {
+      return <MetricCell value={entry.optimizedMetricValue} />;
+    }
+    if (col.id.startsWith('metric:')) {
+      const metricKey = col.id.slice('metric:'.length);
+      return <MetricCell value={entry.metrics[metricKey]} />;
+    }
+    return null;
   };
 
   // Show empty state when pipeline is still running
@@ -790,9 +933,14 @@ function AutomlLeaderboard({
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
+      <Toolbar hasNoPadding>
+        <ToolbarContent alignItems="center">
           <ToolbarItem align={{ default: 'alignEnd' }}>
+            <Content component={ContentVariants.small} data-testid="columns-selected-count">
+              {visibleColumns.length}/{columnDefs.length} columns selected
+            </Content>
+          </ToolbarItem>
+          <ToolbarItem>
             <Button
               variant="link"
               icon={<ColumnsIcon />}
@@ -814,70 +962,20 @@ function AutomlLeaderboard({
         >
           <Thead>
             <Tr>
-              <Th
-                sort={getSortParams('rank')}
-                info={getColumnInfoProps('rank')}
-                data-testid="rank-header"
-                className="automl-leaderboard__rank-cell"
-                isStickyColumn
-                stickyMinWidth="140px"
-                stickyLeftOffset="0"
-              >
-                {getColumnHeader('rank')}
-              </Th>
-              <Th
-                sort={getSortParams('model')}
-                info={getColumnInfoProps('model')}
-                data-testid="model-name-header"
-                isStickyColumn
-                stickyMinWidth="150px"
-                stickyLeftOffset="140px"
-              >
-                {getColumnHeader('model')}
-              </Th>
-              <Th
-                sort={getSortParams('optimized-metric')}
-                info={(() => {
-                  const metricName =
-                    getColumnMeta(`metric:${optimizedMetric}`)?.name ??
-                    formatMetricName(optimizedMetric);
-                  const hasBrackets = metricName.includes('(');
-                  return getColumnInfoProps(
-                    `metric:${optimizedMetric}`,
-                    `${metricName} ${hasBrackets ? '[optimized]' : '(optimized)'}`,
-                    'AutoML prioritized performance of this metric and used it to rank models.',
-                  );
-                })()}
-                data-testid={`metric-header-${optimizedMetric}`}
-                isStickyColumn
-                hasRightBorder
-                stickyMinWidth="150px"
-                stickyLeftOffset="290px"
-                style={
-                  getColumnMeta(`metric:${optimizedMetric}`)?.minWidth
-                    ? { minWidth: getColumnMeta(`metric:${optimizedMetric}`)?.minWidth }
-                    : undefined
-                }
-              >
-                {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}{' '}
-                <span
-                  data-testid="optimized-indicator"
-                  className="automl-leaderboard__optimized-indicator"
-                >
-                  (optimized)
-                </span>
-              </Th>
-              {visibleNonOptimizedMetricKeys.map((metricKey) => {
-                const colMeta = getColumnMeta(`metric:${metricKey}`);
+              {visibleColumns.map((col) => {
+                const colMeta = getColumnMeta(
+                  col.id === 'optimized-metric' ? `metric:${optimizedMetric}` : col.id,
+                );
                 return (
                   <Th
-                    key={metricKey}
-                    sort={getSortParams(`metric:${metricKey}`)}
-                    info={getColumnInfoProps(`metric:${metricKey}`)}
-                    data-testid={`metric-header-${metricKey}`}
+                    key={col.id}
+                    sort={getSortParams(col.id)}
+                    info={getHeaderInfoProps(col.id)}
+                    data-testid={getHeaderTestId(col.id)}
+                    className={col.id === 'rank' ? 'automl-leaderboard__rank-cell' : undefined}
                     style={colMeta?.minWidth ? { minWidth: colMeta.minWidth } : undefined}
                   >
-                    {getColumnHeader(`metric:${metricKey}`, formatMetricName(metricKey))}
+                    {renderHeaderContent(col)}
                   </Th>
                 );
               })}
@@ -893,55 +991,14 @@ function AutomlLeaderboard({
           <Tbody>
             {data.map((entry) => (
               <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-                <Td
-                  dataLabel="Rank"
-                  data-testid={`rank-${entry.rank}`}
-                  className="automl-leaderboard__rank-cell"
-                  isStickyColumn
-                  stickyMinWidth="140px"
-                  stickyLeftOffset="0"
-                >
-                  {entry.rank === 1 ? (
-                    <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
-                      {entry.rank}
-                    </Label>
-                  ) : (
-                    entry.rank
-                  )}
-                </Td>
-                <Td
-                  dataLabel="Model"
-                  data-testid={`model-name-${entry.rank}`}
-                  isStickyColumn
-                  stickyMinWidth="150px"
-                  stickyLeftOffset="140px"
-                >
-                  <Button
-                    variant="link"
-                    isInline
-                    onClick={() => handleViewDetails(entry.modelKey, entry.rank)}
-                    data-testid={`model-link-${entry.rank}`}
-                  >
-                    {entry.displayName}
-                  </Button>
-                </Td>
-                <Td
-                  dataLabel={formatMetricName(optimizedMetric)}
-                  data-testid={`metric-${optimizedMetric}-${entry.rank}`}
-                  isStickyColumn
-                  hasRightBorder
-                  stickyMinWidth="150px"
-                  stickyLeftOffset="290px"
-                >
-                  <MetricCell value={entry.optimizedMetricValue} />
-                </Td>
-                {visibleNonOptimizedMetricKeys.map((metricKey) => (
+                {visibleColumns.map((col) => (
                   <Td
-                    key={metricKey}
-                    dataLabel={formatMetricName(metricKey)}
-                    data-testid={`metric-${metricKey}-${entry.rank}`}
+                    key={col.id}
+                    dataLabel={col.label}
+                    data-testid={getCellTestId(col.id, entry.rank)}
+                    className={col.id === 'rank' ? 'automl-leaderboard__rank-cell' : undefined}
                   >
-                    <MetricCell value={entry.metrics[metricKey]} />
+                    {renderCellContent(col, entry)}
                   </Td>
                 ))}
                 <Td
@@ -977,11 +1034,13 @@ function AutomlLeaderboard({
           </Tbody>
         </Table>
       </InnerScrollContainer>
-      <ColumnManagementModal
+      <ManageColumnsModal
         isOpen={isManageColumnsOpen}
         onClose={() => setIsManageColumnsOpen(false)}
         appliedColumns={managedColumns}
+        defaultColumns={defaultColumns}
         applyColumns={handleApplyColumns}
+        /* presets={columnPresets} — hidden until AutoML has meaningful preset groups */
       />
     </>
   );
