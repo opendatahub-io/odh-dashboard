@@ -39,7 +39,7 @@ import {
   isRunInProgress,
   resolveEvalMetric,
 } from '~/app/utilities/utils';
-import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
+import ManageColumnsModal from './ManageColumnsModal';
 import './AutomlLeaderboard.scss';
 
 type LeaderboardEntry = {
@@ -684,17 +684,12 @@ function AutomlLeaderboard({
     [sortableColumnIds, activeSortId, activeSortDirection, handleSort],
   );
 
-  // "Organize by" presets for the manage columns modal
-  const columnPresets: ColumnPreset[] = React.useMemo(() => {
-    const leadingKeys = ['rank', 'model', 'optimized-metric'];
-    const metricColumnKeys = nonOptimizedMetricKeys.map((key) => `metric:${key}`);
-    return [
-      {
-        label: 'All metrics',
-        visibleColumnKeys: [...leadingKeys, ...metricColumnKeys],
-      },
-    ];
-  }, [nonOptimizedMetricKeys]);
+  // Presets hidden for AutoML until there are meaningful preset groups
+  // const columnPresets: ColumnPreset[] = React.useMemo(() => {
+  //   const leadingKeys = ['rank', 'model', 'optimized-metric'];
+  //   const metricColumnKeys = nonOptimizedMetricKeys.map((key) => `metric:${key}`);
+  //   return [{ label: 'All metrics', visibleColumnKeys: [...leadingKeys, ...metricColumnKeys] }];
+  // }, [nonOptimizedMetricKeys]);
 
   // Handler for viewing model details
   const handleViewDetails = (modelName: string, rank: number) => {

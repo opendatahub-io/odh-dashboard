@@ -188,7 +188,9 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
           <StackItem>
             <Content component={ContentVariants.p}>
               Selected categories will be displayed in the table. Drag and drop to reorder columns.
-              Choose a preset view or select your own for a custom view.
+              {presets && presets.length > 0
+                ? ' Choose a preset view or select your own for a custom view.'
+                : ''}
             </Content>
           </StackItem>
           {presets && presets.length > 0 ? (
