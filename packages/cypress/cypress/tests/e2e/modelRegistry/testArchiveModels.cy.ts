@@ -167,7 +167,7 @@ describe('Verify that models and versions can be archived and restored via model
       cy.visit(`/ai-hub/models/registry/${registryName}/registered-models/1/versions`, {
         timeout: 120000,
       });
-      ['v1.0', 'v2.0'].forEach((version) => {
+      [testData.version1Name, testData.version2Name].forEach((version) => {
         cy.get('[data-testid="model-versions-table"]', { timeout: 120000 })
           .contains('a', version)
           .should('be.visible');
