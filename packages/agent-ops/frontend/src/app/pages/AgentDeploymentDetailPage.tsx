@@ -22,8 +22,8 @@ import { BanIcon, ExclamationCircleIcon, SearchIcon } from '@patternfly/react-ic
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import MarkdownView from '@odh-dashboard/internal/components/MarkdownView';
 import AgentDetailsCard from '~/app/components/AgentDetailsCard';
-import AgentMarkdownView from '~/app/components/AgentMarkdownView';
 import AgentRuntimeStatusLabel from '~/app/components/AgentRuntimeStatusLabel';
 import { useAgentRuntimeDetail } from '~/app/hooks/useAgentRuntimeDetail';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
@@ -76,7 +76,7 @@ const AgentDeploymentDetailPage: React.FC = () => {
             {isAccessDenied
               ? 'You do not have permission to view this agent deployment.'
               : isNotFound
-                ? `No agent "${agentId}" was found in project "${namespace}".`
+                ? `No agent "${agentId ?? 'unknown'}" was found in project "${namespace ?? 'unknown'}".`
                 : 'Unable to load agent details. Please try again later.'}
           </EmptyStateBody>
         </EmptyState>
@@ -139,12 +139,16 @@ const AgentDeploymentDetailPage: React.FC = () => {
       </PageSection>
       <PageSection hasBodyWrapper={false} isFilled>
         <Grid hasGutter>
-          {hasDescription && descriptionText && (
+          {descriptionText && (
             <GridItem lg={agentCard ? 8 : 12} md={12}>
               <Card data-testid="agent-description-card">
                 <CardTitle>Description</CardTitle>
                 <CardBody>
-                  <AgentMarkdownView markdown={descriptionText} dataTestId="agent-description" />
+                  <MarkdownView
+                    markdown={descriptionText}
+                    data-testid="agent-description"
+                    maxHeading={3}
+                  />
                 </CardBody>
               </Card>
             </GridItem>
