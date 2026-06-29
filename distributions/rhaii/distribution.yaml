@@ -1,0 +1,10 @@
+name: rhaii
+productName: "Red Hat AI"
+
+packages:
+  local:
+    - name: rhaii
+      extensionsPath: ./extensions
+  bundled: []
+
+featureFlags: {}

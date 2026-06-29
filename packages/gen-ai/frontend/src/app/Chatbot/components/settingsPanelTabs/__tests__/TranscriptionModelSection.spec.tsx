@@ -18,7 +18,7 @@ const mockAsrModel = {
   model_name: 'whisper-large-v3',
   display_name: 'Whisper Large V3',
   model_source_type: 'namespace',
-  modality: 'audio-transcription',
+  capabilities: ['audio-transcription'],
   serving_runtime: 'vllm',
   api_protocol: 'REST',
   version: '1',
@@ -34,7 +34,7 @@ const mockAsrModel2 = {
   model_name: 'whisper-small',
   display_name: 'Whisper Small',
   model_source_type: 'namespace',
-  modality: 'audio-transcription',
+  capabilities: ['audio-transcription'],
   serving_runtime: 'vllm',
   api_protocol: 'REST',
   version: '1',
@@ -50,7 +50,7 @@ const mockChatModel = {
   model_name: 'llama-3-8b',
   display_name: 'Llama 3 8B',
   model_source_type: 'namespace',
-  modality: undefined,
+  capabilities: [],
   serving_runtime: 'vllm',
   api_protocol: 'REST',
   version: '1',
@@ -300,6 +300,37 @@ describe('TranscriptionModelSection', () => {
     it('shows spinner when models are loading', () => {
       renderWithContext({ aiModelsLoaded: false });
       expect(screen.getByTestId('transcription-model-loading')).toBeInTheDocument();
+    });
+  });
+
+  describe('preview mode', () => {
+    it('should disable the add button when isPreview is true', () => {
+      useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, true);
+      renderWithContext({ aiModels: [mockChatModel, mockAsrModel] });
+
+      expect(screen.getByTestId('add-transcription-model-btn')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+
+      useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, false);
+    });
+
+    it('should disable the selector and remove button when enabled and isPreview is true', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+        useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, true);
+      });
+
+      renderWithContext({ aiModels: [mockChatModel, mockAsrModel] });
+
+      expect(screen.getByTestId('asr-model-selector-toggle')).toBeDisabled();
+      expect(screen.getByTestId('remove-transcription-model-btn')).toBeDisabled();
+
+      useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, false);
     });
   });
 });

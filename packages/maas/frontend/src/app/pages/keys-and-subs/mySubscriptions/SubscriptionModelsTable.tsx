@@ -5,7 +5,6 @@ import {
   ContentVariants,
   Flex,
   FlexItem,
-  Label,
   Popover,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -13,7 +12,6 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { ModelRefInfo, TokenRateLimitInfo } from '~/app/types/subscriptions';
 import { formatWindow } from '~/app/utilities/rateLimits';
-import { getSourceLabelColor } from '~/app/pages/keys-and-subs/utils';
 
 export const formatTokenLimit = (limits?: TokenRateLimitInfo[]): string => {
   if (!limits || limits.length === 0) {
@@ -78,13 +76,6 @@ export const ModelRow: React.FC<{ model: ModelRefInfo }> = ({ model }) => (
             description={model.description}
           />
         </FlexItem>
-        {model.source && (
-          <FlexItem>
-            <Label isCompact color={getSourceLabelColor(model.source)}>
-              {model.source}
-            </Label>
-          </FlexItem>
-        )}
       </Flex>
       {model.display_name && model.name !== model.display_name && (
         <Content component={ContentVariants.small}>{model.name}</Content>
@@ -108,7 +99,7 @@ const SubscriptionModelsTable: React.FC<SubscriptionModelsTableProps> = ({
   <Table aria-label={ariaLabel} data-testid={tableTestId} variant="compact" borders={false}>
     <Thead>
       <Tr>
-        <Th width={60}>Model</Th>
+        <Th width={60}>Name</Th>
         <Th width={40}>Token limits</Th>
       </Tr>
     </Thead>

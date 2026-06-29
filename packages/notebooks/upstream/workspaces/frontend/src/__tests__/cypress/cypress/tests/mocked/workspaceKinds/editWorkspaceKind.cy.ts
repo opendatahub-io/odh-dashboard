@@ -7,14 +7,15 @@ import {
   buildMockPVCCreate,
   buildMockStorageClass,
   buildMockWorkspaceKind,
+  buildMockWorkspaceKindUpdate,
 } from '~/shared/mock/mockBuilder';
-import type { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import type { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 const DEFAULT_NAMESPACE = 'default';
 const TEST_WORKSPACE_KIND_NAME = 'test-workspace-kind';
 
 type EditWorkspaceKindSetup = {
-  mockWorkspaceKind: WorkspacekindsWorkspaceKind;
+  mockWorkspaceKind: WorkspacekindsWorkspaceKindListItem;
   mockNamespace: ReturnType<typeof buildMockNamespace>;
 };
 
@@ -40,7 +41,7 @@ const setupEditWorkspaceKind = (
   cy.interceptApi(
     'GET /api/:apiVersion/workspacekinds/:kind',
     { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
-    mockModArchResponse(mockWorkspaceKind),
+    mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
   ).as('getWorkspaceKind');
 
   cy.interceptApi(
@@ -294,7 +295,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const imageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values.length;
+      const imageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
       editWorkspaceKind.assertImageCount(imageCount);
     });
 
@@ -367,7 +368,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values.length;
+      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
       editWorkspaceKind.assertImageCount(initialImageCount);
 
       editWorkspaceKind.clickAddImageButton();
@@ -419,7 +420,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values.length;
+      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
 
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickRemoveImage();
@@ -438,8 +439,8 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values.length;
-      const imageToRemove = mockWorkspaceKind.podTemplate.options.imageConfig.values[0];
+      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
+      const imageToRemove = mockWorkspaceKind.podTemplate.options.imageConfig.values![0];
 
       editWorkspaceKind.assertImageInTable(imageToRemove.displayName);
 
@@ -459,7 +460,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const imageToEdit = mockWorkspaceKind.podTemplate.options.imageConfig.values[0];
+      const imageToEdit = mockWorkspaceKind.podTemplate.options.imageConfig.values![0];
 
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
@@ -501,7 +502,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const podConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
+      const podConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
       editWorkspaceKind.assertPodConfigCount(podConfigCount);
     });
 
@@ -571,7 +572,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
+      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
       editWorkspaceKind.assertPodConfigCount(initialPodConfigCount);
 
       editWorkspaceKind.clickAddConfigButton();
@@ -621,7 +622,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
+      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
 
       editWorkspaceKind.clickPodConfigTableRowKebab(0);
       editWorkspaceKind.clickRemovePodConfig();
@@ -640,8 +641,8 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
-      const podConfigToRemove = mockWorkspaceKind.podTemplate.options.podConfig.values[0];
+      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
+      const podConfigToRemove = mockWorkspaceKind.podTemplate.options.podConfig.values![0];
 
       editWorkspaceKind.assertPodConfigInTable(podConfigToRemove.displayName);
 
@@ -661,7 +662,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const podConfigToEdit = mockWorkspaceKind.podTemplate.options.podConfig.values[0];
+      const podConfigToEdit = mockWorkspaceKind.podTemplate.options.podConfig.values![0];
 
       editWorkspaceKind.clickPodConfigTableRowKebab(0);
       editWorkspaceKind.clickEditPodConfig();
@@ -671,439 +672,682 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.assertPodConfigId(podConfigToEdit.id);
       editWorkspaceKind.assertPodConfigDisplayName(podConfigToEdit.displayName);
     });
-  });
 
-  describe('Pod lifecycle section', () => {
-    it('should expand pod lifecycle section', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+    describe('Node selector in pod config modal', () => {
+      it('should display node selector section in add pod config modal', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
 
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
 
-      editWorkspaceKind.assertPodTemplateSectionExpanded(false);
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickAddConfigButton();
 
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.assertPodTemplateSectionExpanded(true);
-    });
-
-    it('should display pod metadata section when expanded', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.assertPodMetadataSectionVisible();
-    });
-
-    it('should display additional volumes section when expanded', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.assertAdditionalVolumesSectionVisible();
-    });
-
-    it('should add a new label', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-      editWorkspaceKind.expandLabelsSection();
-
-      editWorkspaceKind.clickAddLabel();
-      editWorkspaceKind.typeLabelKey(0, 'test-key');
-      editWorkspaceKind.typeLabelValue(0, 'test-value');
-
-      editWorkspaceKind.assertLabelCount(1);
-      editWorkspaceKind.assertLabelKey(0, 'test-key');
-      editWorkspaceKind.assertLabelValue(0, 'test-value');
-    });
-
-    it('should delete a label', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-      editWorkspaceKind.expandLabelsSection();
-
-      editWorkspaceKind.clickAddLabel();
-      editWorkspaceKind.typeLabelKey(0, 'test-key');
-      editWorkspaceKind.typeLabelValue(0, 'test-value');
-
-      editWorkspaceKind.assertLabelCount(1);
-
-      editWorkspaceKind.clickDeleteLabel(0);
-
-      editWorkspaceKind.assertLabelCount(0);
-    });
-
-    it('should add multiple labels', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-      editWorkspaceKind.expandLabelsSection();
-
-      editWorkspaceKind.clickAddLabel();
-      editWorkspaceKind.typeLabelKey(0, 'label1');
-      editWorkspaceKind.typeLabelValue(0, 'value1');
-
-      editWorkspaceKind.clickAddLabel();
-      editWorkspaceKind.typeLabelKey(1, 'label2');
-      editWorkspaceKind.typeLabelValue(1, 'value2');
-
-      editWorkspaceKind.assertLabelCount(2);
-      editWorkspaceKind.assertLabelKey(0, 'label1');
-      editWorkspaceKind.assertLabelValue(0, 'value1');
-      editWorkspaceKind.assertLabelKey(1, 'label2');
-      editWorkspaceKind.assertLabelValue(1, 'value2');
-    });
-
-    it('should add a new annotation', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-      editWorkspaceKind.expandAnnotationsSection();
-
-      editWorkspaceKind.clickAddAnnotation();
-      editWorkspaceKind.typeAnnotationKey(0, 'annotation-key');
-      editWorkspaceKind.typeAnnotationValue(0, 'annotation-value');
-
-      editWorkspaceKind.assertAnnotationCount(1);
-      editWorkspaceKind.assertAnnotationKey(0, 'annotation-key');
-      editWorkspaceKind.assertAnnotationValue(0, 'annotation-value');
-    });
-
-    it('should delete an annotation', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-      editWorkspaceKind.expandAnnotationsSection();
-
-      editWorkspaceKind.clickAddAnnotation();
-      editWorkspaceKind.typeAnnotationKey(0, 'annotation-key');
-      editWorkspaceKind.typeAnnotationValue(0, 'annotation-value');
-
-      editWorkspaceKind.assertAnnotationCount(1);
-
-      editWorkspaceKind.clickDeleteAnnotation(0);
-
-      editWorkspaceKind.assertAnnotationCount(0);
-    });
-
-    it('should add multiple annotations', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-      editWorkspaceKind.expandAnnotationsSection();
-
-      editWorkspaceKind.clickAddAnnotation();
-      editWorkspaceKind.typeAnnotationKey(0, 'annotation1');
-      editWorkspaceKind.typeAnnotationValue(0, 'value1');
-
-      editWorkspaceKind.clickAddAnnotation();
-      editWorkspaceKind.typeAnnotationKey(1, 'annotation2');
-      editWorkspaceKind.typeAnnotationValue(1, 'value2');
-
-      editWorkspaceKind.assertAnnotationCount(2);
-      editWorkspaceKind.assertAnnotationKey(0, 'annotation1');
-      editWorkspaceKind.assertAnnotationValue(0, 'value1');
-      editWorkspaceKind.assertAnnotationKey(1, 'annotation2');
-      editWorkspaceKind.assertAnnotationValue(1, 'value2');
-    });
-
-    it('should open create volume modal when clicking Create Volume button', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.clickCreateVolume();
-
-      editWorkspaceKind.assertVolumeModalVisible(true);
-      editWorkspaceKind.assertVolumeModalTitle('Create New Volume');
-    });
-
-    it('should create a new volume', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.assertVolumeCount(0);
-
-      editWorkspaceKind.clickCreateVolume();
-      editWorkspaceKind.typePvcName('my-pvc');
-      editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
-
-      editWorkspaceKind.assertVolumeModalVisible(false);
-      editWorkspaceKind.assertVolumeCount(1);
-      editWorkspaceKind.assertVolumeInTable('my-pvc');
-    });
-
-    it('should create a volume with read-only access', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.clickCreateVolume();
-      editWorkspaceKind.typePvcName('readonly-pvc');
-      editWorkspaceKind.toggleReadOnly();
-      editWorkspaceKind.assertReadOnlyChecked(true);
-      editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
-
-      editWorkspaceKind.assertVolumeCount(1);
-      editWorkspaceKind.assertVolumeInTable('readonly-pvc');
-    });
-
-    it('should cancel volume creation', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.clickCreateVolume();
-      editWorkspaceKind.typePvcName('cancelled-pvc');
-      editWorkspaceKind.cancelVolumeModal();
-
-      editWorkspaceKind.assertVolumeModalVisible(false);
-      editWorkspaceKind.assertVolumeCount(0);
-    });
-
-    it('should open edit volume modal when clicking edit from actions menu', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.clickCreateVolume();
-      editWorkspaceKind.typePvcName('edit-test-pvc');
-      editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
-
-      editWorkspaceKind.clickVolumeRowKebab(0);
-      editWorkspaceKind.clickEditVolume('edit-test-pvc');
-
-      editWorkspaceKind.assertVolumeModalVisible(true);
-      editWorkspaceKind.assertVolumeModalTitle('Edit Volume');
-      editWorkspaceKind.assertMountPath('/data/edit-test-pvc');
-    });
-
-    it('should edit an existing volume mount path', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.clickCreateVolume();
-      editWorkspaceKind.typePvcName('original-pvc');
-      editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
-
-      editWorkspaceKind.clickVolumeRowKebab(0);
-      editWorkspaceKind.clickEditVolume('original-pvc');
-
-      editWorkspaceKind.typeMountPath('/edited');
-      editWorkspaceKind.submitVolumeModal();
-
-      editWorkspaceKind.assertVolumeCount(1);
-      editWorkspaceKind.assertVolumeInTable('original-pvc');
-    });
-
-    it('should open detach modal when clicking detach from actions menu', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.clickCreateVolume();
-      editWorkspaceKind.typePvcName('detach-test-pvc');
-      editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
-
-      editWorkspaceKind.clickVolumeRowKebab(0);
-      editWorkspaceKind.clickDetachVolume();
-
-      editWorkspaceKind.assertDetachVolumeModalVisible(true);
-    });
-
-    it('should cancel volume detachment', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.clickCreateVolume();
-      editWorkspaceKind.typePvcName('cancel-detach-pvc');
-      editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
-
-      editWorkspaceKind.clickVolumeRowKebab(0);
-      editWorkspaceKind.clickDetachVolume();
-      editWorkspaceKind.cancelDetachVolume();
-
-      editWorkspaceKind.assertDetachVolumeModalVisible(false);
-      editWorkspaceKind.assertVolumeCount(1);
-      editWorkspaceKind.assertVolumeInTable('cancel-detach-pvc');
-    });
-
-    it('should detach a volume when confirming detachment', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.clickCreateVolume();
-      editWorkspaceKind.typePvcName('detach-pvc');
-      editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
-
-      editWorkspaceKind.assertVolumeCount(1);
-
-      editWorkspaceKind.clickVolumeRowKebab(0);
-      editWorkspaceKind.clickDetachVolume();
-      editWorkspaceKind.confirmDetachVolume();
-
-      editWorkspaceKind.assertDetachVolumeModalVisible(false);
-      editWorkspaceKind.assertVolumeCount(0);
-    });
-  });
-
-  describe('Multiple sections', () => {
-    it('should allow multiple sections to be expanded simultaneously', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPropertiesSection();
-      editWorkspaceKind.expandImageConfigSection();
-      editWorkspaceKind.expandPodConfigSection();
-      editWorkspaceKind.expandPodTemplateSection();
-
-      editWorkspaceKind.assertPropertiesSectionExpanded(true);
-      editWorkspaceKind.assertImageConfigSectionExpanded(true);
-      editWorkspaceKind.assertPodConfigSectionExpanded(true);
-      editWorkspaceKind.assertPodTemplateSectionExpanded(true);
-    });
-  });
-
-  describe('Form validation', () => {
-    it('should display all required fields', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPropertiesSection();
-
-      editWorkspaceKind.assertWorkspaceKindNameInputVisible();
-      editWorkspaceKind.assertIconUrlInputVisible();
-      editWorkspaceKind.assertLogoUrlInputVisible();
-    });
-
-    it('should allow editing workspace kind name', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-      const newName = 'Updated Workspace Kind Name';
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPropertiesSection();
-
-      editWorkspaceKind.typeWorkspaceKindName(newName);
-
-      editWorkspaceKind.assertWorkspaceKindName(newName);
-    });
-
-    it('should allow editing description', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-      const newDescription = 'Updated description for workspace kind';
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPropertiesSection();
-
-      editWorkspaceKind.typeDescription(newDescription);
-
-      editWorkspaceKind.assertDescription(newDescription);
-    });
-
-    it('should allow editing icon URL', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-      const newIconUrl = 'https://example.com/new-icon.png';
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPropertiesSection();
-
-      editWorkspaceKind.typeIconUrl(newIconUrl);
-
-      editWorkspaceKind.assertIconUrl(newIconUrl);
-    });
-
-    it('should allow editing logo URL', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
-      const newLogoUrl = 'https://example.com/new-logo.png';
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPropertiesSection();
-
-      editWorkspaceKind.typeLogoUrl(newLogoUrl);
-
-      editWorkspaceKind.assertLogoUrl(newLogoUrl);
-    });
-
-    it('should allow toggling hidden state', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind({ hidden: false });
-
-      visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-      editWorkspaceKind.expandPropertiesSection();
-
-      editWorkspaceKind.assertHiddenChecked(false);
-
-      editWorkspaceKind.toggleHidden();
-
-      editWorkspaceKind.assertHiddenChecked(true);
-    });
-
-    it('should allow editing deprecation message when deprecated', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind({
-        deprecated: true,
-        deprecationMessage: 'Original message',
+        editWorkspaceKind.assertPodConfigModalVisible(true);
+        editWorkspaceKind.findNodeSelectorSection().should('exist');
       });
-      const newMessage = 'Updated deprecation message';
+
+      it('should add a node selector', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickAddConfigButton();
+        editWorkspaceKind.expandNodeSelectorSection();
+
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.typeNodeSelectorValue(0, 'linux');
+
+        editWorkspaceKind.assertNodeSelectorCount(1);
+        editWorkspaceKind.assertNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.assertNodeSelectorValue(0, 'linux');
+      });
+
+      it('should delete a node selector', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickAddConfigButton();
+        editWorkspaceKind.expandNodeSelectorSection();
+
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.typeNodeSelectorValue(0, 'linux');
+
+        editWorkspaceKind.assertNodeSelectorCount(1);
+
+        editWorkspaceKind.clickDeleteNodeSelector(0);
+
+        editWorkspaceKind.assertNodeSelectorCount(0);
+      });
+
+      it('should add multiple node selectors', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickAddConfigButton();
+        editWorkspaceKind.expandNodeSelectorSection();
+
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.typeNodeSelectorValue(0, 'linux');
+
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(1, 'gpu-type');
+        editWorkspaceKind.typeNodeSelectorValue(1, 'nvidia');
+
+        editWorkspaceKind.assertNodeSelectorCount(2);
+        editWorkspaceKind.assertNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.assertNodeSelectorValue(0, 'linux');
+        editWorkspaceKind.assertNodeSelectorKey(1, 'gpu-type');
+        editWorkspaceKind.assertNodeSelectorValue(1, 'nvidia');
+      });
+
+      it('should submit pod config with node selectors and verify in table', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+
+        const initialPodConfigCount =
+          mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
+
+        editWorkspaceKind.clickAddConfigButton();
+        editWorkspaceKind.typePodConfigId('ns-test-config');
+        editWorkspaceKind.typePodConfigDisplayName('NS Test Config');
+        editWorkspaceKind.typePodConfigDescription('Config with node selectors');
+
+        editWorkspaceKind.expandNodeSelectorSection();
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.typeNodeSelectorValue(0, 'linux');
+
+        editWorkspaceKind.submitPodConfigModal();
+
+        editWorkspaceKind.assertPodConfigModalVisible(false);
+        editWorkspaceKind.assertPodConfigCount(initialPodConfigCount + 1);
+        editWorkspaceKind.assertPodConfigInTable('NS Test Config');
+      });
+
+      describe('Tolerations in expanded pod config row', () => {
+        it('should open toleration modal when clicking Add Toleration', () => {
+          const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+          visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+          editWorkspaceKind.expandPodConfigSection();
+          editWorkspaceKind.expandPodConfigRow(0);
+
+          editWorkspaceKind.assertTolerationModalVisible(false);
+
+          editWorkspaceKind.clickAddToleration(0);
+
+          editWorkspaceKind.assertTolerationModalVisible(true);
+          editWorkspaceKind.findTolerationKeyInput().should('be.visible');
+          editWorkspaceKind.findTolerationValueInput().should('be.visible');
+          editWorkspaceKind.findTolerationOperatorSelect().should('be.visible');
+          editWorkspaceKind.findTolerationEffectSelect().should('be.visible');
+        });
+
+        it('should render a new toleration in the table after adding one', () => {
+          const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+          visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+          editWorkspaceKind.expandPodConfigSection();
+          editWorkspaceKind.expandPodConfigRow(0);
+
+          editWorkspaceKind.assertTolerationRowCount(0);
+
+          editWorkspaceKind.clickAddToleration(0);
+
+          editWorkspaceKind.selectTolerationOperator('Equal');
+          editWorkspaceKind.selectTolerationEffect('NoSchedule');
+          editWorkspaceKind.typeTolerationKey('gpu');
+          editWorkspaceKind.typeTolerationValue('true');
+          editWorkspaceKind.submitTolerationModal();
+
+          editWorkspaceKind.assertTolerationModalVisible(false);
+          editWorkspaceKind.assertTolerationRowCount(1);
+          editWorkspaceKind.assertTolerationKeyCell(0, 'gpu');
+          editWorkspaceKind.assertTolerationValueCell(0, 'true');
+          editWorkspaceKind.assertTolerationOperatorCell(0, 'Equal');
+          editWorkspaceKind.assertTolerationEffectCell(0, 'NoSchedule');
+          editWorkspaceKind.assertTolerationSecondsCell(0, 'Forever');
+        });
+
+        it('should show toleration seconds only when effect is NoExecute', () => {
+          const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+          visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+          editWorkspaceKind.expandPodConfigSection();
+          editWorkspaceKind.expandPodConfigRow(0);
+
+          editWorkspaceKind.clickAddToleration(0);
+
+          editWorkspaceKind.assertTolerationSecondsEnabled(false);
+
+          editWorkspaceKind.selectTolerationEffect('NoSchedule');
+          editWorkspaceKind.assertTolerationSecondsEnabled(false);
+
+          editWorkspaceKind.selectTolerationEffect('PreferNoSchedule');
+          editWorkspaceKind.assertTolerationSecondsEnabled(false);
+
+          editWorkspaceKind.selectTolerationEffect('NoExecute');
+          editWorkspaceKind.assertTolerationSecondsEnabled(true);
+          editWorkspaceKind.findTolerationSecondsForever().should('be.checked');
+
+          editWorkspaceKind.selectTolerationEffect('None');
+          editWorkspaceKind.assertTolerationSecondsEnabled(false);
+        });
+      });
+    });
+
+    describe('Pod lifecycle section', () => {
+      it('should expand pod lifecycle section', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.assertPodTemplateSectionExpanded(false);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.assertPodTemplateSectionExpanded(true);
+      });
+
+      it('should display pod metadata section when expanded', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.assertPodMetadataSectionVisible();
+      });
+
+      it('should display additional volumes section when expanded', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.assertAdditionalVolumesSectionVisible();
+      });
+
+      it('should add a new label', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.expandLabelsSection();
+
+        editWorkspaceKind.clickAddLabel();
+        editWorkspaceKind.typeLabelKey(0, 'test-key');
+        editWorkspaceKind.typeLabelValue(0, 'test-value');
+
+        editWorkspaceKind.assertLabelCount(1);
+        editWorkspaceKind.assertLabelKey(0, 'test-key');
+        editWorkspaceKind.assertLabelValue(0, 'test-value');
+      });
+
+      it('should delete a label', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.expandLabelsSection();
+
+        editWorkspaceKind.clickAddLabel();
+        editWorkspaceKind.typeLabelKey(0, 'test-key');
+        editWorkspaceKind.typeLabelValue(0, 'test-value');
+
+        editWorkspaceKind.assertLabelCount(1);
+
+        editWorkspaceKind.clickDeleteLabel(0);
+
+        editWorkspaceKind.assertLabelCount(0);
+      });
+
+      it('should add multiple labels', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.expandLabelsSection();
+
+        editWorkspaceKind.clickAddLabel();
+        editWorkspaceKind.typeLabelKey(0, 'label1');
+        editWorkspaceKind.typeLabelValue(0, 'value1');
+
+        editWorkspaceKind.clickAddLabel();
+        editWorkspaceKind.typeLabelKey(1, 'label2');
+        editWorkspaceKind.typeLabelValue(1, 'value2');
+
+        editWorkspaceKind.assertLabelCount(2);
+        editWorkspaceKind.assertLabelKey(0, 'label1');
+        editWorkspaceKind.assertLabelValue(0, 'value1');
+        editWorkspaceKind.assertLabelKey(1, 'label2');
+        editWorkspaceKind.assertLabelValue(1, 'value2');
+      });
+
+      it('should add a new annotation', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.expandAnnotationsSection();
+
+        editWorkspaceKind.clickAddAnnotation();
+        editWorkspaceKind.typeAnnotationKey(0, 'annotation-key');
+        editWorkspaceKind.typeAnnotationValue(0, 'annotation-value');
+
+        editWorkspaceKind.assertAnnotationCount(1);
+        editWorkspaceKind.assertAnnotationKey(0, 'annotation-key');
+        editWorkspaceKind.assertAnnotationValue(0, 'annotation-value');
+      });
+
+      it('should delete an annotation', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.expandAnnotationsSection();
+
+        editWorkspaceKind.clickAddAnnotation();
+        editWorkspaceKind.typeAnnotationKey(0, 'annotation-key');
+        editWorkspaceKind.typeAnnotationValue(0, 'annotation-value');
+
+        editWorkspaceKind.assertAnnotationCount(1);
+
+        editWorkspaceKind.clickDeleteAnnotation(0);
+
+        editWorkspaceKind.assertAnnotationCount(0);
+      });
+
+      it('should add multiple annotations', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.expandAnnotationsSection();
+
+        editWorkspaceKind.clickAddAnnotation();
+        editWorkspaceKind.typeAnnotationKey(0, 'annotation1');
+        editWorkspaceKind.typeAnnotationValue(0, 'value1');
+
+        editWorkspaceKind.clickAddAnnotation();
+        editWorkspaceKind.typeAnnotationKey(1, 'annotation2');
+        editWorkspaceKind.typeAnnotationValue(1, 'value2');
+
+        editWorkspaceKind.assertAnnotationCount(2);
+        editWorkspaceKind.assertAnnotationKey(0, 'annotation1');
+        editWorkspaceKind.assertAnnotationValue(0, 'value1');
+        editWorkspaceKind.assertAnnotationKey(1, 'annotation2');
+        editWorkspaceKind.assertAnnotationValue(1, 'value2');
+      });
+
+      it('should open create volume modal when clicking Create Volume button', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.clickCreateVolume();
+
+        editWorkspaceKind.assertVolumeModalVisible(true);
+        editWorkspaceKind.assertVolumeModalTitle('Create New Volume');
+      });
+
+      it('should create a new volume', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.assertVolumeCount(0);
+
+        editWorkspaceKind.clickCreateVolume();
+        editWorkspaceKind.typePvcName('my-pvc');
+        editWorkspaceKind.submitVolumeModal();
+        cy.wait('@createPvc');
+
+        editWorkspaceKind.assertVolumeModalVisible(false);
+        editWorkspaceKind.assertVolumeCount(1);
+        editWorkspaceKind.assertVolumeInTable('my-pvc');
+      });
+
+      it('should create a volume with read-only access', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.clickCreateVolume();
+        editWorkspaceKind.typePvcName('readonly-pvc');
+        editWorkspaceKind.toggleReadOnly();
+        editWorkspaceKind.assertReadOnlyChecked(true);
+        editWorkspaceKind.submitVolumeModal();
+        cy.wait('@createPvc');
+
+        editWorkspaceKind.assertVolumeCount(1);
+        editWorkspaceKind.assertVolumeInTable('readonly-pvc');
+      });
+
+      it('should cancel volume creation', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.clickCreateVolume();
+        editWorkspaceKind.typePvcName('cancelled-pvc');
+        editWorkspaceKind.cancelVolumeModal();
+
+        editWorkspaceKind.assertVolumeModalVisible(false);
+        editWorkspaceKind.assertVolumeCount(0);
+      });
+
+      it('should open edit volume modal when clicking edit from actions menu', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.clickCreateVolume();
+        editWorkspaceKind.typePvcName('edit-test-pvc');
+        editWorkspaceKind.submitVolumeModal();
+        cy.wait('@createPvc');
+
+        editWorkspaceKind.clickVolumeRowKebab(0);
+        editWorkspaceKind.clickEditVolume('edit-test-pvc');
+
+        editWorkspaceKind.assertVolumeModalVisible(true);
+        editWorkspaceKind.assertVolumeModalTitle('Edit Volume');
+        editWorkspaceKind.assertMountPath('/data/edit-test-pvc');
+      });
+
+      it('should edit an existing volume mount path', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.clickCreateVolume();
+        editWorkspaceKind.typePvcName('original-pvc');
+        editWorkspaceKind.submitVolumeModal();
+        cy.wait('@createPvc');
+
+        editWorkspaceKind.clickVolumeRowKebab(0);
+        editWorkspaceKind.clickEditVolume('original-pvc');
+
+        editWorkspaceKind.typeMountPath('/edited');
+        editWorkspaceKind.submitVolumeModal();
+
+        editWorkspaceKind.assertVolumeCount(1);
+        editWorkspaceKind.assertVolumeInTable('original-pvc');
+      });
+
+      it('should open detach modal when clicking detach from actions menu', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.clickCreateVolume();
+        editWorkspaceKind.typePvcName('detach-test-pvc');
+        editWorkspaceKind.submitVolumeModal();
+        cy.wait('@createPvc');
+
+        editWorkspaceKind.clickVolumeRowKebab(0);
+        editWorkspaceKind.clickDetachVolume();
+
+        editWorkspaceKind.assertDetachVolumeModalVisible(true);
+      });
+
+      it('should cancel volume detachment', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.clickCreateVolume();
+        editWorkspaceKind.typePvcName('cancel-detach-pvc');
+        editWorkspaceKind.submitVolumeModal();
+        cy.wait('@createPvc');
+
+        editWorkspaceKind.clickVolumeRowKebab(0);
+        editWorkspaceKind.clickDetachVolume();
+        editWorkspaceKind.cancelDetachVolume();
+
+        editWorkspaceKind.assertDetachVolumeModalVisible(false);
+        editWorkspaceKind.assertVolumeCount(1);
+        editWorkspaceKind.assertVolumeInTable('cancel-detach-pvc');
+      });
+
+      it('should detach a volume when confirming detachment', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.clickCreateVolume();
+        editWorkspaceKind.typePvcName('detach-pvc');
+        editWorkspaceKind.submitVolumeModal();
+        cy.wait('@createPvc');
+
+        editWorkspaceKind.assertVolumeCount(1);
+
+        editWorkspaceKind.clickVolumeRowKebab(0);
+        editWorkspaceKind.clickDetachVolume();
+        editWorkspaceKind.confirmDetachVolume();
+
+        editWorkspaceKind.assertDetachVolumeModalVisible(false);
+        editWorkspaceKind.assertVolumeCount(0);
+      });
+    });
+
+    describe('Multiple sections', () => {
+      it('should allow multiple sections to be expanded simultaneously', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPropertiesSection();
+        editWorkspaceKind.expandImageConfigSection();
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.assertPropertiesSectionExpanded(true);
+        editWorkspaceKind.assertImageConfigSectionExpanded(true);
+        editWorkspaceKind.assertPodConfigSectionExpanded(true);
+        editWorkspaceKind.assertPodTemplateSectionExpanded(true);
+      });
+    });
+
+    describe('Form validation', () => {
+      it('should display all required fields', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPropertiesSection();
+
+        editWorkspaceKind.assertWorkspaceKindNameInputVisible();
+        editWorkspaceKind.assertIconUrlInputVisible();
+        editWorkspaceKind.assertLogoUrlInputVisible();
+      });
+
+      it('should allow editing workspace kind name', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+        const newName = 'Updated Workspace Kind Name';
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPropertiesSection();
+
+        editWorkspaceKind.typeWorkspaceKindName(newName);
+
+        editWorkspaceKind.assertWorkspaceKindName(newName);
+      });
+
+      it('should allow editing description', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+        const newDescription = 'Updated description for workspace kind';
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPropertiesSection();
+
+        editWorkspaceKind.typeDescription(newDescription);
+
+        editWorkspaceKind.assertDescription(newDescription);
+      });
+
+      it('should allow editing icon URL', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+        const newIconUrl = 'https://example.com/new-icon.png';
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPropertiesSection();
+
+        editWorkspaceKind.typeIconUrl(newIconUrl);
+
+        editWorkspaceKind.assertIconUrl(newIconUrl);
+      });
+
+      it('should allow editing logo URL', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+        const newLogoUrl = 'https://example.com/new-logo.png';
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPropertiesSection();
+
+        editWorkspaceKind.typeLogoUrl(newLogoUrl);
+
+        editWorkspaceKind.assertLogoUrl(newLogoUrl);
+      });
+
+      it('should allow toggling hidden state', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind({ hidden: false });
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPropertiesSection();
+
+        editWorkspaceKind.assertHiddenChecked(false);
+
+        editWorkspaceKind.toggleHidden();
+
+        editWorkspaceKind.assertHiddenChecked(true);
+      });
+
+      it('should allow editing deprecation message when deprecated', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind({
+          deprecated: true,
+          deprecationMessage: 'Original message',
+        });
+        const newMessage = 'Updated deprecation message';
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPropertiesSection();
+
+        editWorkspaceKind.typeDeprecationMessage(newMessage);
+
+        editWorkspaceKind.assertDeprecationMessage(newMessage);
+      });
+    });
+  });
+
+  describe('Save and update', () => {
+    it('should enable Save button after editing description', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Updated description');
+
+      editWorkspaceKind.assertSubmitButtonDisabled(false);
+    });
+
+    it('should call update API when clicking Save after editing description', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+      ).as('updateWorkspaceKind');
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Updated description');
 
-      editWorkspaceKind.typeDeprecationMessage(newMessage);
+      editWorkspaceKind.clickSubmit();
 
-      editWorkspaceKind.assertDeprecationMessage(newMessage);
+      cy.wait('@updateWorkspaceKind').then((interception) => {
+        expect(interception.request.method).to.equal('PUT');
+        expect(interception.request.body.data.spawner.description).to.equal('Updated description');
+      });
+
+      workspaceKinds.verifyPageURL();
+    });
+
+    it('should display error when update API fails', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        {
+          error: {
+            code: '500',
+            message: 'Internal server error',
+          },
+        },
+      ).as('updateWorkspaceKindError');
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Updated description');
+
+      editWorkspaceKind.clickSubmit();
+
+      cy.wait('@updateWorkspaceKindError');
+
+      editWorkspaceKind.assertErrorAlertVisible();
+      editWorkspaceKind.verifyPageURL(mockWorkspaceKind.name);
     });
   });
 });

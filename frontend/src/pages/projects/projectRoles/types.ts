@@ -11,6 +11,7 @@ export type RoleListRow = {
   key: string;
   roleRef: RoleRef;
   role: RoleKind | ClusterRoleKind;
+  userLabels: Record<string, string>;
 };
 
 export type RuleEntry = ResourceRule & {

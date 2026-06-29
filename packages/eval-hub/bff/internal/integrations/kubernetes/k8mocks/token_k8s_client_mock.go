@@ -44,6 +44,10 @@ func (m *TokenKubernetesClientMock) BearerToken() (string, error) {
 	return "FAKE-BEARER-TOKEN", nil
 }
 
+func (m *TokenKubernetesClientMock) GetEvalHubDiscoveryURL(_ context.Context, _ *k8s.RequestIdentity, _ string) (string, error) {
+	return "", nil
+}
+
 func (m *TokenKubernetesClientMock) CanListEvalHubInstances(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
 	return true, nil
 }

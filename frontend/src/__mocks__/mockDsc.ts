@@ -1,5 +1,6 @@
-import { DataScienceClusterKind, K8sCondition } from '#~/k8sTypes';
-import { StackCapability } from '#~/concepts/areas/types';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
+import { StackCapability } from '@odh-dashboard/plugin-core/areas';
+import { DataScienceClusterKind } from '#~/k8sTypes';
 
 export type MockDsc = {
   conditions?: K8sCondition[];

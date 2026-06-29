@@ -1,4 +1,5 @@
 import { WhenStatus } from '@patternfly/react-topology';
+import type { VolumeMount } from '@odh-dashboard/k8s-core';
 import {
   ArtifactStateKF,
   ExecutionStateKF,
@@ -6,7 +7,6 @@ import {
   RuntimeStateKF,
 } from '#~/concepts/pipelines/kfTypes';
 import { Artifact } from '#~/third_party/mlmd';
-import { VolumeMount } from '#~/types';
 
 export type PipelineTaskParam = {
   label: string;

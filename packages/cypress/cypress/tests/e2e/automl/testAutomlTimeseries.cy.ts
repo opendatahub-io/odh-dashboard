@@ -44,7 +44,7 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit an AutoML time series forecasting run',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression'], retries: { runMode: 0, openMode: 0 } },
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
@@ -62,6 +62,9 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
       cy.step('Select ID column');
       automlConfigurePage.findIdColumnSelect().should('not.be.disabled').click();
       automlConfigurePage.findSelectOption(new RegExp(testData.idColumn as string)).click();
+
+      cy.step('Verify run preset defaults to Faster');
+      automlConfigurePage.findPresetRadio('speed').should('be.checked');
 
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);

@@ -10,14 +10,14 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
-import StorageSizeBar from '#~/pages/projects/components/StorageSizeBars';
-import { TableRowTitleDescription } from '#~/components/table';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+} from '@odh-dashboard/k8s-core';
+import StorageSizeBar from '#~/pages/projects/components/StorageSizeBars';
+import { TableRowTitleDescription } from '#~/components/table';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessModeFullName';

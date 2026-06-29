@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { Artifact as MlmdArtifact } from '#~/third_party/mlmd';
 
 export enum FilterOptions {

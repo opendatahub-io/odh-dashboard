@@ -1,12 +1,10 @@
-import {
-  ConfigMapKind,
-  InferenceServiceKind,
+import type {
   PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
-  ServingRuntimeKind,
   TemplateKind,
-} from '#~/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+import { ConfigMapKind, InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockConfigMap } from './mockConfigMap';
@@ -108,7 +106,7 @@ export const mockNimServingRuntime = (): ServingRuntimeKind => {
 
 export const mockNimServingRuntimeTemplate = (): TemplateKind => {
   const templateMock = mockServingRuntimeTemplateK8sResource({
-    name: 'mock-nvidia-nim-serving-template',
+    name: 'nvidia-nim-runtime',
     displayName: 'NVIDIA NIM',
     platforms: [ServingRuntimePlatform.SINGLE],
     apiProtocol: ServingRuntimeAPIProtocol.REST,

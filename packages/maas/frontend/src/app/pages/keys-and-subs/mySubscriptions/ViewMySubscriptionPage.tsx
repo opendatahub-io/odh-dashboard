@@ -30,7 +30,6 @@ const ViewSubscriptionPage: React.FC = () => {
   const [subscription, loaded, loadError] = useGetUserSubscription(subscriptionName);
   const displaySubscriptionName = subscription?.display_name?.trim() || subscriptionName;
   const modelRefs = subscription?.model_refs ?? [];
-  const modelRefsCount = modelRefs.length;
 
   const breadcrumb = (
     <Breadcrumb>
@@ -39,7 +38,7 @@ const ViewSubscriptionPage: React.FC = () => {
           to={`${URL_PREFIX}/keys-and-subs/subscriptions`}
           data-testid="breadcrumb-my-subscriptions-link"
         >
-          API keys & subscriptions
+          API keys
         </Link>
       </BreadcrumbItem>
       <BreadcrumbItem isActive>
@@ -93,7 +92,7 @@ const ViewSubscriptionPage: React.FC = () => {
                           >
                             <FlexItem>
                               <Title headingLevel="h2" size="xl">
-                                {`Models ${modelRefsCount > 0 ? `(${modelRefsCount})` : ''}`}
+                                Models
                               </Title>
                             </FlexItem>
                             <FlexItem>

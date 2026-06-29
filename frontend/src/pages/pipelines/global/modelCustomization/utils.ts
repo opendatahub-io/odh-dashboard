@@ -1,4 +1,10 @@
 /* eslint-disable camelcase */
+import type {
+  HardwareProfileKind,
+  K8sNameDescriptionFieldData,
+  SecretKind,
+} from '@odh-dashboard/k8s-core';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { assembleSecretJudge, assembleSecretTeacher, createSecret } from '#~/api';
 import {
   FineTuneTaxonomyType,
@@ -9,7 +15,6 @@ import {
   ModelCustomizationFormData,
   TeacherJudgeFormData,
 } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { HardwareProfileKind, SecretKind } from '#~/k8sTypes';
 import { genRandomChars } from '#~/utilities/string';
 import { getInputDefinitionParams } from '#~/concepts/pipelines/content/createRun/utils';
 import {
@@ -19,8 +24,6 @@ import {
   ParameterKF,
   RuntimeConfigParameters,
 } from '#~/concepts/pipelines/kfTypes';
-import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
-import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { assembleConnectionSecret } from '#~/concepts/connectionTypes/utils';
 import {
   ConnectionTypeConfigMapObj,

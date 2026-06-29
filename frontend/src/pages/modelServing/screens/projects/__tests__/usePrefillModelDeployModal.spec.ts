@@ -1,6 +1,6 @@
 import { waitFor } from '@testing-library/dom';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { ProjectKind } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
 import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
@@ -10,13 +10,16 @@ import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
 } from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
-jest.mock('#~/concepts/areas/useIsAreaAvailable', () => () => ({
-  status: true,
-  featureFlags: {},
-  reliantAreas: {},
-  requiredComponents: {},
-  requiredCapabilities: {},
-  customCondition: jest.fn(),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn(() => ({
+    status: true,
+    featureFlags: {},
+    reliantAreas: {},
+    requiredComponents: {},
+    requiredCapabilities: {},
+    customCondition: jest.fn(),
+  })),
 }));
 
 const mockProjectContext = {

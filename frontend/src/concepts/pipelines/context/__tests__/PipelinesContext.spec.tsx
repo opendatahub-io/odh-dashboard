@@ -1,12 +1,11 @@
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { getPipelineServerName } from '#~/concepts/pipelines/context/PipelinesContext';
-import { ProjectKind } from '#~/k8sTypes';
-
-// Mock the k8s utils function
-jest.mock('#~/concepts/k8s/utils', () => ({
+// Mock the k8s-core function
+jest.mock('@odh-dashboard/k8s-core', () => ({
+  ...jest.requireActual('@odh-dashboard/k8s-core'),
   getDisplayNameFromK8sResource: jest.fn(),
 }));
-
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 const mockGetDisplayNameFromK8sResource = getDisplayNameFromK8sResource as jest.MockedFunction<
   typeof getDisplayNameFromK8sResource

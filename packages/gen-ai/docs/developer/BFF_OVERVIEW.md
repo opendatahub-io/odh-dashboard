@@ -30,7 +30,7 @@ The Gen AI BFF is a Go-based middleware service that sits between our React fron
 │                      Gen AI System                          │
 │                                                             │
 │  ┌──────────────┐         ┌──────────────────────────┐    │
-│  │   Frontend   │ ◄─────► │      BFF (Go 1.23)       │    │
+│  │   Frontend   │ ◄─────► │      BFF (Go 1.26)       │    │
 │  │  (React 18)  │  JSON/  │  • API Endpoints         │    │
 │  │              │  HTTPS  │  • Auth Middleware       │    │
 │  └──────────────┘         │  • Static Serving        │    │
@@ -57,7 +57,7 @@ The Gen AI BFF is a Go-based middleware service that sits between our React fron
 
 **Core Technologies:**
 ```go
-// Go 1.23.5+ (Backend)
+// Go 1.26+ (Backend)
 ├── julienschmidt/httprouter      // High-performance HTTP routing
 ├── openai/openai-go (v2.1.0)     // Official OpenAI SDK for Llama Stack
 ├── kubernetes client-go          // K8s API integration
@@ -563,14 +563,14 @@ Before submitting a PR:
 
 #### Prerequisites
 ```bash
-# 1. Install Go 1.23.5+
+# 1. Install Go 1.26+
 brew install go
 
 # 2. Install development tools (optional but recommended)
 brew install delve  # For debugging
 
 # 3. Verify installation
-go version  # Should show go1.23.5 or higher
+go version  # Should show go1.26 or higher
 ```
 
 ---

@@ -145,7 +145,7 @@ ${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number
 ```
 Report what's there — CodeRabbit threads with severity, human threads, review decision.
 
-### Prior review deduplication
+### Prior preflight threads
 
 When the PR has prior preflight review threads, classify them to avoid re-posting dismissed suggestions on subsequent runs. Extract the PR author from the metadata gathered in Step 1 and run:
 
@@ -154,10 +154,32 @@ ${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number
   | ${CLAUDE_SKILL_DIR}/scripts/classify-prior-threads.sh --pr-author "$pr_author"
 ```
 
-Use the classified threads throughout the rest of the run — see [references/reviews.md](references/reviews.md) § Prior Review Deduplication for how to interpret each `disposition` value. Key rules:
-- **Do not re-post** any finding that matches a prior preflight thread (the original comment is still visible).
-- **Exclude dismissed findings** (author replied with disagreement) from the active findings count.
-- **Net-new findings** (no prior match) are posted and counted normally.
+For each prior preflight thread, read the finding, the current code, any replies, and the PR context (diff, Jira description, etc.) to determine whether the finding is still valid. A thread is no longer valid when:
+- The code was changed to address the finding
+- A reply explains why the finding does not apply
+- The finding is no longer relevant given the current state of the PR
+
+**If the thread is no longer valid and `--ci` is active**, resolve it:
+
+1. Post a reply explaining why (e.g., "Resolved — addressed in `<short SHA>`.")
+
+   ```bash
+   gh api "repos/$owner/$repo/pulls/$pr_number/comments/$database_id/replies" \
+     -f body="Resolved — addressed in \`$sha\`."
+   ```
+
+2. Collapse the thread:
+
+   ```bash
+   gh api graphql -f query='mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{isResolved}}}' \
+     -f id="$thread_id"
+   ```
+
+Without `--ci`, report which threads would be resolved but do not post comments or call the API.
+
+**If the thread is still valid**, do not re-post it — the original comment is already visible on the PR. Count it as an active finding.
+
+See [references/reviews.md](references/reviews.md) § Prior Preflight Threads for details.
 
 If no PR exists, or PR exists but is not synced, or `--local`: no reviews have been done on this code yet. Ask the user what reviewer to run:
 

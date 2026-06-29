@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Badge, Button, Flex, FlexItem, ToolbarItem } from '@patternfly/react-core';
-import { TableBase } from '#~/components/table';
-import useTableColumnSort from '#~/components/table/useTableColumnSort';
+import { TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 import type { ResourceRule } from '#~/k8sTypes';
 import RoleRulesTableRow from './RoleRulesTableRow';
 import { resourceRulesColumns } from './columns';

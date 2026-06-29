@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Stack, StackItem } from '@patternfly/react-core';
-import { Identifier } from '#~/types';
+import type { Identifier } from '@odh-dashboard/k8s-core';
 import { CPU_MEMORY_MISSING_WARNING } from '#~/pages/hardwareProfiles/const';
 import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
 

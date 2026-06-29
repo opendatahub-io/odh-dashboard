@@ -50,7 +50,7 @@ func RegisterHandlerOverride(id HandlerID, factory HandlerFactory) { //nolint:un
 
 // getHandlerOverride returns the registered handler override for the given HandlerID.
 // Returns nil if no override is registered.
-func getHandlerOverride(id HandlerID) HandlerFactory {
+func getHandlerOverride(id HandlerID) HandlerFactory { //nolint:unused
 	handlerOverrideMu.RLock()
 	defer handlerOverrideMu.RUnlock()
 	return handlerOverrides[id]
@@ -68,6 +68,6 @@ func (app *App) handlerWithOverride(id HandlerID, buildDefault func() httprouter
 }
 
 // logHandlerOverride logs that a handler override is being applied.
-func (app *App) logHandlerOverride(id HandlerID) {
+func (app *App) logHandlerOverride(id HandlerID) { //nolint:unused
 	app.logger.Info("applying handler override", slog.String("handler_id", string(id)))
 }

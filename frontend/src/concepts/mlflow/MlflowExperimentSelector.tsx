@@ -13,7 +13,7 @@ import {
   SearchInput,
   Spinner,
 } from '@patternfly/react-core';
-import useTableColumnSort from '#~/components/table/useTableColumnSort';
+import { useTableColumnSort } from '@odh-dashboard/ui-core';
 import { MlflowExperiment, MlflowSelectorStatus } from './types';
 import { mlflowExperimentColumns } from './columns';
 import useMlflowExperiments from './hooks/useMlflowExperiments';

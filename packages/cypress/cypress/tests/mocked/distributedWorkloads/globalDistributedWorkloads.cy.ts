@@ -12,12 +12,12 @@ import type {
   WorkloadPodSet,
 } from '@odh-dashboard/internal/k8sTypes';
 import { WorkloadOwnerType } from '@odh-dashboard/internal/k8sTypes';
-import type { PodContainer } from '@odh-dashboard/internal/types';
+import type { PodContainer } from '@odh-dashboard/k8s-core';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { RefreshIntervalTitle } from '@odh-dashboard/internal/concepts/metrics/types';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   ClusterQueueModel,
   LocalQueueModel,
@@ -103,6 +103,13 @@ const initIntercepts = ({
       mockStatus: WorkloadStatusType.Complete,
       podSets: [mockPodset, mockPodset],
     }),
+    mockWorkloadK8sResource({
+      k8sName: 'test-workload-notebook',
+      ownerKind: WorkloadOwnerType.StatefulSet,
+      ownerName: 'test-notebook-0',
+      mockStatus: WorkloadStatusType.Running,
+      podSets: [mockPodset],
+    }),
   ],
 }: HandlersProps) => {
   cy.interceptOdh(
@@ -161,6 +168,9 @@ const initIntercepts = ({
             'test-workload-spinning-down-both-rc': 0.2,
             'test-workload-spinning-down-cpu-only-rc': 0.2,
           },
+          [WorkloadOwnerType.StatefulSet]: {
+            'test-notebook-0': 1.5,
+          },
         }),
       });
     } else if (req.body.query.includes('container_memory_working_set_bytes')) {
@@ -174,6 +184,9 @@ const initIntercepts = ({
           [WorkloadOwnerType.RayCluster]: {
             'test-workload-spinning-down-both-rc': 104857600, // 100 MiB
             'test-workload-spinning-down-cpu-only-rc': 0,
+          },
+          [WorkloadOwnerType.StatefulSet]: {
+            'test-notebook-0': 524288000, // 500 MiB
           },
         }),
       });
@@ -349,6 +362,20 @@ describe('Project Metrics tab', () => {
       globalDistributedWorkloads
         .findWorkloadResourceMetricsTable()
         .findByText('test-workload-running')
+        .closest('tr')
+        .within(() => {
+          cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');
+          cy.get('td[data-label="Memory usage (GiB)"]').should('not.contain.text', '-');
+        });
+    });
+
+    it('Should render usage bars on a StatefulSet workload', () => {
+      initIntercepts({});
+      globalDistributedWorkloads.visit();
+      cy.findByLabelText('Project metrics tab').click();
+      globalDistributedWorkloads
+        .findWorkloadResourceMetricsTable()
+        .findByText('test-workload-notebook')
         .closest('tr')
         .within(() => {
           cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');

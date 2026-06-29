@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -55,32 +56,93 @@ func (m *MockBFFClient) Call(ctx context.Context, method, path string, body inte
 // handleMaaSCall handles mock calls to MaaS BFF
 func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string, body interface{}, response interface{}) error {
 	switch {
-	case path == "/tokens" && method == "POST":
-		// Mock token creation response
-		// MaaS BFF wraps responses in {"data": ...} envelope
-		tokenResp := map[string]interface{}{
+	case path == "/api-keys" && method == "POST":
+		// Mock API key creation response.
+		// Per MaaS BFF OpenAPI spec, POST /api/v1/api-keys returns an envelope wrapper {"data": {...}}.
+		keyResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"token":     "mock-ephemeral-token-" + fmt.Sprintf("%d", time.Now().Unix()),
-				"expiresAt": time.Now().Add(4 * time.Hour).Unix(),
+				"key":       "sk-oai-mock-" + fmt.Sprintf("%d", time.Now().Unix()),
+				"keyPrefix": "sk-oai-mock",
+				"id":        "mock-id-" + fmt.Sprintf("%d", time.Now().Unix()),
+				"name":      "gen-ai-mock",
+				"createdAt": time.Now().Format(time.RFC3339),
+				"expiresAt": time.Now().Add(time.Hour).Format(time.RFC3339),
 			},
 		}
-		return marshalToResponse(tokenResp, response)
+		return marshalToResponse(keyResp, response)
 
-	case path == "/tokens" && method == "DELETE":
-		// Mock token revocation (no response body)
-		return nil
-
-	case path == "/models" && method == "GET":
+	case (path == "/models" || strings.HasPrefix(path, "/models?")) && method == "GET":
 		// Mock models list
+		// MaaS BFF wraps models response in {"data": {"object": "list", "data": [...]}} envelope
 		modelsResp := map[string]interface{}{
-			"object": "list",
-			"data": []map[string]interface{}{
-				{
-					"id":      "mock-model-1",
-					"object":  "model",
-					"created": time.Now().Unix(),
-					"ownedBy": "mock-owner",
-					"ready":   true,
+			"data": map[string]interface{}{
+				"object": "list",
+				"data": []map[string]interface{}{
+					{
+						"id":       "llama-2-7b-chat",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    true,
+						"url":      "https://llama-2-7b-chat.apps.example.openshift.com/v1",
+						"subscriptions": []map[string]interface{}{
+							{
+								"name":        "basic-subscription",
+								"displayName": "Basic Tier",
+							},
+							{
+								"name":        "premium-subscription",
+								"displayName": "Premium Tier",
+								"description": "Premium subscription with higher rate limits",
+							},
+						},
+					},
+					{
+						"id":       "llama-2-13b-chat",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    true,
+						"url":      "https://llama-2-13b-chat.apps.example.openshift.com/v1",
+						"subscriptions": []map[string]interface{}{
+							{
+								"name":        "premium-subscription",
+								"displayName": "Premium Tier",
+							},
+						},
+					},
+					{
+						"id":       "llama-3-8b-instruct",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    false,
+						"url":      "https://llama-3-8b-instruct.apps.example.openshift.com/v1",
+					},
+					{
+						"id":       "mistral-7b-instruct",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    false,
+						"url":      "https://mistral-7b-instruct.apps.example.openshift.com/v1",
+					},
+					{
+						"id":       "granite-7b-lab",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    true,
+						"url":      "https://granite-7b-lab.apps.example.openshift.com/v1",
+					},
+					{
+						"id":       "granite-8b-code",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    false,
+						"url":      "https://granite-8b-code.apps.example.openshift.com/v1",
+					},
 				},
 			},
 		}

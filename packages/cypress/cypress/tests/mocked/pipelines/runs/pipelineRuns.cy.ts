@@ -502,6 +502,28 @@ describe('Pipeline runs', () => {
           cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: false }));
           interceptMlflowStatus(false);
           interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
+          cy.interceptOdh(
+            'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+            {
+              path: {
+                namespace: projectName,
+                serviceName: 'dspa',
+                runId: mockActiveRuns[0].run_id,
+              },
+            },
+            mockActiveRuns[0],
+          );
+          cy.interceptOdh(
+            'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+            {
+              path: {
+                namespace: projectName,
+                serviceName: 'dspa',
+                runId: mockActiveRuns[1].run_id,
+              },
+            },
+            mockActiveRuns[1],
+          );
           pipelineRunsGlobal.visit(projectName, 'active');
           cy.wait('@mlflowStatus');
 
@@ -511,9 +533,8 @@ describe('Pipeline runs', () => {
           pipelineRunsGlobal.findCompareRunsButton().should('not.be.disabled');
           pipelineRunsGlobal.findCompareRunsButton().click();
 
-          cy.url().should(
-            'include',
-            `compare-runs?compareRuns=${mockActiveRuns[0].run_id},${mockActiveRuns[1].run_id}`,
+          verifyRelativeURL(
+            `/develop-train/pipelines/runs/${projectName}/compare-runs?compareRuns=${mockActiveRuns[0].run_id},${mockActiveRuns[1].run_id}`,
           );
         });
 
@@ -597,6 +618,17 @@ describe('Pipeline runs', () => {
             experiment_id: 'test-experiment-1',
             state: RuntimeStateKF.SUCCEEDED,
           });
+          cy.interceptOdh(
+            'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+            {
+              path: {
+                namespace: projectName,
+                serviceName: 'dspa',
+                runId: runWithoutMlflow.run_id,
+              },
+            },
+            runWithoutMlflow,
+          );
           activeRunsTable.mockGetActiveRuns([runWithoutMlflow], projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
 
@@ -605,7 +637,9 @@ describe('Pipeline runs', () => {
             .findKebabAction('Compare runs')
             .click();
 
-          cy.url().should('include', `compareRuns=${runWithoutMlflow.run_id}`);
+          verifyRelativeURL(
+            `/develop-train/pipelines/runs/${projectName}/compare-runs?compareRuns=${runWithoutMlflow.run_id}`,
+          );
         });
 
         it('navigate to MLflow experiment details from active run row', () => {

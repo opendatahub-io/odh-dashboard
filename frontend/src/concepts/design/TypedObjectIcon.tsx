@@ -37,6 +37,7 @@ import {
   ModelEvaluationIcon,
   LabTuningIcon,
   McpCatalogIcon,
+  AgentOpsIcon,
   ModelConnectionRocketIcon,
   PromptManagementIcon,
   ChecklistIcon,
@@ -171,6 +172,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.mcpCatalog:
       Icon = McpCatalogIcon;
+      break;
+    case ProjectObjectType.agentOps:
+      Icon = AgentOpsIcon;
       break;
     case ProjectObjectType.taskAssistant:
       Icon = ChecklistIcon;

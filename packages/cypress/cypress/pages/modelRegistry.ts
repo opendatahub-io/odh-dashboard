@@ -255,11 +255,11 @@ class ModelRegistry {
   }
 
   findModelOverviewTab() {
-    return cy.findByTestId('model-overview-tab');
+    return cy.findByTestId('overview-tab');
   }
 
   findModelVersionsTab() {
-    return cy.findByTestId('model-versions-tab');
+    return cy.findByTestId('versions-tab');
   }
 
   findRegisterNewVersionButton() {

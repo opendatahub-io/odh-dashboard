@@ -19,7 +19,7 @@ import {
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
 import { z } from 'zod';
@@ -43,9 +43,10 @@ const policyFormSchema = z.object({
 export type PolicyFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
   initialPolicy?: MaaSAuthPolicy;
+  returnTo?: string;
 };
 
-const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
+const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy, returnTo }) => {
   const navigate = useNavigate();
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
     initialPolicy
@@ -131,7 +132,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
         const request: UpdatePolicyRequest = sharedFields;
         await updateAuthPolicy(initialPolicy.name)(apiOpts, request);
       }
-      navigate(`${URL_PREFIX}/auth-policies`);
+      navigate(returnTo ?? `${URL_PREFIX}/auth-policies`);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Failed to save policy');
     } finally {
@@ -261,7 +262,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(`${URL_PREFIX}/auth-policies`)}
+            onClick={() => navigate(returnTo ?? `${URL_PREFIX}/auth-policies`)}
             isDisabled={isSubmitting}
             data-testid="policy-cancel-button"
           >

@@ -27,6 +27,7 @@ describe('useWorkbenchFeatureStores', () => {
             configName: 'feast-sample-git-client',
             projectName: 'credit_scoring_local',
             hasAccessToFeatureStore: true,
+            permissionLevel: ['Read', 'Write'],
           },
         ],
       },
@@ -37,11 +38,13 @@ describe('useWorkbenchFeatureStores', () => {
             configName: 'feast-banking-client',
             projectName: 'banking',
             hasAccessToFeatureStore: true,
+            permissionLevel: ['Read'],
           },
           {
             configName: 'feast-fraud-detect-client',
             projectName: 'fraud_detect',
             hasAccessToFeatureStore: false,
+            permissionLevel: [],
           },
         ],
       },
@@ -55,6 +58,7 @@ describe('useWorkbenchFeatureStores', () => {
       projectName: 'credit_scoring_local',
       configMap: null,
       hasAccessToFeatureStore: true,
+      permissionLevel: ['Read', 'Write'],
     },
     {
       namespace: 'test-feast-banking',
@@ -62,6 +66,7 @@ describe('useWorkbenchFeatureStores', () => {
       projectName: 'banking',
       configMap: null,
       hasAccessToFeatureStore: true,
+      permissionLevel: ['Read'],
     },
     {
       namespace: 'test-feast-banking',
@@ -69,6 +74,7 @@ describe('useWorkbenchFeatureStores', () => {
       projectName: 'fraud_detect',
       configMap: null,
       hasAccessToFeatureStore: false,
+      permissionLevel: [],
     },
   ];
 
@@ -251,6 +257,7 @@ describe('useWorkbenchFeatureStores', () => {
               configName: 'valid-config',
               projectName: 'valid_project',
               hasAccessToFeatureStore: true,
+              permissionLevel: ['Read'],
             },
           ],
         },
@@ -269,6 +276,7 @@ describe('useWorkbenchFeatureStores', () => {
             projectName: 'valid_project',
             configMap: null,
             hasAccessToFeatureStore: true,
+            permissionLevel: ['Read'],
           },
         ],
         loaded: true,

@@ -1,13 +1,17 @@
 import * as React from 'react';
 import { FormSection } from '@patternfly/react-core';
+import {
+  SchedulingType,
+  type HardwareProfileKind,
+  type NodeSelector,
+  type Toleration,
+} from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import ManageNodeSelectorSection from '#~/pages/hardwareProfiles/manage/ManageNodeSelectorSection.tsx';
 import ManageTolerationSection from '#~/pages/hardwareProfiles/manage/ManageTolerationSection.tsx';
-import { HardwareProfileKind } from '#~/k8sTypes.ts';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const.tsx';
 import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage/types.ts';
 import ManageWorkloadStrategySection from '#~/pages/hardwareProfiles/manage/ManageWorkloadStrategySection.tsx';
-import { NodeSelector, SchedulingType, Toleration } from '#~/types.ts';
 import ManageLocalQueueFieldSection from '#~/pages/hardwareProfiles/manage/ManageLocalQueueFieldSection.tsx';
 import ManageWorkloadPrioritySection from '#~/pages/hardwareProfiles/manage/ManageWorkloadPrioritySection.tsx';
 import { DEFAULT_PRIORITY_CLASS } from '#~/pages/hardwareProfiles/nodeResource/const.ts';

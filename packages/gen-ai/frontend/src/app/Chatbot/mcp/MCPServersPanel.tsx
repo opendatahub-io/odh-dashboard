@@ -20,7 +20,11 @@ import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
-import { useChatbotConfigStore, selectSelectedMcpServerIds } from '~/app/Chatbot/store';
+import {
+  useChatbotConfigStore,
+  selectSelectedMcpServerIds,
+  selectIsPreview,
+} from '~/app/Chatbot/store';
 import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 import MCPPanelColumns from './MCPPanelColumns';
 import MCPServerPanelRow from './MCPServerPanelRow';
@@ -67,6 +71,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
 
   // Get initial selected server IDs from store
   const initialSelectedServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   // Get tool selections callback from store
   const getToolSelections = React.useCallback(
@@ -125,7 +130,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   });
 
   // Auto-unlock
-  useAutoUnlock({
+  const { autoUnlockingServers } = useAutoUnlock({
     checkServerStatus,
     selectedServers: selection.selectedServers,
     isInitialLoadComplete: selection.isInitialLoadComplete,
@@ -172,6 +177,22 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   }, [selection.selectedServers, tokenManagement, getToolCounts]);
 
   const showToolsWarning = totalActiveTools > 40;
+
+  // Show banner when initial load is settled and at least one selected server is not yet
+  // authenticated and not currently being checked. Each server is evaluated independently
+  // so an auth-required server surfaces the banner even while another server is still
+  // auto-unlocking.
+  const showAuthRequiredBanner =
+    selection.isInitialLoadComplete &&
+    selection.selectedServers.some((server) => {
+      const tokenInfo = tokenManagement.getToken(server.connectionUrl);
+      const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+      const isServerLoading =
+        validation.validatingServers.has(server.connectionUrl) ||
+        validation.checkingServers.has(server.connectionUrl) ||
+        autoUnlockingServers.has(server.connectionUrl);
+      return !isAuthenticated && !isServerLoading;
+    });
 
   // Notify parent when tools warning state changes
   React.useEffect(() => {
@@ -302,6 +323,15 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   return (
     <>
       <div className="mcp-servers-panel">
+        {showAuthRequiredBanner && (
+          <Alert
+            variant="warning"
+            isInline
+            title="Authorization needed for selected MCPs"
+            className="pf-v6-u-mb-md"
+            data-testid="mcp-auth-required-alert"
+          />
+        )}
         {showToolsWarning && (
           <Alert
             variant="warning"
@@ -321,6 +351,14 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
             const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
             const isChecking = validation.checkingServers.has(server.connectionUrl);
             const isFetchingTools = toolsManagement.fetchingToolsServers.has(server.connectionUrl);
+            const isServerLoading =
+              validation.validatingServers.has(server.connectionUrl) || isChecking;
+            const needsAuthorization =
+              selection.isInitialLoadComplete &&
+              isSelected(server) &&
+              !isAuthenticated &&
+              !isServerLoading &&
+              !autoUnlockingServers.has(server.connectionUrl);
 
             const { selectedToolsCount: toolsCount } = getToolCounts(server.connectionUrl);
 
@@ -329,6 +367,8 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
                 key={server.id}
                 server={server}
                 isChecked={isSelected(server)}
+                isDisabled={isPreview}
+                needsAuthorization={needsAuthorization}
                 onToggleCheck={() => {
                   const wasSelected = isSelected(server);
                   toggleSelection(server);

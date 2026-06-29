@@ -1,5 +1,5 @@
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind, RecursivePartial } from '@odh-dashboard/k8s-core';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import {
   useResolvedExtensions,
@@ -9,7 +9,6 @@ import {
 import * as _ from 'lodash-es';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
-import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
@@ -138,7 +137,7 @@ export const mockDeploymentWizardState = (
           setProjectName: jest.fn(),
         },
         modelType: {
-          data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
+          data: { type: ServingRuntimeModelType.GENERATIVE },
           setData: jest.fn(),
           externalData: { data: { extraOptions: [] as SimpleSelectOption[], forced: false } },
         },

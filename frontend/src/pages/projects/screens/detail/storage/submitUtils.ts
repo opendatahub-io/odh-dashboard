@@ -1,4 +1,5 @@
-import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { NotebookKind } from '#~/k8sTypes';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import { StorageData } from '#~/pages/projects/types';
 import {

@@ -19,8 +19,8 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { Tbody, Td, Tr } from '@patternfly/react-table';
+import { SortableData, Table } from '@odh-dashboard/ui-core';
 import { GroupKind } from '#~/k8sTypes';
-import { SortableData, Table } from '#~/components/table';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';

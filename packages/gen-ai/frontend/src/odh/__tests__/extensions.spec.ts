@@ -1,4 +1,4 @@
-import type { K8sCondition } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
 import extensions, { MODEL_AS_SERVICE_CAMEL } from '~/odh/extensions';
 
 const findMaaSArea = () => {

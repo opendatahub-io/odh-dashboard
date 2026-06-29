@@ -8,8 +8,11 @@ import {
   buildMockWorkspaceKind,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
-import { buildMockPodConfigWithLabels } from '~/__tests__/cypress/cypress/utils/testBuilders';
-import type { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import {
+  buildMockPodConfigWithLabels,
+  interceptListValues,
+} from '~/__tests__/cypress/cypress/utils/testBuilders';
+import type { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 const STEP_NAMES = {
   KIND: 'Workspace Kind',
@@ -55,7 +58,7 @@ describe('Filter Pod Configs by Labels', () => {
     ]),
   ];
 
-  const mockWorkspaceKind: WorkspacekindsWorkspaceKind = buildMockWorkspaceKind({
+  const mockWorkspaceKind: WorkspacekindsWorkspaceKindListItem = buildMockWorkspaceKind({
     name: 'jupyterlab',
     podTemplate: {
       ...buildMockWorkspaceKind().podTemplate,
@@ -98,6 +101,7 @@ describe('Filter Pod Configs by Labels', () => {
       { path: { apiVersion: NOTEBOOKS_API_VERSION } },
       mockModArchResponse([mockWorkspaceKind]),
     ).as('getWorkspaceKinds');
+    interceptListValues(mockWorkspaceKind);
 
     workspaces.visit();
     cy.wait('@getNamespaces');

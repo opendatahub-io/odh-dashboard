@@ -59,7 +59,7 @@ const CompareBenchmarksTable: React.FC<CompareBenchmarksTableProps> = ({
             <Checkbox
               id="compare-select-all-benchmarks"
               aria-label="Select all benchmarks on current page"
-              isChecked={selectAllChecked}
+              isChecked={selectAllChecked ?? false}
               isDisabled={visibleSelectionKeys.length === 0}
               onChange={(_event, checked) => onSelectionChange(visibleSelectionKeys, checked)}
               data-testid="compare-select-all-checkbox"

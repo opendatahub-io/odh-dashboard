@@ -47,3 +47,10 @@
     protocol: TCP
     port: 8743
     targetPort: 8743
+- op: add
+  path: /spec/ports/-
+  value:
+    name: agent-ops-ui
+    protocol: TCP
+    port: 8843
+    targetPort: 8843

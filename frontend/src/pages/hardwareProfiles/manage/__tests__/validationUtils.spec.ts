@@ -3,7 +3,7 @@ import {
   TolerationEffect,
   IdentifierResourceType,
   SchedulingType,
-} from '#~/types';
+} from '@odh-dashboard/k8s-core';
 import {
   manageHardwareProfileValidationSchema,
   nodeSelectorSchema,
@@ -205,6 +205,60 @@ describe('manageHardwareProfileValidationSchema', () => {
       };
       const result = schedulingSchema.safeParse(invalidQueueScheduling);
       expect(result.success).toBe(false);
+    });
+
+    it('should fail if localQueueName contains uppercase letters', () => {
+      const result = schedulingSchema.safeParse({
+        type: SchedulingType.QUEUE,
+        kueue: { localQueueName: 'Invalid-Queue' },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toMatch(/lowercase alphanumeric/);
+      }
+    });
+
+    it('should fail if localQueueName starts or ends with a hyphen', () => {
+      for (const name of ['-invalid', 'invalid-']) {
+        const result = schedulingSchema.safeParse({
+          type: SchedulingType.QUEUE,
+          kueue: { localQueueName: name },
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues[0].message).toMatch(/lowercase alphanumeric/);
+        }
+      }
+    });
+
+    it('should fail if localQueueName contains underscores', () => {
+      const result = schedulingSchema.safeParse({
+        type: SchedulingType.QUEUE,
+        kueue: { localQueueName: 'my__queue' },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toMatch(/lowercase alphanumeric/);
+      }
+    });
+
+    it('should pass for a single lowercase alphanumeric localQueueName', () => {
+      const result = schedulingSchema.safeParse({
+        type: SchedulingType.QUEUE,
+        kueue: { localQueueName: 'a' },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should fail if localQueueName exceeds 253 characters', () => {
+      const result = schedulingSchema.safeParse({
+        type: SchedulingType.QUEUE,
+        kueue: { localQueueName: 'a'.repeat(254) },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toMatch(/253 characters or fewer/);
+      }
     });
 
     it('should fail if scheduling type is invalid', () => {

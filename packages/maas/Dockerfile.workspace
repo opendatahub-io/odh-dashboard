@@ -9,7 +9,7 @@ ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
 
 # Set the base images for the build stages
 ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:latest
-ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.25
+ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.26
 ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal:latest
 
 # UI build stage
@@ -30,6 +30,8 @@ COPY --chown=default:root frontend/package.json ./frontend/
 # Copy required shared workspace packages needed for module builds
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
+COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
+COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
 # Copy packages required for @odh-dashboard/llmd-serving and its dependencies
 COPY --chown=default:root packages/llmd-serving/ ./packages/llmd-serving/
 COPY --chown=default:root packages/model-serving/ ./packages/model-serving/

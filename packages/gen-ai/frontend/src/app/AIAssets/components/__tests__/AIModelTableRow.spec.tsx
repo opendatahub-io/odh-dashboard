@@ -379,7 +379,7 @@ describe('AIModelTableRow', () => {
     });
 
     it('should show "Used in Playground settings" for ASR models instead of Try button', () => {
-      const model = createMockAIModel({ modality: 'audio-transcription' });
+      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
       render(
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />
@@ -394,7 +394,7 @@ describe('AIModelTableRow', () => {
     });
 
     it('should not show "Add to playground" button for ASR models', () => {
-      const model = createMockAIModel({ modality: 'audio-transcription' });
+      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
       render(
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />

@@ -1,5 +1,9 @@
-import { DashboardCommonConfig } from '#~/k8sTypes';
-import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from './types';
+import type { DashboardCommonConfig } from '@odh-dashboard/k8s-core';
+import {
+  SupportedArea,
+  type SupportedAreasState,
+  DataScienceStackComponent,
+} from '@odh-dashboard/plugin-core/areas';
 
 export const techPreviewFlags = {
   genAiStudio: false,
@@ -15,10 +19,13 @@ export const techPreviewFlags = {
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
+  agentConfigManagement: false,
   vLLMDeploymentOnMaaS: false,
   llmGatewayField: false,
+  llmdTopologyConfigs: false,
   promptManagement: false,
-  mySubscriptions: false,
+  mySubscriptions: true,
+  maasSettingsIaRedesign: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -28,7 +35,6 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOps: false,
   roleManagement: false,
-  agentProfileManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -248,6 +254,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['vLLMDeploymentOnMaaS'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
+  [SupportedArea.LLMD_TOPOLOGY_CONFIGS]: {
+    featureFlags: ['llmdTopologyConfigs'],
+    reliantAreas: [SupportedArea.LLMD_SERVING],
+  },
   [SupportedArea.LLMD_GATEWAY_FIELD]: {
     featureFlags: ['llmGatewayField'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
@@ -260,6 +270,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MY_SUBSCRIPTIONS]: {
     featureFlags: ['mySubscriptions'],
+  },
+  [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
+    featureFlags: ['maasSettingsIaRedesign'],
   },
 };
 

@@ -13,6 +13,10 @@ class RolesTableRow extends TableRow {
     return this.find().find('[data-label="Type"]');
   }
 
+  findLabelsCell() {
+    return this.find().findByTestId('role-labels-cell');
+  }
+
   shouldHaveName(name: string) {
     this.findNameLink().should('have.text', name);
     return this;
@@ -37,6 +41,8 @@ class ProjectRolesTab {
 
   visitCreateRole(namespace: string) {
     cy.visitWithLogin(`/projects/${namespace}/roles/create`);
+    cy.findByTestId('create-role-page');
+    cy.testA11y();
   }
 
   private wait() {
@@ -124,12 +130,88 @@ class ProjectRolesTab {
     return cy.findByTestId('dashboard-empty-table-state');
   }
 
+  findFormYamlToggle() {
+    return cy.findByTestId('form-yaml-toggle');
+  }
+
+  findFormViewToggle() {
+    return cy.findByTestId('form-view-toggle');
+  }
+
+  findYamlViewToggle() {
+    return cy.findByTestId('yaml-view-toggle');
+  }
+
+  findYamlView() {
+    return cy.findByTestId('create-role-yaml-view');
+  }
+
+  findYamlViewTitle() {
+    return cy.findByTestId('yaml-view-title');
+  }
+
+  findYamlViewDescription() {
+    return cy.findByTestId('yaml-view-description');
+  }
+
+  findYamlCodeEditor() {
+    return cy.findByTestId('yaml-code-editor');
+  }
+
+  findYamlEditorContainer() {
+    return cy.findByTestId('yaml-editor-container');
+  }
+
+  findYamlFullscreenToggle() {
+    return cy.findByTestId('yaml-fullscreen-toggle');
+  }
+
   findPreviewYAMLModal() {
     return cy.findByTestId('preview-yaml-modal');
   }
 
   findPreviewYAMLCloseButton() {
     return cy.findByTestId('preview-yaml-close-button');
+  }
+
+  findSubmitErrorAlert() {
+    return cy.findByTestId('create-role-error-alert');
+  }
+
+  findConfirmModal() {
+    return cy.findByTestId('create-role-confirm-modal');
+  }
+
+  findConfirmCreateButton() {
+    return cy.findByTestId('confirm-create-button');
+  }
+
+  findConfirmCancelButton() {
+    return cy.findByTestId('confirm-cancel-button');
+  }
+
+  findConfirmModalErrorAlert() {
+    return cy.findByTestId('error-message-alert');
+  }
+
+  findAddRuleModal() {
+    return cy.findByTestId('add-rule-modal');
+  }
+
+  findRuleApiGroupsToggle() {
+    return cy.findByTestId('rule-api-groups-toggle');
+  }
+
+  findRuleResourceTypesToggle() {
+    return cy.findByTestId('rule-resource-types-toggle');
+  }
+
+  findVerbCheckbox(verb: string) {
+    return cy.findByTestId('add-rule-modal').findByTestId(`verb-checkbox-${verb}`);
+  }
+
+  findRuleSaveButton() {
+    return cy.findByTestId('modal-submit-button');
   }
 
   getRow(name: string) {

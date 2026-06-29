@@ -3,8 +3,11 @@ import { appendFeatureFlagParams } from './appChrome';
 
 class ChatbotPage {
   mcpTab = mcpTab;
-  visit(namespace?: string): void {
-    const path = namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground';
+  visit(namespace?: string, queryParams?: Record<string, string>): void {
+    const qs = queryParams ? `?${new URLSearchParams(queryParams).toString()}` : '';
+    const path = namespace
+      ? `/gen-ai-studio/playground/${namespace}${qs}`
+      : `/gen-ai-studio/playground${qs}`;
     cy.visit(appendFeatureFlagParams(path));
     this.waitForPageLoad();
   }
@@ -243,6 +246,32 @@ class ChatbotPage {
 
   findMCPServersTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('mcp-servers-panel-table');
+  }
+
+  openKebabAndClickItem(testId: string): void {
+    this.findKebabMenuButton().then(($btn) => {
+      if ($btn.attr('aria-expanded') !== 'true') {
+        cy.wrap($btn).click();
+      }
+    });
+    cy.findByTestId(testId).click();
+  }
+
+  // Open-Agent Modal (shown when loading a profile from the URL param)
+  findOpenAgentModal(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('open-agent-profile-modal');
+  }
+
+  clickOpenAgentPreview(): void {
+    cy.findByTestId('open-agent-profile-preview-button').click();
+  }
+
+  clickOpenAgentEdit(): void {
+    cy.findByTestId('open-agent-profile-edit-button').click();
+  }
+
+  clickOpenAgentClose(): void {
+    cy.findByRole('button', { name: 'Close' }).click();
   }
 
   // Kebab Menu (Actions Menu)
