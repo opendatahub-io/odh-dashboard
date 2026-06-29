@@ -59,6 +59,33 @@ func TestDashboardChartCRDInSync(t *testing.T) {
 	}
 }
 
+func TestDashboardChartWebhookCertManagerTemplatesOffline(t *testing.T) {
+	if _, err := exec.LookPath("helm"); err != nil {
+		t.Skip("helm not installed")
+	}
+
+	root := ".."
+	chartDir := filepath.Join(root, "charts", "dashboard")
+
+	output, err := renderChartTemplate(chartDir, "--namespace", "opendatahub")
+	if err != nil {
+		t.Fatalf("render chart: %v", err)
+	}
+
+	required := []string{
+		"kind: Certificate",
+		"kind: Issuer",
+		"apiVersion: cert-manager.io/v1",
+		"name: webhook-certs",
+		"secretName: odh-dashboard-operator-webhook-tls",
+	}
+	for _, fragment := range required {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("expected offline helm template to include %q; cert-manager resources must not depend on .Capabilities.APIVersions", fragment)
+		}
+	}
+}
+
 func TestDashboardChartRBACInSync(t *testing.T) {
 	if _, err := exec.LookPath("helm"); err != nil {
 		t.Skip("helm not installed")
@@ -118,14 +145,23 @@ func loadClusterRoleRules(path string) ([]rbacv1.PolicyRule, error) {
 	return role.Rules, nil
 }
 
-func renderChartClusterRoleRules(chartDir string) ([]rbacv1.PolicyRule, error) {
-	cmd := exec.Command("helm", "template", "dashboard", chartDir, "--namespace", "opendatahub")
+func renderChartTemplate(chartDir string, extraArgs ...string) (string, error) {
+	args := append([]string{"template", "dashboard", chartDir}, extraArgs...)
+	cmd := exec.Command("helm", args...)
 	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}
+
+func renderChartClusterRoleRules(chartDir string) ([]rbacv1.PolicyRule, error) {
+	output, err := renderChartTemplate(chartDir, "--namespace", "opendatahub")
 	if err != nil {
 		return nil, err
 	}
 
-	for _, doc := range strings.Split(string(output), "---") {
+	for _, doc := range strings.Split(output, "---") {
 		doc = strings.TrimSpace(doc)
 		if doc == "" || !strings.Contains(doc, "kind: ClusterRole") {
 			continue
