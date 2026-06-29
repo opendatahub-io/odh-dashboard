@@ -38,7 +38,9 @@ export const useWorkbenchFeatureStores = (): UseWorkbenchFeatureStoresReturn => 
             projectName: config.projectName,
             configMap: null,
             hasAccessToFeatureStore: config.hasAccessToFeatureStore,
-            permissionLevel: config.permissionLevel,
+            permissionLevel: Array.isArray(config.permissionLevel)
+              ? config.permissionLevel.filter((v): v is string => typeof v === 'string')
+              : [],
           }))
         : [],
     );

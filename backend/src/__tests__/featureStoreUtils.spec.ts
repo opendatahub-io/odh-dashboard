@@ -1123,7 +1123,9 @@ describe('featureStoreUtils', () => {
 
     it('should filter out non-string entries from actions', () => {
       const result = extractPermissionLevel({
-        permissions: [{ spec: { actions: ['read', 123, null, 'write', undefined] as unknown as string[] } }],
+        permissions: [
+          { spec: { actions: ['read', 123, null, 'write', undefined] as unknown as string[] } },
+        ],
       });
 
       expect(result).toEqual(['read', 'write']);
@@ -1158,9 +1160,7 @@ describe('featureStoreUtils', () => {
 
       expect(result).toEqual([]);
       expect(mockFastify.log.info).toHaveBeenCalledWith(
-        expect.stringContaining(
-          `Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`,
-        ),
+        expect.stringContaining(`Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`),
       );
     });
 
@@ -1176,9 +1176,7 @@ describe('featureStoreUtils', () => {
 
       expect(result).toEqual([]);
       expect(mockFastify.log.info).toHaveBeenCalledWith(
-        expect.stringContaining(
-          `Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`,
-        ),
+        expect.stringContaining(`Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`),
       );
     });
 
@@ -1215,9 +1213,7 @@ describe('featureStoreUtils', () => {
 
       expect(result).toEqual([]);
       expect(mockFastify.log.info).toHaveBeenCalledWith(
-        expect.stringContaining(
-          `Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`,
-        ),
+        expect.stringContaining(`Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`),
       );
     });
 
