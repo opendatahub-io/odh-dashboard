@@ -33,7 +33,10 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
     const { id: maasModelId } = splitLlamaModelId(selectedModel);
     const matchingModel = maasModels.find((m) => m.model_id === maasModelId);
     const subs = matchingModel?.subscriptions;
-    return Array.isArray(subs) ? subs : [];
+    // Validate each subscription has the required name field before returning
+    return Array.isArray(subs)
+      ? subs.filter((s): s is SubscriptionInfo => typeof s.name === 'string' && s.name !== '')
+      : [];
   }, [selectedModel, maasModels]);
 
   // Auto-select highest-priority subscription when current selection is empty or invalid.
