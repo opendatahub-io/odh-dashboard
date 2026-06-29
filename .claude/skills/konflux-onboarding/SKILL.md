@@ -1,7 +1,7 @@
 ---
 name: konflux-onboarding
 description: "Guides Konflux CI/CD pipeline onboarding for new components — upstream ODH Dockerfiles & Tekton pipelines, downstream RHOAI Dockerfile generation, DevOps skill integration, manifest overlays, and Jira tracking."
-argument-hint: "<component-name> [--skip-odh] [--skip-downstream] [--skip-jira]"
+argument-hint: "<component-name> [--skip-odh] [--skip-downstream] [--skip-openshift-ci] [--skip-jira]"
 ---
 
 # Konflux Onboarding
@@ -15,6 +15,7 @@ Companion to `/module-onboarding` which handles Dashboard-side package scaffoldi
 Parse from `$ARGUMENTS`:
 - `--skip-odh` — skip Phases 1-2 (ODH upstream Dockerfile and Tekton pipelines)
 - `--skip-downstream` — skip Phases 3-4 (RHOAI DevOps request and downstream Dockerfile)
+- `--skip-openshift-ci` — skip Phase 6 (OpenShift CI configuration in `openshift/release`)
 - `--skip-jira` — skip Phase 7 (Jira updates)
 
 ## Phase 0: Parse and Classify
@@ -354,27 +355,142 @@ For Type A packages, check if `manifests/modular-architecture/modules/<name>/` e
 
 Reference existing module overlays in `manifests/modular-architecture/modules/` for the pattern.
 
-## Phase 6: OpenShift CI (instructions only)
+## Phase 6: OpenShift CI
 
-**Goal**: Provide instructions for `openshift/release` repo configuration.
+**Goal**: Configure OpenShift CI for the component in the `openshift/release` repository.
 
-This cannot be automated — it requires changes in a separate repository (`openshift/release`).
+Skip if: `--skip-openshift-ci` flag.
 
 **Prerequisite**: The component's Quay repository must have the `opendatahub+openshift_ci` robot account with **push** permission. Request this via `#rhoai-devtestops-request` Slack channel if not already configured.
 
-Provide the user with:
-1. The config snippet needed for `ci-operator/config/opendatahub-io/odh-dashboard/`
-2. Reference to existing PRs for similar components
-3. The PR process for `openshift/release`
+### Step 6a: Prepare the Repository
+
+Ask the user for their fork of `openshift/release` (e.g., `git@github.com:<user>/release.git`). Clone it and create a feature branch:
+
+```bash
+WORK_DIR=$(mktemp -d)
+git clone --depth 1 <fork-url> "$WORK_DIR/openshift-release"
+cd "$WORK_DIR/openshift-release"
+git remote add upstream https://github.com/openshift/release.git
+git fetch upstream main
+git checkout -b <component-name>-openshift-ci upstream/main
+```
+
+### Step 6b: Modify the Configuration File
+
+Edit **only** the following file:
 
 ```text
-To add OpenShift CI for this component:
-1. Ensure Quay repo has opendatahub+openshift_ci robot account with push permission
-2. Create a config file in openshift/release:
-   ci-operator/config/opendatahub-io/odh-dashboard/<name>.yaml
-3. Reference existing configs in the same directory for the pattern
-4. Submit a PR to openshift/release
+ci-operator/config/opendatahub-io/odh-dashboard/opendatahub-io-odh-dashboard-main.yaml
 ```
+
+Read the existing file and add entries for the new component following the existing patterns. Three entries are needed:
+
+1. **Image build** — add to `images.items[]`:
+
+   For Type A:
+
+   ```yaml
+   - context_dir: .
+     dockerfile_path: ./packages/<name>/Dockerfile.workspace
+     to: odh-mod-arch-<name>-image
+   ```
+
+   For Type B:
+
+   ```yaml
+   - context_dir: .
+     dockerfile_path: ./<name>/Dockerfile
+     to: odh-<name>-image
+   ```
+
+2. **PR image mirror test** — add to `tests[]`:
+
+   ```yaml
+   - as: odh-<image-name>-pr-image-mirror
+     steps:
+       dependencies:
+         SOURCE_IMAGE_REF: odh-<image-name>-image
+       env:
+         IMAGE_REPO: odh-<image-name>
+       workflow: opendatahub-io-ci-image-mirror
+   ```
+
+3. **Postsubmit image mirror test** — add to `tests[]`:
+
+   ```yaml
+   - as: odh-<image-name>-image-mirror
+     postsubmit: true
+     steps:
+       dependencies:
+         SOURCE_IMAGE_REF: odh-<image-name>-image
+       env:
+         IMAGE_REPO: odh-<image-name>
+         RELEASE_VERSION: main
+       workflow: opendatahub-io-ci-image-mirror
+   ```
+
+For Type A, `<image-name>` is `mod-arch-<name>`. For Type B, `<image-name>` is `dashboard-<name>` (or just the component name if it already has a clear prefix like `dashboard-operator`).
+
+Match the naming pattern of existing entries in the file.
+
+### Step 6c: Generate Job Files
+
+Run prowgen to generate the job configuration files. This requires Docker or Podman:
+
+```bash
+cd "$WORK_DIR/openshift-release"
+
+# Try Docker first, fall back to Podman
+if command -v docker &>/dev/null && docker info &>/dev/null; then
+  CONTAINER_ENGINE=docker make ci-operator-prowgen
+elif command -v podman &>/dev/null && podman info &>/dev/null; then
+  CONTAINER_ENGINE=podman make ci-operator-prowgen
+else
+  echo "ERROR: Neither Docker nor Podman is available. The user must run 'make jobs' manually."
+  # Continue without generated files — note in PR description
+fi
+```
+
+This generates/updates files under `ci-operator/jobs/opendatahub-io/odh-dashboard/`. These generated files **must** be included in the PR.
+
+If neither container engine is available, note in the PR description that `make jobs` must be run and the generated files added before merge.
+
+### Step 6d: Commit, Push, and Create PR
+
+```bash
+cd "$WORK_DIR/openshift-release"
+git add ci-operator/config/opendatahub-io/odh-dashboard/ ci-operator/jobs/opendatahub-io/odh-dashboard/
+git commit -m "Add <component-name> to OpenShift CI builds and Quay image mirroring"
+git push origin <component-name>-openshift-ci
+```
+
+Create a PR against `openshift/release` targeting the `main` branch:
+
+```bash
+gh pr create \
+  --repo openshift/release \
+  --base main \
+  --head <user>:<component-name>-openshift-ci \
+  --title "Add <component-name> to odh-dashboard OpenShift CI" \
+  --body "Adds CI configuration for the <component-name> component of odh-dashboard.
+
+Changes:
+- Image build entry for <component-name> Dockerfile
+- PR image mirror test for pre-merge Quay pushes
+- Postsubmit image mirror test for post-merge Quay pushes
+- Prowgen-generated job files
+
+Reference: https://github.com/openshift/release/pull/73525"
+```
+
+### Step 6e: Cleanup
+
+```bash
+rm -rf "$WORK_DIR"
+```
+
+Remind the user to verify `opendatahub+openshift_ci` robot account has push on the Quay repo if not already confirmed.
 
 ## Phase 7: Jira Updates
 
@@ -407,7 +523,7 @@ Print a final report:
 - [ ] DevOps onboarding: requested/skipped
 - [ ] RHOAI Dockerfile: content generated/skipped
 - [ ] Manifest overlay: created/already existed/skipped/N/A
-- [ ] OpenShift CI: instructions provided/skipped
+- [ ] OpenShift CI: PR created/skipped
 - [ ] Jira updated: yes/skipped
 
 ### Files Created/Modified
@@ -418,7 +534,8 @@ Print a final report:
 2. Wait for DevOps GitLab CI to process onboarding request (~2-4 hours)
 3. Review and merge DevOps-generated PRs (check Jira labels for progression)
 4. Review and merge Dockerfile.konflux.<name> PR in the downstream repo
-5. Submit OpenShift CI config PR to openshift/release
-6. Coordinate operator integration with Platform team (RHOAIENG-37067) — update operator component references, OLM bundle, and test integration
-7. Verify first build succeeds end-to-end (both ODH and RHOAI)
+5. Review and merge OpenShift CI PR in openshift/release
+6. Verify opendatahub+openshift_ci robot account has push on Quay repo
+7. Coordinate operator integration with Platform team (RHOAIENG-37067) — update operator component references, OLM bundle, and test integration
+8. Verify first build succeeds end-to-end (both ODH and RHOAI)
 ```
