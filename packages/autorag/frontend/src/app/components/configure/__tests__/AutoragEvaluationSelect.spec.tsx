@@ -614,7 +614,10 @@ describe('AutoragEvaluationSelect', () => {
   it('should open EvaluationFileCreator when Create button is clicked', async () => {
     const user = userEvent.setup();
 
-    renderWithProviders(<AutoragEvaluationSelect />);
+    renderWithProviders(<AutoragEvaluationSelect />, {
+      // eslint-disable-next-line camelcase
+      defaultValues: { test_data_secret_name: 'test-secret-1' },
+    });
 
     expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
 
@@ -626,7 +629,10 @@ describe('AutoragEvaluationSelect', () => {
   it('should close EvaluationFileCreator when close is triggered', async () => {
     const user = userEvent.setup();
 
-    renderWithProviders(<AutoragEvaluationSelect />);
+    renderWithProviders(<AutoragEvaluationSelect />, {
+      // eslint-disable-next-line camelcase
+      defaultValues: { test_data_secret_name: 'test-secret-1' },
+    });
 
     await user.click(screen.getByTestId('evaluation-create-button'));
     expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
@@ -642,7 +648,11 @@ describe('AutoragEvaluationSelect', () => {
       formValues = values;
     };
 
-    renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
+    renderWithProviders(<AutoragEvaluationSelect />, {
+      onFormChange,
+      // eslint-disable-next-line camelcase
+      defaultValues: { test_data_secret_name: 'test-secret-1' },
+    });
 
     await user.click(screen.getByTestId('evaluation-create-button'));
     await user.click(screen.getByTestId('creator-submit'));

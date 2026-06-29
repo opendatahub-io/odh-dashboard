@@ -262,8 +262,8 @@ describe('FileSelector', () => {
     });
   });
 
-  it('should render extraButtons inside the input group', () => {
-    render(
+  it('should render extraButtons inside the FileUpload input group via portal', () => {
+    const { container } = render(
       <FileSelector
         id="test-selector"
         onUpload={mockOnUpload}
@@ -272,8 +272,19 @@ describe('FileSelector', () => {
       />,
     );
 
-    expect(screen.getByTestId('extra-btn')).toBeInTheDocument();
-    expect(screen.getByText('Extra')).toBeInTheDocument();
+    const extraBtn = screen.getByTestId('extra-btn');
+    expect(extraBtn).toBeInTheDocument();
+
+    // The extra button must be inside a portal-injected input-group__item
+    // that is nested within the FileUpload's input-group
+    const portalItem = extraBtn.closest('.pf-v6-c-input-group__item');
+    expect(portalItem).not.toBeNull();
+
+    const fileUploadInputGroup = container.querySelector(
+      '.pf-v6-c-file-upload .pf-v6-c-input-group',
+    );
+    expect(fileUploadInputGroup).not.toBeNull();
+    expect(fileUploadInputGroup!.contains(portalItem)).toBe(true);
   });
 
   it('should not render extra buttons container when extraButtons is not provided', () => {
@@ -281,15 +292,24 @@ describe('FileSelector', () => {
       <FileSelector id="test-selector" onUpload={mockOnUpload} onClear={mockOnClear} />,
     );
 
-    // No extra input-group item injected via portal
-    const inputGroupItems = container.querySelectorAll('.pf-v6-c-input-group__item');
-    const portalItems = Array.from(inputGroupItems).filter(
-      (el) => !el.closest('.pf-v6-c-file-upload'),
+    // No portal-injected input-group__item should exist outside of FileUpload's own items
+    const fileUploadInputGroup = container.querySelector(
+      '.pf-v6-c-file-upload .pf-v6-c-input-group',
     );
-    // All input-group items should be from the FileUpload itself
-    expect(portalItems.every((el) => el.querySelector('[data-testid="extra-btn"]') === null)).toBe(
-      true,
-    );
+
+    if (fileUploadInputGroup) {
+      const portalItems = fileUploadInputGroup.querySelectorAll(
+        ':scope > .pf-v6-c-input-group__item',
+      );
+      // None of the direct input-group__item children should contain an extra-btn
+      const hasExtraBtn = Array.from(portalItems).some(
+        (el) => el.querySelector('[data-testid="extra-btn"]') !== null,
+      );
+      expect(hasExtraBtn).toBe(false);
+    }
+
+    // Also verify no extra-btn exists anywhere in the document
+    expect(screen.queryByTestId('extra-btn')).not.toBeInTheDocument();
   });
 
   it('should reset upload progress when new file is selected', async () => {

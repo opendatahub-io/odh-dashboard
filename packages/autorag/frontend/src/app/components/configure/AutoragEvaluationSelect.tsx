@@ -133,7 +133,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
             variant="control"
             icon={<PlusCircleIcon />}
             onClick={() => setCreatorOpen(true)}
-            isDisabled={isSubmitting}
+            isDisabled={isSubmitting || !testDataSecretName}
             data-testid="evaluation-create-button"
           >
             Create

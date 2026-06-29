@@ -1,23 +1,23 @@
 .autorag-evaluation-creator__body {
   height: 50vh;
   overflow: hidden;
+}
 
-  .pf-v6-l-grid {
-    height: 100%;
-  }
+.autorag-evaluation-creator__grid {
+  height: 100%;
 }
 
 .autorag-evaluation-creator__form-column {
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
 
-  .pf-v6-c-form {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
+.autorag-evaluation-creator__form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .autorag-evaluation-creator__table-container {

@@ -217,7 +217,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
           description="Build a test dataset by adding at least one question-answer pair. The resulting file will be uploaded to your S3 bucket and used to evaluate pattern accuracy."
         />
         <ModalBody className="autorag-evaluation-creator__body">
-          <Grid hasGutter>
+          <Grid hasGutter className="autorag-evaluation-creator__grid">
             <GridItem span={4} className="autorag-evaluation-creator__form-column">
               <Card variant="secondary" isFullHeight>
                 <CardBody>
@@ -227,7 +227,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
                     helps measure how accurately a RAG pattern retrieves context and generates
                     responses.
                   </Content>
-                  <Form>
+                  <Form className="autorag-evaluation-creator__form">
                     <FormGroup label="Question" isRequired fieldId="eval-question">
                       <TextArea
                         id="eval-question"
