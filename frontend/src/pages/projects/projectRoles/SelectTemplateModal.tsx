@@ -52,6 +52,7 @@ const SelectTemplateModal: React.FC<SelectTemplateModalProps> = ({
       variant="medium"
       dataTestId="select-template-modal"
       onClose={onClose}
+      noBodyPadding
       contents={
         <>
           <Flex className="pf-v6-u-py-md pf-v6-u-px-lg">
@@ -64,7 +65,7 @@ const SelectTemplateModal: React.FC<SelectTemplateModalProps> = ({
               aria-label="Search templates by name"
             />
           </Flex>
-          <DataList aria-label="Role template categories" isCompact>
+          <DataList aria-label="Role template categories">
             {filteredCategories.map((category) => (
               <TemplateCategoryGroup
                 key={category.id}
