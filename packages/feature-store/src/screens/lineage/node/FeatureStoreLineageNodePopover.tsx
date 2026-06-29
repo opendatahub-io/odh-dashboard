@@ -84,6 +84,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
 
   const popoverContent = (
     <Popover
+      data-testid="lineage-node-popover"
       isVisible={isVisible}
       shouldClose={() => {
         onClose();

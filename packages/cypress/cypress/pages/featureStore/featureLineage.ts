@@ -30,7 +30,7 @@ class FeatureLineage extends Contextual<HTMLElement> {
   }
 
   findLineageGraphSurface() {
-    return cy.get('.pf-topology-visualization-surface__svg');
+    return cy.findByTestId('lineage-graph-surface');
   }
 
   visitFeatureViewDetails(project: string, featureViewName: string) {
@@ -45,6 +45,7 @@ class FeatureLineage extends Contextual<HTMLElement> {
   waitForLineageLoaded() {
     cy.findByRole('heading', { name: 'Loading lineage data...' }).should('not.exist');
     cy.findByRole('heading', { name: 'Initializing visualization...' }).should('not.exist');
+    this.findLineageGraphSurface().should('exist');
     return this;
   }
 
@@ -70,8 +71,6 @@ class FeatureLineage extends Contextual<HTMLElement> {
 
   applyEntityFilter(entityName: string) {
     this.selectFilterType('Entity');
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(500);
     cy.findByPlaceholderText('Filter by entity name').should('not.be.disabled').click();
     cy.findByPlaceholderText('Filter by entity name').type(entityName);
     cy.findByTestId(`select-multi-typeahead-${entityName}`).click();
@@ -94,7 +93,7 @@ class FeatureLineage extends Contextual<HTMLElement> {
   }
 
   shouldShowPopoverWithName(name: string) {
-    cy.get('.pf-v6-c-popover').should('be.visible').and('contain.text', name);
+    cy.findByTestId('lineage-node-popover').should('be.visible').and('contain.text', name);
     return this;
   }
 
@@ -103,9 +102,7 @@ class FeatureLineage extends Contextual<HTMLElement> {
   }
 
   shouldShowLineageError() {
-    cy.get('.pf-v6-c-alert.pf-m-danger')
-      .should('be.visible')
-      .and('contain.text', 'Error loading lineage data');
+    cy.findByTestId('lineage-error-alert').should('be.visible');
     return this;
   }
 
@@ -125,6 +122,7 @@ class FeatureLineage extends Contextual<HTMLElement> {
 
   shouldShowEmptyLineageGraph() {
     this.findLineageGraphSurface().should('exist');
+    this.findLineageGraphSurface().find('[data-kind="node"]').should('have.length', 0);
     return this;
   }
 }

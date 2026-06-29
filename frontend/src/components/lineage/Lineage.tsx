@@ -188,7 +188,12 @@ const LineageInner: React.FC<LineageProps> = ({
   if (error) {
     return (
       <div className={className} style={{ height, padding: '1rem' }}>
-        <Alert variant="danger" isInline title="Error loading lineage data">
+        <Alert
+          variant="danger"
+          isInline
+          title="Error loading lineage data"
+          data-testid="lineage-error-alert"
+        >
           {error}
         </Alert>
       </div>
@@ -223,7 +228,10 @@ const LineageInner: React.FC<LineageProps> = ({
       }}
     >
       {ToolbarComponent && <ToolbarComponent />}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', borderRadius: 16 }}>
+      <div
+        data-testid="lineage-graph-surface"
+        style={{ flex: 1, overflow: 'hidden', position: 'relative', borderRadius: 16 }}
+      >
         <TopologyView
           controlBar={
             <TopologyControlBar controlButtons={createLineageTopologyControls(controller)} />
