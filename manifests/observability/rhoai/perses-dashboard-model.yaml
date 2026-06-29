@@ -9,25 +9,13 @@ spec:
     duration: 1h
     # Namespace variable - queries Prometheus by default, but can be overridden by NamespaceVariablesProvider
     variables:
-      - kind: ListVariable
+      - kind: TextVariable
         spec:
           name: namespace
           display:
             name: Project
             description: Filter by project
-          allowMultiple: true
-          allowAllValue: true
-          customAllValue: ".*"
-          defaultValue: "$__all"
-          plugin:
-            kind: PrometheusLabelValuesVariable
-            spec:
-              datasource:
-                kind: PrometheusDatasource
-                name: cluster-prometheus-tenancy-datasource
-              labelName: namespace
-              matchers:
-                - kserve_vllm:num_requests_running
+          value: ""
       - kind: ListVariable
         spec:
           name: model_name
