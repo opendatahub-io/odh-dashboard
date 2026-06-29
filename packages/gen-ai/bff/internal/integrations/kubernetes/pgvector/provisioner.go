@@ -23,7 +23,7 @@ import (
 
 const (
 	readinessPollInterval = 2 * time.Second
-	readinessTimeout      = 22 * time.Second
+	readinessTimeout      = 5 * time.Second
 	rollbackMaxRetries    = 3
 	rollbackRetryDelay    = 500 * time.Millisecond
 )
@@ -176,10 +176,10 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	}
 	created = append(created, netpol)
 
-	// Best-effort wait for pgvector to accept connections. On warm starts (PVC
-	// already bound) this completes in ~15s and prevents OGXServer crash-loops.
-	// On cold starts the 22s budget may not suffice — we log a warning and
-	// continue; the OGXServer's own restart logic handles the race.
+	// Best-effort wait for pgvector readiness. Kept short (5s) because the
+	// OGXServer's own restart logic handles the race on cold starts. On warm
+	// starts (PVC already bound, image cached) this may succeed and avoid an
+	// initial OGXServer restart cycle.
 	if err := waitForReady(ctx, c, namespace, readinessTimeout, log); err != nil {
 		log.Warn("pgvector not ready within timeout; OGXServer may retry on connect",
 			"timeout", readinessTimeout, "error", err, "namespace", namespace)
