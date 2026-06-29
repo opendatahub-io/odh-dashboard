@@ -301,7 +301,7 @@ export async function getFeastProjectRegistryInfo(
 
 export function extractPermissionLevel(data: FeastPermissionsResponse): string[] {
   const actions = new Set<string>();
-  for (const permission of data.permissions ?? []) {
+  for (const permission of data?.permissions ?? []) {
     for (const action of permission.spec?.actions ?? []) {
       if (typeof action === 'string') {
         actions.add(action);

@@ -165,7 +165,7 @@ describe('fsworkbenchIntegration routes', () => {
       });
     });
 
-    it('should return permissionLevel from getProjectPermissions for each accessible project', async () => {
+    it('should return permissionLevel from fetchPermissionLevel for each accessible project', async () => {
       const crd1 = createMockCRD({ metadata: { name: 'store-a', namespace: NAMESPACE } });
       const crd2 = createMockCRD({ metadata: { name: 'store-b', namespace: NAMESPACE } });
 
