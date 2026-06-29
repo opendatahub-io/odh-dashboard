@@ -110,15 +110,7 @@ describe('Verify a model can be deployed from model catalog', () => {
       cy.step('Model deployment step');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
 
-      // The deployment resource section (auto/manual radio) only appears for
-      // deployment methods that expose a modelServer field (e.g. "legacy").
-      // Other methods (e.g. vLLM simple) handle server selection internally.
-      cy.get('body').then(($body) => {
-        if ($body.find('[data-testid="model-server-manual-select-radio"]').length > 0) {
-          modelServingWizard.findModelServerManualSelectRadio().click();
-          modelServingWizard.findFirstServingRuntimeTemplateOption().should('exist').click();
-        }
-      });
+      modelServingWizard.selectServingRuntimeIfAvailable();
 
       cy.step('Advanced options step');
       modelServingWizard.findNextButton().should('be.enabled').click();
