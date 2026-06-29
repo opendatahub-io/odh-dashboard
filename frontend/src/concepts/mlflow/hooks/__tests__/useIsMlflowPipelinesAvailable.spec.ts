@@ -1,11 +1,11 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import useIsMlflowDSPAEnabled from '#~/concepts/mlflow/hooks/useIsMlflowDSPAEnabled';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 
-jest.mock('#~/concepts/areas', () => ({
-  ...jest.requireActual('#~/concepts/areas'),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 

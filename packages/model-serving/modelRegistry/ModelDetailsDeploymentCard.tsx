@@ -17,8 +17,7 @@ import {
 import { ArrowRightIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { KnownLabels, getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import TypedObjectIcon from '@odh-dashboard/internal/concepts/design/TypedObjectIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';

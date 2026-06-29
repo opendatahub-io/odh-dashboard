@@ -1,10 +1,16 @@
 import * as z from 'zod';
+import {
+  MAX_DESCRIPTION_LENGTH,
+  MAX_DISPLAY_NAME_LENGTH,
+  MIN_RAG_PATTERNS,
+  MAX_RAG_PATTERNS,
+  RAG_METRIC_FAITHFULNESS,
+  RAG_METRIC_ANSWER_CORRECTNESS,
+  RAG_METRIC_CONTEXT_CORRECTNESS,
+} from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
 // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
 // import type { OgxVectorStoreProvider } from '~/app/types';
-
-export const MIN_RAG_PATTERNS = 4;
-export const MAX_RAG_PATTERNS = 20;
 
 // The allowlist of supported vector store provider types.
 // The BFF returns all vector_io providers; only providers with these types are shown in the UI.
@@ -19,9 +25,6 @@ export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus', 'remote:
 //   provider_type: 'IN_MEMORY',
 // };
 
-export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
-export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
-export const RAG_METRIC_CONTEXT_CORRECTNESS = 'context_correctness';
 export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
@@ -41,16 +44,16 @@ function createConfigureSchema() {
         .trim()
         .min(1)
         .refine(
-          (val) => Array.from(val).length <= 250,
-          'Display name must be at most 250 characters',
+          (val) => Array.from(val).length <= MAX_DISPLAY_NAME_LENGTH,
+          `Display name must be at most ${MAX_DISPLAY_NAME_LENGTH} characters`,
         )
         .default(''),
       description: z
         .string()
         .trim()
         .refine(
-          (val) => Array.from(val).length <= 255,
-          'Description must be at most 255 characters',
+          (val) => Array.from(val).length <= MAX_DESCRIPTION_LENGTH,
+          `Description must be at most ${MAX_DESCRIPTION_LENGTH} characters`,
         )
         .default('')
         .optional(),

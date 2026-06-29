@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { BreadcrumbItem, Flex, FlexItem } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { BreadcrumbDetailsComponentProps } from '#~/concepts/pipelines/content/types';
 import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
@@ -8,7 +9,6 @@ import { experimentsBaseRoute } from '#~/routes/pipelines/experiments';
 import { pipelineRunsBaseRoute } from '#~/routes/pipelines/runs';
 import { pipelinesBaseRoute } from '#~/routes/pipelines/global';
 import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '#~/types';
 

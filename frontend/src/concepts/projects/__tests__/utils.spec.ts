@@ -1,8 +1,8 @@
-import { mockProjectK8sResource } from '#~/__mocks__';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+} from '@odh-dashboard/k8s-core';
+import { mockProjectK8sResource } from '#~/__mocks__';
 import {
   isAvailableProject,
   getProjectOwner,

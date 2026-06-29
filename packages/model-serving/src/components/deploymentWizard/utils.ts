@@ -1,9 +1,10 @@
-import { MetadataAnnotation, SecretKind } from '@odh-dashboard/k8s-core';
-import { getGeneratedSecretName } from '@odh-dashboard/internal/api/index';
 import {
+  MetadataAnnotation,
+  getGeneratedSecretName,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
-} from '@odh-dashboard/internal/concepts/k8s/utils';
+} from '@odh-dashboard/k8s-core';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import {
   getConnectionTypeRef,
   getModelServingCompatibility,

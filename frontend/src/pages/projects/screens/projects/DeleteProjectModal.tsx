@@ -1,8 +1,8 @@
 import * as React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { deleteProject } from '#~/api';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
