@@ -197,7 +197,7 @@ class APIKeyTableRow extends TableRow {
   }
 
   findSubscriptionDetailLink(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findSubscription().findByTestId('subscription-detail-link');
+    return this.find().findByTestId('subscription-detail-link');
   }
 
   findOwner(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1005,18 +1005,6 @@ class AuthPoliciesPage {
   clearAllFilters(): void {
     cy.findByRole('button', { name: 'Clear all filters' }).click();
   }
-
-  findViewDetailsButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.getRow(rowName).findKebabActionByTestId('view-auth-policy-action');
-  }
-
-  findEditButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.getRow(rowName).findKebabActionByTestId('edit-auth-policy-action');
-  }
-
-  findDeleteButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.getRow(rowName).findKebabActionByTestId('delete-auth-policy-action');
-  }
 }
 
 class AuthPolicyTableRow extends TableRow {
@@ -1052,16 +1040,16 @@ class AuthPolicyTableRow extends TableRow {
     return this.find().findByLabelText('Kebab toggle');
   }
 
-  findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findKebabActionByTestId('edit-auth-policy-action');
+  findViewDetailsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('View details');
   }
 
-  findDeleteActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findKebabActionByTestId('delete-auth-policy-action');
+  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Edit');
   }
 
-  findViewDetailsActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findKebabActionByTestId('view-auth-policy-action');
+  findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Delete');
   }
 
   findTitleButton(): Cypress.Chainable<JQuery<HTMLAnchorElement>> {
@@ -1140,11 +1128,11 @@ class ViewAuthPolicyPage {
   }
 
   findDeleteActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('delete-auth-policy-action');
+    return cy.findByRole('menuitem', { name: 'Delete' });
   }
 
   findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('edit-auth-policy-action');
+    return cy.findByRole('menuitem', { name: 'Edit' });
   }
 
   findPageError(): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -56,14 +56,14 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
         dropdownItems={[
           {
             key: 'edit',
-            label: <span data-testid="edit-auth-policy-action">Edit</span>,
+            label: 'Edit',
             onClick: () => navigate(`${base}/edit/${encodeURIComponent(policy.name)}`, navState),
             isDisabled: !!policy.deletionTimestamp,
           },
           { isSpacer: true },
           {
             key: 'delete',
-            label: <span data-testid="delete-auth-policy-action">Delete</span>,
+            label: 'Delete',
             onClick: () => setIsDeleteOpen(true),
             isDisabled: !!policy.deletionTimestamp,
           },

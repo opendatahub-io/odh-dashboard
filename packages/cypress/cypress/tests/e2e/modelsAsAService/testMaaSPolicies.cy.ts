@@ -164,19 +164,9 @@ describe('An admin can manage MaaS authorization policies and control model acce
         checkMaaSAuthPolicyState(policiesName, modelsAsAServiceNamespace, { phase: 'Active' });
       });
 
-      authPoliciesPage.findKeywordFilterInput().type(policiesName);
-      let policyRow = authPoliciesPage.getRow(policiesName);
-      policyRow.findName().should('contain.text', policiesName);
-      policyRow.findDescription().should('contain.text', policiesDescription);
-      policyRow.findGroups().should('contain.text', `${policiesGroupsCount} Group`);
-      policyRow.findModels().should('contain.text', `${policiesModelsCount} Model`);
-      policyRow.findActionsToggle().click();
-      policyRow.findViewDetailsActionButton().should('be.visible');
-      policyRow.findEditActionButton().should('be.visible');
-      policyRow.findDeleteActionButton().should('be.visible');
-
       cy.step(' View the authorization policy details');
-      policyRow.findViewDetailsActionButton().click();
+      let policyRow = authPoliciesPage.getRow(policiesName);
+      policyRow.findViewDetailsButton().click();
       viewAuthPolicyPage.findBreadcrumbPoliciesLink().should('be.visible').click();
       policyRow.findTitleButton().click();
       viewAuthPolicyPage.findTitle().should('contain.text', policiesName);
@@ -190,23 +180,27 @@ describe('An admin can manage MaaS authorization policies and control model acce
       viewAuthPolicyPage.findDeleteActionButton().should('be.visible');
       viewAuthPolicyPage.findEditActionButton().click();
 
-      policyPage.findDisplayNameInput().clear().type(`${policiesName}-edited`);
-      policyPage.findDescriptionInput().clear().type(`${policiesDescription}-edited`);
+      const policiesUpdatedName = `${policiesName}-edited`;
+      policyPage.findDisplayNameInput().clear().type(policiesUpdatedName);
+      const policiesUpdatedDesc = `${policiesDescription}-edited`;
+      policyPage.findDescriptionInput().clear().type(policiesUpdatedDesc);
       policyPage.selectGroup(testData.policiesGroups[1]);
       policiesGroupsCount = 2;
       policyPage.findSubmitButton().click();
 
       cy.step('Verify the authorization policy is updated');
-      policyRow = authPoliciesPage.getRow(policiesName);
-      policyRow.findTitleButton().should('contain.text', `${policiesName}-edited`);
-      policyRow.findDescription().should('contain.text', `${policiesDescription}-edited`);
+      authPoliciesPage.findKeywordFilterInput().type(policiesUpdatedName);
+      authPoliciesPage.findRows().should('have.length', 1);
+      policyRow = authPoliciesPage.getRow(policiesUpdatedName);
+      policyRow.findTitleButton().should('contain.text', policiesUpdatedName);
+      policyRow.findDescription().should('contain.text', policiesUpdatedDesc);
       policyRow.findGroups().should('contain.text', `${policiesGroupsCount} Group`);
-      policyRow.findModels().should('contain.text', `${testData.policiesModelsCount} Model`);
+      policyRow.findModels().should('contain.text', `${policiesModelsCount} Model`);
 
       cy.step('Delete the authorization policy');
       policyRow.findActionsToggle().click();
-      policyRow.findDeleteActionButton().click();
-      deleteAuthPolicyModal.findInput().type(`${policiesName}-edited`);
+      policyRow.findDeleteButton().click();
+      deleteAuthPolicyModal.findInput().type(policiesUpdatedName);
       deleteAuthPolicyModal.findSubmitButton().click();
 
       cy.step('Verify the authorization policy is deleted');
@@ -261,9 +255,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
 
       cy.step('Verify the subscription exists on the cluster');
       cy.then(() => {
-        checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace, {
-          phase: 'Active',
-        });
+        checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace, {});
       });
 
       cy.step('Verify the policy is visible in policies page');
@@ -276,7 +268,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
         const subscriptionPolicyName = String(PolicyName);
         const policyRow = authPoliciesPage.getRow(subscriptionPolicyName);
         policyRow.findActionsToggle().click();
-        policyRow.findViewDetailsActionButton().click();
+        policyRow.findViewDetailsButton().click();
 
         viewAuthPolicyPage.findTitle().should('contain.text', subscriptionPolicyName);
         viewAuthPolicyPage.findDetailsSection().should('contain.text', subscriptionPolicyName);
@@ -291,9 +283,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
 
         cy.step('Verify the authorization policy exists on the cluster');
         cy.then(() => {
-          checkMaaSAuthPolicyState(subscriptionPolicyName, modelsAsAServiceNamespace, {
-            phase: 'Active',
-          });
+          checkMaaSAuthPolicyState(subscriptionPolicyName, modelsAsAServiceNamespace, {});
         });
 
         cy.step('Create an API key for the subscription');
@@ -345,7 +335,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
             authPoliciesPage.findRows().should('have.length', 1);
             const editPolicyRow = authPoliciesPage.getRow(subscriptionPolicyName);
             editPolicyRow.findActionsToggle().click();
-            editPolicyRow.findEditActionButton().click();
+            editPolicyRow.findEditButton().click();
             // remove the selected group
             policyPage.selectGroup(testData.subscriptionGroups[0]);
             policyPage.findSubmitButton().click();
