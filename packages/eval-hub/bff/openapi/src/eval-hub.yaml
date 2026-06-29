@@ -359,6 +359,10 @@ paths:
             type: string
           description: Model name (URL-encoded if it contains slashes, e.g. repo1%2Fgranite-8b)
           example: 'granite-8b'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/nextPageToken'
+        - $ref: '#/components/parameters/orderBy'
+        - $ref: '#/components/parameters/sortOrder'
       responses:
         '200':
           $ref: '#/components/responses/CatalogSecurityArtifactsResponse'
@@ -1828,6 +1832,74 @@ components:
       description: >-
         When false (default), cancels a running evaluation job.
         When true, permanently deletes the evaluation job.
+    pageSize:
+      in: query
+      name: pageSize
+      schema:
+        type: string
+      required: false
+      description: Number of entities in each page
+    nextPageToken:
+      in: query
+      name: nextPageToken
+      schema:
+        type: string
+      required: false
+      description: Token to use to retrieve the next page of results
+    orderBy:
+      in: query
+      name: orderBy
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+      required: false
+      description: Ordering for sorting results
+    sortOrder:
+      in: query
+      name: sortOrder
+      schema:
+        type: string
+      required: false
+      description: Field to sort by
+    pageSize:
+      in: query
+      name: pageSize
+      schema:
+        type: string
+      required: false
+      description: Number of entities in each page
+      examples:
+        pageSize:
+          value: '100'
+    nextPageToken:
+      in: query
+      name: nextPageToken
+      schema:
+        type: string
+      required: false
+      description: Token to use to retrieve next page of results
+    orderBy:
+      in: query
+      name: orderBy
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+      required: false
+      description: Specifies the order of the listed entities
+    sortOrder:
+      in: query
+      name: sortOrder
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+      required: false
+      description: Specifies the sort order for the listed entities
 
   # =============================================================================
   # SECURITY
