@@ -42,6 +42,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@odh-dashboard/cypress": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
