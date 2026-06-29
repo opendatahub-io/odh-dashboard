@@ -20,6 +20,7 @@ import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 import ROCCurveTab from './tabs/ROCCurveTab';
 import PrecisionRecallTab from './tabs/PrecisionRecallTab';
+import BacktestingTab from './tabs/BacktestingTab';
 
 export type TabContentProps = {
   // Model 'download' (print-to-pdf) feature; `print` prop is `true` when a tab component is rendered in the PDF content allowing custom rendering if needed.
@@ -125,6 +126,14 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     section: 'Evaluation',
     visibleFor: CLASSIFICATION_TYPES,
     component: PrecisionRecallTab,
+  },
+  {
+    key: 'back-testing',
+    label: 'Back-testing',
+    tooltip: 'Per-window validation metrics and best/worst series forecast accuracy',
+    section: 'Evaluation',
+    visibleFor: TASK_TYPE_TIMESERIES,
+    component: BacktestingTab,
   },
 ];
 
