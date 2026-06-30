@@ -21,7 +21,8 @@
     "frontend/src",
     "packages/*",
     "distributions/base",
-    "distributions/rhaii"
+    "distributions/rhaii",
+    "packages/model-serving/cypress"
   ],
   "scripts": {
     "build": "run-p -l build:*",

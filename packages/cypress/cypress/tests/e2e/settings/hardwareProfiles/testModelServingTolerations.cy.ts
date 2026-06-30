@@ -1,8 +1,17 @@
-import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import type { ModelTolerationsTestData } from '../../../../types';
+
+const ModelLocationSelectOption = {
+  EXISTING: 'Existing connection',
+  PVC: 'Cluster storage',
+  S3: 'S3 object storage',
+  OCI: 'OCI compliant registry',
+  URI: 'URI',
+} as const;
+
+const ModelTypeLabel = {
+  PREDICTIVE: 'Predictive model',
+  GENERATIVE: 'Generative AI model (Example, LLM)',
+} as const;
 import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadModelTolerationsFixture } from '../../../../utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';

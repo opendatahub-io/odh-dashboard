@@ -1,6 +1,13 @@
 import * as yaml from 'js-yaml';
-import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
+
+const ModelLocationSelectOption = {
+  EXISTING: 'Existing connection',
+  PVC: 'Cluster storage',
+  S3: 'S3 object storage',
+  OCI: 'OCI compliant registry',
+  URI: 'URI',
+} as const;
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import type { DataScienceProjectData, ModelCatalogSourceTestData } from '../../../types';
 import { retryableBefore } from '../../../utils/retryableHooks';

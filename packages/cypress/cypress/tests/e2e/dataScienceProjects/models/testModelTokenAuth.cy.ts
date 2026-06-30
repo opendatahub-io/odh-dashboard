@@ -1,8 +1,17 @@
-import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
+
+const ModelLocationSelectOption = {
+  EXISTING: 'Existing connection',
+  PVC: 'Cluster storage',
+  S3: 'S3 object storage',
+  OCI: 'OCI compliant registry',
+  URI: 'URI',
+} as const;
+
+const ModelTypeLabel = {
+  PREDICTIVE: 'Predictive model',
+  GENERATIVE: 'Generative AI model (Example, LLM)',
+} as const;
 import {
   modelServingGlobal,
   inferenceServiceActions,

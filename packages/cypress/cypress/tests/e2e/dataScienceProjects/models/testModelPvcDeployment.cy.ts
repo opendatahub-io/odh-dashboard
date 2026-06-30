@@ -1,13 +1,30 @@
 import {
-  ModelLocationSelectOption,
-  ModelStateLabel,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
-import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
 } from '../../../../pages/modelServing';
+
+const ModelLocationSelectOption = {
+  EXISTING: 'Existing connection',
+  PVC: 'Cluster storage',
+  S3: 'S3 object storage',
+  OCI: 'OCI compliant registry',
+  URI: 'URI',
+} as const;
+
+const ModelStateLabel = {
+  STOPPED: 'Stopped',
+  STOPPING: 'Stopping',
+  STARTING: 'Starting',
+  READY: 'Ready',
+  RUNNING: 'Running',
+  FAILED_TO_LOAD: 'Failed to load',
+} as const;
+
+const ModelTypeLabel = {
+  PREDICTIVE: 'Predictive model',
+  GENERATIVE: 'Generative AI model (Example, LLM)',
+} as const;
 import { AWS_BUCKETS } from '../../../../utils/s3Buckets';
 import {
   checkInferenceServiceState,
