@@ -12,7 +12,8 @@
     "./shared/types": "./shared/types.ts",
     "./shared/useHardwareProfileBindingState": "./shared/useHardwareProfileBindingState.ts",
     "./shared/utils": "./shared/utils.ts",
-    "./shared/validationUtils": "./shared/validationUtils.ts"
+    "./shared/validationUtils": "./shared/validationUtils.ts",
+    "./extensions": "./extensions.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -20,6 +21,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@odh-dashboard/foundation": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",
@@ -35,6 +37,10 @@
     "@openshift/dynamic-plugin-sdk-utils": "^5",
     "@patternfly/react-core": "^6",
     "@patternfly/react-icons": "^6",
-    "react": "^18"
+    "@patternfly/react-table": "^6",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router": "^7",
+    "react-router-dom": "^7"
   }
 }
