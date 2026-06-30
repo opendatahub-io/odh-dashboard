@@ -10,7 +10,6 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate } from 'react-router-dom';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleDetailsModal from '#~/pages/projects/projectPermissions/roleDetails/RoleDetailsModal';
