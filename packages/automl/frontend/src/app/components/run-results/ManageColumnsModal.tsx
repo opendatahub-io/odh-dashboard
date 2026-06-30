@@ -107,7 +107,7 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
     setCurrentColumns((prev) =>
       prev.map((col) => ({
         ...col,
-        isShown: col.isUntoggleable ? col.isShown : selectAll,
+        isShown: selectAll,
       })),
     );
   };
@@ -132,7 +132,6 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
         title: col.title,
         isShown: col.isShown,
         isShownByDefault: col.isShownByDefault,
-        isUntoggleable: col.isUntoggleable,
       })),
     );
     onClose();
@@ -160,7 +159,6 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
         data-testid={`column-check-${col.key}`}
         isChecked={col.isShown}
         onChange={() => handleCheckChange(col.key)}
-        isDisabled={col.isUntoggleable}
         id={`column-${index}-checkbox`}
         aria-labelledby={`column-${index}-label`}
       />

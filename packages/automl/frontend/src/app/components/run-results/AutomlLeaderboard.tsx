@@ -513,8 +513,11 @@ function AutomlLeaderboard({
     setVisibleColumnIds(newVisibleIds);
     setColumnOrder(newColumns.map((col) => col.key));
 
-    // Reset sort to default if the currently sorted column is being hidden
-    setActiveSort((prev) => (newVisibleIds.has(prev.id) ? prev : { id: 'rank', direction: 'asc' }));
+    // Reset sort to the first visible column if the currently sorted column is being hidden
+    const fallbackSortId = newColumns.find((col) => col.isShown)?.key ?? 'rank';
+    setActiveSort((prev) =>
+      newVisibleIds.has(prev.id) ? prev : { id: fallbackSortId, direction: 'asc' },
+    );
   }, []);
 
   // All visible columns in user order, used for both header and body rendering
