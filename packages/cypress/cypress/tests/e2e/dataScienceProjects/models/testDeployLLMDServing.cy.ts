@@ -1,31 +1,10 @@
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
-
-const ModelLocationSelectOption = {
-  EXISTING: 'Existing connection',
-  PVC: 'Cluster storage',
-  S3: 'S3 object storage',
-  OCI: 'OCI compliant registry',
-  URI: 'URI',
-} as const;
-
-const ModelStateLabel = {
-  STOPPED: 'Stopped',
-  STOPPING: 'Stopping',
-  STARTING: 'Starting',
-  READY: 'Ready',
-  RUNNING: 'Running',
-  FAILED_TO_LOAD: 'Failed to load',
-} as const;
-
-const ModelTypeLabel = {
-  PREDICTIVE: 'Predictive model',
-  GENERATIVE: 'Generative AI model (Example, LLM)',
-} as const;
-
-const YAMLViewerToggleOption = {
-  YAML: 'YAML',
-  FORM: 'Form',
-} as const;
+import {
+  ModelLocationSelectOption,
+  ModelStateLabel,
+  ModelTypeLabel,
+  YAMLViewerToggleOption,
+} from '../../../../utils/modelServingConstants';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { retryableBefore } from '../../../../utils/retryableHooks';

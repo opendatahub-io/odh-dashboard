@@ -12,19 +12,7 @@ import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/int
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
-
-const ModelLocationSelectOption = {
-  EXISTING: 'Existing connection',
-  PVC: 'Cluster storage',
-  S3: 'S3 object storage',
-  OCI: 'OCI compliant registry',
-  URI: 'URI',
-} as const;
-
-const ModelTypeLabel = {
-  PREDICTIVE: 'Predictive model',
-  GENERATIVE: 'Generative AI model (Example, LLM)',
-} as const;
+import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
 import { maasWizardField } from '../../../pages/modelsAsAService';
 import {
   modelServingGlobal,

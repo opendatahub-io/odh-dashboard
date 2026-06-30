@@ -1,31 +1,10 @@
 import type { DataScienceProjectData } from '../../../../types';
-
-const ModelLocationSelectOption = {
-  EXISTING: 'Existing connection',
-  PVC: 'Cluster storage',
-  S3: 'S3 object storage',
-  OCI: 'OCI compliant registry',
-  URI: 'URI',
-} as const;
-
-const ModelTypeLabel = {
-  PREDICTIVE: 'Predictive model',
-  GENERATIVE: 'Generative AI model (Example, LLM)',
-} as const;
-
-const ModelStateLabel = {
-  STOPPED: 'Stopped',
-  STOPPING: 'Stopping',
-  STARTING: 'Starting',
-  READY: 'Ready',
-  RUNNING: 'Running',
-  FAILED_TO_LOAD: 'Failed to load',
-} as const;
-
-const ModelStateToggleLabel = {
-  START: 'Start',
-  STOP: 'Stop',
-} as const;
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+  ModelStateLabel,
+  ModelStateToggleLabel,
+} from '../../../../utils/modelServingConstants';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
