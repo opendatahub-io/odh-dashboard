@@ -1,0 +1,32 @@
+import * as React from 'react';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
+import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import { DEFAULT_LIST_WATCH_RESULT } from '@odh-dashboard/internal/utilities/const';
+import { useWatchHardwareProfiles } from '@odh-dashboard/internal/utilities/useWatchHardwareProfiles';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
+
+export type HardwareProfilesContextType = {
+  globalHardwareProfiles: CustomWatchK8sResult<HardwareProfileKind[]>;
+};
+
+export const HardwareProfilesContext = React.createContext<HardwareProfilesContextType>({
+  globalHardwareProfiles: DEFAULT_LIST_WATCH_RESULT,
+});
+
+export const HardwareProfilesContextProvider: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
+  const { dashboardNamespace } = useDashboardNamespace();
+  const globalHardwareProfiles = useWatchHardwareProfiles(dashboardNamespace);
+  const contextValue = React.useMemo(
+    () => ({
+      globalHardwareProfiles,
+    }),
+    [globalHardwareProfiles],
+  );
+  return (
+    <HardwareProfilesContext.Provider value={contextValue}>
+      {children}
+    </HardwareProfilesContext.Provider>
+  );
+};
