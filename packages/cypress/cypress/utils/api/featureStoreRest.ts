@@ -187,7 +187,9 @@ export const getMetricsResourceCounts = (
   featureViewCount: number;
   featureServiceCount: number;
 }> => {
-  const apiUrl = `${routeUrl}/api/v1/metrics/resource_counts?project=${project}`;
+  const apiUrl = `${routeUrl}/api/v1/metrics/resource_counts?project=${encodeURIComponent(
+    project,
+  )}`;
 
   return cy
     .request({

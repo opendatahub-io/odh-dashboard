@@ -31,6 +31,7 @@ describe('Feature Store Page Validation', () => {
   let metricsEntityCount: number;
   let metricsDatasetCount: number;
   let metricsDataSourceCount: number;
+  let metricsFeatureViewCount: number;
   let metricsFeatureServiceCount: number;
   let skipTest = false;
   const uuid = generateTestUUID();
@@ -79,6 +80,7 @@ describe('Feature Store Page Validation', () => {
                 metricsEntityCount = metricsCounts.entityCount;
                 metricsDatasetCount = metricsCounts.datasetCount;
                 metricsDataSourceCount = metricsCounts.dataSourceCount;
+                metricsFeatureViewCount = metricsCounts.featureViewCount;
                 metricsFeatureServiceCount = metricsCounts.featureServiceCount;
 
                 return getAllFeatureStoreCounts(routeUrl, testData.feastCreditScoringProject).then(
@@ -130,6 +132,7 @@ describe('Feature Store Page Validation', () => {
       featureMetricsOverview.findDataSourcesCard().should('contain.text', metricsDataSourceCount);
       featureMetricsOverview.findSavedDatasetsCard().should('contain.text', metricsDatasetCount);
       featureMetricsOverview.findFeaturesCard().should('contain.text', metricsFeatureCount);
+      featureMetricsOverview.findFeatureViewsCard().should('contain.text', metricsFeatureViewCount);
       featureMetricsOverview
         .findFeatureServicesCard()
         .should('contain.text', metricsFeatureServiceCount);
