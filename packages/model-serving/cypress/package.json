@@ -11,7 +11,6 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/llmd-serving": "*",
-    "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*"
   }
 }

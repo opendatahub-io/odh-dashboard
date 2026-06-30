@@ -56,7 +56,7 @@ import { hardwareProfileSection } from '@odh-dashboard/cypress/cypress/pages/com
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
 
 const initIntercepts = ({
   modelType,
