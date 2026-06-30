@@ -1,73 +1,22 @@
 import React from 'react';
 import type { HardwareProfileResource } from './types';
-import { K8sResourceCommon, Patch } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { get, set } from 'lodash-es';
 import {
   IdentifierResourceType,
   type HardwareProfileKind,
+  type Identifier,
   type Toleration,
   type NodeSelector,
-  type Identifier,
   type ContainerResources,
 } from '@odh-dashboard/k8s-core';
-import type { ImageStreamKind, NotebookKind } from '@odh-dashboard/internal/k8sTypes';
-import { getCompatibleIdentifiers } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { HardwareProfileConfig, UseHardwareProfileConfigResult } from './useHardwareProfileConfig';
-import {
-  HardwareProfileBindingState,
-  REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH,
-} from './const';
 import {
   HardwarePodSpecOptions,
   CrPathConfig,
   ResourceType,
-  HardwareProfileBindingStateInfo,
 } from './types';
-
-export const formatToleration = (toleration: Toleration): string => {
-  const parts = [`Key = ${toleration.key}`];
-
-  if (toleration.value !== undefined) {
-    parts.push(`Value = ${toleration.value}`);
-  }
-
-  if (toleration.effect !== undefined) {
-    parts.push(`Effect = ${toleration.effect}`);
-  }
-
-  if (toleration.operator !== undefined) {
-    parts.push(`Operator = ${toleration.operator}`);
-  }
-
-  if (toleration.tolerationSeconds !== undefined) {
-    parts.push(`Toleration seconds = ${toleration.tolerationSeconds}`);
-  }
-
-  return parts.join('; ');
-};
-
-export const formatNodeSelector = (selector: NodeSelector): string[] =>
-  Object.entries(selector).map(([key, value]) => `Key = ${key}; Value = ${value}`);
-
-export const formatResource = (
-  identifier: string,
-  defaultCount: string,
-  maxCount: string,
-): string => `${identifier}: Default = ${defaultCount}, Max = ${maxCount}`;
-
-export const formatIdentifierDetails = (identifier: Identifier): string => {
-  const defaultVal = formatResourceValue(
-    identifier.defaultCount,
-    identifier.resourceType,
-  ).toString();
-  const minVal = formatResourceValue(identifier.minCount, identifier.resourceType).toString();
-  const maxVal =
-    identifier.maxCount === undefined
-      ? 'unrestricted'
-      : formatResourceValue(identifier.maxCount, identifier.resourceType).toString();
-  return `Default = ${defaultVal}, Min = ${minVal}, Max = ${maxVal}`;
-};
 
 /**
  * changed order of arguments so that the deprecated accelerator profile is last;
@@ -90,34 +39,6 @@ export const useProfileIdentifiers = (hardwareProfile?: HardwareProfileKind): st
   }, [hardwareProfile]);
 
   return identifiers;
-};
-
-export const doesImageStreamSupportHardwareProfile = (
-  hardwareProfile: HardwareProfileKind,
-  imageStream: ImageStreamKind,
-): boolean => {
-  const compatibleIdentifiers = getCompatibleIdentifiers(imageStream);
-
-  // if any of the identifiers in the image are included in the profile, return true
-  return compatibleIdentifiers.some((imageIdentifier) =>
-    hardwareProfile.spec.identifiers?.some(
-      (profileIdentifier) => profileIdentifier.identifier === imageIdentifier,
-    ),
-  );
-};
-
-export const sortIdentifiers = (identifiers: Identifier[]): Identifier[] => {
-  const cpuIdentifier = identifiers.find((i) => i.identifier === 'cpu');
-  const memoryIdentifier = identifiers.find((i) => i.identifier === 'memory');
-  const otherIdentifiers = identifiers.filter(
-    (i) => i.identifier !== 'cpu' && i.identifier !== 'memory',
-  );
-
-  return [
-    ...(cpuIdentifier ? [cpuIdentifier] : []),
-    ...(memoryIdentifier ? [memoryIdentifier] : []),
-    ...otherIdentifiers,
-  ];
 };
 
 export const getContainerResourcesFromHardwareProfile = (
@@ -168,56 +89,66 @@ export const formatResourceValue = (
   }
 };
 
-export const getProfileScore = (profile: HardwareProfileKind): number => {
-  const { identifiers } = profile.spec;
-  if (!identifiers?.length) {
-    return 0;
-  }
-
-  // Check if profile has any unlimited resources (no maxValue)
-  const hasUnlimitedResources = identifiers.some((identifier) => !identifier.maxCount);
-  // Profiles with unlimited resources should sort towards bottom
-  if (hasUnlimitedResources) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-
-  let score = 0;
-
-  // Add up normalized scores for each identifier
-  identifiers.forEach((identifier) => {
-    const maxValue = identifier.maxCount;
-    if (!maxValue) {
-      return;
-    }
-
-    if (identifier.resourceType === IdentifierResourceType.CPU) {
-      // Convert CPU to smallest unit for comparison
-      const [value, unit] = splitValueUnit(maxValue.toString(), CPU_UNITS);
-      score += (value ?? 0) * unit.weight;
-    } else if (identifier.resourceType === IdentifierResourceType.MEMORY) {
-      // Convert memory to smallest unit for comparison
-      const [value, unit] = splitValueUnit(maxValue.toString(), MEMORY_UNITS_FOR_PARSING);
-      score += (value ?? 0) * unit.weight;
-    } else {
-      score += Number(maxValue);
-    }
-  });
-
-  return score;
-};
-
-export const resourceTypeOf = (r: NotebookKind | HardwareProfileResource): ResourceType => {
+export const resourceTypeOf = (r: { kind?: string } | HardwareProfileResource): ResourceType => {
   return r.kind === 'Notebook' ? 'workbench' : 'deployment';
 };
 
-export const getDeletedHardwareProfilePatches = <T extends K8sResourceCommon>(
-  bindingState: HardwareProfileBindingStateInfo | null,
-  cr: T,
-): Patch[] => {
-  const hwpAnnotations = cr.metadata?.annotations?.['opendatahub.io/hardware-profile-name'];
-  return bindingState?.state === HardwareProfileBindingState.DELETED && hwpAnnotations
-    ? REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH
-    : [];
+export const formatToleration = (toleration: Toleration): string => {
+  const parts = [`Key = ${toleration.key}`];
+
+  if (toleration.value !== undefined) {
+    parts.push(`Value = ${toleration.value}`);
+  }
+
+  if (toleration.effect !== undefined) {
+    parts.push(`Effect = ${toleration.effect}`);
+  }
+
+  if (toleration.operator !== undefined) {
+    parts.push(`Operator = ${toleration.operator}`);
+  }
+
+  if (toleration.tolerationSeconds !== undefined) {
+    parts.push(`Toleration seconds = ${toleration.tolerationSeconds}`);
+  }
+
+  return parts.join('; ');
+};
+
+export const formatNodeSelector = (selector: NodeSelector): string[] =>
+  Object.entries(selector).map(([key, value]) => `Key = ${key}; Value = ${value}`);
+
+export const formatResource = (
+  identifier: string,
+  defaultCount: string,
+  maxCount: string,
+): string => `${identifier}: Default = ${defaultCount}, Max = ${maxCount}`;
+
+export const formatIdentifierDetails = (identifier: Identifier): string => {
+  const defaultVal = formatResourceValue(
+    identifier.defaultCount,
+    identifier.resourceType,
+  ).toString();
+  const minVal = formatResourceValue(identifier.minCount, identifier.resourceType).toString();
+  const maxVal =
+    identifier.maxCount === undefined
+      ? 'unrestricted'
+      : formatResourceValue(identifier.maxCount, identifier.resourceType).toString();
+  return `Default = ${defaultVal}, Min = ${minVal}, Max = ${maxVal}`;
+};
+
+export const sortIdentifiers = (identifiers: Identifier[]): Identifier[] => {
+  const cpuIdentifier = identifiers.find((i) => i.identifier === 'cpu');
+  const memoryIdentifier = identifiers.find((i) => i.identifier === 'memory');
+  const otherIdentifiers = identifiers.filter(
+    (i) => i.identifier !== 'cpu' && i.identifier !== 'memory',
+  );
+
+  return [
+    ...(cpuIdentifier ? [cpuIdentifier] : []),
+    ...(memoryIdentifier ? [memoryIdentifier] : []),
+    ...otherIdentifiers,
+  ];
 };
 
 export const getExistingResources = <T extends K8sResourceCommon>(

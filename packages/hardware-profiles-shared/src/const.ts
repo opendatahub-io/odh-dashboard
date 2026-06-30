@@ -1,15 +1,22 @@
-import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
-import { HardwareProfileBindingConfig, CrPathConfig } from './types';
-
-export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
-  'Omitting CPU or Memory resources is not recommended.';
+import { CrPathConfig, HardwareProfileBindingConfig } from './types';
 
 export enum HardwareProfileBindingState {
   DISABLED = 'Disabled',
   DELETED = 'Deleted',
   UPDATED = 'Updated',
 }
+
+export const HARDWARE_PROFILE_SELECTION_HELP =
+  'Selecting a hardware profile allows you to match the hardware requirements of your workload to available node resources.';
+
+export const MODEL_SERVING_VISIBILITY = [HardwareProfileFeatureVisibility.MODEL_SERVING];
+
+export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
+  containerResourcesPath: 'spec.predictor.model.resources',
+  tolerationsPath: 'spec.predictor.tolerations',
+  nodeSelectorPath: 'spec.predictor.nodeSelector',
+};
 
 export const HARDWARE_PROFILE_BINDING_CONFIG: Record<
   HardwareProfileBindingState,
@@ -61,27 +68,4 @@ export const HARDWARE_PROFILE_BINDING_CONFIG: Record<
       } has been disabled by an administrator. ${continuity}New ${plural} cannot use this hardware profile until it is re-enabled.`;
     },
   },
-};
-
-export const HARDWARE_PROFILE_SELECTION_HELP =
-  'Selecting a hardware profile allows you to match the hardware requirements of your workload to available node resources.';
-
-export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
-  {
-    op: 'remove',
-    path: '/metadata/annotations/opendatahub.io~1hardware-profile-name',
-  },
-  {
-    op: 'remove',
-    path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
-  },
-];
-
-export const WORKBENCH_VISIBILITY = [HardwareProfileFeatureVisibility.WORKBENCH];
-export const MODEL_SERVING_VISIBILITY = [HardwareProfileFeatureVisibility.MODEL_SERVING];
-
-export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
-  containerResourcesPath: 'spec.predictor.model.resources',
-  tolerationsPath: 'spec.predictor.tolerations',
-  nodeSelectorPath: 'spec.predictor.nodeSelector',
 };

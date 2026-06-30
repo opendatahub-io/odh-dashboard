@@ -95,14 +95,10 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     [dashboardConfig?.spec.hardwareProfileOrder],
   );
 
-  // Get the project for Kueue configuration:
-  // 1. If we have a project prop (namespace string), find the actual project object
-  // 2. Otherwise use currentProject from ProjectDetailsContext (works in project details pages)
   const projectForKueue = React.useMemo(() => {
     if (project) {
       return projects.find(byName(project));
     }
-    // Fallback to currentProject, but only if it has a real name (not empty default)
     return currentProject.metadata.name ? currentProject : undefined;
   }, [project, projects, currentProject]);
 
@@ -114,7 +110,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       hardwareProfileOrder,
     );
 
-    // allow continued use of already selected profile if it is disabled
     if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
       enabledProfiles.push(initialHardwareProfile);
     }
@@ -186,7 +181,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       };
     });
 
-    // allow usage of existing settings if no hardware profile is found
     if (allowExistingSettings) {
       formattedOptions.unshift({
         key: EXISTING_SETTINGS_KEY,
