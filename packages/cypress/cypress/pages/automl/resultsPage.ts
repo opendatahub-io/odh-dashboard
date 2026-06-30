@@ -156,6 +156,23 @@ class AutomlResultsPage {
     return cy.findByTestId('precision-recall-no-data');
   }
 
+  // Back-testing tab
+  findBacktestingContent() {
+    return cy.findByTestId('back-testing-content');
+  }
+
+  findBacktestingNoData() {
+    return cy.findByTestId('back-testing-no-data');
+  }
+
+  findBacktestWindowChart() {
+    return cy.findByTestId('backtest-window-chart');
+  }
+
+  findForecastChart(title: string) {
+    return cy.findByTestId(`forecast-chart-${title}`);
+  }
+
   // Register model modal
   findRegisterModelModal() {
     return cy.findByTestId('register-model-modal');
@@ -235,6 +252,7 @@ class AutomlResultsPage {
    * | model-evaluation   | yes    | yes        | yes        | yes        |
    * | confusion-matrix   | yes    | yes        | no         | no         |
    * | precision-recall   | yes    | yes        | no         | no         |
+   * | back-testing       | no     | no         | no         | yes        |
    */
   verifyResultsInteraction(taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries') {
     const isClassification = taskType === 'binary' || taskType === 'multiclass';
@@ -285,9 +303,23 @@ class AutomlResultsPage {
       this.findModelDetailsTab('precision-recall').should('exist');
       this.findModelDetailsTab('precision-recall').click();
       this.findPrecisionRecallChart().should('be.visible');
+
+      this.findModelDetailsTab('back-testing').should('not.exist');
     } else {
       this.findModelDetailsTab('confusion-matrix').should('not.exist');
       this.findModelDetailsTab('precision-recall').should('not.exist');
+
+      if (isTimeseries) {
+        cy.step('Verify back-testing tab renders content');
+        this.findModelDetailsTab('back-testing').should('exist');
+        this.findModelDetailsTab('back-testing').click();
+        this.findBacktestingContent().should('be.visible');
+        this.findBacktestWindowChart().should('be.visible');
+        this.findForecastChart('best-fit').should('be.visible');
+        this.findForecastChart('worst-fit').should('be.visible');
+      } else {
+        this.findModelDetailsTab('back-testing').should('not.exist');
+      }
     }
 
     cy.step('Close model details modal');
