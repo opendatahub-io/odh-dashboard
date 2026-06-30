@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
-import { fetchAllPages } from '../paginationUtils';
+import { fetchAllPages, mergeRelationships } from '../paginationUtils';
 import { FEATURE_STORE_PAGE_SIZE } from '../../const';
 import { FeatureStorePagination } from '../../types/global';
 
@@ -50,7 +50,7 @@ describe('fetchAllPages', () => {
       relationships: { entity1: [{ name: 'rel1' }] },
       pagination: makePagination({ total_count: 2 }),
     };
-    proxyGETMock.mockResolvedValue(mockResponse as never);
+    proxyGETMock.mockResolvedValue(mockResponse as unknown);
 
     const result = await fetchAllPages<TestResponse, TestItem>(
       'test-host',
@@ -80,12 +80,12 @@ describe('fetchAllPages', () => {
         items: page1Items,
         relationships: {},
         pagination: makePagination({ has_next: true, page: 1, total_pages: 2 }),
-      } as never)
+      } as unknown)
       .mockResolvedValueOnce({
         items: page2Items,
         relationships: {},
         pagination: makePagination({ has_next: false, page: 2, total_pages: 2 }),
-      } as never);
+      } as unknown);
 
     const result = await fetchAllPages<TestResponse, TestItem>(
       'test-host',
@@ -119,7 +119,7 @@ describe('fetchAllPages', () => {
       relationships: {},
       pagination: makePagination(),
     };
-    proxyGETMock.mockResolvedValue(mockResponse as never);
+    proxyGETMock.mockResolvedValue(mockResponse as unknown);
 
     const result = await fetchAllPages<TestResponse, TestItem>(
       'test-host',
@@ -140,7 +140,7 @@ describe('fetchAllPages', () => {
         items: page1Items,
         relationships: {},
         pagination: makePagination({ has_next: true }),
-      } as never)
+      } as unknown)
       .mockRejectedValueOnce(new Error('Server error'));
 
     await expect(
@@ -167,12 +167,12 @@ describe('fetchAllPages', () => {
         items: page1Items,
         relationships: page1Relationships,
         pagination: makePagination({ has_next: true }),
-      } as never)
+      } as unknown)
       .mockResolvedValueOnce({
         items: page2Items,
         relationships: page2Relationships,
         pagination: makePagination({ has_next: false }),
-      } as never);
+      } as unknown);
 
     const result = await fetchAllPages<TestResponse, TestItem>(
       'test-host',
@@ -195,7 +195,7 @@ describe('fetchAllPages', () => {
       items: [],
       relationships: {},
       pagination: makePagination(),
-    } as never);
+    } as unknown);
 
     await fetchAllPages<TestResponse, TestItem>(
       'test-host',
@@ -218,7 +218,7 @@ describe('fetchAllPages', () => {
       items: [],
       relationships: {},
       pagination: makePagination(),
-    } as never);
+    } as unknown);
 
     await fetchAllPages<TestResponse, TestItem>(
       'test-host',
@@ -242,7 +242,7 @@ describe('fetchAllPages', () => {
       items: fullPage,
       relationships: {},
       pagination: makePagination({ has_next: true }),
-    } as never);
+    } as unknown);
 
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
@@ -259,5 +259,97 @@ describe('fetchAllPages', () => {
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Reached maximum page limit'));
 
     consoleSpy.mockRestore();
+  });
+
+  it('should use hasNext (boolean) from pagination when present', async () => {
+    const page1Items = Array.from({ length: FEATURE_STORE_PAGE_SIZE }, (_, i) => ({ id: i + 1 }));
+    const page2Items: TestItem[] = [{ id: 101 }];
+
+    proxyGETMock
+      .mockResolvedValueOnce({
+        items: page1Items,
+        relationships: {},
+        pagination: { hasNext: true, page: 1, limit: FEATURE_STORE_PAGE_SIZE },
+      } as unknown)
+      .mockResolvedValueOnce({
+        items: page2Items,
+        relationships: {},
+        pagination: { hasNext: false, page: 2, limit: FEATURE_STORE_PAGE_SIZE },
+      } as unknown);
+
+    const result = await fetchAllPages<TestResponse, TestItem>(
+      'test-host',
+      '/api/v1/things/all',
+      { dryRun: true },
+      (response) => response.items,
+      buildResult,
+    );
+
+    expect(proxyGETMock).toHaveBeenCalledTimes(2);
+    expect(result.items).toHaveLength(FEATURE_STORE_PAGE_SIZE + 1);
+  });
+
+  it('should stop when hasNext is explicitly false even if page is full', async () => {
+    const fullPage = Array.from({ length: FEATURE_STORE_PAGE_SIZE }, (_, i) => ({ id: i + 1 }));
+
+    proxyGETMock.mockResolvedValue({
+      items: fullPage,
+      relationships: {},
+      pagination: { hasNext: false, page: 1, limit: FEATURE_STORE_PAGE_SIZE },
+    } as unknown);
+
+    const result = await fetchAllPages<TestResponse, TestItem>(
+      'test-host',
+      '/api/v1/things/all',
+      { dryRun: true },
+      (response) => response.items,
+      buildResult,
+    );
+
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(result.items).toHaveLength(FEATURE_STORE_PAGE_SIZE);
+  });
+});
+
+describe('mergeRelationships', () => {
+  it('should concatenate arrays for the same relationship key across pages', () => {
+    const responses: { relationships?: Record<string, { name: string }[]> }[] = [
+      { relationships: { entity1: [{ name: 'a' }], entity2: [{ name: 'b' }] } },
+      { relationships: { entity1: [{ name: 'c' }], entity3: [{ name: 'd' }] } },
+    ];
+
+    const result = mergeRelationships(responses);
+
+    expect(result).toEqual({
+      entity1: [{ name: 'a' }, { name: 'c' }],
+      entity2: [{ name: 'b' }],
+      entity3: [{ name: 'd' }],
+    });
+  });
+
+  it('should skip responses with undefined relationships', () => {
+    const responses: { relationships?: Record<string, { name: string }[]> }[] = [
+      { relationships: { entity1: [{ name: 'a' }] } },
+      { relationships: undefined },
+      { relationships: { entity2: [{ name: 'b' }] } },
+    ];
+
+    const result = mergeRelationships(responses);
+
+    expect(result).toEqual({
+      entity1: [{ name: 'a' }],
+      entity2: [{ name: 'b' }],
+    });
+  });
+
+  it('should return empty object when no responses have relationships', () => {
+    const responses: { relationships?: Record<string, { name: string }[]> }[] = [
+      { relationships: undefined },
+      { relationships: undefined },
+    ];
+
+    const result = mergeRelationships(responses);
+
+    expect(result).toEqual({});
   });
 });
