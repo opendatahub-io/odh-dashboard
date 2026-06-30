@@ -159,9 +159,49 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 }
 
 // DeleteAgent removes all Kubernetes resources associated with an agent deployment.
+// It deletes the AgentRuntime CR (which cascades to Deployment, Service, and Route
+// via OwnerReferences) and then separately deletes the ServiceAccount (which has
+// no OwnerReference to the CR).
 func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error {
-	_ = ctx
-	return &agents.UnavailableError{Message: fmt.Sprintf("delete not yet implemented for agent %s/%s", namespace, name)}
+	dynamicClient, err := c.k8sClient.DynamicClient()
+	if err != nil {
+		return fmt.Errorf("failed to get dynamic client: %w", err)
+	}
+	clientset := c.k8sClient.KubernetesClientset()
+
+	// 1. Look up the AgentRuntime CR to verify it exists and is managed by the dashboard.
+	cr, err := dynamicClient.Resource(agentRuntimeGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return mapK8sError(err)
+	}
+	if cr.GetLabels()[labelManagedBy] != managedByValue {
+		return fmt.Errorf("AgentRuntime %q is not managed by odh-dashboard", name)
+	}
+
+	// 2. Delete the AgentRuntime CR — cascades to Deployment, Service, Route via OwnerReferences.
+	if err := dynamicClient.Resource(agentRuntimeGVR).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		return fmt.Errorf("failed to delete AgentRuntime: %w", mapK8sError(err))
+	}
+	c.logger.Info("Deleted AgentRuntime CR",
+		slog.String("name", name),
+		slog.String("namespace", namespace))
+
+	// 3. Delete ServiceAccount separately (no OwnerReference to the CR).
+	//    Handle NotFound gracefully — it may not exist or may have been cleaned up already.
+	if err := clientset.CoreV1().ServiceAccounts(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		if !apierrors.IsNotFound(err) {
+			c.logger.Warn("Failed to delete ServiceAccount for agent",
+				slog.String("name", name),
+				slog.String("namespace", namespace),
+				slog.Any("error", err))
+		}
+	} else {
+		c.logger.Info("Deleted ServiceAccount",
+			slog.String("name", name),
+			slog.String("namespace", namespace))
+	}
+
+	return nil
 }
 
 // StopAgent scales down the agent workload to zero replicas.
