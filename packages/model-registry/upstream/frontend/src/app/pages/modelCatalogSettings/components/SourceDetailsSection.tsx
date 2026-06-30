@@ -9,8 +9,7 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
-import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
+import { UpdateObjectAtPropAndValue, ThemeAwareFormGroupWrapper } from 'mod-arch-shared';
 import FormSection from '~/app/pages/modelRegistry/components/pf-overrides/FormSection';
 import { ManageSourceFormData } from '~/app/pages/modelCatalogSettings/useManageSourceData';
 import {
@@ -55,24 +54,31 @@ const SourceDetailsSection: React.FC<SourceDetailsSectionProps> = ({
     />
   );
 
+  const nameHelperTextNode = hasNameError ? (
+    <FormHelperText>
+      <HelperText>
+        <HelperTextItem variant="error" data-testid="source-name-error">
+          {isSourceNameEmpty(formData.name)
+            ? VALIDATION_MESSAGES.NAME_REQUIRED
+            : formData.name.length > SOURCE_NAME_CHARACTER_LIMIT
+              ? `Cannot exceed ${SOURCE_NAME_CHARACTER_LIMIT} characters`
+              : null}
+        </HelperTextItem>
+      </HelperText>
+    </FormHelperText>
+  ) : undefined;
+
   return (
     <FormSection>
-      <FormGroup label={FORM_LABELS.NAME} isRequired fieldId="source-name">
-        <FormFieldset component={nameInput} field="Name" data-testid="source-name-readonly" />
-        {hasNameError && (
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem variant="error" data-testid="source-name-error">
-                {isSourceNameEmpty(formData.name)
-                  ? VALIDATION_MESSAGES.NAME_REQUIRED
-                  : formData.name.length > SOURCE_NAME_CHARACTER_LIMIT
-                    ? `Cannot exceed ${SOURCE_NAME_CHARACTER_LIMIT} characters`
-                    : null}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        )}
-      </FormGroup>
+      <ThemeAwareFormGroupWrapper
+        label={FORM_LABELS.NAME}
+        fieldId="source-name"
+        isRequired
+        hasError={hasNameError}
+        helperTextNode={nameHelperTextNode}
+      >
+        {nameInput}
+      </ThemeAwareFormGroupWrapper>
 
       <FormGroup
         label={FORM_LABELS.SOURCE_TYPE}
