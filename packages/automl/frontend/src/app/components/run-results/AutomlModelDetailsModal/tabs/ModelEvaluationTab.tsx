@@ -9,11 +9,9 @@ import {
 } from '@patternfly/react-core';
 import { ChartLineIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import {
-  CLASSIFICATION_TYPES,
-  type TabContentProps,
-} from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
+import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import { formatMetricName, formatMetricValue, toNumericMetric } from '~/app/utilities/utils';
+import { TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS } from '~/app/utilities/const';
 import ROCCurveChart from '~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart';
 
 const ModelEvaluationTab: React.FC<TabContentProps> = ({
@@ -25,7 +23,7 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: test_data may be missing in malformed model.json
   const metrics = model.metrics.test_data ?? {};
   const entries = Object.entries(metrics);
-  const isClassification = CLASSIFICATION_TYPES.includes(taskType);
+  const isClassification = taskType === TASK_TYPE_BINARY || taskType === TASK_TYPE_MULTICLASS;
 
   const renderRocCurve = () => {
     if (isArtifactsLoading) {
