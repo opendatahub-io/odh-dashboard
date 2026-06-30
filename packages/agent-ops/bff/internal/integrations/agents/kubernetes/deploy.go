@@ -175,7 +175,7 @@ func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error 
 		return mapK8sError(err)
 	}
 	if cr.GetLabels()[labelManagedBy] != managedByValue {
-		return fmt.Errorf("AgentRuntime %q is not managed by odh-dashboard", name)
+		return fmt.Errorf("AgentRuntime %q is not managed by odh-dashboard: %w", name, agents.ErrForbidden)
 	}
 
 	// 2. Delete the AgentRuntime CR — cascades to Deployment, Service, Route via OwnerReferences.
@@ -190,10 +190,7 @@ func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error 
 	//    Handle NotFound gracefully — it may not exist or may have been cleaned up already.
 	if err := clientset.CoreV1().ServiceAccounts(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
 		if !apierrors.IsNotFound(err) {
-			c.logger.Warn("Failed to delete ServiceAccount for agent",
-				slog.String("name", name),
-				slog.String("namespace", namespace),
-				slog.Any("error", err))
+			return fmt.Errorf("failed to delete ServiceAccount: %w", mapK8sError(err))
 		}
 	} else {
 		c.logger.Info("Deleted ServiceAccount",
