@@ -20,6 +20,7 @@ const MOCK_CREDIT_SCORING_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
   projectName: PROJECT_NAME_CREDIT_SCORING,
   configMap: null,
   hasAccessToFeatureStore: true,
+  permissionLevel: ['Read', 'Write'],
 };
 
 const MOCK_BANKING_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
@@ -28,6 +29,7 @@ const MOCK_BANKING_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
   projectName: PROJECT_NAME_BANKING,
   configMap: null,
   hasAccessToFeatureStore: true,
+  permissionLevel: ['Read'],
 };
 
 const MOCK_FRAUD_DETECT_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
@@ -36,6 +38,7 @@ const MOCK_FRAUD_DETECT_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
   projectName: PROJECT_NAME_FRAUD_DETECT,
   configMap: null,
   hasAccessToFeatureStore: true,
+  permissionLevel: ['Read', 'Describe'],
 };
 
 const MOCK_FEATURE_STORES: WorkbenchFeatureStoreConfig[] = [
@@ -193,6 +196,7 @@ describe('convertFeatureStoresToSelectionOptions', () => {
         projectName: 'other_project',
         configMap: null,
         hasAccessToFeatureStore: true,
+        permissionLevel: [],
       },
     ];
     const result = convertFeatureStoresToSelectionOptions(mockFeatureStores, missingSelected);
@@ -241,6 +245,7 @@ describe('getSelectedFeatureStoresFromSelections', () => {
         projectName: 'other_project',
         configMap: null,
         hasAccessToFeatureStore: true,
+        permissionLevel: [],
       },
     ];
     const result = getSelectedFeatureStoresFromSelections(
@@ -270,6 +275,7 @@ describe('getSelectedFeatureStoresFromSelections', () => {
       projectName: PROJECT_NAME_CREDIT_SCORING,
       configMap: null,
       hasAccessToFeatureStore: false,
+      permissionLevel: [],
     };
     const selections: SelectionOptions[] = [
       { id: PROJECT_NAME_CREDIT_SCORING, name: PROJECT_NAME_CREDIT_SCORING, selected: true },

@@ -301,12 +301,56 @@ export async function getFeastProjectRegistryInfo(
 
 export function extractPermissionLevel(data: FeastPermissionsResponse): string[] {
   const actions = new Set<string>();
-  for (const permission of data.permissions ?? []) {
+  for (const permission of data?.permissions ?? []) {
     for (const action of permission.spec?.actions ?? []) {
-      actions.add(action);
+      if (typeof action === 'string') {
+        actions.add(action);
+      }
     }
   }
   return [...actions];
+}
+
+/**
+ * Fetches the user's Feast permissions for a project. Returns [] on any failure.
+ */
+export async function fetchPermissionLevel(
+  fastify: KubeFastifyInstance,
+  crd: FeatureStoreCRD,
+  feastProjectName: string,
+  token: string,
+): Promise<string[]> {
+  try {
+    const { serviceName, namespace, protocol, port } = getServiceFromCRD(crd);
+    const permissionsPath = `api/v1/permissions?project=${encodeURIComponent(feastProjectName)}`;
+    const registryUrl = constructRegistryProxyUrl(
+      serviceName,
+      namespace,
+      permissionsPath,
+      true,
+      protocol,
+      port,
+    );
+    const { data, statusCode } = await makeAuthenticatedHttpRequest<FeastPermissionsResponse>(
+      fastify,
+      registryUrl,
+      token,
+      {},
+    );
+
+    if (statusCode < 200 || statusCode >= 300) {
+      throw new Error(`Registry permissions returned ${statusCode}`);
+    }
+
+    return extractPermissionLevel(data);
+  } catch (error) {
+    fastify.log.info(
+      `Permissions check for ${crd.metadata.namespace}/${feastProjectName}: unavailable ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+    return [];
+  }
 }
 
 /**
