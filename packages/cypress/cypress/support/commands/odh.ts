@@ -40,23 +40,27 @@ import type {
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import type {
-  ConfigMapKind,
-  ConsoleLinkKind,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
-  FeatureStoreKind,
+  SecretKind,
+  TemplateKind,
+} from '@odh-dashboard/k8s-core';
+import type { FeatureStoreKind } from '@odh-dashboard/feature-store/k8sTypes';
+import type {
+  ConfigMapKind,
+  ConsoleLinkKind,
   ListConfigSecretsResponse,
   ModelRegistry,
   ModelRegistryKind,
   NotebookKind,
   OdhQuickStart,
   RoleBindingKind,
-  SecretKind,
   ServingRuntimeKind,
-  TemplateKind,
 } from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { StartNotebookData } from '@odh-dashboard/internal/pages/projects/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { AllowedUser } from '@odh-dashboard/internal/pages/notebookController/screens/admin/types';
 import type { StatusResponse } from '@odh-dashboard/internal/redux/types';
 import type {
@@ -86,7 +90,7 @@ import type {
   PipelineVersionKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '@odh-dashboard/internal/__mocks__/mlmd/utils';
-import type { NimServingResponse } from '@odh-dashboard/internal/__mocks__/mockNimResource';
+import type { NimServingResponse } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__mocks__';
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '@odh-dashboard/internal/concepts/connectionTypes/types';
@@ -103,6 +107,7 @@ import type {
   CreateSubscriptionResponse,
   SubscriptionPolicyFormDataResponse,
   MaaSAuthPolicy,
+  ModelOverviewItem,
 } from '@odh-dashboard/maas/types/subscriptions';
 import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
@@ -869,6 +874,23 @@ declare global {
                 configName: string;
                 projectName: string;
                 hasAccessToFeatureStore: boolean;
+                permissionLevel: string[];
+              }>;
+            }>;
+          }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/featurestores/projects-with-workbenches',
+          response: OdhResponse<{
+            connectedWorkbenches: Array<{
+              feastProjectName: string;
+              namespace: string;
+              description?: string;
+              permissionLevel: string[];
+              connectedWorkbenches: Array<{
+                workbenchName: string;
+                workbenchNamespace: string;
+                projectName: string;
               }>;
             }>;
           }>,
@@ -1183,6 +1205,10 @@ declare global {
           response: OdhResponse<{ data: MaaSAuthPolicy[] }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /maas/api/v1/overview/models',
+          response: OdhResponse<{ data: ModelOverviewItem[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'POST /maas/api/v1/new-policy',
           response: OdhResponse<{ data: MaaSAuthPolicy }>,
         ) => Cypress.Chainable<null>) &
@@ -1200,6 +1226,19 @@ declare global {
           type: 'DELETE /maas/api/v1/delete-policy/:name',
           options: { path: { name: string } },
           response: OdhResponse<{ data: { message: string } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/subscriptions/:id',
+          options: { path: { id: string } },
+          response: OdhResponse<{ data: UserSubscription }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /api/mlflow-global-namespace',
+          response: OdhResponse<{
+            success: boolean;
+            globalMLflowNamespaces: string[];
+            warnings?: string[];
+          }>,
         ) => Cypress.Chainable<null>);
     }
   }

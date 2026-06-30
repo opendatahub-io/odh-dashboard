@@ -28,6 +28,10 @@ export const mockNamedQueries: Record<string, NamedQuery> = {
       operator: FilterOperator.LESS_THAN_OR_EQUAL,
       value: 'max', // 'max' means use the max value from the range in filters (300 in mock)
     },
+    [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: {
+      operator: FilterOperator.LESS_THAN_OR_EQUAL,
+      value: 'max',
+    },
   },
   high_performance_gpu: {
     [ModelCatalogStringFilterKey.HARDWARE_TYPE]: {
@@ -136,6 +140,13 @@ export const mockCatalogFilterOptionsList = (
         max: 300,
       },
     },
+    [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: {
+      type: 'number',
+      range: {
+        min: 32,
+        max: 96,
+      },
+    },
     // All latency metric combinations for dropdown options (using full filter key format)
     'artifacts.ttft_mean.double_value': {
       type: 'number' as const,
@@ -200,6 +211,14 @@ export const mockCatalogFilterOptionsList = (
     'artifacts.itl_p99.double_value': {
       type: 'number' as const,
       range: { min: 15, max: 200 },
+    },
+    [ModelCatalogNumberFilterKey.MIN_VRAM]: {
+      type: 'number' as const,
+      range: { min: 8, max: 140 },
+    },
+    [ModelCatalogNumberFilterKey.IMAGE_SIZE]: {
+      type: 'number' as const,
+      range: { min: 4, max: 230 },
     },
   },
   namedQueries: mockNamedQueries,

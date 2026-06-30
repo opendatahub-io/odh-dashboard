@@ -46,8 +46,8 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
   forceHideLabels = false,
 }) => {
   const {
-    filterData,
-    setFilterData,
+    filters,
+    setFilters,
     resetSinglePerformanceFilterToDefault,
     getPerformanceFilterDefaultValue,
   } = React.useContext(ModelCatalogContext);
@@ -65,13 +65,13 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
     }
 
     if (isEnumMember(categoryKey, ModelCatalogStringFilterKey)) {
-      const currentValues = filterData[categoryKey];
+      const currentValues = filters[categoryKey];
       if (Array.isArray(currentValues)) {
         const newValues = currentValues.filter((v) => String(v) !== String(labelKey));
-        setFilterData(categoryKey, newValues);
+        setFilters((prev) => ({ ...prev, [categoryKey]: newValues }));
       }
     } else {
-      setFilterData(categoryKey, undefined);
+      setFilters((prev) => ({ ...prev, [categoryKey]: undefined }));
     }
   };
 
@@ -86,9 +86,9 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
     }
 
     if (isEnumMember(categoryKey, ModelCatalogStringFilterKey)) {
-      setFilterData(categoryKey, []);
+      setFilters((prev) => ({ ...prev, [categoryKey]: [] }));
     } else {
-      setFilterData(categoryKey, undefined);
+      setFilters((prev) => ({ ...prev, [categoryKey]: undefined }));
     }
   };
 
@@ -136,20 +136,26 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         case ModelCatalogNumberFilterKey.MAX_RPS:
           return `${MODEL_CATALOG_FILTER_CHIP_PREFIXES.MAX_RPS} ${value}`;
+        case ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME:
+          return `${MODEL_CATALOG_FILTER_CHIP_PREFIXES.COLD_START_LOAD_TIME} ${value} s`;
+        case ModelCatalogNumberFilterKey.MIN_VRAM:
+          return `${MODEL_CATALOG_FILTER_CHIP_PREFIXES.MIN_VRAM} ${value} GB`;
+        case ModelCatalogNumberFilterKey.IMAGE_SIZE:
+          return `${MODEL_CATALOG_FILTER_CHIP_PREFIXES.IMAGE_SIZE} ${value} GB`;
         default:
           return String(value);
       }
     }
 
     const parsed = parseLatencyFilterKey(filterKey);
-    const formattedValue = typeof value === 'number' ? formatLatency(value) : `${value}ms`;
+    const formattedValue = typeof value === 'number' ? formatLatency(value) : `${value}s`;
     return `${parsed.metric} | ${parsed.percentile} | ${formattedValue}`;
   };
 
   return (
     <>
       {filtersToShow.map((filterKey) => {
-        const filterValue = filterData[filterKey];
+        const filterValue = filters[filterKey];
 
         // Determine whether this filter has visible chips.
         // TODO: PF's ToolbarFilter lacks componentWillUnmount cleanup for its internal
@@ -234,7 +240,10 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
         // All other filters
         const isSingleValuePerformanceFilter =
           filterKey === ModelCatalogStringFilterKey.USE_CASE ||
-          filterKey === ModelCatalogNumberFilterKey.MAX_RPS;
+          filterKey === ModelCatalogNumberFilterKey.MAX_RPS ||
+          filterKey === ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME ||
+          filterKey === ModelCatalogNumberFilterKey.MIN_VRAM ||
+          filterKey === ModelCatalogNumberFilterKey.IMAGE_SIZE;
 
         let labels: ToolbarLabel[] = [];
 

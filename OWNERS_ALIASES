@@ -147,6 +147,7 @@ aliases:
     - mfleader
     - ederign
     - rhdedgar
+    - gmenher
   gen-ai-reviewers:
     - agagancarczyk
     - ikeola13
@@ -162,6 +163,7 @@ aliases:
     - rhdedgar
     - iamemilio
     - s-akhtar-baig
+    - gmenher
 
   # Notebooks
   notebooks-approvers:
@@ -268,13 +270,3 @@ aliases:
     - DaoDaoNoCode
     - Gkrumbach07
     - nananosirova
-
-  # Core BFF
-  core-bff-approvers:
-    - caponetto
-    - andyatmiami
-    - lucferbux
-  core-bff-reviewers:
-    - caponetto
-    - andyatmiami
-    - lucferbux

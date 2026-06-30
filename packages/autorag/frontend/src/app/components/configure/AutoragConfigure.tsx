@@ -69,14 +69,15 @@ import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
-  ConfigureSchema,
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
+  OPTIMIZATION_METRIC_LABELS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
-} from '~/app/schemas/configure.schema';
-import { OPTIMIZATION_METRIC_LABELS, REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
+  REQUIRED_CONNECTION_SECRET_KEYS,
+} from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -477,6 +478,7 @@ function AutoragConfigure({
                           <ToggleGroupItem
                             text="Select file or folder"
                             buttonId="document-input-select"
+                            data-testid="input-data-source-select-toggle"
                             isSelected={inputDataSourceMode === 'select'}
                             isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('select')}
@@ -484,6 +486,7 @@ function AutoragConfigure({
                           <ToggleGroupItem
                             text="Upload file"
                             buttonId="document-input-upload"
+                            data-testid="input-data-source-upload-toggle"
                             isSelected={inputDataSourceMode === 'upload'}
                             isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('upload')}
@@ -506,6 +509,7 @@ function AutoragConfigure({
                             <Button
                               key="select-files"
                               variant="secondary"
+                              data-testid="browse-bucket-button"
                               onClick={() => setFileExplorerMode('input_data')}
                               isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
                             >
@@ -525,7 +529,9 @@ function AutoragConfigure({
                                 <Tbody>
                                   <Tr>
                                     <Td dataLabel="Name">
-                                      <Truncate content={selectedInputDataFile.name} />
+                                      <span title={selectedInputDataFile.path}>
+                                        <Truncate content={selectedInputDataFile.name} />
+                                      </span>
                                     </Td>
                                     <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
                                     <Td isActionCell>
@@ -568,6 +574,7 @@ function AutoragConfigure({
                               ref={inputDataNativeInputRef}
                               type="file"
                               hidden
+                              data-testid="autorag-upload-file-input"
                               accept={INPUT_DATA_UPLOAD_NATIVE_ACCEPT}
                               aria-hidden
                               tabIndex={-1}
@@ -618,7 +625,7 @@ function AutoragConfigure({
                                 </Thead>
                                 <Tbody>
                                   <Tr>
-                                    <Td dataLabel="File">
+                                    <Td dataLabel="File" data-testid="uploaded-file-cell">
                                       <Split hasGutter>
                                         {isInputDataFileUploading && (
                                           <SplitItem>

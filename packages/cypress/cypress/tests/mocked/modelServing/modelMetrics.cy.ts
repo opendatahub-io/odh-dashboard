@@ -7,9 +7,9 @@ import {
   mockCustomSecretK8sResource,
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import type {
   InferenceServiceKind,
-  SecretKind,
   ServingRuntimeKind,
   TrustyAIKind,
 } from '@odh-dashboard/internal/k8sTypes';
@@ -37,7 +37,7 @@ import {
   mockNimMetricsConfigMap,
 } from '@odh-dashboard/internal/__mocks__/mockKserveMetricsConfigMap';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   ConfigMapModel,
   InferenceServiceModel,

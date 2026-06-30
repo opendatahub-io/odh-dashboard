@@ -247,6 +247,8 @@ export type TestConfig = {
   NGC_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
+  OGX_URL?: string;
+  OGX_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -282,9 +284,12 @@ export type DataScienceProjectData = {
   invalidResourceNames: string[];
   modelFormat: string;
   servingRuntime: string;
+  servingRuntimeVersion: string;
+  servingRuntimeVersionStatus: string;
   modelStatus: string;
   hardwareProfileName: string;
   resourceType: string;
+  resourceApiVersion: string;
   existingImage: string;
   replaceImage: string;
   serviceAccountName1: string;
@@ -292,6 +297,7 @@ export type DataScienceProjectData = {
   connectionNameSuffix: string;
   adminRoleName: string;
   contributorRoleName: string;
+  contributorK8sRoleName: string;
   connectionDescription: string;
   userSubjectKind: string;
   groupSubjectKind: string;
@@ -301,9 +307,11 @@ export type DataScienceProjectData = {
   legacyHardwareProfileName?: string;
   subscriptionDisplayName: string;
   subscriptionName: string;
+  subscriptionNamespace: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
+  deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
 };
 
 export type NotebookImageData = {
@@ -632,6 +640,32 @@ export type GenAiTestData = {
   servingRuntimesPath: string;
 };
 
+/** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
+export type EvalHubTestData = {
+  projectNamePrefix: string;
+  evalHubCrName: string;
+  evalHubInstanceResourceYamlPath: string;
+  mlflowInstanceResourceYamlPath: string;
+  /** Title text on the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkCardTitle: string;
+  /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
+  inferenceModelName: string;
+  /** Default experiment name pre-filled in the create-evaluation form. */
+  defaultExperimentName: string;
+  /** JSON object string merged into benchmark parameters (valid JSON object). */
+  additionalBenchmarkParams: string;
+  /** OCI URI for the model (e.g. `oci://quay.io/.../llama-3.2-1b-instruct`). */
+  modelOciUri: string;
+  /** Name of the InferenceService CR created in the tenant namespace. */
+  inferenceServiceName: string;
+  /** Fixture path for the vLLM ServingRuntime YAML applied to the tenant namespace. */
+  servingRuntimeYamlPath: string;
+  /** Fixture path for the HardwareProfile CR. */
+  hardwareProfileResourceYamlPath: string;
+  /** `metadata.name` of the HardwareProfile (used for cleanup). */
+  hardwareProfileName: string;
+};
+
 export type ModelCatalogSourceTestData = {
   sourceName: string;
   redhatAiSourceId: string;
@@ -639,6 +673,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId2: string;
   sourceName3: string;
   redhatAiSourceId3: string;
+  toolCallingLabel: string;
+  toolCallingArg: string;
 };
 
 export type TrainJobTestData = {
@@ -723,8 +759,14 @@ export type AutomlTestData = {
   trainingDataFile: string;
   taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // AutoGluon preset ('speed' or 'balanced')
+  preset?: string;
   // Number of top models to train (min 1, default 3)
   topN?: number;
+  // Optimization metric
+  defaultMetricLabel?: string;
+  changedMetricKey?: string;
+  changedMetricLabel?: string;
   // Tabular task types (binary, multiclass, regression)
   labelColumn?: string;
   // Timeseries task type
@@ -738,4 +780,18 @@ export type MlflowExperimentsTestData = {
   experiments: MlflowExperimentData[];
   runs: MlflowExperimentRunData[];
   nonExistentExperiment: string;
+};
+
+export type AutoragTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  s3SecretName: string;
+  ogxSecretName: string;
+  runName: string;
+  runDescription: string;
+  documentFile: string;
+  evaluationFile: string;
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  maxRagPatterns: number;
+  optimizationMetric?: string;
 };

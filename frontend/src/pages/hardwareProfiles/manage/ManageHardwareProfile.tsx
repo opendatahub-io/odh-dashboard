@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
+import { HardwareProfileKind, SchedulingType } from '@odh-dashboard/k8s-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
-import { HardwareProfileKind } from '#~/k8sTypes';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
@@ -25,7 +25,6 @@ import ManageHardwareProfileFooter from '#~/pages/hardwareProfiles/manage/Manage
 import ManageNodeResourceSection from '#~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
 import { useValidation, ValidationContext } from '#~/utilities/useValidation';
 import ManageResourceAllocationSection from '#~/pages/hardwareProfiles/manage/ManageResourceAllocationSection.tsx';
-import { SchedulingType } from '#~/types.ts';
 import { manageHardwareProfileValidationSchema } from './validationUtils';
 import { HardwareProfileVisibilitySection } from './HardwareProfileVisibilitySection';
 import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';

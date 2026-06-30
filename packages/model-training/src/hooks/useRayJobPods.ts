@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PodKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
 import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';

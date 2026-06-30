@@ -1,10 +1,16 @@
 import type { PipelineRun, TaskType } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
+  ALL_EVAL_METRICS,
+  DEFAULT_EVAL_METRIC_BY_TASK,
+  EVAL_METRICS_BY_TASK_TYPE,
+  MAX_DISPLAY_NAME_LENGTH,
+  METRIC_ALIASES,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
+  type EvalMetric,
 } from './const';
 
 /**
@@ -123,15 +129,26 @@ export const isTabularRun = (pipelineRun?: PipelineRun): boolean => {
 /* eslint-disable camelcase */
 const METRIC_DISPLAY_NAMES: Record<string, string> = {
   f1: 'F₁',
+  f1_macro: 'F₁ Macro',
+  f1_micro: 'F₁ Micro',
+  f1_weighted: 'F₁ Weighted',
   mean_absolute_error: 'MAE',
   mean_absolute_percentage_error: 'MAPE',
   mean_absolute_scaled_error: 'MASE',
   mean_squared_error: 'MSE',
   median_absolute_error: 'MedAE',
   mcc: 'MCC',
+  pac_score: 'PAC Score',
   pearsonr: 'Pearson r',
   r2: 'R²',
   roc_auc: 'ROC AUC',
+  roc_auc_ovo: 'ROC AUC OvO',
+  roc_auc_ovo_macro: 'ROC AUC OvO Macro',
+  roc_auc_ovo_weighted: 'ROC AUC OvO Weighted',
+  roc_auc_ovr: 'ROC AUC OvR',
+  roc_auc_ovr_macro: 'ROC AUC OvR Macro',
+  roc_auc_ovr_micro: 'ROC AUC OvR Micro',
+  roc_auc_ovr_weighted: 'ROC AUC OvR Weighted',
   root_mean_squared_error: 'RMSE',
   root_mean_squared_logarithmic_error: 'RMSLE',
   root_mean_squared_scaled_error: 'RMSSE',
@@ -184,23 +201,61 @@ export function toNumericMetric(value: unknown): number {
   return 0;
 }
 
+export function normalizeMetricKey(key: string): string {
+  return METRIC_ALIASES[key.toUpperCase()] ?? key;
+}
+
+const REVERSE_METRIC_ALIASES: Readonly<Partial<Record<string, string>>> = Object.fromEntries(
+  Object.entries(METRIC_ALIASES).map(([acronym, snakeCase]) => [snakeCase, acronym]),
+);
+
+/**
+ * Find the equivalent metric key in a target task type's supported list.
+ * Handles the regression↔timeseries naming difference (snake_case vs acronyms)
+ * by checking both the original key and its alias.
+ * Returns `undefined` if no equivalent exists.
+ */
+export function findEquivalentMetric(
+  metric: EvalMetric | undefined,
+  targetTaskType: string,
+): EvalMetric | undefined {
+  if (!metric) {
+    return undefined;
+  }
+  const supported = EVAL_METRICS_BY_TASK_TYPE[targetTaskType];
+  if (!supported) {
+    return undefined;
+  }
+  const supportedSet = new Set<string>(supported);
+  if (supportedSet.has(metric)) {
+    return metric;
+  }
+  // Try the alias: snake_case → acronym or acronym → snake_case
+  const alias = REVERSE_METRIC_ALIASES[metric] ?? METRIC_ALIASES[metric.toUpperCase()];
+  if (alias && supportedSet.has(alias)) {
+    return ALL_EVAL_METRICS.find((m) => m === alias);
+  }
+  return undefined;
+}
+
 /**
  * Gets the optimized metric for a given task type.
  * @param taskType - The task type to get the metric for
  * @returns The optimized metric name, or 'Unknown metric' if no mapping exists
  */
 export function getOptimizedMetricForTask(taskType: string): string {
-  switch (taskType) {
-    case TASK_TYPE_BINARY:
-    case TASK_TYPE_MULTICLASS:
-      return 'accuracy';
-    case TASK_TYPE_REGRESSION:
-      return 'r2';
-    case TASK_TYPE_TIMESERIES:
-      return 'mean_absolute_scaled_error';
-    default:
-      return 'Unknown metric';
+  if (!(taskType in DEFAULT_EVAL_METRIC_BY_TASK)) {
+    return 'Unknown metric';
   }
+  return normalizeMetricKey(DEFAULT_EVAL_METRIC_BY_TASK[taskType] ?? '');
+}
+
+/**
+ * Resolves the evaluation metric: uses the user-specified metric if provided,
+ * otherwise falls back to the default metric for the given task type.
+ */
+export function resolveEvalMetric(evalMetric: string | undefined, taskType: string): string {
+  return evalMetric ? normalizeMetricKey(evalMetric) : getOptimizedMetricForTask(taskType);
 }
 
 /**
@@ -211,8 +266,9 @@ export function getOptimizedMetricForTask(taskType: string): string {
 export function computeRankMap(
   models: Record<string, { metrics: { test_data?: Record<string, unknown> } }>,
   taskType: string,
+  evalMetric?: string,
 ): Record<string, number> {
-  const optimizedMetric = getOptimizedMetricForTask(taskType);
+  const optimizedMetric = resolveEvalMetric(evalMetric, taskType);
 
   const sorted = Object.keys(models).toSorted((a, b) => {
     const aMetric = models[a].metrics.test_data?.[optimizedMetric];
@@ -224,12 +280,6 @@ export function computeRankMap(
 
   return Object.fromEntries(sorted.map((name, i) => [name, i + 1]));
 }
-
-/**
- * Maximum character length for a display name (matches configure.schema.ts validation).
- * Measured in Unicode code points via Array.from().
- */
-const MAX_DISPLAY_NAME_LENGTH = 250;
 
 /**
  * Generates a reconfigure display name by appending or incrementing a ` - N` suffix.
@@ -273,4 +323,21 @@ export function downloadBlob(blob: Blob, filename: string): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Find the first S3 common-prefix directory whose leaf name starts with the
+ * given pattern.  Returns the prefix without a trailing slash, or `undefined`
+ * when no match is found.
+ */
+export function findTrainingTaskPrefix(
+  commonPrefixes: { prefix: string }[],
+  pattern: string,
+): string | undefined {
+  const match = commonPrefixes.find((p) => {
+    const segments = p.prefix.split('/').filter(Boolean);
+    const dirName = segments[segments.length - 1] ?? '';
+    return dirName.startsWith(pattern);
+  });
+  return match ? match.prefix.replace(/\/$/, '') : undefined;
 }

@@ -75,7 +75,7 @@ The system is implemented using a multi-container architecture with modern web t
 - **Testing**: Jest for unit tests, Cypress for E2E testing with mock server support
 - **Development**: Hot-reload dev server on port 8080 with proxy to BFF
 
-### Backend-for-Frontend Container (Go 1.23)
+### Backend-for-Frontend Container (Go 1.26)
 - **HTTP Router**: High-performance `julienschmidt/httprouter` for request routing
 - **Static Assets**: Serves built frontend files from `/static` directory with SPA fallback
 - **API Endpoints**: RESTful APIs under `/gen-ai/api/v1/*` with comprehensive OpenAPI documentation

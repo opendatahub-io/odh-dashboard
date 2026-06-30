@@ -59,4 +59,15 @@ describe('InferenceServiceServingRuntime', () => {
 
     await findByText('Outdated');
   });
+
+  it('should show "Template removed" label when template is not found', async () => {
+    const mockServingRuntime = mockServingRuntimeK8sResource({});
+    useTemplateByNameMock.mockReturnValue([undefined, true, undefined]);
+
+    const { findByText } = render(
+      <InferenceServiceServingRuntime servingRuntime={mockServingRuntime} />,
+    );
+
+    await findByText('Template removed');
+  });
 });

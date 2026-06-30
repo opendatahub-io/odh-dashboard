@@ -31,6 +31,9 @@ import { useCatalogPerformanceArtifacts } from '~/app/hooks/modelCatalog/useCata
 import {
   getActiveLatencyFieldName,
   stripArtifactsPrefix,
+  filterRegularPerformanceArtifacts,
+  findMatchingHardwareConfig,
+  resolveHardwareConfigurations,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { formatLatency } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
@@ -48,8 +51,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
   source,
 }) => {
   const [currentPerformanceIndex, setCurrentPerformanceIndex] = useState(0);
-  const { filterData, filterOptions, performanceViewEnabled } =
-    React.useContext(ModelCatalogContext);
+  const { filters, filterOptions, performanceViewEnabled } = React.useContext(ModelCatalogContext);
   const notification = useNotification();
   const errorNotificationShown = React.useRef(false);
 
@@ -63,9 +65,9 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
 
   // Get performance-specific filter params for the /performance_artifacts endpoint
   // Always apply performance filters to get accurate benchmark counts, regardless of toggle state
-  const targetRPS = filterData[ModelCatalogNumberFilterKey.MAX_RPS];
+  const targetRPS = filters[ModelCatalogNumberFilterKey.MAX_RPS];
   // Get full filter key for display purposes
-  const latencyFieldName = getActiveLatencyFieldName(filterData);
+  const latencyFieldName = getActiveLatencyFieldName(filters);
   // Use short property key (e.g., 'ttft_p90') for the catalog API, not the full filter key
   const latencyProperty = latencyFieldName
     ? parseLatencyFilterKey(latencyFieldName).propertyKey
@@ -91,13 +93,21 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
           sortOrder: SortOrder.ASC,
         }),
       },
-      filterData,
+      filters,
       filterOptions,
       isValidated, // Only fetch if validated
     );
 
-  // Performance artifacts are already filtered by the server endpoint
-  const performanceMetrics = performanceArtifactsList.items;
+  // Separate cold-start artifacts from regular performance artifacts
+  const performanceMetrics = React.useMemo(
+    () => filterRegularPerformanceArtifacts(performanceArtifactsList.items),
+    [performanceArtifactsList.items],
+  );
+
+  const hardwareConfigurations = React.useMemo(
+    () => resolveHardwareConfigurations(performanceArtifactsList.items, model.customProperties),
+    [performanceArtifactsList.items, model.customProperties],
+  );
 
   // NOTE: Accuracy metrics are not currently returned by the /performance_artifacts endpoint.
   // This is kept as a placeholder for when accuracy metrics support is restored.
@@ -199,6 +209,14 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
       ? parseLatencyFilterKey(activeLatencyField).metric
       : LatencyMetric.TTFT;
 
+    const matchedConfig = findMatchingHardwareConfig(
+      hardwareConfigurations,
+      metrics.hardwareConfiguration,
+      metrics.hardwareType,
+      parseInt(metrics.hardwareCount, 10) || 1,
+    );
+    const matchedColdStart = matchedConfig?.cold_start_time_to_load_seconds;
+
     return (
       <Stack hasGutter>
         <StackItem>
@@ -242,6 +260,33 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
                 </Popover>
               </Flex>
             </Flex>
+            {matchedColdStart !== undefined && (
+              <Flex direction={{ default: 'column' }}>
+                <span className="pf-v6-u-font-weight-bold" data-testid="validated-model-cold-start">
+                  {matchedColdStart.toFixed(2)} s
+                </span>
+                <Flex alignItems={{ default: 'alignItemsBaseline' }} gap={{ default: 'gapXs' }}>
+                  <Content component={ContentVariants.small}>Cold start load time</Content>
+                  <Popover
+                    bodyContent={
+                      <div>
+                        <p>
+                          This is the initial delay that occurs when a model is triggered after a
+                          period of inactivity.
+                        </p>
+                      </div>
+                    }
+                  >
+                    <Button
+                      icon={<HelpIcon />}
+                      hasNoPadding
+                      aria-label="More info for cold start load time"
+                      variant="plain"
+                    />
+                  </Popover>
+                </Flex>
+              </Flex>
+            )}
           </Flex>
         </StackItem>
 

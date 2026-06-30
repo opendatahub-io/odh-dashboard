@@ -28,12 +28,14 @@ import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardU
 
 let testData: DataScienceProjectData;
 let projectName: string;
+let resourceApiVersion: string;
 let resourceName: string;
 let modelName: string;
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
 let modelURI: string;
+let deploymentMethod: DataScienceProjectData['deploymentMethod'];
 let servingRuntime: string;
 let existingImage: string;
 let replaceImage: string;
@@ -47,8 +49,10 @@ describe('A user can deploy an LLMD model', () => {
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
+        resourceApiVersion = testData.resourceApiVersion;
         modelName = testData.singleModelName;
         modelURI = testData.modelLocationURI;
+        deploymentMethod = testData.deploymentMethod;
         servingRuntime = testData.servingRuntime;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
@@ -81,12 +85,20 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User Can Deploy an LLMD Model in Deployments',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@LLMDServingCI',
+        '@ModelServingCI',
+      ],
     },
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -112,9 +124,6 @@ describe('A user can deploy an LLMD model', () => {
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
 
-      cy.step('Verify legacy deployment checkbox appears and is unchecked');
-      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
-
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select Model deployment');
@@ -135,8 +144,7 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLEditorEmptyState().should('be.visible');
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
+      modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
 
@@ -148,7 +156,8 @@ describe('A user can deploy an LLMD model', () => {
       getClipboardContent('copiedYAML').then((copied) => {
         expect(copied).to.have.length.at.least(1);
         const yamlContent = copied[0];
-        expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha1');
+        // expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha2');
+        expect(yamlContent).to.include(resourceApiVersion);
         expect(yamlContent).to.include('kind: LLMInferenceService');
         expect(yamlContent).to.include(`name: ${modelName}`);
         expect(yamlContent).to.include(replaceImage);
@@ -190,7 +199,14 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User can deploy an LLmd Model from Manual YAML editor',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: [
+        '@Featureflagged',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@LLMDServingCI',
+        '@ModelServingCI',
+      ],
     },
     () => {
       cy.step('Log into the application as admin with YAML viewer feature flag enabled');

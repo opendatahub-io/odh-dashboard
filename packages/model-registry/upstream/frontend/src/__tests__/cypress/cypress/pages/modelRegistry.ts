@@ -94,6 +94,10 @@ class ModelRegistry {
     return cy.findByTestId('unavailable-model-registry');
   }
 
+  findWhosMyAdministratorLink() {
+    return cy.findByTestId('whos-my-admin-link');
+  }
+
   shouldregisteredModelsEmpty() {
     cy.findByTestId('empty-registered-models').should('exist');
   }
@@ -188,11 +192,19 @@ class ModelRegistry {
   }
 
   findTableSearch() {
-    return cy.findByTestId('filter-toolbar-text-field');
+    return cy.get('[data-testid$="-toolbar"]').find('[data-testid$="-input"]').filter(':visible');
   }
 
   findFilterDropdownItem(name: string) {
-    return cy.findByTestId(`filter-toolbar-dropdown`).findDropdownItem(name);
+    return cy
+      .get('[data-testid$="-toolbar"]')
+      .find('[data-testid$="-dropdown"]')
+      .then(($el) => {
+        if ($el.attr('aria-expanded') === 'false') {
+          cy.wrap($el).click();
+        }
+        return cy.get('body').findByRole('option', { name });
+      });
   }
 
   findModelVersionsTableToolbar() {
@@ -212,15 +224,16 @@ class ModelRegistry {
   }
 
   findModelVersionsTableFilterOption(name: string) {
-    return cy.findByTestId('filter-toolbar-dropdown').findDropdownItem(name);
+    return cy.findByTestId('model-versions-table-dropdown').then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+      return cy.findByRole('option', { name });
+    });
   }
 
   findRegisterModelButton() {
     return cy.findByRole('button', { name: 'Register model' });
-  }
-
-  findRegisteredModelsTableToolbar() {
-    return cy.findByTestId('registered-models-table-toolbar');
   }
 }
 

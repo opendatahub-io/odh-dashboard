@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/nim-serving",
   "description": "NIM serving extensions for the model deployment wizard.",
   "version": "0.0.0",
+  "e2eCiTags": ["@NIMServingCI"],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -16,14 +17,24 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/kserve": "*",
     "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*",
-    "@openshift/dynamic-plugin-sdk-utils": "*"
+    "@odh-dashboard/ui-core": "*",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router-dom": "^7"
   }
 }

@@ -1,13 +1,16 @@
 import React from 'react';
 import {
+  APIKey,
   APIKeyStatus,
+  APIKeyDisplayStatus,
   APIKeySearchRequest,
   ApiKeyFilterDataType,
   initialApiKeyFilterData,
   emptyApiKeyFilterData,
   APIKeyListResponse,
 } from '~/app/types/api-key';
-import { ApiKeySortField } from '~/app/pages/api-keys/allKeys/columns';
+import { ApiKeySortField } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
+import { applyInactiveFilter, isKeyInactive as isKeyInactiveUtil } from '~/app/utilities/apiKeys';
 import { useFetchApiKeys } from './useFetchApiKeys';
 
 type SortDirection = 'asc' | 'desc';
@@ -16,11 +19,13 @@ const DEFAULT_SORT_FIELD: ApiKeySortField = 'created_at';
 const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
 const DEFAULT_PER_PAGE = 50;
 
-type UseApiKeysTableStateReturn = {
+export type UseApiKeysTableStateReturn = {
   response: APIKeyListResponse;
   loaded: boolean;
+  error: Error | undefined;
   refresh: () => void;
   filterData: ApiKeyFilterDataType;
+  isKeyInactive: (key: APIKey) => boolean;
   localUsername: string;
   setLocalUsername: React.Dispatch<React.SetStateAction<string>>;
   page: number;
@@ -29,8 +34,9 @@ type UseApiKeysTableStateReturn = {
   sortDirection: SortDirection;
   isFetching: boolean;
   onUsernameChange: (value: string) => void;
-  onStatusToggle: (status: APIKeyStatus) => void;
-  onStatusClear: (status: APIKeyStatus) => void;
+  onStatusToggle: (status: APIKeyDisplayStatus) => void;
+  onStatusClear: (status: APIKeyDisplayStatus) => void;
+  onSubscriptionChange: (subscription: string) => void;
   onSort: (field: ApiKeySortField, direction: SortDirection) => void;
   onSetPage: (newPage: number) => void;
   onPerPageSelect: (newPerPage: number, newPage: number) => void;
@@ -46,19 +52,58 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   const [localUsername, setLocalUsername] = React.useState('');
   const [isFetching, setIsFetching] = React.useState(false);
 
+  // The API has no concept of "inactive" — it only knows active | revoked | expired.
+  // "Inactive" is a client-side display status for active keys whose subscription was
+  // deleted.  When the user selects the "Inactive" filter we must still request
+  // "active" keys from the server (they are the superset that includes inactive ones),
+  // then narrow the results client-side via applyInactiveFilter.
+  const apiFilterStatuses: APIKeyStatus[] = React.useMemo(() => {
+    const hasInactive = filterData.statuses.includes('inactive');
+    const result = filterData.statuses.filter((s): s is APIKeyStatus => s !== 'inactive');
+    if (hasInactive && !result.includes('active')) {
+      result.push('active');
+    }
+    return result;
+  }, [filterData.statuses]);
+
   const searchRequest: APIKeySearchRequest = React.useMemo(
     () => ({
       filters: {
         ...(filterData.username && { username: filterData.username }),
-        ...(filterData.statuses.length > 0 && { status: filterData.statuses }),
+        ...(apiFilterStatuses.length > 0 && { status: apiFilterStatuses }),
+        ...(filterData.subscription && { subscription: filterData.subscription }),
       },
       sort: { by: sortField, order: sortDirection },
       pagination: { limit: perPage, offset: (page - 1) * perPage },
     }),
-    [filterData, sortField, sortDirection, page, perPage],
+    [
+      filterData.username,
+      apiFilterStatuses,
+      filterData.subscription,
+      sortField,
+      sortDirection,
+      page,
+      perPage,
+    ],
   );
 
-  const [response, loaded, , refresh] = useFetchApiKeys(searchRequest);
+  const [rawResponse, loaded, error, refresh] = useFetchApiKeys(searchRequest);
+
+  const isKeyInactive = React.useCallback(
+    (key: APIKey): boolean => isKeyInactiveUtil(key, rawResponse.subscriptionDetails),
+    [rawResponse.subscriptionDetails],
+  );
+
+  const { data: filteredData } = React.useMemo(
+    () => applyInactiveFilter(rawResponse.data, filterData.statuses, isKeyInactive),
+    [rawResponse.data, filterData.statuses, isKeyInactive],
+  );
+
+  const response = React.useMemo(
+    (): APIKeyListResponse =>
+      filteredData === rawResponse.data ? rawResponse : { ...rawResponse, data: filteredData },
+    [rawResponse, filteredData],
+  );
 
   React.useEffect(() => {
     setIsFetching(false);
@@ -73,7 +118,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     [localUsername],
   );
 
-  const onStatusToggle = React.useCallback((status: APIKeyStatus) => {
+  const onStatusToggle = React.useCallback((status: APIKeyDisplayStatus) => {
     setFilterData((prev) => ({
       ...prev,
       statuses: prev.statuses.includes(status)
@@ -84,7 +129,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     setIsFetching(true);
   }, []);
 
-  const onStatusClear = React.useCallback((status: APIKeyStatus) => {
+  const onStatusClear = React.useCallback((status: APIKeyDisplayStatus) => {
     setFilterData((prev) => ({
       ...prev,
       statuses: prev.statuses.filter((s) => s !== status),
@@ -92,6 +137,18 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     setPage(1);
     setIsFetching(true);
   }, []);
+
+  const onSubscriptionChange = React.useCallback(
+    (subscription: string) => {
+      if (filterData.subscription === subscription) {
+        return;
+      }
+      setFilterData((prev) => ({ ...prev, subscription }));
+      setPage(1);
+      setIsFetching(true);
+    },
+    [filterData.subscription],
+  );
 
   const onSort = React.useCallback((field: ApiKeySortField, direction: SortDirection) => {
     setSortField(field);
@@ -121,8 +178,10 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   return {
     response,
     loaded,
+    error,
     refresh,
     filterData,
+    isKeyInactive,
     localUsername,
     setLocalUsername,
     page,
@@ -133,6 +192,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     onUsernameChange,
     onStatusToggle,
     onStatusClear,
+    onSubscriptionChange,
     onSort,
     onSetPage,
     onPerPageSelect,

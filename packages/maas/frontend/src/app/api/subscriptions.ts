@@ -28,6 +28,7 @@ import {
   UserSubscription,
   ModelRefInfo,
   TokenRateLimitInfo,
+  ModelOverviewItem,
 } from '~/app/types/subscriptions';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
@@ -289,6 +290,36 @@ export const listUserSubscriptions =
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
         return response.data.filter(isUserSubscription);
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getUserSubscription =
+  (hostPath = '') =>
+  (id: string) =>
+  (opts: APIOptions): Promise<UserSubscription> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions/${encodeURIComponent(id)}`,
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isUserSubscription(response.data)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getModelsOverview =
+  (hostPath = '') =>
+  (opts: APIOptions): Promise<ModelOverviewItem[]> =>
+    handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/overview/models`, {}, opts),
+    ).then((response) => {
+      if (isModArchResponse<ModelOverviewItem[]>(response) && Array.isArray(response.data)) {
+        return response.data;
       }
       throw new Error('Invalid response format');
     });

@@ -16,7 +16,6 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import {
   checkInferenceServiceState,
-  modelExternalTester,
   provisionProjectForModelServing,
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
@@ -66,7 +65,9 @@ describe('A model can be deployed with token auth', () => {
 
   it(
     'Verify that a model can be deployed with token auth',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
+    {
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@ModelServingCI', '@KServeCI'],
+    },
     () => {
       cy.log('Model Name:', modelName);
       cy.step('Log into the application as admin');
@@ -90,6 +91,7 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
+      modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
@@ -129,7 +131,7 @@ describe('A model can be deployed with token auth', () => {
 
       // Verify the model is not accessible without a token
       cy.step('Verify the model is not accessible without a token');
-      modelExternalTester(modelName, projectName).then(({ response }) => {
+      verifyModelExternalToken(modelName, projectName).then(({ response }) => {
         expect(response.status).to.equal(401);
       });
 

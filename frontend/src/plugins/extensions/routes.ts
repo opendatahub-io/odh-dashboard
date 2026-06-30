@@ -1,7 +1,7 @@
 import type { RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '#~/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('#~/utilities/v2Redirect').then((module) => ({
@@ -384,7 +384,7 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     flags: {
-      required: [ADMIN_USER],
+      required: [SupportedArea.MODEL_REGISTRY, ADMIN_USER],
     },
     properties: {
       path: '/settings/model-resources-operations/model-registry/*',
@@ -394,7 +394,7 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     flags: {
-      required: [ADMIN_USER],
+      required: [SupportedArea.MODEL_REGISTRY, ADMIN_USER],
     },
     properties: {
       path: '/modelRegistrySettings/*',

@@ -56,6 +56,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.automl-ui-image
+  - name: automl-pipeline-runtime-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.automl-pipeline-runtime-image
   - name: autorag-ui-image
     objref:
       kind: ConfigMap
@@ -63,6 +70,20 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.autorag-ui-image
+  - name: autorag-pipeline-runtime-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.autorag-pipeline-runtime-image
+  - name: agent-ops-ui-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.agent-ops-ui-image
 configurations:
   - params.yaml
 patchesJson6902:

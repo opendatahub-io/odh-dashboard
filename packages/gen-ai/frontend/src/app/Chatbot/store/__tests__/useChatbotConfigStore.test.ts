@@ -1,6 +1,9 @@
 /* eslint-disable camelcase */
 import { act } from '@testing-library/react';
-import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore';
+import {
+  useChatbotConfigStore,
+  createChatbotConfigStore,
+} from '~/app/Chatbot/store/useChatbotConfigStore';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 
@@ -1250,6 +1253,198 @@ describe('useChatbotConfigStore', () => {
         'Modified in original',
       );
       expect(state.configurations[newConfigId!]?.activePrompt?.template).toBe('Test template');
+    });
+  });
+
+  describe('createChatbotConfigStore (factory)', () => {
+    it('should create an independent store instance', () => {
+      const scopedStore = createChatbotConfigStore();
+      const state = scopedStore.getState();
+
+      expect(state.configIds).toEqual([DEFAULT_CONFIG_ID]);
+      expect(state.configurations[DEFAULT_CONFIG_ID]).toBeDefined();
+    });
+
+    it('should apply initialConfig overrides', () => {
+      const scopedStore = createChatbotConfigStore({
+        initialConfig: {
+          selectedModel: 'custom-model',
+          isStreamingEnabled: false,
+        },
+      });
+      const state = scopedStore.getState();
+
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe('custom-model');
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.isStreamingEnabled).toBe(false);
+    });
+
+    it('should not share state with the singleton store', () => {
+      const scopedStore = createChatbotConfigStore({
+        initialConfig: { selectedModel: 'scoped-model' },
+      });
+
+      // Singleton should still have default
+      const singletonState = useChatbotConfigStore.getState();
+      expect(singletonState.configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe('');
+
+      // Scoped should have its own value
+      const scopedState = scopedStore.getState();
+      expect(scopedState.configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe('scoped-model');
+    });
+
+    it('should skip sessionStorage when skipSessionStorage is true', () => {
+      const scopedStore = createChatbotConfigStore({ skipSessionStorage: true });
+      const state = scopedStore.getState();
+
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.mcpToolSelections).toEqual({});
+    });
+
+    it('should support store actions (updateSelectedModel)', () => {
+      const scopedStore = createChatbotConfigStore();
+
+      act(() => {
+        scopedStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'new-model');
+      });
+
+      expect(scopedStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe(
+        'new-model',
+      );
+    });
+  });
+
+  describe('ASR model selection', () => {
+    it('should update selectedAsrModel', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
+    });
+
+    it('should update isAsrModelEnabled', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.isAsrModelEnabled).toBe(true);
+    });
+
+    it('should not affect ASR fields when updating selectedModel', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'new-chat-model');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.isAsrModelEnabled).toBe(true);
+    });
+
+    it('should copy ASR fields in duplicateConfiguration', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      const newConfigId = state.configIds[1];
+      const newConfig = state.configurations[newConfigId];
+
+      expect(newConfig?.selectedAsrModel).toBe('whisper-large-v3');
+      expect(newConfig?.isAsrModelEnabled).toBe(true);
+    });
+  });
+
+  describe('setLoadedProfileSpec', () => {
+    it('should store the spec', () => {
+      const spec = {
+        displayName: 'My Agent',
+        model: { id: 'llama-3', uri: 'http://llama.svc' },
+        temperature: 0.7,
+        stream: true,
+      };
+
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileSpec(spec);
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileSpec).toEqual(spec);
+    });
+
+    it('should clear the spec when called with null', () => {
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileSpec({
+          displayName: 'A',
+          model: { id: 'x', uri: '' },
+          temperature: 0.1,
+          stream: false,
+        });
+        useChatbotConfigStore.getState().setLoadedProfileSpec(null);
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileSpec).toBeNull();
+    });
+
+    it('should be cleared by resetConfiguration', () => {
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileSpec({
+          displayName: 'A',
+          model: { id: 'x', uri: '' },
+          temperature: 0.1,
+          stream: false,
+        });
+        useChatbotConfigStore.getState().resetConfiguration();
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileSpec).toBeNull();
+    });
+  });
+
+  describe('setLoadedProfileWarnings', () => {
+    it('should store warnings', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .setLoadedProfileWarnings(['Model "x" is no longer available.']);
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toEqual([
+        'Model "x" is no longer available.',
+      ]);
+    });
+
+    it('should clear warnings when called with null', () => {
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileWarnings(['some warning']);
+        useChatbotConfigStore.getState().setLoadedProfileWarnings(null);
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toBeNull();
+    });
+
+    it('should be cleared by resetConfiguration', () => {
+      act(() => {
+        useChatbotConfigStore.getState().setLoadedProfileWarnings(['some warning']);
+        useChatbotConfigStore.getState().resetConfiguration();
+      });
+
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toBeNull();
     });
   });
 });

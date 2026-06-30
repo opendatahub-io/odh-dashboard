@@ -147,6 +147,57 @@ paths:
         - 'storage': Returns only secrets classified as storage types (currently: s3 via key-based classification, or any secret with connection-type annotation matching 'storage')
         - 'ogx': Returns only secrets classified as OGX type (via key-based classification or connection-type annotation)
         - No type: Returns all secrets with their detected type classification
+  /api/v1/secret/{name}:
+    summary: Path used to retrieve credential data from a named secret.
+    description: >-
+      The REST endpoint/path used to retrieve credential data from a single Kubernetes secret.
+      Only allowed credential keys are returned; other keys in the secret are omitted.
+      Currently returns OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY.
+      Values are base64-encoded in the response for transport safety.
+      The response includes Cache-Control: no-store to prevent credential caching.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: The name of the Kubernetes secret to retrieve
+          schema:
+            type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+          example: my-ogx-secret
+        - name: namespace
+          in: query
+          required: true
+          description: The namespace containing the secret
+          schema:
+            type: string
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          example: default
+      responses:
+        "200":
+          $ref: "#/components/responses/SecretDataResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getSecretByName
+      summary: Get credential data from a named secret
+      description: >-
+        Retrieves allowed credential keys from a single Kubernetes secret by name.
+        Only permitted keys (currently OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
+        are returned; all other keys are omitted. Values are base64-encoded.
+        The caller must decode values with base64 decoding before use.
+
   # =============================================================================
   # S3 Endpoints
   # =============================================================================
@@ -579,8 +630,8 @@ paths:
       summary: Get Pipeline Runs
       description: >-
         Returns pipeline runs across all versions of the auto-discovered AutoRAG managed pipeline.
-        The AutoRAG pipeline is automatically discovered in the namespace by name prefix.
-        Returns 500 if no managed AutoRAG pipeline is found in the namespace.
+        The AutoRAG pipeline is automatically discovered in the namespace by display name.
+        Returns 404 Not Found if required managed pipelines are unavailable in the namespace.
     post:
       tags:
         - PipelineOperation
@@ -625,8 +676,8 @@ paths:
         Creates a new AutoRAG pipeline run. The BFF automatically discovers the managed
         AutoRAG pipeline in the namespace and injects the pipeline ID and version ID.
         The optional pipelineType parameter selects which discovered pipeline to use
-        (currently only "autorag" is supported). If no matching AutoRAG pipeline is found,
-        returns a 500 error. The Pipeline Server (DSPipelineApplication) is also
+        (currently only "autorag" is supported). Returns 404 Not Found if required managed
+        pipelines are unavailable in the namespace. The Pipeline Server (DSPipelineApplication) is also
         auto-discovered. The BFF maps AutoRAG-specific parameters to KFP v2beta1 runtime
         config and submits the run.
 
@@ -637,8 +688,8 @@ paths:
       Pipeline Server in the specified namespace. The Pipeline Server
       (DSPipelineApplication) and AutoRAG managed pipeline are automatically discovered.
       The run is validated to ensure it belongs to the discovered AutoRAG pipeline before
-      being returned. Returns 404 if the run doesn't exist or belongs to a different pipeline.
-      Returns 500 if no AutoRAG pipeline is found in the namespace.
+      being returned. Returns 404 if the run doesn't exist, belongs to a different pipeline,
+      or required managed pipelines are unavailable in the namespace.
     get:
       tags:
         - PipelineOperation
@@ -709,7 +760,9 @@ paths:
         Permanently deletes a completed, failed, or canceled AutoRAG pipeline run. The BFF validates
         that the run belongs to the discovered AutoRAG managed pipeline in the namespace and that it
         is in a deletable state (SUCCEEDED, FAILED, or CANCELED) before deleting it. This prevents
-        users from deleting runs from other pipelines in the same namespace.
+        users from deleting runs from other pipelines in the same namespace. Returns 404 if the run
+        doesn't exist, belongs to a different pipeline, or required managed pipelines are
+        unavailable in the namespace.
 
   /api/v1/pipeline-runs/{runId}/terminate:
     summary: Terminate an active pipeline run
@@ -717,8 +770,8 @@ paths:
       Terminates an active pipeline run, cancelling all running tasks and transitioning the run
       to CANCELING and then CANCELED state. The run must be in an active state (PENDING, RUNNING,
       PAUSED, or CANCELING) and belong to the discovered AutoRAG pipeline in the namespace.
-      Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist or
-      belongs to a different pipeline.
+      Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist,
+      belongs to a different pipeline, or required managed pipelines are unavailable in the namespace.
     post:
       tags:
         - PipelineOperation
@@ -755,7 +808,8 @@ paths:
         CANCELED state. The run must be in an active state (PENDING, RUNNING, PAUSED, or
         CANCELING). The BFF validates that the run belongs to the discovered AutoRAG managed
         pipeline in the namespace and that it is in a terminatable state before proceeding.
-        Returns 400 if the run is not in a terminatable state.
+        Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist,
+        belongs to a different pipeline, or required managed pipelines are unavailable in the namespace.
 
   /api/v1/pipeline-runs/{runId}/retry:
     summary: Retry a failed or canceled pipeline run
@@ -763,7 +817,8 @@ paths:
       Re-initiates a failed or canceled pipeline run from the point of failure. The run must
       belong to the discovered AutoRAG pipeline in the namespace and must be in FAILED or
       CANCELED state. Returns 400 if the run is not in a retryable state, or 404 if the run
-      doesn't exist or belongs to a different pipeline.
+      doesn't exist, belongs to a different pipeline, or required managed pipelines are
+      unavailable in the namespace.
     post:
       tags:
         - PipelineOperation
@@ -799,7 +854,9 @@ paths:
         Re-initiates a failed or canceled AutoRAG pipeline run. The BFF validates that the run
         belongs to the discovered AutoRAG managed pipeline in the namespace and that it is in a
         retryable state (FAILED or CANCELED) before retrying it. This prevents users from
-        retrying runs from other pipelines in the same namespace.
+        retrying runs from other pipelines in the same namespace. Returns 404 if the run doesn't
+        exist, belongs to a different pipeline, or required managed pipelines are unavailable
+        in the namespace.
 
 components:
   schemas:
@@ -1528,6 +1585,19 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            managed-pipeline-unavailable:
+              summary: Required managed pipelines are not provisioned
+              value:
+                error:
+                  code: "404"
+                  message: "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
+            resource-not-found:
+              summary: Requested resource does not exist
+              value:
+                error:
+                  code: "404"
+                  message: "the requested resource could not be found"
       description: The specified resource was not found
     BadRequest:
       content:
@@ -1706,6 +1776,30 @@ components:
               value:
                 data: []
       description: A response containing a list of filtered secret items
+
+    SecretDataResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                type: object
+                additionalProperties:
+                  type: string
+                description: >-
+                  Key-value map of the secret's data. All values are base64-encoded.
+                  The caller must decode values before use.
+          example:
+            data:
+              OGX_CLIENT_BASE_URL: "aHR0cHM6Ly9vZ3guZXhhbXBsZS5jb20="
+              OGX_CLIENT_API_KEY: "UkVQTEFDRS1XSVRILUFQSS1LRVk="
+      description: A response containing a single secret's base64-encoded key-value data
 
     PipelineRunsResponse:
       description: Successful response containing pipeline runs

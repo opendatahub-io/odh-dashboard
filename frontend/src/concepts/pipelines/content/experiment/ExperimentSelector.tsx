@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { EmptyStateVariant, Button, Divider } from '@patternfly/react-core';
+import { EmptyStateVariant, Button } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
 import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
-import { TableBase, getTableColumnSort } from '#~/components/table';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 import PipelineViewMoreFooterRow from '#~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { useActiveExperimentSelector } from '#~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
 import { experimentSelectorColumns } from '#~/concepts/pipelines/content/experiment/columns';
 import SearchSelector from '#~/components/searchSelector/SearchSelector';
@@ -54,62 +53,9 @@ const InnerExperimentSelector: React.FC<
         }
         searchHelpText={`Type a name to search your ${totalSize} run groups.`}
         isDisabled={totalSize === 0}
-      >
-        {({ menuClose }) => (
-          <>
-            <div className="pf-v6-c-menu__content">
-              <TableBase
-                itemCount={fetchedSize}
-                loading={!loaded}
-                emptyTableView={
-                  <DashboardEmptyTableView
-                    hasIcon={false}
-                    onClearFilters={onSearchClear}
-                    variant={EmptyStateVariant.xs}
-                  />
-                }
-                data-testid={`${dataTestId}-table-list`}
-                borders={false}
-                variant={TableVariant.compact}
-                columns={experimentSelectorColumns}
-                data={experiments}
-                rowRenderer={(row) => (
-                  <PipelineSelectorTableRow
-                    key={row.experiment_id}
-                    obj={row}
-                    onClick={() => {
-                      onSelect(row);
-                      menuClose();
-                    }}
-                  />
-                )}
-                getColumnSort={getTableColumnSort({
-                  columns: experimentSelectorColumns,
-                  ...sortProps,
-                })}
-                footerRow={() =>
-                  loaded ? (
-                    <PipelineViewMoreFooterRow
-                      visibleLength={experiments.length}
-                      totalSize={fetchedSize}
-                      errorTitle="Error loading more run groups"
-                      onClick={onLoadMore}
-                      colSpan={2}
-                    />
-                  ) : null
-                }
-              />
-            </div>
-            {loaded && (
-              <div
-                className="pf-v6-c-menu__footer pf-v6-u-box-shadow-sm-top"
-                style={{
-                  position: 'sticky',
-                  bottom: 0,
-                  backgroundColor: 'var(--pf-v6-c-menu--BackgroundColor)',
-                }}
-              >
-                <Divider />
+        footer={
+          initialLoaded && loaded
+            ? ({ menuClose }) => (
                 <Button
                   variant="link"
                   icon={<PlusCircleIcon />}
@@ -117,13 +63,55 @@ const InnerExperimentSelector: React.FC<
                     menuClose();
                     setIsModalOpen(true);
                   }}
-                  style={{ paddingLeft: '20px' }}
                 >
                   Create new run group
                 </Button>
-              </div>
+              )
+            : undefined
+        }
+      >
+        {({ menuClose }) => (
+          <TableBase
+            itemCount={fetchedSize}
+            loading={!loaded}
+            emptyTableView={
+              <DashboardEmptyTableView
+                hasIcon={false}
+                onClearFilters={onSearchClear}
+                variant={EmptyStateVariant.xs}
+              />
+            }
+            data-testid={`${dataTestId}-table-list`}
+            borders={false}
+            variant={TableVariant.compact}
+            columns={experimentSelectorColumns}
+            data={experiments}
+            rowRenderer={(row) => (
+              <PipelineSelectorTableRow
+                key={row.experiment_id}
+                obj={row}
+                onClick={() => {
+                  onSelect(row);
+                  menuClose();
+                }}
+              />
             )}
-          </>
+            getColumnSort={getTableColumnSort({
+              columns: experimentSelectorColumns,
+              ...sortProps,
+            })}
+            footerRow={() =>
+              loaded ? (
+                <PipelineViewMoreFooterRow
+                  visibleLength={experiments.length}
+                  totalSize={fetchedSize}
+                  errorTitle="Error loading more run groups"
+                  onClick={onLoadMore}
+                  colSpan={2}
+                />
+              ) : null
+            }
+          />
         )}
       </SearchSelector>
       {isModalOpen && (

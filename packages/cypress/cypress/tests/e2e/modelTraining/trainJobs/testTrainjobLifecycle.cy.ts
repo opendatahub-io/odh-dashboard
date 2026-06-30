@@ -107,7 +107,7 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
   it(
     'Should monitor training job from Running to Complete and verify backend pods',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ModelTraining'],
+      tags: ['@Smoke', '@SmokeSet1', '@ModelTraining', '@ModelTrainingCI'],
     },
     function monitorLifecycle() {
       if (skipTest) {

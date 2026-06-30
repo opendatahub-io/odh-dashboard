@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button, Flex, FlexItem, Content } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
-import { ProjectKind } from '#~/k8sTypes';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 
 interface PipelineCardItemsProps {

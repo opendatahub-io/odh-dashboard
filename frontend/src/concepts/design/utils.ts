@@ -21,6 +21,7 @@ import storageClassesEmptyStateImg from '#~/images/empty-state-storage-classes.s
 import modelRegistryMissingModelImg from '#~/images/no-models-model-registry.svg';
 import modelRegistryMissingVersionImg from '#~/images/no-versions-model-registry.svg';
 import modelRegistrySelectImg from '#~/images/UI_icon-Red_Hat-Registered.svg';
+import agentOpsImg from '#~/images/UI_icon-Red_Hat-Agentic_AI-Black.svg';
 
 import './vars.scss';
 
@@ -77,7 +78,9 @@ export enum ProjectObjectType {
   featureStore = 'feature-store',
   promptManagement = 'prompt-management',
   mcpCatalog = 'mcp-catalog',
+  agentOps = 'agent-ops',
   taskAssistant = 'task-assistant',
+  apiKeys = 'api-keys',
 }
 
 export const typedIconColor = (objectType: ProjectObjectType): string => {
@@ -131,6 +134,7 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-general--IconColor)';
     case ProjectObjectType.distributedWorkload:
     case ProjectObjectType.mcpCatalog:
+    case ProjectObjectType.agentOps:
       return 'var(--ai-serving--IconColor)';
     case ProjectObjectType.clusterSettings:
     case ProjectObjectType.hardwareProfile:
@@ -141,6 +145,8 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-set-up--IconColor)';
     case ProjectObjectType.taskAssistant:
       return 'var(--ai-general--IconColor)';
+    case ProjectObjectType.apiKeys:
+      return 'var(--ai-organize--IconColor)';
     default:
       return '';
   }
@@ -200,6 +206,7 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-general--BackgroundColor)';
     case ProjectObjectType.distributedWorkload:
     case ProjectObjectType.mcpCatalog:
+    case ProjectObjectType.agentOps:
       return 'var(--ai-serving--BackgroundColor)';
     case ProjectObjectType.clusterSettings:
     case ProjectObjectType.hardwareProfile:
@@ -208,6 +215,8 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.taskAssistant:
       return 'var(--ai-general--BackgroundColor)';
+    case ProjectObjectType.apiKeys:
+      return 'var(--ai-organize--BackgroundColor)';
     default:
       return '';
   }
@@ -253,6 +262,7 @@ export const typedColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.group:
       return 'var(--ai-group--Color)';
     case ProjectObjectType.mcpCatalog:
+    case ProjectObjectType.agentOps:
       return 'var(--ai-serving--Color)';
     default:
       return '';
@@ -291,6 +301,8 @@ export const typedObjectImage = (objectType: ProjectObjectType): string => {
       return userImg;
     case ProjectObjectType.group:
       return groupImg;
+    case ProjectObjectType.agentOps:
+      return agentOpsImg;
     default:
       return '';
   }

@@ -17,13 +17,10 @@ import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import type {
-  DataScienceClusterKindStatus,
-  InferenceServiceKind,
-  ServingRuntimeKind,
-} from '@odh-dashboard/internal/k8sTypes';
+import type { DataScienceClusterKindStatus } from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import {
   mockGlobalScopedHardwareProfiles,
@@ -31,7 +28,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelServing/useStopModalPreference';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
-import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockNimResource';
+import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import {
   ModelStateToggleLabel,

@@ -3,13 +3,13 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { NotebookKind } from '#~/k8sTypes';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
 import { resourceTypeOf } from '#~/concepts/hardwareProfiles/utils';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton.tsx';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import HardwareProfileBindingStateLabel from './HardwareProfileBindingStateLabel';
 import { HardwareProfileBindingState } from './const';

@@ -3,6 +3,7 @@ import {
   FlexItem,
   HelperTextItem,
   HelperText,
+  Icon,
   Label,
   Split,
   SplitItem,
@@ -14,11 +15,12 @@ import {
   FormHelperText,
 } from '@patternfly/react-core';
 import * as React from 'react';
+import { InfoCircleIcon } from '@patternfly/react-icons';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { formatResource, formatResourceValue } from '#~/concepts/hardwareProfiles/utils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import { HardwareProfileKind } from '#~/k8sTypes';
 import TruncatedText from '#~/components/TruncatedText';
 import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon.tsx';
 import {
@@ -37,6 +39,7 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectsContext, byName } from '#~/concepts/projects/ProjectsContext';
 import {
   filterProfilesByKueue,
+  KueueFilteringState,
   useKueueConfiguration,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { useApplicationSettings } from '#~/app/useApplicationSettings';
@@ -294,6 +297,25 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     return <Skeleton />;
   }
 
+  const kueueFilteringInfoHelper =
+    kueueFilteringState === KueueFilteringState.ONLY_KUEUE_PROFILES ? (
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem
+            icon={
+              <Icon status="info">
+                <InfoCircleIcon />
+              </Icon>
+            }
+            data-testid="kueue-filtering-info"
+          >
+            Only hardware profiles configured with a local queue are shown because this project uses
+            Kueue for workload scheduling.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
+    ) : null;
+
   return (
     <>
       <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
@@ -390,6 +412,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               ) : hardwareProfileConfig.useExistingSettings ? (
                 'Use existing resource requests/limits, tolerations, and node selectors.'
               ) : null}
+              {kueueFilteringInfoHelper}
               {(hardwareProfilesError || currentProjectHardwareProfilesError) && (
                 <HelperText isLiveRegion>
                   <HelperTextItem variant="error">Error loading hardware profiles</HelperTextItem>
@@ -427,6 +450,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 isSkeleton={!hardwareProfilesLoaded && !hardwareProfilesError}
                 isScrollable
               />
+              {kueueFilteringInfoHelper}
               {hardwareProfilesError && (
                 <HelperText isLiveRegion>
                   <HelperTextItem variant="error">Error loading hardware profiles</HelperTextItem>

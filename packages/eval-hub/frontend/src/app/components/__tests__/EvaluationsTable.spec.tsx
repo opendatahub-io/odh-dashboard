@@ -6,6 +6,23 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const mockOnRefresh = jest.fn();
+const mockNavigate = jest.fn();
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
+
+jest.mock('@odh-dashboard/ui-core', () => ({
+  DashboardEmptyTableView: ({ onClearFilters }: { onClearFilters: () => void }) => (
+    <div data-testid="dashboard-empty-table-state">
+      <h2>No results found</h2>
+      <button type="button" data-testid="clear-filters-button" onClick={onClearFilters}>
+        Clear
+      </button>
+    </div>
+  ),
+}));
 
 const renderTable = (props: {
   evaluations: EvaluationJob[];
@@ -52,7 +69,41 @@ const mockJobs: EvaluationJob[] = [
   }),
 ];
 
+for (let index = 0; index < mockJobs.length; index += 1) {
+  const currentJob = mockJobs[index];
+  /* eslint-disable camelcase */
+  mockJobs[index] = {
+    ...currentJob,
+    resource: {
+      ...currentJob.resource,
+      mlflow_experiment_id: `exp-${index}`,
+    },
+    results: {
+      ...currentJob.results,
+      benchmarks: [
+        {
+          id: currentJob.benchmarks?.[0]?.id ?? `benchmark-${index}`,
+          benchmark_index: 0,
+          mlflow_run_id: `run-${index}`,
+        },
+      ],
+    },
+    benchmarks: [
+      {
+        id: currentJob.benchmarks?.[0]?.id ?? `benchmark-${index}`,
+        provider_id: 'lm_evaluation_harness',
+        benchmark_index: 0,
+      },
+    ],
+  };
+  /* eslint-enable camelcase */
+}
+
 describe('EvaluationsTable', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should return null when not loaded', () => {
     const { container } = renderTable({ evaluations: [], loaded: false });
     expect(container.firstChild).toBeNull();
@@ -78,6 +129,108 @@ describe('EvaluationsTable', () => {
     );
   });
 
+  it('should disable row checkboxes when evaluation is not completed', () => {
+    renderTable({ evaluations: mockJobs, loaded: true });
+
+    expect(screen.getByLabelText('Select Alpha Evaluation')).toBeEnabled();
+    expect(screen.getByLabelText('Select Beta Evaluation')).toBeDisabled();
+    expect(screen.getByLabelText('Select Gamma Evaluation')).toBeDisabled();
+  });
+
+  it('should disable compare button until at least two completed rows are selected', () => {
+    const evaluations = [
+      mockJobs[0],
+      {
+        ...mockJobs[2],
+        resource: { ...mockJobs[2].resource, id: 'job-completed-2' },
+        status: { ...mockJobs[2].status, state: 'completed' as const },
+      },
+      mockJobs[1],
+    ];
+
+    renderTable({ evaluations, loaded: true });
+
+    const compareButton = screen.getByTestId('compare-evaluations-button');
+    expect(compareButton).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText('Select Alpha Evaluation'));
+    expect(compareButton).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText('Select Gamma Evaluation'));
+    expect(compareButton).toBeEnabled();
+  });
+
+  it('should route directly to compare when selected rows are single benchmarks', () => {
+    const evaluations = [
+      mockJobs[0],
+      {
+        ...mockJobs[2],
+        resource: { ...mockJobs[2].resource, id: 'job-completed-2' },
+        status: { ...mockJobs[2].status, state: 'completed' as const },
+      },
+    ];
+
+    renderTable({ evaluations, loaded: true });
+
+    fireEvent.click(screen.getByLabelText('Select Alpha Evaluation'));
+    fireEvent.click(screen.getByLabelText('Select Gamma Evaluation'));
+    fireEvent.click(screen.getByTestId('compare-evaluations-button'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: expect.stringContaining('compare-runs'),
+        search: expect.any(String),
+      }),
+    );
+  });
+
+  it('should route to choose benchmarks when any selected row is a suite', () => {
+    /* eslint-disable camelcase */
+    const suiteJob = mockEvaluationJob({
+      id: 'suite-job',
+      name: 'Suite evaluation',
+      benchmarkId: 'ifeval',
+      createdAt: '2026-02-21T12:00:00Z',
+      score: 0.8,
+    });
+    suiteJob.benchmarks = [
+      { id: 'ifeval', provider_id: 'lm_evaluation_harness', benchmark_index: 0 },
+      { id: 'bbh', provider_id: 'lm_evaluation_harness', benchmark_index: 1 },
+    ];
+    suiteJob.results.benchmarks = [
+      { id: 'ifeval', benchmark_index: 0, mlflow_run_id: 'suite-run-0' },
+      { id: 'bbh', benchmark_index: 1, mlflow_run_id: 'suite-run-1' },
+    ];
+    suiteJob.resource.mlflow_experiment_id = 'suite-exp-id';
+
+    const singleJob = {
+      ...mockJobs[0],
+      resource: {
+        ...mockJobs[0].resource,
+        mlflow_experiment_id: 'single-exp-id',
+      },
+      results: {
+        ...mockJobs[0].results,
+        benchmarks: [{ id: 'MMLU', benchmark_index: 0, mlflow_run_id: 'single-run-id' }],
+      },
+      benchmarks: [{ id: 'MMLU', provider_id: 'lm_evaluation_harness', benchmark_index: 0 }],
+    };
+    /* eslint-enable camelcase */
+
+    renderTable({ evaluations: [suiteJob, singleJob], loaded: true });
+
+    fireEvent.click(screen.getByTestId('evaluation-select-checkbox-0'));
+    fireEvent.click(screen.getByTestId('evaluation-select-checkbox-1'));
+    fireEvent.click(screen.getByTestId('compare-evaluations-button'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: expect.stringContaining('compare-runs/benchmarks'),
+        search: expect.any(String),
+      }),
+    );
+  });
+
   describe('filtering', () => {
     it('should filter by evaluation name', () => {
       renderTable({ evaluations: mockJobs, loaded: true });
@@ -93,7 +246,7 @@ describe('EvaluationsTable', () => {
       const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
       fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
-      expect(screen.getByTestId('evaluations-empty-filter-state')).toBeInTheDocument();
+      expect(screen.getByTestId('dashboard-empty-table-state')).toBeInTheDocument();
       expect(screen.getByText('No results found')).toBeInTheDocument();
     });
 
@@ -102,10 +255,10 @@ describe('EvaluationsTable', () => {
       const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
       fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
-      expect(screen.getByTestId('evaluations-empty-filter-state')).toBeInTheDocument();
+      expect(screen.getByTestId('dashboard-empty-table-state')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('clear-filters-button'));
-      expect(screen.queryByTestId('evaluations-empty-filter-state')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('dashboard-empty-table-state')).not.toBeInTheDocument();
       expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
     });
 

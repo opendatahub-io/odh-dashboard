@@ -1,6 +1,6 @@
 import React from 'react';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
+import type { ToggleState } from '@odh-dashboard/ui-core';
 import { DeploymentEndpointsPopupButton } from './DeploymentEndpointsPopupButton';
 import { Deployment } from '../../../extension-points';
 

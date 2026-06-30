@@ -1,4 +1,4 @@
-IMG ?= quay.io/opendatahub/dashboard-operator:latest
+IMG ?= quay.io/opendatahub/odh-dashboard-operator:latest
 
 .PHONY: all
 all: build
@@ -31,9 +31,11 @@ test: fmt vet ## Run tests.
 
 ##@ Build
 
+SAFE_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null | tr -cd '[:alnum:]_.-' || echo "unknown")
+
 .PHONY: build
 build: fmt vet ## Build manager binary.
-	go build -o bin/manager ./cmd/manager
+	go build -ldflags "-X github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller.Version=$(SAFE_VERSION)" -o bin/manager ./cmd/manager
 
 .PHONY: run
 run: fmt vet ## Run the controller from your host.
@@ -52,6 +54,33 @@ generate: controller-gen ## Generate deepcopy code.
 .PHONY: manifests
 manifests: controller-gen ## Generate CRD manifests.
 	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=config/crd/bases
+
+##@ Helm
+
+CHART_DIR ?= charts/dashboard
+CRD_SOURCE ?= config/crd/bases/components.platform.opendatahub.io_dashboards.yaml
+CRD_CHART ?= $(CHART_DIR)/crds/components.platform.opendatahub.io_dashboards.yaml
+HELM ?= helm
+
+.PHONY: sync-chart-crds
+sync-chart-crds: manifests ## Copy generated CRD into the Helm chart.
+	mkdir -p "$(CHART_DIR)/crds"
+	cp "$(CRD_SOURCE)" "$(CRD_CHART)"
+
+.PHONY: chart-lint
+chart-lint: sync-chart-crds ## Run helm lint on the bootstrap chart.
+	$(HELM) lint "$(CHART_DIR)"
+
+.PHONY: chart-template
+chart-template: sync-chart-crds ## Render the chart locally for smoke testing.
+	$(HELM) template dashboard "$(CHART_DIR)" --namespace opendatahub > /dev/null
+
+.PHONY: chart-validate
+chart-validate: chart-lint chart-template ## Lint and render the Helm chart.
+
+.PHONY: check-chart-crds ## Fail if chart CRD differs from generated CRD.
+check-chart-crds:
+	@diff -q "$(CRD_SOURCE)" "$(CRD_CHART)" >/dev/null || (echo "Chart CRD is out of sync with $(CRD_SOURCE). Run 'make sync-chart-crds'." && exit 1)
 
 ##@ Container
 

@@ -1,0 +1,911 @@
+name: PR Build Validation (Konflux Simulator)
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'packages/**'
+      - 'Dockerfile'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'manifests/**'
+      - '.github/workflows/pr-build-validation.yml'
+
+env:
+  NODE_VERSION: '22'
+
+# Concurrency control: Cancel in-progress runs when new commits are pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Gate job: Centralized skip condition check
+  # All other jobs depend on this to avoid duplicating the skip logic
+  check-skip:
+    name: "Check Skip Condition"
+    runs-on: ubuntu-latest
+    outputs:
+      should-skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - name: Check if validation should be skipped
+        id: check
+        run: |
+          if [[ "${{ contains(github.event.pull_request.title, '[skip konflux-sim]') }}" == "true" ]] || \
+             [[ "${{ contains(github.event.pull_request.labels.*.name, 'skip-konflux-sim') }}" == "true" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "ℹ️  Validation will be skipped ([skip konflux-sim] marker found)"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "✅ Validation will run"
+          fi
+
+  # Phase 0: Early Static Checks (runs first, fails fast)
+  hermetic-preflight:
+    name: "Phase 0: Hermetic Build Preflight"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Validate lockfile for Hermeto/Cachi2 compatibility
+        run: |
+          set -euo pipefail
+
+          echo "::group::Checking package-lock.json for unsupported protocols"
+          # Check for protocols that Hermeto/Cachi2 cannot resolve
+          UNSUPPORTED=$(grep -E '"resolved":\s*"(git\+|github:|file:)' package-lock.json || true)
+          if [ -n "$UNSUPPORTED" ]; then
+            echo "❌ FAIL: Found unsupported dependency protocols for hermetic builds:"
+            echo "$UNSUPPORTED"
+            echo ""
+            echo "Hermeto/Cachi2 requires all dependencies to have HTTP/HTTPS URLs."
+            echo "Replace git+, github:, and file: protocols with registry versions."
+            exit 1
+          fi
+          echo "✅ PASS: No unsupported protocols found"
+          echo "::endgroup::"
+
+          echo "::group::Verifying all dependencies have resolved URLs"
+          # Check that all node_modules dependencies have resolved field
+          # Skip root package ("") and workspace packages (don't start with "node_modules/")
+          if command -v jq &> /dev/null; then
+            MISSING_RESOLVED=$(jq -r '.packages | to_entries[] | select(.key | startswith("node_modules/")) | select(.value.resolved == null or .value.resolved == "") | .key' package-lock.json || true)
+            if [ -n "$MISSING_RESOLVED" ]; then
+              echo "❌ FAIL: Found dependencies without resolved URLs"
+              echo "$MISSING_RESOLVED"
+              exit 1
+            fi
+            echo "✅ PASS: All dependencies have resolved URLs"
+          else
+            echo "⚠️  WARNING: jq not installed, skipping detailed lockfile validation"
+          fi
+          echo "::endgroup::"
+
+      - name: Test hermetic npm install
+        run: |
+          set -euo pipefail
+          echo "::group::Testing hermetic npm install with network disabled"
+
+          # Two-stage approach:
+          # 1. Populate npm cache with network enabled (using npm ci)
+          # 2. Test that npm ci --offline works (simulates hermetic environment)
+
+          # Create Dockerfile that tests hermetic install capability
+          cat > Dockerfile.hermetic-test <<'DOCKERFILE'
+          FROM node:22-alpine AS cache-builder
+          WORKDIR /cache
+          COPY package.json package-lock.json ./
+          COPY packages ./packages
+          # Populate cache - this validates lockfile is complete
+          RUN npm ci --cache /npm-cache --prefer-offline
+
+          FROM node:22-alpine AS hermetic-test
+          WORKDIR /test
+          # Copy populated cache from previous stage
+          COPY --from=cache-builder /npm-cache /root/.npm
+          COPY package.json package-lock.json ./
+          COPY packages ./packages
+          # Install using ONLY cached deps (offline mode)
+          # This simulates Konflux/Hermeto hermetic build
+          RUN npm ci --offline --cache /root/.npm
+          DOCKERFILE
+
+          # Build the image - hermetic-test stage should work entirely from cache
+          if ! docker build -f Dockerfile.hermetic-test -t hermetic-test --target hermetic-test . 2>&1 | tee /tmp/hermetic-build.log; then
+            echo "❌ FAIL: Hermetic install failed"
+            echo ""
+            echo "The offline install failed, which means:"
+            echo "  - package-lock.json is incomplete or out of sync, OR"
+            echo "  - Dependencies have dynamic resolution that requires network access"
+            echo ""
+            echo "::group::Last 50 lines of build output"
+            tail -50 /tmp/hermetic-build.log
+            echo "::endgroup::"
+            exit 1
+          fi
+
+          # Cleanup
+          docker rmi hermetic-test || true
+          rm -f Dockerfile.hermetic-test
+
+          echo "✅ PASS: Hermetic install succeeded (all dependencies resolved from lockfile cache)"
+          echo "::endgroup::"
+
+      - name: Validate workspace dependencies vs Dockerfile COPY
+        run: |
+          set -euo pipefail
+
+          echo "::group::Checking workspace dependencies"
+          if command -v jq &> /dev/null; then
+            # Only scan direct subdirectories of packages/ — top-level workspaces like
+            # backend/ and frontend/ are not Konflux module builds and must not be checked.
+            WORKSPACE_DIRS=$(find packages -mindepth 1 -maxdepth 1 -type d | sort)
+
+            echo "Workspace package directories to check:"
+            echo "$WORKSPACE_DIRS"
+
+            # Track failures — missing COPY lines are a hard build failure in Konflux.
+            # Lesson from #7855: adding a new shared package requires updating every
+            # Dockerfile.workspace that imports it.
+            WORKSPACE_COPY_FAILURES=0
+
+            # Only check Dockerfile.workspace files — those are what upstream Konflux
+            # pipelines reference (verified via .tekton/*-pull-request.yaml).
+            while IFS= read -r dockerfile; do
+              [ -z "$dockerfile" ] && continue
+              echo ""
+              echo "Checking $dockerfile..."
+              DOCKERFILE_DIR=$(dirname "$dockerfile")
+
+              while IFS= read -r ws_dir; do
+                if [ -z "$ws_dir" ]; then continue; fi
+
+                # Read the actual scoped npm package name (e.g. @odh-dashboard/k8s-core)
+                PKG_JSON="$ws_dir/package.json"
+                [ ! -f "$PKG_JSON" ] && continue
+                PKG_NAME=$(jq -r '.name // empty' "$PKG_JSON" 2>/dev/null || true)
+                [ -z "$PKG_NAME" ] && continue
+
+                # Match only exact scoped imports in production source files.
+                # Exclude test files and directories — they don't run inside the
+                # container and their imports (e.g. @odh-dashboard/contract-tests,
+                # @odh-dashboard/jest-config) are dev-only and never need COPYing.
+                IMPORTS=$(grep -r \
+                  --include="*.ts" --include="*.tsx" \
+                  --exclude="*.spec.ts" --exclude="*.spec.tsx" \
+                  --exclude="*.test.ts" --exclude="*.test.tsx" \
+                  --exclude="jest.config.*" \
+                  --exclude-dir="__tests__" \
+                  --exclude-dir="contract-tests" \
+                  --exclude-dir="cypress" \
+                  "from ['\"]${PKG_NAME}['\"]" "$DOCKERFILE_DIR" 2>/dev/null || true)
+
+                if [ -n "$IMPORTS" ]; then
+                  COPY_FOUND=$(grep "COPY.*${ws_dir}/" "$dockerfile" || true)
+                  if [ -z "$COPY_FOUND" ]; then
+                    echo "❌ FAIL: $dockerfile imports '$PKG_NAME' but is missing:"
+                    echo "   COPY --chown=default:root $ws_dir/ ./$ws_dir/"
+                    echo "   Without this, Konflux builds will fail with module-not-found errors."
+                    echo "   Example import found:"
+                    echo "$IMPORTS" | head -3 | sed 's/^/     /'
+                    WORKSPACE_COPY_FAILURES=$((WORKSPACE_COPY_FAILURES + 1))
+                  fi
+                fi
+              done <<< "$WORKSPACE_DIRS"
+            done < <(find . -name "Dockerfile.workspace" -not -path "*/node_modules/*")
+
+            if [ "$WORKSPACE_COPY_FAILURES" -gt 0 ]; then
+              echo ""
+              echo "❌ TOTAL: $WORKSPACE_COPY_FAILURES Dockerfile(s) are missing COPY instructions for workspace packages they import."
+              echo "   These will cause build failures in Konflux and downstream Dockerfile.konflux.* variants."
+              echo "   Add the missing COPY lines to each Dockerfile listed above."
+              echo "::endgroup::"
+              exit 1
+            fi
+
+            echo "✅ PASS: All Dockerfiles COPY the workspace packages they import"
+          else
+            echo "⚠️  WARNING: jq not installed, skipping workspace validation"
+          fi
+          echo "::endgroup::"
+
+      - name: FIPS compliance check
+        run: |
+          echo "::group::Checking FIPS requirements"
+          # Check if Dockerfile removes esbuild (required for FIPS)
+          if ! grep -q "rm -rf.*esbuild" Dockerfile; then
+            echo "⚠️  WARNING: Dockerfile should remove esbuild binaries for FIPS compliance"
+            echo "   Add: RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild"
+          else
+            echo "✅ PASS: Dockerfile removes esbuild binaries"
+          fi
+
+          # Check for Go builds with FIPS tags (if Go present)
+          if [ -f "go.mod" ]; then
+            GO_BUILDS=$(grep -r "go build" . --include="Dockerfile*" || true)
+            if [ -n "$GO_BUILDS" ]; then
+              if ! echo "$GO_BUILDS" | grep -q "strictfipsruntime"; then
+                echo "⚠️  WARNING: Go builds should use -tags strictfipsruntime for FIPS"
+              else
+                echo "✅ PASS: Go builds use strictfipsruntime"
+              fi
+            fi
+          fi
+          echo "::endgroup::"
+
+  # Phase 1: Docker Build Validation
+  docker-build-odh:
+    name: "Phase 1: Docker Build (ODH mode)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write  # for upload-artifact
+    needs: [check-skip, hermetic-preflight]
+    if: needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Build ODH image
+        run: |
+          set -euo pipefail
+          # TODO: Pin BASE_IMAGE to specific digest for hermetic builds
+          # Example: --build-arg BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22@sha256:...
+          docker build \
+            --build-arg BUILD_MODE=ODH \
+            --tag odh-dashboard:odh-test \
+            --file Dockerfile \
+            .
+
+      - name: Save ODH image
+        run: docker save odh-dashboard:odh-test | gzip > /tmp/odh-dashboard-odh.tar.gz
+
+      - name: Upload ODH image artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        with:
+          name: odh-dashboard-odh-image
+          path: /tmp/odh-dashboard-odh.tar.gz
+          retention-days: 1
+
+  docker-build-rhoai:
+    name: "Phase 1: Docker Build (RHOAI mode)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write  # for upload-artifact
+    needs: [check-skip, hermetic-preflight]
+    if: needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Build RHOAI image
+        run: |
+          set -euo pipefail
+          # TODO: Pin BASE_IMAGE to specific digest for hermetic builds
+          # Example: --build-arg BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22@sha256:...
+          docker build \
+            --build-arg BUILD_MODE=RHOAI \
+            --tag odh-dashboard:rhoai-test \
+            --file Dockerfile \
+            .
+
+      - name: Save RHOAI image
+        run: docker save odh-dashboard:rhoai-test | gzip > /tmp/odh-dashboard-rhoai.tar.gz
+
+      - name: Upload RHOAI image artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        with:
+          name: odh-dashboard-rhoai-image
+          path: /tmp/odh-dashboard-rhoai.tar.gz
+          retention-days: 1
+
+  # Phase 2 & 3: Runtime and Module Federation Validation
+  runtime-validation-odh:
+    name: "Phase 2-3: Runtime & Module Federation (ODH)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read  # for download-artifact
+    needs: [check-skip, docker-build-odh]
+    if: needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Download ODH image
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        with:
+          name: odh-dashboard-odh-image
+          path: /tmp
+
+      - name: Load ODH image
+        run: docker load < /tmp/odh-dashboard-odh.tar.gz
+
+      - name: Validate ODH branding in build artifacts
+        run: |
+          set -euo pipefail
+          echo "::group::Validating default ODH build branding"
+
+          # Create temporary container to extract built files
+          CONTAINER_ID=$(docker create odh-dashboard:odh-test)
+          echo "Created temporary container: $CONTAINER_ID"
+
+          # Extract the built HTML file
+          docker cp "$CONTAINER_ID":/usr/src/app/frontend/public/index.html /tmp/odh-index.html
+
+          # Extract dist directory for artifact checks
+          docker cp "$CONTAINER_ID":/usr/src/app/frontend/public /tmp/odh-dist
+
+          # Extract favicon and logo files
+          docker cp "$CONTAINER_ID":/usr/src/app/frontend/public/images /tmp/odh-images || true
+
+          # Clean up container
+          docker rm "$CONTAINER_ID"
+
+          FAILURES=0
+
+          echo "Checking HTML content for ODH branding..."
+          HTML=$(cat /tmp/odh-index.html)
+
+          # Check 1: ODH product name in title (default build)
+          if ! echo "$HTML" | grep -q "Open Data Hub"; then
+            echo "❌ FAIL: ODH product name not found in HTML title (default build)"
+            echo "::group::HTML title tag"
+            echo "$HTML" | grep -i "<title>" || echo "(no title tag found)"
+            echo "::endgroup::"
+            FAILURES=$((FAILURES + 1))
+          else
+            echo "✅ PASS: ODH product name present in title (default build)"
+          fi
+
+          # Check 2: RHOAI branding should NOT be in default build
+          if echo "$HTML" | grep -q "Red Hat OpenShift AI"; then
+            echo "❌ FAIL: RHOAI branding found in default ODH build (BUILD_MODE contamination)"
+            echo "::group::RHOAI references"
+            echo "$HTML" | grep "Red Hat OpenShift AI" | head -3
+            echo "::endgroup::"
+            FAILURES=$((FAILURES + 1))
+          else
+            echo "✅ PASS: No RHOAI branding in default build"
+          fi
+
+          # Check 3: ODH favicon reference
+          if ! echo "$HTML" | grep -q "odh-favicon"; then
+            echo "❌ FAIL: ODH favicon not referenced (expected odh-favicon.svg)"
+            echo "::group::Favicon link tags"
+            echo "$HTML" | grep -i "favicon\|<link.*icon" || echo "(no favicon tags found)"
+            echo "::endgroup::"
+            FAILURES=$((FAILURES + 1))
+          else
+            echo "✅ PASS: ODH favicon referenced"
+          fi
+
+          # Check 4: Verify ODH logo files exist in build
+          if [ -d "/tmp/odh-images" ]; then
+            if [ ! -f "/tmp/odh-images/odh-logo-light-theme.svg" ]; then
+              echo "⚠️  WARNING: odh-logo-light-theme.svg not found in images/"
+            else
+              echo "✅ PASS: ODH logo file present in build"
+            fi
+
+            if [ ! -f "/tmp/odh-images/odh-favicon.svg" ]; then
+              echo "⚠️  WARNING: odh-favicon.svg not found in images/"
+            else
+              echo "✅ PASS: ODH favicon file present in build"
+            fi
+          else
+            echo "⚠️  WARNING: Could not extract images/ directory"
+          fi
+
+          echo "::endgroup::"
+
+          # Validate Module Federation artifacts
+          echo "::group::Validating Module Federation artifacts"
+
+          # Check for main app bundle (always required)
+          # Webpack outputs app.[contenthash].js, not app.bundle.js
+          if ! ls /tmp/odh-dist/app.*.js >/dev/null 2>&1; then
+            echo "❌ FAIL: app.*.js not found - build did not complete"
+            FAILURES=$((FAILURES + 1))
+          else
+            APP_FILE=$(find /tmp/odh-dist -name 'app.*.js' | head -1)
+            APP_SIZE=$(stat -c%s "$APP_FILE" 2>/dev/null || stat -f%z "$APP_FILE" 2>/dev/null)
+            echo "✅ PASS: Main app bundle present ($(basename "$APP_FILE"), ${APP_SIZE} bytes)"
+          fi
+
+          # Check for remoteEntry.js (optional - only if federated modules exist)
+          if [ -f "/tmp/odh-dist/remoteEntry.js" ]; then
+            SIZE=$(stat -c%s /tmp/odh-dist/remoteEntry.js 2>/dev/null || stat -f%z /tmp/odh-dist/remoteEntry.js 2>/dev/null)
+            if [ "${SIZE:-0}" -lt 100 ]; then
+              echo "❌ FAIL: remoteEntry.js is suspiciously small (${SIZE:-0} bytes)"
+              FAILURES=$((FAILURES + 1))
+            else
+              echo "✅ PASS: remoteEntry.js present and valid ($SIZE bytes)"
+            fi
+
+            # Check webpack chunks
+            CHUNK_COUNT=$(find /tmp/odh-dist -name "*.js" -o -name "*.bundle.js" | wc -l | tr -d ' ')
+            if [ "${CHUNK_COUNT:-0}" -lt 2 ]; then
+              echo "⚠️  WARNING: Very few webpack chunks found (${CHUNK_COUNT:-0})"
+            else
+              echo "✅ PASS: Found ${CHUNK_COUNT:-0} webpack chunks"
+            fi
+          else
+            echo "ℹ️  INFO: No remoteEntry.js found (no federated modules configured)"
+          fi
+
+          # Report dist size
+          du -sh /tmp/odh-dist
+          echo "::endgroup::"
+
+          if [ $FAILURES -gt 0 ]; then
+            echo ""
+            echo "❌ TOTAL FAILURES: $FAILURES"
+            echo ""
+            echo "Default ODH build validation failed."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ PASS: Default ODH build produces correct artifacts and branding"
+
+  runtime-validation-rhoai:
+    name: "Phase 2-3: Runtime & Module Federation (RHOAI)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read  # for download-artifact
+    needs: [check-skip, docker-build-rhoai]
+    if: needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Download RHOAI image
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        with:
+          name: odh-dashboard-rhoai-image
+          path: /tmp
+
+      - name: Load RHOAI image
+        run: docker load < /tmp/odh-dashboard-rhoai.tar.gz
+
+      - name: Validate RHOAI branding in build artifacts
+        run: |
+          set -euo pipefail
+          echo "::group::Validating BUILD_MODE=RHOAI applied branding"
+
+          # Create temporary container to extract built files
+          # (Don't need to run it - just create and extract)
+          CONTAINER_ID=$(docker create odh-dashboard:rhoai-test)
+          echo "Created temporary container: $CONTAINER_ID"
+
+          # Extract the built HTML file
+          docker cp "$CONTAINER_ID":/usr/src/app/frontend/public/index.html /tmp/rhoai-index.html
+
+          # Extract favicon and logo files
+          docker cp "$CONTAINER_ID":/usr/src/app/frontend/public/images /tmp/rhoai-images || true
+
+          # Clean up container
+          docker rm "$CONTAINER_ID"
+
+          FAILURES=0
+
+          echo "Checking HTML content for RHOAI branding..."
+          HTML=$(cat /tmp/rhoai-index.html)
+
+          # Check 1: RHOAI product name in title
+          if ! echo "$HTML" | grep -q "Red Hat OpenShift AI"; then
+            echo "❌ FAIL: RHOAI product name not found in HTML title"
+            echo "::group::HTML title tag"
+            echo "$HTML" | grep -i "<title>" || echo "(no title tag found)"
+            echo "::endgroup::"
+            FAILURES=$((FAILURES + 1))
+          else
+            echo "✅ PASS: RHOAI product name present in title"
+          fi
+
+          # Check 2: ODH branding should NOT be present
+          if echo "$HTML" | grep -q "Open Data Hub"; then
+            echo "❌ FAIL: ODH branding found in RHOAI build (BUILD_MODE not applied)"
+            echo "::group::ODH references"
+            echo "$HTML" | grep "Open Data Hub" | head -3
+            echo "::endgroup::"
+            FAILURES=$((FAILURES + 1))
+          else
+            echo "✅ PASS: No ODH branding (correctly overridden by BUILD_MODE)"
+          fi
+
+          # Check 3: RHOAI favicon reference
+          if ! echo "$HTML" | grep -q "rhoai-favicon"; then
+            echo "❌ FAIL: RHOAI favicon not referenced (expected rhoai-favicon.svg)"
+            echo "::group::Favicon link tags"
+            echo "$HTML" | grep -i "favicon\|<link.*icon" || echo "(no favicon tags found)"
+            echo "::endgroup::"
+            FAILURES=$((FAILURES + 1))
+          else
+            echo "✅ PASS: RHOAI favicon referenced"
+          fi
+
+          # Check 4: Verify RHOAI logo files exist in build
+          if [ -d "/tmp/rhoai-images" ]; then
+            if [ ! -f "/tmp/rhoai-images/rhoai-logo.svg" ]; then
+              echo "⚠️  WARNING: rhoai-logo.svg not found in images/"
+            else
+              echo "✅ PASS: RHOAI logo file present in build"
+            fi
+
+            if [ ! -f "/tmp/rhoai-images/rhoai-favicon.svg" ]; then
+              echo "⚠️  WARNING: rhoai-favicon.svg not found in images/"
+            else
+              echo "✅ PASS: RHOAI favicon file present in build"
+            fi
+          else
+            echo "⚠️  WARNING: Could not extract images/ directory"
+          fi
+
+          if [ $FAILURES -gt 0 ]; then
+            echo ""
+            echo "❌ TOTAL FAILURES: $FAILURES"
+            echo ""
+            echo "BUILD_MODE=RHOAI did not correctly apply RHOAI branding."
+            echo "Check Dockerfile environment variable setup and webpack configuration."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ PASS: BUILD_MODE=RHOAI correctly applied RHOAI branding"
+          echo "::endgroup::"
+
+  # Phase 4: Operator Integration (Kind cluster)
+  operator-integration:
+    name: "Phase 4: Operator Integration"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read  # for download-artifact
+    needs: [check-skip, runtime-validation-odh, runtime-validation-rhoai]
+    if: needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Download ODH image
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        with:
+          name: odh-dashboard-odh-image
+          path: /tmp
+
+      - name: Install Kind
+        run: |
+          set -euo pipefail
+          # Download kind with checksum verification
+          KIND_URL="https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64"
+          KIND_SHA256="513a7213d6d3332dd9ef27c24dab35e5ef10a04fa27274fe1c14d8a246493ded"
+
+          curl -sLo /tmp/kind "$KIND_URL"
+          echo "${KIND_SHA256}  /tmp/kind" | sha256sum --check --status
+          chmod +x /tmp/kind
+          sudo mv /tmp/kind /usr/local/bin/kind
+
+      - name: Create Kind cluster
+        run: |
+          set -euo pipefail
+          kind create cluster --name odh-test --wait 300s
+
+      - name: Load image to Kind
+        run: |
+          set -euo pipefail
+          docker load < /tmp/odh-dashboard-odh.tar.gz
+          kind load docker-image odh-dashboard:odh-test --name odh-test
+
+      - name: Create opendatahub namespace
+        run: |
+          kubectl create namespace opendatahub
+
+      - name: Create mock OpenShift secrets
+        run: |
+          set -euo pipefail
+          # Create dummy TLS secret for proxy
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout /tmp/tls.key -out /tmp/tls.crt \
+            -days 1 -subj "/CN=dashboard" 2>/dev/null
+
+          kubectl create secret tls dashboard-proxy-tls \
+            --cert=/tmp/tls.crt --key=/tmp/tls.key \
+            -n opendatahub
+
+          rm /tmp/tls.key /tmp/tls.crt
+
+          # Create dummy CA bundle configmaps
+          kubectl create configmap odh-ca-cert \
+            --from-literal=odh-ca-bundle.crt="# Dummy CA bundle for Kind testing" \
+            -n opendatahub
+
+          kubectl create configmap odh-trusted-ca-cert \
+            --from-literal=odh-trusted-ca-bundle.crt="# Dummy trusted CA bundle for Kind testing" \
+            -n opendatahub
+
+          echo "✅ Created mock OpenShift secrets and configmaps"
+
+      - name: Create mock OpenShift ConfigMaps
+        run: |
+          set -euo pipefail
+          # Dashboard pods expect OpenShift-specific ConfigMaps for volume mounts
+          # Create empty ConfigMaps to satisfy those requirements in Kind
+
+          echo "Creating mock openshift-service-ca.crt ConfigMap..."
+          kubectl create configmap openshift-service-ca.crt \
+            --from-literal=service-ca.crt="" \
+            -n opendatahub
+
+          echo "Creating mock kube-root-ca.crt ConfigMap (if needed)..."
+          # kube-root-ca.crt may already exist (Kubernetes auto-creates it in some versions)
+          kubectl create configmap kube-root-ca.crt \
+            --from-literal=ca.crt="" \
+            -n opendatahub 2>/dev/null || echo "  (already exists, skipping)"
+
+          echo "✅ Mock OpenShift ConfigMaps ready"
+
+      - name: Apply manifests
+        run: |
+          set -euo pipefail
+          # Apply base manifests to opendatahub namespace
+          # Try overlay first, fall back to base, fail if both are invalid
+          APPLY_EXIT=0
+
+          if [ -d "manifests/overlays/odh" ]; then
+            echo "Applying manifests/overlays/odh..."
+            if ! kubectl apply -k manifests/overlays/odh -n opendatahub 2>&1; then
+              APPLY_EXIT=$?
+              echo "::error::Manifest application failed with exit code $APPLY_EXIT"
+              echo "::group::Recent cluster events"
+              kubectl get events --sort-by='.lastTimestamp' -n opendatahub | tail -20 || true
+              echo "::endgroup::"
+              exit $APPLY_EXIT
+            fi
+          elif [ -d "manifests/odh" ]; then
+            echo "Applying manifests/odh..."
+            if ! kubectl apply -k manifests/odh -n opendatahub 2>&1; then
+              APPLY_EXIT=$?
+              echo "::error::Manifest application failed with exit code $APPLY_EXIT"
+              echo "::group::Recent cluster events"
+              kubectl get events --sort-by='.lastTimestamp' -n opendatahub | tail -20 || true
+              echo "::endgroup::"
+              exit $APPLY_EXIT
+            fi
+          else
+            echo "❌ FAIL: No kustomize manifests found"
+            exit 1
+          fi
+
+          echo "✅ Manifests applied successfully"
+
+      - name: Patch deployment for Kind resource constraints
+        run: |
+          set -euo pipefail
+
+          # Apply image, imagePullPolicy, resource limits, and replica count in a single
+          # JSON patch so only one rollout is triggered.
+          #
+          # Why image + imagePullPolicy: Never?
+          #   The manifests hardcode imagePullPolicy: Always, so Kubernetes would pull the
+          #   live quay.io:main image even if it's loaded into Kind. "Never" forces it to
+          #   use only what was loaded locally, guaranteeing we test the PR's built image.
+          #
+          # The full patch is attempted first. If it fails (e.g. resource paths differ
+          # across manifest versions), we fall back to the essential image-only patch so
+          # the job does not fail due to resource-constraint differences.
+          echo "Applying combined patch (image + imagePullPolicy + resources + replicas)..."
+          if kubectl patch deployment odh-dashboard -n opendatahub --type=json -p='[
+            {"op": "replace", "path": "/spec/replicas",                                          "value": 1},
+            {"op": "replace", "path": "/spec/template/spec/containers/0/image",                  "value": "odh-dashboard:odh-test"},
+            {"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy",        "value": "Never"},
+            {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "128Mi"},
+            {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/cpu",    "value": "50m"},
+            {"op": "replace", "path": "/spec/template/spec/containers/1/resources/requests/memory", "value": "64Mi"},
+            {"op": "replace", "path": "/spec/template/spec/containers/1/resources/requests/cpu",    "value": "50m"}
+          ]' 2>/dev/null; then
+            echo "✅ Full patch applied — single rollout triggered"
+          else
+            echo "⚠️  Full patch failed (resource paths may differ); applying essential patch..."
+            kubectl patch deployment odh-dashboard -n opendatahub --type=json -p='[
+              {"op": "replace", "path": "/spec/replicas",                                   "value": 1},
+              {"op": "replace", "path": "/spec/template/spec/containers/0/image",           "value": "odh-dashboard:odh-test"},
+              {"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "Never"}
+            ]'
+            echo "✅ Essential patch applied (image + imagePullPolicy + replicas)"
+          fi
+
+      - name: Wait for pods to attempt starting
+        run: |
+          set -euo pipefail
+          echo "Waiting for pods to be created and attempt starting..."
+
+          # Wait up to 2 minutes for pod creation
+          for i in {1..24}; do
+            POD_COUNT=$(kubectl get pods -n opendatahub -l app=odh-dashboard --no-headers 2>/dev/null | wc -l)
+            if [ "$POD_COUNT" -gt 0 ]; then
+              echo "✅ Pod(s) created"
+              break
+            fi
+            echo "Waiting for pods... ($i/24)"
+            sleep 5
+          done
+
+          # Wait for the rollout to complete rather than a fixed sleep.
+          # This correctly handles the single rollout triggered by the combined patch and
+          # avoids the race condition where a fixed sleep may expire before the new pod
+          # has fully replaced the old one.
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/odh-dashboard -n opendatahub --timeout=120s
+
+      - name: Check container status and validate
+        run: |
+          set -euo pipefail
+          echo "::group::Pod status"
+          kubectl get pods -n opendatahub -o wide
+          echo "::endgroup::"
+
+          echo "::group::Deployment status"
+          kubectl describe deployment odh-dashboard -n opendatahub
+          echo "::endgroup::"
+
+          # Get pod details
+          echo "::group::Pod events and status"
+          POD=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o name | head -1)
+          if [ -n "$POD" ]; then
+            kubectl describe -n opendatahub "$POD"
+          fi
+          echo "::endgroup::"
+
+          # Check if containers started (even if they fail later)
+          echo "Validating container lifecycle..."
+          CONTAINER_STATUSES=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o jsonpath='{.items[0].status.containerStatuses[*].state}' 2>/dev/null || echo "")
+
+          if [ -z "$CONTAINER_STATUSES" ]; then
+            echo "❌ FAIL: No container statuses found - pods may not have started"
+            exit 1
+          fi
+
+          # Check for successful image pulls
+          IMAGES_PULLED=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o jsonpath='{.items[0].status.containerStatuses[*].imageID}' 2>/dev/null | wc -w)
+
+          if [ "$IMAGES_PULLED" -eq 0 ]; then
+            echo "❌ FAIL: No images were pulled successfully"
+            exit 1
+          fi
+
+          echo "✅ PASS: $IMAGES_PULLED image(s) pulled"
+          echo "Container states: $CONTAINER_STATUSES"
+
+          # Show logs from main container before the health check so they are visible
+          # even when the container is crashing.
+          echo "::group::Container logs (odh-dashboard)"
+          kubectl logs -n opendatahub "$POD" -c odh-dashboard --tail=100 || echo "No logs available"
+          echo "::endgroup::"
+
+          # Assert that the PR-built odh-dashboard container is actually running and has
+          # not restarted. A CrashLoopBackOff or any restart count > 0 means the server
+          # failed to start and is a hard failure.
+          echo "::group::Health check: odh-dashboard container"
+          DASHBOARD_RUNNING=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+            -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].state.running}' \
+            2>/dev/null || echo "")
+          # Use -1 as sentinel: a non-negative integer means success, anything else
+          # (including -1 or empty) means kubectl itself failed — pod not found,
+          # API server timeout, etc. — which should be a hard failure, not a silent pass.
+          DASHBOARD_RESTARTS=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+            -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].restartCount}' \
+            2>/dev/null || echo "-1")
+
+          if [ -z "$DASHBOARD_RUNNING" ]; then
+            TERM_REASON=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+              -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].state.terminated.reason}' \
+              2>/dev/null || echo "unknown")
+            echo "❌ FAIL: odh-dashboard container is not running (reason: ${TERM_REASON})"
+            echo "   This usually means the server crashed at startup."
+            echo "   Check the container logs above for the root cause."
+            exit 1
+          fi
+
+          if ! [[ "$DASHBOARD_RESTARTS" =~ ^[0-9]+$ ]]; then
+            echo "❌ FAIL: Could not determine restart count (kubectl may have failed — got: '${DASHBOARD_RESTARTS}')"
+            echo "   This may indicate the pod does not exist or the API server is unreachable."
+            exit 1
+          fi
+
+          if [ "$DASHBOARD_RESTARTS" -gt "0" ]; then
+            echo "❌ FAIL: odh-dashboard container has restarted ${DASHBOARD_RESTARTS} time(s)"
+            echo "   The server is crashing on startup (CrashLoopBackOff)."
+            echo "   Check the container logs above for the root cause."
+            exit 1
+          fi
+
+          echo "✅ PASS: odh-dashboard container is running with 0 restarts"
+          echo "::endgroup::"
+
+      - name: Cleanup
+        if: always()
+        run: kind delete cluster --name odh-test
+
+  # Phase 5 (Manifest Validation) is not yet included.
+  # manifests/overlays/dev has a known kustomization path issue
+  # (references ../common/crd but should be ../../common/crd).
+  # Add manifest validation once the upstream path is fixed.
+
+  summary:
+    name: "Build Validation Summary"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs:
+      - check-skip
+      - hermetic-preflight
+      - docker-build-odh
+      - docker-build-rhoai
+      - runtime-validation-odh
+      - runtime-validation-rhoai
+      - operator-integration
+    # Run summary even when jobs are skipped, but not when workflow is skipped
+    if: always() && needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Check results
+        run: |
+          set -euo pipefail
+          echo "## Konflux Build Simulation Results"
+          echo ""
+          echo "Phase 0 (Hermetic Preflight): ${{ needs.hermetic-preflight.result }}"
+          echo "Phase 1 (Docker Build ODH): ${{ needs.docker-build-odh.result }}"
+          echo "Phase 1 (Docker Build RHOAI): ${{ needs.docker-build-rhoai.result }}"
+          echo "Phase 2-3 (Runtime ODH): ${{ needs.runtime-validation-odh.result }}"
+          echo "Phase 2-3 (Runtime RHOAI): ${{ needs.runtime-validation-rhoai.result }}"
+          echo "Phase 4 (Operator Integration): ${{ needs.operator-integration.result }}"
+
+          # Accept "success" and "skipped" as passing states
+          # "skipped" occurs when upstream job was skipped (normal dependency chain)
+          # Only "failure", "cancelled" are actual failures
+          FAILED=false
+          for result in "${{ needs.hermetic-preflight.result }}" \
+                        "${{ needs.docker-build-odh.result }}" \
+                        "${{ needs.docker-build-rhoai.result }}" \
+                        "${{ needs.runtime-validation-odh.result }}" \
+                        "${{ needs.runtime-validation-rhoai.result }}" \
+                        "${{ needs.operator-integration.result }}"; do
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              FAILED=true
+              break
+            fi
+          done
+
+          if [ "$FAILED" = "true" ]; then
+            echo ""
+            echo "❌ Some validations failed. Check individual job logs above."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All validations passed!"

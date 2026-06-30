@@ -1,22 +1,12 @@
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
   ModelDetailsDeploymentCardExtension,
   ModelRegistryDeployModalExtension,
+  ModelRegistryDetailsTabExtension,
   ModelRegistryVersionDeploymentsContextExtension,
   ModelRegistryVersionDetailsTabExtension,
   ModelRegistryTableColumnExtension,
 } from '@mf/modelRegistry/extension-points';
-
-type ModelRegistryDetailsTabExtension = Extension<
-  'model-registry.details/tab',
-  {
-    id: string;
-    title: string;
-    component: CodeRef<React.ComponentType<{ rmId?: string; mrName?: string }>>;
-  }
->;
 
 const extensions: (
   | ModelRegistryDeployModalExtension
@@ -43,7 +33,7 @@ const extensions: (
     properties: {
       id: 'deployments',
       title: 'Deployments',
-      component: () => import('../modelRegistry/VersionDeploymentsTab').then((m) => m.default),
+      component: () => import('../modelRegistry/VersionDeploymentsTab'),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
@@ -64,7 +54,7 @@ const extensions: (
     properties: {
       id: 'deployments',
       title: 'Deployments',
-      component: () => import('../modelRegistry/ModelWideDeploymentsTab').then((m) => m.default),
+      component: () => import('../modelRegistry/ModelWideDeploymentsTab'),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
@@ -73,7 +63,7 @@ const extensions: (
   {
     type: 'model-registry.model-details/details-card',
     properties: {
-      component: () => import('../modelRegistry/ModelDetailsDeploymentCard').then((m) => m.default),
+      component: () => import('../modelRegistry/ModelDetailsDeploymentCard'),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],

@@ -1,6 +1,7 @@
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { useS3ListFilesQuery, fetchS3File } from '~/app/hooks/queries';
+import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun, S3CommonPrefix } from '~/app/types';
 
@@ -50,8 +51,7 @@ export function useAutoragResults(
 ): UseAutoragResultsReturn {
   // Step 1: Fetch S3 files to discover the non-deterministic UUID directory
   const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED' && Boolean(runId);
-  const rootDir = 'documents-rag-optimization-pipeline';
-  const patternGenerationDir = 'rag-templates-optimization';
+  const { rootDir, patternGenerationDir } = useAutoragOutputDir(pipelineRun);
   const templatesOptimizationPath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${patternGenerationDir}`
     : undefined;
@@ -307,7 +307,30 @@ export function useAutoragResults(
         return;
       }
 
-      // S3 data already matches AutoragPattern schema
+      // Normalize responses_template.input from string to array format
+      // The S3 data may contain a plain string for input instead of the expected array
+      // TODO[3.5]: Remove and handle from inside playground - both payloads should be supported
+      // as they are valid open api schema
+      if (
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        patternData.settings &&
+        patternData.settings.responses_template &&
+        typeof patternData.settings.responses_template.input === 'string'
+      ) {
+        patternData.settings.responses_template.input = [
+          {
+            type: 'message',
+            role: 'user',
+            content: [
+              {
+                type: 'input_text',
+                text: patternData.settings.responses_template.input,
+              },
+            ],
+          },
+        ];
+      }
+
       results[patternName] = patternData;
     });
 

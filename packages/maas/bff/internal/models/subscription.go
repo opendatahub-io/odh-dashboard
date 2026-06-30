@@ -30,7 +30,7 @@ type SubscriptionListItem struct {
 	SubscriptionDescription string            `json:"subscription_description"`
 	DisplayName             string            `json:"display_name,omitempty"`
 	Priority                int32             `json:"priority"`
-	KeyCount                int32             `json:"key_count,omitempty"`
+	KeyCount                int32             `json:"key_count"`
 	ModelRefs               []ModelRefInfo    `json:"model_refs"`
 	OrganizationID          string            `json:"organization_id,omitempty"`
 	CostCenter              string            `json:"cost_center,omitempty"`
@@ -62,6 +62,8 @@ type BillingRate struct {
 type ModelSubscriptionRef struct {
 	Name            string           `json:"name"`
 	Namespace       string           `json:"namespace"`
+	DisplayName     string           `json:"displayName,omitempty"`
+	Description     string           `json:"description,omitempty"`
 	TokenRateLimits []TokenRateLimit `json:"tokenRateLimits"`
 	BillingRate     *BillingRate     `json:"billingRate,omitempty"`
 }
@@ -96,8 +98,10 @@ type SubjectSpec struct {
 
 // ModelRef is a simple reference to a MaaSModelRef by name and namespace.
 type ModelRef struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
+	Name        string `json:"name"`
+	Namespace   string `json:"namespace"`
+	DisplayName string `json:"displayName,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 // MaaSAuthPolicy is the BFF representation of a MaaSAuthPolicy CR.

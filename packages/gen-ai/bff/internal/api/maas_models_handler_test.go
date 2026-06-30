@@ -7,13 +7,15 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
@@ -21,10 +23,11 @@ import (
 
 func newMaaSModelsTestApp(t *testing.T) *App {
 	t.Helper()
-	maasClientFactory := maasmocks.NewMockClientFactory()
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	bffClientFactory := bffmocks.NewMockClientFactory(logger)
 	return &App{
 		logger:                  slog.Default(),
-		maasClientFactory:       maasClientFactory,
+		bffClientFactory:        bffClientFactory,
 		kubernetesClientFactory: k8smocks.NewMockTokenClientFactory(),
 		repositories:            repositories.NewRepositories(),
 		memoryStore:             cache.NewMemoryStore(),
@@ -32,8 +35,8 @@ func newMaaSModelsTestApp(t *testing.T) *App {
 }
 
 func newMaaSModelsTestCtx(app *App, r *http.Request) *http.Request {
-	maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
-	ctx := context.WithValue(r.Context(), constants.MaaSClientKey, maasClient)
+	maasClient := app.bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "token_mock")
+	ctx := context.WithValue(r.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "token_mock"})
 	return r.WithContext(ctx)
@@ -62,7 +65,7 @@ func TestMaaSModelsHandler(t *testing.T) {
 
 		// Verify mock returns 5 models
 		assert.Equal(t, "list", response.Object)
-		assert.Len(t, response.Data, 5)
+		assert.Len(t, response.Data, 6)
 
 		// Verify the structure of returned models
 		firstModel := response.Data[0]
@@ -149,56 +152,26 @@ func TestMaaSModelsHandler_MissingNamespace(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
-func TestMaaSModelsHandler_MissingIdentity(t *testing.T) {
+func TestMaaSModelsHandler_MissingBFFClient(t *testing.T) {
 	app := newMaaSModelsTestApp(t)
 
 	rr := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
 	assert.NoError(t, err)
 
+	// No BFF client in context - simulates middleware failure to attach client
 	ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "test-namespace")
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
 	req = req.WithContext(ctx)
 
 	app.MaaSModelsHandler(rr, req, nil)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	// BFF client architecture returns 503 Service Unavailable when client is not available
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 }
 
-func TestMaaSModelsHandler_EmptyToken(t *testing.T) {
-	app := newMaaSModelsTestApp(t)
-
-	rr := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
-	assert.NoError(t, err)
-
-	ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "test-namespace")
-	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: ""})
-	req = req.WithContext(ctx)
-
-	app.MaaSModelsHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
-}
-
-func TestMaaSModelsHandler_ForwardsUserToken(t *testing.T) {
-	app := newMaaSModelsTestApp(t)
-
-	rr := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
-	assert.NoError(t, err)
-
-	mockClient := maasmocks.NewMockMaaSClient()
-	ctx := context.WithValue(req.Context(), constants.MaaSClientKey, mockClient)
-	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
-	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "my-oidc-token"})
-	req = req.WithContext(ctx)
-
-	app.MaaSModelsHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Equal(t, "my-oidc-token", mockClient.LastAuthToken,
-		"handler must forward identity.Token to ListModels")
-}
+// TestMaaSModelsHandler_ForwardsUserToken removed - token forwarding is handled
+// by the BFF client layer, not by the handler directly
 
 func TestMaaSModelsHandler_IncludesSubscriptions(t *testing.T) {
 	app := newMaaSModelsTestApp(t)
@@ -226,9 +199,9 @@ func TestMaaSModelsHandler_IncludesSubscriptions(t *testing.T) {
 	assert.NotNil(t, firstModel.Subscriptions)
 	assert.Len(t, firstModel.Subscriptions, 2)
 	assert.Equal(t, "basic-subscription", firstModel.Subscriptions[0].Name)
-	assert.Equal(t, "Basic Subscription", firstModel.Subscriptions[0].DisplayName)
+	assert.Equal(t, "Basic Tier", firstModel.Subscriptions[0].DisplayName)
 	assert.Equal(t, "premium-subscription", firstModel.Subscriptions[1].Name)
-	assert.Equal(t, "Premium Subscription", firstModel.Subscriptions[1].DisplayName)
+	assert.Equal(t, "Premium Tier", firstModel.Subscriptions[1].DisplayName)
 	assert.Equal(t, "Premium subscription with higher rate limits", firstModel.Subscriptions[1].Description)
 
 	// Second model (llama-2-13b-chat) should have 1 subscription

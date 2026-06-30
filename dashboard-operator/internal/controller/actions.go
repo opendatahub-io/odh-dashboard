@@ -5,22 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
+	"path/filepath"
 	"strings"
-	"time"
 
 	routev1 "github.com/openshift/api/route/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
-
-const conditionTypeReady = "Ready"
 
 var ErrDashboardRouteNotReady = errors.New("dashboard route not yet ready")
 
@@ -43,10 +40,30 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 		}
 	}
 
+	if len(manifests) > 0 {
+		modArchPath := filepath.Join(manifests[0].Path, "modular-architecture")
+		if _, err := os.Stat(modArchPath); os.IsNotExist(err) {
+			return fmt.Errorf("modular-architecture directory not found at %s", modArchPath)
+		}
+		params := readExistingParams(modArchPath + "/params.env")
+		maps.Copy(params, computed)
+		if err := writeParamsEnv(modArchPath, params); err != nil {
+			return fmt.Errorf("failed to write params.env to %s: %w", modArchPath, err)
+		}
+	}
+
 	return nil
 }
 
-func extractDashboardURL(ctx context.Context, cli client.Client, namespace string) (string, error) {
+func extractDashboardURL(ctx context.Context, cli client.Client, dashboard *v1alpha1.Dashboard, namespace string, platform cluster.Platform) (string, error) {
+	if platform == cluster.XKS {
+		return "", nil
+	}
+
+	if dashboard.Spec.Gateway != nil && dashboard.Spec.Gateway.Domain != "" {
+		return "https://" + dashboard.Spec.Gateway.Domain + "/", nil
+	}
+
 	rl := &routev1.RouteList{}
 	if err := cli.List(ctx, rl,
 		client.InNamespace(namespace),
@@ -75,31 +92,4 @@ func extractDashboardURL(ctx context.Context, cli client.Client, namespace strin
 	}
 
 	return "", ErrDashboardRouteNotReady
-}
-
-func setReadyCondition(dashboard *v1alpha1.Dashboard, status metav1.ConditionStatus, reason, message string) {
-	now := metav1.NewTime(time.Now())
-	conditions := dashboard.GetConditions()
-
-	for i := range conditions {
-		if conditions[i].Type == conditionTypeReady {
-			if conditions[i].Status != status {
-				conditions[i].LastTransitionTime = now
-			}
-			conditions[i].Status = status
-			conditions[i].Reason = reason
-			conditions[i].Message = message
-			dashboard.SetConditions(conditions)
-
-			return
-		}
-	}
-
-	dashboard.SetConditions(append(conditions, common.Condition{
-		Type:               conditionTypeReady,
-		Status:             status,
-		LastTransitionTime: now,
-		Reason:             reason,
-		Message:            message,
-	}))
 }

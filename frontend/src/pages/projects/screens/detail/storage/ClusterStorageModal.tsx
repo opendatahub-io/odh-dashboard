@@ -2,7 +2,8 @@ import * as React from 'react';
 import { Button, Stack, FormGroup, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { isEqual } from 'lodash-es';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { StorageData } from '#~/pages/projects/types';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import {
@@ -10,7 +11,6 @@ import {
   useRelatedNotebooks,
 } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import useWillNotebooksRestart from '#~/pages/projects/notebook/useWillNotebooksRestart';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import NotebookRestartAlert from '#~/pages/projects/components/NotebookRestartAlert';
 import { useCreateStorageObject } from '#~/pages/projects/screens/spawner/storage/utils';
 import BaseStorageModal from './BaseStorageModal';

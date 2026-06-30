@@ -5,6 +5,9 @@ import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 
 // Mock external dependencies
+jest.mock('@patternfly/chatbot', () => ({
+  FileDetailsLabel: jest.fn(({ fileName }: { fileName: string }) => fileName),
+}));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({

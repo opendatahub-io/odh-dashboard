@@ -1,14 +1,20 @@
 import * as React from 'react';
 import {
+  Button,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelContent,
   DrawerPanelBody,
   Badge,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   Flex,
   FlexItem,
   Icon,
+  MenuToggle,
+  MenuToggleAction,
   Tabs,
   Tab,
   TabTitleText,
@@ -18,6 +24,8 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
+import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import {
   useChatbotConfigStore,
   selectSystemInstruction,
@@ -28,6 +36,7 @@ import {
   selectSelectedSubscription,
   selectRagEnabled,
   selectConfigIds,
+  selectIsPreview,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -62,6 +71,9 @@ interface ChatbotSettingsPanelProps {
   // Guardrails props
   onCloseClick?: () => void;
   onActiveConfigChange?: (configId: string) => void;
+  onLoad?: () => void;
+  onSave?: () => void;
+  onSaveAs?: () => void;
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
   defaultActiveTabKey?: string | number;
@@ -87,12 +99,20 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onActiveConfigChange,
   isOverlay = false,
   defaultActiveTabKey,
+  onLoad,
+  onSave,
+  onSaveAs,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
+  const [isSaveDropdownOpen, setIsSaveDropdownOpen] = React.useState(false);
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
+  const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
+  const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   const configIds = useChatbotConfigStore(selectConfigIds);
+  const isCompareMode = configIds.length > 1;
 
   // Consume store directly using configId (controlled by parent)
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
@@ -230,7 +250,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       <DrawerHead>
         {configIds.length === 1 ? (
           <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
-            Configure
+            Settings
           </Title>
         ) : (
           <ToggleGroup
@@ -248,7 +268,63 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             ))}
           </ToggleGroup>
         )}
-        <DrawerActions>
+        <DrawerActions style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
+          {agentConfigManagementEnabled && (
+            <>
+              <Button
+                variant="secondary"
+                onClick={onLoad}
+                isDisabled={isCompareMode}
+                data-testid="settings-panel-load-button"
+              >
+                Load
+              </Button>
+              <Dropdown
+                isOpen={isSaveDropdownOpen}
+                onOpenChange={setIsSaveDropdownOpen}
+                onSelect={() => setIsSaveDropdownOpen(false)}
+                popperProps={{ position: 'end', preventOverflow: true }}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    variant="secondary"
+                    isExpanded={isSaveDropdownOpen}
+                    isDisabled={isCompareMode}
+                    onClick={() => setIsSaveDropdownOpen(!isSaveDropdownOpen)}
+                    splitButtonItems={[
+                      <MenuToggleAction
+                        key="save-action"
+                        onClick={profileApplied && !isPreview ? onSave : onSaveAs}
+                        data-testid="settings-panel-save-action"
+                      >
+                        {profileApplied && !isPreview ? 'Save' : 'Save as'}
+                      </MenuToggleAction>,
+                    ]}
+                    data-testid="settings-panel-save-toggle"
+                  />
+                )}
+              >
+                <DropdownList>
+                  {profileApplied && !isPreview && (
+                    <DropdownItem
+                      key="save"
+                      onClick={onSave}
+                      data-testid="settings-panel-save-item"
+                    >
+                      Save agent configuration
+                    </DropdownItem>
+                  )}
+                  <DropdownItem
+                    key="save-as"
+                    onClick={onSaveAs}
+                    data-testid="settings-panel-save-as-item"
+                  >
+                    Save as agent configuration
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </>
+          )}
           <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
         </DrawerActions>
       </DrawerHead>
@@ -267,6 +343,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             data-testid="chatbot-settings-page-tab-model"
           >
             <ModelTabContent
+              configId={configId}
               temperature={temperature}
               onTemperatureChange={handleTemperatureChange}
               isStreamingEnabled={isStreamingEnabled}

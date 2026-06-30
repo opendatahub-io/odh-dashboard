@@ -661,22 +661,17 @@ describe('PatternDetailsModal', () => {
     });
   });
 
-  describe('save notebook dropdown', () => {
-    it('should not render save notebook dropdown when onSaveNotebook is not provided', () => {
-      render(<PatternDetailsModal {...defaultProps} />);
-      expect(screen.queryByTestId('pattern-details-save-notebook-toggle')).not.toBeInTheDocument();
-    });
-
-    it('should render save notebook dropdown toggle when onSaveNotebook is provided', () => {
+  describe('actions dropdown', () => {
+    it('should render the Actions dropdown toggle', () => {
       render(<PatternDetailsModal {...defaultProps} onSaveNotebook={jest.fn()} />);
-      expect(screen.getByTestId('pattern-details-save-notebook-toggle')).toBeInTheDocument();
+      expect(screen.getByTestId('pattern-details-actions-toggle')).toBeInTheDocument();
     });
 
-    it('should show both notebook options when dropdown is opened', async () => {
+    it('should show save notebook options when dropdown is opened', async () => {
       const user = userEvent.setup();
       render(<PatternDetailsModal {...defaultProps} onSaveNotebook={jest.fn()} />);
 
-      await user.click(screen.getByTestId('pattern-details-save-notebook-toggle'));
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       expect(screen.getByTestId('pattern-details-save-indexing-notebook')).toBeInTheDocument();
       expect(screen.getByTestId('pattern-details-save-inference-notebook')).toBeInTheDocument();
     });
@@ -686,8 +681,8 @@ describe('PatternDetailsModal', () => {
       const onSaveNotebook = jest.fn();
       render(<PatternDetailsModal {...defaultProps} onSaveNotebook={onSaveNotebook} />);
 
-      await user.click(screen.getByTestId('pattern-details-save-notebook-toggle'));
-      await user.click(screen.getByText('Indexing'));
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      await user.click(screen.getByText('Save as indexing notebook'));
       expect(onSaveNotebook).toHaveBeenCalledWith('pattern0', 'indexing');
     });
 
@@ -696,9 +691,139 @@ describe('PatternDetailsModal', () => {
       const onSaveNotebook = jest.fn();
       render(<PatternDetailsModal {...defaultProps} onSaveNotebook={onSaveNotebook} />);
 
-      await user.click(screen.getByTestId('pattern-details-save-notebook-toggle'));
-      await user.click(screen.getByText('Inference'));
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      await user.click(screen.getByText('Save as inference notebook'));
       expect(onSaveNotebook).toHaveBeenCalledWith('pattern0', 'inference');
+    });
+
+    it('should show "Try this pattern" when pattern has responses_template and onTryPattern is provided', async () => {
+      const user = userEvent.setup();
+      const patternWithTemplate: AutoragPattern = {
+        ...mockPattern,
+        settings: {
+          ...mockPattern.settings,
+          responses_template: {
+            model: 'test-model',
+            stream: false,
+            store: true,
+            input: [
+              {
+                type: 'message' as const,
+                role: 'user' as const,
+                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
+              },
+            ],
+            metadata: { autorag_run_id: '123', rag_pattern_name: 'pattern0' },
+            instructions: 'Answer from file_search results.',
+            tools: [
+              {
+                type: 'file_search' as const,
+                vector_store_ids: ['vs-1'],
+                max_num_results: 5,
+                ranking_options: {
+                  search_mode: 'hybrid',
+                  ranker_strategy: 'rrf',
+                  ranker_k: 60,
+                  ranker_alpha: 0.5,
+                },
+              },
+            ],
+            tool_choice: { type: 'file_search' },
+            include: ['file_search_call.results'],
+          },
+        },
+      };
+
+      const onTryPattern = jest.fn();
+      const onClose = jest.fn();
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[patternWithTemplate]}
+          onTryPattern={onTryPattern}
+          onClose={onClose}
+        />,
+      );
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.getByText('Try this pattern')).toBeInTheDocument();
+
+      await user.click(screen.getByText('Try this pattern'));
+      expect(onClose).toHaveBeenCalled();
+      expect(onTryPattern).toHaveBeenCalledWith('pattern0');
+    });
+
+    it('should not show "Try this pattern" when pattern lacks responses_template', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...defaultProps} onTryPattern={jest.fn()} />);
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
+    });
+
+    it('should show "View code" when pattern has responses_template and onViewCode is provided', async () => {
+      const user = userEvent.setup();
+      const patternWithTemplate: AutoragPattern = {
+        ...mockPattern,
+        settings: {
+          ...mockPattern.settings,
+          responses_template: {
+            model: 'test-model',
+            stream: false,
+            store: true,
+            input: [
+              {
+                type: 'message' as const,
+                role: 'user' as const,
+                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
+              },
+            ],
+            metadata: { autorag_run_id: '123', rag_pattern_name: 'pattern0' },
+            instructions: 'Answer from file_search results.',
+            tools: [
+              {
+                type: 'file_search' as const,
+                vector_store_ids: ['vs-1'],
+                max_num_results: 5,
+                ranking_options: {
+                  search_mode: 'hybrid',
+                  ranker_strategy: 'rrf',
+                  ranker_k: 60,
+                  ranker_alpha: 0.5,
+                },
+              },
+            ],
+            tool_choice: { type: 'file_search' },
+            include: ['file_search_call.results'],
+          },
+        },
+      };
+
+      const onViewCode = jest.fn();
+      const onClose = jest.fn();
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[patternWithTemplate]}
+          onViewCode={onViewCode}
+          onClose={onClose}
+        />,
+      );
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.getByText('View code')).toBeInTheDocument();
+
+      await user.click(screen.getByText('View code'));
+      expect(onClose).toHaveBeenCalled();
+      expect(onViewCode).toHaveBeenCalledWith('pattern0');
+    });
+
+    it('should not show "View code" when pattern lacks responses_template', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...defaultProps} onViewCode={jest.fn()} />);
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.queryByText('View code')).not.toBeInTheDocument();
     });
   });
 });

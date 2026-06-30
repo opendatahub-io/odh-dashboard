@@ -1,6 +1,6 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import type { RecursivePartial } from '@odh-dashboard/k8s-core';
 import type { DeploymentWizardFieldOverride, WizardField, WizardFormData } from './types';
 import {
   isDeploymentWizardFieldOverrideExtension,
@@ -9,13 +9,28 @@ import {
 
 export const useWizardFieldOverrides = <T extends DeploymentWizardFieldOverride>(
   predicate: (field: DeploymentWizardFieldOverride) => field is T,
-  formData: RecursivePartial<WizardFormData['state']>,
+  formData?: RecursivePartial<WizardFormData['state']>,
 ): T[] => {
   const [extensions] = useResolvedExtensions(isDeploymentWizardFieldOverrideExtension);
 
   return React.useMemo(() => {
-    const all = extensions.map((ext) => ext.properties.field);
-    return all.filter(predicate).filter((field) => field.isActive(formData));
+    const active = extensions
+      .filter((ext) => ext.properties.field.isActive(formData ?? {}))
+      .toSorted((a, b) => a.uid.localeCompare(b.uid))
+      .map((ext) => ext.properties.field)
+      .filter(predicate);
+
+    const forced = active.filter((field) => 'forced' in field && field.forced);
+    if (forced.length > 1) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Multiple forced overrides detected for field "${forced[0].id}" (${forced.length} found). Using the first match.`,
+      );
+    }
+    if (forced.length > 0) {
+      return [forced[0]];
+    }
+    return active;
   }, [extensions, predicate, formData]);
 };
 

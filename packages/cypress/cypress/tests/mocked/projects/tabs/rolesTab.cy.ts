@@ -43,7 +43,7 @@ describe('Roles tab feature flag gating', () => {
     });
 
     it('should redirect from /roles/create to the project page when flag is disabled', () => {
-      projectRoles.visitCreateRole(NAMESPACE);
+      cy.visitWithLogin(`/projects/${NAMESPACE}/roles/create`);
       cy.url().should('not.include', '/roles/create');
       cy.url().should('include', `/projects/${NAMESPACE}`);
     });
@@ -68,6 +68,87 @@ describe('Roles tab feature flag gating', () => {
     it('should render the Create role page when user has permission', () => {
       projectRoles.visitCreateRole(NAMESPACE);
       projectRoles.findCreateRolePage().should('exist');
+    });
+
+    it('should render the create role form with all fields and placeholder states', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findCreateRoleForm().should('exist');
+      projectRoles.findRoleNameInput().should('exist');
+      projectRoles
+        .findDescriptionTextarea()
+        .should('have.attr', 'placeholder', 'Describe what this role is for and who should use it');
+      projectRoles.findAddLabelButton().should('exist');
+      projectRoles
+        .findPermissionsEmptyState()
+        .should('contain.text', 'No rules set for this role.');
+      projectRoles.findSelectRoleTemplateButton().should('not.be.disabled');
+      projectRoles.findAddRuleButton().should('not.be.disabled');
+      projectRoles.findImportTemplateButton().should('not.be.disabled');
+    });
+
+    it('should have the submit button disabled when name is empty', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findSubmitButton().should('be.disabled');
+    });
+
+    it('should enable the submit button when name is filled', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findRoleNameInput().type('my-test-role');
+      projectRoles.findSubmitButton().should('be.enabled');
+    });
+
+    it('should disable submit when a label row has empty key or value', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findRoleNameInput().type('my-test-role');
+      projectRoles.findSubmitButton().should('be.enabled');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findSubmitButton().should('be.disabled');
+
+      projectRoles.findLabelKeyInput(0).type('team');
+      projectRoles.findSubmitButton().should('be.disabled');
+
+      projectRoles.findLabelValueInput(0).type('platform');
+      projectRoles.findSubmitButton().should('be.enabled');
+    });
+
+    it('should disable submit when duplicate label keys exist', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findRoleNameInput().type('my-test-role');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findLabelKeyInput(0).type('team');
+      projectRoles.findLabelValueInput(0).type('platform');
+      projectRoles.findSubmitButton().should('be.enabled');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findLabelKeyInput(1).type('team');
+      projectRoles.findLabelValueInput(1).type('other');
+      projectRoles.findSubmitButton().should('be.disabled');
+    });
+
+    it('should add and remove label rows', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findLabelKeyInput(0).should('not.exist');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findLabelKeyInput(0).should('exist');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findLabelKeyInput(1).should('exist');
+
+      projectRoles.findLabelRemoveButton(1).click();
+      projectRoles.findLabelKeyInput(1).should('not.exist');
+
+      projectRoles.findLabelRemoveButton(0).click();
+      projectRoles.findLabelKeyInput(0).should('not.exist');
+    });
+
+    it('should navigate back to roles tab on cancel', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findCancelButton().click();
+      cy.url().should('include', `/projects/${NAMESPACE}`);
+      cy.url().should('include', 'section=roles');
     });
   });
 
@@ -105,7 +186,7 @@ describe('Roles tab feature flag gating', () => {
     });
 
     it('should redirect from /roles/create when user lacks create permission', () => {
-      projectRoles.visitCreateRole(NAMESPACE);
+      cy.visitWithLogin(`/projects/${NAMESPACE}/roles/create`);
       cy.url().should('not.include', '/roles/create');
       cy.url().should('include', `/projects/${NAMESPACE}`);
       cy.url().should('include', 'section=roles');

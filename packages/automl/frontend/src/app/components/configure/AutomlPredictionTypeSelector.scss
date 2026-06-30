@@ -1,0 +1,31 @@
+// PF selectable cards default to upper-right radio (flex order + margin-inline-start: auto on actions).
+.automl-prediction-type-card {
+  .pf-v6-c-card__header {
+    align-items: flex-start;
+  }
+
+  .pf-v6-c-card__actions {
+    order: -1;
+    padding-inline-start: 0;
+    padding-inline-end: var(--pf-t--global--spacer--md);
+  }
+}
+
+// Plain-style accordion (pf-m-plain / isPlain not on our PF version): transparent shell and panels.
+.automl-prediction-type-other-types-accordion.pf-v6-c-accordion {
+  --pf-v6-c-accordion--BackgroundColor: transparent;
+  --pf-v6-c-accordion__expandable-content--BackgroundColor: transparent;
+  --pf-v6-c-accordion__item--m-expanded--BackgroundColor: transparent;
+  --pf-v6-c-accordion__toggle--BackgroundColor: transparent;
+  --pf-v6-c-accordion__item--m-expanded__toggle--BackgroundColor: transparent;
+  background-color: transparent;
+}
+
+// Content small uses --pf-v6-c-content--small--Color (subtle grey); override with severity/warning tokens for not recommended reasons.
+.automl-prediction-type__reason--not-recommended {
+  --pf-v6-c-content--small--Color: var(--pf-t--global--color--severity--moderate--200);
+
+  :root:where(.pf-v6-theme-dark) & {
+    --pf-v6-c-content--small--Color: var(--pf-t--global--dark--color--severity--moderate--100);
+  }
+}

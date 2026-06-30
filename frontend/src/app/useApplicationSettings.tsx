@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AxiosError } from 'axios';
-import { DashboardConfigKind } from '#~/k8sTypes';
+import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { POLL_INTERVAL } from '#~/utilities/const';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { fetchDashboardConfig } from '#~/services/dashboardConfigService';

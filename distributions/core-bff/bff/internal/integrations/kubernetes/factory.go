@@ -20,6 +20,7 @@ type KubernetesClientFactory interface {
 	ValidateRequestIdentity(identity *RequestIdentity) error
 }
 
+// NewKubernetesClientFactory creates a Kubernetes client factory based on the configured auth method.
 func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
 	case config.AuthMethodDisabled, config.AuthMethodUser:
@@ -34,6 +35,7 @@ func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (Kube
 // Uses a user-provided Bearer token for client creation.
 // Each user has a separate client instance.
 
+// TokenClientFactory creates Kubernetes clients using user-provided bearer tokens.
 type TokenClientFactory struct {
 	Logger *slog.Logger
 	Header string
@@ -43,6 +45,7 @@ type TokenClientFactory struct {
 	NewTokenKubernetesClientFn func(token string, logger *slog.Logger) (KubernetesClientInterface, error)
 }
 
+// NewTokenClientFactory creates a new token-based Kubernetes client factory.
 func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) KubernetesClientFactory {
 	return &TokenClientFactory{
 		Logger:                     logger,
@@ -55,13 +58,13 @@ func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) Kubernetes
 func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error) {
 	raw := httpHeader.Get(f.Header)
 	if raw == "" {
-		return nil, fmt.Errorf("missing required Header: %s", f.Header)
+		return nil, fmt.Errorf("missing required header: %s", f.Header)
 	}
 
 	token := raw
 	if f.Prefix != "" {
 		if !strings.HasPrefix(raw, f.Prefix) {
-			return nil, fmt.Errorf("expected token Header %s to start with Prefix %q", f.Header, f.Prefix)
+			return nil, fmt.Errorf("expected token header %s to start with prefix %q", f.Header, f.Prefix)
 		}
 		token = strings.TrimPrefix(raw, f.Prefix)
 	}

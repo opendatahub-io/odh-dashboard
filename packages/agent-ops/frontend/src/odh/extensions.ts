@@ -1,12 +1,14 @@
 import type {
-  NavExtension,
-  RouteExtension,
   AreaExtension,
+  RouteExtension,
+  TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+import { agentDeploymentsPath } from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
+const AGENTS_TAB_PAGE = 'agents-tab-page';
 
-const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
+const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
   {
     type: 'app.area',
     properties: {
@@ -15,39 +17,26 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
   },
   {
-    type: 'app.navigation/section',
+    type: 'app.tab-route/tab',
     flags: {
       required: [AGENT_OPS],
     },
     properties: {
-      id: 'agent-ops',
-      title: 'Agent Ops',
-      group: '7_agent_ops_studio',
-      iconRef: () => import('./AgentOpsNavIcon'),
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      id: 'agent-ops-view',
-      title: 'Agent Ops',
-      href: '/agent-ops/main-view',
-      section: 'agent-ops',
-      path: '/agent-ops/main-view/*',
-      label: 'Tech Preview',
+      pageId: AGENTS_TAB_PAGE,
+      id: 'deployments',
+      title: 'Deployments',
+      component: () => import('./AgentDeploymentsWrapper'),
+      group: '1_deployments',
     },
   },
   {
     type: 'app.route',
     flags: {
-      required: [],
+      required: [AGENT_OPS],
     },
     properties: {
-      path: '/agent-ops/main-view/*',
-      component: () => import('./AgentOpsWrapper'),
+      path: `${agentDeploymentsPath}/:namespace/:agentId/*`,
+      component: () => import('./AgentDeploymentDetailWrapper'),
     },
   },
 ];

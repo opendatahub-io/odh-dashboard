@@ -15,7 +15,6 @@ import {
   MODEL_CATALOG_API_VERSION,
   MODEL_REGISTRY_API_VERSION,
 } from '~/__tests__/cypress/cypress/support/commands/api';
-import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 import { ModelCatalogTask } from '~/concepts/modelCatalog/const';
 
 describe('Model Catalog Details Page', () => {
@@ -272,6 +271,26 @@ describe('Model Catalog Details Page - Edge Cases', () => {
     cy.findAllByText('N/A').should('have.length.at.least', 1);
   });
 
+  it('should show disabled register button with tooltip when no model registries exist', () => {
+    cy.intercept('GET', '/model-registry/api/v1/model_registry*', mockModArchResponse([])).as(
+      'getEmptyModelRegistries',
+    );
+
+    setupModelCatalogIntercepts({});
+    interceptArtifactsList();
+
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.findBreadcrumb().should('exist');
+
+    cy.wait('@getEmptyModelRegistries');
+    modelCatalog.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
+    modelCatalog.findRegisterModelButton().trigger('mouseenter');
+    modelCatalog.findRegisterCatalogModelTooltip().should('be.visible');
+    cy.testA11y({ exclude: ['.pf-v6-c-tooltip'] });
+  });
+
   it('should show error alert when artifacts fail to load', () => {
     setupModelCatalogIntercepts({});
 
@@ -327,9 +346,8 @@ describe('Model Catalog Details Page - Validated Configurations Card', () => {
     ]).as('getModelRegistries');
   });
 
-  describe('with feature flag enabled', () => {
+  describe('with validated model', () => {
     beforeEach(() => {
-      window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
       setupValidatedModelIntercepts({});
       interceptArtifactsList();
       modelCatalog.visit();
@@ -350,24 +368,19 @@ describe('Model Catalog Details Page - Validated Configurations Card', () => {
       modelCatalog.findToolCallingCard().should('contain.text', '--enable-auto-tool-choice');
       modelCatalog.findToolCallingCard().should('contain.text', '--tool-call-parser granite');
     });
-  });
 
-  describe('with feature flag disabled', () => {
-    it('should not display the validated configurations card', () => {
-      window.localStorage.removeItem(TempDevFeature.ToolCallingConfiguration);
-      setupValidatedModelIntercepts({});
-      interceptArtifactsList();
-      modelCatalog.visit();
-      modelCatalog.findLoadingState().should('not.exist');
-      modelCatalog.findModelCatalogDetailLink().first().click();
-      modelCatalog.findBreadcrumb().should('exist');
-      modelCatalog.findValidatedConfigurationsCard().should('not.exist');
+    it('should display validated deployment resources label when expanded', () => {
+      modelCatalog.findToolCallingToggle().click();
+      modelCatalog.findValidatedDeploymentResourceLabels().should('have.length', 1);
+      modelCatalog
+        .findValidatedDeploymentResourceLabels()
+        .first()
+        .should('contain.text', 'vLLM v0.8.5 - CUDA');
     });
   });
 
   describe('for a non-validated model', () => {
     it('should not display the validated configurations card', () => {
-      window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
       setupModelCatalogIntercepts({
         customNonValidatedModel: mockCatalogModel({
           name: 'non-validated-model',

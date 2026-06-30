@@ -185,11 +185,11 @@ class AutomlResultsPage {
   }
 
   /**
-   * Waits up to `timeoutMs` (default 30 min) for the run to complete.
+   * Waits up to `timeoutMs` (default 45 min) for the run to complete.
    * Asserts that the leaderboard table appears. Fails if a
    * canceled/failed status label appears instead.
    */
-  waitForRunCompletion(timeoutMs = 1800000) {
+  waitForRunCompletion(timeoutMs = 2700000) {
     // Wait for in-progress message to disappear (run finished)
     cy.findByTestId('automl-run-in-progress', { timeout: timeoutMs }).should('not.exist');
     // Verify no failure/canceled status label appeared

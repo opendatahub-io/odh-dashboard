@@ -12,7 +12,10 @@ import {
   PerformancePropertyKey,
 } from '~/concepts/modelCatalog/const';
 
-export type HardwareConfigColumnField = keyof PerformanceMetricsCustomProperties;
+export type HardwareConfigColumnField =
+  | keyof PerformanceMetricsCustomProperties
+  | 'cold_start_load_time'
+  | 'runtime_command';
 
 export type HardwareConfigColumn = Omit<
   SortableData<CatalogPerformanceMetricsArtifact>,
@@ -350,6 +353,33 @@ export const hardwareConfigColumns: HardwareConfigColumn[] = [
       const versionB = getStringValue(b.customProperties, 'framework_version');
       return versionA.localeCompare(versionB);
     },
+    width: 20,
+    modifier: 'wrap',
+  },
+  {
+    field: 'cold_start_load_time',
+    label: `Cold start load time`,
+    info: {
+      popover:
+        'The time it takes for vLLM to load the model. This does not include the time it takes to download the model.',
+      popoverProps: {
+        position: 'left',
+      },
+    },
+    sortable: false,
+    width: 20,
+  },
+  {
+    field: 'runtime_command',
+    label: 'Runtime Command',
+    info: {
+      popover:
+        'The vLLM runtime command used to validate the model with the selected hardware configuration.',
+      popoverProps: {
+        position: 'left',
+      },
+    },
+    sortable: false,
     width: 20,
     modifier: 'wrap',
   },

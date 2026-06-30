@@ -1,7 +1,6 @@
 import * as React from 'react';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
-import { Table } from '#~/components/table';
-import { HardwareProfileKind } from '#~/k8sTypes';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
 import {
   hardwareProfileColumns,
   HardwareProfileEnableType,

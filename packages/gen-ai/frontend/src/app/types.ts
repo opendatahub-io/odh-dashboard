@@ -78,9 +78,13 @@ export enum ChatMessageRole {
   ASSISTANT = 'assistant',
 }
 
+export type InputContentPart =
+  | { type: 'input_text'; text: string }
+  | { type: 'input_image'; file_id: string };
+
 export type ChatContextMessage = {
   role: ChatMessageRole;
-  content: string;
+  content: string | InputContentPart[];
 };
 
 export type MCPServerConfig = {
@@ -99,7 +103,7 @@ export type GuardrailInlineConfig = {
 };
 
 export type CreateResponseRequest = {
-  input: string;
+  input: string | InputContentPart[];
   model: string;
   vector_store_ids?: string[];
   chat_context?: ChatContextMessage[];
@@ -194,6 +198,7 @@ export type SimplifiedResponseData = {
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
   metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
+  reasoningContent?: string; // Optional - accumulated reasoning/thinking text from thinking models
 };
 
 export type FileError = {
@@ -316,7 +321,10 @@ export type CodeExportRequest = {
     name: string;
     version: number;
   };
+  prompt_variable_values?: Record<string, string>;
   guardrail_config?: CodeExportGuardrailConfig;
+  asr_model?: string;
+  vision_image?: boolean;
 };
 
 export type CodeExportData = {
@@ -373,6 +381,7 @@ export interface AAModelResponse {
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
   model_type?: 'llm' | 'embedding';
   embedding_dimension?: number;
+  capabilities?: string[];
 }
 
 export interface AIModel extends AAModelResponse {
@@ -390,6 +399,7 @@ export type ExternalModelRequest = {
   model_type: 'llm' | 'embedding';
   use_cases?: string;
   embedding_dimension?: number;
+  capabilities?: string[];
 };
 
 export type ExternalModelResponse = AAModelResponse;
@@ -474,6 +484,7 @@ export type MLflowPrompt = {
 export type MLflowPromptsResponse = {
   prompts: MLflowPrompt[];
   next_page_token?: string;
+  total_count: number;
 };
 
 export type MLflowMessage = {
@@ -512,7 +523,7 @@ export type MLflowPromptVersionMeta = {
 };
 
 export type MLflowPromptVersionsResponse = {
-  versions: MLflowPromptVersionMeta[];
+  versions: MLflowPromptVersionMeta[] | null;
   next_page_token?: string;
 };
 
@@ -560,6 +571,11 @@ export type GenAiAPIs = {
   createExternalModel: CreateExternalModel;
   verifyExternalModel: VerifyExternalModel;
   deleteExternalModel: DeleteExternalModel;
+  listAgentProfiles: ListAgentProfiles;
+  getAgentProfile: GetAgentProfile;
+  updateAgentProfile: UpdateAgentProfile;
+  deleteAgentProfile: DeleteAgentProfile;
+  createAgentProfile: CreateAgentProfile;
 };
 
 export interface SubscriptionInfo {
@@ -619,7 +635,7 @@ type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
   opts?: APIOptions & {
-    onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
+    onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
     abortSignal?: AbortSignal;
   },
 ) => Promise<SimplifiedResponseData>;
@@ -650,3 +666,120 @@ type VerifyExternalModel = ModArchRestCREATE<
   VerifyExternalModelRequest
 >;
 type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
+type ListAgentProfiles = ModArchRestGET<import('./agentProfile/types').AgentProfileListResponse>;
+type GetAgentProfile = ModArchRestGET<import('./agentProfile/types').AgentProfile>;
+type DeleteAgentProfile = ModArchRestDELETE<void, { id: string }>;
+type UpdateAgentProfile = (
+  data: import('./agentProfile/types').AgentProfileUpdateRequest & { id: string },
+  opts?: APIOptions,
+) => Promise<import('./agentProfile/types').AgentProfileUpdateResponse>;
+type CreateAgentProfile = ModArchRestCREATE<
+  import('./agentProfile/types').AgentProfileCreateResponse,
+  import('./agentProfile/types').AgentProfileCreateRequest
+>;
+
+export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
+export type ErrorVariant = 'danger' | 'warning';
+
+/**
+ * Error component identifiers - single source of truth for error attribution.
+ * Maps to Component* constants in packages/gen-ai/bff/internal/integrations/llamastack/errors.go
+ */
+export const ERROR_COMPONENTS = {
+  GUARDRAILS: 'guardrails',
+  RAG: 'rag',
+  MCP: 'mcp',
+  MODEL: 'model',
+  OGX: 'ogx',
+  BFF: 'bff',
+  ASR: 'asr',
+} as const;
+
+export type ErrorComponent = (typeof ERROR_COMPONENTS)[keyof typeof ERROR_COMPONENTS];
+
+/**
+ * Components that represent partial failures (warning state).
+ * Full failures from these components still render as danger alerts.
+ */
+export const PARTIAL_FAILURE_COMPONENTS: ReadonlySet<ErrorComponent> = new Set([
+  ERROR_COMPONENTS.GUARDRAILS,
+  ERROR_COMPONENTS.RAG,
+  ERROR_COMPONENTS.MCP,
+]);
+
+/**
+ * Display names for error components shown in the UI.
+ */
+export const ERROR_COMPONENT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  [ERROR_COMPONENTS.GUARDRAILS]: 'Guardrails',
+  [ERROR_COMPONENTS.RAG]: 'RAG',
+  [ERROR_COMPONENTS.MCP]: 'MCP',
+  [ERROR_COMPONENTS.MODEL]: 'Model',
+  [ERROR_COMPONENTS.OGX]: 'OGX',
+  [ERROR_COMPONENTS.BFF]: 'BFF',
+  [ERROR_COMPONENTS.ASR]: 'Audio Transcription',
+};
+
+export interface ErrorDetails {
+  component: string;
+  errorCode: string;
+  rawMessage: string;
+}
+
+export interface ClassifiedError {
+  pattern: ErrorPattern;
+  variant: ErrorVariant;
+  title: string;
+  description: string;
+  details: ErrorDetails;
+  isRetriable: boolean;
+}
+
+export interface ApiError {
+  error: {
+    component: ErrorComponent;
+    code: string;
+    message: string;
+    tool_name?: string;
+    retriable: boolean;
+  };
+}
+
+/**
+ * Custom error class that extends Error and carries structured API error payload.
+ * Preserves stack traces and works with instanceof checks while maintaining
+ * the ApiError structure for error handling logic.
+ */
+export class ApiErrorClass extends Error implements ApiError {
+  error: ApiError['error'];
+
+  constructor(error: ApiError['error']) {
+    super(error.message);
+    this.name = 'ApiError';
+    this.error = error;
+    // Maintains proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, ApiErrorClass.prototype);
+  }
+}
+
+/**
+ * Type guard to check if an error is an ApiError (class instance or plain object).
+ * Works with both ApiErrorClass instances and legacy plain object throws.
+ */
+export function isApiError(error: unknown): error is ApiError {
+  if (typeof error !== 'object' || error === null || !('error' in error)) {
+    return false;
+  }
+
+  const errorObj = error.error;
+  if (typeof errorObj !== 'object' || errorObj === null) {
+    return false;
+  }
+
+  return (
+    'component' in errorObj &&
+    'code' in errorObj &&
+    'message' in errorObj &&
+    'retriable' in errorObj
+  );
+}
