@@ -16,7 +16,10 @@ import type { NumReplicasFieldData } from '@odh-dashboard/model-serving/componen
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
 import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
 import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
-import { applyHardwareProfileConfig, INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '@odh-dashboard/hardware-profiles-shared';
+import {
+  applyHardwareProfileConfig,
+  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+} from '@odh-dashboard/hardware-profiles-shared';
 import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import {
   applyAiAvailableAssetAnnotations,
