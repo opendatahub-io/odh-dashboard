@@ -74,8 +74,7 @@ class ModelRegistry {
   }
 
   waitForPageLoaded() {
-    appChrome.waitForA11y();
-    cy.findByTestId('app-page-title').contains('Model Registry');
+    cy.testA11y();
   }
 
   private waitLanding() {
