@@ -1,11 +1,7 @@
 import type { PodKind } from '@odh-dashboard/k8s-core';
 import { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes.js';
-import {
-  CPU_UNITS,
-  MEMORY_UNITS_FOR_PARSING,
-  splitValueUnit,
-  UnitOption,
-} from '@odh-dashboard/internal/utilities/valueUnits';
+import type { UnitOption } from '@odh-dashboard/ui-core';
+import { CPU_UNITS, MEMORY_UNITS_FOR_PARSING, splitValueUnit } from '@odh-dashboard/ui-core';
 import { TrainJobKind, TrainerStatus } from '../../k8sTypes';
 import { TRAINER_STATUS_ANNOTATION } from '../../const';
 

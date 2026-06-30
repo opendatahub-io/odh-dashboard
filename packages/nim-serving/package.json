@@ -16,8 +16,10 @@
     "./types": "./src/api/nimservices/types.ts"
   },
   "dependencies": {
+    "@odh-dashboard/hardware-profiles-shared": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/ui-core": "*",
     "@odh-dashboard/kserve": "*",
     "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*",

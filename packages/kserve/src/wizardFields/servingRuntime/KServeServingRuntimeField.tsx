@@ -22,7 +22,7 @@ import {
   getServingRuntimeVersion,
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
-import { useProfileIdentifiers } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import { useProfileIdentifiers } from '@odh-dashboard/hardware-profiles-shared';
 import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from '../deploymentMethodField';
 
 // Types

@@ -42,7 +42,7 @@ jest.mock('@odh-dashboard/internal/redux/hooks', () => ({
 }));
 
 const mockUseAssignHardwareProfile = jest.fn();
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile', () => ({
+jest.mock('@odh-dashboard/hardware-profiles-shared', () => ({
   useAssignHardwareProfile: (...args: unknown[]) => mockUseAssignHardwareProfile(...args),
 }));
 

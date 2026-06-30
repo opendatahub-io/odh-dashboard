@@ -1,32 +1,3 @@
-import * as React from 'react';
-import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { CustomWatchK8sResult } from '#~/types';
-import { DEFAULT_LIST_WATCH_RESULT } from '#~/utilities/const';
-import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
-import { useDashboardNamespace } from '#~/redux/selectors';
-
-export type HardwareProfilesContextType = {
-  globalHardwareProfiles: CustomWatchK8sResult<HardwareProfileKind[]>;
-};
-
-export const HardwareProfilesContext = React.createContext<HardwareProfilesContextType>({
-  globalHardwareProfiles: DEFAULT_LIST_WATCH_RESULT,
-});
-
-export const HardwareProfilesContextProvider: React.FC<{
-  children: React.ReactNode;
-}> = ({ children }) => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const globalHardwareProfiles = useWatchHardwareProfiles(dashboardNamespace);
-  const contextValue = React.useMemo(
-    () => ({
-      globalHardwareProfiles,
-    }),
-    [globalHardwareProfiles],
-  );
-  return (
-    <HardwareProfilesContext.Provider value={contextValue}>
-      {children}
-    </HardwareProfilesContext.Provider>
-  );
-};
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
+export { HardwareProfilesContext, HardwareProfilesContextProvider } from '@odh-dashboard/hardware-profiles-shared';
+export type { HardwareProfilesContextType } from '@odh-dashboard/hardware-profiles-shared';

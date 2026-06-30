@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/internal/__mocks__/mockUseAssignHardwareProfileResult';
-import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { useAssignHardwareProfile } from '@odh-dashboard/hardware-profiles-shared';
 import { Deployment } from '../../../../extension-points';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRow } from '../row/DeploymentsTableRow';
@@ -54,7 +54,7 @@ jest.mock('../../deploymentWizard/useExtractFormDataFromDeployment', () => ({
 }));
 
 // Mock the useAssignHardwareProfile hook
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile', () => ({
+jest.mock('@odh-dashboard/hardware-profiles-shared', () => ({
   useAssignHardwareProfile: jest.fn(),
 }));
 
