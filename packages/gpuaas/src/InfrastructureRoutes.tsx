@@ -5,7 +5,7 @@ import InfrastructurePage from './pages/InfrastructurePage';
 const InfrastructureRoutes: React.FC = () => (
   <Routes>
     <Route index element={<InfrastructurePage />} />
-    <Route path="*" element={<Navigate to="." />} />
+    <Route path="*" element={<Navigate to="." replace />} />
   </Routes>
 );
 
