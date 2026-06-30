@@ -132,13 +132,11 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     label: 'Back-testing',
     tooltip: 'Per-window validation metrics and best/worst series forecast accuracy',
     section: 'Evaluation',
-    visibleFor: TASK_TYPE_TIMESERIES,
+    visibleFor: [TASK_TYPE_TIMESERIES],
     component: BacktestingTab,
   },
 ];
 
 export function getVisibleTabs(taskType: TaskType): TabDefinition[] {
-  return TAB_DEFINITIONS.filter((tab) =>
-    Array.isArray(tab.visibleFor) ? tab.visibleFor.includes(taskType) : tab.visibleFor === taskType,
-  );
+  return TAB_DEFINITIONS.filter((tab) => tab.visibleFor.includes(taskType));
 }
