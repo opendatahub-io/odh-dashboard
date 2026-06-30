@@ -160,14 +160,12 @@ const initIntercepts = ({
     }
   });
   cy.interceptOdh('POST /api/prometheus/bias', (req) => {
-    const { query }: { query: string } = req.body;
-    if (query.includes(`query=trustyai_dir`)) {
+    if ((req.body as { query: string }).query.includes(`query=trustyai_dir`)) {
       req.reply(mockPrometheusBias({ result: hasBiasData ? undefined : [], metric: 'DIR' }));
     }
   });
   cy.interceptOdh('POST /api/prometheus/bias', (req) => {
-    const { query }: { query: string } = req.body;
-    if (query.includes(`query=trustyai_spd`)) {
+    if ((req.body as { query: string }).query.includes(`query=trustyai_spd`)) {
       req.reply(mockPrometheusBias({ result: hasBiasData ? undefined : [], metric: 'SPD' }));
     }
   });

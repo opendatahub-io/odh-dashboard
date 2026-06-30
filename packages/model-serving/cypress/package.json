@@ -6,19 +6,12 @@
   "cypress": {
     "mocked": "tests/mocked/**/*.cy.ts"
   },
-  "scripts": {
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
-  },
   "devDependencies": {
     "@odh-dashboard/cypress": "*",
-    "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/llmd-serving": "*",
     "@odh-dashboard/model-serving": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/plugin-core": "*"
   }
 }
