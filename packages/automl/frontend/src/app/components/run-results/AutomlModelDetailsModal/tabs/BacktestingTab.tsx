@@ -12,7 +12,16 @@ const FORECAST_LEGEND_ITEMS = [
   { color: COLOR_SCALE[1], label: 'Confidence interval', opacity: 0.4 },
 ];
 
-const MAX_METRIC_CARDS = 3;
+// Always show the eval metric first, then these standard interpretable metrics
+const SECONDARY_METRIC_KEYS = ['RMSE', 'MAE'];
+
+function findMetricEntry(
+  data: Record<string, number>,
+  key: string,
+): { key: string; value: number } | undefined {
+  const actualKey = Object.keys(data).find((k) => k.toLowerCase() === key.toLowerCase());
+  return actualKey !== undefined ? { key: actualKey, value: data[actualKey] } : undefined;
+}
 
 const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtifactsLoading }) => {
   if (isArtifactsLoading) {
@@ -32,12 +41,35 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
     );
   }
 
-  const overallMetrics = Object.entries(model.metrics.test_data).slice(0, MAX_METRIC_CARDS);
+  // Holdout evaluation metrics reported by AutoGluon for this model (e.g. MASE, RMSE, MAE)
+  const testData = model.metrics.test_data;
+
+  // The metric the model was optimised for — always shown first so it's the most prominent card
+  const evalMetric = backTesting.eval_metric;
+  const evalEntry = findMetricEntry(testData, evalMetric);
+
+  // Add RMSE and MAE as secondary cards (unless one of them IS the eval metric, to avoid duplicates)
+  const secondaryEntries = SECONDARY_METRIC_KEYS.filter(
+    (k) => k.toLowerCase() !== evalMetric.toLowerCase(),
+  ).map((k) => findMetricEntry(testData, k));
+
+  // Remove any keys the backend didn't include in this model's test_data
+  const curatedMetrics = [evalEntry, ...secondaryEntries].filter(
+    (e): e is { key: string; value: number } => e !== undefined,
+  );
+
+  // If none of the curated keys exist (e.g. unusual metric set), fall back to whatever testData has
+  const overallMetrics =
+    curatedMetrics.length > 0
+      ? curatedMetrics
+      : Object.entries(testData)
+          .slice(0, 3)
+          .map(([key, value]) => ({ key, value }));
 
   return (
     <div data-testid="back-testing-content">
       <Flex spaceItems={{ default: 'spaceItemsMd' }} className="pf-v6-u-mb-lg">
-        {overallMetrics.map(([key, value]) => (
+        {overallMetrics.map(({ key, value }) => (
           <FlexItem key={key}>
             <div className="automl-backtest-metric-card">
               <span className="automl-backtest-metric-card__label">

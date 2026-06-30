@@ -943,9 +943,8 @@ describe('useModelEvaluationArtifactsQuery', () => {
       },
     };
 
-    (global.fetch as jest.Mock)
-      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
-      .mockResolvedValueOnce(mockBlobJsonResponse(mockBackTesting));
+    // featureImportance, confusionMatrix, and curves are all disabled for timeseries
+    (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockBackTesting));
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, true),

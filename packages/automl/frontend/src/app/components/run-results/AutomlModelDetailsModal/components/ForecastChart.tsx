@@ -61,37 +61,66 @@ const PREDICTED_STYLE = { data: { stroke: COLOR_SCALE[1] } };
 const BAND_STYLE = { data: { fill: COLOR_SCALE[1], opacity: 0.15, stroke: 'none' } };
 
 const ForecastChart: React.FC<ForecastChartProps> = ({ performer, title }) => {
+  // Flatten all forecast points from every window into a single array
   const allPoints = React.useMemo(
     () => performer.windows.flatMap((w) => w.forecast_data),
     [performer],
   );
 
+  // Sort chronologically — windows may not arrive in time order
   const sorted = React.useMemo(
     () => allPoints.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)),
     [allPoints],
   );
 
+  // Build the three Victory series: observed (actual), predicted (forecast), band (confidence area)
   const { observed, predicted, band } = React.useMemo(() => buildSeriesData(sorted), [sorted]);
 
-  // Only label the first point of each window to avoid x-axis crowding
-  const windowBoundaryIndices = React.useMemo(() => {
-    let cumulative = 0;
-    return performer.windows.map((w) => {
-      const idx = cumulative;
-      cumulative += w.forecast_data.length;
-      return idx;
-    });
-  }, [performer]);
+  // Label only the start, middle, and end of the time range to keep the axis readable.
+  // Tracking window boundaries would require re-mapping indices after the chronological sort,
+  // so we use the simpler approach of evenly spaced anchor points.
+  const tickValues = React.useMemo(() => {
+    const n = sorted.length;
+    if (n === 0) {
+      return [];
+    }
+    if (n <= 2) {
+      return sorted.map((_, i) => i);
+    }
+    return [0, Math.floor(n / 2), n - 1];
+  }, [sorted]);
 
   const tickFormat = React.useCallback(
     (val: number) => {
-      const windowIndex = windowBoundaryIndices.indexOf(val);
-      return windowIndex !== -1 ? `Window ${windowIndex + 1}` : '';
+      if (val >= sorted.length) {
+        return '';
+      }
+      const ts = sorted[val].timestamp;
+      const dateLabel = new Date(ts).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+      });
+      // Check whether any other visible tick would produce the same date-only label.
+      // When windows are close together (e.g. prediction_length=1), two boundaries can
+      // fall on the same calendar day — adding the hour disambiguates just those labels.
+      const otherTicks = tickValues.filter((i) => i !== val && i < sorted.length);
+      const collidesWithAnother = otherTicks.some(
+        (i) =>
+          new Date(sorted[i].timestamp).toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+          }) === dateLabel,
+      );
+      return collidesWithAnother
+        ? new Date(ts).toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+          })
+        : dateLabel;
     },
-    [windowBoundaryIndices],
+    [sorted, tickValues],
   );
-
-  const tickValues = React.useMemo(() => sorted.map((_, i) => i), [sorted]);
 
   return (
     <div data-testid={`forecast-chart-${title.replace(/\s+/g, '-')}`}>

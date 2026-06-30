@@ -576,7 +576,7 @@ export function useModelEvaluationArtifactsQuery(
               schema: FeatureImportanceDataSchema,
             },
           ),
-        enabled: Boolean(namespace && modelDirectory),
+        enabled: Boolean(namespace && modelDirectory && !isTimeseries),
         retry: false,
       },
       {
