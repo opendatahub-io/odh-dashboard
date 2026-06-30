@@ -52,7 +52,7 @@ webhooks:
           - dashboards
     sideEffects: None
     timeoutSeconds: 5
-{{- if and .Values.webhook.certManager.enabled (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+{{- if .Values.webhook.certManager.enabled }}
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer

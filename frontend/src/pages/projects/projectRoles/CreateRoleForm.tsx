@@ -14,6 +14,7 @@ type CreateRoleFormProps = {
   onLabelsChange: (labels: LabelEntry[]) => void;
   rules: RuleEntry[];
   onRulesChange: (rules: RuleEntry[]) => void;
+  onImportTemplate: () => void;
 };
 
 const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
@@ -24,6 +25,7 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
   onLabelsChange,
   rules,
   onRulesChange,
+  onImportTemplate,
 }) => {
   const handleDescriptionChange = React.useCallback(
     (_event: React.FormEvent<HTMLTextAreaElement>, value: string) => {
@@ -64,7 +66,11 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
 
       <RoleLabelsSection labels={labels} onLabelsChange={onLabelsChange} />
 
-      <PermissionRulesSection rules={rules} onRulesChange={onRulesChange} />
+      <PermissionRulesSection
+        rules={rules}
+        onRulesChange={onRulesChange}
+        onImportTemplate={onImportTemplate}
+      />
     </Form>
   );
 };
