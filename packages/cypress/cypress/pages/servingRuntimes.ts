@@ -1,8 +1,7 @@
 import type { ServingRuntimeAPIProtocol } from '@odh-dashboard/internal/types';
+import { ModelTypeLabel } from '../utils/modelServingConstants';
 import { appChrome } from './appChrome';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
-
-type ModelTypeLabel = 'Predictive model' | 'Generative AI model (Example, LLM)';
 
 class ServingRuntimeRow {
   constructor(public readonly id: string) {}
@@ -117,7 +116,7 @@ class ServingRuntimes {
     return cy.findByTestId('custom-serving-model-type-selection').find('button');
   }
 
-  selectModelType(value: ModelTypeLabel) {
+  selectModelType(value: (typeof ModelTypeLabel)[keyof typeof ModelTypeLabel]) {
     cy.contains('.pf-v6-c-menu__item-text', value).click();
     // Close the dropdown by clicking the toggle button again
     this.findSelectModelTypeButton().click();
