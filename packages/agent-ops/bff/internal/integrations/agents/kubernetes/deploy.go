@@ -164,14 +164,104 @@ func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error 
 	return &agents.UnavailableError{Message: fmt.Sprintf("delete not yet implemented for agent %s/%s", namespace, name)}
 }
 
-// StopAgent scales down the agent workload to zero replicas.
+const (
+	// AnnotationOriginalReplicas stores the original replica count before a stop operation.
+	AnnotationOriginalReplicas = "opendatahub.io/original-replicas"
+)
+
+// StopAgent scales down the agent Deployment to zero replicas.
+// The original replica count is preserved in an annotation so StartAgent can restore it.
 func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
-	_ = ctx
-	return &agents.UnavailableError{Message: fmt.Sprintf("stop not yet implemented for agent %s/%s", namespace, name)}
+	clientset := c.k8sClient.KubernetesClientset()
+
+	deployment, err := clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get Deployment %s/%s: %w", namespace, name, mapK8sError(err))
+	}
+	if deployment.Labels[labelManagedBy] != managedByValue {
+		return fmt.Errorf("cannot stop agent %s/%s: not managed by %s", namespace, name, managedByValue)
+	}
+
+	currentReplicas := int32(1)
+	if deployment.Spec.Replicas != nil {
+		currentReplicas = *deployment.Spec.Replicas
+	}
+
+	if currentReplicas == 0 {
+		return &agents.UnavailableError{Message: fmt.Sprintf("agent %s/%s is already stopped", namespace, name)}
+	}
+
+	// Store original replica count in annotation before scaling to zero.
+	if deployment.Annotations == nil {
+		deployment.Annotations = make(map[string]string)
+	}
+	deployment.Annotations[AnnotationOriginalReplicas] = fmt.Sprintf("%d", currentReplicas)
+
+	zero := int32(0)
+	deployment.Spec.Replicas = &zero
+
+	_, err = clientset.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to scale down Deployment %s/%s: %w", namespace, name, mapK8sError(err))
+	}
+
+	c.logger.Info("Agent stopped (scaled to 0)",
+		slog.String("name", name),
+		slog.String("namespace", namespace),
+		slog.Int("originalReplicas", int(currentReplicas)))
+
+	return nil
 }
 
-// StartAgent scales the agent workload back up.
+// StartAgent scales the agent Deployment back up to its original replica count.
+// If no original replica count is stored, it defaults to 1.
 func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
-	_ = ctx
-	return &agents.UnavailableError{Message: fmt.Sprintf("start not yet implemented for agent %s/%s", namespace, name)}
+	clientset := c.k8sClient.KubernetesClientset()
+
+	deployment, err := clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get Deployment %s/%s: %w", namespace, name, mapK8sError(err))
+	}
+	if deployment.Labels[labelManagedBy] != managedByValue {
+		return fmt.Errorf("cannot start agent %s/%s: not managed by %s", namespace, name, managedByValue)
+	}
+
+	currentReplicas := int32(1)
+	if deployment.Spec.Replicas != nil {
+		currentReplicas = *deployment.Spec.Replicas
+	}
+
+	if currentReplicas > 0 {
+		return &agents.UnavailableError{Message: fmt.Sprintf("agent %s/%s is already running", namespace, name)}
+	}
+
+	// Restore from annotation, default to 1.
+	targetReplicas := int32(1)
+	if stored, ok := deployment.Annotations[AnnotationOriginalReplicas]; ok {
+		if parsed, parseErr := parseReplicaCount(stored); parseErr == nil && parsed > 0 {
+			targetReplicas = parsed
+		}
+		// Clean up the annotation.
+		delete(deployment.Annotations, AnnotationOriginalReplicas)
+	}
+
+	deployment.Spec.Replicas = &targetReplicas
+
+	_, err = clientset.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to scale up Deployment %s/%s: %w", namespace, name, mapK8sError(err))
+	}
+
+	c.logger.Info("Agent started",
+		slog.String("name", name),
+		slog.String("namespace", namespace),
+		slog.Int("replicas", int(targetReplicas)))
+
+	return nil
+}
+
+func parseReplicaCount(s string) (int32, error) {
+	var n int32
+	_, err := fmt.Sscanf(s, "%d", &n)
+	return n, err
 }
