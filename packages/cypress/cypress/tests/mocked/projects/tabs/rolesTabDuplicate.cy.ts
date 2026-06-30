@@ -58,33 +58,28 @@ describe('Duplicate Role', () => {
     cy.findByTestId('app-page-title').should('contain.text', 'Duplicate custom role');
   });
 
-  it('should clear the k8s name field for the user to enter a new name', () => {
+  it('should pre-populate the display name with "Copy of" prefix', () => {
     projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
-    projectRoles.findRoleNameInput().should('have.value', '');
+    projectRoles.findRoleNameInput().should('have.value', `Copy of ${SOURCE_ROLE_NAME}`);
   });
 
-  it('should have submit button disabled until user enters a new name', () => {
+  it('should have submit button enabled with auto-generated resource name', () => {
     projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
-    projectRoles.findSubmitButton().should('be.disabled');
-
-    projectRoles.findRoleNameInput().type('my-copied-role');
     projectRoles.findSubmitButton().should('be.enabled');
   });
 
   it('should submit via POST when duplicating a role', () => {
-    const NEW_ROLE_NAME = 'my-copied-role';
     cy.interceptK8s(
       'POST',
       { model: RoleModel, ns: NAMESPACE },
-      mockRoleK8sResource({ name: NEW_ROLE_NAME, namespace: NAMESPACE }),
+      mockRoleK8sResource({ name: 'copy-of-my-custom-role', namespace: NAMESPACE }),
     ).as('createRole');
 
     projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
-    projectRoles.findRoleNameInput().type(NEW_ROLE_NAME);
     projectRoles.findSubmitButton().click();
 
     cy.wait('@createRole').then((interception) => {
-      expect(interception.request.body.metadata.name).to.equal(NEW_ROLE_NAME);
+      expect(interception.request.body.metadata.name).to.equal('copy-of-my-custom-role');
       expect(interception.request.body.metadata.namespace).to.equal(NAMESPACE);
       expect(interception.request.body.metadata.labels).to.have.property(
         'opendatahub.io/dashboard',
