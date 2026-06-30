@@ -1,5 +1,5 @@
 import * as React from 'react';
-import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
+import { EmptyDetailsView } from '@odh-dashboard/ui-core';
 import { Button } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
