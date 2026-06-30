@@ -33,8 +33,4 @@ export {
   MEMORY_UNITS_FOR_PARSING,
   OTHER,
 } from './utilities/valueUnits';
-export type {
-  ValueUnitString,
-  ValueUnitCPU,
-  UnitOption,
-} from './utilities/valueUnits';
+export type { ValueUnitString, ValueUnitCPU, UnitOption } from './utilities/valueUnits';
