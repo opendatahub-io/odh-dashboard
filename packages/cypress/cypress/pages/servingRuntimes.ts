@@ -1,7 +1,7 @@
 import type { ServingRuntimeAPIProtocol } from '@odh-dashboard/internal/types';
-import { ModelTypeLabel } from '../utils/modelServingConstants';
 import { appChrome } from './appChrome';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
+import type { ModelTypeLabel } from '../utils/modelServingConstants';
 
 class ServingRuntimeRow {
   constructor(public readonly id: string) {}
