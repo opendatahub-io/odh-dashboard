@@ -41,6 +41,11 @@ class ModelCatalog {
     cy.testA11y();
   }
 
+  waitForPerformanceInsightsTab() {
+    this.findPerformanceInsightsTabContent().should('be.visible');
+    cy.testA11y();
+  }
+
   findFilter(title: string) {
     return new ModelCatalogFilter(title).find();
   }
