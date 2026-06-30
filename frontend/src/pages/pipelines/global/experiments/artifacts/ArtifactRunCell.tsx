@@ -2,61 +2,29 @@ import React from 'react';
 import { Link } from 'react-router';
 import { Skeleton, Truncate } from '@patternfly/react-core';
 import { Artifact } from '#~/third_party/mlmd';
-import usePipelineRunById from '#~/concepts/pipelines/apiHooks/usePipelineRunById';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { globalPipelineRunDetailsRoute } from '#~/routes/pipelines/runs';
 import { getGenericErrorCode } from '#~/api/errorUtils';
+import { useArtifactRuns } from './ArtifactRunsContext';
+import { extractRunIdFromUri } from './utils';
 
 type ArtifactRunCellProps = {
   artifact: Artifact;
-};
-
-/**
- * Extract run ID from artifact URI.
- * KFP artifact URIs typically follow the pattern:
- * s3://bucket/pipeline-name/run-id/task-name/artifact-name
- * The run ID is always in the 3rd path segment (index 2) after the protocol.
- */
-const extractRunIdFromUri = (uri: string): string | undefined => {
-  if (!uri) return undefined;
-
-  // Remove protocol (s3://, minio://, etc.) and split by /
-  const pathWithoutProtocol = uri.split('://')[1];
-  if (!pathWithoutProtocol) {
-    return undefined;
-  }
-
-  const segments = pathWithoutProtocol.split('/').filter(Boolean);
-  // segments[0] = bucket
-  // segments[1] = pipeline-name
-  // segments[2] = run-id (what we want)
-  // segments[3] = task-name
-  // segments[4+] = artifact path
-
-  const runIdSegment = segments[2];
-  if (!runIdSegment) {
-    return undefined;
-  }
-
-  // Verify it's a valid UUID format before returning
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidPattern.test(runIdSegment) ? runIdSegment : undefined;
 };
 
 const ArtifactRunCell: React.FC<ArtifactRunCellProps> = ({ artifact }) => {
   const { namespace } = usePipelinesAPI();
   const uri = artifact.getUri();
   const runId = extractRunIdFromUri(uri);
-
-  // Fetch the full run details from KFP API to get display_name and experiment_id
-  const [run, runLoaded, runError] = usePipelineRunById(runId);
+  const { runs, errors, loading } = useArtifactRuns();
 
   if (!runId) {
     return <>—</>;
   }
 
-  if (runError) {
-    const errorCode = getGenericErrorCode(runError);
+  // Check if we have an error for this run
+  if (runId in errors) {
+    const errorCode = getGenericErrorCode(errors[runId]);
     if (errorCode === 404) {
       // Run was deleted - show dash instead of UUID
       return <>—</>;
@@ -65,10 +33,13 @@ const ArtifactRunCell: React.FC<ArtifactRunCellProps> = ({ artifact }) => {
     return <Truncate content={runId} tooltipPosition="top" />;
   }
 
-  if (!runLoaded) {
+  // Check if we're still loading this run
+  if (loading.has(runId)) {
     return <Skeleton />;
   }
 
+  // Get the run from cache
+  const run = runs[runId];
   if (!run) {
     // Run not found (shouldn't happen after successful load, but handle it)
     return <>—</>;
