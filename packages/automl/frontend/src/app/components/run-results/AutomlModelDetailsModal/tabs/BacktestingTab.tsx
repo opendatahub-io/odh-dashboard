@@ -1,5 +1,17 @@
 import React from 'react';
-import { Bullseye, Flex, FlexItem, Grid, GridItem, Spinner, Title } from '@patternfly/react-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Flex,
+  FlexItem,
+  Grid,
+  GridItem,
+  Spinner,
+  Title,
+} from '@patternfly/react-core';
+import { ChartLineIcon } from '@patternfly/react-icons';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import BacktestWindowChart from '~/app/components/run-results/AutomlModelDetailsModal/components/BacktestWindowChart';
 import ForecastChart from '~/app/components/run-results/AutomlModelDetailsModal/components/ForecastChart';
@@ -34,10 +46,17 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
 
   if (!backTesting) {
     return (
-      <p data-testid="back-testing-no-data">
-        Back-testing data is not available for this model. This data is generated when the training
-        run is submitted with AutoGluon 3.5 or later. Try resubmitting the run.
-      </p>
+      <EmptyState
+        data-testid="back-testing-no-data"
+        variant={EmptyStateVariant.sm}
+        icon={ChartLineIcon}
+        titleText="Back-testing data unavailable"
+        headingLevel="h4"
+      >
+        <EmptyStateBody>
+          This data may be generated if the training run is submitted again.
+        </EmptyStateBody>
+      </EmptyState>
     );
   }
 
