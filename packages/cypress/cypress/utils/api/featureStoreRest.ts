@@ -203,6 +203,9 @@ export const getMetricsResourceCounts = (
         throw new Error(`Failed to get metrics resource counts: ${response.status}`);
       }
       const { counts } = response.body;
+      if (typeof counts.features !== 'number' || typeof counts.entities !== 'number') {
+        throw new Error(`Unexpected metrics response shape: ${JSON.stringify(counts)}`);
+      }
       const allCounts = {
         featureCount: counts.features,
         entityCount: counts.entities,
@@ -212,7 +215,7 @@ export const getMetricsResourceCounts = (
         featureServiceCount: counts.featureServices,
       };
 
-      cy.log('Metrics resource counts fetched:', allCounts);
+      cy.log(`Metrics resource counts fetched: ${JSON.stringify(allCounts)}`);
       return cy.wrap(allCounts);
     });
 };

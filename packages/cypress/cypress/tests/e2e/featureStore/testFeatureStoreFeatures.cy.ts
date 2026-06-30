@@ -92,8 +92,8 @@ describe('Feature Store Page Validation', () => {
                     featureViewCount = listCounts.featureViewCount;
                     featureServiceCount = listCounts.featureServiceCount;
 
-                    cy.log('Metrics counts:', metricsCounts);
-                    cy.log('List counts:', listCounts);
+                    cy.log(`Metrics counts: ${JSON.stringify(metricsCounts)}`);
+                    cy.log(`List counts: ${JSON.stringify(listCounts)}`);
                     return cy.wrap({ metricsCounts, listCounts });
                   },
                 );
