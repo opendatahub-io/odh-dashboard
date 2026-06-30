@@ -4248,6 +4248,11 @@ components:
             #    - Any tools used must be properly pre-configured in your OGX setup.
 
             OGX_URL = ""
+            # Client configuration — adjust these if you experience timeouts with RAG or large file uploads.
+            # timeout: Maximum seconds to wait for a response (default: 600s / 10 minutes).
+            # max_retries: Number of automatic retries on transient errors (default: 2).
+            MAX_RETRIES = 2
+            REQUEST_TIMEOUT = 600.0
             FILES_BASE_PATH = ""
             input_text = "What is the capital of Ireland?"
             model_name = "ollama/llama3.2:3b"
@@ -4262,7 +4267,7 @@ components:
             import os
             from openai import OpenAI
 
-            client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused")
+            client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused", max_retries=MAX_RETRIES, timeout=REQUEST_TIMEOUT)
 
             # Create vector store
             vector_store = client.vector_stores.create(
