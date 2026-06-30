@@ -23,8 +23,8 @@ const ImageSelectionStep: React.FC = () => {
   const { projectNamespaces, isLoading, onProjectSelection } = useAgentOpsProjectNamespaces();
 
   const effectiveNamespaces = React.useMemo(
-    () => getEffectiveProjectNamespaces(projectNamespaces, formData.project),
-    [projectNamespaces, formData.project],
+    () => getEffectiveProjectNamespaces(projectNamespaces, isLoading, formData.project),
+    [projectNamespaces, isLoading, formData.project],
   );
 
   const agentNameInvalid =

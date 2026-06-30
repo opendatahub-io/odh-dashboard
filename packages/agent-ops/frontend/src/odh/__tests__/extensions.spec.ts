@@ -1,4 +1,5 @@
 import extensions from '~/odh/extensions';
+import { agentDeploymentsPath, agentDeployWizardPath } from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
 
@@ -41,12 +42,20 @@ describe('agent-ops extensions', () => {
     expect(tab?.type === 'app.tab-route/tab' && tab.properties.component).toBeTruthy();
   });
 
+  it('standalone route paths match routes.ts constants', () => {
+    const paths = extensions
+      .filter((extension) => extension.type === 'app.route')
+      .map((extension) => extension.properties.path);
+    expect(paths).toContain(agentDeployWizardPath);
+    expect(paths).toContain(`${agentDeploymentsPath}/:namespace/:agentId/*`);
+  });
+
   it('should register standalone breakout routes outside the tab layout', () => {
     const routes = extensions.filter((extension) => extension.type === 'app.route');
     expect(routes).toHaveLength(2);
     expect(routes.map((route) => route.properties.path)).toEqual([
-      '/ai-hub/agents/deployments/:namespace/:agentId/*',
-      '/ai-hub/agents/deployments/deploy',
+      `${agentDeploymentsPath}/:namespace/:agentId/*`,
+      agentDeployWizardPath,
     ]);
     routes.forEach((route) => {
       expect(route).toMatchObject({

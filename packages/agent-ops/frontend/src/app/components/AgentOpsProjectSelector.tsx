@@ -20,8 +20,8 @@ const AgentOpsProjectSelector: React.FC<AgentOpsProjectSelectorProps> = ({
   const { projectNamespaces, isLoading, onProjectSelection } = useAgentOpsProjectNamespaces();
 
   const effectiveNamespaces = React.useMemo(
-    () => getEffectiveProjectNamespaces(projectNamespaces, namespace),
-    [projectNamespaces, namespace],
+    () => getEffectiveProjectNamespaces(projectNamespaces, isLoading, namespace),
+    [projectNamespaces, isLoading, namespace],
   );
 
   return (

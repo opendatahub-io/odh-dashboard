@@ -24,12 +24,13 @@ jest.mock('~/app/components/ScrollLock', () => ({
 jest.mock('~/app/hooks/useAgentOpsProjectNamespaces', () => ({
   getEffectiveProjectNamespaces: (
     projectNamespaces: { name: string; displayName: string }[],
+    isLoading: boolean,
     fallbackNamespace?: string,
   ) => {
     if (projectNamespaces.length > 0) {
       return projectNamespaces;
     }
-    if (fallbackNamespace) {
+    if (isLoading && fallbackNamespace) {
       return [{ name: fallbackNamespace, displayName: fallbackNamespace }];
     }
     return projectNamespaces;

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { getDashboardMainContainer } from '@odh-dashboard/internal/utilities/utils';
-import './ScrollLock.scss';
 
-const SCROLL_LOCK_CLASS = 'agent-ops-scroll-lock';
+let lockCount = 0;
+let previousOverflow: string | undefined;
 
 type ScrollLockProps = {
   children: React.ReactNode;
@@ -12,9 +12,19 @@ type ScrollLockProps = {
 const ScrollLock: React.FC<ScrollLockProps> = ({ children }) => {
   React.useLayoutEffect(() => {
     const scrollContainer = getDashboardMainContainer();
-    scrollContainer.classList.add(SCROLL_LOCK_CLASS);
+
+    if (lockCount === 0) {
+      previousOverflow = scrollContainer.style.overflow;
+      scrollContainer.style.overflow = 'hidden';
+    }
+    lockCount += 1;
+
     return () => {
-      scrollContainer.classList.remove(SCROLL_LOCK_CLASS);
+      lockCount -= 1;
+      if (lockCount <= 0) {
+        scrollContainer.style.overflow = previousOverflow ?? '';
+        previousOverflow = undefined;
+      }
     };
   }, []);
 

@@ -17,6 +17,7 @@ describe('ScrollLock', () => {
   beforeEach(() => {
     scrollContainer = document.createElement('div');
     scrollContainer.id = 'dashboard-page-main';
+    scrollContainer.style.overflow = 'auto';
     document.body.appendChild(scrollContainer);
     mockGetDashboardMainContainer.mockReturnValue(scrollContainer);
   });
@@ -26,7 +27,7 @@ describe('ScrollLock', () => {
     jest.clearAllMocks();
   });
 
-  it('should add and remove the scroll lock class around child mount lifecycle', () => {
+  it('should set overflow hidden while mounted and restore on unmount', () => {
     const { unmount } = render(
       <ScrollLock>
         <span>Wizard content</span>
@@ -34,10 +35,26 @@ describe('ScrollLock', () => {
     );
 
     expect(screen.getByText('Wizard content')).toBeInTheDocument();
-    expect(scrollContainer).toHaveClass('agent-ops-scroll-lock');
+    expect(scrollContainer.style.overflow).toBe('hidden');
 
     unmount();
 
-    expect(scrollContainer).not.toHaveClass('agent-ops-scroll-lock');
+    expect(scrollContainer.style.overflow).toBe('auto');
+  });
+
+  it('should keep overflow hidden until all nested locks unmount', () => {
+    const { unmount: unmountOuter } = render(
+      <ScrollLock>
+        <ScrollLock>
+          <span>Nested wizard</span>
+        </ScrollLock>
+      </ScrollLock>,
+    );
+
+    expect(scrollContainer.style.overflow).toBe('hidden');
+
+    unmountOuter();
+
+    expect(scrollContainer.style.overflow).toBe('auto');
   });
 });

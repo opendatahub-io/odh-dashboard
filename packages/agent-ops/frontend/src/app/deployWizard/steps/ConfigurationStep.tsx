@@ -46,7 +46,7 @@ const ConfigurationStep: React.FC = () => {
           <FormHelperText>
             <HelperText>
               <HelperTextItem>
-                Sets protocol.kagent.io/&lt;protocol&gt; label. Example: A2A (Agent-to-Agent).
+                Sets protocol.kagenti.io/&lt;protocol&gt; label. Example: A2A (Agent-to-Agent).
               </HelperTextItem>
             </HelperText>
           </FormHelperText>

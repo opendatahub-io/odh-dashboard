@@ -12,12 +12,13 @@ const toNamespace = (name: string, displayName?: string): Namespace => ({
 /** Ensures the current namespace appears in the list while bridge/selector data is loading. */
 export const getEffectiveProjectNamespaces = (
   projectNamespaces: Namespace[],
+  isLoading: boolean,
   fallbackNamespace?: string,
 ): Namespace[] => {
   if (projectNamespaces.length > 0) {
     return projectNamespaces;
   }
-  if (fallbackNamespace) {
+  if (isLoading && fallbackNamespace) {
     return [{ name: fallbackNamespace, displayName: fallbackNamespace }];
   }
   return projectNamespaces;
