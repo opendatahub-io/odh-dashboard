@@ -164,7 +164,7 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
       />
       <DataListItemCells
         dataListCells={[
-          <DataListCell key={col.key} data-ouia-component-id={`column-${index}-label`}>
+          <DataListCell key={col.key} id={`column-${index}-label`}>
             <label htmlFor={`column-${index}-checkbox`}>{col.title}</label>
           </DataListCell>,
         ]}
