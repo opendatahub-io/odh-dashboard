@@ -158,7 +158,7 @@ describe('FeatureStoreFormSection', () => {
     expect(within(modal).getByTestId('modal-feature-store-count')).toHaveTextContent('2');
   });
 
-  it('should append modal selections via onSelect', async () => {
+  it('should apply modal selections via onSelect', async () => {
     const onSelect = jest.fn();
     const selectedFeatureStores = [mockFeatureStore()];
     const availableFeatureStores = [
@@ -186,7 +186,7 @@ describe('FeatureStoreFormSection', () => {
       result.getByRole('button', { name: 'Connect first' }).click();
     });
 
-    expect(onSelect).toHaveBeenCalledWith([selectedFeatureStores[0], availableFeatureStores[0]]);
+    expect(onSelect).toHaveBeenCalledWith([availableFeatureStores[0]]);
     expect(result.queryByTestId('select-feature-stores-modal')).not.toBeInTheDocument();
   });
 });

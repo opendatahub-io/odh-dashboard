@@ -2473,6 +2473,77 @@ describe('Workbench page', () => {
       createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
     });
 
+    it('should keep the select button enabled when all available feature stores are connected', () => {
+      initIntercepts({ isEmpty: true });
+      initFeatureStoreSpawnerIntercepts({
+        workbenchIntegration: {
+          namespaces: [
+            {
+              namespace: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+              clientConfigs: [
+                {
+                  configName: 'credit-scoring-local',
+                  projectName: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+                  hasAccessToFeatureStore: true,
+                  permissionLevel: ['Read', 'Write'],
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      visitCreateSpawner();
+      createSpawnerPage.selectFeatureStore(
+        FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+        FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+      );
+      createSpawnerPage
+        .findSelectFeatureStoreButton()
+        .should('not.have.attr', 'aria-disabled', 'true');
+      createSpawnerPage.openSelectFeatureStoresModal();
+      createSpawnerPage.shouldHaveFeatureStoreConnectedInModal(
+        FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+        FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+      );
+    });
+
+    it('should allow disconnecting feature stores from the selection modal', () => {
+      initIntercepts({ isEmpty: true });
+      initFeatureStoreSpawnerIntercepts({
+        workbenchIntegration: {
+          namespaces: [
+            {
+              namespace: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+              clientConfigs: [
+                {
+                  configName: 'credit-scoring-local',
+                  projectName: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+                  hasAccessToFeatureStore: true,
+                  permissionLevel: ['Read', 'Write'],
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      visitCreateSpawner();
+      createSpawnerPage.selectFeatureStore(
+        FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+        FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+      );
+      createSpawnerPage.openSelectFeatureStoresModal();
+      createSpawnerPage.toggleFeatureStoreInModal(
+        FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+        FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+      );
+      createSpawnerPage.shouldHaveSelectFeatureStoresModalButtonEnabled();
+      createSpawnerPage.connectFeatureStoresInModal();
+      createSpawnerPage.findFeatureStoreEmptyState().should('exist');
+      createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
+    });
+
     it('should show disabled state with tooltip when no feature stores are available', () => {
       initIntercepts({ isEmpty: true });
       initFeatureStoreSpawnerIntercepts({
@@ -2522,7 +2593,7 @@ describe('Workbench page', () => {
       editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
     });
 
-    it('should show already connected stores as disabled in the selection modal in edit mode', () => {
+    it('should show already connected stores as checked in the selection modal in edit mode', () => {
       const notebookWithFeatureStores = mockNotebookWithFeastConfig([
         FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
       ]);

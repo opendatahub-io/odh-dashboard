@@ -25,26 +25,42 @@ import {
 
 export type SelectFeatureStoresModalProps = {
   featureStores: WorkbenchFeatureStoreConfig[];
-  alreadySelectedIds?: string[];
+  initialSelections?: WorkbenchFeatureStoreConfig[];
   onSave: (featureStores: WorkbenchFeatureStoreConfig[]) => void;
   onClose: () => void;
 };
 
+const getInitialSelections = (
+  featureStores: WorkbenchFeatureStoreConfig[],
+  initialSelections: WorkbenchFeatureStoreConfig[],
+): WorkbenchFeatureStoreConfig[] => {
+  const initialSelectionIds = new Set(initialSelections.map(getFeatureStoreProjectId));
+  return featureStores.filter((featureStore) =>
+    initialSelectionIds.has(getFeatureStoreProjectId(featureStore)),
+  );
+};
+
+const haveSameSelectionIds = (currentIds: string[], initialIds: string[]): boolean => {
+  if (currentIds.length !== initialIds.length) {
+    return false;
+  }
+  const initialIdSet = new Set(initialIds);
+  return currentIds.every((id) => initialIdSet.has(id));
+};
+
 export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> = ({
   featureStores,
-  alreadySelectedIds = [],
+  initialSelections = [],
   onSave,
   onClose,
 }) => {
   const [filterText, setFilterText] = React.useState('');
+  const initialSelectionIdsRef = React.useRef(
+    getInitialSelections(featureStores, initialSelections).map(getFeatureStoreProjectId),
+  );
   const [selectedFeatureStores, setSelectedFeatureStores] = React.useState<
     WorkbenchFeatureStoreConfig[]
-  >([]);
-
-  const alreadySelectedIdSet = React.useMemo(
-    () => new Set(alreadySelectedIds),
-    [alreadySelectedIds],
-  );
+  >(() => getInitialSelections(featureStores, initialSelections));
 
   const filteredFeatureStores = React.useMemo(() => {
     const normalized = filterText.trim().toLowerCase();
@@ -63,7 +79,7 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
     [filteredFeatureStores, sort],
   );
 
-  const { selections, toggleSelection, isSelected, tableProps, disableCheck } =
+  const { selections, toggleSelection, isSelected, tableProps } =
     useCheckboxTableBase<WorkbenchFeatureStoreConfig>(
       sortedFeatureStores,
       selectedFeatureStores,
@@ -72,17 +88,14 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
       { persistSelections: true },
     );
 
-  React.useEffect(() => {
-    featureStores.forEach((featureStore) => {
-      disableCheck(featureStore, alreadySelectedIdSet.has(getFeatureStoreProjectId(featureStore)));
-    });
-  }, [alreadySelectedIdSet, disableCheck, featureStores]);
+  const hasSelectionChanged = React.useMemo(() => {
+    const currentSelectionIds = selections.map(getFeatureStoreProjectId);
+    return !haveSameSelectionIds(currentSelectionIds, initialSelectionIdsRef.current);
+  }, [selections]);
 
   const onClearFilters = React.useCallback(() => {
     setFilterText('');
   }, []);
-
-  const hasNewSelections = selections.length > 0;
 
   return (
     <Modal
@@ -122,7 +135,6 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
           onClearFilters={onClearFilters}
           rowRenderer={(featureStore, rowIndex) => {
             const projectId = getFeatureStoreProjectId(featureStore);
-            const isAlreadyConnected = alreadySelectedIdSet.has(projectId);
 
             return (
               <SelectFeatureStoresModalRow
@@ -130,7 +142,6 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
                 rowIndex={rowIndex}
                 featureStore={featureStore}
                 isSelected={isSelected(featureStore)}
-                isAlreadyConnected={isAlreadyConnected}
                 onToggle={toggleSelection}
               />
             );
@@ -140,11 +151,11 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
       <ModalFooter>
         <Button
           data-testid="select-feature-stores-connect-button"
-          variant={hasNewSelections ? 'primary' : 'secondary'}
-          isDisabled={!hasNewSelections}
+          variant={hasSelectionChanged ? 'primary' : 'secondary'}
+          isDisabled={!hasSelectionChanged}
           onClick={() => onSave(selections)}
         >
-          {hasNewSelections
+          {hasSelectionChanged
             ? SELECT_FEATURE_STORES_MODAL_CONNECT_BUTTON
             : SELECT_FEATURE_STORES_MODAL_SELECT_BUTTON}
         </Button>

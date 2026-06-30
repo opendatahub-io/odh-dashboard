@@ -21,7 +21,6 @@ import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import FeatureStoreCodeBlock from './FeatureStoreCodeBlock';
 import { SelectFeatureStoresModal } from './SelectFeatureStoresModal';
 import { FeatureStoreConnectedTable } from './FeatureStoreConnectedTable';
-import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 import {
   FEATURE_STORE_CODE_HELP,
   FEATURE_STORE_CODE_DESCRIPTION,
@@ -54,19 +53,6 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
   const codeContent = React.useMemo(() => generateFeatureStoreCode(), []);
   const hasSelectedFeatureStores = selectedFeatureStores.length > 0;
 
-  const alreadySelectedIds = React.useMemo(
-    () => selectedFeatureStores.map(getFeatureStoreProjectId),
-    [selectedFeatureStores],
-  );
-
-  const selectableFeatureStoreCount = React.useMemo(
-    () =>
-      availableFeatureStores.filter(
-        (featureStore) => !alreadySelectedIds.includes(getFeatureStoreProjectId(featureStore)),
-      ).length,
-    [alreadySelectedIds, availableFeatureStores],
-  );
-
   if (!isFeastOperatorAvailable) {
     return null;
   }
@@ -87,7 +73,7 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
                 error,
               }}
               tooltipProps={{
-                isEnabled: loaded && selectableFeatureStoreCount === 0,
+                isEnabled: loaded && availableFeatureStores.length === 0,
                 content: 'No feature stores available',
               }}
             >
@@ -145,9 +131,9 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
       {showSelectModal && (
         <SelectFeatureStoresModal
           featureStores={availableFeatureStores}
-          alreadySelectedIds={alreadySelectedIds}
+          initialSelections={selectedFeatureStores}
           onSave={(featureStores) => {
-            onSelect([...selectedFeatureStores, ...featureStores]);
+            onSelect(featureStores);
             setShowSelectModal(false);
           }}
           onClose={() => setShowSelectModal(false)}
