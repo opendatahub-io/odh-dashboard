@@ -22,11 +22,15 @@ const AuthPoliciesTable: React.FC<AuthPoliciesTableProps> = ({
   <Table
     data-testid="auth-policies-table"
     enablePagination
+    disableRowRenderSupport
+    isExpandable
     data={authPolicies}
     columns={authPoliciesColumns}
-    rowRenderer={(authPolicy: MaaSAuthPolicy) => (
+    rowRenderer={(authPolicy: MaaSAuthPolicy, rowIndex: number) => (
       <AuthPoliciesTableRow
+        key={authPolicy.name}
         authPolicy={authPolicy}
+        rowIndex={rowIndex}
         columns={authPoliciesColumns}
         setDeleteAuthPolicy={setDeleteAuthPolicy}
         returnTo={returnTo}

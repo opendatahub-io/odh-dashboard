@@ -62,7 +62,7 @@ paths:
       description: Gets a list of all namespaces in the Kubernetes cluster.
 
   /gen-ai/api/v1/code-exporter:
-    summary: Export Python code for Llama Stack integration
+    summary: Export Python code for OGX integration
     description: >-
       Generates Python code based on provided configuration parameters.
       Creates code templates for client configuration and integration.
@@ -88,7 +88,7 @@ paths:
             schema:
               $ref: '#/components/schemas/CodeExportRequest'
             example:
-              clientName: 'my-llamastack-client'
+              clientName: 'my-ogx-client'
               models: ['llama-3-2-3b-instruct', 'granite-embedding-125m']
               includeExamples: true
       responses:
@@ -102,7 +102,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       operationId: exportCode
       summary: Export Code
-      description: Generates Python code for Llama Stack integration.
+      description: Generates Python code for OGX integration.
 
   /gen-ai/api/v1/user:
     summary: Get current user information
@@ -4227,23 +4227,32 @@ components:
           type: string
           description: Generated Python code
           example: |
-            # Llama Stack Quickstart Script
+            # OGX Quickstart Script
             #
             # README:
-            # This example shows how to configure an assistant using the Llama Stack client.
+            # This example shows how to configure an assistant using the OpenAI Python SDK.
             # Before using this code, make sure of the following:
             #
-            # 1. Llama Stack Server:
-            #    - Your Llama Stack instance must be running and accessible
-            #    - Set the LLAMA_STACK_URL variable to the base URL of your Llama Stack server
+            # Required Packages:
+            #    - Install the required dependencies using pip:
+            #      pip install openai
             #
-            # 2. Model Configuration:
-            #    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment.
+            # OGX Server:
+            #    - Your OGX instance must be running and accessible
+            #    - Set the OGX_URL variable to the base URL of your OGX server
             #
-            # 3. Tools (MCP Integration):
-            #    - Any tools used must be properly pre-configured in your Llama Stack setup.
+            # Model Configuration:
+            #    - The selected model (e.g., "llama3.2:3b") must be available in your OGX deployment.
+            #
+            # Tools (MCP Integration):
+            #    - Any tools used must be properly pre-configured in your OGX setup.
 
-            LLAMA_STACK_URL = ""
+            OGX_URL = ""
+            # Client configuration — adjust these if you experience timeouts with RAG or large file uploads.
+            # timeout: Maximum seconds to wait for a response (default: 600s / 10 minutes).
+            # max_retries: Number of automatic retries on transient errors (default: 2).
+            MAX_RETRIES = 2
+            REQUEST_TIMEOUT = 600.0
             FILES_BASE_PATH = ""
             input_text = "What is the capital of Ireland?"
             model_name = "ollama/llama3.2:3b"
@@ -4255,17 +4264,19 @@ components:
                 { "file": "document.pdf", "purpose": "assistants" },
             ]
 
-            from llama_stack_client import LlamaStackClient
             import os
+            from openai import OpenAI
 
-            client = LlamaStackClient(base_url=LLAMA_STACK_URL)
+            client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused", max_retries=MAX_RETRIES, timeout=REQUEST_TIMEOUT)
 
             # Create vector store
             vector_store = client.vector_stores.create(
                 name=vector_store_name,
-                embedding_model="text-embedding-3-small",
-                embedding_dimension=1536,
-                provider_id="milvus"
+                extra_body={
+                    "provider_id": "milvus",
+                    "embedding_model": "text-embedding-3-small",
+                    "embedding_dimension": 1536
+                }
             )
             tools = [
                 {
@@ -5878,7 +5889,7 @@ components:
                   deleted: true
 
     CodeExportResponse:
-      description: Generated Python code for Llama Stack integration
+      description: Generated Python code for OGX integration
       content:
         application/json:
           schema:
@@ -5891,8 +5902,8 @@ components:
           example:
             data:
               code: |
-                # Llama Stack Quickstart Script
-                # Generated Python code for Llama Stack integration
+                # OGX Quickstart Script
+                # Generated Python code for OGX integration
                 # ... rest of the Python code
 
     NamespacesResponse:
@@ -6453,7 +6464,7 @@ tags:
   - name: Identity
     description: User identity and authentication operations
   - name: CodeExporter
-    description: Code generation for Llama Stack integration
+    description: Code generation for OGX integration
 
   # =============================================================================
   # AGENT PROFILE CONFIGURATION OPERATIONS
