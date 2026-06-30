@@ -2,10 +2,10 @@ import { ProxyTransientError } from '#~/api/proxyUtils';
 import { isCommonStateError, NotReadyError } from '#~/utilities/useFetchState';
 
 type ErrorKF = {
-  error: string;
+  error?: string;
   code: number;
   message: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, unknown> | unknown[];
 };
 type ResultErrorKF = {
   /** Has stack trace */
@@ -14,13 +14,79 @@ type ResultErrorKF = {
   error_message: string;
 };
 
-const isErrorKF = (e: unknown): e is ErrorKF =>
-  typeof e === 'object' && e !== null && ['error', 'code', 'message'].every((key) => key in e);
+/**
+ * Error class for KFP API failures that mimics AxiosError structure
+ * for compatibility with getGenericErrorCode.
+ */
+export class PipelineAPIError extends Error {
+  public response: { status: number };
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'PipelineAPIError';
+    this.response = { status };
+  }
+}
+
+const isErrorKF = (e: unknown): e is ErrorKF => {
+  if (typeof e !== 'object' || e === null) {
+    return false;
+  }
+  // Must have code (number) and message (string)
+  if (
+    !('code' in e && 'message' in e && typeof e.code === 'number' && typeof e.message === 'string')
+  ) {
+    return false;
+  }
+  // If error field is present, it must be a string
+  if ('error' in e && typeof e.error !== 'string') {
+    return false;
+  }
+  return true;
+};
 
 const isErrorDetailsKF = (result: unknown): result is ResultErrorKF =>
   typeof result === 'object' &&
   result !== null &&
   ['error_details', 'error_message'].every((key) => key in result);
+
+/**
+ * Check if a code is a valid gRPC status code (0-16).
+ * See: https://grpc.github.io/grpc/core/md_doc_statuscodes.html
+ */
+const isGrpcCode = (code: number): boolean => code >= 0 && code <= 16;
+
+/**
+ * Map gRPC error codes to HTTP-like status codes for consistent error handling.
+ * Returns undefined if the code is not a valid gRPC code (to avoid misclassifying HTTP errors).
+ * See: https://grpc.github.io/grpc/core/md_doc_statuscodes.html
+ */
+const grpcCodeToHttpStatus = (code: number): number | undefined => {
+  if (!isGrpcCode(code)) {
+    // Not a gRPC code - might be an HTTP status already
+    return undefined;
+  }
+
+  switch (code) {
+    case 5: // NOT_FOUND
+      return 404;
+    case 3: // INVALID_ARGUMENT
+      return 400;
+    case 7: // PERMISSION_DENIED
+      return 403;
+    case 16: // UNAUTHENTICATED
+      return 401;
+    case 13: // INTERNAL
+      return 500;
+    case 14: // UNAVAILABLE
+      return 503;
+    case 0: // OK
+      return 200;
+    default:
+      // Other gRPC codes (CANCELLED, DEADLINE_EXCEEDED, etc.) → generic server error
+      return 500;
+  }
+};
 
 export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise
@@ -42,7 +108,9 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
     })
     .catch((e) => {
       if (isErrorKF(e)) {
-        throw new Error(e.error);
+        // Convert gRPC code to HTTP status, or use the code as-is if it's already HTTP
+        const httpStatus = grpcCodeToHttpStatus(e.code) ?? e.code;
+        throw new PipelineAPIError(e.error || e.message, httpStatus);
       }
       if (isCommonStateError(e)) {
         // Common state errors are handled by useFetchState at storage level, let them deal with it

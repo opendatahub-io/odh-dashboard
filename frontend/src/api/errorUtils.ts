@@ -1,5 +1,6 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
+import { PipelineAPIError } from './pipelines/errorUtils';
 
 export const isK8sStatus = (data: unknown): data is K8sStatus =>
   typeof data === 'object' && data !== null && 'kind' in data && data.kind === 'Status';
@@ -35,6 +36,9 @@ export const getGenericErrorCode = (error: unknown): number | undefined => {
   }
   if (error instanceof AxiosError) {
     return error.response?.status;
+  }
+  if (error instanceof PipelineAPIError) {
+    return error.response.status;
   }
   return undefined;
 };
