@@ -197,7 +197,7 @@ class APIKeyTableRow extends TableRow {
   }
 
   findSubscriptionDetailLink(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('subscription-detail-link');
+    return this.findSubscription().findByTestId('subscription-detail-link');
   }
 
   findOwner(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1112,18 +1112,6 @@ class AuthPolicyTableRow extends TableRow {
     return this.find().findByTestId('auth-policy-groups-expand-btn');
   }
 
-  findViewDetailsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findKebabAction('View details');
-  }
-
-  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findKebabAction('Edit');
-  }
-
-  findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findKebabAction('Delete');
-  }
-
   findExpandModelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('auth-policy-models-expand-btn');
   }
@@ -1134,6 +1122,50 @@ class AuthPolicyTableRow extends TableRow {
 
   findModelsExpandedPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.scope().findByTestId('auth-policy-models-expanded-panel');
+  }
+
+  findExpandedGroupItems(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('expanded-group-item');
+  }
+
+  findExpandedGroupName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.scope().findAllByTestId('expanded-group-name');
+  }
+
+  findExpandedModelRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('expanded-auth-policy-model-row');
+  }
+
+  findExpandedModelName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.scope().findAllByTestId('auth-policy-expanded-model-display-name');
+  }
+
+  findExpandedModelDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.scope().findAllByTestId('auth-policy-expanded-model-description');
+  }
+
+  findExpandedModelResourceName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.scope().findAllByTestId('auth-policy-expanded-model-resource-name');
+  }
+
+  findEmptyGroupsPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.scope().findByTestId('empty-groups-expanded-panel');
+  }
+
+  findEmptyModelsPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.scope().findByTestId('empty-auth-policy-models-expanded-panel');
+  }
+
+  findViewDetailsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('View details');
+  }
+
+  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Edit');
+  }
+
+  findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Delete');
   }
 }
 
