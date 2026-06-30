@@ -278,7 +278,11 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
             <ActionList>
               <ActionListGroup>
                 <ActionListItem>
-                  <Button variant={ButtonVariant.primary} onClick={handleSave}>
+                  <Button
+                    variant={ButtonVariant.primary}
+                    onClick={handleSave}
+                    isDisabled={selectedCount === 0}
+                  >
                     Save
                   </Button>
                 </ActionListItem>
