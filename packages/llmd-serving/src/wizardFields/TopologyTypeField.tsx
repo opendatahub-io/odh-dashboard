@@ -96,10 +96,14 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
         const configs = configsByTopology?.[topoType];
         const hasConfigs = configs !== undefined && configs.length > 0;
         const isSingleNode = topoType === TopologyType.SINGLE_NODE;
+        const isOptionDisabled = !isSingleNode && !hasConfigs;
         return {
           key: topoType,
           label: TopologyTypeLabels[topoType],
-          isDisabled: !isSingleNode && !hasConfigs,
+          description: isOptionDisabled
+            ? 'No topology configurations of this type are enabled by your administrator.'
+            : undefined,
+          isAriaDisabled: isOptionDisabled,
           dataTestId: `topology-type-${topoType}`,
         };
       }),

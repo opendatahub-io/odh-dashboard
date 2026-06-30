@@ -74,6 +74,9 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
 }) => {
   const topologyType = dependencies?.topologyType?.topologyType;
   const configsByTopology = externalData?.data.configsByTopology;
+  const isLoaded = externalData?.loaded ?? false;
+  const hasLoadError = Boolean(externalData?.loadError);
+  const isSingleNode = topologyType === TopologyType.SINGLE_NODE;
 
   const filteredConfigs = React.useMemo(
     () => getFilteredConfigs(configsByTopology, topologyType),
@@ -81,7 +84,17 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
   );
 
   const existingSelection = value?.selectedConfig;
-  const noConfigsAvailable = filteredConfigs.length === 0 && !existingSelection;
+  const noConfigsAvailable =
+    isLoaded && !hasLoadError && filteredConfigs.length === 0 && !existingSelection;
+
+  // Auto-select first config when configs load and nothing is selected yet
+  React.useEffect(() => {
+    if (isLoaded && !existingSelection && filteredConfigs.length > 0) {
+      onChange({ selectedConfig: filteredConfigs[0] });
+    }
+    // Only run when loaded state or filtered configs change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, filteredConfigs.length, topologyType]);
 
   const options: SimpleSelectOption[] = React.useMemo(() => {
     const result = filteredConfigs.map((config) => ({
@@ -106,12 +119,21 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
     return result;
   }, [filteredConfigs, existingSelection]);
 
+  // For single-node without configs, hide the field entirely (it uses existing llm-d behavior)
+  if (isSingleNode && noConfigsAvailable) {
+    return null;
+  }
+
   return (
-    <FormGroup fieldId="custom-topology-config" label="Custom topology configurations">
+    <FormGroup
+      fieldId="custom-topology-config"
+      label="Custom topology configurations"
+      isRequired={!isSingleNode}
+    >
       <Stack hasGutter>
         <StackItem>
           <Content component="p">
-            Select a pre-defined topology configuration for this deployment pattern.
+            Select a topology configuration for this deployment pattern.
           </Content>
         </StackItem>
         <StackItem>
@@ -126,13 +148,21 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
               const config = filteredConfigs.find((c) => c.metadata.name === key);
               onChange({ selectedConfig: config ?? value?.selectedConfig });
             }}
-            placeholder="Select custom configuration (optional)"
+            placeholder={isSingleNode ? 'Select configuration (optional)' : 'Select configuration'}
             value={value?.selectedConfig?.metadata.name}
             dataTestId="custom-topology-config-select"
-            isDisabled={noConfigsAvailable}
+            isDisabled={!isLoaded || hasLoadError || noConfigsAvailable}
             autoSelectOnlyOption={false}
           />
-          {noConfigsAvailable && (
+          {hasLoadError ? (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="warning">
+                  Failed to load topology configurations. Some options may be unavailable.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          ) : noConfigsAvailable ? (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="warning">
@@ -141,7 +171,7 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
-          )}
+          ) : null}
         </StackItem>
       </Stack>
     </FormGroup>
