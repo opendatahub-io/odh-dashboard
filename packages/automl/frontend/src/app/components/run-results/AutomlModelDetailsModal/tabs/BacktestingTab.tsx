@@ -7,8 +7,8 @@ import { COLOR_SCALE } from '~/app/components/run-results/AutomlModelDetailsModa
 import { formatMetricName, formatMetricValue } from '~/app/utilities/utils';
 
 const FORECAST_LEGEND_ITEMS = [
-  { color: COLOR_SCALE[0], label: 'Observed' },
-  { color: COLOR_SCALE[1], label: 'Forecast' },
+  { color: COLOR_SCALE[0], label: 'Observed', opacity: 1 },
+  { color: COLOR_SCALE[1], label: 'Forecast', opacity: 1 },
   { color: COLOR_SCALE[1], label: 'Confidence interval', opacity: 0.4 },
 ];
 
@@ -120,7 +120,7 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
             >
               <FlexItem>
                 <svg width="20" height="4">
-                  <rect width="20" height="4" fill={color} opacity={opacity ?? 1} />
+                  <rect width="20" height="4" fill={color} opacity={opacity} />
                 </svg>
               </FlexItem>
               <FlexItem>{label}</FlexItem>
