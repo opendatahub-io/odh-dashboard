@@ -25,7 +25,9 @@ import {
   ContentAnnotation,
   CreateResponseRequest,
   ERROR_COMPONENTS,
+  FileSearchCallData,
   FileCitationAnnotation,
+  FileSearchResult,
   FileUploadJobResponse,
   FileUploadStatusResponse,
   isApiError,
@@ -161,6 +163,67 @@ const buildSourcesFromAnnotations = (annotations: FileCitationAnnotation[]): Sou
   }));
 };
 
+type CitationResult = {
+  content: string;
+  citationMap: Map<string, number>;
+};
+
+const insertCitationMarkers = (
+  content: string,
+  annotations: FileCitationAnnotation[],
+): CitationResult => {
+  if (annotations.length === 0) {
+    return { content, citationMap: new Map() };
+  }
+
+  const citationMap = new Map<string, number>();
+  let nextNumber = 1;
+
+  // Assign citation numbers in order of appearance
+  for (const annotation of annotations) {
+    if (annotation.file_id && !citationMap.has(annotation.file_id)) {
+      citationMap.set(annotation.file_id, nextNumber++);
+    }
+  }
+
+  // Sort annotations by index descending so insertions don't shift positions
+  const sorted = annotations
+    .filter((a) => a.index != null && a.file_id)
+    .toSorted((a, b) => (b.index ?? 0) - (a.index ?? 0));
+
+  let result = content;
+  for (const annotation of sorted) {
+    const num = citationMap.get(annotation.file_id);
+    if (num != null && annotation.index != null) {
+      const marker = `{{citation:${String(num)}}}`;
+      result = result.slice(0, annotation.index) + marker + result.slice(annotation.index);
+    }
+  }
+
+  return { content: result, citationMap };
+};
+
+/**
+ * Extracts file_search_call data (queries and results with scores) from response output.
+ */
+const extractFileSearchData = (output?: OutputItem[]): FileSearchCallData | undefined => {
+  if (!output) {
+    return undefined;
+  }
+
+  const queries: string[] = [];
+  const results: FileSearchResult[] = [];
+
+  for (const item of output) {
+    if (item.type === 'file_search_call' && item.results && item.results.length > 0) {
+      queries.push(...(item.queries ?? []));
+      results.push(...item.results);
+    }
+  }
+
+  return results.length > 0 ? { queries, results } : undefined;
+};
+
 export const RAW_TOOL_CALL_WARNING =
   '⚠️ The model returned a raw tool call instead of generating a response. ' +
   'This usually indicates that the inference server is not configured to handle tool calling. ' +
@@ -218,9 +281,12 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
  */
 const transformBackendResponse = (backendResponse: BackendResponseData): SimplifiedResponseData => {
   const toolCallData = extractMCPToolCallData(backendResponse.output);
-  let content = extractContentFromOutput(backendResponse.output);
+  const rawContent = extractContentFromOutput(backendResponse.output);
   const annotations = extractAnnotationsFromOutput(backendResponse.output);
   const sources = buildSourcesFromAnnotations(annotations);
+  const { content: citedContent, citationMap } = insertCitationMarkers(rawContent, annotations);
+  let content = citedContent;
+  const fileSearchData = extractFileSearchData(backendResponse.output);
 
   // Strip <think>...</think> or bare reasoning (content before </think>) from content
   let reasoningContent: string | undefined;
@@ -241,8 +307,10 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     usage: backendResponse.usage,
     ...(toolCallData && { toolCallData }),
     ...(sources.length > 0 && { sources }),
+    ...(annotations.length > 0 && { annotations, citationMap }),
     ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
     ...(reasoningContent && { reasoningContent }),
+    ...(fileSearchData && { fileSearchData }),
   };
 };
 
@@ -475,9 +543,13 @@ const streamCreateResponse = (
           ? extractAnnotationsFromOutput(completeResponseData.output)
           : [];
         const sources = buildSourcesFromAnnotations(annotations);
-        let finalContent = completeResponseData?.output
+        const rawFinalContent = completeResponseData?.output
           ? extractContentFromOutput(completeResponseData.output)
           : fullContent;
+        const citationStreamResult = insertCitationMarkers(rawFinalContent, annotations);
+        let finalContent = citationStreamResult.content;
+        const { citationMap } = citationStreamResult;
+        const fileSearchData = extractFileSearchData(completeResponseData?.output);
 
         // Strip <think>...</think> or bare reasoning (content before </think>) from final content
         const thinkMatchFull = finalContent.match(/^<think>([\s\S]*?)<\/think>\s*/);
@@ -500,8 +572,10 @@ const streamCreateResponse = (
           content: finalContent,
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
+          ...(annotations.length > 0 && { annotations, citationMap }),
           ...(metricsData && { metrics: metricsData }),
           ...(reasoningContent && { reasoningContent }),
+          ...(fileSearchData && { fileSearchData }),
         });
       })
       .catch((error) => {
@@ -565,8 +639,6 @@ export const createPassthroughResponse = (
   const trimmed = bffBasePath.replace(/\/+$/, '');
   const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
   const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(namespace)}&secretName=${encodeURIComponent(secretName)}`;
-
-  // TODO P2: Display retrieval context (file_search_call.results) alongside responses — see Phase 6.1
 
   return new Promise((resolve, reject) => {
     fetch(url, {
@@ -701,9 +773,14 @@ export const createPassthroughResponse = (
           ? extractAnnotationsFromOutput(completeResponseData.output)
           : [];
         const sources = buildSourcesFromAnnotations(annotations);
-        const finalContent = completeResponseData?.output
+        const rawFinalContent = completeResponseData?.output
           ? extractContentFromOutput(completeResponseData.output)
           : fullContent;
+        const { content: finalContent, citationMap } = insertCitationMarkers(
+          rawFinalContent,
+          annotations,
+        );
+        const fileSearchData = extractFileSearchData(completeResponseData?.output);
 
         resolve({
           id: completeResponseData?.id || 'passthrough-response',
@@ -712,7 +789,9 @@ export const createPassthroughResponse = (
           created_at: completeResponseData?.created_at || Date.now(),
           content: finalContent,
           ...(sources.length > 0 && { sources }),
+          ...(annotations.length > 0 && { annotations, citationMap }),
           ...(metricsData && { metrics: metricsData }),
+          ...(fileSearchData && { fileSearchData }),
         });
       })
       .catch((error) => {
