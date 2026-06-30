@@ -50,7 +50,7 @@ import {
 import {
   ModelStateToggleLabel,
   ModelStateLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+} from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
 
 type HandlersProps = {
   disableKServe?: boolean;

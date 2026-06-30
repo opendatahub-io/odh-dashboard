@@ -54,7 +54,7 @@ import { projectDetailsOverviewTab } from '@odh-dashboard/cypress/cypress/pages/
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+} from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
 
 const initIntercepts = ({
   llmInferenceServices = [],
