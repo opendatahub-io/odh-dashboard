@@ -988,7 +988,7 @@ function AutomlConfigure({
                                     }
                                     isChecked={field.value === preset}
                                     isDisabled={formIsSubmitting}
-                                    onChange={() => field.onChange(prescet)}
+                                    onChange={() => field.onChange(preset)}
                                     data-testid={`preset-radio-${preset}`}
                                   />
                                 ))}
