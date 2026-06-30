@@ -1450,6 +1450,20 @@ class ModelServingWizard extends Wizard {
     this.findDeploymentMethodSelectOption(key).click();
   }
 
+  /**
+   * If the deployment method dropdown is present and nothing is selected yet,
+   * picks the first available option.
+   */
+  selectFirstAvailableDeploymentMethod() {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="deployment-method-select"]').length === 0) {
+        return;
+      }
+      this.findDeploymentMethodSelect().click();
+      cy.get('[role="option"]').first().click();
+    });
+  }
+
   findYAMLEditFallbackAlert() {
     return cy.findByTestId('yaml-fallback-alert');
   }
