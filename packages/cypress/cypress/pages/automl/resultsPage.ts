@@ -184,6 +184,10 @@ class AutomlResultsPage {
     return cy.findByTestId('retry-run-action');
   }
 
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
   /**
    * Waits up to `timeoutMs` (default 45 min) for the run to complete.
    * Asserts that the leaderboard table appears. Fails if a
