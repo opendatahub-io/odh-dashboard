@@ -20,6 +20,8 @@ export const ModelTypeLabel = {
   GENERATIVE: 'Generative AI model (Example, LLM)',
 } as const;
 
+export type ModelTypeLabelValue = (typeof ModelTypeLabel)[keyof typeof ModelTypeLabel];
+
 export const ModelStateToggleLabel = {
   START: 'Start',
   STOP: 'Stop',
