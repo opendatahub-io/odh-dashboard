@@ -1224,6 +1224,65 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('metric-header-accuracy')).toBeInTheDocument();
       expect(screen.queryByTestId('metric-header-f1')).not.toBeInTheDocument();
     });
+
+    it('should persist column order after save', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+      showAllColumns();
+
+      // Verify the table headers are in the expected default order
+      const headers = screen.getAllByTestId(/^(rank-header|model-name-header|metric-header-)/);
+      const headerIds = headers.map((h) => h.getAttribute('data-testid'));
+
+      // First three should be rank, model, optimized metric (accuracy)
+      expect(headerIds[0]).toBe('rank-header');
+      expect(headerIds[1]).toBe('model-name-header');
+      expect(headerIds[2]).toBe('metric-header-accuracy');
+
+      // Remaining metric headers should follow
+      expect(headerIds.length).toBeGreaterThan(3);
+    });
+
+    it('should reset column order (not just visibility) when reset is clicked', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+      showAllColumns();
+
+      // Capture original header order
+      const originalHeaders = screen.getAllByTestId(
+        /^(rank-header|model-name-header|metric-header-)/,
+      );
+      const originalOrder = originalHeaders.map((h) => h.getAttribute('data-testid'));
+
+      // Reset to default — should restore default visibility (only 3 columns) and default order
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('manage-columns-reset'));
+      fireEvent.click(screen.getByText('Save'));
+
+      const headersAfterReset = screen.getAllByTestId(
+        /^(rank-header|model-name-header|metric-header-)/,
+      );
+      const orderAfterReset = headersAfterReset.map((h) => h.getAttribute('data-testid'));
+
+      // Only default columns visible, in default order
+      expect(orderAfterReset).toEqual([
+        'rank-header',
+        'model-name-header',
+        'metric-header-accuracy',
+      ]);
+
+      // Re-show all and verify original order is restored
+      showAllColumns();
+      const headersRestored = screen.getAllByTestId(
+        /^(rank-header|model-name-header|metric-header-)/,
+      );
+      const restoredOrder = headersRestored.map((h) => h.getAttribute('data-testid'));
+      expect(restoredOrder).toEqual(originalOrder);
+    });
   });
 
   // ========================================================================

@@ -1627,5 +1627,79 @@ describe('AutoragLeaderboard component', () => {
       const patternHeader = screen.getByTestId('pattern-name-header');
       expect(patternHeader).not.toHaveClass('pf-m-sticky-column');
     });
+
+    it('should persist column order after save', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Use a preset to get a known set of visible columns in default order
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('organize-by-toggle'));
+      fireEvent.click(screen.getByText('Optimization metrics and chunking'));
+      fireEvent.click(screen.getByText('Save'));
+
+      // Verify the table headers are in the expected default order
+      const headers = screen.getAllByTestId(
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-method-header|chunking-chunk-size-header|chunking-chunk-overlap-header)/,
+      );
+      const headerIds = headers.map((h) => h.getAttribute('data-testid'));
+
+      expect(headerIds).toEqual([
+        'rank-header',
+        'pattern-name-header',
+        'model-name-header',
+        `metric-header-faithfulness`,
+        'metric-header-answer_correctness',
+        'metric-header-context_correctness',
+        'chunking-method-header',
+        'chunking-chunk-size-header',
+        'chunking-chunk-overlap-header',
+      ]);
+    });
+
+    it('should reset column order (not just visibility) when reset is clicked', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+      showAllColumns();
+
+      // Verify all columns are visible — capture original header order
+      const originalHeaders = screen.getAllByTestId(
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-|retrieval-ranker)/,
+      );
+      const originalOrder = originalHeaders.map((h) => h.getAttribute('data-testid'));
+
+      // Open modal, select a preset (resets to default order), then save
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('organize-by-toggle'));
+      fireEvent.click(screen.getByTestId('organize-by-option-Full configuration'));
+      fireEvent.click(screen.getByText('Save'));
+
+      // Headers should still be in the same default order
+      const headersAfterPreset = screen.getAllByTestId(
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-|retrieval-ranker)/,
+      );
+      const orderAfterPreset = headersAfterPreset.map((h) => h.getAttribute('data-testid'));
+      expect(orderAfterPreset).toEqual(originalOrder);
+
+      // Now reset to default — should restore default visibility (only 4 columns)
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('manage-columns-reset'));
+      fireEvent.click(screen.getByText('Save'));
+
+      const headersAfterReset = screen.getAllByTestId(
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-)/,
+      );
+      const orderAfterReset = headersAfterReset.map((h) => h.getAttribute('data-testid'));
+      expect(orderAfterReset).toEqual([
+        'rank-header',
+        'pattern-name-header',
+        'model-name-header',
+        'metric-header-faithfulness',
+      ]);
+    });
   });
 });
