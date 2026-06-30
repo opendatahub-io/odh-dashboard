@@ -155,20 +155,22 @@ class MlflowExperiments {
     return cy.findByTestId('overflow-menu-trigger');
   }
 
-  findRenameAction() {
-    return cy.findByTestId('rename');
+  findEditExperimentAction() {
+    return cy.findByTestId('mlflow.experiment_page.managementMenu.edit-experiment');
   }
 
   findDeleteAction() {
-    return cy.findByTestId('delete');
+    return cy.findByTestId('mlflow.experiment_page.managementMenu.delete');
   }
 
-  findRenameInput() {
-    return this.findCreateExperimentModal().find('input').first();
+  findEditExperimentNameInput() {
+    return cy.findByRole('dialog', { name: 'Edit experiment' }).find('input').first();
   }
 
-  findRenameSubmitButton() {
-    return this.findCreateExperimentModal().findByRole('button', { name: 'Save' });
+  findEditExperimentSubmitButton() {
+    return cy
+      .findByRole('dialog', { name: 'Edit experiment' })
+      .findByRole('button', { name: 'Save' });
   }
 
   findDeleteConfirmModal() {

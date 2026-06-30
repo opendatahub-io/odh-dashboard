@@ -3,25 +3,27 @@ import { ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Icon, Popover, Split, SplitItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { InfoCircleIcon } from '@patternfly/react-icons';
+import {
+  DashboardPopupIconButton,
+  ResourceNameTooltip,
+  StateActionToggle,
+} from '@odh-dashboard/ui-core';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { getDescriptionFromK8sResource } from '@odh-dashboard/k8s-core';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookKind } from '#~/k8sTypes';
 import NotebookImagePackageDetails from '#~/pages/projects/notebook/NotebookImagePackageDetails';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { TableRowTitleDescription } from '#~/components/table';
-import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
-import { getDescriptionFromK8sResource } from '#~/concepts/k8s/utils';
 import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
 import { NotebookActionsColumn } from '#~/pages/projects/notebook/NotebookActionsColumn';
 import { startNotebook, stopNotebook, getMlflowInstancePatch } from '#~/api';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils';
 import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
-import StateActionToggle from '#~/components/StateActionToggle';
 import { isWorkbenchMigrated, useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';

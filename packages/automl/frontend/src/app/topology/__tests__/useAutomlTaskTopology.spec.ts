@@ -233,6 +233,12 @@ describe('useAutomlTaskTopology', () => {
   });
 
   it('should assign wider layout width to longer resolved labels', () => {
+    const mockMeasureText = jest.fn((text: string) => ({ width: text.length * 8 }));
+    jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      measureText: mockMeasureText,
+      font: '',
+    } as unknown as CanvasRenderingContext2D);
+
     const spec: PipelineSpecVariable = {
       root: {
         dag: {

@@ -19,7 +19,6 @@ The review `body` field contains the full preflight report. Format:
 ## Preflight Agent Report
 
 **Verdict:** <emoji> <READY | READY WITH WARNINGS | NOT READY>
-**Mode:** <check-only | managed>
 **Commit:** [`<short SHA>`](https://github.com/OWNER/REPO/commit/<full SHA>)
 
 <details>

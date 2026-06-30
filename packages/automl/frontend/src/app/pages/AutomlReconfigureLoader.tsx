@@ -1,5 +1,4 @@
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
@@ -17,8 +16,10 @@ import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
   REQUIRED_CONNECTION_SECRET_KEYS,
   DEFAULT_EVAL_METRIC_BY_TASK,
+  EVAL_METRIC_ALIASES,
 } from '~/app/utilities/const';
 import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
 const configureBasePartial = createConfigureSchema().base.partial();
@@ -33,9 +34,8 @@ const configureBasePartial = createConfigureSchema().base.partial();
  */
 function AutomlReconfigureLoader(): React.JSX.Element {
   const { namespace, runId } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -187,17 +187,16 @@ function AutomlReconfigureLoader(): React.JSX.Element {
 
   /* eslint-disable camelcase */
   const resolvedTaskType = taskType ?? parsed.task_type;
+  const resolvedEvalMetric = parsed.eval_metric
+    ? (EVAL_METRIC_ALIASES[parsed.eval_metric] ?? parsed.eval_metric)
+    : DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType ?? ''];
   const initialValues: Partial<ConfigureSchema> = {
     ...parsed,
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
     target_column: targetColumn,
-    // Populate eval_metric with the task-type default when missing from the source run
-    // (e.g. runs created before the eval_metric feature)
-    ...(parsed.eval_metric === undefined &&
-      resolvedTaskType != null && {
-        eval_metric: DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType],
-      }),
+    ...(parsed.preset != null && { preset: parsed.preset }),
+    ...(resolvedEvalMetric !== undefined && { eval_metric: resolvedEvalMetric }),
   };
   /* eslint-enable camelcase */
 

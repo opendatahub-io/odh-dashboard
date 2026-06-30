@@ -1,8 +1,9 @@
 import React from 'react';
-import {
+import type {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunction,
-} from '#~/concepts/k8s/K8sNameDescriptionField/types';
+} from '@odh-dashboard/k8s-core';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeDataField,
@@ -11,7 +12,6 @@ import {
 } from '#~/concepts/connectionTypes/types';
 import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { getDefaultValues, isConnectionTypeDataField } from '#~/concepts/connectionTypes/utils';
-import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 
 type FineTunedModelNewConnectionContextType = {
   isValid: boolean;

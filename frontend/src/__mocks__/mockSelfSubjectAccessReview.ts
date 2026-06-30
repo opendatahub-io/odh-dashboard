@@ -1,4 +1,5 @@
-import { AccessReviewResourceAttributes, SelfSubjectAccessReviewKind } from '#~/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
+import { SelfSubjectAccessReviewKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = Partial<AccessReviewResourceAttributes> & {
   allowed?: boolean;

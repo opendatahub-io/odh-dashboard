@@ -1,3 +1,4 @@
+import type { PodContainer } from '@odh-dashboard/k8s-core';
 import { mockClusterQueueK8sResource } from '#~/__mocks__/mockClusterQueueK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
@@ -14,7 +15,6 @@ import {
   getWorkloadStatusMessage,
 } from '#~/concepts/distributedWorkloads/utils';
 import { WorkloadOwnerType, WorkloadPodSet } from '#~/k8sTypes';
-import { PodContainer } from '#~/types';
 
 describe('getStatusInfo', () => {
   const testWorkloadStatus = (statusType: WorkloadStatusType | null, expectedMessage: string) => {
@@ -127,6 +127,19 @@ describe('getWorkloadOwner', () => {
     expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
       kind: 'RayCluster',
       name: 'test-raycluster',
+    });
+  });
+
+  it('returns the name of a statefulset found in ownerReferences of a workload if present', () => {
+    const mockWorkload = mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      namespace: 'test-project',
+      ownerKind: WorkloadOwnerType.StatefulSet,
+      ownerName: 'test-notebook-0',
+    });
+    expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
+      kind: 'StatefulSet',
+      name: 'test-notebook-0',
     });
   });
 

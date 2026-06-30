@@ -6,6 +6,7 @@ import InvalidProject from '#~/concepts/projects/InvalidProject';
 import ModelServingContextProvider from '#~/pages/modelServing/ModelServingContext';
 import ModelServingNoProjects from '#~/pages/modelServing/screens/global/ModelServingNoProjects';
 import ModelServingProjectSelection from '#~/pages/modelServing/screens/global/ModelServingProjectSelection';
+import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type EmptyStateProps = 'emptyStatePage' | 'empty';
@@ -21,6 +22,7 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const storedProject = getStoredPreferredProject(projects);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (projects.length === 0) {
@@ -47,9 +49,9 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
       ),
     };
   } else {
-    // Redirect the namespace suffix into the URL
-    if (preferredProject) {
-      return <Navigate to={getInvalidRedirectPath(preferredProject.metadata.name)} replace />;
+    const effectiveProject = storedProject ?? preferredProject;
+    if (effectiveProject) {
+      return <Navigate to={getInvalidRedirectPath(effectiveProject.metadata.name)} replace />;
     }
     // Go with All projects path
     return (

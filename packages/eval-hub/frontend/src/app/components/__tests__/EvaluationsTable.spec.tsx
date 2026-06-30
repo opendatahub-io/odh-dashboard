@@ -13,9 +13,8 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView', () => ({
-  __esModule: true,
-  default: ({ onClearFilters }: { onClearFilters: () => void }) => (
+jest.mock('@odh-dashboard/ui-core', () => ({
+  DashboardEmptyTableView: ({ onClearFilters }: { onClearFilters: () => void }) => (
     <div data-testid="dashboard-empty-table-state">
       <h2>No results found</h2>
       <button type="button" data-testid="clear-filters-button" onClick={onClearFilters}>

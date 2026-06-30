@@ -381,7 +381,7 @@ export interface AAModelResponse {
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
   model_type?: 'llm' | 'embedding';
   embedding_dimension?: number;
-  modality?: string;
+  capabilities?: string[];
 }
 
 export interface AIModel extends AAModelResponse {
@@ -399,6 +399,7 @@ export type ExternalModelRequest = {
   model_type: 'llm' | 'embedding';
   use_cases?: string;
   embedding_dimension?: number;
+  capabilities?: string[];
 };
 
 export type ExternalModelResponse = AAModelResponse;
@@ -522,7 +523,7 @@ export type MLflowPromptVersionMeta = {
 };
 
 export type MLflowPromptVersionsResponse = {
-  versions: MLflowPromptVersionMeta[];
+  versions: MLflowPromptVersionMeta[] | null;
   next_page_token?: string;
 };
 

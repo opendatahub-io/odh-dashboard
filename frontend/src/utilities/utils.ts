@@ -1,11 +1,6 @@
 import { LabelProps } from '@patternfly/react-core';
-import {
-  ContainerResources,
-  OdhApplication,
-  OdhDocument,
-  OdhDocumentType,
-  OdhIntegrationApplication,
-} from '#~/types';
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
+import { OdhApplication, OdhDocument, OdhDocumentType, OdhIntegrationApplication } from '#~/types';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 
@@ -149,17 +144,7 @@ export const isHTMLInputElement = (object: unknown): object is HTMLInputElement 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   (object as Partial<HTMLInputElement>).value !== undefined;
 
-export const normalizeBetween = (value: number, min?: number, max?: number): number => {
-  let returnedValue = value;
-  if (min !== undefined && max !== undefined) {
-    returnedValue = Math.max(Math.min(value, max), min);
-  } else if (min && value <= min) {
-    returnedValue = min;
-  } else if (max && value >= max) {
-    returnedValue = max;
-  }
-  return Math.floor(returnedValue);
-};
+export { normalizeBetween } from '@odh-dashboard/ui-core/utilities';
 
 /**
  * @deprecated
@@ -193,6 +178,11 @@ export const isEnumMember = <T extends object>(
   }
   return false;
 };
+
+export const isInEnum =
+  <T extends { [s: string]: unknown }>(e: T) =>
+  (token: unknown): token is T[keyof T] =>
+    isEnumMember(token, e);
 
 export const isInternalRouteIntegrationsApp = (internalRoute?: string): internalRoute is string =>
   internalRoute?.startsWith('/api/') ?? false;

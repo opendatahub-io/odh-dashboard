@@ -1,6 +1,6 @@
 import React from 'react';
-import { TableBase } from '#~/components/table';
-import { NodeSelector } from '#~/types';
+import type { NodeSelector } from '@odh-dashboard/k8s-core';
+import { TableBase } from '@odh-dashboard/ui-core';
 import NodeSelectorTableRow from '#~/pages/hardwareProfiles/nodeSelector/NodeSelectorTableRow';
 import ManageNodeSelectorModal from '#~/pages/hardwareProfiles/nodeSelector/ManageNodeSelectorModal';
 import { nodeSelectorColumns, NodeSelectorRow } from './const';

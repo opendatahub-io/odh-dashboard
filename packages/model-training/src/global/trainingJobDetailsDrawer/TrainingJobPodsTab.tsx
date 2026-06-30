@@ -13,7 +13,7 @@ import {
   Title,
   ExpandableSection,
 } from '@patternfly/react-core';
-import { PodKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import {
   t_global_text_color_regular as RegularColor,

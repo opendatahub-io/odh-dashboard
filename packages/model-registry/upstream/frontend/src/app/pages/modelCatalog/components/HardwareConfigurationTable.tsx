@@ -2,10 +2,13 @@ import * as React from 'react';
 import { DashboardEmptyTableView, Table, ManageColumnsModal } from 'mod-arch-shared';
 import { Button, Spinner } from '@patternfly/react-core';
 import { ColumnsIcon } from '@patternfly/react-icons';
-import { OuterScrollContainer } from '@patternfly/react-table';
+import { InnerScrollContainer } from '@patternfly/react-table';
 import { CatalogPerformanceMetricsArtifact, HardwareConfiguration } from '~/app/modelCatalogTypes';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
-import { getActiveLatencyFieldName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import {
+  getActiveLatencyFieldName,
+  findMatchingHardwareConfig,
+} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { getStringValue } from '~/app/utils';
 import { SortOrder, PerformancePropertyKey } from '~/concepts/modelCatalog/const';
 import {
@@ -106,15 +109,13 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
 
   return (
     <>
-      <OuterScrollContainer>
+      {toolbarContent}
+      <InnerScrollContainer>
         <Table
           data-testid="hardware-configuration-table"
           variant="compact"
-          isStickyHeader
-          hasStickyColumns
           data={performanceArtifacts}
           columns={columns}
-          toolbarContent={toolbarContent}
           onClearFilters={handleClearFilters}
           {...(hasActiveSort ? { defaultSortColumn: sortIndex } : {})}
           {...controlledSortProps}
@@ -128,20 +129,25 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
               artifact.customProperties,
               PerformancePropertyKey.HARDWARE_TYPE,
             );
-            const matched = hardwareConfigurations?.find(
-              (c) => hwConfig.startsWith(c.gpu_type) || c.gpu_type === hwType,
-            );
+            const hwCount = artifact.customProperties?.hardware_count?.int_value
+              ? parseInt(artifact.customProperties.hardware_count.int_value, 10)
+              : 1;
             return (
               <HardwareConfigurationTableRow
                 key={artifact.customProperties?.config_id?.string_value}
                 performanceArtifact={artifact}
                 columns={columns}
-                matchedHardwareConfig={matched}
+                matchedHardwareConfig={findMatchingHardwareConfig(
+                  hardwareConfigurations ?? [],
+                  hwConfig,
+                  hwType,
+                  hwCount,
+                )}
               />
             );
           }}
         />
-      </OuterScrollContainer>
+      </InnerScrollContainer>
       <ManageColumnsModal
         manageColumnsResult={manageColumnsResult}
         description="Manage the columns that appear in the hardware configuration table."

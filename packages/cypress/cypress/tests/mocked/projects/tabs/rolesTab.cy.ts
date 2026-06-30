@@ -43,7 +43,7 @@ describe('Roles tab feature flag gating', () => {
     });
 
     it('should redirect from /roles/create to the project page when flag is disabled', () => {
-      projectRoles.visitCreateRole(NAMESPACE);
+      cy.visitWithLogin(`/projects/${NAMESPACE}/roles/create`);
       cy.url().should('not.include', '/roles/create');
       cy.url().should('include', `/projects/${NAMESPACE}`);
     });
@@ -81,9 +81,9 @@ describe('Roles tab feature flag gating', () => {
       projectRoles
         .findPermissionsEmptyState()
         .should('contain.text', 'No rules set for this role.');
-      projectRoles.findSelectRoleTemplateButton().should('be.disabled');
+      projectRoles.findSelectRoleTemplateButton().should('not.be.disabled');
       projectRoles.findAddRuleButton().should('not.be.disabled');
-      projectRoles.findImportTemplateButton().should('be.disabled');
+      projectRoles.findImportTemplateButton().should('not.be.disabled');
     });
 
     it('should have the submit button disabled when name is empty', () => {
@@ -186,7 +186,7 @@ describe('Roles tab feature flag gating', () => {
     });
 
     it('should redirect from /roles/create when user lacks create permission', () => {
-      projectRoles.visitCreateRole(NAMESPACE);
+      cy.visitWithLogin(`/projects/${NAMESPACE}/roles/create`);
       cy.url().should('not.include', '/roles/create');
       cy.url().should('include', `/projects/${NAMESPACE}`);
       cy.url().should('include', 'section=roles');

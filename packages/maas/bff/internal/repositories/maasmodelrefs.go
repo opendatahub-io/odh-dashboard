@@ -29,6 +29,31 @@ func NewMaaSModelRefsRepository(logger *slog.Logger, k8sFactory kubernetes.Kuber
 	}
 }
 
+// ListMaaSModelRefs returns all MaaSModelRef resources across all namespaces.
+func (r *MaaSModelRefsRepository) ListMaaSModelRefs(ctx context.Context) ([]models.MaaSModelRefSummary, error) {
+	r.logger.Debug("Listing all MaaSModelRefs")
+
+	client, err := r.k8sFactory.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeClient := client.GetDynamicClient()
+
+	list, err := kubeClient.Resource(constants.MaaSModelRefGvr).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list MaaSModelRefs: %w", err)
+	}
+
+	summaries := make([]models.MaaSModelRefSummary, 0, len(list.Items))
+	for _, item := range list.Items {
+		summary := convertUnstructuredToModelRefSummary(&item)
+		summaries = append(summaries, *summary)
+	}
+
+	return summaries, nil
+}
+
 // CreateMaaSModelRef creates a MaaSModelRef resource. When dryRun is true the request is
 // validated by the API server but not persisted.
 func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error) {
@@ -55,7 +80,7 @@ func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, reques
 		return nil, fmt.Errorf("failed to create MaaSModelRef: %w", err)
 	}
 
-	return convertUnstructuredToModelRefSummary(created)
+	return convertUnstructuredToModelRefSummary(created), nil
 }
 
 // UpdateMaaSModelRef updates a MaaSModelRef resource. When dryRun is true the request is
@@ -122,7 +147,7 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 		return nil, fmt.Errorf("failed to update MaaSModelRef: %w", err)
 	}
 
-	return convertUnstructuredToModelRefSummary(updated)
+	return convertUnstructuredToModelRefSummary(updated), nil
 }
 
 // DeleteMaaSModelRef deletes a MaaSModelRef resource by namespace and name. When dryRun is true
@@ -162,7 +187,7 @@ func buildModelRefUnstructured(name, namespace string, modelRef models.ModelRefe
 			{
 				UID:                types.UID(uid),
 				Name:               name,
-				APIVersion:         "serving.kserve.io/v1alpha1",
+				APIVersion:         "serving.kserve.io/v1alpha2",
 				Kind:               "LLMInferenceService",
 				BlockOwnerDeletion: &[]bool{false}[0],
 			},

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ExpandableRowContent, Td } from '@patternfly/react-table';
-import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
+import { ResourceTr } from '@odh-dashboard/ui-core';
 import {
   DescriptionListDescription,
   DescriptionListTerm,
@@ -11,9 +11,8 @@ import {
   List,
   Truncate,
 } from '@patternfly/react-core';
-import { formatMemory } from '@odh-dashboard/internal/utilities/valueUnits';
-import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
-import type { ContainerResources } from '@odh-dashboard/internal/types';
+import { formatMemory } from '@odh-dashboard/ui-core/utilities';
+import type { SupportedModelFormats, ContainerResources } from '@odh-dashboard/k8s-core';
 import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
@@ -21,7 +20,7 @@ import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardw
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
-import { type Deployment } from '../../../../extension-points';
+import { type Deployment, isModelServingAuthExtension } from '../../../../extension-points';
 import {
   ExtractedFieldData,
   useWizardFieldExtractors,
@@ -92,8 +91,20 @@ const ModelSizeItem = ({ resources }: { resources?: ContainerResources }) => {
 };
 
 const TokenAuthenticationItem = ({ deployment }: { deployment: Deployment }) => {
-  const isAuthenticated = isDeploymentAuthEnabled(deployment);
-  const { data: deploymentSecrets, loaded, error } = useDeploymentAuthTokens(deployment);
+  const [authExtension, authExtensionLoaded] = useResolvedDeploymentExtension(
+    isModelServingAuthExtension,
+    deployment,
+  );
+  const isAuthenticated = isDeploymentAuthEnabled(
+    deployment,
+    authExtension?.properties.usePlatformAuthEnabled,
+  );
+  const {
+    data: deploymentSecrets,
+    loaded: secretsLoaded,
+    error,
+  } = useDeploymentAuthTokens(deployment);
+  const loaded = authExtensionLoaded && secretsLoaded;
 
   return (
     <DescriptionList

@@ -1,10 +1,9 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { HardwareProfileKind } from '#~/k8sTypes';
+import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
-import { IdentifierResourceType } from '#~/types';
-
 // Mock child components
 jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
   return function MockHardwareProfilesTableRow({
@@ -80,7 +79,8 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesToolbar', () => {
   };
 });
 
-jest.mock('#~/components/table', () => ({
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
   Table: ({
     data,
     columns,
@@ -117,10 +117,7 @@ jest.mock('#~/components/table', () => ({
       </div>
     );
   },
-}));
-
-jest.mock('#~/concepts/dashboard/DashboardEmptyTableView', () => {
-  return function MockDashboardEmptyTableView({
+  DashboardEmptyTableView: function MockDashboardEmptyTableView({
     onClearFilters,
   }: {
     onClearFilters: (event: React.SyntheticEvent<HTMLButtonElement, Event>) => void;
@@ -133,8 +130,8 @@ jest.mock('#~/concepts/dashboard/DashboardEmptyTableView', () => {
         </button>
       </div>
     );
-  };
-});
+  },
+}));
 
 describe('HardwareProfilesTable', () => {
   const mockHardwareProfiles: HardwareProfileKind[] = [

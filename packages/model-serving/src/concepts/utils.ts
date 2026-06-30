@@ -1,5 +1,5 @@
-import { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
-import { PodKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ToggleState } from '@odh-dashboard/ui-core';
+import type { PodKind } from '@odh-dashboard/k8s-core';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 
 export const getModelDeploymentStoppedStates = (

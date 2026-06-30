@@ -444,7 +444,7 @@ describe('Model version details', () => {
 
       // Verify we navigated to the versions list page
       cy.url().should('include', modelVersionListUrl('1', 'modelregistry-sample'));
-      cy.findByTestId('model-versions-tab-content').should('exist');
+      cy.findByTestId('versions-tab-content').should('exist');
     });
   });
 

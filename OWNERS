@@ -35,6 +35,8 @@ filters:
       - area/backend
 
   'docs/.*':
+    reviewers:
+      - platform-reviewers
     labels:
       - area/docs
 
@@ -47,6 +49,8 @@ filters:
       - area/components
 
   'manifests/.*':
+    reviewers:
+      - platform-reviewers
     labels:
       - area/manifests
 

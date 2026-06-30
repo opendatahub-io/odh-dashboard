@@ -1,6 +1,7 @@
 import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { handleFeatureStoreFailures } from './errorUtils';
+import { fetchAllPages, mergeRelationships } from './paginationUtils';
 import { FeatureStoreLineage, FeatureViewLineage } from '../types/lineage';
 import { FEATURE_STORE_API_VERSION } from '../const';
 import { Entity, EntityList } from '../types/entities';
@@ -28,13 +29,23 @@ export const listFeatureStoreProject =
 export const getEntities =
   (hostPath: string) =>
   (opts: K8sAPIOptions, project?: string): Promise<EntityList> => {
-    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/entities/all?include_relationships=true`;
     if (project) {
-      endpoint = `/api/${FEATURE_STORE_API_VERSION}/entities?project=${encodeURIComponent(
+      const endpoint = `/api/${FEATURE_STORE_API_VERSION}/entities?project=${encodeURIComponent(
         project,
       )}&include_relationships=true`;
+      return handleFeatureStoreFailures<EntityList>(proxyGET(hostPath, endpoint, {}, opts));
     }
-    return handleFeatureStoreFailures<EntityList>(proxyGET(hostPath, endpoint, {}, opts));
+    return fetchAllPages<EntityList, Entity>(
+      hostPath,
+      `/api/${FEATURE_STORE_API_VERSION}/entities/all?include_relationships=true`,
+      opts,
+      (response) => response.entities,
+      (allItems, allResponses) => ({
+        ...allResponses[allResponses.length - 1],
+        entities: allItems,
+        relationships: mergeRelationships(allResponses),
+      }),
+    );
   };
 
 export const getFeatureViews =
@@ -48,39 +59,44 @@ export const getFeatureViews =
     // eslint-disable-next-line camelcase
     data_source?: string,
   ): Promise<FeatureViewsList> => {
-    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views`;
-    const queryParams: string[] = [];
-
-    if (project) {
-      queryParams.push(`project=${encodeURIComponent(project)}`);
-    } else {
-      endpoint += '/all';
-    }
-
+    const filterParams: string[] = [];
     if (featureService) {
-      queryParams.push(`feature_service=${encodeURIComponent(featureService)}`);
+      filterParams.push(`feature_service=${encodeURIComponent(featureService)}`);
     }
-
     if (entity) {
-      queryParams.push(`entity=${encodeURIComponent(entity)}`);
+      filterParams.push(`entity=${encodeURIComponent(entity)}`);
     }
-
     if (feature) {
-      queryParams.push(`feature=${encodeURIComponent(feature)}`);
+      filterParams.push(`feature=${encodeURIComponent(feature)}`);
     }
     // eslint-disable-next-line camelcase
     if (data_source) {
-      queryParams.push(`data_source=${encodeURIComponent(data_source)}`);
+      filterParams.push(`data_source=${encodeURIComponent(data_source)}`);
     }
 
-    if (queryParams.length > 0) {
-      endpoint += `?${queryParams.join('&')}`;
+    if (project) {
+      const params = [
+        `project=${encodeURIComponent(project)}`,
+        ...filterParams,
+        'include_relationships=true',
+      ];
+      const endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views?${params.join('&')}`;
+      return handleFeatureStoreFailures<FeatureViewsList>(proxyGET(hostPath, endpoint, {}, opts));
     }
 
-    endpoint +=
-      queryParams.length > 0 ? '&include_relationships=true' : '?include_relationships=true';
-
-    return handleFeatureStoreFailures<FeatureViewsList>(proxyGET(hostPath, endpoint, {}, opts));
+    const params = [...filterParams, 'include_relationships=true'];
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views/all?${params.join('&')}`;
+    return fetchAllPages<FeatureViewsList, FeatureView>(
+      hostPath,
+      endpoint,
+      opts,
+      (response) => response.featureViews,
+      (allItems, allResponses) => ({
+        ...allResponses[allResponses.length - 1],
+        featureViews: allItems,
+        relationships: mergeRelationships(allResponses),
+      }),
+    );
   };
 
 export const getEntityByName =
@@ -96,13 +112,22 @@ export const getEntityByName =
 export const getFeatures =
   (hostPath: string) =>
   (opts: K8sAPIOptions, project?: string): Promise<FeaturesList> => {
-    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/features/all`;
     if (project) {
-      endpoint = `/api/${FEATURE_STORE_API_VERSION}/features?project=${encodeURIComponent(
+      const endpoint = `/api/${FEATURE_STORE_API_VERSION}/features?project=${encodeURIComponent(
         project,
       )}`;
+      return handleFeatureStoreFailures<FeaturesList>(proxyGET(hostPath, endpoint, {}, opts));
     }
-    return handleFeatureStoreFailures<FeaturesList>(proxyGET(hostPath, endpoint, {}, opts));
+    return fetchAllPages<FeaturesList, Features>(
+      hostPath,
+      `/api/${FEATURE_STORE_API_VERSION}/features/all`,
+      opts,
+      (response) => response.features,
+      (allItems, allResponses) => ({
+        ...allResponses[allResponses.length - 1],
+        features: allItems,
+      }),
+    );
   };
 
 export const getFeatureByName =
@@ -123,17 +148,33 @@ export const getFeatureByName =
 export const getFeatureServices =
   (hostPath: string) =>
   (opts: K8sAPIOptions, project?: string, featureView?: string): Promise<FeatureServicesList> => {
-    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_services/all?include_relationships=true`;
     if (project) {
-      endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_services?project=${encodeURIComponent(
+      let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_services?project=${encodeURIComponent(
         project,
       )}&include_relationships=true`;
+      if (featureView) {
+        endpoint += `&feature_view=${encodeURIComponent(featureView)}`;
+      }
+      return handleFeatureStoreFailures<FeatureServicesList>(
+        proxyGET(hostPath, endpoint, {}, opts),
+      );
     }
-    if (featureView) {
-      endpoint += `&feature_view=${encodeURIComponent(featureView)}`;
-    }
-
-    return handleFeatureStoreFailures<FeatureServicesList>(proxyGET(hostPath, endpoint, {}, opts));
+    const endpoint = featureView
+      ? `/api/${FEATURE_STORE_API_VERSION}/feature_services/all?include_relationships=true&feature_view=${encodeURIComponent(
+          featureView,
+        )}`
+      : `/api/${FEATURE_STORE_API_VERSION}/feature_services/all?include_relationships=true`;
+    return fetchAllPages<FeatureServicesList, FeatureService>(
+      hostPath,
+      endpoint,
+      opts,
+      (response) => response.featureServices,
+      (allItems, allResponses) => ({
+        ...allResponses[allResponses.length - 1],
+        featureServices: allItems,
+        relationships: mergeRelationships(allResponses),
+      }),
+    );
   };
 
 export const getFeatureServiceByName =
@@ -256,14 +297,23 @@ export const getFeatureViewLineage =
 export const getSavedDatasets =
   (hostPath: string) =>
   (opts: K8sAPIOptions, project?: string): Promise<DataSetList> => {
-    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/saved_datasets/all?include_relationships=true`;
     if (project) {
-      endpoint = `/api/${FEATURE_STORE_API_VERSION}/saved_datasets?project=${encodeURIComponent(
+      const endpoint = `/api/${FEATURE_STORE_API_VERSION}/saved_datasets?project=${encodeURIComponent(
         project,
       )}&include_relationships=true`;
+      return handleFeatureStoreFailures<DataSetList>(proxyGET(hostPath, endpoint, {}, opts));
     }
-
-    return handleFeatureStoreFailures<DataSetList>(proxyGET(hostPath, endpoint, {}, opts));
+    return fetchAllPages<DataSetList, DataSet>(
+      hostPath,
+      `/api/${FEATURE_STORE_API_VERSION}/saved_datasets/all?include_relationships=true`,
+      opts,
+      (response) => response.savedDatasets,
+      (allItems, allResponses) => ({
+        ...allResponses[allResponses.length - 1],
+        savedDatasets: allItems,
+        relationships: mergeRelationships(allResponses),
+      }),
+    );
   };
 
 export const getDataSetByName =
@@ -293,13 +343,23 @@ export const getDataSetByName =
 export const getDataSources =
   (hostPath: string) =>
   (opts: K8sAPIOptions, project?: string): Promise<DataSourceList> => {
-    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/data_sources/all?include_relationships=true`;
     if (project) {
-      endpoint = `/api/${FEATURE_STORE_API_VERSION}/data_sources?project=${encodeURIComponent(
+      const endpoint = `/api/${FEATURE_STORE_API_VERSION}/data_sources?project=${encodeURIComponent(
         project,
       )}&include_relationships=true`;
+      return handleFeatureStoreFailures<DataSourceList>(proxyGET(hostPath, endpoint, {}, opts));
     }
-    return handleFeatureStoreFailures<DataSourceList>(proxyGET(hostPath, endpoint, {}, opts));
+    return fetchAllPages<DataSourceList, DataSource>(
+      hostPath,
+      `/api/${FEATURE_STORE_API_VERSION}/data_sources/all?include_relationships=true`,
+      opts,
+      (response) => response.dataSources,
+      (allItems, allResponses) => ({
+        ...allResponses[allResponses.length - 1],
+        dataSources: allItems,
+        relationships: mergeRelationships(allResponses),
+      }),
+    );
   };
 
 export const getDataSourceByName =

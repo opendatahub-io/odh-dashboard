@@ -64,10 +64,15 @@ export const getEvalHubCRStatus =
     });
 
 export const getEvalHubHealth =
-  (hostPath: string) =>
+  (hostPath: string, namespace?: string) =>
   (opts: APIOptions): Promise<EvalHubHealthResponse> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evalhub/health`, {}, opts),
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evalhub/health`,
+        namespace ? { namespace } : {},
+        opts,
+      ),
     ).then((response) => {
       if (isModArchResponse<EvalHubHealthResponse>(response)) {
         return response.data;

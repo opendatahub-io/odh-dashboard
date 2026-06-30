@@ -73,7 +73,7 @@ type APIKeyListResponse struct {
 	Object              string                        `json:"object"`
 	Data                []APIKey                      `json:"data"`
 	HasMore             bool                          `json:"has_more"`
-	SubscriptionDetails map[string]SubscriptionDetail `json:"subscriptionDetails,omitempty"`
+	SubscriptionDetails map[string]SubscriptionDetail `json:"subscriptionDetails"`
 }
 
 // APIKeyBulkRevokeRequest represents a request to bulk-revoke a user's keys.
