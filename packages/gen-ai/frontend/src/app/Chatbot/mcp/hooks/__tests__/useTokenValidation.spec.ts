@@ -3,10 +3,6 @@ import { GenAiAPIs, MCPServer } from '~/app/types';
 import useTokenValidation, { ValidationResult } from '~/app/Chatbot/mcp/hooks/useTokenValidation';
 
 // Mock the tracking functions
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
 
 describe('useTokenValidation', () => {
   const mockServer: MCPServer = {

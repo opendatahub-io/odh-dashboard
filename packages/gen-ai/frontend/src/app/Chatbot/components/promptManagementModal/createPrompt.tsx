@@ -19,7 +19,7 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { useNotification } from '~/app/hooks/useNotification';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { useChatbotConfigStore, selectDirtyPrompt } from '~/app/Chatbot/store';

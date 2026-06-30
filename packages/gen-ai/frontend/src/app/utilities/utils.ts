@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { K8sResourceCommon } from 'mod-arch-shared';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import {
   AIModel,
   LlamaModel,

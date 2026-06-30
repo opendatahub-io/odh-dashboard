@@ -1,9 +1,8 @@
 import * as React from 'react';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 type DeleteExperimentModalProps = {
   experiment: ExperimentKF;

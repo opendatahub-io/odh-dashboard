@@ -9,7 +9,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { ExternalVectorStoreSummary } from '~/app/types';
 
 type VectorStoreTableRowInfoProps = {

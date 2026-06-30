@@ -15,12 +15,12 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import FilterToolbar from '#~/components/FilterToolbar';
 import SimpleSelect from '#~/components/SimpleSelect';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import SubjectRolesTableSection from './SubjectRolesTableSection';
 import {
   FilterDataType,

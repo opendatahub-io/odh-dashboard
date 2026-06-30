@@ -1,12 +1,8 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireSimpleTrackingEvent } from '@odh-dashboard/analytics';
 import SystemInstructionFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireSimpleTrackingEvent: jest.fn(),
-}));
 
 const mockFireSimpleTrackingEvent = jest.mocked(fireSimpleTrackingEvent);
 

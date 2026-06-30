@@ -1,8 +1,8 @@
 import React from 'react';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
+import type { IdentifyEventProperties } from '@odh-dashboard/analytics';
 import { useUser } from '#~/redux/selectors';
 import { useAccessReview } from '#~/api';
-import { IdentifyEventProperties } from '#~/concepts/analyticsTracking/trackingProperties';
 
 export const useTrackUser = (username?: string): [IdentifyEventProperties, boolean] => {
   const { isAdmin, userID } = useUser();

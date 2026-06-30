@@ -1,6 +1,5 @@
+import type { ODHSegmentKey } from '@odh-dashboard/analytics';
 import axios from '#~/utilities/axios';
-
-import { ODHSegmentKey } from '#~/concepts/analyticsTracking/trackingProperties';
 
 export const fetchSegmentKey = (): Promise<ODHSegmentKey> => {
   const url = '/api/segment-key';

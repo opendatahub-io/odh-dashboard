@@ -47,6 +47,7 @@
     "./types": "./frontend/src/types/index.ts"
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*"

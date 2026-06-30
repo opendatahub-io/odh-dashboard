@@ -3,12 +3,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { fireFormTrackingEvent } from '@odh-dashboard/analytics';
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { createPipelinesCR, deleteSecret } from '#~/api';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { configureDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
 import { useAppContext } from '#~/app/AppContext';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
@@ -34,7 +34,8 @@ jest.mock('#~/api', () => ({
   listPipelinesCR: jest.fn(),
 }));
 
-jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
+jest.mock('@odh-dashboard/analytics', () => ({
+  ...jest.requireActual('@odh-dashboard/analytics'),
   fireFormTrackingEvent: jest.fn(),
 }));
 

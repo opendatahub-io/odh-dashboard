@@ -12,12 +12,11 @@ import {
 } from '@patternfly/react-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { isK8sNameDescriptionDataValid, LimitNameResourceType } from '@odh-dashboard/k8s-core';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import { createProject, updateProject } from '#~/api';
 import { useUser } from '#~/redux/selectors';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';

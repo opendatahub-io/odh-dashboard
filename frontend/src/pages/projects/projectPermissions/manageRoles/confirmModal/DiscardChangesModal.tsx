@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import ContentModal from '#~/components/modals/ContentModal';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { PendingChangeType } from '#~/pages/projects/projectPermissions/types';
 
 type DiscardChangesModalProps = {

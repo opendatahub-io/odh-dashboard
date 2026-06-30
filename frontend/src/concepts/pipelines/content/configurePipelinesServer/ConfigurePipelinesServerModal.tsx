@@ -11,12 +11,11 @@ import {
   ModalFooter,
   ExpandableSection,
 } from '@patternfly/react-core';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,

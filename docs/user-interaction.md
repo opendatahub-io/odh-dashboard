@@ -155,4 +155,36 @@ metadata:
 type: Opaque
 data:
    segmentKey: [segment key in base64]
+   amplitudeApiKey: [amplitude API key in base64]  # optional
 ```
+
+## Amplitude Autocapture
+
+In addition to Segment's precision-tracked events, the Dashboard supports [Amplitude Autocapture](https://amplitude.com/docs/data/autocapture) for broad, zero-instrumentation interaction coverage.
+
+### How the two systems complement each other
+
+* **Segment (precision tracking)** — Named, metadata-rich events tied to specific business actions (e.g. "Model Deployed", "Pipeline Run Created"). These are manually instrumented via `fireTrackingEvent` / `fireFormTrackingEvent` calls throughout the codebase.
+* **Amplitude Autocapture** — Automatically captures element clicks, page views, sessions, form interactions, and file downloads. Useful for click analysis, funnel discovery, and engagement heatmaps — especially for areas without manual tracking.
+
+### Configuration
+
+Autocapture is enabled when an `amplitudeApiKey` field is present in the `odh-segment-key` Secret. Both Segment and Amplitude tracking are gated by the same `disableTracking` setting in the DashboardConfig CRD and the `segmentKeyEnabled` ConfigMap.
+
+The Amplitude SDK is initialized with the following autocapture event types:
+
+| Event type | Description |
+|------------|-------------|
+| `sessions` | Session start and end events |
+| `pageViews` | Automatic page view tracking |
+| `elementInteractions` | Click and interaction tracking on DOM elements |
+| `formInteractions` | Form submission and field interaction tracking |
+| `fileDownloads` | File download link click tracking |
+
+### Privacy controls
+
+Amplitude Autocapture includes built-in privacy protections:
+* Password fields and hidden inputs are excluded by default
+* Patterns matching credit card numbers, SSNs, and emails are auto-masked
+* Additional URL exclusions and element filtering can be configured in the Amplitude project settings (no code changes required)
+* For elements that need explicit masking beyond server-side configuration, add the `data-amp-mask` attribute to the HTML element

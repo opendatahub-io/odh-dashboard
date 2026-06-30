@@ -19,7 +19,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { ExternalVectorStoreSummary } from '~/app/types';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { splitLlamaModelId } from '~/app/utilities/utils';
