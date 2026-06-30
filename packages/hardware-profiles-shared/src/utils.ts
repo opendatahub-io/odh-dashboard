@@ -12,7 +12,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import type { ImageStreamKind, NotebookKind } from '@odh-dashboard/internal/k8sTypes';
 import { getCompatibleIdentifiers } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
-import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '@odh-dashboard/ui-core/utilities';
+import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { HardwareProfileConfig, UseHardwareProfileConfigResult } from './useHardwareProfileConfig';
 import {
   HardwareProfileBindingState,
