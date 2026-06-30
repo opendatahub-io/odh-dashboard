@@ -1,7 +1,8 @@
 import type { ServingRuntimeAPIProtocol } from '@odh-dashboard/internal/types';
-import type { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { appChrome } from './appChrome';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
+
+type ModelTypeLabel = 'Predictive model' | 'Generative AI model (Example, LLM)';
 
 class ServingRuntimeRow {
   constructor(public readonly id: string) {}

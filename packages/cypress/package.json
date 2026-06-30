@@ -29,7 +29,6 @@
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/maas": "*",
     "@odh-dashboard/model-registry": "*",
-    "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/model-training": "*",
     "@odh-dashboard/plugin-core": "*",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
