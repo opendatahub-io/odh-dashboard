@@ -161,15 +161,17 @@ function AutomlConfigurePage({
             )
           ) : (
             <span data-testid="configure-step-subtitle">
-              &quot;
-              <Truncate content={displayName || ''} />
-              &quot; configurations
+              Run{' '}
+              <span style={{ color: 'var(--pf-t--global--color--nonstatus--purple--400)' }}>
+                <Truncate content={displayName || ''} />
+              </span>{' '}
+              AutoML experiment
             </span>
           )}
         </h2>
       }
       description={
-        step === 'create' && (
+        step === 'create' ? (
           <Content>
             Automatically configure and optimize your machine learning workflows.
             {sourceRunId && (
@@ -180,6 +182,8 @@ function AutomlConfigurePage({
               </>
             )}
           </Content>
+        ) : (
+          <Content>Configure details for this experiment run.</Content>
         )
       }
       breadcrumb={
