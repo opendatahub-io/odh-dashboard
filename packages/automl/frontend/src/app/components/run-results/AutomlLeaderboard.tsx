@@ -1,6 +1,8 @@
 import {
   Bullseye,
   Button,
+  Card,
+  CardBody,
   Content,
   ContentVariants,
   EmptyState,
@@ -806,32 +808,37 @@ function AutomlLeaderboard({
   // Show loading state with 5 rows and 8 columns
   if (pipelineRunLoading || modelsLoading) {
     return (
-      <Table
-        aria-label="AutoML Model Leaderboard"
-        variant="compact"
-        data-testid="leaderboard-loading"
-      >
-        <Thead>
-          <Tr>
-            {Array.from({ length: 8 }).map((__, colIndex) => (
-              <Th key={colIndex}>
-                <Skeleton />
-              </Th>
-            ))}
-          </Tr>
-        </Thead>
-        <Tbody>
-          {Array.from({ length: 5 }).map((__, rowIndex) => (
-            <Tr key={rowIndex}>
-              {Array.from({ length: 8 }).map((_, colIndex) => (
-                <Td key={colIndex}>
-                  <Skeleton />
-                </Td>
+      <Card>
+        <CardBody>
+          <Content component={ContentVariants.h3}>Results</Content>
+          <Table
+            aria-label="AutoML Model Leaderboard"
+            variant="compact"
+            data-testid="leaderboard-loading"
+          >
+            <Thead>
+              <Tr>
+                {Array.from({ length: 8 }).map((__, colIndex) => (
+                  <Th key={colIndex}>
+                    <Skeleton />
+                  </Th>
+                ))}
+              </Tr>
+            </Thead>
+            <Tbody>
+              {Array.from({ length: 5 }).map((__, rowIndex) => (
+                <Tr key={rowIndex}>
+                  {Array.from({ length: 8 }).map((_, colIndex) => (
+                    <Td key={colIndex}>
+                      <Skeleton />
+                    </Td>
+                  ))}
+                </Tr>
               ))}
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
+            </Tbody>
+          </Table>
+        </CardBody>
+      </Card>
     );
   }
 
@@ -927,108 +934,111 @@ function AutomlLeaderboard({
   }
 
   return (
-    <>
-      <Toolbar hasNoPadding>
-        <ToolbarContent alignItems="center">
-          <ToolbarItem align={{ default: 'alignEnd' }}>
-            <Content component={ContentVariants.small} data-testid="columns-selected-count">
-              {visibleColumns.length}/{columnDefs.length} columns selected
-            </Content>
-          </ToolbarItem>
-          <ToolbarItem>
-            <Button
-              variant="link"
-              icon={<ColumnsIcon />}
-              onClick={() => setIsManageColumnsOpen(true)}
-              data-testid="manage-columns-button"
-            >
-              Manage columns
-            </Button>
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-      <InnerScrollContainer>
-        <Table
-          aria-label="AutoML Model Leaderboard"
-          variant="compact"
-          data-testid="leaderboard-table"
-          className="automl-leaderboard"
-          isStickyHeader
-        >
-          <Thead>
-            <Tr>
-              {visibleColumns.map((col) => {
-                const colMeta = getColumnMeta(
-                  col.id === 'optimized-metric' ? `metric:${optimizedMetric}` : col.id,
-                );
-                return (
-                  <Th
-                    key={col.id}
-                    sort={getSortParams(col.id)}
-                    info={getHeaderInfoProps(col.id)}
-                    data-testid={getHeaderTestId(col.id)}
-                    className={col.id === 'rank' ? 'automl-leaderboard__rank-cell' : undefined}
-                    style={colMeta?.minWidth ? { minWidth: colMeta.minWidth } : undefined}
-                  >
-                    {renderHeaderContent(col)}
-                  </Th>
-                );
-              })}
-              <Th
-                screenReaderText="Actions"
-                isStickyColumn
-                hasLeftBorder
-                stickyMinWidth="50px"
-                stickyRightOffset="0"
-              />
-            </Tr>
-          </Thead>
-          <Tbody>
-            {data.map((entry) => (
-              <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-                {visibleColumns.map((col) => (
-                  <Td
-                    key={col.id}
-                    dataLabel={col.label}
-                    data-testid={getCellTestId(col.id, entry.rank)}
-                    className={col.id === 'rank' ? 'automl-leaderboard__rank-cell' : undefined}
-                  >
-                    {renderCellContent(col, entry)}
-                  </Td>
-                ))}
-                <Td
-                  isActionCell
+    <Card>
+      <CardBody>
+        <Content component={ContentVariants.h3}>Results</Content>
+        <Toolbar hasNoPadding>
+          <ToolbarContent alignItems="center">
+            <ToolbarItem>
+              <Content component={ContentVariants.small} data-testid="columns-selected-count">
+                {visibleColumns.length}/{columnDefs.length} columns selected
+              </Content>
+            </ToolbarItem>
+            <ToolbarItem>
+              <Button
+                variant="link"
+                icon={<ColumnsIcon />}
+                onClick={() => setIsManageColumnsOpen(true)}
+                data-testid="manage-columns-button"
+              >
+                Manage columns
+              </Button>
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+        <InnerScrollContainer>
+          <Table
+            aria-label="AutoML Model Leaderboard"
+            variant="compact"
+            data-testid="leaderboard-table"
+            className="automl-leaderboard"
+            isStickyHeader
+          >
+            <Thead>
+              <Tr>
+                {visibleColumns.map((col) => {
+                  const colMeta = getColumnMeta(
+                    col.id === 'optimized-metric' ? `metric:${optimizedMetric}` : col.id,
+                  );
+                  return (
+                    <Th
+                      key={col.id}
+                      sort={getSortParams(col.id)}
+                      info={getHeaderInfoProps(col.id)}
+                      data-testid={getHeaderTestId(col.id)}
+                      className={col.id === 'rank' ? 'automl-leaderboard__rank-cell' : undefined}
+                      style={colMeta?.minWidth ? { minWidth: colMeta.minWidth } : undefined}
+                    >
+                      {renderHeaderContent(col)}
+                    </Th>
+                  );
+                })}
+                <Th
+                  screenReaderText="Actions"
                   isStickyColumn
                   hasLeftBorder
                   stickyMinWidth="50px"
                   stickyRightOffset="0"
-                >
-                  <ActionsColumn
-                    items={[
-                      {
-                        title: 'View details',
-                        onClick: () => handleViewDetails(entry.modelKey, entry.rank),
-                      },
-                      {
-                        title: 'Register model',
-                        onClick: () => {
-                          onRegisterModel?.(entry.modelKey);
-                        },
-                      },
-                      {
-                        title: 'Save notebook',
-                        onClick: () => {
-                          onClickSaveNotebook?.(entry.modelKey);
-                        },
-                      },
-                    ]}
-                  />
-                </Td>
+                />
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </InnerScrollContainer>
+            </Thead>
+            <Tbody>
+              {data.map((entry) => (
+                <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
+                  {visibleColumns.map((col) => (
+                    <Td
+                      key={col.id}
+                      dataLabel={col.label}
+                      data-testid={getCellTestId(col.id, entry.rank)}
+                      className={col.id === 'rank' ? 'automl-leaderboard__rank-cell' : undefined}
+                    >
+                      {renderCellContent(col, entry)}
+                    </Td>
+                  ))}
+                  <Td
+                    isActionCell
+                    isStickyColumn
+                    hasLeftBorder
+                    stickyMinWidth="50px"
+                    stickyRightOffset="0"
+                  >
+                    <ActionsColumn
+                      items={[
+                        {
+                          title: 'View details',
+                          onClick: () => handleViewDetails(entry.modelKey, entry.rank),
+                        },
+                        {
+                          title: 'Register model',
+                          onClick: () => {
+                            onRegisterModel?.(entry.modelKey);
+                          },
+                        },
+                        {
+                          title: 'Save notebook',
+                          onClick: () => {
+                            onClickSaveNotebook?.(entry.modelKey);
+                          },
+                        },
+                      ]}
+                    />
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </InnerScrollContainer>
+      </CardBody>
       <ManageColumnsModal
         isOpen={isManageColumnsOpen}
         onClose={() => setIsManageColumnsOpen(false)}
@@ -1037,7 +1047,7 @@ function AutomlLeaderboard({
         applyColumns={handleApplyColumns}
         /* presets={columnPresets} — hidden until AutoML has meaningful preset groups */
       />
-    </>
+    </Card>
   );
 }
 

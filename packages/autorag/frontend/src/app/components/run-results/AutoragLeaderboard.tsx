@@ -1,6 +1,8 @@
 import {
   Bullseye,
   Button,
+  Card,
+  CardBody,
   Content,
   ContentVariants,
   EmptyState,
@@ -850,32 +852,37 @@ function AutoragLeaderboard({
   // Show loading state with 5 rows and 14 columns
   if (pipelineRunLoading || patternsLoading) {
     return (
-      <Table
-        aria-label="AutoRAG Pattern Leaderboard"
-        variant="compact"
-        data-testid="leaderboard-loading"
-      >
-        <Thead>
-          <Tr>
-            {Array.from({ length: 14 }).map((__, colIndex) => (
-              <Th key={colIndex}>
-                <Skeleton />
-              </Th>
-            ))}
-          </Tr>
-        </Thead>
-        <Tbody>
-          {Array.from({ length: 5 }).map((__, rowIndex) => (
-            <Tr key={rowIndex}>
-              {Array.from({ length: 14 }).map((_, colIndex) => (
-                <Td key={colIndex}>
-                  <Skeleton />
-                </Td>
+      <Card>
+        <CardBody>
+          <Content component={ContentVariants.h3}>Results</Content>
+          <Table
+            aria-label="AutoRAG Pattern Leaderboard"
+            variant="compact"
+            data-testid="leaderboard-loading"
+          >
+            <Thead>
+              <Tr>
+                {Array.from({ length: 14 }).map((__, colIndex) => (
+                  <Th key={colIndex}>
+                    <Skeleton />
+                  </Th>
+                ))}
+              </Tr>
+            </Thead>
+            <Tbody>
+              {Array.from({ length: 5 }).map((__, rowIndex) => (
+                <Tr key={rowIndex}>
+                  {Array.from({ length: 14 }).map((_, colIndex) => (
+                    <Td key={colIndex}>
+                      <Skeleton />
+                    </Td>
+                  ))}
+                </Tr>
               ))}
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
+            </Tbody>
+          </Table>
+        </CardBody>
+      </Card>
     );
   }
 
@@ -971,122 +978,125 @@ function AutoragLeaderboard({
   }
 
   return (
-    <>
-      <Toolbar hasNoPadding>
-        <ToolbarContent alignItems="center">
-          <ToolbarItem align={{ default: 'alignEnd' }}>
-            <Content component={ContentVariants.small} data-testid="columns-selected-count">
-              {visibleColumns.length}/{columnDefs.length} columns selected
-            </Content>
-          </ToolbarItem>
-          <ToolbarItem>
-            <Button
-              variant="link"
-              icon={<ColumnsIcon />}
-              onClick={() => setIsManageColumnsOpen(true)}
-              data-testid="manage-columns-button"
-            >
-              Manage columns
-            </Button>
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-      <InnerScrollContainer>
-        <Table
-          aria-label="AutoRAG Pattern Leaderboard"
-          variant="compact"
-          data-testid="leaderboard-table"
-          className="autorag-leaderboard"
-          isStickyHeader
-        >
-          <Thead>
-            <Tr>
-              {visibleColumns.map((col) => {
-                const colMeta = getColumnMeta(
-                  col.id === 'optimized-metric' ? `metric:${optimizedMetric}` : col.id,
-                );
-                return (
-                  <Th
-                    key={col.id}
-                    sort={getSortParams(col.id)}
-                    info={getHeaderInfoProps(col.id)}
-                    data-testid={getHeaderTestId(col.id)}
-                    className={col.id === 'rank' ? 'autorag-leaderboard__rank-cell' : undefined}
-                    style={colMeta?.minWidth ? { minWidth: colMeta.minWidth } : undefined}
-                  >
-                    {renderHeaderContent(col)}
-                  </Th>
-                );
-              })}
-              <Th
-                screenReaderText="Actions"
-                isStickyColumn
-                hasLeftBorder
-                stickyMinWidth="50px"
-                stickyRightOffset="0"
-              />
-            </Tr>
-          </Thead>
-          <Tbody>
-            {data.map((entry) => (
-              <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-                {visibleColumns.map((col) => (
-                  <Td
-                    key={col.id}
-                    dataLabel={col.label}
-                    data-testid={getCellTestId(col.id, entry.rank)}
-                    className={col.id === 'rank' ? 'autorag-leaderboard__rank-cell' : undefined}
-                  >
-                    {renderCellContent(col, entry)}
-                  </Td>
-                ))}
-                <Td
-                  isActionCell
+    <Card>
+      <CardBody>
+        <Content component={ContentVariants.h3}>Results</Content>
+        <Toolbar hasNoPadding>
+          <ToolbarContent alignItems="center">
+            <ToolbarItem>
+              <Content component={ContentVariants.small} data-testid="columns-selected-count">
+                {visibleColumns.length}/{columnDefs.length} columns selected
+              </Content>
+            </ToolbarItem>
+            <ToolbarItem>
+              <Button
+                variant="link"
+                icon={<ColumnsIcon />}
+                onClick={() => setIsManageColumnsOpen(true)}
+                data-testid="manage-columns-button"
+              >
+                Manage columns
+              </Button>
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+        <InnerScrollContainer>
+          <Table
+            aria-label="AutoRAG Pattern Leaderboard"
+            variant="compact"
+            data-testid="leaderboard-table"
+            className="autorag-leaderboard"
+            isStickyHeader
+          >
+            <Thead>
+              <Tr>
+                {visibleColumns.map((col) => {
+                  const colMeta = getColumnMeta(
+                    col.id === 'optimized-metric' ? `metric:${optimizedMetric}` : col.id,
+                  );
+                  return (
+                    <Th
+                      key={col.id}
+                      sort={getSortParams(col.id)}
+                      info={getHeaderInfoProps(col.id)}
+                      data-testid={getHeaderTestId(col.id)}
+                      className={col.id === 'rank' ? 'autorag-leaderboard__rank-cell' : undefined}
+                      style={colMeta?.minWidth ? { minWidth: colMeta.minWidth } : undefined}
+                    >
+                      {renderHeaderContent(col)}
+                    </Th>
+                  );
+                })}
+                <Th
+                  screenReaderText="Actions"
                   isStickyColumn
                   hasLeftBorder
                   stickyMinWidth="50px"
                   stickyRightOffset="0"
-                >
-                  <ActionsColumn
-                    items={[
-                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                      ...(patterns[entry.patternKey].settings?.responses_template && onTryPattern
-                        ? [
-                            {
-                              title: 'Try this pattern',
-                              onClick: () => onTryPattern(entry.patternKey),
-                            },
-                          ]
-                        : []),
-                      {
-                        title: 'View details',
-                        onClick: () => handleViewDetails(entry.pattern),
-                      },
-                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                      ...(patterns[entry.patternKey].settings?.responses_template && onViewCode
-                        ? [
-                            {
-                              title: 'View code',
-                              onClick: () => onViewCode(entry.patternKey),
-                            },
-                          ]
-                        : []),
-                      {
-                        title: 'Save as indexing notebook',
-                        onClick: () => onSaveNotebook?.(entry.pattern, 'indexing'),
-                      },
-                      {
-                        title: 'Save as inference notebook',
-                        onClick: () => onSaveNotebook?.(entry.pattern, 'inference'),
-                      },
-                    ]}
-                  />
-                </Td>
+                />
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </InnerScrollContainer>
+            </Thead>
+            <Tbody>
+              {data.map((entry) => (
+                <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
+                  {visibleColumns.map((col) => (
+                    <Td
+                      key={col.id}
+                      dataLabel={col.label}
+                      data-testid={getCellTestId(col.id, entry.rank)}
+                      className={col.id === 'rank' ? 'autorag-leaderboard__rank-cell' : undefined}
+                    >
+                      {renderCellContent(col, entry)}
+                    </Td>
+                  ))}
+                  <Td
+                    isActionCell
+                    isStickyColumn
+                    hasLeftBorder
+                    stickyMinWidth="50px"
+                    stickyRightOffset="0"
+                  >
+                    <ActionsColumn
+                      items={[
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                        ...(patterns[entry.patternKey].settings?.responses_template && onTryPattern
+                          ? [
+                              {
+                                title: 'Try this pattern',
+                                onClick: () => onTryPattern(entry.patternKey),
+                              },
+                            ]
+                          : []),
+                        {
+                          title: 'View details',
+                          onClick: () => handleViewDetails(entry.pattern),
+                        },
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                        ...(patterns[entry.patternKey].settings?.responses_template && onViewCode
+                          ? [
+                              {
+                                title: 'View code',
+                                onClick: () => onViewCode(entry.patternKey),
+                              },
+                            ]
+                          : []),
+                        {
+                          title: 'Save as indexing notebook',
+                          onClick: () => onSaveNotebook?.(entry.pattern, 'indexing'),
+                        },
+                        {
+                          title: 'Save as inference notebook',
+                          onClick: () => onSaveNotebook?.(entry.pattern, 'inference'),
+                        },
+                      ]}
+                    />
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </InnerScrollContainer>
+      </CardBody>
       <ManageColumnsModal
         isOpen={isManageColumnsOpen}
         onClose={() => setIsManageColumnsOpen(false)}
@@ -1095,7 +1105,7 @@ function AutoragLeaderboard({
         applyColumns={handleApplyColumns}
         presets={columnPresets}
       />
-    </>
+    </Card>
   );
 }
 
