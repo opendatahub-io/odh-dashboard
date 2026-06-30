@@ -17,6 +17,7 @@ import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import PipelineTopology from '~/app/topology/PipelineTopology';
+import { useTreeViewData } from '~/app/topology/tree-view';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import { RuntimeStateKF } from '~/app/types/pipeline';
@@ -24,6 +25,7 @@ import type { RunDetailsKF } from '~/app/types/pipeline';
 import { downloadBlob, isRunInTerminalState } from '~/app/utilities/utils';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
+import AutomlPipelineVisualization from './AutomlPipelineVisualization';
 import RegisterModelModal from './RegisterModelModal';
 import './AutomlResults.scss';
 
@@ -75,6 +77,17 @@ function AutomlResults(): React.JSX.Element {
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
   const useStageMap = hasStageMapTask && !componentStageMapError;
   const nodes = useStageMap ? stageMapNodes : fallbackNodes;
+
+  // Tree view uses the same nodes as the experiment pipeline graph above
+  const treeViewData = useTreeViewData(
+    models,
+    pipelineRun?.state,
+    useStageMap && stageMapNodes.length > 0 ? stageMapNodes : undefined,
+  );
+
+  const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
+  const showTreeLoading =
+    useStageMap && !componentStageMap && (componentStageMapLoading || !runIsTerminal);
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);
@@ -206,6 +219,15 @@ function AutomlResults(): React.JSX.Element {
               className="automl-topology-container"
             />
           )}
+        </StackItem>
+        <StackItem>
+          <AutomlPipelineVisualization
+            key={pipelineRun?.run_id}
+            runTitle={`AutoML Pipeline Run ${pipelineRun?.display_name ?? ''}`}
+            runState={pipelineRun?.state}
+            treeViewData={treeViewData}
+            loading={showTreeLoading}
+          />
         </StackItem>
         <StackItem>
           <AutomlLeaderboard

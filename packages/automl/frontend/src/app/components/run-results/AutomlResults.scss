@@ -21,3 +21,12 @@
     background-color: var(--pf-t--global--background--color--primary--default);
   }
 }
+
+.automl-tree-topology-container {
+  height: 100%;
+  min-height: 420px;
+
+  .pf-topology-content {
+    background-color: var(--pf-t--global--background--color--primary--default);
+  }
+}

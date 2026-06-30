@@ -22,6 +22,30 @@ jest.mock('~/app/topology/PipelineTopology', () => ({
   ),
 }));
 
+jest.mock('~/app/topology/tree-view', () => ({
+  useTreeViewData: jest.fn().mockReturnValue({ models: [], runState: 'running' }),
+}));
+
+jest.mock('~/app/components/run-results/AutomlPipelineVisualization', () => ({
+  __esModule: true,
+  default: ({
+    runTitle,
+    runState,
+    loading,
+  }: {
+    runTitle: string;
+    runState?: string;
+    loading?: boolean;
+  }) => (
+    <div
+      data-testid="automl-pipeline-visualization"
+      data-run-title={runTitle}
+      data-run-state={runState}
+      data-loading={loading ? 'true' : 'false'}
+    />
+  ),
+}));
+
 jest.mock('~/app/topology/useAutomlTaskTopology', () => ({
   useAutomlTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
 }));
