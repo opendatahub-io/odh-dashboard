@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   Alert,
   Button,
-  capitalize,
   Form,
   FormGroup,
   FormHelperText,
@@ -10,7 +9,6 @@ import {
   HelperTextItem,
   InputGroup,
   InputGroupItem,
-  Label,
   Modal,
   ModalBody,
   ModalFooter,
@@ -21,12 +19,13 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, MinusCircleIcon, SearchIcon } from '@patternfly/react-icons';
+import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { searchApiKeys, bulkRevokeApiKeys } from '~/app/api/api-keys';
 import { useNotification } from '~/app/hooks/useNotification';
 import { isKeyInactive } from '~/app/utilities/apiKeys';
 import type { APIKey, SubscriptionDetail } from '~/app/types/api-key';
+import ApiKeyStatusLabel from '~/app/pages/keys-and-subs/apiKeys/ApiKeyStatusLabel';
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -206,19 +205,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
                           <Tr key={key.id}>
                             <Td dataLabel="Name">{key.name}</Td>
                             <Td dataLabel="Status">
-                              {inactive ? (
-                                <Label variant="filled" icon={<MinusCircleIcon />}>
-                                  {capitalize('inactive')}
-                                </Label>
-                              ) : (
-                                <Label
-                                  variant="outline"
-                                  status="success"
-                                  icon={<CheckCircleIcon />}
-                                >
-                                  {capitalize(key.status)}
-                                </Label>
-                              )}
+                              <ApiKeyStatusLabel status={inactive ? 'inactive' : key.status} />
                             </Td>
                             <Td dataLabel="Last used">
                               {key.lastUsedAt ? formatDate(key.lastUsedAt) : 'Never'}
