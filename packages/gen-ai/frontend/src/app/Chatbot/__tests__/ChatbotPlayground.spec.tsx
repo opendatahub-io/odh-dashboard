@@ -191,11 +191,6 @@ jest.mock('~/app/hooks/useWorkspaceCapabilities', () => ({
   })),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireFormTrackingEvent: jest.fn(),
-}));
-
 jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter', () => {
   const React = require('react');
   return {

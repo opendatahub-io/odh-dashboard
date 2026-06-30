@@ -15,7 +15,7 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import PipelineCoreProjectSelector from '@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSelector';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireLinkTrackingEvent } from '@odh-dashboard/analytics';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/const';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports

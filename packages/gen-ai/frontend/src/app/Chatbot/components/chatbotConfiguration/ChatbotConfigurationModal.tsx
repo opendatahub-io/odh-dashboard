@@ -10,8 +10,7 @@ import {
   ModalVariant,
 } from '@patternfly/react-core';
 import { ArrowLeftIcon } from '@patternfly/react-icons';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import {
   AIModel,

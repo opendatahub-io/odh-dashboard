@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Button, Flex, FlexItem, Label, Popover, PopoverPosition } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import {
   getRoleDescription,
   getRoleLabelTypeForRole,
@@ -14,7 +15,6 @@ import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
 import RoleDetailsLink from '#~/pages/projects/projectPermissions/components/RoleDetailsLink';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const.ts';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import type { ManageRolesRow } from './columns';
 
 export type ManageRolesTableRowProps = {

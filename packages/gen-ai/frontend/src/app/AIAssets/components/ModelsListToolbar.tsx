@@ -19,7 +19,7 @@ import {
   ButtonVariant,
 } from '@patternfly/react-core';
 import { FilterIcon, CloseIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { AssetsFilterColors, assetsFilterSelectOptions } from '~/app/AIAssets/data/filterOptions';
 import { FilterData } from '~/app/AIAssets/hooks/useAIModelsFilter';
 

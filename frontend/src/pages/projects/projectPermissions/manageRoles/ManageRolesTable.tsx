@@ -7,9 +7,9 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { DashboardEmptyTableView, TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { getRoleRefKey } from '#~/concepts/permissions/utils';
 import type { RoleRef } from '#~/concepts/permissions/types';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import ManageRolesTableRow from './ManageRolesTableRow';
 import { ManageRolesRow, manageRolesColumns, ASSIGNMENT_STATUS_COLUMN_INDEX } from './columns';
 

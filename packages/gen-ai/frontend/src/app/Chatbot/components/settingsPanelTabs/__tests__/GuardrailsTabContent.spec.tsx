@@ -9,10 +9,6 @@ jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   default: jest.fn(() => false),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
 jest.mock('@odh-dashboard/internal/components/FieldGroupHelpLabelIcon', () => ({
   __esModule: true,
   default: ({ onClick }: { content: string; onClick?: () => void }) => (

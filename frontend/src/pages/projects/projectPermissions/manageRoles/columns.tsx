@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Content, ContentVariants } from '@patternfly/react-core';
 import type { SortableData } from '@odh-dashboard/ui-core';
+import { fireSimpleTrackingEvent } from '@odh-dashboard/analytics';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import type { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
 import { AssignmentStatus } from '#~/pages/projects/projectPermissions/types';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import { fireSimpleTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 export type ManageRolesRow = {
   roleRef: RoleRef;

@@ -12,12 +12,12 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { fireLinkTrackingEvent } from '@odh-dashboard/analytics';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils.ts';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks.tsx';
 import { isMLflowConsoleLink } from '#~/app/AppLauncher.tsx';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { mlflowExperimentsPath, WORKSPACE_QUERY_PARAM } from '#~/routes/pipelines/mlflow';
 import { MlflowTrackingEvents } from '#~/concepts/mlflow/const';
 

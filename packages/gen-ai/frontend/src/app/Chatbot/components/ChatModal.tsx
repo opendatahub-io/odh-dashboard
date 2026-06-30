@@ -1,7 +1,6 @@
 import * as React from 'react';
 import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 
 export type PlaygroundConfirmModalVariant = 'new-chat' | 'compare';
 

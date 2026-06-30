@@ -6,17 +6,20 @@ export const getSegmentKey = async (fastify: KubeFastifyInstance): Promise<ODHSe
   const namespace = fastify.kube.namespace;
   let segmentKeyEnabled = true;
   let decodedSegmentKey = '';
+  let decodedAmplitudeApiKey = '';
   try {
     const resEnabled = await coreV1Api.readNamespacedConfigMap('odh-segment-key-config', namespace);
     segmentKeyEnabled = resEnabled?.body.data?.segmentKeyEnabled === 'true';
     if (segmentKeyEnabled) {
       const res = await coreV1Api.readNamespacedSecret('odh-segment-key', namespace);
       decodedSegmentKey = String(Buffer.from(res.body.data.segmentKey, 'base64'));
-    } else {
-      decodedSegmentKey = '';
+      if (res.body.data.amplitudeApiKey) {
+        decodedAmplitudeApiKey = String(Buffer.from(res.body.data.amplitudeApiKey, 'base64'));
+      }
     }
     return {
       segmentKey: decodedSegmentKey,
+      amplitudeApiKey: decodedAmplitudeApiKey,
     };
   } catch (e) {
     if (segmentKeyEnabled && e.response?.statusCode !== 404) {
@@ -24,6 +27,7 @@ export const getSegmentKey = async (fastify: KubeFastifyInstance): Promise<ODHSe
     }
     return {
       segmentKey: '',
+      amplitudeApiKey: '',
     };
   }
 };

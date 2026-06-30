@@ -44,6 +44,7 @@
     "./extensions": "./extensions.ts"
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*"
   },

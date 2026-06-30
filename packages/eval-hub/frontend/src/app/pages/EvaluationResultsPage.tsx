@@ -15,7 +15,7 @@ import {
 import { CalendarAltIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { evaluationsBaseRoute } from '~/app/routes';

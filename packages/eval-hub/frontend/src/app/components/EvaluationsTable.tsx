@@ -20,10 +20,7 @@ import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import {
-  fireMiscTrackingEvent,
-  fireSimpleTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent, fireSimpleTrackingEvent } from '@odh-dashboard/analytics';
 import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {

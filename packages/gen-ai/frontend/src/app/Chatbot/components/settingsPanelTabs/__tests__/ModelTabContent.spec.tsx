@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import ModelTabContent from '~/app/Chatbot/components/settingsPanelTabs/ModelTabContent';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
@@ -33,10 +33,6 @@ jest.mock('~/app/context/ChatbotContext', () => {
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   __esModule: true,
   default: jest.fn(() => false),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('../../ModelParameterFormGroup', () => ({

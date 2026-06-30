@@ -11,8 +11,8 @@ import { useCheckboxTableBase, Table } from 'mod-arch-shared';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+  TrackingOutcome,
+} from '@odh-dashboard/analytics';
 import SupportIconDark from '~/app/bgimages/support-icon-dark.svg';
 import SupportIconLight from '~/app/bgimages/support-icon-light.svg';
 import { MCPServer, MCPServerFromAPI } from '~/app/types';

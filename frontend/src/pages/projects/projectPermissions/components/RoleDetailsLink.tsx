@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import type { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
 import { getRoleDisplayName } from '#~/concepts/permissions/utils';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import RoleDetailsModal from '#~/pages/projects/projectPermissions/roleDetails/RoleDetailsModal';
 import { getRoleTypeForTracking } from '#~/pages/projects/projectPermissions/trackingUtils';
 

@@ -1,11 +1,12 @@
 import { ModalFooter, Button, StackItem, Alert, Stack } from '@patternfly/react-core';
 import * as React from 'react';
-import { K8sStatusError, patchNotebookImage } from '#~/api';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
+  fireFormTrackingEvent,
   FormTrackingEventProperties,
   TrackingOutcome,
-} from '#~/concepts/analyticsTracking/trackingProperties';
+} from '@odh-dashboard/analytics';
+import { K8sStatusError, patchNotebookImage } from '#~/api';
+
 import { NotebookKind, ImageStreamSpecTagType, ImageStreamKind } from '#~/k8sTypes';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { NotebookState } from '#~/pages/projects/notebook/types';

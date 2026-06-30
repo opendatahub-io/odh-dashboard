@@ -2,15 +2,11 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { ExternalVectorStoreSummary, AIModel, LlamaModel, VectorStore } from '~/app/types';
 import VectorStoreTableRow from '~/app/AIAssets/components/vectorstores/VectorStoreTableRow';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),

@@ -1,16 +1,18 @@
 import * as React from 'react';
+import type { ODHSegmentKey } from '@odh-dashboard/analytics';
 import { POLL_INTERVAL } from '#~/utilities/const';
-import { ODHSegmentKey } from '#~/concepts/analyticsTracking/trackingProperties';
 import { fetchSegmentKey } from './segmentKeyService';
 
 export const useWatchSegmentKey = (): {
   segmentKey: string;
+  amplitudeApiKey: string;
   loaded: boolean;
   loadError: Error | undefined;
 } => {
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
   const [segmentKey, setSegmentKey] = React.useState('');
+  const [amplitudeApiKey, setAmplitudeApiKey] = React.useState('');
 
   React.useEffect(() => {
     let watchHandle: ReturnType<typeof setTimeout>;
@@ -20,6 +22,7 @@ export const useWatchSegmentKey = (): {
           setLoaded(true);
           setLoadError(undefined);
           setSegmentKey(updatedSegmentKey.segmentKey);
+          setAmplitudeApiKey(updatedSegmentKey.amplitudeApiKey);
         })
         .catch((e) => {
           setLoadError(e);
@@ -33,5 +36,10 @@ export const useWatchSegmentKey = (): {
     };
   }, []);
 
-  return { segmentKey: segmentKey || '', loaded, loadError };
+  return {
+    segmentKey: segmentKey || '',
+    amplitudeApiKey: amplitudeApiKey || '',
+    loaded,
+    loadError,
+  };
 };

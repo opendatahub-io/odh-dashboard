@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
+import { fireLinkTrackingEvent } from '@odh-dashboard/analytics';
 import { PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { mlflowExperimentRoute } from '#~/routes/pipelines/mlflow';
@@ -10,7 +11,6 @@ import TruncatedText from '#~/components/TruncatedText';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
 import { getMlflowExperimentNameFromRun } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { isPipelineRun } from '#~/concepts/pipelines/content/utils';
-import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 type PipelineRunTableRowMlflowExperimentProps = {
   run: PipelineRunKF | PipelineRecurringRunKF;

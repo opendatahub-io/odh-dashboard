@@ -19,6 +19,7 @@ import {
 import { css } from '@patternfly/react-styles';
 import { EllipsisVIcon, ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { fireLinkTrackingEvent } from '@odh-dashboard/analytics';
 import { OdhApplication } from '#~/types';
 import { getLaunchStatus, launchQuickStart } from '#~/utilities/quickStartUtils';
 import EnableModal from '#~/pages/exploreApplication/EnableModal';
@@ -30,7 +31,6 @@ import { useAppDispatch } from '#~/redux/hooks';
 import { isInternalRouteIntegrationsApp } from '#~/utilities/utils';
 import { deleteIntegrationApp } from '#~/services/integrationAppService';
 import { useUser } from '#~/redux/selectors';
-import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { mlflowExperimentsPath } from '#~/routes/pipelines/mlflow';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { verifyConnection } from '~/app/api/k8s';
 import {
   EVAL_HUB_EVENTS,

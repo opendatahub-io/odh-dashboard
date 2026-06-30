@@ -16,7 +16,7 @@ import {
 import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import CompareBenchmarksTable from '~/app/components/compare/CompareBenchmarksTable';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';

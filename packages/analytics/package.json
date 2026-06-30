@@ -1,0 +1,23 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/analytics",
+  "description": "Analytics tracking utilities for ODH Dashboard",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@amplitude/analytics-browser": "^2.44.3",
+    "@segment/analytics-next": "^1.84.0"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}

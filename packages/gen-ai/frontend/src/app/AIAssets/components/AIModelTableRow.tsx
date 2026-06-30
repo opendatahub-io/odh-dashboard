@@ -23,7 +23,7 @@ import {
 } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import {
   AIModel,
   ExternalVectorStoreSummary,

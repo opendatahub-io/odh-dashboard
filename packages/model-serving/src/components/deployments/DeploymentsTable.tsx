@@ -1,7 +1,6 @@
 import React from 'react';
 import { SortableData, Table } from '@odh-dashboard/ui-core';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import { DeploymentRow } from './row/DeploymentsTableRow';
 import {
   isDataHook,

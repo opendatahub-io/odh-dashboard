@@ -18,7 +18,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
