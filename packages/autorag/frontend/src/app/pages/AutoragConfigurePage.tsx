@@ -27,7 +27,6 @@ import { useNotification } from '~/app/hooks/useNotification';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
-import './AutoragConfigurePage.scss';
 
 const configureSchema = createConfigureSchema();
 const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<
@@ -172,11 +171,9 @@ function AutoragConfigurePage({
             )
           ) : (
             <span data-testid="configure-step-subtitle">
-              Run{' '}
-              <span className="autorag-configure__run-name">
-                <Truncate content={displayName || ''} />
-              </span>{' '}
-              AutoRAG experiment
+              Run &ldquo;
+              <Truncate content={displayName || ''} />
+              &rdquo; AutoRAG experiment
             </span>
           )}
         </h2>

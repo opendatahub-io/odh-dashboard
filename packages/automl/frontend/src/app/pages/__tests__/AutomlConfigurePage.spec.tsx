@@ -338,7 +338,7 @@ describe('AutomlConfigurePage', () => {
 
     it('should display experiment name in subtitle in configure step', async () => {
       const subtitle = await screen.findByTestId('configure-step-subtitle');
-      expect(subtitle).toHaveTextContent('Run My Experiment AutoML experiment');
+      expect(subtitle).toHaveTextContent('Run “My Experiment” AutoML experiment');
     });
 
     it('should NOT display description text in configure step', async () => {
@@ -1114,7 +1114,7 @@ describe('AutomlConfigurePage', () => {
 
       // Verify we're in configure step with correct subtitle
       const subtitle = await screen.findByTestId('configure-step-subtitle');
-      expect(subtitle).toHaveTextContent('Run Persistent Experiment AutoML experiment');
+      expect(subtitle).toHaveTextContent('Run “Persistent Experiment” AutoML experiment');
     });
   });
 });
