@@ -117,6 +117,9 @@ const initIntercepts = ({
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
         [DataScienceStackComponent.MLFLOW]: { managementState: 'Managed' },
+        [DataScienceStackComponent.KUEUE]: {
+          managementState: disableKueue ? 'Removed' : 'Managed',
+        },
       },
     }),
   );
@@ -579,6 +582,35 @@ describe('Project Details', () => {
       cy.contains('Experiment tracking').should('not.exist');
       cy.findByTestId('mlflow-jump-link').should('not.exist');
       cy.findByTestId('embedded-mlflow-experiments-link').should('not.exist');
+    });
+  });
+
+  describe('Kueue anomaly indicator', () => {
+    beforeEach(() => {
+      initIntercepts({ disableKueue: false });
+    });
+
+    it('shows warning icon with tooltip on a workbench row that has no queue label in a Kueue-managed project', () => {
+      const kueueProject = mockProjectK8sResource({ enableKueue: true });
+      cy.interceptK8s(ProjectModel, kueueProject);
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([kueueProject]));
+
+      // default mock notebook has no kueue.x-k8s.io/queue-name label
+      projectDetails.visitSection('test-project', 'workbenches');
+
+      const notebookRow = projectDetails.getNotebookRow('test-notebook');
+      notebookRow.findKueueAnomalyIndicator().should('exist');
+      notebookRow.findKueueAnomalyTooltip().should('contain.text', 'not managed by Kueue');
+    });
+
+    it('does not show warning icon when the project is not Kueue-managed', () => {
+      // default project from initIntercepts has no kueue.openshift.io/managed label
+      projectDetails.visitSection('test-project', 'workbenches');
+
+      projectDetails
+        .getNotebookRow('test-notebook')
+        .findKueueAnomalyIndicator()
+        .should('not.exist');
     });
   });
 
