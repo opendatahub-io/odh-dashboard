@@ -11,7 +11,7 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, ExclamationCircleIcon, TimesIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, TimesIcon } from '@patternfly/react-icons';
 import React from 'react';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/PipelineDisplayContext';
 import { getStepMetadata } from '~/app/topology/tree-view/stepMetadata';
@@ -46,7 +46,7 @@ const getStatusBarClass = (stepState: TreeNodeData['stepState']): string => {
 const getStatusText = (stepState: TreeNodeData['stepState']): string => {
   switch (stepState) {
     case 'completed':
-      return 'Completed';
+      return 'Succeeded';
     case 'active':
       return 'In Progress';
     case 'failed':
@@ -164,7 +164,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
         {nodeData.stepState === 'completed' && (
           <StackItem>
             <div className="automl-step-details__success-banner" data-testid="step-success-banner">
-              <CheckCircleIcon /> Completed successfully
+              Succeeded
             </div>
           </StackItem>
         )}

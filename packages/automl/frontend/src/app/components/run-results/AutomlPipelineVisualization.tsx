@@ -45,7 +45,7 @@ const getFilterStatusLabel = (
     case 'in-progress':
       return { text: 'In progress', status: 'info' };
     case 'completed':
-      return { text: 'Complete', status: 'success' };
+      return { text: 'Succeeded', status: 'success' };
     case 'error':
       return { text: 'Failed', status: 'danger' };
   }

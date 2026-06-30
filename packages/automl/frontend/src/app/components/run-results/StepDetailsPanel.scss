@@ -68,10 +68,11 @@
   align-items: center;
   gap: var(--pf-t--global--spacer--sm);
   padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
-  background-color: var(--pf-t--global--background--color--status--success--default);
-  color: var(--pf-t--global--text--color--status--success--default);
+  background-color: #f0f8f0;
+  color: #3e8635;
   border-radius: var(--pf-t--global--border--radius--small);
   font-size: var(--pf-t--global--font--size--sm);
+  font-weight: var(--pf-t--global--font--weight--body--default);
 }
 
 .automl-step-details__failed-banner {
