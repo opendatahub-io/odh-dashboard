@@ -778,7 +778,7 @@ class CreateSpawnerPage {
     return this;
   }
 
-  selectFeatureStore(projectName: string, namespace: string) {
+  selectFeatureStore(namespace: string, projectName: string) {
     this.openSelectFeatureStoresModal();
     this.toggleFeatureStoreInModal(namespace, projectName);
     this.connectFeatureStoresInModal();

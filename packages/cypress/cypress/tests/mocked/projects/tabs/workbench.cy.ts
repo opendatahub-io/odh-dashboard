@@ -2457,8 +2457,8 @@ describe('Workbench page', () => {
 
       visitCreateSpawner();
       createSpawnerPage.selectFeatureStore(
-        FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
         FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+        FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
       );
 
       createSpawnerPage.shouldHaveFeatureStoreCodeBlock();
