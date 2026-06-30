@@ -46,10 +46,10 @@ import type {
   SecretKind,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
+import type { FeatureStoreKind } from '@odh-dashboard/feature-store/k8sTypes';
 import type {
   ConfigMapKind,
   ConsoleLinkKind,
-  FeatureStoreKind,
   ListConfigSecretsResponse,
   ModelRegistry,
   ModelRegistryKind,
@@ -58,7 +58,9 @@ import type {
   RoleBindingKind,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { StartNotebookData } from '@odh-dashboard/internal/pages/projects/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { AllowedUser } from '@odh-dashboard/internal/pages/notebookController/screens/admin/types';
 import type { StatusResponse } from '@odh-dashboard/internal/redux/types';
 import type {
@@ -105,6 +107,7 @@ import type {
   CreateSubscriptionResponse,
   SubscriptionPolicyFormDataResponse,
   MaaSAuthPolicy,
+  ModelOverviewItem,
 } from '@odh-dashboard/maas/types/subscriptions';
 import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
@@ -1200,6 +1203,10 @@ declare global {
         ((
           type: 'GET /maas/api/v1/all-policies',
           response: OdhResponse<{ data: MaaSAuthPolicy[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/overview/models',
+          response: OdhResponse<{ data: ModelOverviewItem[] }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /maas/api/v1/new-policy',
