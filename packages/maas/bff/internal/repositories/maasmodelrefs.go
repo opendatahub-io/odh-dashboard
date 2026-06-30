@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -71,7 +72,7 @@ func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, reques
 		createOpts.DryRun = []string{metav1.DryRunAll}
 	}
 
-	obj := buildModelRefUnstructured(request.Name, request.Namespace, request.ModelRef, request.EndpointOverride, request.Uid, request.DisplayName, request.Description)
+	obj := buildModelRefUnstructured(request.Name, request.Namespace, request.ModelRef, request.EndpointOverride, request.Uid, request.DisplayName, request.Description, request.ModelCapabilities)
 	created, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(request.Namespace).Create(ctx, obj, createOpts)
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
@@ -134,6 +135,15 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 			annotations[constants.DescriptionAnnotation] = *request.Description
 		}
 	}
+	if request.ModelCapabilities != nil {
+		if len(request.ModelCapabilities) == 0 {
+			delete(annotations, modelCapabilitiesAnnotation)
+		} else {
+			if capJSON, err := json.Marshal(request.ModelCapabilities); err == nil {
+				annotations[modelCapabilitiesAnnotation] = string(capJSON)
+			}
+		}
+	}
 	existing.SetAnnotations(annotations)
 	existing.Object["spec"] = existingSpec
 
@@ -176,7 +186,7 @@ func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(ctx context.Context, namesp
 	return nil
 }
 
-func buildModelRefUnstructured(name, namespace string, modelRef models.ModelReference, endpointOverride string, uid string, displayName string, description string) *unstructured.Unstructured {
+func buildModelRefUnstructured(name, namespace string, modelRef models.ModelReference, endpointOverride string, uid string, displayName string, description string, modelCapabilities []string) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("maas.opendatahub.io/v1alpha1")
 	obj.SetKind("MaaSModelRef")
@@ -199,6 +209,11 @@ func buildModelRefUnstructured(name, namespace string, modelRef models.ModelRefe
 	}
 	if description != "" {
 		annotations[constants.DescriptionAnnotation] = description
+	}
+	if len(modelCapabilities) > 0 {
+		if modelCapabilitiesJSON, err := json.Marshal(modelCapabilities); err == nil {
+			annotations[modelCapabilitiesAnnotation] = string(modelCapabilitiesJSON)
+		}
 	}
 	obj.SetAnnotations(annotations)
 
