@@ -1,6 +1,5 @@
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- shared table types from ui-core
 import type { SortableData } from '@odh-dashboard/ui-core';
-import type { FeatureStoreProject } from '#~/api/featureStore/custom';
 import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 
 export const SELECT_FEATURE_STORES_MODAL_TITLE = 'Select feature stores';
@@ -18,42 +17,31 @@ export const FEATURE_STORE_NAMESPACE_COLUMN_INFO =
 
 export const FEATURE_STORE_PERMISSION_LABEL_THRESHOLD = 2;
 
-export type FeatureStoreIdentifiable =
-  | Pick<FeatureStoreProject, 'namespace' | 'feastProjectName'>
-  | Pick<WorkbenchFeatureStoreConfig, 'namespace' | 'projectName'>;
+export const getFeatureStoreProjectId = (
+  item: Pick<WorkbenchFeatureStoreConfig, 'namespace' | 'projectName'>,
+): string => `${item.namespace}/${item.projectName}`;
 
-export const getFeatureStoreProjectId = (item: FeatureStoreIdentifiable): string => {
-  const projectName = 'feastProjectName' in item ? item.feastProjectName : item.projectName;
-  return `${item.namespace}/${projectName}`;
-};
-
-export const selectFeatureStoresColumns: SortableData<FeatureStoreProject>[] = [
+export const selectFeatureStoresColumns: SortableData<WorkbenchFeatureStoreConfig>[] = [
   { label: '', field: 'checkbox', width: 10, sortable: false },
   {
     label: 'Name',
-    field: 'feastProjectName',
-    width: 20,
-    sortable: (a, b) => a.feastProjectName.localeCompare(b.feastProjectName),
+    field: 'projectName',
+    width: 30,
+    sortable: (a, b) => a.projectName.localeCompare(b.projectName),
   },
   {
     label: 'Namespace',
     field: 'namespace',
-    width: 20,
+    width: 30,
     sortable: (a, b) => a.namespace.localeCompare(b.namespace),
     info: {
       popover: FEATURE_STORE_NAMESPACE_COLUMN_INFO,
     },
   },
   {
-    label: 'Description',
-    field: 'description',
-    width: 25,
-    sortable: false,
-  },
-  {
     label: 'Permission level',
     field: 'permissionLevel',
-    width: 25,
+    width: 30,
     sortable: false,
   },
 ];

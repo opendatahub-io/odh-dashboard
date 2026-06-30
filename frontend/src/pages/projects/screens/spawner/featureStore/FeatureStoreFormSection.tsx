@@ -21,7 +21,6 @@ import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import FeatureStoreCodeBlock from './FeatureStoreCodeBlock';
 import { SelectFeatureStoresModal } from './SelectFeatureStoresModal';
 import { FeatureStoreConnectedTable } from './FeatureStoreConnectedTable';
-import { useFeatureStoreProjects } from './useFeatureStoreProjects';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 import {
   FEATURE_STORE_CODE_HELP,
@@ -29,52 +28,43 @@ import {
   FEATURE_STORE_EMPTY_STATE_BODY,
   FEATURE_STORE_EMPTY_STATE_TITLE,
   generateFeatureStoreCode,
-  mapConfigsToFeatureStoreProjects,
-  mapFeatureStoreProjectsToConfigs,
   removeFeatureStoreProjectById,
 } from './utils';
 
 type FeatureStoreFormSectionProps = {
   selectedFeatureStores?: WorkbenchFeatureStoreConfig[];
   availableFeatureStores?: WorkbenchFeatureStoreConfig[];
+  loaded?: boolean;
+  error?: Error;
   onSelect: (featureStores: WorkbenchFeatureStoreConfig[]) => void;
 };
 
 export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = ({
   selectedFeatureStores = [],
   availableFeatureStores = [],
+  loaded = false,
+  error,
   onSelect,
 }) => {
   const featureStoreStatus = useIsAreaAvailable(SupportedArea.FEATURE_STORE);
   const isFeastOperatorAvailable = featureStoreStatus.status;
-
-  const {
-    featureStoreProjects,
-    loaded: projectsLoaded,
-    error: projectsError,
-  } = useFeatureStoreProjects();
 
   const [showSelectModal, setShowSelectModal] = React.useState(false);
 
   const codeContent = React.useMemo(() => generateFeatureStoreCode(), []);
   const hasSelectedFeatureStores = selectedFeatureStores.length > 0;
 
-  const selectedProjects = React.useMemo(
-    () => mapConfigsToFeatureStoreProjects(selectedFeatureStores, featureStoreProjects),
-    [featureStoreProjects, selectedFeatureStores],
-  );
-
   const alreadySelectedIds = React.useMemo(
     () => selectedFeatureStores.map(getFeatureStoreProjectId),
     [selectedFeatureStores],
   );
 
-  const selectableProjectCount = React.useMemo(
+  const selectableFeatureStoreCount = React.useMemo(
     () =>
-      featureStoreProjects.filter(
-        (project) => !alreadySelectedIds.includes(getFeatureStoreProjectId(project)),
+      availableFeatureStores.filter(
+        (featureStore) => !alreadySelectedIds.includes(getFeatureStoreProjectId(featureStore)),
       ).length,
-    [alreadySelectedIds, featureStoreProjects],
+    [alreadySelectedIds, availableFeatureStores],
   );
 
   if (!isFeastOperatorAvailable) {
@@ -93,11 +83,11 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
               data-testid="select-feature-store-button"
               onClick={() => setShowSelectModal(true)}
               loadProps={{
-                loaded: projectsLoaded || !!projectsError,
-                error: projectsError,
+                loaded: loaded || !!error,
+                error,
               }}
               tooltipProps={{
-                isEnabled: projectsLoaded && selectableProjectCount === 0,
+                isEnabled: loaded && selectableFeatureStoreCount === 0,
                 content: 'No feature stores available',
               }}
             >
@@ -113,7 +103,7 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
         {hasSelectedFeatureStores ? (
           <StackItem>
             <FeatureStoreConnectedTable
-              projects={selectedProjects}
+              featureStores={selectedFeatureStores}
               onRemove={(projectId) => {
                 onSelect(removeFeatureStoreProjectById(selectedFeatureStores, projectId));
               }}
@@ -154,11 +144,10 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
       </Stack>
       {showSelectModal && (
         <SelectFeatureStoresModal
-          featureStoreProjects={featureStoreProjects}
+          featureStores={availableFeatureStores}
           alreadySelectedIds={alreadySelectedIds}
-          onSave={(projects) => {
-            const newConfigs = mapFeatureStoreProjectsToConfigs(projects, availableFeatureStores);
-            onSelect([...selectedFeatureStores, ...newConfigs]);
+          onSave={(featureStores) => {
+            onSelect([...selectedFeatureStores, ...featureStores]);
             setShowSelectModal(false);
           }}
           onClose={() => setShowSelectModal(false)}

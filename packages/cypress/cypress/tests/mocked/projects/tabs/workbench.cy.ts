@@ -65,7 +65,6 @@ import { hardwareProfileSection } from '../../../../pages/components/HardwarePro
 import {
   FEATURE_STORE_SPAWNER_PROJECTS,
   initFeatureStoreSpawnerIntercepts,
-  mockEmptyFeatureStoreProjectsResponse,
   mockEmptyWorkbenchIntegrationResponse,
   mockNotebookWithFeastConfig,
 } from '../../../../utils/featureStoreSpawnerMocks';
@@ -2478,7 +2477,6 @@ describe('Workbench page', () => {
       initIntercepts({ isEmpty: true });
       initFeatureStoreSpawnerIntercepts({
         workbenchIntegration: mockEmptyWorkbenchIntegrationResponse,
-        featureStoreProjects: mockEmptyFeatureStoreProjectsResponse,
       });
 
       visitCreateSpawner();
@@ -2490,9 +2488,9 @@ describe('Workbench page', () => {
       createSpawnerPage.findFeatureStoreTooltipText().should('exist');
     });
 
-    it('should display error state when feature store projects fail to load', () => {
+    it('should display error state when workbench integration fails to load', () => {
       initIntercepts({ isEmpty: true });
-      initFeatureStoreSpawnerIntercepts({ featureStoreProjectsLoadError: true });
+      initFeatureStoreSpawnerIntercepts({ workbenchIntegrationLoadError: true });
 
       visitCreateSpawner();
 

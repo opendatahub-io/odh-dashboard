@@ -42,6 +42,7 @@ export const mockWorkbenchIntegrationResponse = {
           configName: 'credit-scoring-local',
           projectName: FEATURE_STORE_PROJECT_CREDIT_SCORING,
           hasAccessToFeatureStore: true,
+          permissionLevel: ['Read', 'Write'],
         },
       ],
     },
@@ -52,11 +53,13 @@ export const mockWorkbenchIntegrationResponse = {
           configName: 'banking',
           projectName: FEATURE_STORE_PROJECT_BANKING,
           hasAccessToFeatureStore: true,
+          permissionLevel: ['Read'],
         },
         {
           configName: 'fraud-detect',
           projectName: FEATURE_STORE_PROJECT_FRAUD_DETECT,
           hasAccessToFeatureStore: true,
+          permissionLevel: ['Read', 'Describe'],
         },
       ],
     },
@@ -67,50 +70,17 @@ export const mockEmptyWorkbenchIntegrationResponse = {
   namespaces: [],
 };
 
-export const mockFeatureStoreProjectsResponse = {
-  connectedWorkbenches: [
-    {
-      feastProjectName: FEATURE_STORE_PROJECT_CREDIT_SCORING,
-      namespace: FEATURE_STORE_CREDIT_NAMESPACE,
-      description: 'Credit scoring features',
-      permissionLevel: ['read'],
-      connectedWorkbenches: [],
-    },
-    {
-      feastProjectName: FEATURE_STORE_PROJECT_BANKING,
-      namespace: FEATURE_STORE_BANKING_NAMESPACE,
-      description: 'Banking features',
-      permissionLevel: ['read', 'write'],
-      connectedWorkbenches: [],
-    },
-    {
-      feastProjectName: FEATURE_STORE_PROJECT_FRAUD_DETECT,
-      namespace: FEATURE_STORE_BANKING_NAMESPACE,
-      permissionLevel: ['read'],
-      connectedWorkbenches: [],
-    },
-  ],
-};
-
-export const mockEmptyFeatureStoreProjectsResponse = {
-  connectedWorkbenches: [],
-};
-
 type InitFeatureStoreSpawnerInterceptsOptions = {
   workbenchIntegration?:
     | typeof mockWorkbenchIntegrationResponse
     | typeof mockEmptyWorkbenchIntegrationResponse;
-  featureStoreProjects?:
-    | typeof mockFeatureStoreProjectsResponse
-    | typeof mockEmptyFeatureStoreProjectsResponse;
-  featureStoreProjectsLoadError?: boolean;
+  workbenchIntegrationLoadError?: boolean;
   feastOperatorState?: 'Managed' | 'Removed';
 };
 
 export const initFeatureStoreSpawnerIntercepts = ({
   workbenchIntegration = mockWorkbenchIntegrationResponse,
-  featureStoreProjects = mockFeatureStoreProjectsResponse,
-  featureStoreProjectsLoadError = false,
+  workbenchIntegrationLoadError = false,
   feastOperatorState = 'Managed',
 }: InitFeatureStoreSpawnerInterceptsOptions = {}): void => {
   cy.interceptOdh(
@@ -124,14 +94,13 @@ export const initFeatureStoreSpawnerIntercepts = ({
   );
 
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableFeatureStore: false }));
-  cy.interceptOdh('GET /api/featurestores/workbench-integration', workbenchIntegration);
-  if (featureStoreProjectsLoadError) {
-    cy.intercept('GET', '/api/featurestores/projects-with-workbenches', {
+  if (workbenchIntegrationLoadError) {
+    cy.intercept('GET', '/api/featurestores/workbench-integration', {
       statusCode: 500,
       body: { message: 'Internal server error' },
     });
   } else {
-    cy.interceptOdh('GET /api/featurestores/projects-with-workbenches', featureStoreProjects);
+    cy.interceptOdh('GET /api/featurestores/workbench-integration', workbenchIntegration);
   }
 };
 

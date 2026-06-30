@@ -1,28 +1,28 @@
 import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- shared table component from ui-core
 import { Table } from '@odh-dashboard/ui-core';
-import type { FeatureStoreProject } from '#~/api/featureStore/custom';
+import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FeatureStoreConnectedTableRow } from './FeatureStoreConnectedTableRow';
 import { featureStoreConnectedTableColumns } from './featureStoreConnectedTableConst';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 
 export type FeatureStoreConnectedTableProps = {
-  projects: FeatureStoreProject[];
+  featureStores: WorkbenchFeatureStoreConfig[];
   onRemove: (projectId: string) => void;
 };
 
 export const FeatureStoreConnectedTable: React.FC<FeatureStoreConnectedTableProps> = ({
-  projects,
+  featureStores,
   onRemove,
 }) => (
   <Table
-    data={projects}
+    data={featureStores}
     data-testid="feature-store-connected-table"
     columns={featureStoreConnectedTableColumns}
-    rowRenderer={(project) => (
+    rowRenderer={(featureStore) => (
       <FeatureStoreConnectedTableRow
-        key={getFeatureStoreProjectId(project)}
-        project={project}
+        key={getFeatureStoreProjectId(featureStore)}
+        featureStore={featureStore}
         onRemove={onRemove}
       />
     )}

@@ -4,11 +4,7 @@ import {
   getFeatureStoresFromNotebook,
   mapFeatureStoresForNotebook,
   generateFeastMetadata,
-  mapFeatureStoreProjectToConfig,
-  mapFeatureStoreProjectsToConfigs,
-  findWorkbenchFeatureStoreConfig,
 } from '#~/pages/projects/screens/spawner/featureStore/utils';
-import type { FeatureStoreProject } from '#~/api/featureStore/custom';
 import { WorkbenchFeatureStoreConfig } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
 
 const PROJECT_NAME_CREDIT_SCORING = 'credit_scoring_local';
@@ -21,6 +17,7 @@ const MOCK_CREDIT_SCORING_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
   projectName: PROJECT_NAME_CREDIT_SCORING,
   configMap: null,
   hasAccessToFeatureStore: true,
+  permissionLevel: ['Read', 'Write'],
 };
 
 const MOCK_BANKING_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
@@ -29,6 +26,7 @@ const MOCK_BANKING_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
   projectName: PROJECT_NAME_BANKING,
   configMap: null,
   hasAccessToFeatureStore: true,
+  permissionLevel: ['Read'],
 };
 
 const MOCK_FRAUD_DETECT_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
@@ -37,6 +35,7 @@ const MOCK_FRAUD_DETECT_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
   projectName: PROJECT_NAME_FRAUD_DETECT,
   configMap: null,
   hasAccessToFeatureStore: true,
+  permissionLevel: ['Read', 'Describe'],
 };
 
 const MOCK_FEATURE_STORES: WorkbenchFeatureStoreConfig[] = [
@@ -168,61 +167,6 @@ describe('getFeatureStoresFromNotebook', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual(MOCK_BANKING_FEATURE_STORE);
-  });
-});
-
-describe('mapFeatureStoreProjectToConfig', () => {
-  const mockProject: FeatureStoreProject = {
-    feastProjectName: PROJECT_NAME_BANKING,
-    namespace: 'test-feast-banking',
-    description: 'Banking features',
-    permissionLevel: ['read', 'write'],
-    connectedWorkbenches: [],
-  };
-
-  it('should return the matching workbench-integration config when available', () => {
-    expect(mapFeatureStoreProjectToConfig(mockProject, MOCK_FEATURE_STORES)).toEqual(
-      MOCK_BANKING_FEATURE_STORE,
-    );
-  });
-
-  it('should mapFeatureStoreProjectsToConfigs for multiple projects', () => {
-    const projects: FeatureStoreProject[] = [
-      mockProject,
-      {
-        feastProjectName: PROJECT_NAME_CREDIT_SCORING,
-        namespace: 'credit-namespace',
-        permissionLevel: ['read'],
-        connectedWorkbenches: [],
-      },
-    ];
-
-    expect(mapFeatureStoreProjectsToConfigs(projects, MOCK_FEATURE_STORES)).toEqual([
-      MOCK_BANKING_FEATURE_STORE,
-      MOCK_CREDIT_SCORING_FEATURE_STORE,
-    ]);
-  });
-
-  it('should fallback when no workbench-integration match exists', () => {
-    expect(mapFeatureStoreProjectToConfig(mockProject, [])).toEqual({
-      namespace: 'test-feast-banking',
-      configName: '',
-      projectName: PROJECT_NAME_BANKING,
-      configMap: null,
-      hasAccessToFeatureStore: true,
-    });
-  });
-
-  it('should match by namespace and project name via findWorkbenchFeatureStoreConfig', () => {
-    expect(findWorkbenchFeatureStoreConfig(mockProject, MOCK_FEATURE_STORES)).toEqual(
-      MOCK_BANKING_FEATURE_STORE,
-    );
-    expect(
-      findWorkbenchFeatureStoreConfig(
-        { ...mockProject, feastProjectName: 'unknown-project' },
-        MOCK_FEATURE_STORES,
-      ),
-    ).toBeUndefined();
   });
 });
 

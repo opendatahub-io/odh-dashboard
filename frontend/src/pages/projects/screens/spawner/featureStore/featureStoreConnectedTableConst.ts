@@ -1,13 +1,13 @@
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- shared table types from ui-core
 import type { SortableData } from '@odh-dashboard/ui-core';
-import type { FeatureStoreProject } from '#~/api/featureStore/custom';
+import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FEATURE_STORE_NAMESPACE_COLUMN_INFO } from './selectFeatureStoresModalConst';
 
-export const featureStoreConnectedTableColumns: SortableData<FeatureStoreProject>[] = [
+export const featureStoreConnectedTableColumns: SortableData<WorkbenchFeatureStoreConfig>[] = [
   {
     label: 'Name',
-    field: 'feastProjectName',
-    sortable: (a, b) => a.feastProjectName.localeCompare(b.feastProjectName),
+    field: 'projectName',
+    sortable: (a, b) => a.projectName.localeCompare(b.projectName),
   },
   {
     label: 'Namespace',
@@ -16,11 +16,6 @@ export const featureStoreConnectedTableColumns: SortableData<FeatureStoreProject
     info: {
       popover: FEATURE_STORE_NAMESPACE_COLUMN_INFO,
     },
-  },
-  {
-    label: 'Description',
-    field: 'description',
-    sortable: false,
   },
   {
     label: 'Permission level',

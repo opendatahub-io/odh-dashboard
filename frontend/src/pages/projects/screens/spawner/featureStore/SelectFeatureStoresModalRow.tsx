@@ -1,26 +1,26 @@
 import * as React from 'react';
 import { Truncate } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import type { FeatureStoreProject } from '#~/api/featureStore/custom';
+import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FeatureStorePermissionLabels } from './FeatureStorePermissionLabels';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 
 export type SelectFeatureStoresModalRowProps = {
   rowIndex: number;
-  project: FeatureStoreProject;
+  featureStore: WorkbenchFeatureStoreConfig;
   isSelected: boolean;
   isAlreadyConnected: boolean;
-  onToggle: (project: FeatureStoreProject) => void;
+  onToggle: (featureStore: WorkbenchFeatureStoreConfig) => void;
 };
 
 export const SelectFeatureStoresModalRow: React.FC<SelectFeatureStoresModalRowProps> = ({
   rowIndex,
-  project,
+  featureStore,
   isSelected,
   isAlreadyConnected,
   onToggle,
 }) => {
-  const projectId = getFeatureStoreProjectId(project);
+  const projectId = getFeatureStoreProjectId(featureStore);
 
   return (
     <Tr data-testid={`select-feature-stores-row-${projectId}`}>
@@ -31,24 +31,21 @@ export const SelectFeatureStoresModalRow: React.FC<SelectFeatureStoresModalRowPr
           isDisabled: isAlreadyConnected,
           onSelect: () => {
             if (!isAlreadyConnected) {
-              onToggle(project);
+              onToggle(featureStore);
             }
           },
         }}
-        aria-label={`Toggle ${project.feastProjectName}`}
+        aria-label={`Toggle ${featureStore.projectName}`}
       />
       <Td dataLabel="Name">
-        <Truncate content={project.feastProjectName} />
+        <Truncate content={featureStore.projectName} />
       </Td>
       <Td dataLabel="Namespace">
-        <Truncate content={project.namespace} />
-      </Td>
-      <Td dataLabel="Description">
-        {project.description ? <Truncate content={project.description} /> : '-'}
+        <Truncate content={featureStore.namespace} />
       </Td>
       <Td dataLabel="Permission level">
-        {project.permissionLevel.length > 0 ? (
-          <FeatureStorePermissionLabels permissions={project.permissionLevel} />
+        {featureStore.permissionLevel.length > 0 ? (
+          <FeatureStorePermissionLabels permissions={featureStore.permissionLevel} />
         ) : (
           '-'
         )}

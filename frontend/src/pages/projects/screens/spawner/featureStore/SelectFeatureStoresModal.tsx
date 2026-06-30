@@ -12,7 +12,7 @@ import {
 import { DashboardEmptyTableView, TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
 import { useCheckboxTableBase } from '#~/components/table';
-import type { FeatureStoreProject } from '#~/api/featureStore/custom';
+import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { SelectFeatureStoresModalRow } from './SelectFeatureStoresModalRow';
 import {
   getFeatureStoreProjectId,
@@ -24,57 +24,59 @@ import {
 } from './selectFeatureStoresModalConst';
 
 export type SelectFeatureStoresModalProps = {
-  featureStoreProjects: FeatureStoreProject[];
+  featureStores: WorkbenchFeatureStoreConfig[];
   alreadySelectedIds?: string[];
-  onSave: (projects: FeatureStoreProject[]) => void;
+  onSave: (featureStores: WorkbenchFeatureStoreConfig[]) => void;
   onClose: () => void;
 };
 
 export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> = ({
-  featureStoreProjects,
+  featureStores,
   alreadySelectedIds = [],
   onSave,
   onClose,
 }) => {
   const [filterText, setFilterText] = React.useState('');
-  const [selectedProjects, setSelectedProjects] = React.useState<FeatureStoreProject[]>([]);
+  const [selectedFeatureStores, setSelectedFeatureStores] = React.useState<
+    WorkbenchFeatureStoreConfig[]
+  >([]);
 
   const alreadySelectedIdSet = React.useMemo(
     () => new Set(alreadySelectedIds),
     [alreadySelectedIds],
   );
 
-  const filteredProjects = React.useMemo(() => {
+  const filteredFeatureStores = React.useMemo(() => {
     const normalized = filterText.trim().toLowerCase();
     if (!normalized) {
-      return featureStoreProjects;
+      return featureStores;
     }
 
-    return featureStoreProjects.filter((project) =>
-      project.feastProjectName.toLowerCase().includes(normalized),
+    return featureStores.filter((featureStore) =>
+      featureStore.projectName.toLowerCase().includes(normalized),
     );
-  }, [featureStoreProjects, filterText]);
+  }, [featureStores, filterText]);
 
-  const sort = useTableColumnSort<FeatureStoreProject>(selectFeatureStoresColumns, [], 1);
-  const sortedProjects = React.useMemo(
-    () => sort.transformData(filteredProjects),
-    [filteredProjects, sort],
+  const sort = useTableColumnSort<WorkbenchFeatureStoreConfig>(selectFeatureStoresColumns, [], 1);
+  const sortedFeatureStores = React.useMemo(
+    () => sort.transformData(filteredFeatureStores),
+    [filteredFeatureStores, sort],
   );
 
   const { selections, toggleSelection, isSelected, tableProps, disableCheck } =
-    useCheckboxTableBase<FeatureStoreProject>(
-      sortedProjects,
-      selectedProjects,
-      setSelectedProjects,
+    useCheckboxTableBase<WorkbenchFeatureStoreConfig>(
+      sortedFeatureStores,
+      selectedFeatureStores,
+      setSelectedFeatureStores,
       getFeatureStoreProjectId,
       { persistSelections: true },
     );
 
   React.useEffect(() => {
-    featureStoreProjects.forEach((project) => {
-      disableCheck(project, alreadySelectedIdSet.has(getFeatureStoreProjectId(project)));
+    featureStores.forEach((featureStore) => {
+      disableCheck(featureStore, alreadySelectedIdSet.has(getFeatureStoreProjectId(featureStore)));
     });
-  }, [alreadySelectedIdSet, disableCheck, featureStoreProjects]);
+  }, [alreadySelectedIdSet, disableCheck, featureStores]);
 
   const onClearFilters = React.useCallback(() => {
     setFilterText('');
@@ -101,7 +103,7 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
           data-testid="select-feature-stores-table"
           aria-label="Select feature stores table"
           variant="compact"
-          data={sortedProjects}
+          data={sortedFeatureStores}
           columns={selectFeatureStoresColumns}
           getColumnSort={sort.getColumnSort}
           toolbarContent={
@@ -118,16 +120,16 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
           }
           emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
           onClearFilters={onClearFilters}
-          rowRenderer={(project, rowIndex) => {
-            const projectId = getFeatureStoreProjectId(project);
+          rowRenderer={(featureStore, rowIndex) => {
+            const projectId = getFeatureStoreProjectId(featureStore);
             const isAlreadyConnected = alreadySelectedIdSet.has(projectId);
 
             return (
               <SelectFeatureStoresModalRow
                 key={projectId}
                 rowIndex={rowIndex}
-                project={project}
-                isSelected={isSelected(project)}
+                featureStore={featureStore}
+                isSelected={isSelected(featureStore)}
                 isAlreadyConnected={isAlreadyConnected}
                 onToggle={toggleSelection}
               />

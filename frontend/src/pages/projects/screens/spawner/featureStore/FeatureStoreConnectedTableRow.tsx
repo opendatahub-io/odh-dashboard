@@ -2,35 +2,32 @@ import * as React from 'react';
 import { ActionList, ActionListItem, Button, Truncate } from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
-import type { FeatureStoreProject } from '#~/api/featureStore/custom';
+import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FeatureStorePermissionLabels } from './FeatureStorePermissionLabels';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 
 export type FeatureStoreConnectedTableRowProps = {
-  project: FeatureStoreProject;
+  featureStore: WorkbenchFeatureStoreConfig;
   onRemove: (projectId: string) => void;
 };
 
 export const FeatureStoreConnectedTableRow: React.FC<FeatureStoreConnectedTableRowProps> = ({
-  project,
+  featureStore,
   onRemove,
 }) => {
-  const projectId = getFeatureStoreProjectId(project);
+  const projectId = getFeatureStoreProjectId(featureStore);
 
   return (
     <Tr data-testid={`feature-store-connected-row-${projectId}`}>
       <Td dataLabel="Name">
-        <Truncate content={project.feastProjectName} />
+        <Truncate content={featureStore.projectName} />
       </Td>
       <Td dataLabel="Namespace">
-        <Truncate content={project.namespace} />
-      </Td>
-      <Td dataLabel="Description">
-        {project.description ? <Truncate content={project.description} /> : '-'}
+        <Truncate content={featureStore.namespace} />
       </Td>
       <Td dataLabel="Permission level">
-        {project.permissionLevel.length > 0 ? (
-          <FeatureStorePermissionLabels permissions={project.permissionLevel} />
+        {featureStore.permissionLevel.length > 0 ? (
+          <FeatureStorePermissionLabels permissions={featureStore.permissionLevel} />
         ) : (
           '-'
         )}
@@ -40,7 +37,7 @@ export const FeatureStoreConnectedTableRow: React.FC<FeatureStoreConnectedTableR
           <ActionListItem>
             <Button
               data-testid={`feature-store-remove-button-${projectId}`}
-              aria-label={`Remove ${project.feastProjectName}`}
+              aria-label={`Remove ${featureStore.projectName}`}
               variant="plain"
               onClick={() => onRemove(projectId)}
             >

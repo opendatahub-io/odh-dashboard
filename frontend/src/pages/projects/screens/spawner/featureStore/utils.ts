@@ -1,5 +1,4 @@
 import { NotebookKind } from '#~/k8sTypes';
-import type { FeatureStoreProject } from '#~/api/featureStore/custom';
 import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 import { FEAST_CONFIG_ANNOTATION, FEAST_INTEGRATION_LABEL } from './const';
@@ -20,59 +19,6 @@ export const FEATURE_STORE_EMPTY_STATE_TITLE = 'No selected feature store';
 
 export const FEATURE_STORE_EMPTY_STATE_BODY =
   'Select feature stores to connect to this workbench. Features in selected feature stores have read and write access to this workbench.';
-
-export const findWorkbenchFeatureStoreConfig = (
-  project: FeatureStoreProject,
-  availableFeatureStores: WorkbenchFeatureStoreConfig[],
-): WorkbenchFeatureStoreConfig | undefined =>
-  availableFeatureStores.find(
-    (config) =>
-      config.projectName === project.feastProjectName && config.namespace === project.namespace,
-  );
-
-export const mapFeatureStoreProjectToConfig = (
-  project: FeatureStoreProject,
-  availableFeatureStores: WorkbenchFeatureStoreConfig[] = [],
-): WorkbenchFeatureStoreConfig => {
-  const match = findWorkbenchFeatureStoreConfig(project, availableFeatureStores);
-  if (match) {
-    return match;
-  }
-
-  return {
-    namespace: project.namespace,
-    configName: '',
-    projectName: project.feastProjectName,
-    configMap: null,
-    hasAccessToFeatureStore: project.permissionLevel.length > 0,
-  };
-};
-
-export const mapFeatureStoreProjectsToConfigs = (
-  projects: FeatureStoreProject[],
-  availableFeatureStores: WorkbenchFeatureStoreConfig[] = [],
-): WorkbenchFeatureStoreConfig[] =>
-  projects.map((project) => mapFeatureStoreProjectToConfig(project, availableFeatureStores));
-
-export const mapConfigsToFeatureStoreProjects = (
-  configs: WorkbenchFeatureStoreConfig[],
-  availableProjects: FeatureStoreProject[],
-): FeatureStoreProject[] =>
-  configs.map((config) => {
-    const match = availableProjects.find(
-      (project) =>
-        project.feastProjectName === config.projectName && project.namespace === config.namespace,
-    );
-
-    return (
-      match ?? {
-        feastProjectName: config.projectName,
-        namespace: config.namespace,
-        permissionLevel: [],
-        connectedWorkbenches: [],
-      }
-    );
-  });
 
 export const removeFeatureStoreProjectById = (
   configs: WorkbenchFeatureStoreConfig[],
