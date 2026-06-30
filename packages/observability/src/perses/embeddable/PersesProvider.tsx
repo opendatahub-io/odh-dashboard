@@ -32,6 +32,7 @@ const createQueryClient = () =>
       queries: {
         refetchOnWindowFocus: false,
         retry: 0,
+        keepPreviousData: true,
       },
     },
   });
