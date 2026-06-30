@@ -216,6 +216,35 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
+	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
+	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Error("Failed to get Kubernetes client",
+			"workspace", workspace,
+			"error", err)
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, identity, workspace)
+	if err != nil {
+		app.logger.Error("Failed to check write permissions",
+			"workspace", workspace,
+			"user", identity.UserID,
+			"error", err)
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if !canWrite {
+		app.forbiddenResponse(w, r, fmt.Errorf(
+			"insufficient permissions to save prompts in namespace %s: requires mlflow-edit role",
+			workspace))
+		return
+	}
+
 	// TOCTOU: not atomic, but MLflow's RegisterPrompt is idempotent (worst case
 	// is a duplicate version, not corruption). Atomic create requires server support.
 	if req.CreateOnly {
@@ -242,7 +271,6 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	response := PromptVersionEnvelope{Data: *result}
-	workspace, _ := r.Context().Value(constants.WorkspaceQueryParameterKey).(string)
 	headers := http.Header{
 		"Location": {fmt.Sprintf("%s/%s?workspace=%s&version=%d", PromptsPath, url.PathEscape(result.Name), url.QueryEscape(workspace), result.Version)},
 	}
@@ -330,6 +358,35 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
+	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Error("Failed to get Kubernetes client",
+			"workspace", workspace,
+			"error", err)
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, identity, workspace)
+	if err != nil {
+		app.logger.Error("Failed to check write permissions",
+			"workspace", workspace,
+			"user", identity.UserID,
+			"error", err)
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if !canWrite {
+		app.forbiddenResponse(w, r, fmt.Errorf(
+			"insufficient permissions to delete prompts in namespace %s: requires mlflow-edit role",
+			workspace))
+		return
+	}
+
 	if err := app.repositories.Prompts.DeletePrompt(ctx, name); err != nil {
 		app.handleMLflowClientError(w, r, err)
 		return
@@ -355,6 +412,35 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 	}
 	if version <= 0 {
 		app.badRequestResponse(w, r, errors.New("version must be a positive integer"))
+		return
+	}
+
+	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
+	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Error("Failed to get Kubernetes client",
+			"workspace", workspace,
+			"error", err)
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, identity, workspace)
+	if err != nil {
+		app.logger.Error("Failed to check write permissions",
+			"workspace", workspace,
+			"user", identity.UserID,
+			"error", err)
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if !canWrite {
+		app.forbiddenResponse(w, r, fmt.Errorf(
+			"insufficient permissions to delete prompt versions in namespace %s: requires mlflow-edit role",
+			workspace))
 		return
 	}
 

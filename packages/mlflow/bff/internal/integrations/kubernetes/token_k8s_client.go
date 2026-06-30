@@ -146,3 +146,33 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 
 	return username, nil
 }
+
+func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
+	ctx context.Context,
+	_ *RequestIdentity,
+	namespace string,
+) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Namespace: namespace,
+				Group:     "mlflow.kubeflow.org",
+				Resource:  "registeredmodels",
+				Verb:      "create",
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check write permissions",
+			"namespace", namespace,
+			"error", err)
+		return false, fmt.Errorf("failed to check write permissions in namespace %s: %w", namespace, err)
+	}
+
+	return resp.Status.Allowed, nil
+}

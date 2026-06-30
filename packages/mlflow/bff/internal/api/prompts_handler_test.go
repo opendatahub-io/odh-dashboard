@@ -22,13 +22,55 @@ import (
 	"github.com/stretchr/testify/assert"
 	tmock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func newTestAppWithPromptsRepos() *App {
 	return &App{
-		logger:       testLogger(),
-		repositories: repositories.NewRepositories(),
+		logger:                  testLogger(),
+		repositories:            repositories.NewRepositories(),
+		kubernetesClientFactory: newMockK8sClientFactoryWithPermissions(true),
 	}
+}
+
+func newMockK8sClientFactoryWithPermissions(canWrite bool) k8s.KubernetesClientFactory {
+	return &mockK8sClientFactory{canWrite: canWrite}
+}
+
+type mockK8sClientFactory struct {
+	canWrite bool
+}
+
+func (f *mockK8sClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
+	return &k8s.RequestIdentity{UserID: "test-user"}, nil
+}
+
+func (f *mockK8sClientFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {
+	return nil
+}
+
+func (f *mockK8sClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	return &mockK8sClient{canWrite: f.canWrite}, nil
+}
+
+type mockK8sClient struct {
+	canWrite bool
+}
+
+func (c *mockK8sClient) GetNamespaces(ctx context.Context, identity *k8s.RequestIdentity) ([]corev1.Namespace, error) {
+	return nil, nil
+}
+
+func (c *mockK8sClient) IsClusterAdmin(identity *k8s.RequestIdentity) (bool, error) {
+	return false, nil
+}
+
+func (c *mockK8sClient) GetUser(identity *k8s.RequestIdentity) (string, error) {
+	return "test-user", nil
+}
+
+func (c *mockK8sClient) CanWritePromptsInNamespace(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
+	return c.canWrite, nil
 }
 
 // --- ListPrompts ---
