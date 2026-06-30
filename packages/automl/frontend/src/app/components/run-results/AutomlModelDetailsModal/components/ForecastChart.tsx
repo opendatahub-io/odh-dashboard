@@ -29,24 +29,24 @@ function formatTimestamp(ts: string): string {
   });
 }
 
+// Expects points already sorted chronologically.
 function buildSeriesData(points: BackTestingForecastPoint[]): {
   observed: IndexedPoint[];
   predicted: IndexedPoint[];
   band: BandPoint[];
 } {
-  const sorted = points.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp));
   return {
-    observed: sorted.map((p, i) => ({
+    observed: points.map((p, i) => ({
       x: i,
       y: p.actual,
       name: `Observed: ${p.actual.toFixed(2)} (${formatTimestamp(p.timestamp)})`,
     })),
-    predicted: sorted.map((p, i) => ({
+    predicted: points.map((p, i) => ({
       x: i,
       y: p.predicted,
       name: `Forecast: ${p.predicted.toFixed(2)} (${formatTimestamp(p.timestamp)})`,
     })),
-    band: sorted.map((p, i) => ({
+    band: points.map((p, i) => ({
       x: i,
       y: p.upper_bound,
       y0: p.lower_bound,
@@ -61,19 +61,15 @@ const PREDICTED_STYLE = { data: { stroke: COLOR_SCALE[1] } };
 const BAND_STYLE = { data: { fill: COLOR_SCALE[1], opacity: 0.15, stroke: 'none' } };
 
 const ForecastChart: React.FC<ForecastChartProps> = ({ performer, title }) => {
-  // Flatten all forecast points from every window into a single array
-  const allPoints = React.useMemo(
-    () => performer.windows.flatMap((w) => w.forecast_data),
+  // Flatten all forecast points and sort chronologically — windows may not arrive in time order.
+  const sorted = React.useMemo(
+    () =>
+      performer.windows
+        .flatMap((w) => w.forecast_data)
+        .toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)),
     [performer],
   );
 
-  // Sort chronologically — windows may not arrive in time order
-  const sorted = React.useMemo(
-    () => allPoints.toSorted((a, b) => a.timestamp.localeCompare(b.timestamp)),
-    [allPoints],
-  );
-
-  // Build the three Victory series: observed (actual), predicted (forecast), band (confidence area)
   const { observed, predicted, band } = React.useMemo(() => buildSeriesData(sorted), [sorted]);
 
   // Label only the start, middle, and end of the time range to keep the axis readable.
