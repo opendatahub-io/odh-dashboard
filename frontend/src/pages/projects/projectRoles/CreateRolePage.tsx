@@ -199,7 +199,10 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
       }
       navigate(`/projects/${namespace}?section=roles`);
     } catch (e) {
-      const error = e instanceof Error ? e : new Error('Failed to create role');
+      const error =
+        e instanceof Error
+          ? e
+          : new Error(existingRole ? 'Failed to update role' : 'Failed to create role');
       setSubmitError(error);
       throw error;
     }
