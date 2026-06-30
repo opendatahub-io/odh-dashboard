@@ -1,14 +1,17 @@
 import * as React from 'react';
+import { Route, Routes } from 'react-router-dom';
+import AgentDeployWizardPage from '~/app/deployWizard/AgentDeployWizardPage';
 import AgentOpsFederatedProviders from './AgentOpsFederatedProviders';
-import AgentDeploymentsRoutes from './AgentDeploymentsRoutes';
 import ProjectsBridgeProviderWrapper from './components/ProjectsBridgeProviderWrapper';
 
-const AgentDeploymentsWrapper: React.FC = () => (
+const AgentDeployWizardRoutes: React.FC = () => (
   <AgentOpsFederatedProviders>
     <ProjectsBridgeProviderWrapper>
-      <AgentDeploymentsRoutes />
+      <Routes>
+        <Route path="*" element={<AgentDeployWizardPage />} />
+      </Routes>
     </ProjectsBridgeProviderWrapper>
   </AgentOpsFederatedProviders>
 );
 
-export default AgentDeploymentsWrapper;
+export default AgentDeployWizardRoutes;

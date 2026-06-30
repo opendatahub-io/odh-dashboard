@@ -121,6 +121,7 @@ describe('Agent Deployments', () => {
       .findEmptyState()
       .should('be.visible')
       .and('contain.text', 'No agent deployments');
+    cy.findByTestId('deploy-agent-button').should('be.visible').and('be.enabled');
   });
 
   it('should show select-project state when no namespace is selected and no projects exist', () => {
