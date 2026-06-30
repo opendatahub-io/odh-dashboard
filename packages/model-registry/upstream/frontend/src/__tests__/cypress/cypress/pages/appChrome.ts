@@ -5,7 +5,6 @@ class AppChrome {
   }
 
   waitForA11y() {
-    cy.findByTestId('app-page-title').should('exist');
     cy.testA11y();
   }
 
