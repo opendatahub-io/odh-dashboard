@@ -122,9 +122,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
               </HelperTextItem>
             )}
             {k8sName.state.invalidCharacters && (
-              <HelperTextItem variant="error">
-                {INVALID_K8S_NAME_CHARACTERS_MESSAGE}
-              </HelperTextItem>
+              <HelperTextItem variant="error">{INVALID_K8S_NAME_CHARACTERS_MESSAGE}</HelperTextItem>
             )}
             <HelperTextItem>
               <Button
