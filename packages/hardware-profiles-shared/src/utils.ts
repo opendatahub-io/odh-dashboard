@@ -1,5 +1,4 @@
 import React from 'react';
-import type { HardwareProfileResource } from './types';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { get, set } from 'lodash-es';
 import {
@@ -10,13 +9,14 @@ import {
   type NodeSelector,
   type ContainerResources,
 } from '@odh-dashboard/k8s-core';
-import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '@odh-dashboard/ui-core/utilities/valueUnits';
-import { HardwareProfileConfig, UseHardwareProfileConfigResult } from './useHardwareProfileConfig';
 import {
-  HardwarePodSpecOptions,
-  CrPathConfig,
-  ResourceType,
-} from './types';
+  splitValueUnit,
+  CPU_UNITS,
+  MEMORY_UNITS_FOR_PARSING,
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
+import type { HardwareProfileResource } from './types';
+import { HardwareProfileConfig, UseHardwareProfileConfigResult } from './useHardwareProfileConfig';
+import { HardwarePodSpecOptions, CrPathConfig, ResourceType } from './types';
 
 /**
  * changed order of arguments so that the deprecated accelerator profile is last;

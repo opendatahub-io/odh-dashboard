@@ -35,7 +35,10 @@ export {
 export type { ResourceSchema } from './validationUtils';
 
 // Hooks
-export type { HardwareProfileConfig, UseHardwareProfileConfigResult } from './useHardwareProfileConfig';
+export type {
+  HardwareProfileConfig,
+  UseHardwareProfileConfigResult,
+} from './useHardwareProfileConfig';
 export { useHardwareProfileConfig } from './useHardwareProfileConfig';
 export type { UseAssignHardwareProfileResult } from './useAssignHardwareProfile';
 export { useAssignHardwareProfile, useWatchHardwareProfiles } from './useAssignHardwareProfile';

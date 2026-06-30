@@ -1,13 +1,13 @@
 import { Button, Spinner, Flex, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
-import type { HardwareProfileResource } from './types';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
 import ScopedLabel from '@odh-dashboard/internal/components/ScopedLabel';
 import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
 import { getHardwareProfileDisplayName } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
+import type { HardwareProfileResource } from './types';
 import { resourceTypeOf } from './utils';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import HardwareProfileBindingStateLabel from './HardwareProfileBindingStateLabel';

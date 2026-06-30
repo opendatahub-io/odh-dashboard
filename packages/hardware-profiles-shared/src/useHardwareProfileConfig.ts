@@ -11,9 +11,9 @@ import useGenericObjectState from '@odh-dashboard/internal/utilities/useGenericO
 import { isCpuLimitLarger, isMemoryLimitLarger } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
-import { filterProfilesByKueue, useKueueConfiguration } from './kueueUtils';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
+import { filterProfilesByKueue, useKueueConfiguration } from './kueueUtils';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
