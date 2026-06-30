@@ -27,7 +27,7 @@ describe('ArtifactRunCell', () => {
     jest.clearAllMocks();
   });
 
-  it('should show dash when URI has no UUID', () => {
+  it('should show dash when URI has no UUID in run position', () => {
     const mockArtifact = {
       getUri: jest.fn(() => 's3://bucket/some/path/without/uuid'),
     } as unknown as Artifact;
@@ -41,6 +41,31 @@ describe('ArtifactRunCell', () => {
     );
 
     expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('should extract run ID from correct position even when pipeline name contains UUID', () => {
+    const pipelineUuid = '11111111-2222-3333-4444-555555555555';
+    const runUuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const mockArtifact = {
+      getUri: jest.fn(() => `s3://bucket/pipeline-${pipelineUuid}/${runUuid}/task/artifact`),
+    } as unknown as Artifact;
+
+    const mockRun: Partial<PipelineRunKF> = {
+      run_id: runUuid,
+      display_name: 'Test Run from correct UUID',
+      experiment_id: 'exp-123',
+    };
+
+    usePipelineRunByIdMock.mockReturnValue([mockRun as PipelineRunKF, true, undefined, jest.fn()]);
+
+    render(
+      <BrowserRouter>
+        <ArtifactRunCell artifact={mockArtifact} />
+      </BrowserRouter>,
+    );
+
+    // Should display the run name, proving it extracted the correct UUID (segment 2, not segment 1)
+    expect(screen.getByText('Test Run from correct UUID')).toBeInTheDocument();
   });
 
   it('should show dash when URI is empty', () => {
