@@ -80,8 +80,6 @@ const grpcCodeToHttpStatus = (code: number): number | undefined => {
       return 500;
     case 14: // UNAVAILABLE
       return 503;
-    case 0: // OK
-      return 200;
     default:
       // Other gRPC codes (CANCELLED, DEADLINE_EXCEEDED, etc.) → generic server error
       return 500;
