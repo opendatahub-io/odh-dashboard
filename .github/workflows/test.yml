@@ -147,12 +147,15 @@ jobs:
                   find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
                   jq -R '{"name": ., "spec": ("cypress/cypress/tests/mocked/" + . + "/*")}' | jq -c -s .)
 
-            # Split projects/tabs to reduce critical path (was 34 min, now ~17 min each)
-            # workbench.cy.ts is ~2800 lines and dominates the runtime
+            # Split projects/tabs to reduce critical path (was 34 min)
+            # Split large files into individual groups, rest together
             CENTRAL_GROUPS=$(echo "$CENTRAL_GROUPS" | jq -c '
               map(if .name == "projects/tabs" then
                 ({"name": "projects/tabs/workbench", "spec": "cypress/cypress/tests/mocked/projects/tabs/workbench.cy.ts"},
-                 {"name": "projects/tabs/other", "spec": "cypress/cypress/tests/mocked/projects/tabs/!(workbench).cy.ts"})
+                 {"name": "projects/tabs/legacyModelServingNim", "spec": "cypress/cypress/tests/mocked/projects/tabs/legacyModelServingNim.cy.ts"},
+                 {"name": "projects/tabs/permissionsRbacAssignRoles", "spec": "cypress/cypress/tests/mocked/projects/tabs/permissionsRbacAssignRoles.cy.ts"},
+                 {"name": "projects/tabs/clusterStorage", "spec": "cypress/cypress/tests/mocked/projects/tabs/clusterStorage.cy.ts"},
+                 {"name": "projects/tabs/other", "spec": "cypress/cypress/tests/mocked/projects/tabs/!(workbench|legacyModelServingNim|permissionsRbacAssignRoles|clusterStorage).cy.ts"})
               else . end)')
 
             TEST_GROUPS=$(echo "$TEST_GROUPS" | jq -c --argjson central "$CENTRAL_GROUPS" '. + $central')
