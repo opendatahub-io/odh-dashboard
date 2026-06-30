@@ -60,7 +60,10 @@ webhook:
   port: 9443
   caBundle: ""
   certManager:
-    enabled: true
+    # Disabled by default for standalone Helm installs without cert-manager.
+    # The ODH operator module handler sets this to true when cert-manager CRDs
+    # are present on the cluster.
+    enabled: false
     issuerRef: {}
 
 # Downstream application images resolved by the module controller when rendering
