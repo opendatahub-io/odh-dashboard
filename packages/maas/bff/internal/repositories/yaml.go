@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -84,27 +83,8 @@ func unstructuredToYAML(obj *unstructured.Unstructured) (string, error) {
 	return string(yamlBytes), nil
 }
 
-func setResourceStatus(obj *unstructured.Unstructured, phase, statusMessage string) {
-	status := map[string]interface{}{}
-	if phase != "" {
-		status["phase"] = phase
-	}
-	if statusMessage != "" {
-		status["conditions"] = []interface{}{
-			map[string]interface{}{
-				"type":    "Ready",
-				"status":  "True",
-				"message": statusMessage,
-			},
-		}
-	}
-	if len(status) > 0 {
-		obj.Object["status"] = status
-	}
-}
-
 func subscriptionModelToUnstructured(sub models.MaaSSubscription) *unstructured.Unstructured {
-	obj := buildSubscriptionUnstructured(
+	return buildSubscriptionUnstructured(
 		sub.Name,
 		sub.Namespace,
 		sub.DisplayName,
@@ -114,13 +94,10 @@ func subscriptionModelToUnstructured(sub models.MaaSSubscription) *unstructured.
 		sub.TokenMetadata,
 		sub.Priority,
 	)
-	setResourceStatus(obj, sub.Phase, sub.StatusMessage)
-	setModelTimestamps(obj, sub.CreationTimestamp, sub.DeletionTimestamp)
-	return obj
 }
 
 func authPolicyModelToUnstructured(policy models.MaaSAuthPolicy) *unstructured.Unstructured {
-	obj := buildAuthPolicyUnstructured(
+	return buildAuthPolicyUnstructured(
 		policy.Name,
 		policy.Namespace,
 		policy.DisplayName,
@@ -129,18 +106,6 @@ func authPolicyModelToUnstructured(policy models.MaaSAuthPolicy) *unstructured.U
 		policy.Subjects.Groups,
 		policy.MeteringMetadata,
 	)
-	setResourceStatus(obj, policy.Phase, policy.StatusMessage)
-	setModelTimestamps(obj, policy.CreationTimestamp, policy.DeletionTimestamp)
-	return obj
-}
-
-func setModelTimestamps(obj *unstructured.Unstructured, creationTimestamp, deletionTimestamp *time.Time) {
-	if creationTimestamp != nil {
-		obj.SetCreationTimestamp(metav1.NewTime(*creationTimestamp))
-	}
-	if deletionTimestamp != nil {
-		obj.SetDeletionTimestamp(&metav1.Time{Time: *deletionTimestamp})
-	}
 }
 
 func sanitizeResourceForYAML(obj *unstructured.Unstructured) *unstructured.Unstructured {

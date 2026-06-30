@@ -61,6 +61,12 @@ var _ = Describe("YamlHandlers", Ordered, func() {
 			Expect(actual.Content).To(ContainSubstring("name: " + subName))
 			Expect(actual.Content).To(ContainSubstring("apiVersion: maas.opendatahub.io/v1alpha1"))
 			Expect(actual.Content).To(ContainSubstring("granite-3-8b-instruct"))
+			Expect(actual.Content).NotTo(ContainSubstring("managedFields:"))
+			Expect(actual.Content).NotTo(ContainSubstring("resourceVersion:"))
+			Expect(actual.Content).NotTo(ContainSubstring("uid:"))
+			Expect(actual.Content).NotTo(ContainSubstring("generation:"))
+			Expect(actual.Content).NotTo(ContainSubstring("status:"))
+			Expect(actual.Content).NotTo(ContainSubstring("kubectl.kubernetes.io/last-applied-configuration"))
 		})
 
 		It("returns 200 with auth policy YAML for a created subscription policy", func() {
@@ -108,6 +114,12 @@ var _ = Describe("YamlHandlers", Ordered, func() {
 			Expect(actual.Content).To(ContainSubstring("name: " + policyName))
 			Expect(actual.Content).To(ContainSubstring("apiVersion: maas.opendatahub.io/v1alpha1"))
 			Expect(actual.Content).To(ContainSubstring("premium-users"))
+			Expect(actual.Content).NotTo(ContainSubstring("managedFields:"))
+			Expect(actual.Content).NotTo(ContainSubstring("resourceVersion:"))
+			Expect(actual.Content).NotTo(ContainSubstring("uid:"))
+			Expect(actual.Content).NotTo(ContainSubstring("generation:"))
+			Expect(actual.Content).NotTo(ContainSubstring("status:"))
+			Expect(actual.Content).NotTo(ContainSubstring("kubectl.kubernetes.io/last-applied-configuration"))
 		})
 
 		It("returns 400 for an invalid resource type", func() {
@@ -150,6 +162,32 @@ var _ = Describe("YamlHandlers", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 			Expect(actual.Error.Message).To(ContainSubstring("type is required"))
+		})
+
+		It("returns 400 when name is invalid", func() {
+			actual, rs, err := setupApiTest[HTTPError](
+				http.MethodGet,
+				constants.YamlPath+"?name=invalid name&type="+constants.YamlResourceTypeSubscription,
+				nil,
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+			Expect(actual.Error.Message).To(ContainSubstring("invalid name"))
+		})
+
+		It("returns 400 when type is invalid", func() {
+			actual, rs, err := setupApiTest[HTTPError](
+				http.MethodGet,
+				constants.YamlPath+"?name=test-sub&type=some-non-supported-type",
+				nil,
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+			Expect(actual.Error.Message).To(ContainSubstring("invalid resource type"))
 		})
 
 		It("returns 404 for a non-existent subscription", func() {

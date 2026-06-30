@@ -42,5 +42,5 @@ const (
 	ModelsOverviewPath = ApiPathPrefix + "/overview/models"
 
 	// YAML export
-	YamlPath = ApiPathPrefix + "/maas-governance/yaml"
+	YamlPath = ApiPathPrefix + "/yaml"
 )
