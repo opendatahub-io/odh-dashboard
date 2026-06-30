@@ -17,9 +17,6 @@ import {
 import * as React from 'react';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
-import { HardwareProfileConfig } from './useHardwareProfileConfig';
-import { formatResource, formatResourceValue } from './utils';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
 import ProjectScopedIcon from '@odh-dashboard/internal/components/searchSelector/ProjectScopedIcon';
@@ -37,12 +34,11 @@ import {
 } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import {
-  filterProfilesByKueue,
-  KueueFilteringState,
-  useKueueConfiguration,
-} from './kueueUtils';
 import { useApplicationSettings } from '@odh-dashboard/internal/app/useApplicationSettings';
+import { filterProfilesByKueue, KueueFilteringState, useKueueConfiguration } from './kueueUtils';
+import { formatResource, formatResourceValue } from './utils';
+import { HardwareProfileConfig } from './useHardwareProfileConfig';
+import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
