@@ -1,14 +1,14 @@
 import { z } from 'zod';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import type { ValueUnitCPU, ValueUnitString } from '@odh-dashboard/ui-core/utilities';
+import type { ValueUnitCPU, ValueUnitString } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import {
   CPU_UNITS,
   isCpuLimitLarger,
   isMemoryLimitLarger,
   MEMORY_UNITS_FOR_PARSING,
   splitValueUnit,
-} from '@odh-dashboard/ui-core/utilities';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 import { formatResourceValue } from './utils';
 

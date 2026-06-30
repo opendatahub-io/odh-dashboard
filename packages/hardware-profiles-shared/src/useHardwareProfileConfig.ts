@@ -8,7 +8,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/internal/pages/projects/types';
 import useGenericObjectState from '@odh-dashboard/internal/utilities/useGenericObjectState';
-import { isCpuLimitLarger, isMemoryLimitLarger } from '@odh-dashboard/ui-core/utilities';
+import { isCpuLimitLarger, isMemoryLimitLarger } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import { filterProfilesByKueue, useKueueConfiguration } from './kueueUtils';
