@@ -146,7 +146,15 @@ jobs:
             CENTRAL_GROUPS=$(cd packages/cypress/cypress/tests/mocked && \
                   find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
                   jq -R '{"name": ., "spec": ("cypress/cypress/tests/mocked/" + . + "/*")}' | jq -c -s .)
-            
+
+            # Split projects/tabs to reduce critical path (was 34 min, now ~17 min each)
+            # workbench.cy.ts is ~2800 lines and dominates the runtime
+            CENTRAL_GROUPS=$(echo "$CENTRAL_GROUPS" | jq -c '
+              map(if .name == "projects/tabs" then
+                ({"name": "projects/tabs/workbench", "spec": "cypress/cypress/tests/mocked/projects/tabs/workbench.cy.ts"},
+                 {"name": "projects/tabs/other", "spec": "cypress/cypress/tests/mocked/projects/tabs/!(workbench).cy.ts"})
+              else . end)')
+
             TEST_GROUPS=$(echo "$TEST_GROUPS" | jq -c --argjson central "$CENTRAL_GROUPS" '. + $central')
             echo "Central test groups: $CENTRAL_GROUPS"
           fi
