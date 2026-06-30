@@ -333,8 +333,10 @@ function AutoragLeaderboard({
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   // Sorting state
-  const [activeSortId, setActiveSortId] = React.useState<string>('rank');
-  const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
+  const [activeSort, setActiveSort] = React.useState<{
+    id: string;
+    direction: 'asc' | 'desc';
+  }>({ id: 'rank', direction: 'asc' });
 
   // Check if pipeline is still running
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
@@ -450,13 +452,7 @@ function AutoragLeaderboard({
     setColumnOrder(newColumns.map((col) => col.key));
 
     // Reset sort to default if the currently sorted column is being hidden
-    setActiveSortId((currentId) => {
-      if (!newVisibleIds.has(currentId)) {
-        setActiveSortDirection('asc');
-        return 'rank';
-      }
-      return currentId;
-    });
+    setActiveSort((prev) => (newVisibleIds.has(prev.id) ? prev : { id: 'rank', direction: 'asc' }));
   }, []);
 
   // All visible columns in user order, used for both header and body rendering
@@ -568,18 +564,18 @@ function AutoragLeaderboard({
     }));
 
     // Apply user-selected sorting
-    if (activeSortId === 'rank') {
+    if (activeSort.id === 'rank') {
       return rankedEntries.toSorted((a, b) =>
-        activeSortDirection === 'asc' ? a.rank - b.rank : b.rank - a.rank,
+        activeSort.direction === 'asc' ? a.rank - b.rank : b.rank - a.rank,
       );
     }
-    if (activeSortId === 'pattern') {
+    if (activeSort.id === 'pattern') {
       return rankedEntries.toSorted((a, b) => {
         const comparison = a.pattern.localeCompare(b.pattern);
-        return activeSortDirection === 'asc' ? comparison : -comparison;
+        return activeSort.direction === 'asc' ? comparison : -comparison;
       });
     }
-    if (activeSortId === 'modelNames') {
+    if (activeSort.id === 'modelNames') {
       return rankedEntries.toSorted((a, b) => {
         const aDisplay = `${getModelIdShortName(a.generationModelId)} / ${getModelIdShortName(a.embeddingsModelId)}`;
         const bDisplay = `${getModelIdShortName(b.generationModelId)} / ${getModelIdShortName(b.embeddingsModelId)}`;
@@ -587,14 +583,14 @@ function AutoragLeaderboard({
           aDisplay.localeCompare(bDisplay) ||
           a.generationModelId.localeCompare(b.generationModelId) ||
           a.embeddingsModelId.localeCompare(b.embeddingsModelId);
-        return activeSortDirection === 'asc' ? comparison : -comparison;
+        return activeSort.direction === 'asc' ? comparison : -comparison;
       });
     }
 
     // Sort by metric column (optimized or non-optimized)
-    if (activeSortId === 'optimized-metric' || activeSortId.startsWith('metric:')) {
+    if (activeSort.id === 'optimized-metric' || activeSort.id.startsWith('metric:')) {
       const metricKey =
-        activeSortId === 'optimized-metric' ? null : activeSortId.slice('metric:'.length);
+        activeSort.id === 'optimized-metric' ? null : activeSort.id.slice('metric:'.length);
       return rankedEntries.toSorted((a, b) => {
         const aVal = metricKey ? a.metrics[metricKey].mean : a.optimizedMetricValue;
         const bVal = metricKey ? b.metrics[metricKey].mean : b.optimizedMetricValue;
@@ -613,12 +609,12 @@ function AutoragLeaderboard({
         const aNum = typeof aVal === 'number' ? aVal : 0;
         const bNum = typeof bVal === 'number' ? bVal : 0;
         const comparison = aNum - bNum;
-        return activeSortDirection === 'asc' ? comparison : -comparison;
+        return activeSort.direction === 'asc' ? comparison : -comparison;
       });
     }
 
     // Sort by settings column
-    const settingsCol = SETTINGS_COLUMNS.find((col) => col.id === activeSortId);
+    const settingsCol = SETTINGS_COLUMNS.find((col) => col.id === activeSort.id);
 
     if (settingsCol) {
       return rankedEntries.toSorted((a, b) => {
@@ -639,13 +635,13 @@ function AutoragLeaderboard({
         // Handle string sorting
         if (typeof aVal === 'string' && typeof bVal === 'string') {
           const comparison = aVal.localeCompare(bVal);
-          return activeSortDirection === 'asc' ? comparison : -comparison;
+          return activeSort.direction === 'asc' ? comparison : -comparison;
         }
 
         // Handle number sorting
         if (typeof aVal === 'number' && typeof bVal === 'number') {
           const comparison = aVal - bVal;
-          return activeSortDirection === 'asc' ? comparison : -comparison;
+          return activeSort.direction === 'asc' ? comparison : -comparison;
         }
 
         return 0;
@@ -653,16 +649,15 @@ function AutoragLeaderboard({
     }
 
     return rankedEntries;
-  }, [patterns, metricKeys, optimizedMetric, activeSortId, activeSortDirection]);
+  }, [patterns, metricKeys, optimizedMetric, activeSort]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(
     (_event: React.MouseEvent, index: number, direction: 'asc' | 'desc') => {
-      const columnId = sortableColumnIds[index];
-      if (columnId) {
-        setActiveSortId(columnId);
-      }
-      setActiveSortDirection(direction);
+      setActiveSort((prev) => ({
+        id: sortableColumnIds[index] || prev.id,
+        direction,
+      }));
     },
     [sortableColumnIds],
   );
@@ -670,17 +665,17 @@ function AutoragLeaderboard({
   // Helper function to get sort params for a column
   const getSortParams = React.useCallback(
     (columnId: string): ThProps['sort'] => {
-      const activeSortIndex = sortableColumnIds.indexOf(activeSortId);
+      const activeSortIndex = sortableColumnIds.indexOf(activeSort.id);
       return {
         sortBy: {
           index: activeSortIndex >= 0 ? activeSortIndex : 0,
-          direction: activeSortDirection,
+          direction: activeSort.direction,
         },
         onSort: handleSort,
         columnIndex: sortableColumnIds.indexOf(columnId),
       };
     },
-    [sortableColumnIds, activeSortId, activeSortDirection, handleSort],
+    [sortableColumnIds, activeSort, handleSort],
   );
 
   // "Organize by" presets for the manage columns modal

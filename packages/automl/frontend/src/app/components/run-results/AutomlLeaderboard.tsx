@@ -402,8 +402,10 @@ function AutomlLeaderboard({
   const taskType = parameters?.task_type ?? 'timeseries';
 
   // Sorting state
-  const [activeSortId, setActiveSortId] = React.useState<string>('rank');
-  const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
+  const [activeSort, setActiveSort] = React.useState<{
+    id: string;
+    direction: 'asc' | 'desc';
+  }>({ id: 'rank', direction: 'asc' });
 
   // Check if pipeline is still running
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
@@ -512,13 +514,7 @@ function AutomlLeaderboard({
     setColumnOrder(newColumns.map((col) => col.key));
 
     // Reset sort to default if the currently sorted column is being hidden
-    setActiveSortId((currentId) => {
-      if (!newVisibleIds.has(currentId)) {
-        setActiveSortDirection('asc');
-        return 'rank';
-      }
-      return currentId;
-    });
+    setActiveSort((prev) => (newVisibleIds.has(prev.id) ? prev : { id: 'rank', direction: 'asc' }));
   }, []);
 
   // All visible columns in user order, used for both header and body rendering
@@ -617,22 +613,22 @@ function AutomlLeaderboard({
     }));
 
     // Apply user-selected sorting
-    if (activeSortId === 'rank') {
+    if (activeSort.id === 'rank') {
       return rankedEntries.toSorted((a, b) =>
-        activeSortDirection === 'asc' ? a.rank - b.rank : b.rank - a.rank,
+        activeSort.direction === 'asc' ? a.rank - b.rank : b.rank - a.rank,
       );
     }
-    if (activeSortId === 'model') {
+    if (activeSort.id === 'model') {
       return rankedEntries.toSorted((a, b) => {
         const comparison = a.displayName.localeCompare(b.displayName);
-        return activeSortDirection === 'asc' ? comparison : -comparison;
+        return activeSort.direction === 'asc' ? comparison : -comparison;
       });
     }
 
     // Sort by metric column (optimized or non-optimized)
-    if (activeSortId === 'optimized-metric' || activeSortId.startsWith('metric:')) {
+    if (activeSort.id === 'optimized-metric' || activeSort.id.startsWith('metric:')) {
       const metricKey =
-        activeSortId === 'optimized-metric' ? null : activeSortId.slice('metric:'.length);
+        activeSort.id === 'optimized-metric' ? null : activeSort.id.slice('metric:'.length);
       return rankedEntries.toSorted((a, b) => {
         const aVal = metricKey ? a.metrics[metricKey] : a.optimizedMetricValue;
         const bVal = metricKey ? b.metrics[metricKey] : b.optimizedMetricValue;
@@ -651,21 +647,20 @@ function AutomlLeaderboard({
         const aNum = typeof aVal === 'number' ? aVal : 0;
         const bNum = typeof bVal === 'number' ? bVal : 0;
         const comparison = aNum - bNum;
-        return activeSortDirection === 'asc' ? comparison : -comparison;
+        return activeSort.direction === 'asc' ? comparison : -comparison;
       });
     }
 
     return rankedEntries;
-  }, [models, metricKeys, optimizedMetric, activeSortId, activeSortDirection]);
+  }, [models, metricKeys, optimizedMetric, activeSort]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(
     (_event: React.MouseEvent, index: number, direction: 'asc' | 'desc') => {
-      const columnId = sortableColumnIds[index];
-      if (columnId) {
-        setActiveSortId(columnId);
-      }
-      setActiveSortDirection(direction);
+      setActiveSort((prev) => ({
+        id: sortableColumnIds[index] || prev.id,
+        direction,
+      }));
     },
     [sortableColumnIds],
   );
@@ -673,17 +668,17 @@ function AutomlLeaderboard({
   // Helper function to get sort params for a column
   const getSortParams = React.useCallback(
     (columnId: string): ThProps['sort'] => {
-      const activeSortIndex = sortableColumnIds.indexOf(activeSortId);
+      const activeSortIndex = sortableColumnIds.indexOf(activeSort.id);
       return {
         sortBy: {
           index: activeSortIndex >= 0 ? activeSortIndex : 0,
-          direction: activeSortDirection,
+          direction: activeSort.direction,
         },
         onSort: handleSort,
         columnIndex: sortableColumnIds.indexOf(columnId),
       };
     },
-    [sortableColumnIds, activeSortId, activeSortDirection, handleSort],
+    [sortableColumnIds, activeSort, handleSort],
   );
 
   // Presets hidden for AutoML until there are meaningful preset groups
