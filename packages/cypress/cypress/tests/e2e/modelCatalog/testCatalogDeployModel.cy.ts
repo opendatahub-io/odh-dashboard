@@ -110,8 +110,8 @@ describe('Verify a model can be deployed from model catalog', () => {
       cy.step('Model deployment step');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
 
-      modelServingWizard.findModelServerManualSelectRadio().click();
-      modelServingWizard.findFirstServingRuntimeTemplateOption().should('exist').click();
+      modelServingWizard.selectFirstAvailableDeploymentMethod();
+      modelServingWizard.selectServingRuntimeIfAvailable();
 
       cy.step('Advanced options step');
       modelServingWizard.findNextButton().should('be.enabled').click();

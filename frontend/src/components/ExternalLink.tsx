@@ -14,8 +14,11 @@ const ExternalLink: React.FC<ExternalLinkProps> = ({ text, to, testId }) => (
     variant="link"
     data-testid={testId}
     isInline
+    component="a"
+    href={to}
+    target="_blank"
+    rel="noopener noreferrer"
     onClick={() => {
-      window.open(to);
       fireLinkTrackingEvent('ExternalLink Clicked', { href: to, from: window.location.pathname });
     }}
     icon={<ExternalLinkAltIcon />}

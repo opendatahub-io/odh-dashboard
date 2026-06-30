@@ -24,14 +24,50 @@ export type AgentCardCapabilities = {
   optional: string[];
 };
 
+export type AgentCardProvider = {
+  organization?: string;
+  url?: string;
+};
+
+export type AgentCardSkillParameter = {
+  name: string;
+  type?: string;
+  description?: string;
+  required: boolean;
+  default?: string;
+};
+
+export type AgentCardSkill = {
+  id: string;
+  name: string;
+  description?: string;
+  tags: string[];
+  examples: string[];
+  inputModes: string[];
+  outputModes: string[];
+  parameters: AgentCardSkillParameter[];
+};
+
 export type AgentCardDetail = {
   name: string;
   description?: string;
   version?: string;
+  provider?: AgentCardProvider;
   agentCardUrl?: string;
   externalAgentCardUrl?: string;
+  documentationUrl?: string;
   defaultInputModes: string[];
   defaultOutputModes: string[];
+  authenticationMethods?: string[];
+  protocols?: string[];
+  labels?: string[];
+  skills?: AgentCardSkill[];
+  toolConnections?: string[];
+  linkedSkills?: string[];
+  iconUrl?: string;
+  uuid?: string;
+  spiffeId?: string;
+  lastFetchTime?: string;
   capabilities: AgentCardCapabilities;
 };
 
