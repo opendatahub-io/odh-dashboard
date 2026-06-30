@@ -5,8 +5,8 @@ import {
   LimitNameResourceType,
   resourceTypeLimits,
   setupDefaults,
-} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
-import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+} from '@odh-dashboard/k8s-core';
+import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '#~/__mocks__';
 import { mockK8sNameDescriptionFieldData } from '#~/__mocks__/mockK8sNameDescriptionFieldData';
 

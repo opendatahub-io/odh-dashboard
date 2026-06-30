@@ -10,6 +10,7 @@ import {
   handleError,
   isRegistryReady,
   getServiceFromCRD,
+  fetchPermissionLevel,
   type FeatureStoreCRD,
   type FeastProjectsResponse,
 } from './featureStoreUtils';
@@ -18,6 +19,7 @@ interface WorkbenchFeatureStoreConfig {
   configName: string;
   projectName: string;
   hasAccessToFeatureStore: boolean;
+  permissionLevel: string[];
 }
 
 interface WorkbenchResponse {
@@ -101,10 +103,14 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
               availableFeatureStores.map(async (crd) => {
                 const projectName = crd.spec?.feastProject ?? crd.metadata.name;
                 const hasAccess = await hasAccessToProject(fastify, crd, token);
+                const permissionLevel = hasAccess
+                  ? await fetchPermissionLevel(fastify, crd, projectName, token)
+                  : [];
                 return {
                   configName: crd.metadata.name,
                   projectName,
                   hasAccessToFeatureStore: hasAccess,
+                  permissionLevel,
                 };
               }),
             );

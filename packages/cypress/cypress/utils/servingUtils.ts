@@ -18,7 +18,7 @@ import {
   mockNimServingRuntime,
 } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   InferenceServiceModel,
   NIMAccountModel,

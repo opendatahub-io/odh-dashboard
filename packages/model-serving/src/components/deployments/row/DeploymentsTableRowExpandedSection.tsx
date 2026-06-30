@@ -11,7 +11,7 @@ import {
   List,
   Truncate,
 } from '@patternfly/react-core';
-import { formatMemory } from '@odh-dashboard/internal/utilities/valueUnits';
+import { formatMemory } from '@odh-dashboard/ui-core/utilities';
 import type { SupportedModelFormats, ContainerResources } from '@odh-dashboard/k8s-core';
 import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';

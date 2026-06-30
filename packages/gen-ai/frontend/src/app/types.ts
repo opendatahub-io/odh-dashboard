@@ -399,6 +399,7 @@ export type ExternalModelRequest = {
   model_type: 'llm' | 'embedding';
   use_cases?: string;
   embedding_dimension?: number;
+  capabilities?: string[];
 };
 
 export type ExternalModelResponse = AAModelResponse;

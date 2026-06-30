@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import { render, screen, renderHook } from '@testing-library/react';
-import { useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
-import type { IsAreaAvailableStatus } from '@odh-dashboard/internal/concepts/areas/types';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { mockExtensions } from '../../../../__tests__/mockUtils';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
@@ -13,8 +13,8 @@ import {
 } from '../ModelAvailabilityFields';
 
 jest.mock('@odh-dashboard/plugin-core');
-jest.mock('@odh-dashboard/internal/concepts/areas', () => ({
-  ...jest.requireActual('@odh-dashboard/internal/concepts/areas'),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 

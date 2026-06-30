@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Form, FormGroup } from '@patternfly/react-core';
 import { useLocation } from 'react-router-dom';
-import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+} from '@odh-dashboard/k8s-core';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
   FineTuneTaxonomyFormData,
   ModelCustomizationFormData,
