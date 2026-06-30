@@ -21,8 +21,8 @@ describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () =>
 
   it(
     'Verify that the Non-admin user does not have access to Dashboard or Jupyter Notebooks',
-    // Note - this test should not be executed alongside Smoke/Sanity as it has the potential to cause breakages within those tests
-    { tags: ['@Destructive', '@ODS-1680', '@Dashboard', '@NonConcurrent'] },
+    // Note - this test should not be executed alongside Smoke/Tier1 as it has the potential to cause breakages within those tests
+    { tags: ['@Tier3', '@Tier3Set1', '@Destructive', '@ODS-1680', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Log into the application as a Non-admin user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
