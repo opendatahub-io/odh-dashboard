@@ -974,6 +974,7 @@ export type WorkloadPodSet = {
 export enum WorkloadOwnerType {
   RayCluster = 'RayCluster',
   Job = 'Job',
+  StatefulSet = 'StatefulSet',
 }
 
 // https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-Workload

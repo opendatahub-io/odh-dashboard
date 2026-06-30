@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Bullseye, Alert, Spinner } from '@patternfly/react-core';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '#~/k8sTypes';
 import { FetchStateObject } from '#~/utilities/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
@@ -16,7 +17,6 @@ import {
 } from '#~/api';
 import { RefreshIntervalValue } from '#~/concepts/metrics/const';
 import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import PermissionsNotSet from './PermissionsNotSet';
 import useClusterQueues from './useClusterQueues';
 import useLocalQueues from './useLocalQueues';

@@ -13,6 +13,11 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import {
+  isK8sNameDescriptionDataValid,
+  kindApiVersion,
+  LimitNameResourceType,
+} from '@odh-dashboard/k8s-core';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import ContentModal from '#~/components/modals/ContentModal';
 import { ModelRegistryKind } from '#~/k8sTypes';
@@ -21,16 +26,11 @@ import {
   createModelRegistryBackend,
   updateModelRegistryBackend,
 } from '#~/services/modelRegistrySettingsService';
-import { kindApiVersion } from '#~/concepts/k8s/utils';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { AreaContext } from '#~/concepts/areas/AreaContext';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import {
-  isK8sNameDescriptionDataValid,
-  LimitNameResourceType,
-} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import useModelRegistryCertificateNames from '#~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import {
   buildDatabaseSpec,

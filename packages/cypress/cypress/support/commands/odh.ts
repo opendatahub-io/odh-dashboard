@@ -105,6 +105,7 @@ import type {
   CreateSubscriptionResponse,
   SubscriptionPolicyFormDataResponse,
   MaaSAuthPolicy,
+  ModelOverviewItem,
 } from '@odh-dashboard/maas/types/subscriptions';
 import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
@@ -871,6 +872,7 @@ declare global {
                 configName: string;
                 projectName: string;
                 hasAccessToFeatureStore: boolean;
+                permissionLevel: string[];
               }>;
             }>;
           }>,
@@ -1199,6 +1201,10 @@ declare global {
         ((
           type: 'GET /maas/api/v1/all-policies',
           response: OdhResponse<{ data: MaaSAuthPolicy[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/overview/models',
+          response: OdhResponse<{ data: ModelOverviewItem[] }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /maas/api/v1/new-policy',

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import PipelineMigrationNoteLinks from '#~/concepts/pipelines/content/PipelineMigrationNoteLinks';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 

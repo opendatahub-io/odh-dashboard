@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import MetricsPage from '#~/pages/modelServing/screens/metrics/MetricsPage';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { ProjectModelMetricsOutletContextProps } from './ProjectModelMetricsWrapper';
 
 const ProjectModelMetricsPage: React.FC = () => {
