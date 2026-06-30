@@ -28,7 +28,6 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       title: 'Infrastructure',
       href: '/observe-and-monitor/infrastructure',
       path: '/observe-and-monitor/infrastructure/*',
-      group: '2_infrastructure',
       section: 'observe-and-monitor',
     },
   },
