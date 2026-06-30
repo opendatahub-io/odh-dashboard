@@ -35,7 +35,6 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
   data,
   setData,
 }) => {
-  // Sort identifiers to put CPU and Memory first
   const sortedIdentifiers = React.useMemo(() => {
     const cpuIdentifier = identifiers.find((i) => i.identifier === 'cpu');
     const memoryIdentifier = identifiers.find((i) => i.identifier === 'memory');

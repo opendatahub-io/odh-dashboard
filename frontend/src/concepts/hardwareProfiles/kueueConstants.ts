@@ -1,5 +1,4 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles for backward compatibility
-export {
-  KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE,
-  KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE,
-} from '@odh-dashboard/hardware-profiles-shared';
+export const KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE =
+  'Model deployment requires Kueue. Contact your admin.';
+export const KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE =
+  'Workbench creation requires Kueue. Contact your admin.';
