@@ -27,6 +27,7 @@ import { useNotification } from '~/app/hooks/useNotification';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
+import './AutomlConfigurePage.scss';
 
 const configureSchema = createConfigureSchema();
 const createFields = ['display_name', 'description'] as const satisfies Array<
@@ -162,7 +163,7 @@ function AutomlConfigurePage({
           ) : (
             <span data-testid="configure-step-subtitle">
               Run{' '}
-              <span style={{ color: 'var(--pf-t--global--color--nonstatus--purple--400)' }}>
+              <span className="automl-configure__run-name">
                 <Truncate content={displayName || ''} />
               </span>{' '}
               AutoML experiment

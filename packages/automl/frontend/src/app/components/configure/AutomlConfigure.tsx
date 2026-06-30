@@ -972,7 +972,7 @@ function AutomlConfigure({
                                     name="preset"
                                     label={PRESET_LABELS[preset]}
                                     description={
-                                      <Content component="p">
+                                      <Content component="div">
                                         {preset === PRESET_FASTER ? (
                                           <>
                                             <div>4 vCPU / 16 GiB</div>
