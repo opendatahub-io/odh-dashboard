@@ -265,8 +265,11 @@ export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => 
     parseEndpointByPrefix(endpoints, 'internal') ||
     endpoints.find((ep) => !ep.startsWith('external:') && !ep.startsWith('internal:'));
 
+  // Destructure endpoints out to avoid exposing raw array - only return sanitized fields
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { endpoints: rawEndpoints, ...modelWithoutEndpoints } = aaModel;
   return {
-    ...aaModel,
+    ...modelWithoutEndpoints,
     externalEndpoint,
     internalEndpoint,
   };
