@@ -240,3 +240,190 @@ export const streamingCompletedEventWithFileSearchCall = JSON.stringify({
     ],
   },
 });
+
+// Response with annotations that include index positions for citation insertion
+export const responseWithIndexedAnnotations: BackendResponseData = {
+  id: 'response-indexed-annotations',
+  model: 'test-model',
+  status: 'completed',
+  created_at: 1755721063,
+  output: [
+    {
+      id: 'output-1',
+      type: 'message',
+      content: [
+        {
+          type: 'output_text',
+          text: 'First fact. Second fact.',
+          annotations: [
+            {
+              type: 'file_citation',
+              file_id: 'file-a',
+              filename: 'report.pdf',
+              index: 11,
+            },
+            {
+              type: 'file_citation',
+              file_id: 'file-b',
+              filename: 'manual.pdf',
+              index: 24,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+// Response with a file_search_call output item containing results with scores
+export const responseWithFileSearchResults: BackendResponseData = {
+  id: 'response-file-search-results',
+  model: 'test-model',
+  status: 'completed',
+  created_at: 1755721063,
+  output: [
+    {
+      id: 'search-1',
+      type: 'file_search_call',
+      queries: ['What is retrieval augmented generation?'],
+      results: [
+        {
+          score: 0.92,
+          text: 'RAG combines retrieval and generation.',
+          file_id: 'f1',
+          filename: 'rag-guide.pdf',
+        },
+        {
+          score: 0.71,
+          text: 'Embeddings are used for similarity search.',
+          file_id: 'f2',
+          filename: 'embeddings.pdf',
+        },
+      ],
+    },
+    {
+      id: 'msg-1',
+      type: 'message',
+      content: [
+        {
+          type: 'output_text',
+          text: 'RAG is a technique that combines retrieval and generation.',
+        },
+      ],
+    },
+  ],
+};
+
+// Response with no file_search_call results (empty array)
+export const responseWithEmptyFileSearchResults: BackendResponseData = {
+  id: 'response-empty-file-search',
+  model: 'test-model',
+  status: 'completed',
+  created_at: 1755721063,
+  output: [
+    {
+      id: 'search-1',
+      type: 'file_search_call',
+      queries: ['test query'],
+      results: [],
+    },
+    {
+      id: 'msg-1',
+      type: 'message',
+      content: [
+        {
+          type: 'output_text',
+          text: 'No results found.',
+        },
+      ],
+    },
+  ],
+};
+
+// Response with multiple file_search_call outputs to test aggregation
+export const responseWithMultipleFileSearchCalls: BackendResponseData = {
+  id: 'response-multi-file-search',
+  model: 'test-model',
+  status: 'completed',
+  created_at: 1755721063,
+  output: [
+    {
+      id: 'search-1',
+      type: 'file_search_call',
+      queries: ['What is RAG?'],
+      results: [
+        {
+          score: 0.95,
+          text: 'RAG overview content.',
+          file_id: 'f1',
+          filename: 'rag-overview.pdf',
+        },
+      ],
+    },
+    {
+      id: 'search-2',
+      type: 'file_search_call',
+      queries: ['How do embeddings work?'],
+      results: [
+        {
+          score: 0.88,
+          text: 'Embeddings explanation.',
+          file_id: 'f2',
+          filename: 'embeddings-guide.pdf',
+        },
+        {
+          score: 0.65,
+          text: 'Vector databases overview.',
+          file_id: 'f3',
+          filename: 'vector-db.pdf',
+        },
+      ],
+    },
+    {
+      id: 'msg-1',
+      type: 'message',
+      content: [
+        {
+          type: 'output_text',
+          text: 'Here is information about RAG and embeddings.',
+        },
+      ],
+    },
+  ],
+};
+
+// Streaming completed event with file_search_call results
+export const streamingCompletedEventWithFileSearchResults = JSON.stringify({
+  type: 'response.completed',
+  response: {
+    id: 'resp-search',
+    model: 'test-model',
+    status: 'completed',
+    created_at: 1755721063,
+    output: [
+      {
+        id: 'search-1',
+        type: 'file_search_call',
+        queries: ['streaming search query'],
+        results: [
+          {
+            score: 0.88,
+            text: 'Chunk from streaming.',
+            file_id: 'sf1',
+            filename: 'stream-doc.pdf',
+          },
+        ],
+      },
+      {
+        id: 'msg-1',
+        type: 'message',
+        content: [
+          {
+            type: 'output_text',
+            text: 'Streamed answer.',
+          },
+        ],
+      },
+    ],
+  },
+});
