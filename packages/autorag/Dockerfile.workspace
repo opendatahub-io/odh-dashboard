@@ -28,6 +28,7 @@ COPY --chown=default:root package.json package-lock.json* ./
 # Copy the frontend workspace manifest so its dependencies can be resolved if referenced
 COPY --chown=default:root frontend/package.json ./frontend/
 # Copy required shared workspace packages needed for module builds
+COPY --chown=default:root packages/analytics/ ./packages/analytics/
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
 COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
