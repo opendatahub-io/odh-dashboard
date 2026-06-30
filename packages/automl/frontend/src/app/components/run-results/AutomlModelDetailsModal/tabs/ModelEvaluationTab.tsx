@@ -1,5 +1,13 @@
 import React from 'react';
-import { Bullseye, Spinner, Title } from '@patternfly/react-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Spinner,
+  Title,
+} from '@patternfly/react-core';
+import { ChartLineIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import {
   CLASSIFICATION_TYPES,
@@ -19,6 +27,32 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({
   const entries = Object.entries(metrics);
   const isClassification = CLASSIFICATION_TYPES.includes(taskType);
 
+  const renderRocCurve = () => {
+    if (isArtifactsLoading) {
+      return (
+        <Bullseye>
+          <Spinner size="lg" aria-label="Loading ROC curve data" />
+        </Bullseye>
+      );
+    }
+    if (!curves) {
+      return (
+        <EmptyState
+          data-testid="roc-curve-no-data"
+          variant={EmptyStateVariant.sm}
+          icon={ChartLineIcon}
+          titleText="ROC curve unavailable"
+          headingLevel="h4"
+        >
+          <EmptyStateBody>
+            This data may be generated if the training run is submitted again.
+          </EmptyStateBody>
+        </EmptyState>
+      );
+    }
+    return <ROCCurveChart rocCurveData={curves} />;
+  };
+
   if (entries.length === 0) {
     return <p>No evaluation metrics available for this model.</p>;
   }
@@ -27,18 +61,7 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({
     <>
       {isClassification && (
         <div className="pf-v6-u-mb-xl" data-testid="roc-curve-section">
-          {isArtifactsLoading ? (
-            <Bullseye>
-              <Spinner size="lg" aria-label="Loading ROC curve data" />
-            </Bullseye>
-          ) : curves ? (
-            <ROCCurveChart rocCurveData={curves} />
-          ) : (
-            <p data-testid="roc-curve-no-data">
-              ROC curve data is not available for this model. This data may be generated if the
-              training run is submitted again.
-            </p>
-          )}
+          {renderRocCurve()}
         </div>
       )}
 

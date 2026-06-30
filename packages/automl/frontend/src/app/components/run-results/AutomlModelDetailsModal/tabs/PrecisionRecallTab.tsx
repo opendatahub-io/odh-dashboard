@@ -1,5 +1,12 @@
 import React from 'react';
-import { Bullseye, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Spinner,
+} from '@patternfly/react-core';
+import { ChartLineIcon } from '@patternfly/react-icons';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import PrecisionRecallChart from '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart';
 
@@ -14,10 +21,17 @@ const PrecisionRecallTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoad
 
   if (!curves) {
     return (
-      <p data-testid="precision-recall-no-data">
-        Precision-recall curve data is not available for this model. This data may be generated if
-        the training run is submitted again.
-      </p>
+      <EmptyState
+        data-testid="precision-recall-no-data"
+        variant={EmptyStateVariant.sm}
+        icon={ChartLineIcon}
+        titleText="Precision-recall curve unavailable"
+        headingLevel="h4"
+      >
+        <EmptyStateBody>
+          This data may be generated if the training run is submitted again.
+        </EmptyStateBody>
+      </EmptyState>
     );
   }
 

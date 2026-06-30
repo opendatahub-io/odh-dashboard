@@ -16,3 +16,9 @@ export const COLOR_SCALE = [
   chartThemeColor400.value,
   chartThemeColor500.value,
 ];
+
+export const CHART_SIZE = 500;
+export const TICK_VALUES = Array.from({ length: 11 }, (_, i) => i / 10);
+export const CHART_PADDING = { bottom: 60, left: 80, right: 50, top: 20 };
+export const CHART_WRAPPER_STYLE = { width: CHART_SIZE };
+export const voronoiLabels = ({ datum }: { datum: { name: string } }): string => datum.name;

@@ -8,7 +8,16 @@ import {
 } from '@patternfly/react-charts/victory';
 import { Flex, FlexItem, Label, Title } from '@patternfly/react-core';
 import type { CurvesData, PrecisionRecallEntry } from '~/app/types';
-import { chartColorBlack500, COLOR_SCALE } from './chartConstants';
+import {
+  chartColorBlack500,
+  CHART_PADDING,
+  CHART_SIZE,
+  CHART_WRAPPER_STYLE,
+  COLOR_SCALE,
+  TICK_VALUES,
+  voronoiLabels,
+} from './chartConstants';
+import ChartLegendDot from './ChartLegendDot';
 
 type CurveLineData = {
   label: string;
@@ -70,23 +79,17 @@ type PrecisionRecallChartProps = {
   prData: CurvesData;
 };
 
-const CHART_SIZE = 500;
-const TICK_VALUES = Array.from({ length: 11 }, (_, i) => i / 10);
-const CHART_PADDING = { bottom: 60, left: 80, right: 50, top: 20 };
-const CHART_WRAPPER_STYLE = { width: CHART_SIZE };
 const BASELINE_STYLE = { data: { strokeDasharray: '6,4', stroke: chartColorBlack500.value } };
-const voronoiLabels = ({ datum }: { datum: { name: string } }) => datum.name;
 
 const PrecisionRecallChart: React.FC<PrecisionRecallChartProps> = ({ prData }) => {
   const curveLines = React.useMemo(() => buildPRCurveLines(prData), [prData]);
-  const baselinePrecision = getBaselinePrecision(prData);
-  const baseLineData = React.useMemo(
-    () => [
-      { x: 0, y: baselinePrecision, name: `No-skill baseline (${baselinePrecision.toFixed(3)})` },
-      { x: 1, y: baselinePrecision, name: `No-skill baseline (${baselinePrecision.toFixed(3)})` },
-    ],
-    [baselinePrecision],
-  );
+  const baseLineData = React.useMemo(() => {
+    const bp = getBaselinePrecision(prData);
+    return [
+      { x: 0, y: bp, name: `No-skill baseline (${bp.toFixed(3)})` },
+      { x: 1, y: bp, name: `No-skill baseline (${bp.toFixed(3)})` },
+    ];
+  }, [prData]);
   const ap = getApValue(prData);
   const isMulticlass = prData.task_type === 'multiclass';
 
@@ -141,16 +144,7 @@ const PrecisionRecallChart: React.FC<PrecisionRecallChartProps> = ({ prData }) =
                   className="pf-v6-u-mb-sm"
                 >
                   <FlexItem>
-                    <svg width="12" height="12">
-                      <circle
-                        cx="6"
-                        cy="6"
-                        r="5"
-                        fill="none"
-                        stroke={COLOR_SCALE[idx % COLOR_SCALE.length]}
-                        strokeWidth="2"
-                      />
-                    </svg>
+                    <ChartLegendDot color={COLOR_SCALE[idx % COLOR_SCALE.length]} />
                   </FlexItem>
                   <FlexItem>{line.label}</FlexItem>
                 </Flex>

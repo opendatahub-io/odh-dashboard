@@ -8,7 +8,16 @@ import {
 } from '@patternfly/react-charts/victory';
 import { Flex, FlexItem, Label, Title } from '@patternfly/react-core';
 import type { CurvesData, RocCurveEntry } from '~/app/types';
-import { chartColorBlack500, COLOR_SCALE } from './chartConstants';
+import {
+  chartColorBlack500,
+  CHART_PADDING,
+  CHART_SIZE,
+  CHART_WRAPPER_STYLE,
+  COLOR_SCALE,
+  TICK_VALUES,
+  voronoiLabels,
+} from './chartConstants';
+import ChartLegendDot from './ChartLegendDot';
 
 type CurveLineData = {
   label: string;
@@ -49,7 +58,7 @@ function buildMacroAverageCurve(
   const avgTpr = commonFpr.map((fprVal) => {
     const tprSum = entries.reduce((sum, entry) => {
       const { fpr, tpr } = entry;
-      let interpolatedTpr = 0;
+      let interpolatedTpr = tpr[tpr.length - 1];
       for (let j = 0; j < fpr.length - 1; j++) {
         if (fprVal >= fpr[j] && fprVal <= fpr[j + 1]) {
           const range = fpr[j + 1] - fpr[j];
@@ -57,9 +66,6 @@ function buildMacroAverageCurve(
           interpolatedTpr = tpr[j] + t * (tpr[j + 1] - tpr[j]);
           break;
         }
-      }
-      if (fprVal >= fpr[fpr.length - 1]) {
-        interpolatedTpr = tpr[tpr.length - 1];
       }
       return sum + interpolatedTpr;
     }, 0);
@@ -106,17 +112,12 @@ type ROCCurveChartProps = {
   rocCurveData: CurvesData;
 };
 
-const CHART_SIZE = 500;
-const TICK_VALUES = Array.from({ length: 11 }, (_, i) => i / 10);
-const CHART_PADDING = { bottom: 60, left: 80, right: 50, top: 20 };
-const CHART_WRAPPER_STYLE = { width: CHART_SIZE };
 const BASELINE_STYLE = { data: { strokeDasharray: '3,3', stroke: chartColorBlack500.value } };
 const BASELINE_DATA = Array.from({ length: 101 }, (_, i) => ({
   x: i / 100,
   y: i / 100,
   name: 'Reference (random classifier)',
 }));
-const voronoiLabels = ({ datum }: { datum: { name: string } }) => datum.name;
 
 const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
   const curveLines = React.useMemo(() => buildCurveLines(rocCurveData), [rocCurveData]);
@@ -174,16 +175,7 @@ const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
             <div>
               <Flex spaceItems={{ default: 'spaceItemsSm' }} className="pf-v6-u-mb-sm">
                 <FlexItem>
-                  <svg width="12" height="12">
-                    <circle
-                      cx="6"
-                      cy="6"
-                      r="5"
-                      fill="none"
-                      stroke={chartColorBlack500.value}
-                      strokeWidth="2"
-                    />
-                  </svg>
+                  <ChartLegendDot color={chartColorBlack500.value} />
                 </FlexItem>
                 <FlexItem>Reference</FlexItem>
               </Flex>
@@ -194,16 +186,7 @@ const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
                   className="pf-v6-u-mb-sm"
                 >
                   <FlexItem>
-                    <svg width="12" height="12">
-                      <circle
-                        cx="6"
-                        cy="6"
-                        r="5"
-                        fill="none"
-                        stroke={COLOR_SCALE[idx % COLOR_SCALE.length]}
-                        strokeWidth="2"
-                      />
-                    </svg>
+                    <ChartLegendDot color={COLOR_SCALE[idx % COLOR_SCALE.length]} />
                   </FlexItem>
                   <FlexItem>{line.label}</FlexItem>
                 </Flex>

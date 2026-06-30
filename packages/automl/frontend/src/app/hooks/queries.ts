@@ -548,11 +548,13 @@ export function useModelEvaluationArtifactsQuery(
         retry: false,
       },
     ],
-    combine: (results) => ({
-      featureImportance: results[0].data,
-      confusionMatrix: results[1].data,
-      curves: results[2].data,
-      isLoading: results.some((r) => r.isLoading),
+    combine: ([featureImportanceResult, confusionMatrixResult, curvesResult]) => ({
+      featureImportance: featureImportanceResult.data,
+      confusionMatrix: confusionMatrixResult.data,
+      curves: curvesResult.data,
+      isLoading: [featureImportanceResult, confusionMatrixResult, curvesResult].some(
+        (r) => r.isLoading,
+      ),
     }),
   });
 }
