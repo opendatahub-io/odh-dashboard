@@ -46,7 +46,6 @@
     "@perses-dev/components": "^0.54.0-beta.10",
     "@perses-dev/core": "^0.54.0-beta.2",
     "@perses-dev/dashboards": "^0.54.0-beta.10",
-    "@perses-dev/explore": "^0.54.0-beta.10",
     "@perses-dev/plugin-system": "^0.54.0-beta.10",
     "@perses-dev/prometheus-plugin": "v0.58.0-beta.3"
   },

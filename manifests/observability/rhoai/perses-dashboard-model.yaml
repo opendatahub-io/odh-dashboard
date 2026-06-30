@@ -198,7 +198,7 @@ spec:
                       name: cluster-prometheus-tenancy-datasource
                     # Number of requests waiting in queue per model
                     query: sum by (model_name, namespace) (kserve_vllm:num_requests_waiting{model_name=~"$model_name"})
-                    seriesNameFormat: "{{model_name}}"
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
       replicaCount:
         kind: Panel
         spec:
@@ -231,7 +231,7 @@ spec:
                       name: cluster-prometheus-tenancy-datasource
                     # Ready pods per model - count of pods with vLLM metrics
                     query: count by (model_name, namespace) (group by (pod, model_name, namespace) (kserve_vllm:num_requests_running{model_name=~"$model_name"}))
-                    seriesNameFormat: "{{model_name}}"
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
       requestLatency:
         kind: Panel
         spec:
@@ -264,7 +264,7 @@ spec:
                       name: cluster-prometheus-tenancy-datasource
                     # P90 end-to-end request latency
                     query: (histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:e2e_request_latency_seconds_bucket{model_name=~"$model_name"}[$__rate_interval]))) > -Inf) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
-                    seriesNameFormat: "{{model_name}}"
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
       timeToFirstToken:
         kind: Panel
         spec:
@@ -297,7 +297,7 @@ spec:
                       name: cluster-prometheus-tenancy-datasource
                     # P90 time to first token
                     query: (histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:time_to_first_token_seconds_bucket{model_name=~"$model_name"}[$__rate_interval]))) > -Inf) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
-                    seriesNameFormat: "{{model_name}}"
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
       tokenThroughput:
         kind: Panel
         spec:
@@ -330,7 +330,7 @@ spec:
                       name: cluster-prometheus-tenancy-datasource
                     # Token throughput (prompt + generation tokens per second)
                     query: sum by(model_name, namespace) (rate(kserve_vllm:prompt_tokens_total{model_name=~"$model_name"}[$__rate_interval]) + rate(kserve_vllm:generation_tokens_total{model_name=~"$model_name"}[$__rate_interval]))
-                    seriesNameFormat: "{{model_name}}"
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
       requestSuccessRate:
         kind: Panel
         spec:
@@ -363,7 +363,7 @@ spec:
                       name: cluster-prometheus-tenancy-datasource
                     # Request success rate (successful requests per second)
                     query: sum by (model_name, namespace) (rate(kserve_vllm:request_success_total{model_name=~"$model_name", finished_reason=~"length|stop"}[$__rate_interval]))
-                    seriesNameFormat: "{{model_name}}"
+                    seriesNameFormat: "{{model_name}} ({{namespace}})"
       responseTimeDistribution:
         kind: Panel
         spec:

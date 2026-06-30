@@ -61,8 +61,10 @@ export const pluginLoader: PluginLoader = {
         kind,
         spec: { name },
       } of plugins) {
-        const key = getPluginModuleCompoundKey({ kind, name, registry, version });
-        moduleExports[key] = moduleExports[name];
+        if (moduleExports[name]) {
+          const key = getPluginModuleCompoundKey({ kind, name, registry, version });
+          moduleExports[key] = moduleExports[name];
+        }
       }
       return moduleExports;
     }
