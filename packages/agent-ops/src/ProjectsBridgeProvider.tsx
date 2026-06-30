@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { ProjectsBridgeData } from '../frontend/src/odh/extension-points';
+
+const getProjectDisplayName = (project: {
+  metadata: { name: string; annotations?: Record<string, string> };
+}): string => project.metadata.annotations?.['openshift.io/display-name'] || project.metadata.name;
 
 type ProjectsBridgeProviderProps = {
   children: (data: ProjectsBridgeData) => React.ReactNode;
@@ -15,7 +18,7 @@ const ProjectsBridgeProvider: React.FC<ProjectsBridgeProviderProps> = ({ childre
     () =>
       projects.map((project) => ({
         name: project.metadata.name,
-        displayName: getDisplayNameFromK8sResource(project),
+        displayName: getProjectDisplayName(project),
       })),
     [projects],
   );
@@ -25,7 +28,7 @@ const ProjectsBridgeProvider: React.FC<ProjectsBridgeProviderProps> = ({ childre
       preferredProject
         ? {
             name: preferredProject.metadata.name,
-            displayName: getDisplayNameFromK8sResource(preferredProject),
+            displayName: getProjectDisplayName(preferredProject),
           }
         : null,
     [preferredProject],
