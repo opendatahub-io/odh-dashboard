@@ -23,6 +23,15 @@ func TestDeleteAgentHandler_Success(t *testing.T) {
 	})
 
 	require.Equal(t, http.StatusNoContent, rr.Code)
+
+	// Verify the agent was actually removed from the mock repository
+	detailReq := httptest.NewRequest(http.MethodGet, ApiPathPrefix+"/agents/runtimes/agent-ops-demo/sample-support-agent", nil)
+	detailRR := httptest.NewRecorder()
+	app.GetAgentRuntimeDetailHandler(detailRR, detailReq, httprouter.Params{
+		{Key: "ns", Value: "agent-ops-demo"},
+		{Key: "name", Value: "sample-support-agent"},
+	})
+	require.Equal(t, http.StatusNotFound, detailRR.Code)
 }
 
 func TestDeleteAgentHandler_NotFound(t *testing.T) {

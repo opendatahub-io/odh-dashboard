@@ -148,6 +148,31 @@ paths:
       operationId: getAgentRuntimeDetail
       summary: Get agent runtime detail
       description: Returns full runtime detail for a single deployed agent.
+    delete:
+      tags:
+        - AgentOperation
+      parameters:
+        - $ref: "#/components/parameters/agentNamespace"
+        - $ref: "#/components/parameters/agentName"
+      responses:
+        "204":
+          description: Agent deployment deleted successfully.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: deleteAgent
+      summary: Delete an agent deployment
+      description: >-
+        Removes all Kubernetes resources associated with an agent deployment.
+        Deletes the AgentRuntime CR (cascading to Deployment, Service, Route via
+        OwnerReferences) and the ServiceAccount.
   /api/v1/agents/deploy:
     summary: Deploy a new agent runtime.
     description: >-
