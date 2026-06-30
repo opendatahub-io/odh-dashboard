@@ -1080,11 +1080,11 @@ function AutoragLeaderboard({
                           : []),
                         {
                           title: 'Save as indexing notebook',
-                          onClick: () => onSaveNotebook?.(entry.pattern, 'indexing'),
+                          onClick: () => onSaveNotebook?.(entry.patternKey, 'indexing'),
                         },
                         {
                           title: 'Save as inference notebook',
-                          onClick: () => onSaveNotebook?.(entry.pattern, 'inference'),
+                          onClick: () => onSaveNotebook?.(entry.patternKey, 'inference'),
                         },
                       ]}
                     />
