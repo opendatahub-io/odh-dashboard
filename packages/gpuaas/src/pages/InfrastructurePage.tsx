@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { Card, CardBody, CardTitle, Stack, StackItem } from '@patternfly/react-core';
