@@ -47,11 +47,7 @@ func (r *MaaSModelRefsRepository) ListMaaSModelRefs(ctx context.Context) ([]mode
 
 	summaries := make([]models.MaaSModelRefSummary, 0, len(list.Items))
 	for _, item := range list.Items {
-		summary, err := convertUnstructuredToModelRefSummary(&item)
-		if err != nil {
-			r.logger.Warn("Failed to convert MaaSModelRef", slog.String("name", item.GetName()), slog.Any("error", err))
-			continue
-		}
+		summary := convertUnstructuredToModelRefSummary(&item)
 		summaries = append(summaries, *summary)
 	}
 
@@ -84,7 +80,7 @@ func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, reques
 		return nil, fmt.Errorf("failed to create MaaSModelRef: %w", err)
 	}
 
-	return convertUnstructuredToModelRefSummary(created)
+	return convertUnstructuredToModelRefSummary(created), nil
 }
 
 // UpdateMaaSModelRef updates a MaaSModelRef resource. When dryRun is true the request is
@@ -151,7 +147,7 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 		return nil, fmt.Errorf("failed to update MaaSModelRef: %w", err)
 	}
 
-	return convertUnstructuredToModelRefSummary(updated)
+	return convertUnstructuredToModelRefSummary(updated), nil
 }
 
 // DeleteMaaSModelRef deletes a MaaSModelRef resource by namespace and name. When dryRun is true

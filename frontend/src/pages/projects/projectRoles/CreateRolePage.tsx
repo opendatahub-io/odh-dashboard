@@ -25,6 +25,8 @@ import CreateRoleFooter from './CreateRoleFooter';
 import CreateRoleConfirmModal from './CreateRoleConfirmModal';
 import CreateRoleYamlView from './CreateRoleYamlView';
 import assembleRole from './assembleRole';
+import { fromK8sLabels, toK8sLabels } from './labelUtils';
+import { USER_LABEL_PREFIX } from './const';
 import type { LabelEntry, RuleEntry } from './types';
 
 type ViewMode = 'form' | 'yaml';
@@ -53,16 +55,9 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
   const [description, setDescription] = React.useState(
     () => existingRole?.metadata.annotations?.['openshift.io/description'] ?? '',
   );
-  const [labels, setLabels] = React.useState<LabelEntry[]>(() => {
-    if (!existingRole?.metadata.labels) {
-      return [];
-    }
-    return Object.entries(existingRole.metadata.labels).map(([key, value]) => ({
-      id: getUniqueId('label'),
-      key,
-      value,
-    }));
-  });
+  const [labels, setLabels] = React.useState<LabelEntry[]>(() =>
+    fromK8sLabels(existingRole?.metadata.labels),
+  );
   const [rules, setRules] = React.useState<RuleEntry[]>(() => {
     if (!existingRole?.rules) {
       return [];
@@ -109,9 +104,12 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
     setSubmitError(undefined);
     const k8sName = k8sNameDescriptionData.data.k8sName.value;
     const roleDisplayName = k8sNameDescriptionData.data.name || k8sName;
-    const labelRecord = Object.fromEntries(
-      labels.filter((l) => l.key).map((l) => [l.key, l.value]),
+    const preservedLabels = Object.fromEntries(
+      Object.entries(existingRole?.metadata.labels ?? {}).filter(
+        ([key]) => !key.startsWith(USER_LABEL_PREFIX),
+      ),
     );
+    const labelRecord = { ...preservedLabels, ...toK8sLabels(labels) };
     const role = assembleRole(namespace, k8sName, roleDisplayName, description, rules, labelRecord);
     try {
       await createRole(role);
@@ -121,7 +119,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
       setSubmitError(error);
       throw error;
     }
-  }, [namespace, k8sNameDescriptionData.data, description, rules, labels, navigate]);
+  }, [namespace, k8sNameDescriptionData.data, description, rules, labels, navigate, existingRole]);
 
   const handleSubmit = React.useCallback(async () => {
     if (rules.length === 0) {
