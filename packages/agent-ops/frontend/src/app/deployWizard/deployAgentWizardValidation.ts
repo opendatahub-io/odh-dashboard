@@ -1,15 +1,34 @@
 import type { DeployAgentWizardFormData } from './types';
 import { DeployAgentWizardStepTitle } from './types';
-import { isValidAgentName, isValidK8sStorageQuantity, isValidPullSecretName } from './utils';
+import {
+  isEnvVarRowValid,
+  isServicePortRowValid,
+  isValidAgentName,
+  isValidK8sStorageQuantity,
+  isValidPullSecretName,
+} from './utils';
 
 /** Computed validation flags shared by the step registry and submit flow. */
 export type DeployAgentWizardValidationState = {
   isImageSelectionValid: boolean;
   isConfigurationValid: boolean;
+  isNetworkingValid: boolean;
+  isEnvironmentVariablesValid: boolean;
   isDeployFormValid: boolean;
 };
 
 export type DeployAgentWizardStepValidator = (state: DeployAgentWizardValidationState) => boolean;
+
+const isNetworkingFormDataValid = (formData: DeployAgentWizardFormData): boolean =>
+  formData.servicePorts.length > 0 && formData.servicePorts.every(isServicePortRowValid);
+
+const isEnvironmentVariablesFormDataValid = (formData: DeployAgentWizardFormData): boolean => {
+  if (formData.envVars.length === 0) {
+    return true;
+  }
+
+  return formData.envVars.every(isEnvVarRowValid);
+};
 
 export const createDeployAgentWizardValidationState = (
   formData: DeployAgentWizardFormData,
@@ -26,10 +45,19 @@ export const createDeployAgentWizardValidationState = (
     Boolean(formData.protocol && formData.workloadType) &&
     (!formData.enablePersistentStorage || isValidK8sStorageQuantity(formData.persistentVolumeSize));
 
+  const isNetworkingValid = isNetworkingFormDataValid(formData);
+  const isEnvironmentVariablesValid = isEnvironmentVariablesFormDataValid(formData);
+
   return {
     isImageSelectionValid,
     isConfigurationValid,
-    isDeployFormValid: isImageSelectionValid && isConfigurationValid,
+    isNetworkingValid,
+    isEnvironmentVariablesValid,
+    isDeployFormValid:
+      isImageSelectionValid &&
+      isConfigurationValid &&
+      isNetworkingValid &&
+      isEnvironmentVariablesValid,
   };
 };
 
@@ -39,7 +67,11 @@ export const deployAgentWizardStepValidators = {
     state.isImageSelectionValid,
   isConfigurationStepValid: (state: DeployAgentWizardValidationState): boolean =>
     state.isConfigurationValid,
-  isPlaceholderStepValid: (): boolean => true,
+  isNetworkingStepValid: (state: DeployAgentWizardValidationState): boolean =>
+    state.isNetworkingValid,
+  isSecurityStepValid: (): boolean => true,
+  isEnvironmentVariablesStepValid: (state: DeployAgentWizardValidationState): boolean =>
+    state.isEnvironmentVariablesValid,
   isSummaryStepValid: (state: DeployAgentWizardValidationState): boolean => state.isDeployFormValid,
 } as const;
 
@@ -64,17 +96,17 @@ export const deployAgentWizardStepRegistry: DeployAgentWizardStepConfig[] = [
   {
     name: DeployAgentWizardStepTitle.NETWORKING,
     id: 'deploy-agent-networking-step',
-    isValid: deployAgentWizardStepValidators.isPlaceholderStepValid,
+    isValid: deployAgentWizardStepValidators.isNetworkingStepValid,
   },
   {
     name: DeployAgentWizardStepTitle.SECURITY_AND_IDENTITY,
     id: 'deploy-agent-security-and-identity-step',
-    isValid: deployAgentWizardStepValidators.isPlaceholderStepValid,
+    isValid: deployAgentWizardStepValidators.isSecurityStepValid,
   },
   {
     name: DeployAgentWizardStepTitle.ENVIRONMENT_VARIABLES,
     id: 'deploy-agent-environment-variables-step',
-    isValid: deployAgentWizardStepValidators.isPlaceholderStepValid,
+    isValid: deployAgentWizardStepValidators.isEnvironmentVariablesStepValid,
   },
   {
     name: DeployAgentWizardStepTitle.SUMMARY,

@@ -3,8 +3,9 @@ import {
   DEFAULT_IMAGE_TAG,
   DEFAULT_PERSISTENT_VOLUME_SIZE,
   DEFAULT_PROTOCOL,
+  DEFAULT_SERVICE_PORT,
 } from './wizardOptions';
-import type { DeployAgentWizardFormData } from './types';
+import type { DeployAgentEnvVar, DeployAgentServicePort, DeployAgentWizardFormData } from './types';
 import { buildFullImageReference, deriveAgentNameFromImage } from './utils';
 
 export type DeployAgentWizardFormField = keyof DeployAgentWizardFormData;
@@ -15,6 +16,12 @@ type AgentDeployWizardContextValue = {
     field: K,
     value: DeployAgentWizardFormData[K],
   ) => void;
+  updateServicePort: (index: number, partial: Partial<DeployAgentServicePort>) => void;
+  addServicePort: () => void;
+  removeServicePort: (index: number) => void;
+  updateEnvVar: (index: number, partial: Partial<DeployAgentEnvVar>) => void;
+  addEnvVar: () => void;
+  removeEnvVar: (index: number) => void;
   isDirty: boolean;
   setAgentNameManuallyEdited: (value: boolean) => void;
 };
@@ -32,25 +39,19 @@ export const createInitialFormData = (namespace: string): DeployAgentWizardFormD
   workloadType: '',
   enablePersistentStorage: false,
   persistentVolumeSize: DEFAULT_PERSISTENT_VOLUME_SIZE,
+  servicePorts: [{ ...DEFAULT_SERVICE_PORT }],
+  createRoute: false,
+  authBridgeEnabled: true,
+  useEnvoySidecar: false,
+  enableSpireIdentity: false,
+  mtlsMode: '',
+  envVars: [],
 });
-
-const FORM_FIELDS: DeployAgentWizardFormField[] = [
-  'project',
-  'containerImage',
-  'imageTag',
-  'agentName',
-  'pullSecret',
-  'fullImageReference',
-  'protocol',
-  'workloadType',
-  'enablePersistentStorage',
-  'persistentVolumeSize',
-];
 
 const isFormDataEqual = (
   left: DeployAgentWizardFormData,
   right: DeployAgentWizardFormData,
-): boolean => FORM_FIELDS.every((key) => left[key] === right[key]);
+): boolean => JSON.stringify(left) === JSON.stringify(right);
 
 type AgentDeployWizardProviderProps = {
   namespace: string;
@@ -85,11 +86,64 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
           next.fullImageReference = buildFullImageReference(current.containerImage, value);
         }
 
+        if (field === 'authBridgeEnabled' && value === false) {
+          next.useEnvoySidecar = false;
+        }
+
         return next;
       });
     },
     [],
   );
+
+  const updateServicePort = React.useCallback(
+    (index: number, partial: Partial<DeployAgentServicePort>) => {
+      setFormData((current) => ({
+        ...current,
+        servicePorts: current.servicePorts.map((port, i) =>
+          i === index ? { ...port, ...partial } : port,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const addServicePort = React.useCallback(() => {
+    setFormData((current) => ({
+      ...current,
+      servicePorts: [...current.servicePorts, { ...DEFAULT_SERVICE_PORT }],
+    }));
+  }, []);
+
+  const removeServicePort = React.useCallback((index: number) => {
+    setFormData((current) => ({
+      ...current,
+      servicePorts: current.servicePorts.filter((_, i) => i !== index),
+    }));
+  }, []);
+
+  const updateEnvVar = React.useCallback((index: number, partial: Partial<DeployAgentEnvVar>) => {
+    setFormData((current) => ({
+      ...current,
+      envVars: current.envVars.map((envVar, i) =>
+        i === index ? { ...envVar, ...partial } : envVar,
+      ),
+    }));
+  }, []);
+
+  const addEnvVar = React.useCallback(() => {
+    setFormData((current) => ({
+      ...current,
+      envVars: [...current.envVars, { name: '', value: '' }],
+    }));
+  }, []);
+
+  const removeEnvVar = React.useCallback((index: number) => {
+    setFormData((current) => ({
+      ...current,
+      envVars: current.envVars.filter((_, i) => i !== index),
+    }));
+  }, []);
 
   const isDirty = !isFormDataEqual(formData, initialFormData);
 
@@ -97,10 +151,27 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
     () => ({
       formData,
       setFormField,
+      updateServicePort,
+      addServicePort,
+      removeServicePort,
+      updateEnvVar,
+      addEnvVar,
+      removeEnvVar,
       isDirty,
       setAgentNameManuallyEdited,
     }),
-    [formData, setFormField, isDirty, setAgentNameManuallyEdited],
+    [
+      formData,
+      setFormField,
+      updateServicePort,
+      addServicePort,
+      removeServicePort,
+      updateEnvVar,
+      addEnvVar,
+      removeEnvVar,
+      isDirty,
+      setAgentNameManuallyEdited,
+    ],
   );
 
   return (

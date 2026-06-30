@@ -1,11 +1,19 @@
 import {
   deriveAgentNameFromImage,
   buildFullImageReference,
+  formatAuthBridgeSummary,
+  formatEnvVarsSummary,
+  formatServicePortsSummary,
   isValidAgentName,
+  isValidEnvVarName,
   isValidK8sStorageQuantity,
+  isValidPortNumber,
   isValidPullSecretName,
+  isValidServicePortName,
   stripContainerImageTag,
 } from '~/app/deployWizard/utils';
+import type { DeployAgentWizardFormData } from '~/app/deployWizard/types';
+import { createInitialFormData } from '~/app/deployWizard/useAgentDeployWizard';
 
 describe('deployWizard utils', () => {
   describe('deriveAgentNameFromImage', () => {
@@ -73,6 +81,49 @@ describe('deployWizard utils', () => {
     it('preserves digest-pinned references', () => {
       const digestImage = 'quay.io/myorg/my-agent@sha256:abcdef0123456789';
       expect(stripContainerImageTag(digestImage)).toBe(digestImage);
+    });
+  });
+
+  describe('port and env validators', () => {
+    it('validates port numbers', () => {
+      expect(isValidPortNumber(8080)).toBe(true);
+      expect(isValidPortNumber(0)).toBe(false);
+      expect(isValidPortNumber(70000)).toBe(false);
+    });
+
+    it('validates service port names', () => {
+      expect(isValidServicePortName('http')).toBe(true);
+      expect(isValidServicePortName('bad name')).toBe(false);
+    });
+
+    it('validates environment variable names', () => {
+      expect(isValidEnvVarName('LOG_LEVEL')).toBe(true);
+      expect(isValidEnvVarName('1BAD')).toBe(false);
+    });
+  });
+
+  describe('summary formatters', () => {
+    it('formats service ports', () => {
+      expect(
+        formatServicePortsSummary([
+          { name: 'http', port: 8080, targetPort: 8000, protocol: 'TCP' },
+        ]),
+      ).toBe('http (TCP): 8080 -> 8000');
+    });
+
+    it('formats auth bridge summary', () => {
+      const formData: DeployAgentWizardFormData = {
+        ...createInitialFormData('team1'),
+        authBridgeEnabled: true,
+        useEnvoySidecar: true,
+      };
+
+      expect(formatAuthBridgeSummary(formData)).toBe('Enabled (envoy-sidecar)');
+    });
+
+    it('formats environment variables', () => {
+      expect(formatEnvVarsSummary([])).toBe('None');
+      expect(formatEnvVarsSummary([{ name: 'LOG_LEVEL', value: 'info' }])).toBe('LOG_LEVEL=info');
     });
   });
 });

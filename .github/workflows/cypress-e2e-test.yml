@@ -668,6 +668,14 @@ jobs:
 
           # Append the consolidated auto-detected entry as a single matrix item
           if [[ -n "$AUTO_DETECTED_ENTRY" ]]; then
+            TAG_PATTERN='^@[a-zA-Z0-9_.:-]+$'
+            IFS=' ' read -ra auto_tags <<< "$(printf '%s' "$AUTO_DETECTED_ENTRY" | tr '\t' ' ')"
+            for tag in "${auto_tags[@]}"; do
+              if [[ ! "$tag" =~ $TAG_PATTERN ]]; then
+                echo "❌ Invalid auto-detected tag format: $tag"
+                exit 1
+              fi
+            done
             MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
           fi
           
@@ -694,19 +702,39 @@ jobs:
       MATRIX_TAG: ${{ matrix.tag }}
     steps:
       - name: Validate tag format
+        shell: bash
         run: |
-          if [[ -z "$MATRIX_TAG" ]]; then
+          # Matrix entries may be one Cypress grep tag or several space-separated tags
+          # (consolidated auto-detected areas use OR semantics in grepTags).
+          TAG_PATTERN='^@[a-zA-Z0-9_.:-]+$'
+
+          if [[ -z "${MATRIX_TAG//[[:space:]]/}" ]]; then
             echo "❌ MATRIX_TAG is empty or unset"
             exit 1
           fi
-          for tag in $MATRIX_TAG; do
-            if [[ ! "$tag" =~ ^@[a-zA-Z0-9_.:-]+$ ]]; then
+
+          normalized=$(printf '%s' "$MATRIX_TAG" | tr '\t' ' ')
+          IFS=' ' read -ra tags <<< "$normalized"
+          if [[ ${#tags[@]} -eq 0 || -z "${tags[0]}" ]]; then
+            echo "❌ MATRIX_TAG is empty or unset"
+            exit 1
+          fi
+
+          invalid=0
+          for tag in "${tags[@]}"; do
+            if [[ ! "$tag" =~ $TAG_PATTERN ]]; then
               echo "❌ Invalid tag format: $tag"
-              echo "   Tags must match: ^@[a-zA-Z0-9_.:-]+$"
-              exit 1
+              invalid=1
             fi
           done
-          echo "✅ Tag format valid: $MATRIX_TAG"
+
+          if [[ $invalid -ne 0 ]]; then
+            echo "   Each tag must match: $TAG_PATTERN"
+            echo "   Space-separated tags are allowed in one matrix entry."
+            exit 1
+          fi
+
+          echo "✅ Tag format valid (${#tags[@]} tag(s)): $MATRIX_TAG"
 
       - name: Check Disk Space
         run: |

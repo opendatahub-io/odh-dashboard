@@ -1,3 +1,12 @@
+import type { DeployAgentEnvVar, DeployAgentServicePort, DeployAgentWizardFormData } from './types';
+import {
+  ENV_VAR_NAME_REGEX,
+  MAX_SERVICE_PORT,
+  MIN_SERVICE_PORT,
+  VALID_SERVICE_PORT_PROTOCOLS,
+} from './constants';
+import { protocolOptions, workloadTypeOptions } from './wizardOptions';
+
 const K8S_STORAGE_QUANTITY_REGEX = /^\d+(\.\d+)?(Gi|Mi|Ti|G|M|T)$/;
 const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 const K8S_DNS_SUBDOMAIN_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
@@ -103,3 +112,71 @@ export const isValidPullSecretName = (name: string): boolean => {
   }
   return trimmed.length <= MAX_DNS_SUBDOMAIN_LENGTH && K8S_DNS_SUBDOMAIN_REGEX.test(trimmed);
 };
+
+export const isValidPortNumber = (port: number | undefined): boolean =>
+  typeof port === 'number' &&
+  Number.isInteger(port) &&
+  port >= MIN_SERVICE_PORT &&
+  port <= MAX_SERVICE_PORT;
+
+export const isValidServicePortName = (name: string): boolean => isValidAgentName(name);
+
+export const isValidServicePortProtocol = (protocol: string): boolean =>
+  VALID_SERVICE_PORT_PROTOCOLS.has(protocol);
+
+export const isValidEnvVarName = (name: string): boolean => {
+  const trimmed = name.trim();
+  return trimmed.length > 0 && ENV_VAR_NAME_REGEX.test(trimmed);
+};
+
+export const getEnvVarNameError = (name: string): string => {
+  if (name.trim().length === 0) {
+    return '';
+  }
+  return isValidEnvVarName(name)
+    ? ''
+    : 'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores';
+};
+
+export const isServicePortRowValid = (port: DeployAgentServicePort): boolean =>
+  isValidServicePortName(port.name) &&
+  isValidPortNumber(port.port) &&
+  isValidPortNumber(port.targetPort) &&
+  isValidServicePortProtocol(port.protocol);
+
+export const isEnvVarRowValid = (envVar: DeployAgentEnvVar): boolean =>
+  envVar.name.trim().length > 0 && envVar.value.trim().length > 0 && isValidEnvVarName(envVar.name);
+
+export const formatServicePortsSummary = (servicePorts: DeployAgentServicePort[]): string =>
+  servicePorts
+    .map((port) => `${port.name} (${port.protocol}): ${port.port} -> ${port.targetPort}`)
+    .join(', ');
+
+export const formatAuthBridgeSummary = (formData: DeployAgentWizardFormData): string => {
+  if (!formData.authBridgeEnabled) {
+    return 'Disabled';
+  }
+  if (formData.useEnvoySidecar) {
+    return 'Enabled (envoy-sidecar)';
+  }
+  return 'Enabled';
+};
+
+export const formatEnvVarsSummary = (envVars: DeployAgentEnvVar[]): string => {
+  if (envVars.length === 0) {
+    return 'None';
+  }
+  return envVars.map((envVar) => `${envVar.name}=${envVar.value}`).join(', ');
+};
+
+export const formatPersistentStorageSummary = (formData: DeployAgentWizardFormData): string =>
+  formData.enablePersistentStorage ? `Enabled (${formData.persistentVolumeSize})` : 'Disabled';
+
+export const getOptionLabel = (options: { key: string; label: string }[], key: string): string =>
+  options.find((option) => option.key === key)?.label ?? key;
+
+export const formatProtocolSummary = (protocol: string): string =>
+  getOptionLabel(protocolOptions, protocol);
+
+export const formatWorkloadTypeSummary = (workloadType: string): string =>
+  getOptionLabel(workloadTypeOptions, workloadType);

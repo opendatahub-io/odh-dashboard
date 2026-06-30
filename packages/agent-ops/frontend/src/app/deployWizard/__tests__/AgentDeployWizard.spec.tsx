@@ -135,6 +135,29 @@ jest.mock('@odh-dashboard/internal/components/SimpleSelect', () => ({
   ),
 }));
 
+jest.mock('@odh-dashboard/internal/components/NumberInputWrapper', () => ({
+  __esModule: true,
+  default: ({
+    'data-testid': dataTestId,
+    value,
+    onChange,
+  }: {
+    'data-testid'?: string;
+    value?: number;
+    onChange?: (value: number | undefined) => void;
+  }) => (
+    <input
+      data-testid={dataTestId}
+      type="number"
+      value={value ?? ''}
+      onChange={(event) => {
+        const nextValue = event.target.value === '' ? undefined : Number(event.target.value);
+        onChange?.(nextValue);
+      }}
+    />
+  ),
+}));
+
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual<typeof import('mod-arch-core')>('mod-arch-core'),
   useNamespaceSelector: () => ({
@@ -328,11 +351,64 @@ describe('AgentDeployWizard', () => {
     await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
 
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    expect(screen.getByTestId('deploy-agent-port-name-0')).toHaveValue('http');
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+
+    expect(screen.getByTestId('deploy-agent-summary-container-image')).toHaveTextContent(
+      'quay.io/myorg/my-agent',
+    );
+    expect(screen.getByTestId('deploy-agent-summary-framework')).toHaveTextContent('—');
+
     await user.click(screen.getByTestId('deploy-agent-wizard-submit'));
 
     expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1');
+  });
+
+  it('allows adding and removing service port rows', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+
+    expect(screen.getByTestId('deploy-agent-port-name-0')).toBeInTheDocument();
+    await user.click(screen.getByTestId('deploy-agent-add-service-port'));
+    expect(screen.getByTestId('deploy-agent-port-name-1')).toBeInTheDocument();
+    await user.click(screen.getByTestId('deploy-agent-remove-service-port-1'));
+    expect(screen.queryByTestId('deploy-agent-port-name-1')).not.toBeInTheDocument();
+  });
+
+  it('disables envoy-sidecar mode when AuthBridge is unchecked', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+
+    expect(screen.getByTestId('deploy-agent-use-envoy-sidecar')).toBeEnabled();
+    await user.click(screen.getByTestId('deploy-agent-auth-bridge-enabled'));
+    expect(screen.getByTestId('deploy-agent-use-envoy-sidecar')).toBeDisabled();
+  });
+
+  it('keeps Next disabled on step 5 when an environment variable row is incomplete', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-add-env-var'));
+
+    expect(screen.getByTestId('deploy-agent-wizard-next')).toBeDisabled();
   });
 });
