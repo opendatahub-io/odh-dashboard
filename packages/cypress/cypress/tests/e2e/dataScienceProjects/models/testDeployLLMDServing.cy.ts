@@ -28,12 +28,14 @@ import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardU
 
 let testData: DataScienceProjectData;
 let projectName: string;
+let resourceApiVersion: string;
 let resourceName: string;
 let modelName: string;
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
 let modelURI: string;
+let deploymentMethod: DataScienceProjectData['deploymentMethod'];
 let servingRuntime: string;
 let existingImage: string;
 let replaceImage: string;
@@ -47,8 +49,10 @@ describe('A user can deploy an LLMD model', () => {
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
+        resourceApiVersion = testData.resourceApiVersion;
         modelName = testData.singleModelName;
         modelURI = testData.modelLocationURI;
+        deploymentMethod = testData.deploymentMethod;
         servingRuntime = testData.servingRuntime;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
@@ -134,16 +138,13 @@ describe('A user can deploy an LLMD model', () => {
         });
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
 
-      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-
       cy.step('Verify YAML Viewer');
       // Stub clipboard API AFTER page load (window changes on navigation)
       stubClipboard('copiedYAML');
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLEditorEmptyState().should('be.visible');
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
+      modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
 
@@ -155,7 +156,8 @@ describe('A user can deploy an LLMD model', () => {
       getClipboardContent('copiedYAML').then((copied) => {
         expect(copied).to.have.length.at.least(1);
         const yamlContent = copied[0];
-        expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha1');
+        // expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha2');
+        expect(yamlContent).to.include(resourceApiVersion);
         expect(yamlContent).to.include('kind: LLMInferenceService');
         expect(yamlContent).to.include(`name: ${modelName}`);
         expect(yamlContent).to.include(replaceImage);

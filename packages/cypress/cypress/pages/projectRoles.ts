@@ -13,6 +13,10 @@ class RolesTableRow extends TableRow {
     return this.find().find('[data-label="Type"]');
   }
 
+  findLabelsCell() {
+    return this.find().findByTestId('role-labels-cell');
+  }
+
   shouldHaveName(name: string) {
     this.findNameLink().should('have.text', name);
     return this;
