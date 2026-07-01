@@ -69,7 +69,7 @@ func (c *mockK8sClient) GetUser(identity *k8s.RequestIdentity) (string, error) {
 	return "test-user", nil
 }
 
-func (c *mockK8sClient) CanWritePromptsInNamespace(ctx context.Context, namespace string) (bool, error) {
+func (c *mockK8sClient) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
 	return c.canWrite, nil
 }
 
@@ -184,6 +184,7 @@ func TestRegisterChatPromptSuccess(t *testing.T) {
 
 func TestRegisterTextPromptSuccess(t *testing.T) {
 	app := newTestAppWithPromptsRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
 	mockClient := &mlflowpkg.MockClient{}
 
 	now := time.Now()
@@ -194,8 +195,9 @@ func TestRegisterTextPromptSuccess(t *testing.T) {
 		}, nil)
 
 	body := `{"name":"text-prompt","template":"Hello {{name}}"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts?workspace=my-ns", strings.NewReader(body))
 	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-ns")
 	rr := httptest.NewRecorder()
 
 	app.MLflowRegisterPromptHandler(rr, req, nil)
@@ -257,6 +259,7 @@ func TestRegisterPromptBothMessagesAndTemplate(t *testing.T) {
 
 func TestRegisterPromptCreateOnlyConflict(t *testing.T) {
 	app := newTestAppWithPromptsRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
 	mockClient := &mlflowpkg.MockClient{}
 
 	now := time.Now()
@@ -267,8 +270,9 @@ func TestRegisterPromptCreateOnlyConflict(t *testing.T) {
 		}, nil)
 
 	body := `{"name":"existing","template":"Hello","create_only":true}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts?workspace=my-ns", strings.NewReader(body))
 	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-ns")
 	rr := httptest.NewRecorder()
 
 	app.MLflowRegisterPromptHandler(rr, req, nil)
@@ -278,6 +282,7 @@ func TestRegisterPromptCreateOnlyConflict(t *testing.T) {
 
 func TestRegisterPromptCreateOnlyNotFound(t *testing.T) {
 	app := newTestAppWithPromptsRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
 	mockClient := &mlflowpkg.MockClient{}
 
 	mockClient.On("LoadPrompt", tmock.Anything, "new-prompt", tmock.Anything).
@@ -291,8 +296,9 @@ func TestRegisterPromptCreateOnlyNotFound(t *testing.T) {
 		}, nil)
 
 	body := `{"name":"new-prompt","template":"Hello","create_only":true}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts?workspace=my-ns", strings.NewReader(body))
 	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-ns")
 	rr := httptest.NewRecorder()
 
 	app.MLflowRegisterPromptHandler(rr, req, nil)
@@ -391,12 +397,14 @@ func TestListPromptVersionsSuccess(t *testing.T) {
 
 func TestDeletePromptSuccess(t *testing.T) {
 	app := newTestAppWithPromptsRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
 	mockClient := &mlflowpkg.MockClient{}
 
 	mockClient.On("DeletePrompt", tmock.Anything, "to-delete").Return(nil)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/to-delete", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/to-delete?workspace=my-ns", nil)
 	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-ns")
 	rr := httptest.NewRecorder()
 
 	ps := httprouter.Params{{Key: "name", Value: "to-delete"}}
@@ -410,12 +418,14 @@ func TestDeletePromptSuccess(t *testing.T) {
 
 func TestDeletePromptVersionSuccess(t *testing.T) {
 	app := newTestAppWithPromptsRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
 	mockClient := &mlflowpkg.MockClient{}
 
 	mockClient.On("DeletePromptVersion", tmock.Anything, "my-prompt", 1).Return(nil)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/my-prompt/versions/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/my-prompt/versions/1?workspace=my-ns", nil)
 	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-ns")
 	rr := httptest.NewRecorder()
 
 	ps := httprouter.Params{{Key: "name", Value: "my-prompt"}, {Key: "version", Value: "1"}}
@@ -839,7 +849,7 @@ func TestEnforceWritePermissionBypassedWhenAuthDisabled(t *testing.T) {
 	}
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	rr := httptest.NewRecorder()
-	result := app.enforceWritePermission(context.Background(), rr, req, "my-ns", nil)
+	result := app.enforceWritePermission(context.Background(), rr, req, "my-ns", nil, "create")
 	assert.True(t, result)
 	// ResponseRecorder initializes with implicit 200, but no error response was written
 	// Verify the body is empty to confirm no error handler was called
@@ -874,6 +884,6 @@ func (c *mockK8sClientWithPermissionError) GetUser(identity *k8s.RequestIdentity
 	return "test-user", nil
 }
 
-func (c *mockK8sClientWithPermissionError) CanWritePromptsInNamespace(ctx context.Context, namespace string) (bool, error) {
+func (c *mockK8sClientWithPermissionError) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
 	return false, fmt.Errorf("k8s api error")
 }

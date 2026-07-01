@@ -81,7 +81,7 @@ func TestCanWritePromptsInNamespace(t *testing.T) {
 				},
 			}
 
-			got, err := client.CanWritePromptsInNamespace(context.Background(), tt.namespace)
+			got, err := client.CanWritePromptsInNamespace(context.Background(), tt.namespace, "create")
 
 			if tt.wantErr {
 				require.Error(t, err)

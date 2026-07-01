@@ -143,23 +143,29 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 
 // CanWritePromptsInNamespace checks if the user can write prompts to the namespace.
 //
-// This uses SelfSubjectAccessReview to check for create permission on
+// This uses SelfSubjectAccessReview to check permission on
 // mlflow.kubeflow.org/registeredmodels resources. This matches the permissions
 // granted by the mlflow-edit ClusterRole, which allows:
 //   - apiGroups: ["mlflow.kubeflow.org"]
 //     resources: ["registeredmodels", "experiments", "runs"]
 //     verbs: ["create", "update", "patch", "delete"]
 //
-// The prompt registry stores prompts as RegisteredModel resources in MLflow,
-// so checking registeredmodels/create permission is the correct gate for
-// determining if a user can save/delete prompts in a namespace.
+// The prompt registry stores prompts as RegisteredModel resources in MLflow.
+// The verb parameter must be one of: "create" (for save operations) or "delete"
+// (for delete operations) to match the actual operation being performed.
 //
 // SSAR uses the token bound to this client at construction time (the user's
 // forwarded token), so it always checks the authenticated user's permissions.
 func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
 	ctx context.Context,
 	namespace string,
+	verb string,
 ) (bool, error) {
+	// Validate verb to prevent misuse
+	if verb != "create" && verb != "delete" {
+		return false, fmt.Errorf("invalid verb %q: must be 'create' or 'delete'", verb)
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -169,7 +175,7 @@ func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
 				Namespace: namespace,
 				Group:     "mlflow.kubeflow.org",
 				Resource:  "registeredmodels",
-				Verb:      "create",
+				Verb:      verb,
 			},
 		},
 	}

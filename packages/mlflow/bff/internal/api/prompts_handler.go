@@ -184,12 +184,14 @@ func (app *App) fetchGlobalPrompts(r *http.Request, globalNamespaces []string, n
 
 // enforceWritePermission checks if the user has write permissions in the namespace.
 // Returns true if allowed, false if denied or error occurred (response already written).
+// The verb parameter should be "create" for save operations or "delete" for delete operations.
 func (app *App) enforceWritePermission(
 	ctx context.Context,
 	w http.ResponseWriter,
 	r *http.Request,
 	workspace string,
 	identity *k8s.RequestIdentity,
+	verb string,
 ) bool {
 	if app.config.AuthMethod == config.AuthMethodDisabled {
 		app.logger.Warn("Skipping permission check (auth disabled)",
@@ -206,7 +208,7 @@ func (app *App) enforceWritePermission(
 		return false
 	}
 
-	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, workspace)
+	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, workspace, verb)
 	if err != nil {
 		userID := ""
 		if identity != nil {
@@ -265,9 +267,14 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
+	if workspace == "" {
+		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
+		return
+	}
+
 	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 
-	if !app.enforceWritePermission(ctx, w, r, workspace, identity) {
+	if !app.enforceWritePermission(ctx, w, r, workspace, identity, "create") {
 		return
 	}
 
@@ -385,9 +392,14 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
+	if workspace == "" {
+		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
+		return
+	}
+
 	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 
-	if !app.enforceWritePermission(ctx, w, r, workspace, identity) {
+	if !app.enforceWritePermission(ctx, w, r, workspace, identity, "delete") {
 		return
 	}
 
@@ -420,9 +432,14 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 	}
 
 	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
+	if workspace == "" {
+		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
+		return
+	}
+
 	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 
-	if !app.enforceWritePermission(ctx, w, r, workspace, identity) {
+	if !app.enforceWritePermission(ctx, w, r, workspace, identity, "delete") {
 		return
 	}
 
