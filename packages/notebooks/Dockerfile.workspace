@@ -77,8 +77,7 @@ COPY --chown=default:root ${BFF_SOURCE_CODE} ./backend
 
 # Rewrite the go.mod to update the replace directive and download dependencies
 RUN go mod edit \
-    -replace=github.com/kubeflow/notebooks/workspaces/controller=./controller \
-    -replace=github.com/kubeflow/notebooks/workspaces/backend=./backend && \
+    -replace=github.com/kubeflow/notebooks/workspaces/controller=./controller && \
     go mod download
 
 # Copy the go source files
@@ -88,7 +87,7 @@ COPY --chown=default:root ${BFF_SOURCE_CODE}/internal/ internal/
 COPY --chown=default:root ${BFF_SOURCE_CODE}/openapi/ openapi/
 
 # Build the Go application
-RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o /tmp/bff-binary ./cmd
 
 # Final stage
 FROM ${DISTROLESS_BASE_IMAGE}
@@ -96,7 +95,7 @@ FROM ${DISTROLESS_BASE_IMAGE}
 ARG UI_SOURCE_CODE
 
 WORKDIR /
-COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=bff-builder /tmp/bff-binary /bff
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
 USER 65532:65532
 

@@ -8,6 +8,7 @@ resources:
   - modules-cluster-role.yaml
   - modules-cluster-role-binding.yaml
   - modules-sa-token-secret.yaml
+  - notebooks-rbac.yaml
 configMapGenerator:
   - name: modular-architecture-params
     env: params.env
@@ -84,6 +85,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.agent-ops-ui-image
+  - name: notebooks-ui-image
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.notebooks-ui-image
 configurations:
   - params.yaml
 patchesJson6902:

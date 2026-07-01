@@ -171,6 +171,9 @@ spec:
                     toolCalling:
                       type: boolean
                       description: 'When true, enables tool-calling configuration for supported models in the model catalog.'
+                    notebooksV2:
+                      type: boolean
+                      description: 'When true, enables the new notebooks v2 features.'
                     projectRBAC:
                       type: boolean
                       description: 'When true, enables project-level RBAC (Role-Based Access Control) settings.'

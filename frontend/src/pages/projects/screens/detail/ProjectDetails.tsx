@@ -24,6 +24,7 @@ import {
   getDisplayNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
+import { useWorkbenchesV2Tab } from '#~/concepts/projects/projectDetails/useWorkbenchesV2Tab';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '#~/pages/projects/components/GenericHorizontalBar';
@@ -62,6 +63,7 @@ const ProjectDetails: React.FC = () => {
   const settingsCardExtensions = useExtensions(isProjectDetailsSettingsCardExtension);
   const hasSettingsCards = settingsCardExtensions.length > 0 || biasMetricsAreaAvailable; // Bias metrics is not yet an extension
   const deploymentsTab = useDeploymentsTab();
+  const workbenchesV2Tab = useWorkbenchesV2Tab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
 
@@ -190,6 +192,7 @@ const ProjectDetails: React.FC = () => {
                   },
                 ]
               : []),
+            ...workbenchesV2Tab,
             ...(pipelinesEnabled
               ? [
                   {
@@ -255,6 +258,7 @@ const ProjectDetails: React.FC = () => {
           ],
           [
             workbenchEnabled,
+            workbenchesV2Tab,
             pipelinesEnabled,
             deploymentsTab,
             projectSharingEnabled,

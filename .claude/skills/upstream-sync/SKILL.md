@@ -254,3 +254,111 @@ Copy the "Request review criteria" section exactly as it appears in `.github/pul
    gh pr close <pr-number> --repo <upstream-owner>/<upstream-repo>
    ```
    **Do NOT close the PR in normal mode.** Normal sync PRs are meant to be reviewed and merged.
+
+## Package-Specific: Notebooks
+
+The notebooks package (`packages/notebooks`) syncs from `opendatahub-io/workbenches` and has unique challenges due to local ODH modifications, a Go backend, and generated TypeScript types.
+
+### Known Local ODH Modifications
+
+These files intentionally diverge from upstream. Preserve the local modifications when resolving conflicts.
+
+| File (relative to `upstream/`) | Local Modification | Why |
+|---|---|---|
+| `workspaces/frontend/src/app/pages/Workspaces/Form/WorkspaceForm.tsx` | `/* eslint-disable @cspell/spellchecker */` at line 1; `navigate(-1)` instead of `navigate('workspaces')` | cspell config doesn't resolve from upstream path; go-back behavior in federated mode |
+| `workspaces/frontend/src/odh/NotebooksWrapper.tsx` | Entire file is ODH-only | Federated module entry point with ModularArchContextProvider |
+| `workspaces/frontend/src/app/components/NamespaceSelector.tsx` | ODH-only component | Federated namespace selection UI |
+| `workspaces/frontend/src/app/pages/Workspaces/Workspaces.tsx` | NamespaceSelector integration, PF import paths | ODH federated integration |
+| `workspaces/backend/cmd/main.go` | `StaticAssetsDir` flag and config field | Frontend static asset serving in federated mode |
+| `workspaces/backend/internal/config/environment.go` | `StaticAssetsDir` struct field | Companion to main.go change |
+| `Dockerfile.workspace` | `ENV GOTOOLCHAIN=auto` in BFF build stage | UBI9 go-toolset image lags behind upstream go.mod version |
+
+### Known Conflict Patterns
+
+**CODEOWNERS-only commits** — Upstream commits touching only CODEOWNERS produce no local file changes. The script exits with "No staged changes found". Fix: manually advance the tracking commit:
+```bash
+jq --arg commit "<sha>" '.subtree.commit = $commit' packages/notebooks/package.json > packages/notebooks/package.json.tmp \
+  && mv packages/notebooks/package.json.tmp packages/notebooks/package.json \
+  && git add packages/notebooks/package.json \
+  && SKIP_LINT_HOOK=true git commit -q -m "Update @odh-dashboard/notebooks tracking to <short-sha> (CODEOWNERS only, no file changes)"
+```
+Then re-run `npm run update-subtree` (not `--continue`).
+
+**package-lock.json conflicts** — Always conflicts on dependency bumps. Clone upstream at the target commit and replace the file wholesale:
+```bash
+git clone -q --depth=1 --branch <branch> <repo-url> /tmp/nb-upstream
+cp /tmp/nb-upstream/workspaces/frontend/package-lock.json packages/notebooks/upstream/workspaces/frontend/package-lock.json
+rm -rf /tmp/nb-upstream
+```
+
+**Generated TypeScript files** — `src/generated/data-contracts.ts`, `Workspacekinds.ts`, and other files under `src/generated/` are auto-generated from the backend API. Always safe to replace from upstream wholesale.
+
+**Files stuck at intermediate commits** — When patches are rejected and files are replaced from an intermediate commit during conflict resolution, they may end up out of date with the final target. After the sync completes, verify by diffing against the upstream target:
+```bash
+git clone -q --depth=1 --branch <branch> <repo-url> /tmp/nb-check
+diff /tmp/nb-check/workspaces/frontend/src/<file> packages/notebooks/upstream/workspaces/frontend/src/<file>
+```
+Replace any stale files, re-apply local modifications from the table above, then commit.
+
+**`set -e` crash on no-op patches** — The `package-subtree.sh` script uses `set -e`. When a patch applies cleanly but produces no file changes (because files are already at the target state), `safe_git_commit_if_changes` returns exit code 2, which `set -e` treats as a failure. The script silently exits with no error message. If the sync stops after "Applying commit X/Y" with no conflict output, this is likely the cause. Workaround: temporarily add `|| commit_exit_code=$?` on the `safe_git_commit_if_changes` call line (~line 849), or advance the tracking commit past the problematic range.
+
+### Post-Sync Module Federation Patch
+
+After the sync completes, `moduleFederation.js` will be overwritten with the midstream version which lacks ODH-specific entries. Patch it to restore:
+
+1. Add `@odh-dashboard/plugin-core` as a shared singleton
+2. Set `exposes` to expose `./extensions`
+3. Set `dts: true`
+
+The required state of `moduleFederation.js` after patching:
+```js
+shared: {
+  // ... existing shared deps from midstream ...
+  '@odh-dashboard/plugin-core': {
+    singleton: true,
+    requiredVersion: '*',
+  },
+},
+exposes: {
+  './extensions': './src/odh/extensions',
+},
+// ...
+dts: true,
+```
+
+The midstream version has `exposes: {}` and `dts: false` — these must be changed. The ODH-only files in `src/odh/` (`extensions.ts`, `NotebooksWrapper.tsx`) are unaffected by the sync since they don't exist in midstream.
+
+### Post-Sync Validation
+
+After the sync completes, run these checks before creating the PR.
+
+**Step 1: Install updated dependencies** (if `mod-arch-core` or other deps were bumped):
+```bash
+cd packages/notebooks/upstream/workspaces/frontend && npm install
+```
+
+**Step 2: Go backend build**:
+```bash
+cd packages/notebooks/upstream/workspaces/backend && go build ./...
+```
+Common issues: missing constants after refactors (e.g., constants moved to `api/constants/` package), struct fields added upstream that conflict with local `StaticAssetsDir`.
+
+**Step 3: Frontend type check**:
+```bash
+cd packages/notebooks/upstream/workspaces/frontend && npx tsc --noEmit
+```
+Common issues: renamed generated types (e.g., `WorkspacekindsRedirectMessageLevel` → `V1Beta1RedirectMessageLevel`), `useGenericObjectState` tuple length changes after `mod-arch-core` bumps.
+
+**Step 4: Frontend lint**:
+```bash
+cd packages/notebooks/upstream/workspaces/frontend && npx eslint src/ --ext .ts,.tsx
+```
+Note: the root-level lint hook will report cspell errors for upstream files (cspell config path doesn't resolve from `upstream/`). These are false positives — use `SKIP_LINT_HOOK=true` when committing upstream files.
+
+### Dockerfile
+
+After syncing, check if the Go version requirement changed:
+```bash
+grep '^go ' packages/notebooks/upstream/workspaces/backend/go.mod
+```
+If the required version exceeds what's in the UBI9 `go-toolset` image (check `ARG GOLANG_BASE_IMAGE` in `Dockerfile.workspace`), ensure `ENV GOTOOLCHAIN=auto` is set in the BFF build stage.
