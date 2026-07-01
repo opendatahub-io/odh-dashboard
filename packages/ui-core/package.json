@@ -34,6 +34,7 @@
   "peerDependencies": {
     "@patternfly/react-core": "^6",
     "@patternfly/react-icons": "^6",
+    "@patternfly/react-styles": "^6",
     "@patternfly/react-table": "^6",
     "react": "^18"
   }
