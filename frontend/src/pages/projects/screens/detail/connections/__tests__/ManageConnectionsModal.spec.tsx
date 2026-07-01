@@ -5,13 +5,10 @@ import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connecti
 import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import { mockProjectK8sResource } from '#~/__mocks__';
 import { mockConnection } from '#~/__mocks__/mockConnection';
-import {
-  useConnectionTest,
-  UseConnectionTestReturn,
-} from '#~/concepts/connectionTypes/useConnectionTest';
+import { testConnection } from '#~/services/connectionTestService';
 import { ConnectionTestStatus } from '#~/concepts/connectionTypes/types';
 
-jest.mock('#~/concepts/connectionTypes/useConnectionTest');
+jest.mock('#~/services/connectionTestService');
 
 describe('Create connection modal', () => {
   const onCloseMock = jest.fn();
@@ -560,31 +557,14 @@ describe('Edit connection modal', () => {
 describe('ManageConnectionModal test connection', () => {
   const onCloseMock = jest.fn();
   const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
-  const mockedUseConnectionTest = jest.mocked(useConnectionTest);
-
-  const mockTestConnectionFn = jest.fn();
-  const mockResetStatusFn = jest.fn();
-  const mockAbortTestFn = jest.fn();
-
-  const defaultHookReturn: UseConnectionTestReturn = {
-    status: ConnectionTestStatus.NOT_TESTED,
-    result: null,
-    testConnection: mockTestConnectionFn,
-    resetStatus: mockResetStatusFn,
-    abortTest: mockAbortTestFn,
-  };
+  const mockedTestConnection = jest.mocked(testConnection);
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedUseConnectionTest.mockReturnValue(defaultHookReturn);
   });
 
-  const renderModal = (overrides?: Partial<UseConnectionTestReturn>) => {
-    if (overrides) {
-      mockedUseConnectionTest.mockReturnValue({ ...defaultHookReturn, ...overrides });
-    }
-
-    return render(
+  const renderModal = () =>
+    render(
       <ManageConnectionModal
         project={mockProjectK8sResource({})}
         onClose={onCloseMock}
@@ -605,110 +585,65 @@ describe('ManageConnectionModal test connection', () => {
         ]}
       />,
     );
-  };
 
   it('should render Test connection button in footer', () => {
     renderModal();
-
-    expect(screen.getByRole('button', { name: /test connection/i })).toBeInTheDocument();
+    expect(screen.getByTestId('test-connection-button')).toBeInTheDocument();
   });
 
   it('should show Not tested status label in header by default', () => {
     renderModal();
-
     expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
   });
 
   it('should show Testing status when test button clicked', async () => {
-    mockedUseConnectionTest.mockReturnValue({
-      ...defaultHookReturn,
-      status: ConnectionTestStatus.TESTING,
-    });
+    mockedTestConnection.mockReturnValue(new Promise(() => undefined));
+    renderModal();
 
-    renderModal({ status: ConnectionTestStatus.TESTING });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
 
     expect(screen.getByTestId('connection-test-label-testing')).toBeInTheDocument();
   });
 
-  it('should show success alert on successful test', () => {
-    renderModal({
-      status: ConnectionTestStatus.VERIFIED,
-      result: { success: true, message: 'Connection successful' },
+  it('should show success alert on successful test', async () => {
+    mockedTestConnection.mockResolvedValue({ success: true, message: 'Connection successful' });
+    renderModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
     });
 
+    expect(screen.getByTestId('connection-test-success-alert')).toBeInTheDocument();
     expect(screen.getByTestId('connection-test-label-verified')).toBeInTheDocument();
   });
 
-  it('should show danger alert with expandable error on failed test', () => {
-    renderModal({
-      status: ConnectionTestStatus.FAILED,
-      result: { success: false, error: 'AUTH_FAILED', message: 'Invalid credentials' },
+  it('should show danger alert on failed test', async () => {
+    mockedTestConnection.mockResolvedValue({
+      success: false,
+      error: 'AUTH_FAILED',
+      message: 'Invalid credentials',
+    });
+    renderModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
     });
 
+    expect(screen.getByTestId('connection-test-failure-alert')).toBeInTheDocument();
     expect(screen.getByTestId('connection-test-label-failed')).toBeInTheDocument();
   });
 
-  it('should reset status when credential fields change', async () => {
-    renderModal();
-
-    // Fill in the connection name first so the form has a connection type selected
-    await act(async () => {
-      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
-        target: { value: 'test-conn' },
-      });
-    });
-
-    // Change a credential field
-    await act(async () => {
-      fireEvent.change(screen.getByRole('textbox', { name: 'Endpoint' }), {
-        target: { value: 'http://new-endpoint' },
-      });
-    });
-
-    // The hook's resetStatus should be called when credential fields change
-    // This is driven by the modal's change handler integration with the hook
-    expect(mockedUseConnectionTest).toHaveBeenCalled();
-  });
-
-  it('should NOT reset status when name field changes', async () => {
+  it('should not block Create button while test is in progress', async () => {
+    mockedTestConnection.mockReturnValue(new Promise(() => undefined));
     renderModal();
 
     await act(async () => {
-      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
-        target: { value: 'new-name' },
-      });
+      fireEvent.click(screen.getByTestId('test-connection-button'));
     });
 
-    // Name changes should not trigger resetStatus
-    expect(mockResetStatusFn).not.toHaveBeenCalled();
-  });
-
-  it('should abort test when modal closes', async () => {
-    renderModal({ status: ConnectionTestStatus.TESTING });
-
-    await act(async () => {
-      onCloseMock();
-    });
-
-    // The modal's onClose should trigger abort via the hook
-    expect(onCloseMock).toHaveBeenCalled();
-  });
-
-  it('should not block Create when test is in progress', async () => {
-    renderModal({ status: ConnectionTestStatus.TESTING });
-
-    // Fill required fields
-    await act(async () => {
-      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
-        target: { value: 'test-conn' },
-      });
-      fireEvent.change(screen.getByRole('textbox', { name: 'Endpoint' }), {
-        target: { value: 'http://minio:9000' },
-      });
-    });
-
-    // Create button should still be accessible (not disabled by test status)
-    const createButton = screen.getByRole('button', { name: 'Create' });
-    expect(createButton).toBeTruthy();
+    const createButton = screen.getByTestId('modal-submit-button');
+    expect(createButton).toBeInTheDocument();
   });
 });

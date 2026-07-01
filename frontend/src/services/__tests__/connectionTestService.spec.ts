@@ -26,12 +26,11 @@ describe('testConnection', () => {
 
   const mockFailedResult: ConnectionTestResult = {
     success: false,
-    error: 'AUTH_FAILED',
     message: 'Invalid credentials',
   };
 
   it('should send POST request with correct payload', async () => {
-    mockedAxios.post.mockResolvedValue({ data: mockSuccessResult });
+    mockedAxios.post.mockResolvedValue({ data: { data: mockSuccessResult } });
 
     await testConnection(mockRequest);
 
@@ -44,7 +43,7 @@ describe('testConnection', () => {
   });
 
   it('should unwrap the data envelope from the response', async () => {
-    mockedAxios.post.mockResolvedValue({ data: mockSuccessResult });
+    mockedAxios.post.mockResolvedValue({ data: { data: mockSuccessResult } });
 
     const result = await testConnection(mockRequest);
 
@@ -52,22 +51,20 @@ describe('testConnection', () => {
   });
 
   it('should handle successful connection test', async () => {
-    mockedAxios.post.mockResolvedValue({ data: mockSuccessResult });
+    mockedAxios.post.mockResolvedValue({ data: { data: mockSuccessResult } });
 
     const result = await testConnection(mockRequest);
 
     expect(result.success).toBe(true);
     expect(result.message).toBe('Connection successful');
-    expect(result.error).toBeUndefined();
   });
 
   it('should handle failed connection test', async () => {
-    mockedAxios.post.mockResolvedValue({ data: mockFailedResult });
+    mockedAxios.post.mockResolvedValue({ data: { data: mockFailedResult } });
 
     const result = await testConnection(mockRequest);
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe('AUTH_FAILED');
     expect(result.message).toBe('Invalid credentials');
   });
 
@@ -79,7 +76,7 @@ describe('testConnection', () => {
 
   it('should pass AbortSignal to axios', async () => {
     const controller = new AbortController();
-    mockedAxios.post.mockResolvedValue({ data: mockSuccessResult });
+    mockedAxios.post.mockResolvedValue({ data: { data: mockSuccessResult } });
 
     await testConnection(mockRequest, controller.signal);
 

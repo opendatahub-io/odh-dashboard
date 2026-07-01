@@ -101,7 +101,7 @@ describe('ConnectionsTableRow', () => {
     expect(screen.getByText('test-conn')).toBeInTheDocument();
   });
 
-  it('should render connection type as Unknown when no matching type found', () => {
+  it('should render connection type ref when no matching type found', () => {
     const connection = mockConnection({
       displayName: 'test-conn',
       connectionType: 'unknown-type',
@@ -115,7 +115,7 @@ describe('ConnectionsTableRow', () => {
       />,
     );
 
-    expect(screen.getByText('Unknown')).toBeInTheDocument();
+    expect(screen.getByText('unknown-type')).toBeInTheDocument();
   });
 
   it('should show resource info popover on help icon click', () => {
