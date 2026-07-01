@@ -20,27 +20,55 @@ func TestCanWritePromptsInNamespace(t *testing.T) {
 	tests := []struct {
 		name       string
 		namespace  string
+		verb       string
 		allowed    bool
 		wantErr    bool
 		failCreate bool
 	}{
 		{
-			name:       "permission granted",
+			name:       "create permission granted",
 			namespace:  "test-namespace",
+			verb:       "create",
 			allowed:    true,
 			wantErr:    false,
 			failCreate: false,
 		},
 		{
-			name:       "permission denied",
+			name:       "create permission denied",
 			namespace:  "restricted-namespace",
+			verb:       "create",
 			allowed:    false,
 			wantErr:    false,
 			failCreate: false,
 		},
 		{
+			name:       "delete permission granted",
+			namespace:  "test-namespace",
+			verb:       "delete",
+			allowed:    true,
+			wantErr:    false,
+			failCreate: false,
+		},
+		{
+			name:       "delete permission denied",
+			namespace:  "restricted-namespace",
+			verb:       "delete",
+			allowed:    false,
+			wantErr:    false,
+			failCreate: false,
+		},
+		{
+			name:       "invalid verb",
+			namespace:  "test-namespace",
+			verb:       "update",
+			allowed:    false,
+			wantErr:    true,
+			failCreate: false,
+		},
+		{
 			name:       "k8s api error",
 			namespace:  "error-namespace",
+			verb:       "create",
 			allowed:    false,
 			wantErr:    true,
 			failCreate: true,
@@ -65,7 +93,7 @@ func TestCanWritePromptsInNamespace(t *testing.T) {
 					assert.Equal(t, tt.namespace, sar.Spec.ResourceAttributes.Namespace)
 					assert.Equal(t, "mlflow.kubeflow.org", sar.Spec.ResourceAttributes.Group)
 					assert.Equal(t, "registeredmodels", sar.Spec.ResourceAttributes.Resource)
-					assert.Equal(t, "create", sar.Spec.ResourceAttributes.Verb)
+					assert.Equal(t, tt.verb, sar.Spec.ResourceAttributes.Verb)
 
 					sar.Status = authv1.SubjectAccessReviewStatus{
 						Allowed: tt.allowed,
@@ -81,7 +109,7 @@ func TestCanWritePromptsInNamespace(t *testing.T) {
 				},
 			}
 
-			got, err := client.CanWritePromptsInNamespace(context.Background(), tt.namespace, "create")
+			got, err := client.CanWritePromptsInNamespace(context.Background(), tt.namespace, tt.verb)
 
 			if tt.wantErr {
 				require.Error(t, err)
