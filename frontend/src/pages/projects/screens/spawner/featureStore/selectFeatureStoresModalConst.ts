@@ -1,6 +1,9 @@
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- shared table types from ui-core
 import type { SortableData } from '@odh-dashboard/ui-core';
-import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
+import type {
+  WorkbenchFeatureStoreConfig,
+  SelectedFeatureStoreConfig,
+} from './useWorkbenchFeatureStores';
 
 export const SELECT_FEATURE_STORES_MODAL_TITLE = 'Select feature stores';
 
@@ -19,7 +22,7 @@ export const getFeatureStoreProjectId = (
   item: Pick<WorkbenchFeatureStoreConfig, 'namespace' | 'projectName'>,
 ): string => `${item.namespace}/${item.projectName}`;
 
-export const selectFeatureStoresColumns: SortableData<WorkbenchFeatureStoreConfig>[] = [
+export const selectFeatureStoresColumns: SortableData<SelectedFeatureStoreConfig>[] = [
   { label: '', field: 'checkbox', width: 10, sortable: false },
   {
     label: 'Name',

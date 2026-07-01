@@ -809,11 +809,11 @@ class CreateSpawnerPage {
     return this;
   }
 
-  shouldHaveFeatureStoreOptionsInModal(projectNames: string[]) {
-    cy.findByTestId('select-feature-stores-table').within(() => {
-      projectNames.forEach((name) => {
-        cy.contains(name).should('exist');
-      });
+  shouldHaveFeatureStoreOptionsInModal(
+    projects: Array<{ projectName: string; namespace: string }>,
+  ) {
+    projects.forEach(({ projectName, namespace }) => {
+      this.findSelectFeatureStoresModalRow(namespace, projectName).should('exist');
     });
     return this;
   }

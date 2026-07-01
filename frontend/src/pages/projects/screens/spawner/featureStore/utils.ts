@@ -1,5 +1,8 @@
 import { NotebookKind } from '#~/k8sTypes';
-import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
+import type {
+  WorkbenchFeatureStoreConfig,
+  SelectedFeatureStoreConfig,
+} from './useWorkbenchFeatureStores';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 import { FEAST_CONFIG_ANNOTATION, FEAST_INTEGRATION_LABEL } from './const';
 
@@ -24,9 +27,9 @@ export const FEATURE_STORE_UNAVAILABLE_TOOLTIP =
   'This feature store is no longer available. It may have been deleted or access has been revoked.';
 
 export const removeFeatureStoreProjectById = (
-  configs: WorkbenchFeatureStoreConfig[],
+  configs: SelectedFeatureStoreConfig[],
   projectId: string,
-): WorkbenchFeatureStoreConfig[] =>
+): SelectedFeatureStoreConfig[] =>
   configs.filter((config) => getFeatureStoreProjectId(config) !== projectId);
 
 export const generateFeatureStoreCode = (): string => {
@@ -40,22 +43,22 @@ fs_banking.get_online_features(.....)`;
 export const getFeatureStoresFromNotebook = (
   notebook: NotebookKind,
   availableFeatureStores: WorkbenchFeatureStoreConfig[],
-): WorkbenchFeatureStoreConfig[] => {
+): SelectedFeatureStoreConfig[] => {
   const feastConfigAnnotation = notebook.metadata.annotations?.[FEAST_CONFIG_ANNOTATION];
   if (!feastConfigAnnotation) {
     return [];
   }
 
   const projectNames = feastConfigAnnotation.split(',').map((name) => name.trim());
-  const matched: WorkbenchFeatureStoreConfig[] = [];
+  const matched: SelectedFeatureStoreConfig[] = [];
   const usedConfigKeys = new Set<string>();
-  const seenProjectNames = new Set<string>();
+  const processedProjectNames = new Set<string>();
 
   projectNames.forEach((projectName) => {
-    if (!projectName || seenProjectNames.has(projectName)) {
+    if (!projectName || processedProjectNames.has(projectName)) {
       return;
     }
-    seenProjectNames.add(projectName);
+    processedProjectNames.add(projectName);
 
     const found = availableFeatureStores.find(
       (config) =>

@@ -3,7 +3,10 @@ import '@testing-library/jest-dom';
 import { render, within } from '@testing-library/react';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { FeatureStoreFormSection } from '#~/pages/projects/screens/spawner/featureStore/FeatureStoreFormSection';
-import type { WorkbenchFeatureStoreConfig } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
+import type {
+  WorkbenchFeatureStoreConfig,
+  SelectedFeatureStoreConfig,
+} from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   SupportedArea: { FEATURE_STORE: 'feature-store' },
@@ -13,15 +16,20 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
 jest.mock('#~/pages/projects/screens/spawner/featureStore/SelectFeatureStoresModal', () => ({
   SelectFeatureStoresModal: ({
     featureStores,
+    unavailableFeatureStores = [],
     onClose,
     onSave,
   }: {
     featureStores: WorkbenchFeatureStoreConfig[];
+    unavailableFeatureStores?: SelectedFeatureStoreConfig[];
     onClose: () => void;
-    onSave: (featureStores: WorkbenchFeatureStoreConfig[]) => void;
+    onSave: (featureStores: SelectedFeatureStoreConfig[]) => void;
   }) => (
     <div data-testid="select-feature-stores-modal">
       <span data-testid="modal-feature-store-count">{featureStores.length}</span>
+      <span data-testid="modal-unavailable-feature-store-count">
+        {unavailableFeatureStores.length}
+      </span>
       <button type="button" onClick={() => onSave(featureStores.slice(0, 1))}>
         Connect first
       </button>
@@ -35,8 +43,8 @@ jest.mock('#~/pages/projects/screens/spawner/featureStore/SelectFeatureStoresMod
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 
 const mockFeatureStore = (
-  overrides: Partial<WorkbenchFeatureStoreConfig> = {},
-): WorkbenchFeatureStoreConfig => ({
+  overrides: Partial<SelectedFeatureStoreConfig> = {},
+): SelectedFeatureStoreConfig => ({
   namespace: 'credit-namespace',
   configName: 'credit-scoring-local',
   projectName: 'credit_scoring_local',
@@ -156,6 +164,36 @@ describe('FeatureStoreFormSection', () => {
     const modal = result.getByTestId('select-feature-stores-modal');
     expect(modal).toBeInTheDocument();
     expect(within(modal).getByTestId('modal-feature-store-count')).toHaveTextContent('2');
+  });
+
+  it('should pass unavailable feature stores to the selection modal', async () => {
+    const unavailableStore = mockFeatureStore({
+      namespace: '',
+      configName: '',
+      projectName: 'deleted_project',
+      hasAccessToFeatureStore: false,
+      permissionLevel: [],
+      isUnavailable: true,
+    });
+    const availableStore = mockFeatureStore();
+
+    const result = render(
+      <FeatureStoreFormSection
+        loaded
+        availableFeatureStores={[availableStore]}
+        selectedFeatureStores={[availableStore, unavailableStore]}
+        onSelect={jest.fn()}
+      />,
+    );
+
+    await act(async () => {
+      result.getByRole('button', { name: 'Select feature store' }).click();
+    });
+
+    const modal = result.getByTestId('select-feature-stores-modal');
+    expect(within(modal).getByTestId('modal-unavailable-feature-store-count')).toHaveTextContent(
+      '1',
+    );
   });
 
   it('should apply modal selections via onSelect', async () => {

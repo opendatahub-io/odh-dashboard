@@ -1,9 +1,9 @@
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- shared table types from ui-core
 import type { SortableData } from '@odh-dashboard/ui-core';
-import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
+import type { SelectedFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FEATURE_STORE_NAMESPACE_COLUMN_INFO } from './selectFeatureStoresModalConst';
 
-export const featureStoreConnectedTableColumns: SortableData<WorkbenchFeatureStoreConfig>[] = [
+export const featureStoreConnectedTableColumns: SortableData<SelectedFeatureStoreConfig>[] = [
   {
     label: 'Name',
     field: 'projectName',

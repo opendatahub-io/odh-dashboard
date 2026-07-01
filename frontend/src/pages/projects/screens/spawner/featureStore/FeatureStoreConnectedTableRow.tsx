@@ -11,13 +11,13 @@ import {
 } from '@patternfly/react-core';
 import { InfoCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
-import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
+import type { SelectedFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FeatureStorePermissionLabels } from './FeatureStorePermissionLabels';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from './utils';
 
 export type FeatureStoreConnectedTableRowProps = {
-  featureStore: WorkbenchFeatureStoreConfig;
+  featureStore: SelectedFeatureStoreConfig;
   onRemove: (projectId: string) => void;
 };
 
@@ -65,7 +65,7 @@ export const FeatureStoreConnectedTableRow: React.FC<FeatureStoreConnectedTableR
           <ActionListItem>
             <Button
               data-testid={`feature-store-remove-button-${projectId}`}
-              aria-label={`Remove ${featureStore.projectName}`}
+              aria-label={`Remove ${featureStore.namespace}/${featureStore.projectName}`}
               variant="plain"
               onClick={() => onRemove(projectId)}
             >

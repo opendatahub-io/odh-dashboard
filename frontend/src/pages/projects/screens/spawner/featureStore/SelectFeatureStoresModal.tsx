@@ -12,7 +12,10 @@ import {
 import { DashboardEmptyTableView, TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
 import { useCheckboxTableBase } from '#~/components/table';
-import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
+import type {
+  WorkbenchFeatureStoreConfig,
+  SelectedFeatureStoreConfig,
+} from './useWorkbenchFeatureStores';
 import { SelectFeatureStoresModalRow } from './SelectFeatureStoresModalRow';
 import {
   getFeatureStoreProjectId,
@@ -25,16 +28,16 @@ import {
 
 export type SelectFeatureStoresModalProps = {
   featureStores: WorkbenchFeatureStoreConfig[];
-  unavailableFeatureStores?: WorkbenchFeatureStoreConfig[];
-  initialSelections?: WorkbenchFeatureStoreConfig[];
-  onSave: (featureStores: WorkbenchFeatureStoreConfig[]) => void;
+  unavailableFeatureStores?: SelectedFeatureStoreConfig[];
+  initialSelections?: SelectedFeatureStoreConfig[];
+  onSave: (featureStores: SelectedFeatureStoreConfig[]) => void;
   onClose: () => void;
 };
 
 const getInitialSelections = (
-  featureStores: WorkbenchFeatureStoreConfig[],
-  initialSelections: WorkbenchFeatureStoreConfig[],
-): WorkbenchFeatureStoreConfig[] => {
+  featureStores: SelectedFeatureStoreConfig[],
+  initialSelections: SelectedFeatureStoreConfig[],
+): SelectedFeatureStoreConfig[] => {
   const initialSelectionIds = new Set(initialSelections.map(getFeatureStoreProjectId));
   return featureStores.filter((featureStore) =>
     initialSelectionIds.has(getFeatureStoreProjectId(featureStore)),
@@ -58,7 +61,7 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
 }) => {
   const [filterText, setFilterText] = React.useState('');
 
-  const allFeatureStores = React.useMemo(() => {
+  const allFeatureStores = React.useMemo((): SelectedFeatureStoreConfig[] => {
     const availableIds = new Set(featureStores.map(getFeatureStoreProjectId));
     const unavailable = unavailableFeatureStores.filter(
       (fs) => !availableIds.has(getFeatureStoreProjectId(fs)),
@@ -70,7 +73,7 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
     getInitialSelections(allFeatureStores, initialSelections).map(getFeatureStoreProjectId),
   );
   const [selectedFeatureStores, setSelectedFeatureStores] = React.useState<
-    WorkbenchFeatureStoreConfig[]
+    SelectedFeatureStoreConfig[]
   >(() => getInitialSelections(allFeatureStores, initialSelections));
 
   const filteredFeatureStores = React.useMemo(() => {
@@ -84,14 +87,14 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
     );
   }, [allFeatureStores, filterText]);
 
-  const sort = useTableColumnSort<WorkbenchFeatureStoreConfig>(selectFeatureStoresColumns, [], 1);
+  const sort = useTableColumnSort<SelectedFeatureStoreConfig>(selectFeatureStoresColumns, [], 1);
   const sortedFeatureStores = React.useMemo(
     () => sort.transformData(filteredFeatureStores),
     [filteredFeatureStores, sort],
   );
 
   const { selections, toggleSelection, isSelected, tableProps } =
-    useCheckboxTableBase<WorkbenchFeatureStoreConfig>(
+    useCheckboxTableBase<SelectedFeatureStoreConfig>(
       sortedFeatureStores,
       selectedFeatureStores,
       setSelectedFeatureStores,
@@ -131,7 +134,7 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
           columns={selectFeatureStoresColumns}
           getColumnSort={sort.getColumnSort}
           toolbarContent={
-            <ToolbarItem style={{ flexBasis: '100%' }}>
+            <ToolbarItem className="pf-v6-u-w-100">
               <SearchInput
                 aria-label="Find by name"
                 placeholder="Find by name"

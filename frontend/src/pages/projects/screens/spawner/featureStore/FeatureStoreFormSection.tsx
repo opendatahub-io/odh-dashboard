@@ -17,7 +17,10 @@ import ExtendedButton from '#~/components/ExtendedButton';
 import { SpawnerPageSectionTitles } from '#~/pages/projects/screens/spawner/const';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
-import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
+import type {
+  WorkbenchFeatureStoreConfig,
+  SelectedFeatureStoreConfig,
+} from './useWorkbenchFeatureStores';
 import FeatureStoreCodeBlock from './FeatureStoreCodeBlock';
 import { SelectFeatureStoresModal } from './SelectFeatureStoresModal';
 import { FeatureStoreConnectedTable } from './FeatureStoreConnectedTable';
@@ -31,11 +34,11 @@ import {
 } from './utils';
 
 type FeatureStoreFormSectionProps = {
-  selectedFeatureStores?: WorkbenchFeatureStoreConfig[];
+  selectedFeatureStores?: SelectedFeatureStoreConfig[];
   availableFeatureStores?: WorkbenchFeatureStoreConfig[];
   loaded?: boolean;
   error?: Error;
-  onSelect: (featureStores: WorkbenchFeatureStoreConfig[]) => void;
+  onSelect: (featureStores: SelectedFeatureStoreConfig[]) => void;
 };
 
 export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = ({
@@ -50,7 +53,7 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
 
   const [showSelectModal, setShowSelectModal] = React.useState(false);
 
-  const unavailableStoresRef = React.useRef<WorkbenchFeatureStoreConfig[]>([]);
+  const unavailableStoresRef = React.useRef<SelectedFeatureStoreConfig[]>([]);
   if (
     unavailableStoresRef.current.length === 0 &&
     selectedFeatureStores.some((fs) => fs.isUnavailable)

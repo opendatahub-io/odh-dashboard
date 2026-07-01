@@ -13,6 +13,9 @@ export type WorkbenchFeatureStoreConfig = {
   configMap: ConfigMapKind | null;
   hasAccessToFeatureStore: boolean;
   permissionLevel: string[];
+};
+
+export type SelectedFeatureStoreConfig = WorkbenchFeatureStoreConfig & {
   isUnavailable?: boolean;
 };
 

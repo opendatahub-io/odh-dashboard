@@ -2,16 +2,16 @@ import * as React from 'react';
 import { Flex, FlexItem, Icon, Tooltip, Truncate } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
-import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
+import type { SelectedFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FeatureStorePermissionLabels } from './FeatureStorePermissionLabels';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from './utils';
 
 export type SelectFeatureStoresModalRowProps = {
   rowIndex: number;
-  featureStore: WorkbenchFeatureStoreConfig;
+  featureStore: SelectedFeatureStoreConfig;
   isSelected: boolean;
-  onToggle: (featureStore: WorkbenchFeatureStoreConfig) => void;
+  onToggle: (featureStore: SelectedFeatureStoreConfig) => void;
 };
 
 export const SelectFeatureStoresModalRow: React.FC<SelectFeatureStoresModalRowProps> = ({

@@ -18,13 +18,13 @@ export const getWorkbenchFeatureStores = (
 ): Promise<WorkbenchFeatureStoreResponse> =>
   proxyGET<WorkbenchFeatureStoreResponse>('', '/api/featurestores/workbench-integration', {}, opts);
 
-export type FeatureStoreConnectedWorkbench = {
+type FeatureStoreConnectedWorkbench = {
   workbenchName: string;
   workbenchNamespace: string;
   projectName: string;
 };
 
-export type FeatureStoreProject = {
+type FeatureStoreProject = {
   feastProjectName: string;
   namespace: string;
   description?: string;
@@ -32,7 +32,7 @@ export type FeatureStoreProject = {
   connectedWorkbenches: FeatureStoreConnectedWorkbench[];
 };
 
-export type FeatureStoreProjectsResponse = {
+type FeatureStoreProjectsResponse = {
   connectedWorkbenches: FeatureStoreProject[];
 };
 
