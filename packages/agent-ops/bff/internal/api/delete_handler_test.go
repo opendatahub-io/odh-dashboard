@@ -1,11 +1,16 @@
 package api
 
 import (
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
+	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 	"github.com/stretchr/testify/require"
 )
 
@@ -64,4 +69,23 @@ func TestDeleteAgentHandler_InvalidParams(t *testing.T) {
 	})
 
 	require.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestDeleteAgentHandler_Forbidden(t *testing.T) {
+	mockClient := agentsmock.NewDemoClient()
+	mockClient.DeleteAgentErr = agents.ErrForbidden
+	app := &App{
+		logger:       slog.New(slog.NewTextHandler(io.Discard, nil)),
+		repositories: repositories.NewRepositories(&agentsmock.Factory{Client: mockClient}),
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, ApiPathPrefix+"/agents/runtimes/agent-ops-demo/sample-support-agent", nil)
+	rr := httptest.NewRecorder()
+
+	app.DeleteAgentHandler(rr, req, httprouter.Params{
+		{Key: "ns", Value: "agent-ops-demo"},
+		{Key: "name", Value: "sample-support-agent"},
+	})
+
+	require.Equal(t, http.StatusForbidden, rr.Code)
 }
