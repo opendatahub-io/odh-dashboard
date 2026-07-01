@@ -1,7 +1,10 @@
 import * as React from 'react';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { useNavigate } from 'react-router-dom';
+import {
+  getEffectiveProjectNamespaces,
+  useAgentOpsProjectNamespaces,
+} from '~/app/hooks/useAgentOpsProjectNamespaces';
 
 type AgentOpsProjectSelectorProps = {
   namespace?: string;
@@ -14,35 +17,26 @@ const AgentOpsProjectSelector: React.FC<AgentOpsProjectSelectorProps> = ({
   ...projectSelectorProps
 }) => {
   const navigate = useNavigate();
-  const { namespaces, updatePreferredNamespace, namespacesLoaded, namespacesLoadError } =
-    useNamespaceSelector();
+  const { projectNamespaces, isLoading, onProjectSelection } = useAgentOpsProjectNamespaces();
 
-  const effectiveNamespaces = React.useMemo(() => {
-    if (namespaces.length > 0) {
-      return namespaces;
-    }
-    if (namespace) {
-      return [{ name: namespace, displayName: namespace }];
-    }
-    return namespaces;
-  }, [namespaces, namespace]);
-
-  const isLoading = !namespacesLoaded && !namespacesLoadError;
+  const effectiveNamespaces = React.useMemo(
+    () => getEffectiveProjectNamespaces(projectNamespaces, isLoading, namespace),
+    [projectNamespaces, isLoading, namespace],
+  );
 
   return (
-    <ProjectSelector
-      {...projectSelectorProps}
-      onSelection={(projectName) => {
-        const match = projectName
-          ? (effectiveNamespaces.find((n) => n.name === projectName) ?? undefined)
-          : undefined;
-        updatePreferredNamespace(match);
-        navigate(getRedirectPath(projectName));
-      }}
-      namespace={namespace ?? ''}
-      isLoading={isLoading}
-      namespacesOverride={effectiveNamespaces}
-    />
+    <div data-testid="agent-ops-project-selector">
+      <ProjectSelector
+        {...projectSelectorProps}
+        onSelection={(projectName) => {
+          onProjectSelection(projectName);
+          navigate(getRedirectPath(projectName));
+        }}
+        namespace={namespace ?? ''}
+        isLoading={isLoading}
+        namespacesOverride={effectiveNamespaces}
+      />
+    </div>
   );
 };
 

@@ -1,13 +1,15 @@
 import extensions from '~/odh/extensions';
+import { agentDeploymentsPath, agentDeployWizardPath } from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
 
 describe('agent-ops extensions', () => {
-  it('should register area, tab-route tab, and detail route extensions', () => {
-    expect(extensions).toHaveLength(3);
+  it('should register area, tab-route tab, and route extensions', () => {
+    expect(extensions).toHaveLength(4);
     expect(extensions.map((extension) => extension.type)).toEqual([
       'app.area',
       'app.tab-route/tab',
+      'app.route',
       'app.route',
     ]);
   });
@@ -40,17 +42,29 @@ describe('agent-ops extensions', () => {
     expect(tab?.type === 'app.tab-route/tab' && tab.properties.component).toBeTruthy();
   });
 
-  it('should register deployment detail route outside the tab layout', () => {
-    const route = extensions.find((extension) => extension.type === 'app.route');
-    expect(route).toMatchObject({
-      type: 'app.route',
-      flags: {
-        required: [AGENT_OPS],
-      },
-      properties: {
-        path: '/ai-hub/agents/deployments/:namespace/:agentId/*',
-      },
+  it('standalone route paths match routes.ts constants', () => {
+    const paths = extensions
+      .filter((extension) => extension.type === 'app.route')
+      .map((extension) => extension.properties.path);
+    expect(paths).toContain(agentDeployWizardPath);
+    expect(paths).toContain(`${agentDeploymentsPath}/:namespace/:agentId/*`);
+  });
+
+  it('should register standalone breakout routes outside the tab layout', () => {
+    const routes = extensions.filter((extension) => extension.type === 'app.route');
+    expect(routes).toHaveLength(2);
+    expect(routes.map((route) => route.properties.path)).toEqual([
+      `${agentDeploymentsPath}/:namespace/:agentId/*`,
+      agentDeployWizardPath,
+    ]);
+    routes.forEach((route) => {
+      expect(route).toMatchObject({
+        type: 'app.route',
+        flags: {
+          required: [AGENT_OPS],
+        },
+      });
+      expect(route.properties.component).toBeTruthy();
     });
-    expect(route?.type === 'app.route' && route.properties.component).toBeTruthy();
   });
 });

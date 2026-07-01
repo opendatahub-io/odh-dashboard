@@ -30,7 +30,7 @@ import {
   mockProjectScopedHardwareProfiles,
   mockHardwareProfile,
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import {
   kserveModalEdit,

@@ -15,7 +15,7 @@ import {
   buildMockPipelineVersions,
   buildMockRecurringRunKF,
 } from '@odh-dashboard/internal/__mocks__';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   DataSciencePipelineApplicationModel,
   NotebookModel,

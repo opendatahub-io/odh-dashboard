@@ -44,12 +44,106 @@ func (nilAgentDetailClient) ListNamespaces(context.Context, bool) ([]string, err
 	return nil, nil
 }
 
+func (nilAgentDetailClient) CanListAgentsInNamespace(context.Context, string) (bool, error) {
+	return true, nil
+}
+
 func (nilAgentDetailClient) ListAgents(context.Context, string) (*agents.AgentList, error) {
 	return nil, nil
 }
 
 func (nilAgentDetailClient) GetAgent(context.Context, string, string) (*agents.AgentDetail, error) {
 	return nil, nil
+}
+
+func TestListAgentRuntimesScopedByNamespace(t *testing.T) {
+	client := agentsmock.NewClient()
+	client.Namespaces = []string{"ns-a", "ns-b"}
+	client.Agents = map[string][]agents.AgentSummary{
+		"ns-a": {
+			{Name: "agent-1", Namespace: "ns-a", Status: "Ready", ResourceType: "agent",
+				EndpointURL: "http://agent-1.ns-a.svc:8080", CreatedAt: "2026-06-01T00:00:00Z"},
+		},
+		"ns-b": {
+			{Name: "agent-2", Namespace: "ns-b", Status: "Ready", ResourceType: "agent",
+				EndpointURL: "http://agent-2.ns-b.svc:8080", CreatedAt: "2026-06-01T00:00:00Z"},
+		},
+	}
+	repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: client})
+
+	t.Run("without namespace returns all", func(t *testing.T) {
+		result, err := repo.ListAgentRuntimes(context.Background(), models.ListAgentRuntimesOptions{
+			Limit: DefaultAgentRuntimesLimit,
+		})
+		require.NoError(t, err)
+		require.Len(t, result.Runtimes, 2)
+	})
+
+	t.Run("with namespace returns only that namespace", func(t *testing.T) {
+		result, err := repo.ListAgentRuntimes(context.Background(), models.ListAgentRuntimesOptions{
+			Namespace: "ns-a",
+			Limit:     DefaultAgentRuntimesLimit,
+		})
+		require.NoError(t, err)
+		require.Len(t, result.Runtimes, 1)
+		assert.Equal(t, "agent-1", result.Runtimes[0].Name)
+		assert.Equal(t, "ns-a", result.Runtimes[0].Namespace)
+	})
+
+	t.Run("with namespace propagates ListAgents error", func(t *testing.T) {
+		clientWithErr := agentsmock.NewClient()
+		clientWithErr.ListAgentsErr = errors.New("upstream failure")
+		repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: clientWithErr})
+		_, err := repo.ListAgentRuntimes(context.Background(), models.ListAgentRuntimesOptions{
+			Namespace: "ns-a",
+			Limit:     DefaultAgentRuntimesLimit,
+		})
+		require.Error(t, err)
+	})
+
+	t.Run("with namespace returns forbidden when access denied", func(t *testing.T) {
+		forbiddenClient := agentsmock.NewClient()
+		forbiddenClient.CanListAgentsInNSResult = false
+		forbiddenClient.Agents = map[string][]agents.AgentSummary{
+			"ns-a": {{Name: "agent-1", Namespace: "ns-a", Status: "Ready", ResourceType: "agent",
+				EndpointURL: "http://agent-1.ns-a.svc:8080", CreatedAt: "2026-06-01T00:00:00Z"}},
+		}
+		repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: forbiddenClient})
+		_, err := repo.ListAgentRuntimes(context.Background(), models.ListAgentRuntimesOptions{
+			Namespace: "ns-a",
+			Limit:     DefaultAgentRuntimesLimit,
+		})
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, bfferrors.ErrForbidden))
+	})
+
+	t.Run("with namespace returns forbidden when access check errors", func(t *testing.T) {
+		errClient := agentsmock.NewClient()
+		errClient.CanListAgentsInNSErr = errors.New("sar failed")
+		repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: errClient})
+		_, err := repo.ListAgentRuntimes(context.Background(), models.ListAgentRuntimesOptions{
+			Namespace: "ns-a",
+			Limit:     DefaultAgentRuntimesLimit,
+		})
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, bfferrors.ErrForbidden))
+	})
+
+	t.Run("with namespace skips ListNamespaces call", func(t *testing.T) {
+		clientWithNsErr := agentsmock.NewClient()
+		clientWithNsErr.ListNamespacesErr = errors.New("should not be called")
+		clientWithNsErr.Agents = map[string][]agents.AgentSummary{
+			"ns-a": {{Name: "agent-1", Namespace: "ns-a", Status: "Ready", ResourceType: "agent",
+				EndpointURL: "http://agent-1.ns-a.svc:8080", CreatedAt: "2026-06-01T00:00:00Z"}},
+		}
+		repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: clientWithNsErr})
+		result, err := repo.ListAgentRuntimes(context.Background(), models.ListAgentRuntimesOptions{
+			Namespace: "ns-a",
+			Limit:     DefaultAgentRuntimesLimit,
+		})
+		require.NoError(t, err)
+		require.Len(t, result.Runtimes, 1)
+	})
 }
 
 func (nilAgentDetailClient) DeployAgent(context.Context, *agents.DeployAgentParams) (*agents.DeployAgentResult, error) {

@@ -91,6 +91,10 @@ const GEMINI_API_KEY = testConfig?.GEMINI_API_KEY;
 const OCI_SECRET_VALUE = testConfig?.OCI_SECRET_VALUE;
 const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
 
+// OGX connection settings
+const OGX_URL = testConfig?.OGX_URL;
+const OGX_API_KEY = testConfig?.OGX_API_KEY;
+
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
 
@@ -110,6 +114,8 @@ export const cypressEnv = {
   GEMINI_API_KEY,
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
+  OGX_URL,
+  OGX_API_KEY,
   CLUSTER_AUTH,
 };
 

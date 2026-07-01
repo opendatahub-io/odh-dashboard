@@ -248,6 +248,8 @@ export type TestConfig = {
   GEMINI_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
+  OGX_URL?: string;
+  OGX_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -288,6 +290,7 @@ export type DataScienceProjectData = {
   modelStatus: string;
   hardwareProfileName: string;
   resourceType: string;
+  resourceApiVersion: string;
   existingImage: string;
   replaceImage: string;
   serviceAccountName1: string;
@@ -309,6 +312,7 @@ export type DataScienceProjectData = {
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
+  deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
 };
 
 export type NotebookImageData = {
@@ -787,4 +791,18 @@ export type MlflowExperimentsTestData = {
   experiments: MlflowExperimentData[];
   runs: MlflowExperimentRunData[];
   nonExistentExperiment: string;
+};
+
+export type AutoragTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  s3SecretName: string;
+  ogxSecretName: string;
+  runName: string;
+  runDescription: string;
+  documentFile: string;
+  evaluationFile: string;
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  maxRagPatterns: number;
+  optimizationMetric?: string;
 };

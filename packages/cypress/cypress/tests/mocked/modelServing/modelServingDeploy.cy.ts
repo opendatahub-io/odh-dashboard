@@ -6,7 +6,11 @@ import { mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { IdentifierResourceType, KnownLabels } from '@odh-dashboard/k8s-core';
+import {
+  IdentifierResourceType,
+  KnownLabels,
+  isGeneratedSecretName,
+} from '@odh-dashboard/k8s-core';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   mockGlobalScopedHardwareProfiles,
@@ -17,7 +21,7 @@ import {
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
 } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   mockCustomSecretK8sResource,
   mockURISecretK8sResource,
@@ -25,7 +29,6 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
-import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,

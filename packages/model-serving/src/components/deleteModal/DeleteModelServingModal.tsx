@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
 import {
   isModelServingDeleteModal,

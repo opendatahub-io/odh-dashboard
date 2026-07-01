@@ -27,7 +27,7 @@ import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core'
 import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { AccessMode } from '../../../../types';
@@ -571,7 +571,10 @@ const initKueueEnabledForStatusModal = () => {
   );
 };
 
-const initKueueWorkloadStatus = (workloadStatus: WorkloadStatusType) => {
+const initKueueWorkloadStatus = (
+  workloadStatus: WorkloadStatusType,
+  opts?: { evictionReason?: string },
+) => {
   initIntercepts({ notebooks: [notebookWithKueueQueue] });
   cy.interceptOdh(
     'GET /api/config',
@@ -606,6 +609,7 @@ const initKueueWorkloadStatus = (workloadStatus: WorkloadStatusType) => {
     namespace: 'test-project',
     ownerName: 'test-notebook',
     mockStatus: workloadStatus,
+    evictionReason: opts?.evictionReason,
   });
   if (workload.metadata) {
     workload.metadata.labels = {
@@ -2393,6 +2397,7 @@ describe('Workbench page', () => {
               configName: 'credit-scoring-local',
               projectName: 'credit_scoring_local',
               hasAccessToFeatureStore: true,
+              permissionLevel: ['Read', 'Write'],
             },
           ],
         },
@@ -2403,11 +2408,13 @@ describe('Workbench page', () => {
               configName: 'banking',
               projectName: 'banking',
               hasAccessToFeatureStore: true,
+              permissionLevel: ['Read'],
             },
             {
               configName: 'fraud-detect',
               projectName: 'fraud_detect',
               hasAccessToFeatureStore: true,
+              permissionLevel: ['Read', 'Describe'],
             },
           ],
         },
@@ -2755,8 +2762,8 @@ describe('Workbench page', () => {
         .should('have.text', 'Failed');
     });
 
-    it('displays Preempted when workload has Evicted condition', () => {
-      initKueueWorkloadStatus(WorkloadStatusType.Evicted);
+    it('displays Preempted when workload has Evicted condition with Preempted reason', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted, { evictionReason: 'Preempted' });
       workbenchPage.visit('test-project');
       workbenchPage
         .getNotebookRow('Test Notebook')
@@ -2765,12 +2772,23 @@ describe('Workbench page', () => {
     });
 
     it('displays human-readable subtitle for Preempted status', () => {
-      initKueueWorkloadStatus(WorkloadStatusType.Evicted);
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted, { evictionReason: 'Preempted' });
       workbenchPage.visit('test-project');
       workbenchPage
         .getNotebookRow('Test Notebook')
         .find()
         .should('contain.text', 'Paused by a higher-priority job');
+    });
+
+    it('displays Evicted when workload has Evicted condition with non-preemption reason', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted, {
+        evictionReason: 'ClusterQueueStopped',
+      });
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Evicted');
     });
 
     it('displays Inadmissible when workload is inadmissible', () => {

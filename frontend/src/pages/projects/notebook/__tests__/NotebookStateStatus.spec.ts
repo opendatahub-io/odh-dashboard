@@ -189,6 +189,34 @@ describe('getStatusSubtitle', () => {
       ).toBeNull();
     });
 
+    it('should return requeued message with retry info when status is Requeued', () => {
+      expect(
+        getStatusSubtitle({
+          isStarting: false,
+          isStopping: false,
+          notebookStatus: null,
+          kueueStatus: {
+            status: KueueWorkloadStatus.Requeued,
+            message: 'Pods were not ready in time',
+            requeueInfo: { count: 3, requeueAt: '2026-02-16T08:05:00Z' },
+          },
+        }),
+      ).toContain('attempt 3');
+    });
+
+    it('should return generic requeued message when no requeueInfo', () => {
+      expect(
+        getStatusSubtitle({
+          isStarting: false,
+          isStopping: false,
+          notebookStatus: null,
+          kueueStatus: {
+            status: KueueWorkloadStatus.Requeued,
+          },
+        }),
+      ).toBe('Re-queued, waiting to retry');
+    });
+
     it('should return null when status is not in override list (e.g. Running)', () => {
       expect(
         getStatusSubtitle({

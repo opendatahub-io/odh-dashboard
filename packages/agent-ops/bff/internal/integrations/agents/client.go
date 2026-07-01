@@ -5,6 +5,7 @@ import "context"
 // Client loads agent runtime data from Kubernetes workloads or mocks.
 type Client interface {
 	ListNamespaces(ctx context.Context, enabledOnly bool) ([]string, error)
+	CanListAgentsInNamespace(ctx context.Context, namespace string) (bool, error)
 	ListAgents(ctx context.Context, namespace string) (*AgentList, error)
 	GetAgent(ctx context.Context, namespace, name string) (*AgentDetail, error)
 

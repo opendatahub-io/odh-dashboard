@@ -79,6 +79,7 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 			app.badRequestResponse(w, r, fmt.Errorf("embedding_dimension must be a positive number"))
 			return
 		}
+		req.Capabilities = nil
 	}
 
 	// Get Kubernetes client

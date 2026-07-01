@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert, ExpandableSection, List, ListItem } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 type Conflict = {
   firstConnection: string;

@@ -19,7 +19,8 @@ jest.mock('react-router-dom', () => ({ useParams: jest.fn(() => ({})) }));
 jest.mock('@odh-dashboard/internal/concepts/areas/AreaComponent', () => ({
   conditionalArea: () => (Component: React.ComponentType) => Component,
 }));
-jest.mock('@odh-dashboard/internal/concepts/areas/types', () => ({
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   SupportedArea: { FEATURE_STORE: 'FEATURE_STORE' },
 }));
 jest.mock('../EnsureAPIAvailability', () => ({

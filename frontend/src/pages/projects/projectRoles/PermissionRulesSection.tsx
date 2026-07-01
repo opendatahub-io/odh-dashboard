@@ -30,11 +30,13 @@ const FILTER_OPTIONS = [
 type PermissionRulesSectionProps = {
   rules: RuleEntry[];
   onRulesChange: (rules: RuleEntry[]) => void;
+  onImportTemplate: () => void;
 };
 
 const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
   rules,
   onRulesChange,
+  onImportTemplate,
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [editingRule, setEditingRule] = React.useState<RuleEntry | undefined>();
@@ -161,7 +163,7 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
                   variant="tertiary"
                   icon={<ImportIcon />}
                   data-testid="role-import-template"
-                  isDisabled
+                  onClick={onImportTemplate}
                 >
                   Import rules from template
                 </Button>
@@ -198,7 +200,7 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
                 variant="link"
                 icon={<ImportIcon />}
                 data-testid="role-import-template"
-                isDisabled
+                onClick={onImportTemplate}
               >
                 Import rules from template
               </Button>

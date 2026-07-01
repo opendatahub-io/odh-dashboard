@@ -27,7 +27,23 @@ export const setupPlaygroundBase = (namespace: string): void => {
   cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
   cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } });
   cy.interceptGenAi('GET /api/v1/lsd/status', { query: { namespace } }, mockStatus('Ready'));
-  cy.interceptGenAi('GET /api/v1/lsd/models', { query: { namespace } }, mockEmptyList());
+  // Include the model used in makeProfileResponse so validation warnings don't fire
+  // and the Edit button stays enabled in tests that expect it to be clickable.
+  cy.interceptGenAi(
+    'GET /api/v1/lsd/models',
+    { query: { namespace } },
+    {
+      data: [
+        {
+          id: 'meta-llama/llama-3.1-8b-instruct',
+          providerModelId: 'meta-llama/llama-3.1-8b-instruct',
+          providerId: 'meta-llama',
+          modelType: 'llm',
+          metadata: {},
+        },
+      ],
+    },
+  );
   cy.interceptGenAi('GET /api/v1/aaa/models', { query: { namespace } }, mockEmptyList());
   cy.interceptGenAi('GET /api/v1/maas/models', { query: { namespace } }, mockEmptyList());
   cy.interceptGenAi(

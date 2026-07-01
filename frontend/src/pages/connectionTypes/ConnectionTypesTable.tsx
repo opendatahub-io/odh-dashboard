@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '@odh-dashboard/k8s-core';
 import { FilterDataType, initialFilterData } from '#~/pages/connectionTypes/const';
 import { connectionTypeColumns } from '#~/pages/connectionTypes/columns';
 import ConnectionTypesTableRow from '#~/pages/connectionTypes/ConnectionTypesTableRow';
 import ConnectionTypesTableToolbar from '#~/pages/connectionTypes/ConnectionTypesTableToolbar';
 import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import DeleteConnectionTypeModal from '#~/pages/connectionTypes/DeleteConnectionTypeModal';
-import {
-  getCreatorFromK8sResource,
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+import { getCreatorFromK8sResource } from '#~/concepts/k8s/utils';
 
 type Props = {
   connectionTypes: ConnectionTypeConfigMapObj[];
