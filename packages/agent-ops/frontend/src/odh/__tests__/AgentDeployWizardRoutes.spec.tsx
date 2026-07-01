@@ -38,6 +38,7 @@ jest.mock('~/app/hooks/useAgentOpsProjectNamespaces', () => ({
   useAgentOpsProjectNamespaces: () => ({
     projectNamespaces: [{ name: 'aa-fede', displayName: 'aa-fede' }],
     isLoading: false,
+    loadError: null,
     onProjectSelection: jest.fn(),
   }),
 }));

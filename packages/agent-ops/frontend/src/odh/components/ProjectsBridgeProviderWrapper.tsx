@@ -27,13 +27,48 @@ type BridgeDataSyncProps = {
 const BridgeDataSync: React.FC<BridgeDataSyncProps> = ({ data, onBridgeData }) => {
   React.useEffect(() => {
     onBridgeData(data);
-    return () => {
-      onBridgeData(null);
-    };
   }, [data, onBridgeData]);
+
+  React.useEffect(
+    () => () => {
+      onBridgeData(null);
+    },
+    [onBridgeData],
+  );
 
   return null;
 };
+
+type BridgeProviderErrorBoundaryProps = {
+  onError: () => void;
+  children: React.ReactNode;
+};
+
+type BridgeProviderErrorBoundaryState = {
+  hasError: boolean;
+};
+
+class BridgeProviderErrorBoundary extends React.Component<
+  BridgeProviderErrorBoundaryProps,
+  BridgeProviderErrorBoundaryState
+> {
+  state: BridgeProviderErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): BridgeProviderErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(): void {
+    this.props.onError();
+  }
+
+  render(): React.ReactNode {
+    if (this.state.hasError) {
+      return null;
+    }
+    return this.props.children;
+  }
+}
 
 const ProjectsBridgeProviderWrapper: React.FC<ProjectsBridgeProviderWrapperProps> = ({
   children,
@@ -61,14 +96,20 @@ const ProjectsBridgeProviderWrapper: React.FC<ProjectsBridgeProviderWrapperProps
     }
   }, [DataProvider]);
 
+  const handleBridgeError = React.useCallback(() => {
+    setBridgeData(null);
+  }, []);
+
   return (
     <ProjectsBridgeContext.Provider value={contextValue}>
       {DataProvider ? (
-        <DataProvider>
-          {(data: ProjectsBridgeData) => (
-            <BridgeDataSync data={data} onBridgeData={handleBridgeData} />
-          )}
-        </DataProvider>
+        <BridgeProviderErrorBoundary onError={handleBridgeError}>
+          <DataProvider>
+            {(data: ProjectsBridgeData) => (
+              <BridgeDataSync data={data} onBridgeData={handleBridgeData} />
+            )}
+          </DataProvider>
+        </BridgeProviderErrorBoundary>
       ) : null}
       {children}
     </ProjectsBridgeContext.Provider>

@@ -16,7 +16,7 @@ import {
   DEPLOY_WIZARD_SELECT_MAX_MENU_HEIGHT,
   envVarTypeOptions,
 } from '~/app/deployWizard/wizardOptions';
-import { getEnvVarNameError } from '~/app/deployWizard/utils';
+import { ENV_VAR_FIELD_REQUIRED_ERROR, getEnvVarNameError } from '~/app/deployWizard/utils';
 import './EnvironmentVariablesField.scss';
 
 type EnvironmentVariablesFieldProps = {
@@ -68,7 +68,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
 
           return (
             <div
-              key={`env-var-${index}`}
+              key={envVar.rowId}
               className="deploy-agent-env-var-row"
               id={`deploy-agent-env-var-row-${index}`}
             >
@@ -129,8 +129,21 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                       directValueInvalid ? ValidatedOptions.error : ValidatedOptions.default
                     }
                     aria-invalid={directValueInvalid}
+                    aria-describedby={
+                      directValueInvalid ? `deploy-agent-env-var-value-error-${index}` : undefined
+                    }
                     onChange={(_event, value) => onUpdate(index, { value })}
                   />
+                  {directValueInvalid ? (
+                    <HelperText>
+                      <HelperTextItem
+                        id={`deploy-agent-env-var-value-error-${index}`}
+                        variant="error"
+                      >
+                        {ENV_VAR_FIELD_REQUIRED_ERROR}
+                      </HelperTextItem>
+                    </HelperText>
+                  ) : null}
                 </div>
               ) : null}
               {envVar.type === DeployAgentEnvVarType.SECRET ? (
@@ -146,8 +159,23 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                         secretNameInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
                       aria-invalid={secretNameInvalid}
+                      aria-describedby={
+                        secretNameInvalid
+                          ? `deploy-agent-env-var-secret-name-error-${index}`
+                          : undefined
+                      }
                       onChange={(_event, value) => onUpdate(index, { secretName: value })}
                     />
+                    {secretNameInvalid ? (
+                      <HelperText>
+                        <HelperTextItem
+                          id={`deploy-agent-env-var-secret-name-error-${index}`}
+                          variant="error"
+                        >
+                          {ENV_VAR_FIELD_REQUIRED_ERROR}
+                        </HelperTextItem>
+                      </HelperText>
+                    ) : null}
                   </div>
                   <div className="deploy-agent-env-var-row__field">
                     <TextInput
@@ -160,8 +188,23 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                         secretKeyInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
                       aria-invalid={secretKeyInvalid}
+                      aria-describedby={
+                        secretKeyInvalid
+                          ? `deploy-agent-env-var-secret-key-error-${index}`
+                          : undefined
+                      }
                       onChange={(_event, value) => onUpdate(index, { secretKey: value })}
                     />
+                    {secretKeyInvalid ? (
+                      <HelperText>
+                        <HelperTextItem
+                          id={`deploy-agent-env-var-secret-key-error-${index}`}
+                          variant="error"
+                        >
+                          {ENV_VAR_FIELD_REQUIRED_ERROR}
+                        </HelperTextItem>
+                      </HelperText>
+                    ) : null}
                   </div>
                 </>
               ) : null}
@@ -178,8 +221,23 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                         configMapNameInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
                       aria-invalid={configMapNameInvalid}
+                      aria-describedby={
+                        configMapNameInvalid
+                          ? `deploy-agent-env-var-configmap-name-error-${index}`
+                          : undefined
+                      }
                       onChange={(_event, value) => onUpdate(index, { configMapName: value })}
                     />
+                    {configMapNameInvalid ? (
+                      <HelperText>
+                        <HelperTextItem
+                          id={`deploy-agent-env-var-configmap-name-error-${index}`}
+                          variant="error"
+                        >
+                          {ENV_VAR_FIELD_REQUIRED_ERROR}
+                        </HelperTextItem>
+                      </HelperText>
+                    ) : null}
                   </div>
                   <div className="deploy-agent-env-var-row__field">
                     <TextInput
@@ -192,8 +250,23 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                         configMapKeyInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
                       aria-invalid={configMapKeyInvalid}
+                      aria-describedby={
+                        configMapKeyInvalid
+                          ? `deploy-agent-env-var-configmap-key-error-${index}`
+                          : undefined
+                      }
                       onChange={(_event, value) => onUpdate(index, { configMapKey: value })}
                     />
+                    {configMapKeyInvalid ? (
+                      <HelperText>
+                        <HelperTextItem
+                          id={`deploy-agent-env-var-configmap-key-error-${index}`}
+                          variant="error"
+                        >
+                          {ENV_VAR_FIELD_REQUIRED_ERROR}
+                        </HelperTextItem>
+                      </HelperText>
+                    ) : null}
                   </div>
                 </>
               ) : null}

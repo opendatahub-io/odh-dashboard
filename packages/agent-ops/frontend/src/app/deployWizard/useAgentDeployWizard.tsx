@@ -1,10 +1,10 @@
 import * as React from 'react';
 import {
-  DEFAULT_ENV_VAR,
+  createEnvVar,
+  createServicePort,
   DEFAULT_IMAGE_TAG,
   DEFAULT_PERSISTENT_VOLUME_SIZE,
   DEFAULT_PROTOCOL,
-  DEFAULT_SERVICE_PORT,
 } from './wizardOptions';
 import type { DeployAgentEnvVar, DeployAgentServicePort, DeployAgentWizardFormData } from './types';
 import { buildFullImageReference, deriveAgentNameFromImage } from './utils';
@@ -41,7 +41,7 @@ export const createInitialFormData = (namespace: string): DeployAgentWizardFormD
   workloadType: '',
   enablePersistentStorage: false,
   persistentVolumeSize: DEFAULT_PERSISTENT_VOLUME_SIZE,
-  servicePorts: [{ ...DEFAULT_SERVICE_PORT }],
+  servicePorts: [createServicePort()],
   createRoute: false,
   authBridgeEnabled: true,
   useEnvoySidecar: false,
@@ -120,7 +120,7 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
   const addServicePort = React.useCallback(() => {
     setFormData((current) => ({
       ...current,
-      servicePorts: [...current.servicePorts, { ...DEFAULT_SERVICE_PORT, name: '' }],
+      servicePorts: [...current.servicePorts, createServicePort({ name: '' })],
     }));
   }, []);
 
@@ -143,7 +143,7 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
   const addEnvVar = React.useCallback(() => {
     setFormData((current) => ({
       ...current,
-      envVars: [...current.envVars, { ...DEFAULT_ENV_VAR }],
+      envVars: [...current.envVars, createEnvVar()],
     }));
   }, []);
 

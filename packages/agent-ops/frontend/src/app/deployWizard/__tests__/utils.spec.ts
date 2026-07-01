@@ -131,6 +131,7 @@ describe('deployWizard utils', () => {
         formatEnvVarsSummary([
           {
             ...DEFAULT_ENV_VAR,
+            rowId: 'env-1',
             name: 'LOG_LEVEL',
             type: DeployAgentEnvVarType.DIRECT,
             value: 'info',
@@ -141,6 +142,7 @@ describe('deployWizard utils', () => {
         formatEnvVarsSummary([
           {
             ...DEFAULT_ENV_VAR,
+            rowId: 'env-2',
             name: 'API_KEY',
             type: DeployAgentEnvVarType.SECRET,
             secretName: 'my-secret',

@@ -20,7 +20,8 @@ import {
 
 const ImageSelectionStep: React.FC = () => {
   const { formData, setFormField, setAgentNameManuallyEdited } = useAgentDeployWizardContext();
-  const { projectNamespaces, isLoading, onProjectSelection } = useAgentOpsProjectNamespaces();
+  const { projectNamespaces, isLoading, loadError, onProjectSelection } =
+    useAgentOpsProjectNamespaces();
 
   const effectiveNamespaces = React.useMemo(
     () => getEffectiveProjectNamespaces(projectNamespaces, isLoading, formData.project),
@@ -53,7 +54,13 @@ const ImageSelectionStep: React.FC = () => {
           </DeployWizardSelectField>
           <FormHelperText>
             <HelperText>
-              <HelperTextItem>The namespace where the agent will be deployed</HelperTextItem>
+              {loadError ? (
+                <HelperTextItem variant="error">
+                  {loadError.message || 'Failed to load projects'}
+                </HelperTextItem>
+              ) : (
+                <HelperTextItem>The namespace where the agent will be deployed</HelperTextItem>
+              )}
             </HelperText>
           </FormHelperText>
         </FormGroup>

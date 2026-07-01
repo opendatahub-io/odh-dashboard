@@ -73,7 +73,9 @@ describe('deployAgentWizardValidation', () => {
     it('fails networking validation for invalid port range', () => {
       const state = createDeployAgentWizardValidationState({
         ...completeFormData(),
-        servicePorts: [{ name: 'http', port: 0, targetPort: 8000, protocol: 'TCP' }],
+        servicePorts: [
+          { rowId: 'port-1', name: 'http', port: 0, targetPort: 8000, protocol: 'TCP' },
+        ],
       });
 
       expect(state.isNetworkingValid).toBe(false);
@@ -85,6 +87,7 @@ describe('deployAgentWizardValidation', () => {
         envVars: [
           {
             ...DEFAULT_ENV_VAR,
+            rowId: 'env-1',
             name: '1INVALID',
             type: DeployAgentEnvVarType.DIRECT,
             value: 'value',

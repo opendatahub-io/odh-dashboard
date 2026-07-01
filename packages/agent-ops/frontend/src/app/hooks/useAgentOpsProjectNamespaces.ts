@@ -27,6 +27,7 @@ export const getEffectiveProjectNamespaces = (
 export const useAgentOpsProjectNamespaces = (): {
   projectNamespaces: Namespace[];
   isLoading: boolean;
+  loadError: Error | null;
   onProjectSelection: (projectName: string) => void;
 } => {
   const {
@@ -62,6 +63,7 @@ export const useAgentOpsProjectNamespaces = (): {
       : filteredNamespaces;
 
   const isLoading = bridgeActive ? bridgeIsLoading : !namespacesLoaded && !namespacesLoadError;
+  const loadError = bridgeActive ? bridgeLoadError : namespacesLoadError;
 
   const onProjectSelection = React.useCallback(
     (projectName: string) => {
@@ -81,6 +83,7 @@ export const useAgentOpsProjectNamespaces = (): {
   return {
     projectNamespaces,
     isLoading,
+    loadError,
     onProjectSelection,
   };
 };

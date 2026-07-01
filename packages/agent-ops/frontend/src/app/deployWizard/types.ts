@@ -8,6 +8,7 @@ export enum DeployAgentWizardStepTitle {
 }
 
 export type DeployAgentServicePort = {
+  rowId: string;
   name: string;
   port: number;
   targetPort: number;
@@ -21,6 +22,7 @@ export enum DeployAgentEnvVarType {
 }
 
 export type DeployAgentEnvVar = {
+  rowId: string;
   name: string;
   type: DeployAgentEnvVarType;
   value: string;

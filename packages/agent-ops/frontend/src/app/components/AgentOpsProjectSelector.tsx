@@ -1,5 +1,6 @@
 import * as React from 'react';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
+import { HelperText, HelperTextItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import {
   getEffectiveProjectNamespaces,
@@ -17,7 +18,8 @@ const AgentOpsProjectSelector: React.FC<AgentOpsProjectSelectorProps> = ({
   ...projectSelectorProps
 }) => {
   const navigate = useNavigate();
-  const { projectNamespaces, isLoading, onProjectSelection } = useAgentOpsProjectNamespaces();
+  const { projectNamespaces, isLoading, loadError, onProjectSelection } =
+    useAgentOpsProjectNamespaces();
 
   const effectiveNamespaces = React.useMemo(
     () => getEffectiveProjectNamespaces(projectNamespaces, isLoading, namespace),
@@ -36,6 +38,13 @@ const AgentOpsProjectSelector: React.FC<AgentOpsProjectSelectorProps> = ({
         isLoading={isLoading}
         namespacesOverride={effectiveNamespaces}
       />
+      {loadError ? (
+        <HelperText>
+          <HelperTextItem variant="error">
+            {loadError.message || 'Failed to load projects'}
+          </HelperTextItem>
+        </HelperText>
+      ) : null}
     </div>
   );
 };

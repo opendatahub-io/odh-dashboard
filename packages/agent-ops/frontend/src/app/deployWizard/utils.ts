@@ -8,6 +8,8 @@ import {
 } from './constants';
 import { protocolOptions, workloadTypeOptions } from './wizardOptions';
 
+export const ENV_VAR_FIELD_REQUIRED_ERROR = 'Required when variable name is set';
+
 const K8S_STORAGE_QUANTITY_REGEX = /^\d+(\.\d+)?(Gi|Mi|Ti|G|M|T)$/;
 const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 const K8S_DNS_SUBDOMAIN_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;

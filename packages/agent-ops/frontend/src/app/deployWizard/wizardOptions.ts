@@ -3,20 +3,36 @@ import type { DeployAgentEnvVar, DeployAgentServicePort } from './types';
 import { DeployAgentEnvVarType, DeployAgentWizardStepTitle } from './types';
 import { SERVICE_PORT_PROTOCOLS } from './constants';
 
+let wizardRowIdCounter = 0;
+
+/** Stable identifier for dynamic wizard rows (service ports, env vars). */
+export const createWizardRowId = (): string => {
+  wizardRowIdCounter += 1;
+  return `deploy-wizard-row-${wizardRowIdCounter}`;
+};
+
 export const DEFAULT_IMAGE_TAG = 'latest';
 export const DEFAULT_PROTOCOL = 'a2a';
 export const DEFAULT_PERSISTENT_VOLUME_SIZE = '1Gi';
 
-export const DEFAULT_SERVICE_PORT: DeployAgentServicePort = {
+export const DEFAULT_SERVICE_PORT: Omit<DeployAgentServicePort, 'rowId'> = {
   name: 'http',
   port: 8080,
   targetPort: 8000,
   protocol: 'TCP',
 };
 
+export const createServicePort = (
+  overrides?: Partial<Omit<DeployAgentServicePort, 'rowId'>>,
+): DeployAgentServicePort => ({
+  rowId: createWizardRowId(),
+  ...DEFAULT_SERVICE_PORT,
+  ...overrides,
+});
+
 export const DEFAULT_ENV_VAR_TYPE = DeployAgentEnvVarType.DIRECT;
 
-export const DEFAULT_ENV_VAR: DeployAgentEnvVar = {
+export const DEFAULT_ENV_VAR: Omit<DeployAgentEnvVar, 'rowId'> = {
   name: '',
   type: DEFAULT_ENV_VAR_TYPE,
   value: '',
@@ -25,6 +41,14 @@ export const DEFAULT_ENV_VAR: DeployAgentEnvVar = {
   configMapName: '',
   configMapKey: '',
 };
+
+export const createEnvVar = (
+  overrides?: Partial<Omit<DeployAgentEnvVar, 'rowId'>>,
+): DeployAgentEnvVar => ({
+  rowId: createWizardRowId(),
+  ...DEFAULT_ENV_VAR,
+  ...overrides,
+});
 
 export const envVarTypeOptions: SimpleSelectOption[] = [
   { key: DeployAgentEnvVarType.DIRECT, label: 'Direct value' },

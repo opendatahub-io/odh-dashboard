@@ -61,7 +61,7 @@ const NetworkingStep: React.FC = () => {
 
             return (
               <Flex
-                key={`service-port-${index}`}
+                key={port.rowId}
                 className="deploy-agent-service-port-row"
                 gap={{ default: 'gapMd' }}
                 alignItems={{ default: 'alignItemsFlexStart' }}
