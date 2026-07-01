@@ -1,0 +1,126 @@
+import axios from '#~/utilities/axios';
+import { testConnection } from '#~/services/connectionTestService';
+import { ConnectionTestRequest, ConnectionTestResult } from '#~/concepts/connectionTypes/types';
+
+jest.mock('#~/utilities/axios', () => ({
+  __esModule: true,
+  default: { post: jest.fn() },
+}));
+
+const mockedAxios = jest.mocked(axios);
+
+describe('testConnection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const mockRequest: ConnectionTestRequest = {
+    connectionType: 's3',
+    fieldValues: { endpoint: 'http://minio:9000', bucket: 'test-bucket' },
+  };
+
+  const mockSuccessResult: ConnectionTestResult = {
+    success: true,
+    message: 'Connection successful',
+  };
+
+  const mockFailedResult: ConnectionTestResult = {
+    success: false,
+    error: 'AUTH_FAILED',
+    message: 'Invalid credentials',
+  };
+
+  it('should send POST request with correct payload', async () => {
+    mockedAxios.post.mockResolvedValue({ data: mockSuccessResult });
+
+    await testConnection(mockRequest);
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      '/core-bff/api/v1/connections/test',
+      mockRequest,
+      { signal: undefined },
+    );
+    expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('should unwrap the data envelope from the response', async () => {
+    mockedAxios.post.mockResolvedValue({ data: mockSuccessResult });
+
+    const result = await testConnection(mockRequest);
+
+    expect(result).toStrictEqual(mockSuccessResult);
+  });
+
+  it('should handle successful connection test', async () => {
+    mockedAxios.post.mockResolvedValue({ data: mockSuccessResult });
+
+    const result = await testConnection(mockRequest);
+
+    expect(result.success).toBe(true);
+    expect(result.message).toBe('Connection successful');
+    expect(result.error).toBeUndefined();
+  });
+
+  it('should handle failed connection test', async () => {
+    mockedAxios.post.mockResolvedValue({ data: mockFailedResult });
+
+    const result = await testConnection(mockRequest);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('AUTH_FAILED');
+    expect(result.message).toBe('Invalid credentials');
+  });
+
+  it('should throw on network error with descriptive message', async () => {
+    mockedAxios.post.mockRejectedValue(new Error('Network Error'));
+
+    await expect(testConnection(mockRequest)).rejects.toThrow('Network Error');
+  });
+
+  it('should pass AbortSignal to axios', async () => {
+    const controller = new AbortController();
+    mockedAxios.post.mockResolvedValue({ data: mockSuccessResult });
+
+    await testConnection(mockRequest, controller.signal);
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      '/core-bff/api/v1/connections/test',
+      mockRequest,
+      { signal: controller.signal },
+    );
+  });
+
+  it('should handle 400 UNSUPPORTED_TYPE error', async () => {
+    mockedAxios.post.mockRejectedValue({
+      response: {
+        data: {
+          error: {
+            message: 'Connection type "custom-type" is not supported for testing',
+          },
+        },
+      },
+      message: 'Request failed with status code 400',
+    });
+
+    await expect(testConnection(mockRequest)).rejects.toThrow(
+      'Connection type "custom-type" is not supported for testing',
+    );
+  });
+
+  it('should handle 503 PROBE_BUSY error', async () => {
+    mockedAxios.post.mockRejectedValue({
+      response: {
+        data: {
+          error: {
+            message: 'A connection test is already in progress',
+          },
+        },
+      },
+      message: 'Request failed with status code 503',
+    });
+
+    await expect(testConnection(mockRequest)).rejects.toThrow(
+      'A connection test is already in progress',
+    );
+  });
+});
