@@ -24,6 +24,7 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: '0.0.0',
     },
+    '@odh-dashboard/ui-core': { singleton: true, requiredVersion: '*' },
   },
   exposes: {
     './extensions': './src/odh/extensions',

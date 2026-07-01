@@ -11,6 +11,7 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { isK8sNameDescriptionDataValid, LimitNameResourceType } from '@odh-dashboard/k8s-core';
 import { createProject, updateProject } from '#~/api';
 import { useUser } from '#~/redux/selectors';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
@@ -20,10 +21,6 @@ import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingPropertie
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import {
-  isK8sNameDescriptionDataValid,
-  LimitNameResourceType,
-} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;

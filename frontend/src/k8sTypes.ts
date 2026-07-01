@@ -974,6 +974,7 @@ export type WorkloadPodSet = {
 export enum WorkloadOwnerType {
   RayCluster = 'RayCluster',
   Job = 'Job',
+  StatefulSet = 'StatefulSet',
 }
 
 // https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-Workload
@@ -1026,20 +1027,21 @@ export type WorkloadKind = K8sResourceCommon & {
   };
 };
 
+export type WorkloadConditionType =
+  | 'QuotaReserved'
+  | 'Admitted'
+  | 'PodsReady'
+  | 'Finished'
+  | 'Evicted'
+  | 'Preempted';
+
 export type WorkloadCondition = {
   lastTransitionTime: string;
   message: string;
   observedGeneration?: number;
   reason: string;
   status: 'True' | 'False' | 'Unknown';
-  type:
-    | 'QuotaReserved'
-    | 'Admitted'
-    | 'PodsReady'
-    | 'Finished'
-    | 'Evicted'
-    | 'Preempted'
-    | 'Failed';
+  type: WorkloadConditionType | (string & NonNullable<unknown>);
 };
 
 export type WorkloadPriorityClassKind = K8sResourceCommon & {

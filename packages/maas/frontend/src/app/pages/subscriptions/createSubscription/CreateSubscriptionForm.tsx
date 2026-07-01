@@ -21,7 +21,7 @@ import {
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -44,6 +44,7 @@ type CreateSubscriptionFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
   subscriptionInfo?: SubscriptionInfoResponse;
   returnTo?: string;
+  preSelectedModel?: { name: string; namespace?: string };
 };
 const MAX_PRIORITY = 1000000;
 const MIN_PRIORITY = -1000000;
@@ -79,6 +80,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   formData,
   subscriptionInfo,
   returnTo,
+  preSelectedModel,
 }) => {
   const navigate = useNavigate();
   const isEditing = !!subscriptionInfo;
@@ -115,9 +117,22 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
-  const [initialModels] = React.useState(() =>
-    subscriptionInfo ? buildInitialModels(subscriptionInfo) : [],
-  );
+  const [initialModels] = React.useState<SubscriptionModelEntry[]>(() => {
+    if (subscriptionInfo) {
+      return buildInitialModels(subscriptionInfo);
+    }
+    if (preSelectedModel) {
+      const match = formData.modelRefs.find(
+        (m) =>
+          m.name === preSelectedModel.name &&
+          (!preSelectedModel.namespace || m.namespace === preSelectedModel.namespace),
+      );
+      if (match) {
+        return [{ modelRefSummary: match, tokenRateLimits: [] }];
+      }
+    }
+    return [];
+  });
 
   const {
     models,
@@ -355,7 +370,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             data-testid="no-models-warning"
           >
             There are no model endpoints available on the cluster. Deploy a model on the{' '}
-            <Link to={`${URL_PREFIX}/deployments`}>Deployments page</Link> and create a MaaSModelRef
+            <Link to="/ai-hub/models/deployments">Deployments page</Link> and create a MaaSModelRef
             before creating a subscription.
           </Alert>
         ) : (

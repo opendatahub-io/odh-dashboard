@@ -1,6 +1,7 @@
 import type { PipelineRun } from '~/app/types';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import { MAX_DISPLAY_NAME_LENGTH } from './const';
 
 /**
  * Whether the run is in a state where it completed successfully.
@@ -108,12 +109,6 @@ export function sanitizeFilename(str: string): string {
       .trim() || 'unknown'
   );
 }
-
-/**
- * Maximum character length for a display name (matches configure.schema.ts validation).
- * Measured in Unicode code points via Array.from().
- */
-const MAX_DISPLAY_NAME_LENGTH = 250;
 
 /**
  * Generates a reconfigure display name by appending or incrementing a ` - N` suffix.

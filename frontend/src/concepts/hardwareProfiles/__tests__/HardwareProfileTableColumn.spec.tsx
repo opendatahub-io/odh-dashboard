@@ -9,8 +9,8 @@ import {
 import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
 
-jest.mock('#~/concepts/areas', () => ({
-  ...jest.requireActual('#~/concepts/areas'),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn().mockReturnValue({ status: false }),
 }));
 

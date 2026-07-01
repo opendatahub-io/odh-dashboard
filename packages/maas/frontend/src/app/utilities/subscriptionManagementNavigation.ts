@@ -2,6 +2,29 @@ import { URL_PREFIX } from './const';
 
 const SUBSCRIPTION_MANAGEMENT_PREFIX = `${URL_PREFIX}/subscription-management`;
 
+export const getPreSelectedModelFromState = (
+  state: unknown,
+): { name: string; namespace?: string } | undefined => {
+  if (state == null || typeof state !== 'object' || !('preSelectedModel' in state)) {
+    return undefined;
+  }
+  const obj: Record<string, unknown> = Object.assign({}, state);
+  const { preSelectedModel } = obj;
+  if (
+    preSelectedModel == null ||
+    typeof preSelectedModel !== 'object' ||
+    !('name' in preSelectedModel)
+  ) {
+    return undefined;
+  }
+  const model: Record<string, unknown> = Object.assign({}, preSelectedModel);
+  if (typeof model.name !== 'string') {
+    return undefined;
+  }
+  const namespace = typeof model.namespace === 'string' ? model.namespace : undefined;
+  return { name: model.name, namespace };
+};
+
 export const getReturnToFromState = (state: unknown): string | undefined => {
   if (state == null || typeof state !== 'object' || !('returnTo' in state)) {
     return undefined;
@@ -22,6 +45,14 @@ export const getReturnToFromState = (state: unknown): string | undefined => {
   }
 
   return undefined;
+};
+
+export const getBreadcrumbLabelFromState = (state: unknown): string | undefined => {
+  if (state == null || typeof state !== 'object' || !('breadcrumbLabel' in state)) {
+    return undefined;
+  }
+  const obj: Record<string, unknown> = Object.assign({}, state);
+  return typeof obj.breadcrumbLabel === 'string' ? obj.breadcrumbLabel : undefined;
 };
 
 export const getBackUrl = (

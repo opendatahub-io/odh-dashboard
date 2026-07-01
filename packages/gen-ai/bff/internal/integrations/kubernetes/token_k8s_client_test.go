@@ -1153,7 +1153,7 @@ registered_resources:
 		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
 		require.NoError(t, err)
 		require.Len(t, result, 1)
-		assert.Equal(t, []string{"audio-transcription", "vision"}, result[0].Capabilities)
+		assert.Equal(t, []string{"text-generation", "audio-transcription", "vision"}, result[0].Capabilities)
 	})
 }
 

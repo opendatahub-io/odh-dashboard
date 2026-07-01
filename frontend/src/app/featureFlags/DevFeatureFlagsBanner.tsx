@@ -2,7 +2,7 @@ import { Banner, Button, Split, SplitItem, Tooltip } from '@patternfly/react-cor
 import { CloseIcon } from '@patternfly/react-icons';
 import * as React from 'react';
 
-import { FeatureFlag } from '#~/concepts/areas/types';
+import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { DevFeatureFlags } from '#~/types';
 import FeatureFlagModal from '#~/app/featureFlags/FeatureFlagModal';
 // todo: change the props in the type! (and/or move to concepts/area/types ???? TODO)
