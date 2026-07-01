@@ -100,11 +100,6 @@ const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
   internalEndpoint: 'http://internal',
   externalEndpoint: 'http://external',
   model_source_type: 'namespace',
-  sa_token: {
-    name: 'token-name',
-    token_name: 'token',
-    token: 'test-token',
-  },
   ...overrides,
 });
 
