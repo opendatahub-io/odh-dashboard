@@ -133,131 +133,16 @@ jobs:
       - id: set-groups
         shell: bash
         run: |
-          set -x  # Enable debug mode to see each command
+          # Generate test groups using Node.js script
+          # Automatically splits large files (>20KB) into individual groups
+          # Groups smaller files together
+          # New test files are automatically picked up
+          TEST_GROUPS=$(node scripts/generate-cypress-test-matrix.js)
 
-          TEST_GROUPS="[]"
-
-          # 1. Discover central cypress test groups
-          if [ -d "packages/cypress/cypress/tests/mocked" ]; then
-            echo "Found mocked tests directory"
-            
-            # Get directories and create JSON objects with name and spec
-            # spec includes "cypress/" prefix so all specs are relative to packages/
-            CENTRAL_GROUPS=$(cd packages/cypress/cypress/tests/mocked && \
-                  find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
-                  jq -R '{"name": ., "spec": ("cypress/cypress/tests/mocked/" + . + "/*")}' | jq -c -s .)
-
-            # Split slow test directories to reduce critical path
-            # Dynamically split large files into individual groups, rest grouped together
-            cd packages/cypress/cypress/tests/mocked
-
-            # Helper function to get "other" files dynamically
-            get_other_files() {
-              local dir=$1
-              shift
-              local large_files=("$@")
-
-              # Get all .cy.ts files in the directory (without extension)
-              local all_files=$(ls "$dir"/*.cy.ts 2>/dev/null | xargs -n1 basename | sed 's/.cy.ts$//')
-
-              # Filter out large files
-              local other_files=""
-              for file in $all_files; do
-                local is_large=false
-                for large in "${large_files[@]}"; do
-                  if [ "$file" = "$large" ]; then
-                    is_large=true
-                    break
-                  fi
-                done
-                if [ "$is_large" = false ]; then
-                  if [ -z "$other_files" ]; then
-                    other_files="$file"
-                  else
-                    other_files="$other_files,$file"
-                  fi
-                fi
-              done
-
-              echo "$other_files"
-            }
-
-            # Get dynamic "other" file lists
-            PROJECTS_TABS_OTHER=$(get_other_files "projects/tabs" "workbench" "legacyModelServingNim" "permissionsRbacAssignRoles" "clusterStorage")
-            PIPELINES_RUNS_OTHER=$(get_other_files "pipelines/runs" "pipelineCreateRuns" "pipelineRuns" "compareRuns")
-            FEATURESTORE_OTHER=$(get_other_files "featureStore" "featureEntities" "featureDataSources" "featureDataSet")
-            MODELTRAINING_OTHER=$(get_other_files "modelTraining" "modelTraining" "modelTrainingRayJobs")
-
-            cd - > /dev/null
-
-            # Build split groups with dynamic "other" specs
-            CENTRAL_GROUPS=$(echo "$CENTRAL_GROUPS" | jq -c \
-              --arg pt_other "$PROJECTS_TABS_OTHER" \
-              --arg pr_other "$PIPELINES_RUNS_OTHER" \
-              --arg fs_other "$FEATURESTORE_OTHER" \
-              --arg mt_other "$MODELTRAINING_OTHER" '
-              map(
-                if .name == "projects/tabs" then
-                  ({"name": "projects/tabs/workbench", "spec": "cypress/cypress/tests/mocked/projects/tabs/workbench.cy.ts"},
-                   {"name": "projects/tabs/legacyModelServingNim", "spec": "cypress/cypress/tests/mocked/projects/tabs/legacyModelServingNim.cy.ts"},
-                   {"name": "projects/tabs/permissionsRbacAssignRoles", "spec": "cypress/cypress/tests/mocked/projects/tabs/permissionsRbacAssignRoles.cy.ts"},
-                   {"name": "projects/tabs/clusterStorage", "spec": "cypress/cypress/tests/mocked/projects/tabs/clusterStorage.cy.ts"},
-                   (if $pt_other != "" then {"name": "projects/tabs/other", "spec": ("cypress/cypress/tests/mocked/projects/tabs/{" + $pt_other + "}.cy.ts")} else empty end))
-                elif .name == "pipelines/runs" then
-                  ({"name": "pipelines/runs/pipelineCreateRuns", "spec": "cypress/cypress/tests/mocked/pipelines/runs/pipelineCreateRuns.cy.ts"},
-                   {"name": "pipelines/runs/pipelineRuns", "spec": "cypress/cypress/tests/mocked/pipelines/runs/pipelineRuns.cy.ts"},
-                   {"name": "pipelines/runs/compareRuns", "spec": "cypress/cypress/tests/mocked/pipelines/runs/compareRuns.cy.ts"},
-                   (if $pr_other != "" then {"name": "pipelines/runs/other", "spec": ("cypress/cypress/tests/mocked/pipelines/runs/{" + $pr_other + "}.cy.ts")} else empty end))
-                elif .name == "featureStore" then
-                  ({"name": "featureStore/featureEntities", "spec": "cypress/cypress/tests/mocked/featureStore/featureEntities.cy.ts"},
-                   {"name": "featureStore/featureDataSources", "spec": "cypress/cypress/tests/mocked/featureStore/featureDataSources.cy.ts"},
-                   {"name": "featureStore/featureDataSet", "spec": "cypress/cypress/tests/mocked/featureStore/featureDataSet.cy.ts"},
-                   (if $fs_other != "" then {"name": "featureStore/other", "spec": ("cypress/cypress/tests/mocked/featureStore/{" + $fs_other + "}.cy.ts")} else empty end))
-                elif .name == "modelTraining" then
-                  ({"name": "modelTraining/modelTraining", "spec": "cypress/cypress/tests/mocked/modelTraining/modelTraining.cy.ts"},
-                   {"name": "modelTraining/modelTrainingRayJobs", "spec": "cypress/cypress/tests/mocked/modelTraining/modelTrainingRayJobs.cy.ts"},
-                   (if $mt_other != "" then {"name": "modelTraining/other", "spec": ("cypress/cypress/tests/mocked/modelTraining/{" + $mt_other + "}.cy.ts")} else empty end))
-                else .
-                end
-              )')
-
-            TEST_GROUPS=$(echo "$TEST_GROUPS" | jq -c --argjson central "$CENTRAL_GROUPS" '. + $central')
-            echo "Central test groups: $CENTRAL_GROUPS"
-          fi
-
-          # 2. Discover package-based cypress tests using npm query
-          echo "Discovering package-based cypress tests..."
-          # spec includes package name so all specs are relative to packages/
-          PKG_GROUPS=$(npm query '.workspace' --json | jq -c '
-            [.[] | select(.cypress.mocked != null and .name != "@odh-dashboard/cypress") |
-              {
-                "name": ("pkg-" + (.name | split("/") | .[-1])),
-                "spec": ((.name | split("/") | .[-1]) + "/" + .cypress.mocked)
-              }
-            ]
-          ')
-          
-          if [ "$PKG_GROUPS" != "[]" ]; then
-            # Verify each package has actual test files before adding
-            for row in $(echo "$PKG_GROUPS" | jq -c '.[]'); do
-              PKG_NAME=$(echo "$row" | jq -r '.name' | sed 's/^pkg-//')
-              if find "packages/$PKG_NAME" -name "*.cy.ts" 2>/dev/null | grep -q .; then
-                TEST_GROUPS=$(echo "$TEST_GROUPS" | jq -c --argjson row "$row" '. + [$row]')
-                echo "Added package test group: $row"
-              fi
-            done
-          fi
-
-          # Fallback if no groups found
-          if [ "$TEST_GROUPS" == "[]" ]; then
-            echo "No test groups found, using default"
-            TEST_GROUPS='[{"name": "default", "spec": "cypress/cypress/tests/mocked/**/*.cy.ts"}]'
-          fi
-
-          # Output in the correct format for GitHub Actions
+          # Output for GitHub Actions matrix
           echo "test-groups=$TEST_GROUPS" >> "$GITHUB_OUTPUT"
-          
-          echo "Generated test groups:"
+
+          # Pretty print for logs
           echo "$TEST_GROUPS" | jq .
 
   Contract-Tests:
