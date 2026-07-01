@@ -1,9 +1,10 @@
 import type { DeployAgentEnvVar, DeployAgentServicePort, DeployAgentWizardFormData } from './types';
+import { DeployAgentEnvVarType } from './types';
 import {
   ENV_VAR_NAME_REGEX,
   MAX_SERVICE_PORT,
   MIN_SERVICE_PORT,
-  VALID_SERVICE_PORT_PROTOCOLS,
+  SERVICE_PORT_PROTOCOLS,
 } from './constants';
 import { protocolOptions, workloadTypeOptions } from './wizardOptions';
 
@@ -113,6 +114,8 @@ export const isValidPullSecretName = (name: string): boolean => {
   return trimmed.length <= MAX_DNS_SUBDOMAIN_LENGTH && K8S_DNS_SUBDOMAIN_REGEX.test(trimmed);
 };
 
+const VALID_SERVICE_PORT_PROTOCOLS = new Set<string>(SERVICE_PORT_PROTOCOLS);
+
 export const isValidPortNumber = (port: number | undefined): boolean =>
   typeof port === 'number' &&
   Number.isInteger(port) &&
@@ -144,13 +147,27 @@ export const isServicePortRowValid = (port: DeployAgentServicePort): boolean =>
   isValidPortNumber(port.targetPort) &&
   isValidServicePortProtocol(port.protocol);
 
-export const isEnvVarRowValid = (envVar: DeployAgentEnvVar): boolean =>
-  envVar.name.trim().length > 0 && envVar.value.trim().length > 0 && isValidEnvVarName(envVar.name);
+export const isEnvVarRowValid = (envVar: DeployAgentEnvVar): boolean => {
+  if (!isValidEnvVarName(envVar.name)) {
+    return false;
+  }
+
+  switch (envVar.type) {
+    case DeployAgentEnvVarType.DIRECT:
+      return envVar.value.trim().length > 0;
+    case DeployAgentEnvVarType.SECRET:
+      return envVar.secretName.trim().length > 0 && envVar.secretKey.trim().length > 0;
+    case DeployAgentEnvVarType.CONFIG_MAP:
+      return envVar.configMapName.trim().length > 0 && envVar.configMapKey.trim().length > 0;
+    default:
+      return false;
+  }
+};
 
 export const formatServicePortsSummary = (servicePorts: DeployAgentServicePort[]): string =>
   servicePorts
-    .map((port) => `${port.name} (${port.protocol}): ${port.port} -> ${port.targetPort}`)
-    .join(', ');
+    .map((port) => `${port.name} (${port.protocol}): ${port.port} → ${port.targetPort}`)
+    .join('; ');
 
 export const formatAuthBridgeSummary = (formData: DeployAgentWizardFormData): string => {
   if (!formData.authBridgeEnabled) {
@@ -162,12 +179,26 @@ export const formatAuthBridgeSummary = (formData: DeployAgentWizardFormData): st
   return 'Enabled';
 };
 
-export const formatEnvVarsSummary = (envVars: DeployAgentEnvVar[]): string => {
-  if (envVars.length === 0) {
-    return 'None';
+export const formatEnvVarSummaryEntry = (envVar: DeployAgentEnvVar): string | null => {
+  const name = envVar.name.trim();
+  if (!name) {
+    return null;
   }
-  return envVars.map((envVar) => `${envVar.name}=${envVar.value}`).join(', ');
+
+  if (envVar.type === DeployAgentEnvVarType.DIRECT) {
+    return `${name} = ${envVar.value.trim()}`;
+  }
+  if (envVar.type === DeployAgentEnvVarType.SECRET) {
+    return `${name} = secret/${envVar.secretName.trim()}:${envVar.secretKey.trim()}`;
+  }
+  return `${name} = configMap/${envVar.configMapName.trim()}:${envVar.configMapKey.trim()}`;
 };
+
+export const formatEnvVarsSummary = (envVars: DeployAgentEnvVar[]): string =>
+  envVars
+    .map(formatEnvVarSummaryEntry)
+    .filter((entry): entry is string => entry !== null)
+    .join(', ');
 
 export const formatPersistentStorageSummary = (formData: DeployAgentWizardFormData): string =>
   formData.enablePersistentStorage ? `Enabled (${formData.persistentVolumeSize})` : 'Disabled';

@@ -1,0 +1,38 @@
+.deploy-agent-service-port-row {
+  margin-bottom: var(--pf-t--global--spacer--md);
+
+  &__protocol {
+    min-width: 7rem;
+  }
+
+  &__remove {
+    padding-top: var(--pf-t--global--spacer--xs);
+  }
+
+  &__remove-icon {
+    color: var(--pf-t--global--icon--color--status--danger--default);
+  }
+}
+
+.deploy-agent-service-port-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--xs);
+  min-width: 0;
+  width: 100%;
+
+  &__label {
+    font-size: 0.875rem;
+    color: var(--pf-t--global--text--color--subtle);
+  }
+
+  .pf-v6-c-form-control,
+  .odh-number-input-wrapper,
+  .deploy-agent-wizard-dropdown {
+    width: 100%;
+  }
+
+  .pf-v6-c-form-control {
+    --pf-v6-c-form-control--BorderWidth: var(--pf-t--global--border--width--regular);
+  }
+}

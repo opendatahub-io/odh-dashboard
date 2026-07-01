@@ -1,17 +1,23 @@
 import * as React from 'react';
+import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import {
   Button,
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Split,
-  SplitItem,
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import DeployWizardSelectField from '~/app/deployWizard/DeployWizardSelectField';
 import type { DeployAgentEnvVar } from '~/app/deployWizard/types';
+import { DeployAgentEnvVarType } from '~/app/deployWizard/types';
+import {
+  DEPLOY_WIZARD_SELECT_MAX_MENU_HEIGHT,
+  envVarTypeOptions,
+} from '~/app/deployWizard/wizardOptions';
 import { getEnvVarNameError } from '~/app/deployWizard/utils';
+import './EnvironmentVariablesField.scss';
 
 type EnvironmentVariablesFieldProps = {
   envVars: DeployAgentEnvVar[];
@@ -20,6 +26,25 @@ type EnvironmentVariablesFieldProps = {
   onUpdate: (index: number, partial: Partial<DeployAgentEnvVar>) => void;
 };
 
+const parseEnvVarType = (key: string): DeployAgentEnvVarType | undefined => {
+  switch (key) {
+    case DeployAgentEnvVarType.DIRECT:
+    case DeployAgentEnvVarType.SECRET:
+    case DeployAgentEnvVarType.CONFIG_MAP:
+      return key;
+    default:
+      return undefined;
+  }
+};
+
+const clearEnvVarValueFields = (): Partial<DeployAgentEnvVar> => ({
+  value: '',
+  secretName: '',
+  secretKey: '',
+  configMapName: '',
+  configMapKey: '',
+});
+
 const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
   envVars,
   onAdd,
@@ -27,47 +52,137 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
   onUpdate,
 }) => (
   <>
-    {envVars.map((envVar, index) => {
-      const nameError = getEnvVarNameError(envVar.name);
+    {envVars.length > 0 ? (
+      <div className="deploy-agent-env-vars-list">
+        {envVars.map((envVar, index) => {
+          const nameError = getEnvVarNameError(envVar.name);
+          const nameInvalid = nameError.length > 0;
 
-      return (
-        <Split hasGutter key={`env-var-${index}`}>
-          <SplitItem isFilled>
-            <TextInput
-              data-testid={`deploy-agent-env-var-name-${index}`}
-              aria-label="Environment variable name"
-              value={envVar.name}
-              validated={nameError ? ValidatedOptions.error : ValidatedOptions.default}
-              onChange={(_event, value) => onUpdate(index, { name: value })}
-            />
-            {nameError && (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem variant="error">{nameError}</HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            )}
-          </SplitItem>
-          <SplitItem isFilled>
-            <TextInput
-              data-testid={`deploy-agent-env-var-value-${index}`}
-              aria-label="Environment variable value"
-              value={envVar.value}
-              onChange={(_event, value) => onUpdate(index, { value })}
-            />
-          </SplitItem>
-          <SplitItem>
-            <Button
-              aria-label={`Remove environment variable ${index + 1}`}
-              data-testid={`deploy-agent-remove-env-var-${index}`}
-              onClick={() => onRemove(index)}
-              variant="plain"
-              icon={<MinusCircleIcon />}
-            />
-          </SplitItem>
-        </Split>
-      );
-    })}
+          return (
+            <div
+              key={`env-var-${index}`}
+              className="deploy-agent-env-var-row"
+              id={`deploy-agent-env-var-row-${index}`}
+            >
+              <div className="deploy-agent-env-var-row__field deploy-agent-env-var-row__field--name">
+                <TextInput
+                  id={`deploy-agent-env-var-name-${index}`}
+                  data-testid={`deploy-agent-env-var-name-${index}`}
+                  aria-label={`Environment variable name ${index + 1}`}
+                  placeholder="Name"
+                  value={envVar.name}
+                  validated={nameInvalid ? ValidatedOptions.error : ValidatedOptions.default}
+                  aria-invalid={nameInvalid}
+                  aria-describedby={
+                    nameError ? `deploy-agent-env-var-name-error-${index}` : undefined
+                  }
+                  onChange={(_event, value) => onUpdate(index, { name: value })}
+                />
+                {nameError ? (
+                  <HelperText>
+                    <HelperTextItem id={`deploy-agent-env-var-name-error-${index}`} variant="error">
+                      {nameError}
+                    </HelperTextItem>
+                  </HelperText>
+                ) : null}
+              </div>
+              <div className="deploy-agent-env-var-row__field deploy-agent-env-var-row__field--type">
+                <DeployWizardSelectField>
+                  <SimpleSelect
+                    dataTestId={`deploy-agent-env-var-type-${index}`}
+                    placeholder="Direct value"
+                    value={envVar.type}
+                    options={envVarTypeOptions}
+                    onChange={(key) => {
+                      const type = parseEnvVarType(key);
+                      if (type) {
+                        onUpdate(index, { type, ...clearEnvVarValueFields() });
+                      }
+                    }}
+                    isFullWidth
+                    maxMenuHeight={DEPLOY_WIZARD_SELECT_MAX_MENU_HEIGHT}
+                    popperProps={{ appendTo: 'inline' }}
+                    toggleProps={{
+                      id: `deploy-agent-env-var-type-${index}`,
+                      'aria-label': `Environment variable value type ${index + 1}`,
+                    }}
+                  />
+                </DeployWizardSelectField>
+              </div>
+              {envVar.type === DeployAgentEnvVarType.DIRECT ? (
+                <div className="deploy-agent-env-var-row__field">
+                  <TextInput
+                    id={`deploy-agent-env-var-value-${index}`}
+                    data-testid={`deploy-agent-env-var-value-${index}`}
+                    aria-label={`Environment variable value ${index + 1}`}
+                    placeholder="Value"
+                    value={envVar.value}
+                    onChange={(_event, value) => onUpdate(index, { value })}
+                  />
+                </div>
+              ) : null}
+              {envVar.type === DeployAgentEnvVarType.SECRET ? (
+                <>
+                  <div className="deploy-agent-env-var-row__field">
+                    <TextInput
+                      id={`deploy-agent-env-var-secret-name-${index}`}
+                      data-testid={`deploy-agent-env-var-secret-name-${index}`}
+                      aria-label={`Secret name ${index + 1}`}
+                      placeholder="Secret name"
+                      value={envVar.secretName}
+                      onChange={(_event, value) => onUpdate(index, { secretName: value })}
+                    />
+                  </div>
+                  <div className="deploy-agent-env-var-row__field">
+                    <TextInput
+                      id={`deploy-agent-env-var-secret-key-${index}`}
+                      data-testid={`deploy-agent-env-var-secret-key-${index}`}
+                      aria-label={`Secret key ${index + 1}`}
+                      placeholder="Secret key"
+                      value={envVar.secretKey}
+                      onChange={(_event, value) => onUpdate(index, { secretKey: value })}
+                    />
+                  </div>
+                </>
+              ) : null}
+              {envVar.type === DeployAgentEnvVarType.CONFIG_MAP ? (
+                <>
+                  <div className="deploy-agent-env-var-row__field">
+                    <TextInput
+                      id={`deploy-agent-env-var-configmap-name-${index}`}
+                      data-testid={`deploy-agent-env-var-configmap-name-${index}`}
+                      aria-label={`ConfigMap name ${index + 1}`}
+                      placeholder="ConfigMap name"
+                      value={envVar.configMapName}
+                      onChange={(_event, value) => onUpdate(index, { configMapName: value })}
+                    />
+                  </div>
+                  <div className="deploy-agent-env-var-row__field">
+                    <TextInput
+                      id={`deploy-agent-env-var-configmap-key-${index}`}
+                      data-testid={`deploy-agent-env-var-configmap-key-${index}`}
+                      aria-label={`ConfigMap key ${index + 1}`}
+                      placeholder="ConfigMap key"
+                      value={envVar.configMapKey}
+                      onChange={(_event, value) => onUpdate(index, { configMapKey: value })}
+                    />
+                  </div>
+                </>
+              ) : null}
+              <div className="deploy-agent-env-var-row__remove">
+                <Button
+                  aria-label={`Remove environment variable ${index + 1}`}
+                  data-testid={`deploy-agent-remove-env-var-${index}`}
+                  onClick={() => onRemove(index)}
+                  variant="plain"
+                  icon={<MinusCircleIcon />}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    ) : null}
     <Button
       isInline
       data-testid="deploy-agent-add-env-var"
@@ -77,6 +192,13 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
     >
       Add variable
     </Button>
+    <FormHelperText>
+      <HelperText>
+        <HelperTextItem>
+          Optional environment variables passed to the agent container at runtime.
+        </HelperTextItem>
+      </HelperText>
+    </FormHelperText>
   </>
 );
 

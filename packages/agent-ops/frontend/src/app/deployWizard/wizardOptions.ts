@@ -1,6 +1,6 @@
 import type { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
-import type { DeployAgentServicePort } from './types';
-import { DeployAgentWizardStepTitle } from './types';
+import type { DeployAgentEnvVar, DeployAgentServicePort } from './types';
+import { DeployAgentEnvVarType, DeployAgentWizardStepTitle } from './types';
 import { SERVICE_PORT_PROTOCOLS } from './constants';
 
 export const DEFAULT_IMAGE_TAG = 'latest';
@@ -13,6 +13,24 @@ export const DEFAULT_SERVICE_PORT: DeployAgentServicePort = {
   targetPort: 8000,
   protocol: 'TCP',
 };
+
+export const DEFAULT_ENV_VAR_TYPE = DeployAgentEnvVarType.DIRECT;
+
+export const DEFAULT_ENV_VAR: DeployAgentEnvVar = {
+  name: '',
+  type: DEFAULT_ENV_VAR_TYPE,
+  value: '',
+  secretName: '',
+  secretKey: '',
+  configMapName: '',
+  configMapKey: '',
+};
+
+export const envVarTypeOptions: SimpleSelectOption[] = [
+  { key: DeployAgentEnvVarType.DIRECT, label: 'Direct value' },
+  { key: DeployAgentEnvVarType.SECRET, label: 'Secret reference' },
+  { key: DeployAgentEnvVarType.CONFIG_MAP, label: 'ConfigMap reference' },
+];
 
 /** Max toggle width for wizard dropdowns; keep in sync with DeployWizardSelectField.scss. */
 export const DEPLOY_WIZARD_SELECT_MAX_WIDTH = '28rem';
@@ -63,7 +81,15 @@ export const servicePortProtocolOptions: SimpleSelectOption[] = SERVICE_PORT_PRO
 );
 
 export const mtlsModeOptions: SimpleSelectOption[] = [
-  { key: 'disabled', label: 'Disabled' },
-  { key: 'permissive', label: 'Permissive' },
-  { key: 'strict', label: 'Strict' },
+  { key: '', label: 'Cluster default' },
+  { key: 'disabled', label: 'disabled — no mTLS between sidecars (default)' },
+  { key: 'permissive', label: 'permissive — accept both mTLS and plain text traffic' },
+  { key: 'strict', label: 'strict — require mTLS between sidecars' },
+];
+
+export const defaultOutboundPolicyOptions: SimpleSelectOption[] = [
+  { key: '', label: 'Cluster default' },
+  { key: 'passthrough', label: 'passthrough — pass traffic through unchanged (default)' },
+  { key: 'intercept', label: 'intercept — authenticate outbound traffic through AuthBridge' },
+  { key: 'reject', label: 'reject — block unauthenticated outbound traffic' },
 ];

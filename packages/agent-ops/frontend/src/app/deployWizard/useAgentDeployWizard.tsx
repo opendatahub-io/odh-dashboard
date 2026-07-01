@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  DEFAULT_ENV_VAR,
   DEFAULT_IMAGE_TAG,
   DEFAULT_PERSISTENT_VOLUME_SIZE,
   DEFAULT_PROTOCOL,
@@ -36,6 +37,7 @@ export const createInitialFormData = (namespace: string): DeployAgentWizardFormD
   pullSecret: '',
   fullImageReference: '',
   protocol: DEFAULT_PROTOCOL,
+  framework: '',
   workloadType: '',
   enablePersistentStorage: false,
   persistentVolumeSize: DEFAULT_PERSISTENT_VOLUME_SIZE,
@@ -43,6 +45,9 @@ export const createInitialFormData = (namespace: string): DeployAgentWizardFormD
   createRoute: false,
   authBridgeEnabled: true,
   useEnvoySidecar: false,
+  authBridgeOutboundPortsExclude: '',
+  authBridgeInboundPortsExclude: '',
+  authBridgeDefaultOutboundPolicy: '',
   enableSpireIdentity: false,
   mtlsMode: '',
   envVars: [],
@@ -88,6 +93,10 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
 
         if (field === 'authBridgeEnabled' && value === false) {
           next.useEnvoySidecar = false;
+          next.mtlsMode = '';
+          next.authBridgeOutboundPortsExclude = '';
+          next.authBridgeInboundPortsExclude = '';
+          next.authBridgeDefaultOutboundPolicy = '';
         }
 
         return next;
@@ -111,7 +120,10 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
   const addServicePort = React.useCallback(() => {
     setFormData((current) => ({
       ...current,
-      servicePorts: [...current.servicePorts, { ...DEFAULT_SERVICE_PORT }],
+      servicePorts: [
+        ...current.servicePorts,
+        { name: '', port: 8080, targetPort: 8000, protocol: DEFAULT_SERVICE_PORT.protocol },
+      ],
     }));
   }, []);
 
@@ -134,7 +146,7 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
   const addEnvVar = React.useCallback(() => {
     setFormData((current) => ({
       ...current,
-      envVars: [...current.envVars, { name: '', value: '' }],
+      envVars: [...current.envVars, { ...DEFAULT_ENV_VAR }],
     }));
   }, []);
 

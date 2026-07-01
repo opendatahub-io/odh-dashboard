@@ -3,7 +3,5 @@ export const ENV_VAR_NAME_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export const SERVICE_PORT_PROTOCOLS = ['TCP', 'UDP', 'SCTP'] as const;
 
-export const VALID_SERVICE_PORT_PROTOCOLS = new Set<string>(SERVICE_PORT_PROTOCOLS);
-
 export const MIN_SERVICE_PORT = 1;
 export const MAX_SERVICE_PORT = 65535;

@@ -78,7 +78,7 @@ export const deployAgentWizardStepValidators = {
 export type DeployAgentWizardStepConfig = {
   name: DeployAgentWizardStepTitle;
   id: string;
-  isValid: DeployAgentWizardStepValidator;
+  isValid?: DeployAgentWizardStepValidator;
 };
 
 /** Step metadata and validators — single source of truth for gating logic. */
@@ -126,7 +126,8 @@ export const isDeployAgentWizardStepAccessible = (
   }
 
   for (let i = 0; i < stepIndex - 1; i++) {
-    if (!steps[i]?.isValid(state)) {
+    const stepValidator = steps[i]?.isValid;
+    if (stepValidator && !stepValidator(state)) {
       return false;
     }
   }
@@ -142,5 +143,9 @@ export const isDeployAgentWizardStepValid = (
   if (stepIndex < 1 || stepIndex > steps.length) {
     return false;
   }
-  return steps[stepIndex - 1]?.isValid(state) ?? false;
+  const stepValidator = steps[stepIndex - 1]?.isValid;
+  if (!stepValidator) {
+    return true;
+  }
+  return stepValidator(state);
 };

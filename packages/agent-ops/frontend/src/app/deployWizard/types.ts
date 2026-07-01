@@ -14,9 +14,20 @@ export type DeployAgentServicePort = {
   protocol: string;
 };
 
+export enum DeployAgentEnvVarType {
+  DIRECT = 'direct',
+  SECRET = 'secret',
+  CONFIG_MAP = 'configmap',
+}
+
 export type DeployAgentEnvVar = {
   name: string;
+  type: DeployAgentEnvVarType;
   value: string;
+  secretName: string;
+  secretKey: string;
+  configMapName: string;
+  configMapKey: string;
 };
 
 export type DeployAgentWizardFormData = {
@@ -27,6 +38,7 @@ export type DeployAgentWizardFormData = {
   pullSecret: string;
   fullImageReference: string;
   protocol: string;
+  framework: string;
   workloadType: string;
   enablePersistentStorage: boolean;
   persistentVolumeSize: string;
@@ -34,6 +46,9 @@ export type DeployAgentWizardFormData = {
   createRoute: boolean;
   authBridgeEnabled: boolean;
   useEnvoySidecar: boolean;
+  authBridgeOutboundPortsExclude: string;
+  authBridgeInboundPortsExclude: string;
+  authBridgeDefaultOutboundPolicy: string;
   enableSpireIdentity: boolean;
   mtlsMode: string;
   envVars: DeployAgentEnvVar[];

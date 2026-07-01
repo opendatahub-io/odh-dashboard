@@ -5,25 +5,45 @@ import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSec
 import {
   Button,
   Checkbox,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Split,
-  SplitItem,
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
-import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon, TrashIcon } from '@patternfly/react-icons';
 import { useAgentDeployWizardContext } from '~/app/deployWizard/useAgentDeployWizard';
 import DeployWizardSelectField from '~/app/deployWizard/DeployWizardSelectField';
 import {
   DEPLOY_WIZARD_SELECT_MAX_MENU_HEIGHT,
   servicePortProtocolOptions,
 } from '~/app/deployWizard/wizardOptions';
-import { isValidPortNumber, isValidServicePortName } from '~/app/deployWizard/utils';
 import { MAX_SERVICE_PORT, MIN_SERVICE_PORT } from '~/app/deployWizard/constants';
+import { isValidPortNumber, isValidServicePortName } from '~/app/deployWizard/utils';
+import './NetworkingStep.scss';
+
+type ServicePortFieldColumnProps = {
+  label: string;
+  labelId: string;
+  children: React.ReactNode;
+};
+
+const ServicePortFieldColumn: React.FC<ServicePortFieldColumnProps> = ({
+  label,
+  labelId,
+  children,
+}) => (
+  <div className="deploy-agent-service-port-field">
+    {children}
+    <span id={labelId} className="deploy-agent-service-port-field__label">
+      {label}
+    </span>
+  </div>
+);
 
 const NetworkingStep: React.FC = () => {
   const { formData, setFormField, updateServicePort, addServicePort, removeServicePort } =
@@ -40,31 +60,38 @@ const NetworkingStep: React.FC = () => {
             const targetPortInvalid = !isValidPortNumber(port.targetPort);
 
             return (
-              <Split hasGutter key={`service-port-${index}`}>
-                <SplitItem isFilled>
-                  <FormGroup
-                    label="Port name"
-                    isRequired
-                    fieldId={`deploy-agent-port-name-${index}`}
+              <Flex
+                key={`service-port-${index}`}
+                className="deploy-agent-service-port-row"
+                gap={{ default: 'gapMd' }}
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                id={`deploy-agent-service-port-row-${index}`}
+              >
+                <FlexItem grow={{ default: 'grow' }}>
+                  <ServicePortFieldColumn
+                    label="Port Name"
+                    labelId={`deploy-agent-port-name-label-${index}`}
                   >
                     <TextInput
                       id={`deploy-agent-port-name-${index}`}
                       data-testid={`deploy-agent-port-name-${index}`}
+                      placeholder="http"
                       value={port.name}
                       validated={
                         portNameInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
+                      aria-describedby={`deploy-agent-port-name-label-${index}`}
                       onChange={(_event, value) => updateServicePort(index, { name: value })}
                     />
-                  </FormGroup>
-                </SplitItem>
-                <SplitItem isFilled>
-                  <FormGroup
-                    label="Service port"
-                    isRequired
-                    fieldId={`deploy-agent-service-port-${index}`}
+                  </ServicePortFieldColumn>
+                </FlexItem>
+                <FlexItem>
+                  <ServicePortFieldColumn
+                    label="Service Port"
+                    labelId={`deploy-agent-service-port-label-${index}`}
                   >
                     <NumberInputWrapper
+                      fullWidth
                       id={`deploy-agent-service-port-${index}`}
                       data-testid={`deploy-agent-service-port-${index}`}
                       value={port.port}
@@ -73,17 +100,18 @@ const NetworkingStep: React.FC = () => {
                       validated={
                         servicePortInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
+                      aria-describedby={`deploy-agent-service-port-label-${index}`}
                       onChange={(value) => updateServicePort(index, { port: value ?? port.port })}
                     />
-                  </FormGroup>
-                </SplitItem>
-                <SplitItem isFilled>
-                  <FormGroup
-                    label="Target port"
-                    isRequired
-                    fieldId={`deploy-agent-target-port-${index}`}
+                  </ServicePortFieldColumn>
+                </FlexItem>
+                <FlexItem>
+                  <ServicePortFieldColumn
+                    label="Target Port"
+                    labelId={`deploy-agent-target-port-label-${index}`}
                   >
                     <NumberInputWrapper
+                      fullWidth
                       id={`deploy-agent-target-port-${index}`}
                       data-testid={`deploy-agent-target-port-${index}`}
                       value={port.targetPort}
@@ -92,17 +120,17 @@ const NetworkingStep: React.FC = () => {
                       validated={
                         targetPortInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
+                      aria-describedby={`deploy-agent-target-port-label-${index}`}
                       onChange={(value) =>
                         updateServicePort(index, { targetPort: value ?? port.targetPort })
                       }
                     />
-                  </FormGroup>
-                </SplitItem>
-                <SplitItem isFilled>
-                  <FormGroup
+                  </ServicePortFieldColumn>
+                </FlexItem>
+                <FlexItem className="deploy-agent-service-port-row__protocol">
+                  <ServicePortFieldColumn
                     label="Protocol"
-                    isRequired
-                    fieldId={`deploy-agent-port-protocol-${index}`}
+                    labelId={`deploy-agent-port-protocol-label-${index}`}
                   >
                     <DeployWizardSelectField>
                       <SimpleSelect
@@ -117,22 +145,26 @@ const NetworkingStep: React.FC = () => {
                         toggleProps={{
                           id: `deploy-agent-port-protocol-${index}`,
                           'aria-label': 'Protocol',
+                          'aria-describedby': `deploy-agent-port-protocol-label-${index}`,
                         }}
                       />
                     </DeployWizardSelectField>
-                  </FormGroup>
-                </SplitItem>
-                <SplitItem>
+                  </ServicePortFieldColumn>
+                </FlexItem>
+                <FlexItem
+                  alignSelf={{ default: 'alignSelfFlexStart' }}
+                  className="deploy-agent-service-port-row__remove"
+                >
                   <Button
                     aria-label={`Remove service port ${index + 1}`}
                     data-testid={`deploy-agent-remove-service-port-${index}`}
                     onClick={() => removeServicePort(index)}
                     variant="plain"
-                    icon={<MinusCircleIcon />}
+                    icon={<TrashIcon className="deploy-agent-service-port-row__remove-icon" />}
                     isDisabled={formData.servicePorts.length === 1}
                   />
-                </SplitItem>
-              </Split>
+                </FlexItem>
+              </Flex>
             );
           })}
           <Button

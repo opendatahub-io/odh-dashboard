@@ -5,6 +5,8 @@ import {
   isDeployAgentWizardStepValid,
 } from '~/app/deployWizard/deployAgentWizardValidation';
 import { createInitialFormData } from '~/app/deployWizard/useAgentDeployWizard';
+import { DeployAgentEnvVarType } from '~/app/deployWizard/types';
+import { DEFAULT_ENV_VAR } from '~/app/deployWizard/wizardOptions';
 
 const completeFormData = () => ({
   ...createInitialFormData('team1'),
@@ -80,7 +82,14 @@ describe('deployAgentWizardValidation', () => {
     it('fails environment variable validation for invalid names', () => {
       const state = createDeployAgentWizardValidationState({
         ...completeFormData(),
-        envVars: [{ name: '1INVALID', value: 'value' }],
+        envVars: [
+          {
+            ...DEFAULT_ENV_VAR,
+            name: '1INVALID',
+            type: DeployAgentEnvVarType.DIRECT,
+            value: 'value',
+          },
+        ],
       });
 
       expect(state.isEnvironmentVariablesValid).toBe(false);

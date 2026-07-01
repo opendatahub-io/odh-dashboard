@@ -359,7 +359,7 @@ describe('AgentDeployWizard', () => {
     expect(screen.getByTestId('deploy-agent-summary-container-image')).toHaveTextContent(
       'quay.io/myorg/my-agent',
     );
-    expect(screen.getByTestId('deploy-agent-summary-framework')).toHaveTextContent('—');
+    expect(screen.getByTestId('deploy-agent-summary-framework')).toHaveTextContent('');
 
     await user.click(screen.getByTestId('deploy-agent-wizard-submit'));
 
@@ -382,7 +382,7 @@ describe('AgentDeployWizard', () => {
     expect(screen.queryByTestId('deploy-agent-port-name-1')).not.toBeInTheDocument();
   });
 
-  it('disables envoy-sidecar mode when AuthBridge is unchecked', async () => {
+  it('hides envoy-sidecar and advanced settings when AuthBridge is unchecked', async () => {
     const user = userEvent.setup();
     renderWizard();
 
@@ -392,9 +392,11 @@ describe('AgentDeployWizard', () => {
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
 
-    expect(screen.getByTestId('deploy-agent-use-envoy-sidecar')).toBeEnabled();
+    expect(screen.getByTestId('deploy-agent-use-envoy-sidecar')).toBeInTheDocument();
+    expect(screen.getByTestId('deploy-agent-auth-bridge-advanced')).toBeInTheDocument();
     await user.click(screen.getByTestId('deploy-agent-auth-bridge-enabled'));
-    expect(screen.getByTestId('deploy-agent-use-envoy-sidecar')).toBeDisabled();
+    expect(screen.queryByTestId('deploy-agent-use-envoy-sidecar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('deploy-agent-auth-bridge-advanced')).not.toBeInTheDocument();
   });
 
   it('keeps Next disabled on step 5 when an environment variable row is incomplete', async () => {
@@ -409,6 +411,6 @@ describe('AgentDeployWizard', () => {
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
     await user.click(screen.getByTestId('deploy-agent-add-env-var'));
 
-    expect(screen.getByTestId('deploy-agent-wizard-next')).toBeDisabled();
+    expect(screen.getByTestId('deploy-agent-wizard-next')).toHaveAttribute('aria-disabled', 'true');
   });
 });

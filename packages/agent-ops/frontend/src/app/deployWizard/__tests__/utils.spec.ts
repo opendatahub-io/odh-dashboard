@@ -14,6 +14,8 @@ import {
 } from '~/app/deployWizard/utils';
 import type { DeployAgentWizardFormData } from '~/app/deployWizard/types';
 import { createInitialFormData } from '~/app/deployWizard/useAgentDeployWizard';
+import { DeployAgentEnvVarType } from '~/app/deployWizard/types';
+import { DEFAULT_ENV_VAR } from '~/app/deployWizard/wizardOptions';
 
 describe('deployWizard utils', () => {
   describe('deriveAgentNameFromImage', () => {
@@ -84,7 +86,7 @@ describe('deployWizard utils', () => {
     });
   });
 
-  describe('port and env validators', () => {
+  describe('service port validators', () => {
     it('validates port numbers', () => {
       expect(isValidPortNumber(8080)).toBe(true);
       expect(isValidPortNumber(0)).toBe(false);
@@ -95,7 +97,9 @@ describe('deployWizard utils', () => {
       expect(isValidServicePortName('http')).toBe(true);
       expect(isValidServicePortName('bad name')).toBe(false);
     });
+  });
 
+  describe('environment variable validators', () => {
     it('validates environment variable names', () => {
       expect(isValidEnvVarName('LOG_LEVEL')).toBe(true);
       expect(isValidEnvVarName('1BAD')).toBe(false);
@@ -108,7 +112,7 @@ describe('deployWizard utils', () => {
         formatServicePortsSummary([
           { name: 'http', port: 8080, targetPort: 8000, protocol: 'TCP' },
         ]),
-      ).toBe('http (TCP): 8080 -> 8000');
+      ).toBe('http (TCP): 8080 → 8000');
     });
 
     it('formats auth bridge summary', () => {
@@ -122,8 +126,28 @@ describe('deployWizard utils', () => {
     });
 
     it('formats environment variables', () => {
-      expect(formatEnvVarsSummary([])).toBe('None');
-      expect(formatEnvVarsSummary([{ name: 'LOG_LEVEL', value: 'info' }])).toBe('LOG_LEVEL=info');
+      expect(formatEnvVarsSummary([])).toBe('');
+      expect(
+        formatEnvVarsSummary([
+          {
+            ...DEFAULT_ENV_VAR,
+            name: 'LOG_LEVEL',
+            type: DeployAgentEnvVarType.DIRECT,
+            value: 'info',
+          },
+        ]),
+      ).toBe('LOG_LEVEL = info');
+      expect(
+        formatEnvVarsSummary([
+          {
+            ...DEFAULT_ENV_VAR,
+            name: 'API_KEY',
+            type: DeployAgentEnvVarType.SECRET,
+            secretName: 'my-secret',
+            secretKey: 'api-key',
+          },
+        ]),
+      ).toBe('API_KEY = secret/my-secret:api-key');
     });
   });
 });
