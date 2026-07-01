@@ -50,6 +50,14 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
 
   const [showSelectModal, setShowSelectModal] = React.useState(false);
 
+  const unavailableStoresRef = React.useRef<WorkbenchFeatureStoreConfig[]>([]);
+  if (
+    unavailableStoresRef.current.length === 0 &&
+    selectedFeatureStores.some((fs) => fs.isUnavailable)
+  ) {
+    unavailableStoresRef.current = selectedFeatureStores.filter((fs) => fs.isUnavailable);
+  }
+
   const codeContent = React.useMemo(() => generateFeatureStoreCode(), []);
   const hasSelectedFeatureStores = selectedFeatureStores.length > 0;
 
@@ -131,6 +139,7 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
       {showSelectModal && (
         <SelectFeatureStoresModal
           featureStores={availableFeatureStores}
+          unavailableFeatureStores={unavailableStoresRef.current}
           initialSelections={selectedFeatureStores}
           onSave={(featureStores) => {
             onSelect(featureStores);

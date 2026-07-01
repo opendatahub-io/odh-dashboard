@@ -133,7 +133,7 @@ describe('getFeatureStoresFromNotebook', () => {
     expect(result).toHaveLength(2);
   });
 
-  it('should ignore non-existent project names', () => {
+  it('should return unavailable placeholder for non-existent project names', () => {
     const notebook = mockNotebookK8sResource({
       opts: {
         metadata: {
@@ -145,11 +145,19 @@ describe('getFeatureStoresFromNotebook', () => {
     });
     const result = getFeatureStoresFromNotebook(notebook, mockFeatureStores);
 
-    expect(result).toHaveLength(2);
+    expect(result).toHaveLength(3);
     expect(result.map((fs) => fs.projectName)).toEqual([
       PROJECT_NAME_CREDIT_SCORING,
+      'non_existent',
       PROJECT_NAME_BANKING,
     ]);
+    expect(result[0].isUnavailable).toBeUndefined();
+    expect(result[1].isUnavailable).toBe(true);
+    expect(result[1].namespace).toBe('');
+    expect(result[1].configName).toBe('');
+    expect(result[1].hasAccessToFeatureStore).toBe(false);
+    expect(result[1].permissionLevel).toEqual([]);
+    expect(result[2].isUnavailable).toBeUndefined();
   });
 
   it('should not return duplicate configs when annotation lists the same project twice', () => {

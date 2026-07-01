@@ -13,6 +13,7 @@ export type WorkbenchFeatureStoreConfig = {
   configMap: ConfigMapKind | null;
   hasAccessToFeatureStore: boolean;
   permissionLevel: string[];
+  isUnavailable?: boolean;
 };
 
 type UseWorkbenchFeatureStoresReturn = {

@@ -20,6 +20,9 @@ export const FEATURE_STORE_EMPTY_STATE_TITLE = 'No selected feature store';
 export const FEATURE_STORE_EMPTY_STATE_BODY =
   'Select feature stores to connect to this workbench. Features in selected feature stores have read and write access to this workbench.';
 
+export const FEATURE_STORE_UNAVAILABLE_TOOLTIP =
+  'This feature store is no longer available. It may have been deleted or access has been revoked.';
+
 export const removeFeatureStoreProjectById = (
   configs: WorkbenchFeatureStoreConfig[],
   projectId: string,
@@ -46,11 +49,13 @@ export const getFeatureStoresFromNotebook = (
   const projectNames = feastConfigAnnotation.split(',').map((name) => name.trim());
   const matched: WorkbenchFeatureStoreConfig[] = [];
   const usedConfigKeys = new Set<string>();
+  const seenProjectNames = new Set<string>();
 
   projectNames.forEach((projectName) => {
-    if (!projectName) {
+    if (!projectName || seenProjectNames.has(projectName)) {
       return;
     }
+    seenProjectNames.add(projectName);
 
     const found = availableFeatureStores.find(
       (config) =>
@@ -60,6 +65,16 @@ export const getFeatureStoresFromNotebook = (
     if (found) {
       matched.push(found);
       usedConfigKeys.add(getFeatureStoreProjectId(found));
+    } else {
+      matched.push({
+        namespace: '',
+        configName: '',
+        projectName,
+        configMap: null,
+        hasAccessToFeatureStore: false,
+        permissionLevel: [],
+        isUnavailable: true,
+      });
     }
   });
 

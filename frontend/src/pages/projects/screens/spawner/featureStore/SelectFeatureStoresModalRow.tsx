@@ -1,9 +1,11 @@
 import * as React from 'react';
-import { Truncate } from '@patternfly/react-core';
+import { Flex, FlexItem, Icon, Tooltip, Truncate } from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FeatureStorePermissionLabels } from './FeatureStorePermissionLabels';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
+import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from './utils';
 
 export type SelectFeatureStoresModalRowProps = {
   rowIndex: number;
@@ -31,13 +33,31 @@ export const SelectFeatureStoresModalRow: React.FC<SelectFeatureStoresModalRowPr
         aria-label={`Toggle ${featureStore.projectName}`}
       />
       <Td dataLabel="Name">
-        <Truncate content={featureStore.projectName} />
+        {featureStore.isUnavailable ? (
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Truncate content={featureStore.projectName} />
+            </FlexItem>
+            <FlexItem>
+              <Tooltip content={FEATURE_STORE_UNAVAILABLE_TOOLTIP}>
+                <Icon isInline status="info" data-testid="feature-store-unavailable-icon">
+                  <InfoCircleIcon />
+                </Icon>
+              </Tooltip>
+            </FlexItem>
+          </Flex>
+        ) : (
+          <Truncate content={featureStore.projectName} />
+        )}
       </Td>
       <Td dataLabel="Namespace">
-        <Truncate content={featureStore.namespace} />
+        <Truncate content={featureStore.isUnavailable ? '-' : featureStore.namespace} />
       </Td>
       <Td dataLabel="Permission level">
-        {featureStore.permissionLevel.length > 0 ? (
+        {!featureStore.isUnavailable && featureStore.permissionLevel.length > 0 ? (
           <FeatureStorePermissionLabels permissions={featureStore.permissionLevel} />
         ) : (
           '-'

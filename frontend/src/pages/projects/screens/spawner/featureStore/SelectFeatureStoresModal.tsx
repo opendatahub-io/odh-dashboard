@@ -25,6 +25,7 @@ import {
 
 export type SelectFeatureStoresModalProps = {
   featureStores: WorkbenchFeatureStoreConfig[];
+  unavailableFeatureStores?: WorkbenchFeatureStoreConfig[];
   initialSelections?: WorkbenchFeatureStoreConfig[];
   onSave: (featureStores: WorkbenchFeatureStoreConfig[]) => void;
   onClose: () => void;
@@ -50,28 +51,38 @@ const haveSameSelectionIds = (currentIds: string[], initialIds: string[]): boole
 
 export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> = ({
   featureStores,
+  unavailableFeatureStores = [],
   initialSelections = [],
   onSave,
   onClose,
 }) => {
   const [filterText, setFilterText] = React.useState('');
+
+  const allFeatureStores = React.useMemo(() => {
+    const availableIds = new Set(featureStores.map(getFeatureStoreProjectId));
+    const unavailable = unavailableFeatureStores.filter(
+      (fs) => !availableIds.has(getFeatureStoreProjectId(fs)),
+    );
+    return [...featureStores, ...unavailable];
+  }, [featureStores, unavailableFeatureStores]);
+
   const initialSelectionIdsRef = React.useRef(
-    getInitialSelections(featureStores, initialSelections).map(getFeatureStoreProjectId),
+    getInitialSelections(allFeatureStores, initialSelections).map(getFeatureStoreProjectId),
   );
   const [selectedFeatureStores, setSelectedFeatureStores] = React.useState<
     WorkbenchFeatureStoreConfig[]
-  >(() => getInitialSelections(featureStores, initialSelections));
+  >(() => getInitialSelections(allFeatureStores, initialSelections));
 
   const filteredFeatureStores = React.useMemo(() => {
     const normalized = filterText.trim().toLowerCase();
     if (!normalized) {
-      return featureStores;
+      return allFeatureStores;
     }
 
-    return featureStores.filter((featureStore) =>
+    return allFeatureStores.filter((featureStore) =>
       featureStore.projectName.toLowerCase().includes(normalized),
     );
-  }, [featureStores, filterText]);
+  }, [allFeatureStores, filterText]);
 
   const sort = useTableColumnSort<WorkbenchFeatureStoreConfig>(selectFeatureStoresColumns, [], 1);
   const sortedFeatureStores = React.useMemo(
