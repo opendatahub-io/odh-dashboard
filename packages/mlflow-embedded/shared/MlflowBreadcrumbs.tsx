@@ -29,10 +29,10 @@ const MlflowBreadcrumbs: React.FC<{
 }> = ({ basePath, workspace, breadcrumbs }) => {
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(workspace));
-  const projectDisplayName = project ? getDisplayNameFromK8sResource(project) : workspace;
+  const projectDisplayName = project && getDisplayNameFromK8sResource(project);
 
   return (
-    <Flex>
+    <Flex alignItems={{ default: 'alignItemsCenter' }}>
       <Breadcrumb>
         {breadcrumbs.map((b, idx) => {
           const isLast = idx === breadcrumbs.length - 1;

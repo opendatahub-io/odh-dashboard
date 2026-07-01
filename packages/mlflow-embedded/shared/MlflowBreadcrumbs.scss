@@ -1,5 +1,5 @@
 // Workaround so the link underline spans the full text+icon row.
-// Mirrors the same fix in GlobalPipelineCoreDetails.scss (PF issue #7554).
+// FIXME: Upstream still open — https://github.com/patternfly/patternfly/issues/7554 (breadcrumb icon underline). Re-check after PF ships fix.
 .mlflow-breadcrumb-project-link {
   position: relative;
   text-decoration: none;
