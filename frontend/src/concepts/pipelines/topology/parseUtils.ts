@@ -325,6 +325,105 @@ export const translateStatusForNode = (
   }
 };
 
+/**
+ * Find the ParallelFor DAG execution for a given task — the one that has
+ * `iteration_count` set and whose `task_name` matches.
+ */
+export const findParallelForDagExecution = (
+  taskName: string,
+  taskId: string,
+  executions?: Execution[] | null,
+): Execution | undefined =>
+  executions?.find((e) => {
+    const props = e.getCustomPropertiesMap();
+    return (
+      props.get('task_name')?.getStringValue() === (taskName || taskId) &&
+      props.has('iteration_count')
+    );
+  });
+
+/**
+ * Read `iteration_count` from an execution's MLMD custom properties.
+ * Returns undefined when the property is absent.
+ */
+export const getIterationCount = (execution: Execution): number | undefined => {
+  const props = execution.getCustomPropertiesMap();
+  if (!props.has('iteration_count')) {
+    return undefined;
+  }
+  return props.get('iteration_count')?.getIntValue();
+};
+
+/**
+ * Find the iteration execution for a specific index under a ParallelFor parent.
+ */
+export const findIterationExecution = (
+  parentDagId: number,
+  iterationIndex: number,
+  executions: Execution[],
+): Execution | undefined =>
+  executions.find((e) => {
+    const props = e.getCustomPropertiesMap();
+    return (
+      props.get('parent_dag_id')?.getIntValue() === parentDagId &&
+      props.get('iteration_index')?.getIntValue() === iterationIndex
+    );
+  });
+
+/**
+ * Scope-aware variant of parseRuntimeInfoFromExecutions that filters by
+ * parent_dag_id so each iteration's inner tasks resolve to the correct execution.
+ */
+export const parseRuntimeInfoFromExecutionsScoped = (
+  taskId: string,
+  taskName: string,
+  parentDagId: number | undefined,
+  executions?: Execution[] | null,
+): PipelineTaskRunStatus | undefined => {
+  if (!executions) {
+    return undefined;
+  }
+
+  const execution = executions.find((e) => {
+    const props = e.getCustomPropertiesMap();
+    const nameMatch = props.get('task_name')?.getStringValue() === (taskName || taskId);
+    if (!nameMatch) {
+      return false;
+    }
+    if (parentDagId != null) {
+      return props.get('parent_dag_id')?.getIntValue() === parentDagId;
+    }
+    return true;
+  });
+
+  if (!execution) {
+    return undefined;
+  }
+
+  const lastUpdatedTime = execution.getLastUpdateTimeSinceEpoch();
+  let completeTime;
+  const lastKnownState = execution.getLastKnownState();
+  if (
+    lastUpdatedTime &&
+    (lastKnownState === Execution.State.COMPLETE ||
+      lastKnownState === Execution.State.FAILED ||
+      lastKnownState === Execution.State.CACHED ||
+      lastKnownState === Execution.State.CANCELED)
+  ) {
+    completeTime = new Date(lastUpdatedTime).toISOString();
+  }
+  return {
+    startTime: new Date(execution.getCreateTimeSinceEpoch()).toISOString(),
+    completeTime,
+    state: getResourceStateText({
+      resourceType: ResourceType.EXECUTION,
+      resource: execution,
+    }),
+    taskId: `task.${taskId}`,
+    podName: execution.getCustomPropertiesMap().get('pod_name')?.getStringValue(),
+  };
+};
+
 export const parseVolumeMounts = (
   platformSpec?: PlatformSpec,
   executorLabel?: string,

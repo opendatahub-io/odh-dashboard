@@ -2,3 +2,4 @@
 
 export { usePipelineTaskTopology } from './usePipelineTaskTopology';
 export * from './pipelineTaskTypes';
+export { ROOT_LAYER } from './usePipelineTaskTopology';

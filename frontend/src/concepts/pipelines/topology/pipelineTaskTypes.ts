@@ -8,6 +8,21 @@ import {
 import { Artifact } from '#~/third_party/mlmd';
 import { VolumeMount } from '#~/types';
 
+export type PipelineTopologyLayerType = 'root' | 'subDag' | 'parallelForIterations' | 'iteration';
+
+export type PipelineTopologyLayer = {
+  label: string;
+  type: PipelineTopologyLayerType;
+  /** Which component's DAG to render (for subDag/parallelForIterations/iteration) */
+  componentRef?: string;
+  /** Number of ParallelFor iterations (for parallelForIterations layer) */
+  iterationCount?: number;
+  /** Iteration index (for iteration layer) */
+  iterationIndex?: number;
+  /** MLMD execution ID used to scope child execution matching */
+  parentDagId?: number;
+};
+
 export type PipelineTaskParam = {
   label: string;
   type: InputDefinitionParameterType;
@@ -54,4 +69,8 @@ export type PipelineTask = {
   /** Volume Mounts */
   volumeMounts?: VolumeMount[];
   whenStatus?: WhenStatus;
+  /** True when this node represents a sub-DAG (static or ParallelFor) that can be drilled into */
+  isSubDag?: boolean;
+  /** Number of ParallelFor iterations — present only on the ParallelFor group node */
+  iterationCount?: number;
 };
