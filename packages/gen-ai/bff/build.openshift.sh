@@ -36,20 +36,22 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 # Get current directory relative to repo root
 CURRENT_DIR="$(pwd)"
 CONTEXT_DIR="${CURRENT_DIR#$REPO_ROOT/}"
+DOCKERFILE_PATH="${CONTEXT_DIR}/${DOCKERFILE}"
 APP_NAME="genai-bff"
 
 # Echo variables
 echo "Repository URL: ${REPO_URL}"
 echo "Branch: ${BRANCH}"
-echo "Context Directory: ${CONTEXT_DIR}"
+echo "Context Directory: . (repo root)"
+echo "Dockerfile Path: ${DOCKERFILE_PATH}"
 echo "Application Name: ${APP_NAME}"
-echo "Dockerfile Path: ${DOCKERFILE}"
 echo "--------------------------------"
 
-# Create the application
+# Create the application (context is repo root so pkg/tls is accessible)
 oc new-app ${REPO_URL}#${BRANCH} \
-  --context-dir=${CONTEXT_DIR} \
+  --context-dir=. \
   --strategy=docker \
+  --docker-file=${DOCKERFILE_PATH} \
   --name=genai-bff
 
 # Expose the service
