@@ -89,4 +89,3 @@ export const getDeletedHardwareProfilePatches = <T extends K8sResourceCommon>(
     ? REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH
     : [];
 };
-
