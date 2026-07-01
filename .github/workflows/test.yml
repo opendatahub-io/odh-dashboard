@@ -260,12 +260,16 @@ jobs:
           echo "::warning::Cypress build cache miss — rebuilding (key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }})"
           npm run cypress:server:build:coverage -- --concurrency=4
       - name: Run Cypress Mock tests
+        env:
+          CYPRESS_SPEC: ${{ matrix.test-group.spec }}
         run: |
-          npm run test:cypress-ci:coverage:nobuild -- --spec "../packages/${{ matrix.test-group.spec }}"
+          npm run test:cypress-ci:coverage:nobuild -- --spec "../packages/${CYPRESS_SPEC}"
         working-directory: ./frontend
       - name: Test group name
         if: ${{ always() }}
-        run: echo "TEST_GROUP_NAME=$(echo '${{ matrix.test-group.name }}' | tr '/-' '_')" >> $GITHUB_ENV
+        env:
+          TEST_GROUP_RAW: ${{ matrix.test-group.name }}
+        run: echo "TEST_GROUP_NAME=$(echo "${TEST_GROUP_RAW}" | tr '/-' '_')" >> $GITHUB_ENV
       - name: Upload Cypress Mock results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: ${{ always() }}

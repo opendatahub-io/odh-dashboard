@@ -16,6 +16,38 @@ const TESTS_DIR = 'packages/cypress/cypress/tests/mocked';
 const SIZE_THRESHOLD = 20 * 1024; // 20KB - files larger than this get split into individual groups
 
 /**
+ * Validate that a string is safe for use in shell contexts
+ * Only allows alphanumeric, dash, underscore, slash, dot, comma, curly braces
+ * Rejects path traversal, shell metacharacters, and injection patterns
+ */
+function validateSafePath(input, fieldName) {
+  if (typeof input !== 'string' || input.length === 0) {
+    throw new Error(`${fieldName} must be a non-empty string`);
+  }
+
+  // Reject path traversal attempts
+  if (input.includes('..') || input.includes('//')) {
+    throw new Error(`${fieldName} contains path traversal: ${input}`);
+  }
+
+  // Reject shell metacharacters and injection patterns
+  // Allow: alphanumeric, dash, underscore, slash, dot, comma, curly braces, asterisk (for glob patterns)
+  const safePattern = /^[a-zA-Z0-9\-_/.,{}*]+$/;
+  if (!safePattern.test(input)) {
+    throw new Error(
+      `${fieldName} contains unsafe characters (only a-zA-Z0-9-_/.,{}* allowed): ${input}`,
+    );
+  }
+
+  // Reject if it starts with slash (absolute paths)
+  if (input.startsWith('/')) {
+    throw new Error(`${fieldName} must be a relative path: ${input}`);
+  }
+
+  return input;
+}
+
+/**
  * Recursively find all directories containing .cy.ts files
  */
 function getTestDirectories(baseDir = TESTS_DIR, relativePath = '') {
@@ -243,7 +275,12 @@ function main() {
 
   // Output JSON for GitHub Actions
   // Remove metadata fields (size, count, strategy) from final output
-  const output = allGroups.map(({ name, spec }) => ({ name, spec }));
+  // Validate all names and specs for shell safety
+  const output = allGroups.map(({ name, spec }) => {
+    validateSafePath(name, 'test group name');
+    validateSafePath(spec, 'test group spec');
+    return { name, spec };
+  });
   console.log(JSON.stringify(output));
 }
 
