@@ -1,26 +1,10 @@
-import {
-  Alert,
-  AlertActionCloseButton,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  Flex,
-  FlexItem,
-  Label,
-  Spinner,
-  Stack,
-  StackItem,
-  Title,
-} from '@patternfly/react-core';
+import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
-import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useTreeViewData } from '~/app/topology/tree-view';
-import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
-import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { downloadBlob, isRunInTerminalState } from '~/app/utilities/utils';
 import AutomlLeaderboard from './AutomlLeaderboard';
@@ -50,8 +34,6 @@ function AutomlResults(): React.JSX.Element {
   } = useAutomlResultsContext();
   const { namespace } = useParams<{ namespace: string }>();
 
-  const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
-
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
@@ -67,18 +49,12 @@ function AutomlResults(): React.JSX.Element {
         : [],
     [componentStageMap, runDetails, pipelineRun?.state, parameters?.top_n],
   );
-  const fallbackNodes = useAutomlTaskTopology(
-    pipelineRun?.pipeline_spec,
-    runDetails,
-    pipelineRun?.state,
-  );
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
   const useStageMap = hasStageMapTask && !componentStageMapError;
-  const nodes = useStageMap ? stageMapNodes : fallbackNodes;
 
-  // Tree view uses the same nodes as the experiment pipeline graph above
+  // Tree view data
   const treeViewData = useTreeViewData(
     models,
     pipelineRun?.state,
@@ -159,9 +135,6 @@ function AutomlResults(): React.JSX.Element {
     [namespace, models, pipelineRun?.display_name],
   );
 
-  const isCanceled = pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED;
-  const isFailed = pipelineRun?.state.toUpperCase() === RuntimeStateKF.FAILED;
-
   return (
     <>
       <Stack hasGutter>
@@ -178,48 +151,6 @@ function AutomlResults(): React.JSX.Element {
             </Alert>
           </StackItem>
         )}
-        <StackItem className="automl-topology-wrapper">
-          <Flex
-            className="automl-topology-overlay"
-            spaceItems={{ default: 'spaceItemsSm' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>
-              <Title headingLevel="h3">Experiment pipeline</Title>
-            </FlexItem>
-            {(isCanceled || isFailed) && (
-              <FlexItem>
-                <Label
-                  variant="outline"
-                  status={isCanceled ? 'warning' : 'danger'}
-                  data-testid="run-status-label"
-                >
-                  {pipelineRun.state}
-                </Label>
-              </FlexItem>
-            )}
-          </Flex>
-          {useStageMap &&
-          !componentStageMap &&
-          (componentStageMapLoading || !isRunInTerminalState(pipelineRun?.state)) ? (
-            <EmptyState
-              variant={EmptyStateVariant.sm}
-              icon={Spinner}
-              headingLevel="h3"
-              titleText="Preparing the optimization pipeline"
-              className="automl-topology-container"
-            >
-              <EmptyStateBody>This may take a moment.</EmptyStateBody>
-            </EmptyState>
-          ) : (
-            <PipelineTopology
-              nodes={nodes}
-              selectedIds={selectedIds}
-              onSelectionChange={setSelectedIds}
-              className="automl-topology-container"
-            />
-          )}
-        </StackItem>
         <StackItem>
           <AutomlPipelineVisualization
             key={pipelineRun?.run_id}
