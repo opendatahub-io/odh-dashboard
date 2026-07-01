@@ -202,7 +202,7 @@ const getReviewSections = (value: CustomTopologyConfigFieldData): WizardReviewSe
       items: [
         {
           key: 'custom-topology-config',
-          label: 'Custom topology configuration',
+          label: 'Topology configuration',
           value: () =>
             value.selectedConfig ? getDisplayNameFromK8sResource(value.selectedConfig) : '',
         },
