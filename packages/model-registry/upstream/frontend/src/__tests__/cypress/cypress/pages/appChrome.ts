@@ -1,10 +1,10 @@
 class AppChrome {
   visit() {
     cy.visit('/');
-    this.wait();
+    this.waitForA11y();
   }
 
-  private wait() {
+  waitForA11y() {
     cy.testA11y();
   }
 

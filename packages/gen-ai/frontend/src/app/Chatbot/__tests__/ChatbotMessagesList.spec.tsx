@@ -33,6 +33,16 @@ jest.mock('../ChatbotMessagesMetrics', () => ({
   )),
 }));
 
+jest.mock('../ChatbotFileSearchResults', () => ({
+  __esModule: true,
+  default: jest.fn(({ fileSearchData, citationMap }) => (
+    <div data-testid="file-search-results">
+      <span data-testid="file-search-result-count">{fileSearchData.results.length}</span>
+      {citationMap && <span data-testid="file-search-citation-count">{citationMap.size}</span>}
+    </div>
+  )),
+}));
+
 jest.mock('@patternfly/chatbot', () => ({
   Message: jest.fn(
     ({
@@ -537,6 +547,154 @@ describe('ChatbotMessages', () => {
       // No standalone loading dots — the placeholder bot message in messageList handles isLoading
       const loadingMessages = screen.queryAllByTestId('chatbot-message-bot');
       expect(loadingMessages).toHaveLength(0);
+    });
+  });
+
+  describe('File Search Results', () => {
+    it('should render file search results in endContent when fileSearchData is present', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Response with sources.',
+          fileSearchData: {
+            queries: ['test query'],
+            results: [
+              // eslint-disable-next-line camelcase
+              { score: 0.9, text: 'chunk', file_id: 'f1', filename: 'doc.pdf' },
+            ],
+          },
+        },
+      ];
+
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
+
+      expect(screen.getByTestId('end-content')).toBeInTheDocument();
+      expect(screen.getByTestId('file-search-results')).toBeInTheDocument();
+      expect(screen.getByTestId('file-search-result-count')).toHaveTextContent('1');
+    });
+
+    it('should pass citationMap to file search results', () => {
+      const citationMap = new Map([['doc.pdf', 1]]);
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Response.',
+          fileSearchData: {
+            queries: [],
+            results: [
+              // eslint-disable-next-line camelcase
+              { score: 0.8, text: 'chunk', file_id: 'f1', filename: 'doc.pdf' },
+            ],
+          },
+          citationMap,
+        },
+      ];
+
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
+
+      expect(screen.getByTestId('file-search-citation-count')).toHaveTextContent('1');
+    });
+
+    it('should render both file search results and metrics together', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Response.',
+          fileSearchData: {
+            queries: [],
+            results: [
+              // eslint-disable-next-line camelcase
+              { score: 0.8, text: 'chunk', file_id: 'f1', filename: 'doc.pdf' },
+            ],
+          },
+          /* eslint-disable camelcase */
+          metrics: {
+            latency_ms: 500,
+            usage: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+          },
+          /* eslint-enable camelcase */
+        },
+      ];
+
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
+
+      expect(screen.getByTestId('file-search-results')).toBeInTheDocument();
+      expect(screen.getByTestId('metrics')).toBeInTheDocument();
+    });
+
+    it('should not render file search results for error messages', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: '',
+          fileSearchData: {
+            queries: [],
+            results: [
+              // eslint-disable-next-line camelcase
+              { score: 0.8, text: 'chunk', file_id: 'f1', filename: 'doc.pdf' },
+            ],
+          },
+          errorClassification: {
+            pattern: 'full-failure',
+            variant: 'danger',
+            isRetriable: false,
+            title: 'Error',
+            description: 'Failed',
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Error' },
+          },
+        },
+      ];
+
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
+
+      expect(screen.queryByTestId('file-search-results')).not.toBeInTheDocument();
+    });
+
+    it('should not render file search results for user messages', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'user',
+          content: 'User question',
+          fileSearchData: {
+            queries: [],
+            results: [
+              // eslint-disable-next-line camelcase
+              { score: 0.8, text: 'chunk', file_id: 'f1', filename: 'doc.pdf' },
+            ],
+          },
+        },
+      ];
+
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
+
+      expect(screen.queryByTestId('file-search-results')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Citation Content', () => {
+    it('should replace citation markers with markdown links in bot message content', () => {
+      const citationMap = new Map([['doc.pdf', 1]]);
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Some text {{citation:1}} more text.',
+          citationMap,
+        },
+      ];
+
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
+
+      // The Message mock receives the transformed content as raw text
+      // prepareCitationContent replaces {{citation:1}} with [\[1\]](#cite-1)
+      const content = screen.getByTestId('message-content').textContent || '';
+      expect(content).not.toContain('{{citation:1}}');
+      expect(content).toContain('#cite-1');
     });
   });
 });

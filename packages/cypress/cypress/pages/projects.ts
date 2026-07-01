@@ -53,6 +53,15 @@ class NotebookRow extends TableRow {
   findOutdatedElyraInfo() {
     return cy.findByTestId('outdated-elyra-info');
   }
+
+  findKueueAnomalyIndicator() {
+    return cy.findByTestId('kueue-anomaly-indicator');
+  }
+
+  findKueueAnomalyTooltip() {
+    this.findKueueAnomalyIndicator().should('exist').trigger('mouseenter');
+    return cy.findByRole('tooltip');
+  }
 }
 
 class ProjectRow extends TableRow {

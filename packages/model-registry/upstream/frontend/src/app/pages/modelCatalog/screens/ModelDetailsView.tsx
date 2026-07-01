@@ -341,7 +341,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                             textToCopy={getModelArtifactUri(artifacts.items) || ''}
                           />
                         ) : (
-                          'No artifacts available'
+                          <span className={text.textColorSubtle}>No artifacts available</span>
                         )}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
