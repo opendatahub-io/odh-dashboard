@@ -280,6 +280,7 @@ export type DashboardCommonConfig = {
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
+  gpuaas?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

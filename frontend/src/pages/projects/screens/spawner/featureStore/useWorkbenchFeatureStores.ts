@@ -15,6 +15,10 @@ export type WorkbenchFeatureStoreConfig = {
   permissionLevel: string[];
 };
 
+export type SelectedFeatureStoreConfig = WorkbenchFeatureStoreConfig & {
+  isUnavailable?: boolean;
+};
+
 type UseWorkbenchFeatureStoresReturn = {
   featureStores: WorkbenchFeatureStoreConfig[];
   loaded: boolean;

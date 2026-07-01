@@ -11,8 +11,8 @@ import {
 } from '@patternfly/react-core';
 import { CheckIcon, ExternalLinkAltIcon, TimesIcon } from '@patternfly/react-icons';
 import { KeyValuePair, EitherNotBoth } from 'mod-arch-core';
+import { FormFieldset } from 'mod-arch-shared';
 import { useThemeContext } from 'mod-arch-kubeflow';
-import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
 import { isValidHttpUrl } from '~/app/pages/modelRegistry/screens/utils';
 import useDeletePropertiesModalAvailability from '~/app/hooks/useDeletePropertiesModalAvailability';
 import DeletePropertiesModal from './DeletePropertiesModal';
