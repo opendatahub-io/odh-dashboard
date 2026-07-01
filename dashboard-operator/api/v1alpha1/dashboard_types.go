@@ -63,6 +63,15 @@ type ModuleOverride struct {
 	State ModuleOverrideState `json:"state,omitempty"`
 }
 
+// Distribution reports the product distribution identity (e.g. "RHOAI" / "2.20").
+type Distribution struct {
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// +optional
+	Version string `json:"version,omitempty"`
+}
+
 // ObservabilitySpec configures the Perses observability proxy.
 type ObservabilitySpec struct {
 	// Enabled controls whether the Perses proxy module is deployed.
@@ -149,6 +158,10 @@ type DashboardStatus struct {
 	// ModuleStatuses reports the deployment state of each module.
 	// +optional
 	ModuleStatuses map[string]ModuleStatus `json:"moduleStatuses,omitempty"`
+
+	// Distribution reports the product distribution identity.
+	// +optional
+	Distribution *Distribution `json:"distribution,omitempty"`
 }
 
 // +kubebuilder:object:root=true

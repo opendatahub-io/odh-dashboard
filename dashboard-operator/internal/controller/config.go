@@ -9,9 +9,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
 const operatorConfigMapName = "dashboard-operator-config"
+const distributionConfigMapName = "opendatahub-dashboard-config"
 const minReconcileInterval = 5 * time.Second
 
 // OperatorConfig holds internal controller flags read from a ConfigMap.
@@ -54,4 +57,38 @@ func readOperatorConfig(ctx context.Context, cli client.Client, namespace string
 	}
 
 	return cfg
+}
+
+// readDistributionConfig reads the distribution identity from the
+// chart-deployed ConfigMap. Returns nil when the ConfigMap is absent
+// or contains no distribution keys.
+func readDistributionConfig(ctx context.Context, cli client.Client, namespace string) *v1alpha1.Distribution {
+	logger := log.FromContext(ctx)
+
+	cm := &corev1.ConfigMap{}
+	key := types.NamespacedName{Name: distributionConfigMapName, Namespace: namespace}
+
+	if err := cli.Get(ctx, key, cm); err != nil {
+		if !k8serrors.IsNotFound(err) {
+			logger.Error(err, "Failed to read distribution config ConfigMap")
+		}
+
+		return nil
+	}
+
+	if cm.Data == nil {
+		return nil
+	}
+
+	name := cm.Data["distribution.name"]
+	version := cm.Data["distribution.version"]
+
+	if name == "" && version == "" {
+		return nil
+	}
+
+	return &v1alpha1.Distribution{
+		Name:    name,
+		Version: version,
+	}
 }

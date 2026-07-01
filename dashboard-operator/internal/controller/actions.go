@@ -10,16 +10,25 @@ import (
 	"strings"
 
 	routev1 "github.com/openshift/api/route/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/deploy"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-var ErrDashboardRouteNotReady = errors.New("dashboard route not yet ready")
+var (
+	ErrDashboardRouteNotReady = errors.New("dashboard route not yet ready")
+	ErrPersesCRDNotFound      = errors.New("PersesDashboard CRD not installed")
+)
 
 func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
 	return []render.ManifestInfo{
@@ -92,4 +101,60 @@ func extractDashboardURL(ctx context.Context, cli client.Client, dashboard *v1al
 	}
 
 	return "", ErrDashboardRouteNotReady
+}
+
+func deployObservabilityManifests(
+	ctx context.Context,
+	cli client.Client,
+	dashboard *v1alpha1.Dashboard,
+	basePath string,
+	platform cluster.Platform,
+) error {
+	logger := log.FromContext(ctx)
+
+	if dashboard.Spec.Observability == nil || !dashboard.Spec.Observability.Enabled {
+		return nil
+	}
+
+	if dashboard.Spec.Observability.PersesService == nil {
+		return nil
+	}
+
+	crd := &apiextensionsv1.CustomResourceDefinition{}
+	if err := cli.Get(ctx, types.NamespacedName{Name: "persesdashboards.perses.dev"}, crd); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return ErrPersesCRDNotFound
+		}
+
+		return fmt.Errorf("failed to check PersesDashboard CRD: %w", err)
+	}
+
+	obsNamespace := dashboard.Spec.Observability.PersesService.Namespace
+
+	m := observabilityManifestInfo(basePath, platform)
+	engine := kustomize.NewEngine()
+
+	rendered, err := engine.Render(m.String(), kustomize.WithNamespace(obsNamespace))
+	if err != nil {
+		return fmt.Errorf("failed to render observability manifests from %s: %w", m, err)
+	}
+
+	logger.Info("Deploying observability manifests", "namespace", obsNamespace, "resources", len(rendered))
+
+	deployer := deploy.NewDeployer(
+		deploy.WithFieldOwner("dashboard-operator"),
+		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
+		deploy.WithApplyOrder(),
+	)
+
+	if err := deployer.Deploy(ctx, deploy.DeployInput{
+		Client:    cli,
+		Owner:     dashboard,
+		Release:   deploy.ReleaseInfo{Type: string(platform)},
+		Resources: rendered,
+	}); err != nil {
+		return fmt.Errorf("failed to deploy observability resources to %s: %w", obsNamespace, err)
+	}
+
+	return nil
 }

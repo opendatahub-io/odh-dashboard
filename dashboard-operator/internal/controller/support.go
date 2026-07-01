@@ -53,6 +53,19 @@ func defaultManifestInfo(basePath string, platform cluster.Platform) render.Mani
 	}
 }
 
+func observabilityManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
+	sourcePath, ok := overlaysSourcePaths[platform]
+	if !ok {
+		sourcePath = overlaysSourcePaths[cluster.OpenDataHub]
+	}
+
+	return render.ManifestInfo{
+		Path:       basePath,
+		ContextDir: "observability",
+		SourcePath: sourcePath,
+	}
+}
+
 func computeKustomizeVariables(dashboard *v1alpha1.Dashboard, platform cluster.Platform) map[string]string {
 	params := map[string]string{}
 

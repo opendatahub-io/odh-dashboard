@@ -182,3 +182,16 @@ rules:
       - update
       - patch
       - delete
+  # Perses observability dashboards
+  - apiGroups:
+      - perses.dev
+    resources:
+      - persesdashboards
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
