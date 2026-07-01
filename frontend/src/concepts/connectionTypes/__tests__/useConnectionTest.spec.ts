@@ -75,7 +75,6 @@ describe('useConnectionTest', () => {
   it('should transition to FAILED on failed test', async () => {
     const failedResult: ConnectionTestResult = {
       success: false,
-      error: 'AUTH_FAILED',
       message: 'Invalid credentials',
     };
     mockedTestConnection.mockResolvedValue(failedResult);
