@@ -46,11 +46,7 @@ const cellRenderers: Record<string, CellRenderer> = {
   status: ({ apiKey, isInactive }) => {
     const displayStatus = getDisplayStatus(apiKey, isInactive);
     return (
-      <ApiKeyStatusLabel
-        status={displayStatus}
-        showInactivePopover
-        data-testid="api-key-status"
-      />
+      <ApiKeyStatusLabel status={displayStatus} showInactivePopover data-testid="api-key-status" />
     );
   },
 
