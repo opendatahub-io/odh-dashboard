@@ -156,7 +156,6 @@ describe('A user can deploy an LLMD model', () => {
       getClipboardContent('copiedYAML').then((copied) => {
         expect(copied).to.have.length.at.least(1);
         const yamlContent = copied[0];
-        // expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha2');
         expect(yamlContent).to.include(resourceApiVersion);
         expect(yamlContent).to.include('kind: LLMInferenceService');
         expect(yamlContent).to.include(`name: ${modelName}`);

@@ -40,4 +40,7 @@ const (
 
 	// Overview routes
 	ModelsOverviewPath = ApiPathPrefix + "/overview/models"
+
+	// YAML export
+	YamlPath = ApiPathPrefix + "/yaml"
 )
