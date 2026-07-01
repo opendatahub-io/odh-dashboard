@@ -50,10 +50,11 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   const compatibleTypes = getModelServingCompatibility(obj);
 
   const statusAnnotation = obj.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS];
+  const isValidStatus = (value: string): value is ConnectionTestStatus =>
+    Object.values<string>(ConnectionTestStatus).includes(value);
   const connectionStatus =
-    statusAnnotation && Object.values<string>(ConnectionTestStatus).includes(statusAnnotation)
-      ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validated above
-        (statusAnnotation as ConnectionTestStatus)
+    statusAnnotation && isValidStatus(statusAnnotation)
+      ? statusAnnotation
       : ConnectionTestStatus.NOT_TESTED;
   const connectionTimestamp = obj.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.TIMESTAMP];
 

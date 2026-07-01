@@ -28,7 +28,7 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
       return (
         <Label
           color="grey"
-          icon={<Spinner size="sm" />}
+          icon={<Spinner size="sm" aria-label="Testing connection" />}
           data-testid="connection-test-label-testing"
         >
           Testing...

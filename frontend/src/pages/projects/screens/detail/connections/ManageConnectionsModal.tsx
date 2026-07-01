@@ -206,8 +206,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
           setTestStatus(ConnectionTestStatus.FAILED);
           setTestResult({
             success: false,
-            error: error instanceof Error ? error.message : String(error),
-            message: 'Connection test failed',
+            message: error instanceof Error ? error.message : String(error),
           });
         }
       });
@@ -364,7 +363,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Stack hasGutter style={{ flex: 'auto' }}>
+        <Stack hasGutter className="pf-v6-u-flex-grow-1">
           {submitError ? (
             <StackItem>
               <Alert data-testid="error-message-alert" isInline variant="danger" title="">
