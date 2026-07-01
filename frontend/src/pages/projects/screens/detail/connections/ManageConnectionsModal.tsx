@@ -325,7 +325,9 @@ export const ManageConnectionModal: React.FC<Props> = ({
                     setIsModified(true);
                   }
                   setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
-                  resetTestStatus();
+                  if (testStatus !== ConnectionTestStatus.NOT_TESTED) {
+                    resetTestStatus();
+                  }
                 }}
                 onValidate={(field, error) =>
                   setConnectionErrors((prev) => ({ ...prev, [field.envVar]: !!error }))

@@ -5,10 +5,7 @@ import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connecti
 import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import { mockProjectK8sResource } from '#~/__mocks__';
 import { mockConnection } from '#~/__mocks__/mockConnection';
-import { testConnection } from '#~/services/connectionTestService';
-import { ConnectionTestStatus } from '#~/concepts/connectionTypes/types';
-
-jest.mock('#~/services/connectionTestService');
+import * as connectionTestService from '#~/services/connectionTestService';
 
 describe('Create connection modal', () => {
   const onCloseMock = jest.fn();
@@ -202,7 +199,7 @@ describe('Create connection modal', () => {
                 type: 'numeric',
                 name: 'numeric 3',
                 envVar: 'env3',
-                properties: { min: 0 },
+                properties: { min: 0, max: 100 },
               },
             ],
           }),
@@ -240,18 +237,21 @@ describe('Create connection modal', () => {
     });
     expect(createButton).toBeEnabled();
 
-    // numeric
+    // numeric - values outside min/max are auto-corrected on blur
     await act(async () => {
       fireEvent.change(numeric, {
         target: { value: '-10' },
       });
+      fireEvent.blur(numeric);
     });
-    expect(createButton).toBeDisabled();
+    // Value is clamped to min (0), so button remains enabled
+    expect(createButton).toBeEnabled();
 
     await act(async () => {
       fireEvent.change(numeric, {
         target: { value: '2' },
       });
+      fireEvent.blur(numeric);
     });
     expect(createButton).toBeEnabled();
 
@@ -557,10 +557,17 @@ describe('Edit connection modal', () => {
 describe('ManageConnectionModal test connection', () => {
   const onCloseMock = jest.fn();
   const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
-  const mockedTestConnection = jest.mocked(testConnection);
+  let mockedTestConnection: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedTestConnection = jest
+      .spyOn(connectionTestService, 'testConnection')
+      .mockResolvedValue({ success: true, message: 'ok' });
+  });
+
+  afterEach(() => {
+    mockedTestConnection.mockRestore();
   });
 
   const renderModal = () =>
@@ -597,7 +604,11 @@ describe('ManageConnectionModal test connection', () => {
   });
 
   it('should show Testing status when test button clicked', async () => {
-    mockedTestConnection.mockReturnValue(new Promise(() => undefined));
+    mockedTestConnection.mockReturnValue(
+      new Promise(() => {
+        /* never resolves */
+      }),
+    );
     renderModal();
 
     await act(async () => {
@@ -636,7 +647,11 @@ describe('ManageConnectionModal test connection', () => {
   });
 
   it('should not block Create button while test is in progress', async () => {
-    mockedTestConnection.mockReturnValue(new Promise(() => undefined));
+    mockedTestConnection.mockReturnValue(
+      new Promise(() => {
+        /* never resolves */
+      }),
+    );
     renderModal();
 
     await act(async () => {
