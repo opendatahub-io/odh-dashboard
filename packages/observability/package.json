@@ -44,6 +44,7 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
     "@perses-dev/bar-chart-plugin": "^0.11.1",
     "@perses-dev/components": "^0.53.1",
     "@perses-dev/core": "^0.53.1",

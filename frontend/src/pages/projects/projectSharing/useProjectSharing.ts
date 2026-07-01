@@ -1,7 +1,7 @@
 import * as React from 'react';
+import useFetch, { FetchOptions, FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { listRoleBindings } from '#~/api';
 import { RoleBindingKind } from '#~/k8sTypes';
-import useFetch, { FetchOptions, FetchStateObject } from '#~/utilities/useFetch';
 
 const useProjectSharing = (
   namespace?: string,

@@ -16,7 +16,7 @@ import type {
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
-import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../src/types';
 import type { LLMConfigOptionsFieldType } from '../src/wizardFields/LlmConfigOptionsField';
 import type { TopologyTypeFieldType } from '../src/wizardFields/TopologyTypeField';
