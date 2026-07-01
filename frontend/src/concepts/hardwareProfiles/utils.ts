@@ -14,7 +14,7 @@ import {
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ImageStreamKind } from '#~/k8sTypes';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
-import { REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH, QueueSource } from './const';
+import { REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH } from './const';
 
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
 export {
@@ -31,6 +31,7 @@ export {
   getExistingHardwareProfileData,
   assemblePodSpecOptions,
   applyHardwareProfileConfig,
+  getLocalQueueLabel,
 } from '@odh-dashboard/hardware-profiles-shared';
 
 export const doesImageStreamSupportHardwareProfile = (
@@ -89,13 +90,3 @@ export const getDeletedHardwareProfilePatches = <T extends K8sResourceCommon>(
     : [];
 };
 
-export const getLocalQueueLabel = (queueSource?: QueueSource): string => {
-  const commonLabel = 'Local queue';
-  if (queueSource === QueueSource.DIRECT) {
-    return `${commonLabel} (applied directly)`;
-  }
-  if (queueSource === QueueSource.HARDWARE_PROFILE) {
-    return `${commonLabel} (via hardware profile)`;
-  }
-  return commonLabel;
-};

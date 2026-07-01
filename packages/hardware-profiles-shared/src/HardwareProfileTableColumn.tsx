@@ -7,11 +7,12 @@ import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
 import ScopedLabel from '@odh-dashboard/internal/components/ScopedLabel';
 import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
 import { getHardwareProfileDisplayName } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
 import type { HardwareProfileResource } from './types';
 import { resourceTypeOf } from './utils';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import HardwareProfileBindingStateLabel from './HardwareProfileBindingStateLabel';
-import { HardwareProfileBindingState } from './const';
+import { HardwareProfileBindingState, QueueSource } from './const';
 import { HardwareProfileBindingStateInfo } from './types';
 
 type HardwareProfileTableColumnProps = {
@@ -34,6 +35,7 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const { bindingStateInfo, bindingStateLoaded, loadError } = bindingState;
   const hardwareProfile = bindingStateInfo?.profile;
+  const directQueueName = resource.metadata.labels?.[KUEUE_QUEUE_LABEL];
 
   if (loadError && bindingStateInfo?.state !== HardwareProfileBindingState.DELETED) {
     return (
@@ -67,13 +69,26 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
       >
         {bindingStateInfo?.state !== HardwareProfileBindingState.DELETED && (
           <FlexItem>
+            {/* When a hardware profile is matched it is authoritative — directQueueName on
+                the notebook is intentionally ignored even if the HP has no kueue config. */}
             {hardwareProfile ? (
               <HardwareProfileDetailsPopover
                 hardwareProfile={hardwareProfile}
                 tolerations={hardwareProfile.spec.scheduling?.node?.tolerations}
                 nodeSelector={hardwareProfile.spec.scheduling?.node?.nodeSelector}
                 localQueueName={hardwareProfile.spec.scheduling?.kueue?.localQueueName}
+                queueSource={
+                  hardwareProfile.spec.scheduling?.kueue?.localQueueName
+                    ? QueueSource.HARDWARE_PROFILE
+                    : undefined
+                }
                 priorityClass={hardwareProfile.spec.scheduling?.kueue?.priorityClass}
+                tableView
+              />
+            ) : directQueueName ? (
+              <HardwareProfileDetailsPopover
+                localQueueName={directQueueName}
+                queueSource={QueueSource.DIRECT}
                 tableView
               />
             ) : (

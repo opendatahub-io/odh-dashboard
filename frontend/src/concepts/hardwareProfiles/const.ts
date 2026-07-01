@@ -8,6 +8,7 @@ export {
   HARDWARE_PROFILE_BINDING_CONFIG,
   MODEL_SERVING_VISIBILITY,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  QueueSource,
 } from '@odh-dashboard/hardware-profiles-shared';
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
@@ -25,8 +26,3 @@ export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
 ];
 
 export const WORKBENCH_VISIBILITY = [HardwareProfileFeatureVisibility.WORKBENCH];
-
-export enum QueueSource {
-  HARDWARE_PROFILE = 'hardware-profile',
-  DIRECT = 'direct',
-}
