@@ -107,9 +107,15 @@ function generateCentralTestGroups() {
       const fileNames = smallFiles.map((f) => f.name).join(',');
       const totalSize = smallFiles.reduce((sum, f) => sum + f.size, 0);
 
+      // If only one file, use direct path instead of brace expansion
+      const spec =
+        smallFiles.length === 1
+          ? `cypress/cypress/tests/mocked/${smallFiles[0].path}`
+          : `cypress/cypress/tests/mocked/${dir}/{${fileNames}}.cy.ts`;
+
       groups.push({
         name: `${dir}/other`,
-        spec: `cypress/cypress/tests/mocked/${dir}/{${fileNames}}.cy.ts`,
+        spec,
         size: totalSize,
         count: smallFiles.length,
         strategy: 'grouped',
