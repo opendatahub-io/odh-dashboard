@@ -44,6 +44,7 @@ export const assembleNotebook = (
     hardwareProfileOptions,
     feastData,
     mlflowEnabled,
+    existingSecretEnvVars,
   } = data;
   const {
     name: notebookName,
@@ -84,6 +85,17 @@ export const assembleNotebook = (
   const connectionsAnnotation = connections
     ?.map((connection) => `${connection.metadata.namespace}/${connection.metadata.name}`)
     .join(',');
+
+  const existingSecretEnv =
+    existingSecretEnvVars?.map(({ name, key }) => ({
+      name: key,
+      valueFrom: {
+        secretKeyRef: {
+          name,
+          key,
+        },
+      },
+    })) || [];
 
   const baseResource: NotebookKind = {
     apiVersion: 'kubeflow.org/v1',
@@ -134,6 +146,7 @@ export const assembleNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...existingSecretEnv,
               ],
               envFrom,
               volumeMounts,
@@ -312,6 +325,14 @@ export const updateNotebook = (
   // merging them by array index, which creates corrupted volumes with multiple types
   oldNotebook.spec.template.spec.volumes = [];
   container.volumeMounts = [];
+
+  // Clear old env array, keeping only static entries (NOTEBOOK_ARGS, JUPYTER_IMAGE)
+  // to prevent lodash merge from merging by array index
+  const staticEnvNames = ['NOTEBOOK_ARGS', 'JUPYTER_IMAGE'];
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  container.env = (container.env || []).filter(
+    (envVar) => envVar.name && staticEnvNames.includes(envVar.name),
+  );
 
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(

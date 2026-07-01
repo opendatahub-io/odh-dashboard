@@ -1,6 +1,7 @@
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
-import { EnvVariable } from '#~/pages/projects/types';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { EnvVariable, SecretCategory } from '#~/pages/projects/types';
 
 export const updateArrayValue = <T>(values: T[], index: number, partialValue: Partial<T>): T[] =>
   values.map((v, i) => (i === index ? { ...v, ...partialValue } : v));
@@ -20,6 +21,10 @@ export const isStringKeyValuePairObject = (object: unknown): object is Record<st
   Object.entries(object).every(
     ([key, value]) => typeof key === 'string' && typeof value === 'string',
   );
+
+export const isExistingSecretCategory = (
+  category: SecretCategory | null | undefined,
+): category is SecretCategory.EXISTING => category === SecretCategory.EXISTING;
 
 export const getDeletedConfigMapOrSecretVariables = (
   notebook: NotebookKind | undefined,
@@ -49,5 +54,110 @@ export const getDeletedConfigMapOrSecretVariables = (
       deletedSecrets.push(env.secretRef.name);
     }
   });
-  return { deletedSecrets, deletedConfigMaps };
+
+  // Process env entries with valueFrom.secretKeyRef (existing secret refs)
+  const envList = notebook?.spec.template.spec.containers[0].env || [];
+  const secretKeyRefEntries = envList.filter(
+    (envVar) => envVar.valueFrom && 'secretKeyRef' in envVar.valueFrom,
+  );
+
+  const secretsInNotebook = new Set(
+    secretKeyRefEntries
+      .map((envVar) => envVar.valueFrom?.secretKeyRef?.name)
+      .filter((name): name is string => !!name),
+  );
+
+  // Get set of secret names currently in form state (EXISTING category)
+  const existingSecretNames = new Set(
+    envVariables
+      .filter((envVar) => envVar.values?.category === SecretCategory.EXISTING)
+      .map((envVar) => envVar.values?.secretName)
+      .filter((name): name is string => !!name),
+  );
+
+  // Find secrets that are in the notebook CR but not in current form state
+  secretsInNotebook.forEach((secretName) => {
+    if (!existingSecretNames.has(secretName) && !excludedResources.includes(secretName)) {
+      deletedSecrets.push(secretName);
+    }
+  });
+
+  return {
+    deletedSecrets: Array.from(new Set(deletedSecrets)),
+    deletedConfigMaps: Array.from(new Set(deletedConfigMaps)),
+  };
+};
+
+export type EnvVarConflict = {
+  source1: string;
+  source2: string;
+  keys: string[];
+};
+
+export const detectEnvVarConflicts = (
+  envVariables: EnvVariable[],
+  connections: Connection[],
+): EnvVarConflict[] => {
+  const conflicts: EnvVarConflict[] = [];
+
+  type Source = {
+    name: string;
+    keys: string[];
+  };
+
+  const sources: Source[] = [];
+
+  envVariables.forEach((envVar) => {
+    if (!envVar.values?.data) {
+      return;
+    }
+
+    const keys = envVar.values.data.map((entry) => entry.key);
+
+    if (envVar.values.category === SecretCategory.EXISTING) {
+      const sourceName = envVar.values.secretName || 'Existing secret';
+      sources.push({ name: sourceName, keys });
+    } else if (
+      envVar.values.category === SecretCategory.GENERIC ||
+      envVar.values.category === SecretCategory.UPLOAD ||
+      envVar.values.category === SecretCategory.AWS
+    ) {
+      const existingInline = sources.find((s) => s.name === 'Inline secret');
+      if (existingInline) {
+        existingInline.keys.push(...keys);
+      } else {
+        sources.push({ name: 'Inline secret', keys });
+      }
+    }
+  });
+
+  connections.forEach((connection) => {
+    if (!connection.data) {
+      return;
+    }
+
+    const keys = Object.keys(connection.data);
+    const displayName =
+      connection.metadata.annotations['openshift.io/display-name'] || connection.metadata.name;
+    sources.push({ name: displayName, keys });
+  });
+
+  for (let i = 0; i < sources.length; i++) {
+    for (let j = i + 1; j < sources.length; j++) {
+      const first = sources[i];
+      const second = sources[j];
+
+      const duplicateKeys = first.keys.filter((key) => second.keys.includes(key));
+
+      if (duplicateKeys.length > 0) {
+        conflicts.push({
+          source1: first.name,
+          source2: second.name,
+          keys: duplicateKeys,
+        });
+      }
+    }
+  }
+
+  return conflicts;
 };

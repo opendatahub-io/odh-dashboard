@@ -22,6 +22,7 @@ import {
   ConfigMapCategory,
   EnvironmentFromVariable,
   EnvVariable,
+  ExistingSecretEnvVar,
   SecretCategory,
   StorageData,
   StorageType,
@@ -74,6 +75,36 @@ export const updatePvcDataForNotebook = async (
   return { volumes, volumeMounts };
 };
 
+export const extractExistingSecretEnvVars = (
+  envVariables: EnvVariable[],
+): ExistingSecretEnvVar[] => {
+  const result: ExistingSecretEnvVar[] = [];
+
+  envVariables.forEach((envVar) => {
+    if (
+      !envVar.values ||
+      envVar.values.category !== SecretCategory.EXISTING ||
+      !envVar.values.secretName
+    ) {
+      return;
+    }
+
+    const { secretName, data } = envVar.values;
+    if (data.length === 0) {
+      return;
+    }
+
+    data.forEach((entry) => {
+      result.push({
+        name: secretName,
+        key: entry.key,
+      });
+    });
+  });
+
+  return result;
+};
+
 const getPromisesForConfigMapsAndSecrets = (
   projectName: string,
   envVariables: EnvVariable[],
@@ -106,6 +137,8 @@ const getPromisesForConfigMapsAndSecrets = (
             : replaceSecret(assembleSecret(projectName, dataAsRecord, 'aws', envVar.existingName), {
                 dryRun,
               });
+        case SecretCategory.EXISTING:
+          return null;
         case ConfigMapCategory.GENERIC:
         case ConfigMapCategory.UPLOAD:
           return type === 'create'
@@ -170,7 +203,10 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   envVariables: EnvVariable[],
   connections?: Connection[],
   dryRun = false,
-): Promise<EnvironmentFromVariable[]> => {
+): Promise<{
+  envFrom: EnvironmentFromVariable[];
+  existingSecretEnvVars: ExistingSecretEnvVar[];
+}> => {
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
   const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
     notebook,
@@ -178,7 +214,13 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     [...(connections || []).map((connection) => connection.metadata.name)],
   );
 
-  const [oldResources, newResources] = _.partition(envVariables, (envVar) => envVar.existingName);
+  // Separate EXISTING env vars from inline env vars
+  const [existingSecretEnvVars, inlineEnvVars] = _.partition(
+    envVariables,
+    (envVar) => envVar.values?.category === SecretCategory.EXISTING,
+  );
+
+  const [oldResources, newResources] = _.partition(inlineEnvVars, (envVar) => envVar.existingName);
   const currentNames = oldResources
     .map((envVar) => envVar.existingName)
     .filter((v): v is string => !!v);
@@ -226,7 +268,7 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     dryRun,
   );
 
-  const [created] = await Promise.all([
+  const [created, , updated] = await Promise.all([
     Promise.all(creatingPromises),
     Promise.all(deletingPromises),
     Promise.all(updatingPromises),
@@ -237,9 +279,14 @@ export const updateConfigMapsAndSecretsForNotebook = async (
 
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
 
-  return getEnvFromList(created, [...envFromList]).filter(
-    (envFrom) =>
-      !(envFrom.secretRef?.name && deletingNames.includes(envFrom.secretRef.name)) &&
-      !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef.name)),
+  const allResources = [...created, ...updated];
+  const envFrom = getEnvFromList(allResources, [...envFromList]).filter(
+    (envFromItem) =>
+      !(envFromItem.secretRef?.name && deletingNames.includes(envFromItem.secretRef.name)) &&
+      !(envFromItem.configMapRef?.name && deletingNames.includes(envFromItem.configMapRef.name)),
   );
+
+  const extractedExistingSecretEnvVars = extractExistingSecretEnvVars(existingSecretEnvVars);
+
+  return { envFrom, existingSecretEnvVars: extractedExistingSecretEnvVars };
 };

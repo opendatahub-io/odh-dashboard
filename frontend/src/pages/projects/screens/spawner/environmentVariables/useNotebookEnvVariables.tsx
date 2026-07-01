@@ -14,8 +14,13 @@ import { isConnection } from '#~/concepts/connectionTypes/utils';
 import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
-  const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
-  return Promise.all(
+  const container = notebook.spec.template.spec.containers[0];
+  const envFromList = container.envFrom || [];
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- env can be undefined in K8s API responses
+  const envList = container.env || [];
+
+  // Process envFrom entries (existing behavior)
+  const envFromPromise = Promise.all(
     envFromList
       .map((envFrom) => {
         if (envFrom.configMapRef) {
@@ -72,6 +77,40 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
       return [...acc, envVar];
     }, []),
   );
+
+  // Process env entries with valueFrom.secretKeyRef (new behavior)
+  const secretKeyRefEntries = envList.filter(
+    (envVar) => envVar.valueFrom && 'secretKeyRef' in envVar.valueFrom,
+  );
+
+  // Group by secret name
+  const groupedBySecret = secretKeyRefEntries.reduce<
+    Record<string, { name: string; key: string }[]>
+  >((acc, envVar) => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const secretRef = envVar.valueFrom.secretKeyRef as { name: string; key: string };
+    const secretName = secretRef.name;
+    const existing = acc[secretName] ?? [];
+    return {
+      ...acc,
+      [secretName]: [...existing, { name: envVar.name, key: secretRef.key }],
+    };
+  }, {});
+
+  const existingSecretEnvVars: EnvVariable[] = Object.entries(groupedBySecret).map(
+    ([secretName, keys]) => ({
+      type: EnvironmentVariableType.SECRET,
+      existingName: undefined,
+      values: {
+        category: SecretCategory.EXISTING,
+        secretName,
+        data: keys.map(({ key }) => ({ key, value: '' })),
+        allKeys: false,
+      },
+    }),
+  );
+
+  return envFromPromise.then((envFromVars) => [...envFromVars, ...existingSecretEnvVars]);
 };
 
 export const useNotebookEnvVariables = (

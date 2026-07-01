@@ -424,6 +424,118 @@ describe('assembleNotebook', () => {
       expect(result.metadata.annotations?.['opendatahub.io/mlflow-instance']).toBeUndefined();
     },
   );
+
+  it('should include env entries with secretKeyRef for existingSecretEnvVars', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [
+      { name: 's3-credentials', key: 'AWS_ACCESS_KEY_ID' },
+      { name: 's3-credentials', key: 'AWS_SECRET_ACCESS_KEY' },
+    ];
+
+    const result = assembleNotebook(notebookData, 'test-user');
+    const container = result.spec.template.spec.containers[0];
+
+    expect(container.env).toContainEqual({
+      name: 'AWS_ACCESS_KEY_ID',
+      valueFrom: {
+        secretKeyRef: {
+          name: 's3-credentials',
+          key: 'AWS_ACCESS_KEY_ID',
+        },
+      },
+    });
+    expect(container.env).toContainEqual({
+      name: 'AWS_SECRET_ACCESS_KEY',
+      valueFrom: {
+        secretKeyRef: {
+          name: 's3-credentials',
+          key: 'AWS_SECRET_ACCESS_KEY',
+        },
+      },
+    });
+  });
+
+  it('should include env entries from multiple existing secrets', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [
+      { name: 's3-credentials', key: 'AWS_ACCESS_KEY_ID' },
+      { name: 'db-credentials', key: 'DB_USER' },
+      { name: 'db-credentials', key: 'DB_PASSWORD' },
+    ];
+
+    const result = assembleNotebook(notebookData, 'test-user');
+    const container = result.spec.template.spec.containers[0];
+
+    expect(container.env).toContainEqual({
+      name: 'AWS_ACCESS_KEY_ID',
+      valueFrom: {
+        secretKeyRef: {
+          name: 's3-credentials',
+          key: 'AWS_ACCESS_KEY_ID',
+        },
+      },
+    });
+    expect(container.env).toContainEqual({
+      name: 'DB_USER',
+      valueFrom: {
+        secretKeyRef: {
+          name: 'db-credentials',
+          key: 'DB_USER',
+        },
+      },
+    });
+    expect(container.env).toContainEqual({
+      name: 'DB_PASSWORD',
+      valueFrom: {
+        secretKeyRef: {
+          name: 'db-credentials',
+          key: 'DB_PASSWORD',
+        },
+      },
+    });
+  });
+
+  it('should preserve static env vars (NOTEBOOK_ARGS, JUPYTER_IMAGE) when existingSecretEnvVars is present', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [{ name: 's3-credentials', key: 'AWS_ACCESS_KEY_ID' }];
+
+    const result = assembleNotebook(notebookData, 'test-user');
+    const container = result.spec.template.spec.containers[0];
+
+    expect(container.env).toContainEqual(
+      expect.objectContaining({
+        name: 'NOTEBOOK_ARGS',
+      }),
+    );
+    expect(container.env).toContainEqual({
+      name: 'JUPYTER_IMAGE',
+      value: expect.stringContaining('docker.io/sample-repo'),
+    });
+  });
+
+  it('should handle empty existingSecretEnvVars array', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [];
+
+    const result = assembleNotebook(notebookData, 'test-user');
+    const container = result.spec.template.spec.containers[0];
+
+    expect(container.env).toHaveLength(2);
+    expect(container.env).toContainEqual(expect.objectContaining({ name: 'NOTEBOOK_ARGS' }));
+    expect(container.env).toContainEqual(expect.objectContaining({ name: 'JUPYTER_IMAGE' }));
+  });
+
+  it('should handle undefined existingSecretEnvVars', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = undefined;
+
+    const result = assembleNotebook(notebookData, 'test-user');
+    const container = result.spec.template.spec.containers[0];
+
+    expect(container.env).toHaveLength(2);
+    expect(container.env).toContainEqual(expect.objectContaining({ name: 'NOTEBOOK_ARGS' }));
+    expect(container.env).toContainEqual(expect.objectContaining({ name: 'JUPYTER_IMAGE' }));
+  });
 });
 
 describe('createNotebook', () => {

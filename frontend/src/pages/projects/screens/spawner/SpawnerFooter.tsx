@@ -32,6 +32,7 @@ import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
+  extractExistingSecretEnvVars,
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
@@ -46,6 +47,7 @@ type SpawnerFooterProps = {
   connections: Connection[];
   canEnablePipelines: boolean;
   selectedFeatureStores?: WorkbenchFeatureStoreConfig[];
+  hasConflicts?: boolean;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -55,6 +57,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   connections = [],
   canEnablePipelines,
   selectedFeatureStores = [],
+  hasConflicts = false,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -78,6 +81,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
     !isHardwareProfileValid ||
+    hasConflicts ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 
@@ -172,7 +176,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     await Promise.all(restartConnectedNotebooksPromises);
 
-    const envFrom = await updateConfigMapsAndSecretsForNotebook(
+    const { envFrom, existingSecretEnvVars } = await updateConfigMapsAndSecretsForNotebook(
       projectName,
       editNotebook,
       envVariables,
@@ -181,7 +185,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     );
 
     const annotations = { ...editNotebook.metadata.annotations };
-    if (envFrom.length > 0) {
+    if (envFrom.length > 0 || existingSecretEnvVars.length > 0) {
       annotations['notebooks.opendatahub.io/notebook-restart'] = 'true';
     }
 
@@ -192,6 +196,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom,
+      existingSecretEnvVars,
       connections,
       feastData,
     };
@@ -230,6 +235,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dryRun,
     );
 
+    const existingSecretEnvVars = extractExistingSecretEnvVars(envVariables);
+
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, undefined, false);
 
@@ -240,6 +247,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       envFrom: [...envFrom],
       connections,
       feastData,
+      existingSecretEnvVars,
     };
     return createNotebook(newStartData, username, canEnablePipelines, { dryRun });
   };
