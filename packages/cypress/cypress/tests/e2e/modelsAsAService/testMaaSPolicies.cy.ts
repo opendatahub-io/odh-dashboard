@@ -194,8 +194,8 @@ describe('An admin can manage MaaS authorization policies and control model acce
       policyRow = authPoliciesPage.getRow(policiesUpdatedName);
       policyRow.findTitleButton().should('contain.text', policiesUpdatedName);
       policyRow.findDescription().should('contain.text', policiesUpdatedDesc);
-      policyRow.findGroups().should('contain.text', `${policiesGroupsCount} Group`);
-      policyRow.findModels().should('contain.text', `${policiesModelsCount} Model`);
+      policyRow.findGroups().should('contain.text', `${policiesGroupsCount}`);
+      policyRow.findModels().should('contain.text', `${policiesModelsCount}`);
 
       cy.step('Delete the authorization policy');
       policyRow.findActionsToggle().click();
