@@ -1,146 +1,17 @@
-import { DEFAULT_SPACER_NODE_TYPE, RunStatus } from '@patternfly/react-topology';
-import type {
-  ComponentStageMap,
-  ComponentStageMapComponent,
-  ComponentStageMapStage,
-} from '~/app/hooks/useComponentStageMap';
+import { DEFAULT_SPACER_NODE_TYPE } from '@patternfly/react-topology';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
-import { isRunInTerminalState } from '~/app/utilities/utils';
-import { componentIdToTaskId } from '~/app/hooks/useComponentStatuses';
+import { resolveStageLabel, resolveStepLabel } from './stageMapLabels';
+import {
+  BRANCHING_STAGE_ID,
+  getComponentRunStatus,
+  getRunTerminalFallback,
+  getSelectedModels,
+  resolveStageRunStatus,
+  SKIP_COMPONENT_IDS,
+} from './stageMapStatus';
 import { createNode } from './utils';
-import { translateStatusForNode } from './parseUtils';
-
-const DEFAULT_TOP_N = 3;
-
-/* eslint-disable camelcase -- keys match backend stage IDs */
-const STAGE_DISPLAY_NAMES: Record<string, string> = {
-  validate_inputs: 'Validate inputs',
-  read_and_sample: 'Read and sample data',
-  cleanse: 'Cleanse data',
-  split: 'Split data',
-  write_outputs: 'Write outputs',
-  load_data: 'Load data',
-  model_selection: 'Model selection',
-  refit_full: 'Refit models',
-  evaluate_models: 'Evaluate models',
-  build_leaderboard: 'Build leaderboard',
-};
-
-const BRANCHING_STAGE_ID = 'model_selection';
-
-const SKIP_COMPONENT_IDS = new Set(['publish_component_stage_map']);
-
-const fallbackStageLabel = (stageId: string): string => {
-  const spaced = stageId.replace(/[-_]+/g, ' ').trim();
-  if (!spaced) {
-    return stageId;
-  }
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-};
-
-const resolveStageLabel = (stageId: string): string =>
-  STAGE_DISPLAY_NAMES[stageId] ?? fallbackStageLabel(stageId);
-
-const STEP_DISPLAY_NAMES: Record<string, string> = {
-  feature_engineering: 'Feature engineering',
-  model_training: 'Model training',
-  stacking: 'Stacking',
-  model_evaluation: 'Model evaluation',
-};
-
-const resolveStepLabel = (stepId: string): string =>
-  STEP_DISPLAY_NAMES[stepId] ?? fallbackStageLabel(stepId);
-
-/* eslint-enable camelcase */
-
-const translateStageStatus = (status?: string): RunStatus | undefined => {
-  switch (status) {
-    case 'completed':
-      return RunStatus.Succeeded;
-    case 'started':
-      return RunStatus.InProgress;
-    case 'failed':
-      return RunStatus.Failed;
-    case 'skipped':
-      return RunStatus.Skipped;
-    default:
-      return undefined;
-  }
-};
-
-const getComponentRunStatus = (
-  component: ComponentStageMapComponent,
-  runDetails?: RunDetailsKF,
-): RunStatus | undefined => {
-  const taskId = componentIdToTaskId(component.id);
-  const task = runDetails?.task_details.find(
-    (td) => td.display_name === taskId || td.task_id === taskId,
-  );
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- task may be undefined from find()
-  if (task?.state) {
-    return translateStatusForNode(task.state);
-  }
-  if (component.completed_at) {
-    return RunStatus.Succeeded;
-  }
-  if (component.started_at) {
-    return RunStatus.InProgress;
-  }
-  return undefined;
-};
-
-const resolveStageRunStatus = (
-  stage: ComponentStageMapStage,
-  componentStatus: RunStatus | undefined,
-  runTerminalFallback: RunStatus | undefined,
-): RunStatus | undefined => {
-  const inlineStatus = translateStageStatus(stage.status);
-  if (inlineStatus) {
-    return inlineStatus;
-  }
-
-  if (componentStatus === RunStatus.InProgress) {
-    return RunStatus.InProgress;
-  }
-
-  if (componentStatus === RunStatus.Succeeded) {
-    return RunStatus.Succeeded;
-  }
-
-  if (componentStatus === RunStatus.Failed) {
-    return RunStatus.Failed;
-  }
-
-  return runTerminalFallback;
-};
-
-type SelectedModelsResult = {
-  models: string[];
-  isPlaceholder: boolean;
-};
-
-const getSelectedModels = (
-  stages: ComponentStageMapStage[],
-  topN?: number,
-): SelectedModelsResult => {
-  const modelSelectionStage = stages.find((s) => s.id === BRANCHING_STAGE_ID);
-  const selectedModels = modelSelectionStage?.selected_models;
-
-  if (
-    Array.isArray(selectedModels) &&
-    selectedModels.length > 0 &&
-    selectedModels.every((m): m is string => typeof m === 'string')
-  ) {
-    return { models: selectedModels, isPlaceholder: false };
-  }
-
-  const count = topN ?? DEFAULT_TOP_N;
-  return {
-    models: Array.from({ length: count }, (_, i) => `placeholder_${i}`),
-    isPlaceholder: true,
-  };
-};
 
 export const buildStageMapTopology = (
   componentStageMap: ComponentStageMap,
@@ -148,8 +19,7 @@ export const buildStageMapTopology = (
   runState?: string,
   topN?: number,
 ): PipelineNodeModelExpanded[] => {
-  const terminalFallback =
-    runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
+  const terminalFallback = getRunTerminalFallback(runState);
 
   const nodes: PipelineNodeModelExpanded[] = [];
   // Tracks the node(s) that the next node should follow.
@@ -255,15 +125,11 @@ export const buildStageMapTopology = (
       }
 
       // Model name node follows the step chain
-      const branchStatus = isPlaceholder
-        ? componentStatus === RunStatus.Succeeded
-          ? RunStatus.InProgress
-          : componentStatus
-        : resolveStageRunStatus(
-            modelSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
-            componentStatus,
-            terminalFallback,
-          );
+      const branchStatus = resolveStageRunStatus(
+        modelSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
+        componentStatus,
+        terminalFallback,
+      );
       const modelNodeId = `${component.id}__model__${branchKey}`;
       nodes.push(
         createNode(

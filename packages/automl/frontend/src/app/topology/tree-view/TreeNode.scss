@@ -1,0 +1,15 @@
+@keyframes automl-tree-node-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.automl-tree-node__spinner {
+  animation: automl-tree-node-spin 1s linear infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
