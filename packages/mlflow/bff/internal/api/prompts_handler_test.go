@@ -69,7 +69,7 @@ func (c *mockK8sClient) GetUser(identity *k8s.RequestIdentity) (string, error) {
 	return "test-user", nil
 }
 
-func (c *mockK8sClient) CanWritePromptsInNamespace(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
+func (c *mockK8sClient) CanWritePromptsInNamespace(ctx context.Context, namespace string) (bool, error) {
 	return c.canWrite, nil
 }
 
@@ -859,6 +859,6 @@ func (c *mockK8sClientWithPermissionError) GetUser(identity *k8s.RequestIdentity
 	return "test-user", nil
 }
 
-func (c *mockK8sClientWithPermissionError) CanWritePromptsInNamespace(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
+func (c *mockK8sClientWithPermissionError) CanWritePromptsInNamespace(ctx context.Context, namespace string) (bool, error) {
 	return false, fmt.Errorf("k8s api error")
 }

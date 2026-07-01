@@ -2,8 +2,8 @@ package kubernetes
 
 import (
 	"context"
+	"io"
 	"log/slog"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +15,7 @@ import (
 )
 
 func TestCanWritePromptsInNamespace(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	tests := []struct {
 		name       string
@@ -81,7 +81,7 @@ func TestCanWritePromptsInNamespace(t *testing.T) {
 				},
 			}
 
-			got, err := client.CanWritePromptsInNamespace(context.Background(), &RequestIdentity{}, tt.namespace)
+			got, err := client.CanWritePromptsInNamespace(context.Background(), tt.namespace)
 
 			if tt.wantErr {
 				require.Error(t, err)

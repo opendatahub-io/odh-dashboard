@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -91,13 +92,6 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 	}, nil
 }
 
-// RESTConfig returns the rest.Config used to create this client.
-// This allows downstream code to access the underlying configuration
-// for creating additional clients (e.g., dynamic clients).
-func (kc *TokenKubernetesClient) RESTConfig() *rest.Config { //nolint:unused
-	return kc.restConfig
-}
-
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -131,7 +125,7 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	username := resp.Status.UserInfo.Username
 	if username == "" {
 		kc.Logger.Error("user identity not found in token")
-		return "", fmt.Errorf("no username found in token")
+		return "", errors.New("no username found in token")
 	}
 
 	// If it's a service account, extract the SA name
@@ -159,9 +153,11 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 // The prompt registry stores prompts as RegisteredModel resources in MLflow,
 // so checking registeredmodels/create permission is the correct gate for
 // determining if a user can save/delete prompts in a namespace.
+//
+// SSAR uses the token bound to this client at construction time (the user's
+// forwarded token), so it always checks the authenticated user's permissions.
 func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
 	ctx context.Context,
-	_ *RequestIdentity,
 	namespace string,
 ) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)

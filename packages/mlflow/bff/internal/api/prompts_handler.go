@@ -191,6 +191,12 @@ func (app *App) enforceWritePermission(
 	workspace string,
 	identity *k8s.RequestIdentity,
 ) bool {
+	if app.config.AuthMethod == config.AuthMethodDisabled {
+		app.logger.Warn("Skipping permission check (auth disabled)",
+			"workspace", workspace)
+		return true
+	}
+
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.logger.Error("Failed to get Kubernetes client",
@@ -200,7 +206,7 @@ func (app *App) enforceWritePermission(
 		return false
 	}
 
-	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, identity, workspace)
+	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, workspace)
 	if err != nil {
 		userID := ""
 		if identity != nil {
