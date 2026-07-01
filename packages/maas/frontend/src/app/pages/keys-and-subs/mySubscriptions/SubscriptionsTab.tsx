@@ -1,5 +1,7 @@
-import { Content, ContentVariants, PageSection } from '@patternfly/react-core';
+import { Bullseye, Content, ContentVariants, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
+import PageLoadErrorState from '~/app/components/PageLoadErrorState';
+import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import { UserSubscription } from '~/app/types/subscriptions';
 import SubscriptionsToolbar from './SubscriptionsToolbar';
 import SubscriptionsViewTable, { ModelGroupEntry } from './SubscriptionsViewTable';
@@ -38,11 +40,8 @@ export const deriveModelGroups = (subscriptions: UserSubscription[]): ModelGroup
 
 export type SubscriptionSortField = 'subscription' | 'model';
 
-type SubscriptionsTabProps = {
-  subscriptions: UserSubscription[];
-};
-
-const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ subscriptions }) => {
+const SubscriptionsTab: React.FC = () => {
+  const [subscriptions, loaded, loadError] = useUserSubscriptions();
   const [searchValue, setSearchValue] = React.useState('');
   const [sortField, setSortField] = React.useState<SubscriptionSortField>('subscription');
   const [modelSortDirection, setModelSortDirection] = React.useState<'asc' | 'desc' | undefined>(
@@ -103,6 +102,20 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ subscriptions }) =>
       return modelSortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
     });
   }, [modelGroups, searchValue, modelSortDirection]);
+
+  if (loadError) {
+    return <PageLoadErrorState error={loadError} title="Error loading subscriptions" />;
+  }
+
+  if (!loaded) {
+    return (
+      <PageSection isFilled>
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      </PageSection>
+    );
+  }
 
   if (subscriptions.length === 0) {
     return (

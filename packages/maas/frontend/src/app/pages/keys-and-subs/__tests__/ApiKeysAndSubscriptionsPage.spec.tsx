@@ -12,43 +12,6 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ tab: mockTab }),
 }));
 
-const mockRefreshAll = jest.fn();
-
-jest.mock('~/app/hooks/useApiKeysPageLoad', () => ({
-  useApiKeysPageLoad: () => ({
-    loadError: undefined,
-    loaded: true,
-    hasAnyApiKeys: true,
-    existenceLoaded: true,
-    isMaasAdmin: false,
-    isMaasAdminLoaded: true,
-    // eslint-disable-next-line camelcase
-    response: { data: [], has_more: false, object: 'list' },
-    refreshAll: mockRefreshAll,
-    filterData: { username: '', statuses: [] },
-    localUsername: '',
-    setLocalUsername: jest.fn(),
-    page: 1,
-    perPage: 50,
-    sortField: 'created_at',
-    sortDirection: 'desc',
-    isFetching: false,
-    onUsernameChange: jest.fn(),
-    onStatusToggle: jest.fn(),
-    onStatusClear: jest.fn(),
-    onSort: jest.fn(),
-    onSetPage: jest.fn(),
-    onPerPageSelect: jest.fn(),
-    onClearFilters: jest.fn(),
-  }),
-}));
-
-const mockRefreshSubscriptions = jest.fn();
-
-jest.mock('~/app/hooks/useUserSubscriptions', () => ({
-  useUserSubscriptions: () => [[], true, undefined, mockRefreshSubscriptions],
-}));
-
 jest.mock('~/app/pages/keys-and-subs/apiKeys/ApiKeysTab', () => {
   const MockApiKeysTab = () => <div data-testid="mock-api-keys-tab">ApiKeysTab</div>;
   MockApiKeysTab.displayName = 'MockApiKeysTab';
@@ -63,13 +26,18 @@ jest.mock('~/app/pages/keys-and-subs/mySubscriptions/SubscriptionsTab', () => {
   return { __esModule: true, default: MockSubscriptionsTab };
 });
 
+jest.mock('@odh-dashboard/internal/concepts/design/TitleWithIcon', () => {
+  const MockTitleWithIcon = ({ title }: { title: string }) => (
+    <span data-testid="app-page-title">{title}</span>
+  );
+  MockTitleWithIcon.displayName = 'MockTitleWithIcon';
+  return { __esModule: true, default: MockTitleWithIcon };
+});
+
 jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
-  const MockApplicationsPage = (
-    props: React.PropsWithChildren<{ title: string; description: React.ReactNode }>,
-  ) => (
+  const MockApplicationsPage = (props: React.PropsWithChildren<{ title: React.ReactNode }>) => (
     <div>
-      <h1 data-testid="app-page-title">{props.title}</h1>
-      <p data-testid="app-page-description">{props.description}</p>
+      <div data-testid="app-page-title-wrapper">{props.title}</div>
       {props.children}
     </div>
   );
@@ -83,13 +51,10 @@ describe('ApiKeysAndSubscriptionsPage', () => {
     mockTab = undefined;
   });
 
-  it('should show updated title and description', () => {
+  it('should show the API keys page title', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('API keys and subscriptions');
-    expect(screen.getByTestId('app-page-description')).toHaveTextContent(
-      'Manage your API keys and view your subscription access',
-    );
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('API keys');
   });
 
   it('should render tabs for API keys and Subscriptions', () => {
@@ -119,47 +84,39 @@ describe('ApiKeysAndSubscriptionsPage', () => {
     expect(screen.getByTestId('api-keys-tab')).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('should refresh subscriptions when switching to the subscriptions tab', () => {
+  it('should navigate when switching to the subscriptions tab', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
     fireEvent.click(screen.getByRole('tab', { name: 'Subscriptions tab' }));
 
-    expect(mockRefreshSubscriptions).toHaveBeenCalledTimes(1);
-    expect(mockRefreshAll).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.stringContaining('/keys-and-subs/subscriptions'),
     );
   });
 
-  it('should refresh API keys when switching to the API keys tab', () => {
+  it('should navigate when switching to the API keys tab', () => {
     mockTab = 'subscriptions';
     render(<ApiKeysAndSubscriptionsPage />);
 
     fireEvent.click(screen.getByRole('tab', { name: 'API keys tab' }));
 
-    expect(mockRefreshAll).toHaveBeenCalledTimes(1);
-    expect(mockRefreshSubscriptions).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('/keys-and-subs/tokens'));
   });
 
-  it('should not refresh or navigate when clicking the already active tab', () => {
+  it('should not navigate when clicking the already active tab', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
     fireEvent.click(screen.getByRole('tab', { name: 'API keys tab' }));
 
-    expect(mockRefreshAll).not.toHaveBeenCalled();
-    expect(mockRefreshSubscriptions).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('should not refresh or navigate when clicking the already active subscriptions tab', () => {
+  it('should not navigate when clicking the already active subscriptions tab', () => {
     mockTab = 'subscriptions';
     render(<ApiKeysAndSubscriptionsPage />);
 
     fireEvent.click(screen.getByRole('tab', { name: 'Subscriptions tab' }));
 
-    expect(mockRefreshAll).not.toHaveBeenCalled();
-    expect(mockRefreshSubscriptions).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

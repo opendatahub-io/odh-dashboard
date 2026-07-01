@@ -183,7 +183,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findCreateApiKeyButton().should('exist').and('be.enabled');
   });
 
-  it('should display a useful error state when the API keys search fails', () => {
+  it('should display a useful error state when the API keys search fails and still show the tabs', () => {
     cy.intercept('POST', '/maas/api/v1/api-keys/search', {
       statusCode: 500,
       body: {
@@ -194,9 +194,11 @@ describe('API Keys Page', () => {
         },
       },
     }).as('searchError');
-    apiKeysPage.visit();
+    apiKeysPage.visitKeysAndSubs();
     cy.wait('@searchError');
     apiKeysPage.findErrorState().should('exist');
+    apiKeysPage.findSubscriptionsTab().should('exist');
+    apiKeysPage.findApiKeysTab().should('exist');
     apiKeysPage
       .findErrorState()
       .should(

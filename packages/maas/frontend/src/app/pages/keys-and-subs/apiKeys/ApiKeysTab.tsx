@@ -1,8 +1,9 @@
 import { Bullseye, Content, ContentVariants, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
-import { type UseApiKeysPageLoadReturn } from '~/app/hooks/useApiKeysPageLoad';
+import PageLoadErrorState from '~/app/components/PageLoadErrorState';
+import { useApiKeysPageLoad } from '~/app/hooks/useApiKeysPageLoad';
+import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import { APIKey } from '~/app/types/api-key';
-import { UserSubscription } from '~/app/types/subscriptions';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysTable from './allKeys/ApiKeysTable';
@@ -10,14 +11,15 @@ import RevokeApiKeyModal from './RevokeApiKeyModal';
 import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
 
 type ApiKeysTabProps = {
-  pageState: UseApiKeysPageLoadReturn;
-  subscriptions: UserSubscription[];
   showDescription?: boolean;
 };
 
-const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showDescription }) => {
+const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
+
+  const pageState = useApiKeysPageLoad();
+  const [subscriptions, subscriptionsLoaded] = useUserSubscriptions();
 
   const {
     isMaasAdmin,
@@ -26,6 +28,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showD
     hasAnyApiKeys,
     existenceLoaded,
     loaded,
+    loadError,
     refreshAll,
     filterData,
     isKeyInactive,
@@ -48,11 +51,13 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showD
 
   const subscriptionOptions = React.useMemo(
     () =>
-      subscriptions.map((sub) => ({
-        name: sub.subscription_id_header,
-        displayName: sub.display_name ?? sub.subscription_id_header,
-      })),
-    [subscriptions],
+      showDescription && subscriptionsLoaded
+        ? subscriptions.map((sub) => ({
+            name: sub.subscription_id_header,
+            displayName: sub.display_name ?? sub.subscription_id_header,
+          }))
+        : [],
+    [showDescription, subscriptions, subscriptionsLoaded],
   );
 
   const apiKeys = response.data;
@@ -61,7 +66,16 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showD
 
   const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 
-  if (!loaded || !isMaasAdminLoaded || (!hasAnyApiKeys && !existenceLoaded)) {
+  if (loadError) {
+    return <PageLoadErrorState error={loadError} title="Error loading API keys" />;
+  }
+
+  if (
+    !loaded ||
+    !isMaasAdminLoaded ||
+    (!hasAnyApiKeys && !existenceLoaded) ||
+    (showDescription && !subscriptionsLoaded)
+  ) {
     return (
       <PageSection isFilled>
         <Bullseye>
