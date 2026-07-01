@@ -10,6 +10,17 @@ AUTH_METHOD ?= internal
 AUTH_TOKEN_HEADER ?= Authorization
 AUTH_TOKEN_PREFIX ?= Bearer
 INSECURE_SKIP_VERIFY ?= false
+
+# Inter-BFF Communication configuration
+MOCK_BFF_CLIENTS ?= false
+BFF_MODEL_CATALOG_SERVICE_NAME ?= "odh-dashboard"
+BFF_MODEL_CATALOG_SERVICE_PORT ?= 8043
+BFF_MODEL_CATALOG_TLS_ENABLED ?= false
+BFF_MODEL_CATALOG_DEV_URL ?= ""
+BFF_MODEL_CATALOG_AUTH_METHOD ?= ""
+BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER ?= "x-forwarded-access-token"
+BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX ?= ""
+
 #frontend static assets root directory
 STATIC_ASSETS_DIR ?= ./static
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -63,6 +74,14 @@ endif
 run: fmt vet envtest ## Runs the project.
 	trap 'exit 0' INT; \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	MOCK_BFF_CLIENTS=$(MOCK_BFF_CLIENTS) \
+	BFF_MODEL_CATALOG_SERVICE_NAME=$(BFF_MODEL_CATALOG_SERVICE_NAME) \
+	BFF_MODEL_CATALOG_SERVICE_PORT=$(BFF_MODEL_CATALOG_SERVICE_PORT) \
+	BFF_MODEL_CATALOG_TLS_ENABLED=$(BFF_MODEL_CATALOG_TLS_ENABLED) \
+	BFF_MODEL_CATALOG_DEV_URL=$(BFF_MODEL_CATALOG_DEV_URL) \
+	BFF_MODEL_CATALOG_AUTH_METHOD=$(BFF_MODEL_CATALOG_AUTH_METHOD) \
+	BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER=$(BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER) \
+	BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX=$(BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX) \
 	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --mock-evalhub-client=$(MOCK_EVALHUB_CLIENT) --eval-hub-url=$(EVAL_HUB_URL) --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY)
 
 ##@ Dependencies

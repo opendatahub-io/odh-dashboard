@@ -1,6 +1,7 @@
 import { AlertVariant } from '@patternfly/react-core';
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
@@ -25,7 +26,6 @@ import {
   withRequiredFields,
 } from '#~/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
-import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { isRedHatRegistryUri, PrefilledConnection } from '#~/concepts/modelRegistry/utils';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import useLabeledConnections from './nim/useLabeledConnections';

@@ -1028,6 +1028,21 @@ class ModelServingWizard extends Wizard {
       .first();
   }
 
+  /**
+   * If the deployment method exposes a modelServer field (e.g. "legacy"),
+   * selects manual mode and picks the first available serving runtime template.
+   * For deployment methods that handle server selection internally
+   * (e.g. vLLM simple), this is a no-op.
+   */
+  selectServingRuntimeIfAvailable() {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="model-server-manual-select-radio"]').length > 0) {
+        this.findModelServerManualSelectRadio().click();
+        this.findFirstServingRuntimeTemplateOption().should('exist').click();
+      }
+    });
+  }
+
   selectServingRuntimeOption(name: string) {
     this.findModelServerAutoSelectRadio().then(($radio) => {
       if ($radio.is(':checked')) {
@@ -1433,6 +1448,20 @@ class ModelServingWizard extends Wizard {
 
   selectDeploymentMethodByKey(key: DeploymentMethodKey) {
     this.findDeploymentMethodSelectOption(key).click();
+  }
+
+  /**
+   * If the deployment method dropdown is present and nothing is selected yet,
+   * picks the first available option.
+   */
+  selectFirstAvailableDeploymentMethod() {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="deployment-method-select"]').length === 0) {
+        return;
+      }
+      this.findDeploymentMethodSelect().click();
+      cy.get('[role="option"]').first().click();
+    });
   }
 
   findYAMLEditFallbackAlert() {

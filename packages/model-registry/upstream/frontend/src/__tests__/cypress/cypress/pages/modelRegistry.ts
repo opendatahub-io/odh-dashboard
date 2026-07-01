@@ -65,20 +65,21 @@ class ModelRegistry {
 
   visit() {
     cy.visit(modelRegistryUrl());
-    this.wait();
+    this.waitForPageLoaded();
   }
 
   navigate() {
     appChrome.findNavItem('Model Registry').click();
-    this.wait();
+    this.waitForPageLoaded();
   }
 
-  private wait() {
+  waitForPageLoaded() {
     cy.testA11y();
   }
 
   private waitLanding() {
     cy.findByTestId('home-page').should('be.visible');
+    cy.testA11y();
   }
 
   shouldBeEmpty() {

@@ -26,7 +26,7 @@ import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragR
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
-import { usePipelineRunQuery } from '~/app/hooks/queries';
+import { usePipelineRunQuery, useSecretCredentialsQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
@@ -163,6 +163,35 @@ function AutoragResultsPage(): React.JSX.Element {
     [namespace, runId],
   );
 
+  const ogxSecretName =
+    typeof pipelineRun?.runtime_config?.parameters?.ogx_secret_name === 'string'
+      ? pipelineRun.runtime_config.parameters.ogx_secret_name
+      : undefined;
+
+  const { data: secretData, isError: secretFetchError } = useSecretCredentialsQuery(
+    namespace,
+    ogxSecretName,
+  );
+
+  React.useEffect(() => {
+    if (secretFetchError) {
+      notification.warning(
+        'Could not load Open GenAI Stack credentials',
+        'Credentials could not be fetched.',
+      );
+    }
+  }, [secretFetchError, notification]);
+
+  const ogxCredentials = React.useMemo(() => {
+    if (!secretData?.OGX_CLIENT_BASE_URL || !secretData.OGX_CLIENT_API_KEY) {
+      return undefined;
+    }
+    return {
+      baseUrl: secretData.OGX_CLIENT_BASE_URL,
+      apiKey: secretData.OGX_CLIENT_API_KEY,
+    };
+  }, [secretData]);
+
   const contextValue = React.useMemo(
     () =>
       getAutoragContext({
@@ -174,6 +203,7 @@ function AutoragResultsPage(): React.JSX.Element {
         patternsLoadError,
         onRetryPatterns: refetchPatterns,
         ragPatternsBasePath,
+        ogxCredentials,
         componentStageMap,
         componentStageMapLoading: componentStageMapLoading || componentStatusesLoading,
         componentStageMapError,
@@ -188,6 +218,7 @@ function AutoragResultsPage(): React.JSX.Element {
       patternsLoadError,
       refetchPatterns,
       ragPatternsBasePath,
+      ogxCredentials,
       componentStageMap,
       componentStageMapLoading,
       componentStatusesLoading,
@@ -379,6 +410,7 @@ function AutoragResultsPage(): React.JSX.Element {
           onClose={() => setViewCodePattern(null)}
           patternName={viewCodePattern.patternName}
           responsesTemplate={viewCodePattern.responsesTemplate}
+          ogxCredentials={ogxCredentials}
         />
       )}
     </AutoragResultsContext.Provider>

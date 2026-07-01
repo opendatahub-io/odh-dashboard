@@ -42,6 +42,7 @@
     "@hookform/resolvers": "^3.9.1",
     "@mui/material": "^6.5.0",
     "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",
     "@perses-dev/bar-chart-plugin": "^0.11.1",
     "@perses-dev/components": "^0.53.1",

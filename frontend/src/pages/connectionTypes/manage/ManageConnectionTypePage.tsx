@@ -16,6 +16,7 @@ import {
 import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useUser } from '#~/redux/selectors';
 import {
   ConnectionTypeConfigMapObj,
@@ -29,7 +30,6 @@ import {
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 import { categoryOptions } from '#~/pages/connectionTypes/const';
