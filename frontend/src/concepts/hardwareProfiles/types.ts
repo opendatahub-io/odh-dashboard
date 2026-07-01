@@ -1,5 +1,9 @@
-import type { AcceleratorProfileKind } from '#~/k8sTypes';
 import type useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
+import type {
+  PodSpecOptions,
+  useHardwareProfileConfig,
+} from '@odh-dashboard/hardware-profiles-shared';
 
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
 export type {
@@ -13,11 +17,6 @@ export type {
   CrPathConfig,
   HardwareProfileOptions,
 } from '@odh-dashboard/hardware-profiles-shared';
-
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
-import type { PodSpecOptions } from '@odh-dashboard/hardware-profiles-shared';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
-import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles-shared';
 
 export type WarningNotification = {
   title: string;
