@@ -1,6 +1,7 @@
 import React from 'react';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { get, set } from 'lodash-es';
+import { QueueSource } from './const';
 import {
   IdentifierResourceType,
   type HardwareProfileKind,
@@ -264,4 +265,15 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     }
   }
   return result;
+};
+
+export const getLocalQueueLabel = (queueSource?: QueueSource): string => {
+  const commonLabel = 'Local queue';
+  if (queueSource === QueueSource.DIRECT) {
+    return `${commonLabel} (applied directly)`;
+  }
+  if (queueSource === QueueSource.HARDWARE_PROFILE) {
+    return `${commonLabel} (via hardware profile)`;
+  }
+  return commonLabel;
 };

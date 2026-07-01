@@ -69,3 +69,8 @@ export const HARDWARE_PROFILE_BINDING_CONFIG: Record<
     },
   },
 };
+
+export enum QueueSource {
+  HARDWARE_PROFILE = 'hardware-profile',
+  DIRECT = 'direct',
+}
