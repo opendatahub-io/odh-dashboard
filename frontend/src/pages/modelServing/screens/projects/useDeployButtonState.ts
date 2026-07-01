@@ -1,4 +1,4 @@
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { getDeployButtonState } from '#~/concepts/modelCatalog/utils';
 

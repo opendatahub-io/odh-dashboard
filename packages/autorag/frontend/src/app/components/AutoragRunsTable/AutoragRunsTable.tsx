@@ -1,7 +1,6 @@
 import { ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import * as React from 'react';
-import { TableBase } from '@odh-dashboard/internal/components/table';
-import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { TableBase, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import type { PipelineRun } from '~/app/types';
 import { autoragRunsColumns } from './columns';
 import AutoragRunsTableRow from './AutoragRunsTableRow';
@@ -40,7 +39,7 @@ const AutoragRunsTable: React.FC<AutoragRunsTableProps> = ({
   <TableBase
     data-testid="autorag-runs-table"
     id="autorag-runs-table"
-    enablePagination={totalSize > 0}
+    enablePagination={totalSize > pageSize}
     data={runs}
     columns={autoragRunsColumns}
     defaultSortColumn={0}
@@ -58,10 +57,7 @@ const AutoragRunsTable: React.FC<AutoragRunsTableProps> = ({
     page={page}
     perPage={pageSize}
     onSetPage={(_e, newPage) => onPageChange(newPage)}
-    onPerPageSelect={(_e, newSize, newPage) => {
-      onPerPageChange(newSize);
-      onPageChange(newPage);
-    }}
+    onPerPageSelect={(_e, newSize) => onPerPageChange(newSize)}
   />
 );
 

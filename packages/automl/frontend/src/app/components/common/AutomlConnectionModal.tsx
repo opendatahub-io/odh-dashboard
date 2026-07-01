@@ -8,9 +8,9 @@ import {
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 import {
   assembleConnectionSecret,
   filterEnabledConnectionTypes,

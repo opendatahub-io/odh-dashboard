@@ -4,7 +4,7 @@ import {
   checkboxTableColumn,
   expandTableColumn,
   kebabTableColumn,
-} from '#~/components/table';
+} from '@odh-dashboard/ui-core';
 import {
   PipelineVersionKF,
   PipelineKF,

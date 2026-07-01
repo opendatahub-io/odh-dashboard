@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { Table, TableBase, getTableColumnSort } from '@odh-dashboard/ui-core';
 import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
-import { Table, TableBase, getTableColumnSort } from '#~/components/table';
 import PipelinesTableRow from '#~/concepts/pipelines/content/tables/pipeline/PipelinesTableRow';
 import { pipelineColumns } from '#~/concepts/pipelines/content/tables/columns';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';

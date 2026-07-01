@@ -8,6 +8,7 @@ export type WorkbenchFeatureStoreResponse = {
       configName: string;
       projectName: string;
       hasAccessToFeatureStore: boolean;
+      permissionLevel: string[];
     }>;
   }>;
 };

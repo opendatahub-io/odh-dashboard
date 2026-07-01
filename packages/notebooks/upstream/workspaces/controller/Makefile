@@ -13,6 +13,11 @@ ARCH ?= linux/arm64/v8,linux/amd64,linux/ppc64le
 # If updating, also update the version referenced in `BinaryAssetsDirectory` of suite_test.go files.
 ENVTEST_K8S_VERSION = 1.31.0
 
+# We set GOTOOLCHAIN to "local+auto" because we use `go-install-tool` to install tools like `kustomize`
+# which may depend on a newer Go version than the local one. While "local+auto" is the implied default,
+# it is not always the case, as in the `setup-go` GitHub Action which uses "local".
+export GOTOOLCHAIN = local+auto
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -175,7 +180,7 @@ KUSTOMIZE_VERSION ?= v5.5.0
 CONTROLLER_TOOLS_VERSION ?= v0.20.1
 ENVTEST_VERSION ?= release-0.19
 ISTIOCTL_VERSION ?= 1.27.3
-GOLANGCI_LINT_VERSION ?= v1.61.0
+GOLANGCI_LINT_VERSION ?= v1.64.8
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.

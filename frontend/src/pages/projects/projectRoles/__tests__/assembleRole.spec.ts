@@ -1,4 +1,3 @@
-import { KnownLabels } from '@odh-dashboard/k8s-core';
 import assembleRole from '#~/pages/projects/projectRoles/assembleRole';
 import type { RuleEntry } from '#~/pages/projects/projectRoles/types';
 
@@ -13,7 +12,7 @@ describe('assembleRole', () => {
         name: 'my-role',
         namespace: 'test-ns',
         labels: {
-          [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          'opendatahub.io/dashboard': 'true',
         },
         annotations: {
           'openshift.io/display-name': 'My Role',
@@ -78,7 +77,7 @@ describe('assembleRole', () => {
     const result = assembleRole('ns', 'r', 'R', '', []);
 
     expect(result.metadata.labels).toStrictEqual({
-      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      'opendatahub.io/dashboard': 'true',
     });
   });
 
@@ -99,20 +98,23 @@ describe('assembleRole', () => {
   });
 
   it('should merge user labels with dashboard resource label', () => {
-    const userLabels = { 'app.kubernetes.io/name': 'my-app', team: 'platform' };
+    const userLabels = {
+      'labels.opendatahub.io/team': 'platform',
+      'labels.opendatahub.io/env': 'production',
+    };
     const result = assembleRole('ns', 'r', 'R', '', [], userLabels);
 
     expect(result.metadata.labels).toStrictEqual({
-      'app.kubernetes.io/name': 'my-app',
-      team: 'platform',
-      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      'labels.opendatahub.io/team': 'platform',
+      'labels.opendatahub.io/env': 'production',
+      'opendatahub.io/dashboard': 'true',
     });
   });
 
   it('should ensure dashboard resource label overrides user label', () => {
-    const userLabels = { [KnownLabels.DASHBOARD_RESOURCE]: 'false' };
+    const userLabels = { 'opendatahub.io/dashboard': 'false' };
     const result = assembleRole('ns', 'r', 'R', '', [], userLabels);
 
-    expect(result.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]).toBe('true');
+    expect(result.metadata.labels?.['opendatahub.io/dashboard']).toBe('true');
   });
 });

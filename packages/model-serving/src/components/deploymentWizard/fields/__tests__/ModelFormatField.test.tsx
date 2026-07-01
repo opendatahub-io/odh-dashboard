@@ -73,7 +73,6 @@ describe('ModelFormatField', () => {
       const { result } = renderHook(() =>
         useModelFormatField(undefined, {
           type: ServingRuntimeModelType.PREDICTIVE,
-          legacyVLLM: false,
         }),
       );
 
@@ -86,7 +85,6 @@ describe('ModelFormatField', () => {
       const { result } = renderHook(() =>
         useModelFormatField(undefined, {
           type: ServingRuntimeModelType.GENERATIVE,
-          legacyVLLM: false,
         }),
       );
 
@@ -99,7 +97,6 @@ describe('ModelFormatField', () => {
       const { result } = renderHook(() =>
         useModelFormatField(undefined, {
           type: ServingRuntimeModelType.GENERATIVE,
-          legacyVLLM: false,
         }),
       );
 
@@ -114,7 +111,6 @@ describe('ModelFormatField', () => {
       const { result } = renderHook(() =>
         useModelFormatField(undefined, {
           type: ServingRuntimeModelType.PREDICTIVE,
-          legacyVLLM: false,
         }),
       );
 
@@ -133,7 +129,6 @@ describe('ModelFormatField', () => {
       const { result } = renderHook(() =>
         useModelFormatField(undefined, {
           type: ServingRuntimeModelType.PREDICTIVE,
-          legacyVLLM: false,
         }),
       );
 
@@ -148,7 +143,6 @@ describe('ModelFormatField', () => {
       const { result } = renderHook(() =>
         useModelFormatField(undefined, {
           type: ServingRuntimeModelType.PREDICTIVE,
-          legacyVLLM: false,
         }),
       );
 
@@ -166,7 +160,6 @@ describe('ModelFormatField', () => {
       const { result } = renderHook(() =>
         useModelFormatField(undefined, {
           type: ServingRuntimeModelType.PREDICTIVE,
-          legacyVLLM: false,
         }),
       );
 
@@ -212,7 +205,6 @@ describe('ModelFormatField', () => {
       const { result } = renderHook(() =>
         useModelFormatField(undefined, {
           type: ServingRuntimeModelType.PREDICTIVE,
-          legacyVLLM: false,
         }),
       );
 

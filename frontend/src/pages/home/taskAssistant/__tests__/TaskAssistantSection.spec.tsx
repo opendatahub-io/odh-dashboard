@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import TaskAssistantSection from '#~/pages/home/taskAssistant/TaskAssistantSection';
 import { makeGroupExtension, makeItemExtension } from './taskAssistantTestUtils';
 
@@ -12,7 +12,8 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useExtensions: jest.fn(),
 }));
 
-jest.mock('#~/components/browserStorage/BrowserStorageContext', () => ({
+jest.mock('@odh-dashboard/ui-core/utilities', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core/utilities'),
   useBrowserStorage: jest.fn(),
 }));
 

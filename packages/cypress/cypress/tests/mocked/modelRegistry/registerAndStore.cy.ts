@@ -11,7 +11,7 @@ import {
   mockProjectK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockRegisteredModel } from '@odh-dashboard/internal/__mocks__/mockRegisteredModel';
 import { mockModelVersion } from '@odh-dashboard/internal/__mocks__/mockModelVersion';
 import {

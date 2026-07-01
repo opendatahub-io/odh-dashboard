@@ -8,6 +8,7 @@ import {
   type AutoragResultsContextProps,
 } from '~/app/context/AutoragResultsContext';
 import type { PipelineRun } from '~/app/types';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import * as queries from '~/app/hooks/queries';
 import * as utils from '~/app/utilities/utils';
@@ -32,6 +33,10 @@ jest.mock('~/app/topology/PipelineTopology', () => ({
 
 jest.mock('~/app/topology/useAutoragTaskTopology', () => ({
   useAutoragTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
+}));
+
+jest.mock('~/app/topology/buildStageMapTopology', () => ({
+  buildStageMapTopology: jest.fn().mockReturnValue([{ id: 'stage-1' }, { id: 'stage-2' }]),
 }));
 
 jest.mock('~/app/components/run-results/AutoragLeaderboard', () => ({
@@ -370,6 +375,110 @@ describe('AutoragResults', () => {
       renderWithContext({ pipelineRun: runningRun });
 
       expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('stage map vs fallback topology', () => {
+    const stageMapRun: PipelineRun = {
+      ...mockPipelineRun,
+      state: 'RUNNING',
+      pipeline_spec: {
+        root: {
+          dag: {
+            tasks: {
+              'publish-component-stage-map': { taskInfo: { name: 'publish-component-stage-map' } },
+              'test-data-loader': { taskInfo: { name: 'test-data-loader' } },
+            },
+          },
+        },
+      } as unknown as PipelineRun['pipeline_spec'],
+    };
+
+    const noStageMapRun: PipelineRun = {
+      ...mockPipelineRun,
+      pipeline_spec: {
+        root: {
+          dag: {
+            tasks: {
+              'test-data-loader': { taskInfo: { name: 'test-data-loader' } },
+            },
+          },
+        },
+      } as unknown as PipelineRun['pipeline_spec'],
+    };
+
+    const mockComponentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      components: [],
+      kfp_run_id: 'run-1',
+      published_at: '2025-01-01T00:00:00Z',
+    };
+
+    it('should show loading spinner when stage map is loading and run is not terminal', () => {
+      renderWithContext({
+        pipelineRun: stageMapRun,
+        componentStageMapLoading: true,
+      });
+
+      expect(screen.getByText('Preparing the optimization pipeline')).toBeInTheDocument();
+      expect(screen.queryByTestId('pipeline-topology')).not.toBeInTheDocument();
+    });
+
+    it('should show loading spinner when stage map is not yet available and run is not terminal', () => {
+      renderWithContext({
+        pipelineRun: stageMapRun,
+        componentStageMapLoading: false,
+      });
+
+      expect(screen.getByText('Preparing the optimization pipeline')).toBeInTheDocument();
+    });
+
+    it('should show topology with stage map nodes when componentStageMap is available', () => {
+      renderWithContext({
+        pipelineRun: stageMapRun,
+        componentStageMap: mockComponentStageMap,
+      });
+
+      expect(screen.getByTestId('pipeline-topology')).toBeInTheDocument();
+      expect(screen.queryByText('Preparing the optimization pipeline')).not.toBeInTheDocument();
+    });
+
+    it('should fall back to task topology when pipeline spec lacks publish-component-stage-map task', () => {
+      renderWithContext({
+        pipelineRun: noStageMapRun,
+        componentStageMap: mockComponentStageMap,
+      });
+
+      const topology = screen.getByTestId('pipeline-topology');
+      expect(topology).toBeInTheDocument();
+      expect(topology).toHaveAttribute('data-node-count', '2');
+    });
+
+    it('should fall back to task topology when componentStageMapError is truthy', () => {
+      renderWithContext({
+        pipelineRun: stageMapRun,
+        componentStageMap: mockComponentStageMap,
+        componentStageMapError: true,
+      });
+
+      const topology = screen.getByTestId('pipeline-topology');
+      expect(topology).toBeInTheDocument();
+      expect(topology).toHaveAttribute('data-node-count', '2');
+    });
+
+    it('should show topology (not spinner) when run is terminal even without stage map', () => {
+      const terminalStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        state: 'SUCCEEDED',
+      };
+      renderWithContext({
+        pipelineRun: terminalStageMapRun,
+        componentStageMapLoading: false,
+      });
+
+      expect(screen.getByTestId('pipeline-topology')).toBeInTheDocument();
+      expect(screen.queryByText('Preparing the optimization pipeline')).not.toBeInTheDocument();
     });
   });
 });

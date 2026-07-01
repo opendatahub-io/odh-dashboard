@@ -1,4 +1,4 @@
-import { RateLimit, TokenRateLimit } from '~/app/types/subscriptions';
+import { ModelSubscriptionRef, RateLimit, TokenRateLimit } from '~/app/types/subscriptions';
 
 const WINDOW_SUFFIX_TO_UNIT: Record<string, RateLimit['unit']> = {
   s: 'second',
@@ -52,3 +52,12 @@ export const toTokenRateLimit = (rl: RateLimit): TokenRateLimit => ({
   limit: rl.count,
   window: `${rl.time}${UNIT_TO_WINDOW_SUFFIX[rl.unit]}`,
 });
+
+export const formatTokenLimits = (limits: ModelSubscriptionRef['tokenRateLimits']): string => {
+  if (limits.length === 0) {
+    return '—';
+  }
+  return limits
+    .map((l) => `${l.limit.toLocaleString('en-US')} / ${formatWindow(l.window)}`)
+    .join(' | ');
+};

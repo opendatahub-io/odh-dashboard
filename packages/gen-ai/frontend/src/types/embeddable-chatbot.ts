@@ -8,14 +8,16 @@ type ResponsesTemplate = {
   model: string;
   stream: boolean;
   store: boolean;
-  input: Array<{
-    type: 'message';
-    role: 'user';
-    content: Array<{
-      type: 'input_text';
-      text: string;
-    }>;
-  }>;
+  input:
+    | string
+    | Array<{
+        type: 'message';
+        role: 'user';
+        content: Array<{
+          type: 'input_text';
+          text: string;
+        }>;
+      }>;
   metadata: {
     autorag_run_id: string;
     rag_pattern_name: string;

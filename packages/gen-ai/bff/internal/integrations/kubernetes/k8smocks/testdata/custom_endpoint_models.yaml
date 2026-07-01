@@ -1,0 +1,45 @@
+providers:
+  inference:
+    - provider_id: custom-openai-1
+      provider_type: remote::openai
+      config:
+        base_url: https://api.example.com/v1
+        allowed_models:
+          - custom-llm-model
+          - custom-embedding-model
+        custom_gen_ai:
+          api_key:
+            secretRef:
+              name: custom-api-key
+              key: api-key
+    - provider_id: custom-passthrough-1
+      provider_type: remote::passthrough
+      config:
+        base_url: https://api.custom.io/v1
+        allowed_models:
+          - passthrough-model
+        custom_gen_ai:
+          api_key:
+            secretRef:
+              name: passthrough-secret
+              key: token
+registered_resources:
+  models:
+    - provider_id: custom-openai-1
+      model_id: custom-llm-model
+      model_type: llm
+      metadata:
+        display_name: "Custom LLM Model"
+        custom_gen_ai:
+          use_cases: "chat,completion"
+    - provider_id: custom-openai-1
+      model_id: custom-embedding-model
+      model_type: embedding
+      metadata:
+        display_name: "Custom Embedding Model"
+        embedding_dimension: 768
+    - provider_id: custom-passthrough-1
+      model_id: passthrough-model
+      model_type: llm
+      metadata:
+        display_name: "Passthrough Model"

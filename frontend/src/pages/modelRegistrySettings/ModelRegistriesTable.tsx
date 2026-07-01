@@ -10,7 +10,7 @@ import {
   ToolbarContent,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { Table } from '#~/components/table';
+import { Table } from '@odh-dashboard/ui-core';
 import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
 import { FetchStateObject } from '#~/utilities/useFetch';
 import { modelRegistryColumns } from './columns';

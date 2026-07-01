@@ -22,11 +22,8 @@ import type {
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
-// eslint-disable-next-line no-restricted-syntax
-import {
-  DataScienceStackComponent,
-  SupportedArea,
-} from '@odh-dashboard/internal/concepts/areas/index';
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentMethodSelectField';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
 import type { KServeDeployment } from './src/deployments';
@@ -65,6 +62,39 @@ const kserveTimeoutFieldExtension: WizardFieldExtension<
   },
 };
 
+const timeoutExtractorExtension: WizardFieldExtractorExtension<
+  TimeoutFieldValue,
+  KServeDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'kserve/timeout',
+    platform: KSERVE_ID,
+    extract: () =>
+      import('./src/wizardFields/timeout/timeoutApplyExtract').then(
+        (m) => m.extractTimeoutFieldData,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.K_SERVE],
+  },
+};
+
+const deploymentMethodExtractorExtension: WizardFieldExtractorExtension<
+  DeploymentMethodFieldData,
+  KServeDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'deploymentMethod',
+    platform: KSERVE_ID,
+    extract: () => import('./src/deployUtils').then((m) => m.extractDeploymentMethod),
+  },
+  flags: {
+    required: [SupportedArea.K_SERVE],
+  },
+};
+
 const extensions: (
   | AreaExtension
   | ModelServingPlatformExtension<KServeDeployment>
@@ -81,6 +111,7 @@ const extensions: (
   | WizardFieldExtension<WizardField<TimeoutFieldValue, undefined>, KServeDeployment>
   | WizardFieldApplyExtension<TimeoutFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
+  | WizardFieldExtractorExtension<DeploymentMethodFieldData, KServeDeployment>
   | DeploymentWizardFieldOverrideExtension<KServeDeployment>
 )[] = [
   {
@@ -247,20 +278,8 @@ const extensions: (
       required: [SupportedArea.K_SERVE],
     },
   },
-  {
-    type: 'model-serving.deployment/wizard-field-extractor',
-    properties: {
-      fieldId: 'kserve/timeout',
-      platform: KSERVE_ID,
-      extract: () =>
-        import('./src/wizardFields/timeout/timeoutApplyExtract').then(
-          (m) => m.extractTimeoutFieldData,
-        ),
-    },
-    flags: {
-      required: [SupportedArea.K_SERVE],
-    },
-  },
+  timeoutExtractorExtension,
+  deploymentMethodExtractorExtension,
   {
     type: 'model-serving.deployment/wizard-field-override',
     properties: {
@@ -272,6 +291,19 @@ const extensions: (
     },
     flags: {
       required: [KSERVE_ID],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field-override',
+    properties: {
+      platform: KSERVE_ID,
+      field: () =>
+        import('./src/wizardFields/deploymentMethodField').then(
+          (m) => m.legacyDeploymentMethodOverride,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
 ];

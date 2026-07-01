@@ -3,6 +3,7 @@ import { Navigate, Outlet, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import InvalidProject from '@odh-dashboard/internal/concepts/projects/InvalidProject';
+import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
 import { ModelTrainingContextProvider } from './ModelTrainingContext';
 import ModelTrainingNoProjects from '../components/ModelTrainingNoProjects';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
@@ -21,6 +22,7 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const storedProject = getStoredPreferredProject(projects);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (projects.length === 0) {
@@ -47,9 +49,9 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
       ),
     };
   } else {
-    // Redirect the namespace suffix into the URL
-    if (preferredProject) {
-      return <Navigate to={getInvalidRedirectPath(preferredProject.metadata.name)} replace />;
+    const effectiveProject = storedProject ?? preferredProject;
+    if (effectiveProject) {
+      return <Navigate to={getInvalidRedirectPath(effectiveProject.metadata.name)} replace />;
     }
     // Go with All projects path
     return (

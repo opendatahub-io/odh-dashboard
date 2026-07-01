@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { IAction, TableVariant } from '@patternfly/react-table';
-import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
+import { useCheckboxTable } from '#~/components/table';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 import { experimentColumns } from '#~/concepts/pipelines/content/tables/columns';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import usePipelineFilter from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 import { PipelinesFilter } from '#~/concepts/pipelines/types';
 import ExperimentTableRow from './ExperimentTableRow';

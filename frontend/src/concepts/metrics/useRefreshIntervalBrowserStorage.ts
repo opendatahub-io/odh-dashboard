@@ -1,7 +1,5 @@
-import {
-  SetBrowserStorageHook,
-  useBrowserStorage,
-} from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import type { SetBrowserStorageHook } from '@odh-dashboard/ui-core/utilities';
 import { RefreshIntervalTitle } from '#~/concepts/metrics/types';
 
 const useRefreshIntervalBrowserStorage = (

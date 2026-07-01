@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import { render, screen, renderHook } from '@testing-library/react';
-import { useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
-import type { IsAreaAvailableStatus } from '@odh-dashboard/internal/concepts/areas/types';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { mockExtensions } from '../../../../__tests__/mockUtils';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
@@ -13,8 +13,8 @@ import {
 } from '../ModelAvailabilityFields';
 
 jest.mock('@odh-dashboard/plugin-core');
-jest.mock('@odh-dashboard/internal/concepts/areas', () => ({
-  ...jest.requireActual('@odh-dashboard/internal/concepts/areas'),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 
@@ -205,7 +205,6 @@ describe('AvailableAiAssetsFields', () => {
       const { result } = renderHook(() =>
         useModelAvailabilityFields(undefined, {
           type: ServingRuntimeModelType.GENERATIVE,
-          legacyVLLM: false,
         }),
       );
       expect(result.current.showField).toBe(true);
@@ -214,7 +213,6 @@ describe('AvailableAiAssetsFields', () => {
       const { result } = renderHook(() =>
         useModelAvailabilityFields(undefined, {
           type: ServingRuntimeModelType.PREDICTIVE,
-          legacyVLLM: false,
         }),
       );
       expect(result.current.showField).toBe(false);
@@ -225,7 +223,7 @@ describe('AvailableAiAssetsFields', () => {
           useModelAvailabilityFields({ saveAsAiAsset: true, useCase: 'test' }, modelType),
         {
           initialProps: {
-            modelType: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
+            modelType: { type: ServingRuntimeModelType.GENERATIVE },
           },
         },
       );
@@ -237,7 +235,7 @@ describe('AvailableAiAssetsFields', () => {
 
       // Change to predictive model type
       rerender({
-        modelType: { type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false },
+        modelType: { type: ServingRuntimeModelType.PREDICTIVE },
       });
 
       // Data should be reset and field should be hidden

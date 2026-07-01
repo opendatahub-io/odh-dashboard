@@ -84,7 +84,7 @@ const workspacePackages = getWorkspacePackages();
 const odhDashboardShared = Object.fromEntries(
   [...getRuntimeOdhPackages(workspacePackages)].map((name) => [
     name,
-    { singleton: true, requiredVersion: '*', eager: true },
+    { singleton: true, requiredVersion: '*' },
   ]),
 );
 
@@ -169,6 +169,11 @@ module.exports = {
               '@patternfly/react-core': {
                 singleton: true,
                 requiredVersion: deps['@patternfly/react-core'],
+              },
+              '@patternfly/react-icons': {
+                singleton: true,
+                requiredVersion: deps['@patternfly/react-icons'],
+                eager: true,
               },
               '@openshift/dynamic-plugin-sdk': {
                 singleton: true,

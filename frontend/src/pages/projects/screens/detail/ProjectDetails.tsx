@@ -17,6 +17,12 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isProjectDetailsSettingsCardExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '@odh-dashboard/k8s-core';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
@@ -25,14 +31,8 @@ import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
 import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
 import ProjectRoles from '#~/pages/projects/projectRoles/ProjectRoles';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
-import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
-import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import {
   useProjectPermissionsTabVisible,
@@ -75,7 +75,10 @@ const ProjectDetails: React.FC = () => {
 
   useCheckLogoutParams();
 
-  const { isKueueDisabled } = useKueueConfiguration(currentProject);
+  const { isKueueDisabled, isProjectKueueEnabled, isKueueFeatureEnabled } =
+    useKueueConfiguration(currentProject);
+
+  const isKueueManaged = isProjectKueueEnabled && isKueueFeatureEnabled;
 
   const [isKueueAlertDismissed, setIsKueueAlertDismissed] = React.useState(false);
 
@@ -146,6 +149,22 @@ const ProjectDetails: React.FC = () => {
               </Button>
             </Popover>
           </Alert>
+        </Flex>
+      )}
+      {isKueueManaged && !isKueueAlertDismissed && (
+        <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
+          <Alert
+            data-testid="kueue-managed-alert-project-details"
+            variant="info"
+            isInline
+            title="This project uses Kueue for workload scheduling"
+            actionClose={
+              <AlertActionCloseButton
+                data-testid="kueue-managed-alert-close"
+                onClose={handleKueueAlertClose}
+              />
+            }
+          />
         </Flex>
       )}
 

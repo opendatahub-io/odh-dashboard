@@ -4,7 +4,7 @@ import {
   mockProjectK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '../../../utils/models';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
