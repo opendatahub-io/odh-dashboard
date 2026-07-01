@@ -62,6 +62,12 @@ import {
   attachExistingStorageModal,
 } from '../../../../pages/workbench';
 import { hardwareProfileSection } from '../../../../pages/components/HardwareProfileSection.ts';
+import {
+  FEATURE_STORE_SPAWNER_PROJECTS,
+  initFeatureStoreSpawnerIntercepts,
+  mockEmptyWorkbenchIntegrationResponse,
+  mockNotebookWithFeastConfig,
+} from '../../../../utils/featureStoreSpawnerMocks';
 
 const configYamlPath = './cypress/fixtures/resources/yaml/mock-upload-configmap.yaml';
 
@@ -2388,300 +2394,259 @@ describe('Workbench page', () => {
   });
 
   describe('Feature Store Integration', () => {
-    const mockFeatureStoresResponse = {
-      namespaces: [
-        {
-          namespace: 'credit-namespace',
-          clientConfigs: [
-            {
-              configName: 'credit-scoring-local',
-              projectName: 'credit_scoring_local',
-              hasAccessToFeatureStore: true,
-              permissionLevel: ['Read', 'Write'],
-            },
-          ],
-        },
-        {
-          namespace: 'test-feast-banking',
-          clientConfigs: [
-            {
-              configName: 'banking',
-              projectName: 'banking',
-              hasAccessToFeatureStore: true,
-              permissionLevel: ['Read'],
-            },
-            {
-              configName: 'fraud-detect',
-              projectName: 'fraud_detect',
-              hasAccessToFeatureStore: true,
-              permissionLevel: ['Read', 'Describe'],
-            },
-          ],
-        },
-      ],
+    const visitCreateSpawner = () => {
+      workbenchPage.visit('test-project');
+      workbenchPage.findCreateButton().click();
     };
 
-    const mockEmptyFeatureStoresResponse = {
-      namespaces: [],
-    };
+    describe('create mode', () => {
+      it('should display feature store section when Feast operator is available', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts();
 
-    const initFeatureStoreIntercepts = (
-      featureStoresResponse:
-        | typeof mockFeatureStoresResponse
-        | typeof mockEmptyFeatureStoresResponse,
-      feastOperatorState: 'Managed' | 'Removed' = 'Managed',
-    ) => {
-      cy.interceptOdh(
-        'GET /api/dsc/status',
-        mockDscStatus({
-          components: {
-            [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
-            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: feastOperatorState },
+        visitCreateSpawner();
+
+        createSpawnerPage.findFeatureStoreSection().should('exist');
+        createSpawnerPage.findFeatureStoreSectionTitle().should('exist');
+        createSpawnerPage.findSelectFeatureStoreButton().should('exist');
+        createSpawnerPage.findFeatureStoreEmptyState().should('exist');
+      });
+
+      it('should not display feature store section when Feast operator is not available', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts({ feastOperatorState: 'Removed' });
+
+        visitCreateSpawner();
+
+        createSpawnerPage.findFeatureStoreSection().should('not.exist');
+      });
+
+      it('should load and display feature store options in the selection modal', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts();
+
+        visitCreateSpawner();
+        createSpawnerPage.openSelectFeatureStoresModal();
+        createSpawnerPage.shouldHaveFeatureStoreOptionsInModal([
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring,
+          FEATURE_STORE_SPAWNER_PROJECTS.banking,
+          FEATURE_STORE_SPAWNER_PROJECTS.fraudDetect,
+        ]);
+      });
+
+      it('should allow selecting multiple feature stores', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts();
+
+        visitCreateSpawner();
+        createSpawnerPage.selectFeatureStores([
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring,
+          FEATURE_STORE_SPAWNER_PROJECTS.banking,
+        ]);
+
+        createSpawnerPage.shouldHaveFeatureStoreSelected(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        createSpawnerPage.shouldHaveFeatureStoreSelected(
+          FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+        );
+      });
+
+      it('should display code block when feature stores are selected', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts();
+
+        visitCreateSpawner();
+        createSpawnerPage.selectFeatureStore(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+
+        createSpawnerPage.shouldHaveFeatureStoreCodeBlock();
+        createSpawnerPage.findFeatureStoreCodeBlockInstructionText().should('exist');
+      });
+
+      it('should not display code block when no feature stores are selected', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts();
+
+        visitCreateSpawner();
+        createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
+      });
+
+      it('should keep the select button enabled when all available feature stores are connected', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts({
+          workbenchIntegration: {
+            namespaces: [
+              {
+                namespace: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+                clientConfigs: [
+                  {
+                    configName: 'credit-scoring-local',
+                    projectName: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+                    hasAccessToFeatureStore: true,
+                    permissionLevel: ['Read', 'Write'],
+                  },
+                ],
+              },
+            ],
           },
-        }),
-      );
+        });
 
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableFeatureStore: false }));
-      cy.interceptOdh('GET /api/featurestores/workbench-integration', featureStoresResponse);
-    };
-
-    it('should display feature store section when Feast operator is available', () => {
-      initIntercepts({
-        isEmpty: true,
+        visitCreateSpawner();
+        createSpawnerPage.selectFeatureStore(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        createSpawnerPage
+          .findSelectFeatureStoreButton()
+          .should('not.have.attr', 'aria-disabled', 'true');
+        createSpawnerPage.openSelectFeatureStoresModal();
+        createSpawnerPage.shouldHaveFeatureStoreConnectedInModal(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
       });
 
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.findFeatureStoreSection().should('exist');
-      createSpawnerPage.findFeatureStoreLabel().should('exist');
-    });
-
-    it('should not display feature store section when Feast operator is not available', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse, 'Removed');
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.findFeatureStoreSection().should('not.exist');
-    });
-
-    it('should load and display feature store options', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.findFeatureStoreSelector().should('exist').click();
-      createSpawnerPage.shouldHaveFeatureStoreOptionsInList([
-        'credit_scoring_local',
-        'banking',
-        'fraud_detect',
-      ]);
-    });
-
-    it('should allow selecting multiple feature stores', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.selectFeatureStore('credit_scoring_local');
-      createSpawnerPage.selectFeatureStore('banking');
-
-      createSpawnerPage.shouldHaveFeatureStoreSelected('credit_scoring_local');
-      createSpawnerPage.shouldHaveFeatureStoreSelected('banking');
-    });
-
-    it('should display code block when feature stores are selected', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.selectFeatureStore('credit_scoring_local');
-
-      createSpawnerPage.shouldHaveFeatureStoreCodeBlock();
-      createSpawnerPage.findFeatureStoreCodeBlockInstructionText().should('exist');
-    });
-
-    it('should not display code block when no feature stores are selected', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-      createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
-    });
-
-    it('should show disabled state with tooltip when no feature stores are available', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockEmptyFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.findFeatureStoreSection().should('exist');
-      createSpawnerPage.shouldHaveFeatureStoreSelectorDisabled();
-      createSpawnerPage
-        .findFeatureStoreSelector()
-        .closest('span')
-        .trigger('mouseenter', { force: true });
-
-      createSpawnerPage.findFeatureStoreTooltip().should('be.visible');
-      createSpawnerPage.findFeatureStoreTooltipText().should('exist');
-    });
-
-    it('should display error alert when feature stores fail to load', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      cy.interceptOdh(
-        'GET /api/dsc/status',
-        mockDscStatus({
-          components: {
-            [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
-            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+      it('should allow disconnecting feature stores from the selection modal', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts({
+          workbenchIntegration: {
+            namespaces: [
+              {
+                namespace: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+                clientConfigs: [
+                  {
+                    configName: 'credit-scoring-local',
+                    projectName: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+                    hasAccessToFeatureStore: true,
+                    permissionLevel: ['Read', 'Write'],
+                  },
+                ],
+              },
+            ],
           },
-        }),
-      );
+        });
 
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableFeatureStore: false }));
-      cy.intercept('GET', '/api/featurestores/workbench-integration', {
-        statusCode: 500,
-        body: { message: 'Internal server error' },
+        visitCreateSpawner();
+        createSpawnerPage.selectFeatureStore(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        createSpawnerPage.openSelectFeatureStoresModal();
+        createSpawnerPage.toggleFeatureStoreInModal(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        createSpawnerPage.shouldHaveSelectFeatureStoresModalButtonEnabled();
+        createSpawnerPage.connectFeatureStoresInModal();
+        createSpawnerPage.findFeatureStoreEmptyState().should('exist');
+        createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
       });
 
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
+      it('should show disabled state with tooltip when no feature stores are available', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts({
+          workbenchIntegration: mockEmptyWorkbenchIntegrationResponse,
+        });
 
-      createSpawnerPage.findFeatureStoreSection().should('exist');
-      createSpawnerPage.shouldHaveFeatureStoreError();
+        visitCreateSpawner();
+
+        createSpawnerPage.findFeatureStoreSection().should('exist');
+        createSpawnerPage.shouldHaveSelectFeatureStoreButtonDisabled();
+        createSpawnerPage.findSelectFeatureStoreButton().trigger('mouseenter');
+        createSpawnerPage.findFeatureStoreTooltip().should('be.visible');
+        createSpawnerPage.findFeatureStoreTooltipText().should('exist');
+      });
+
+      it('should display error state when workbench integration fails to load', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts({ workbenchIntegrationLoadError: true });
+
+        visitCreateSpawner();
+
+        createSpawnerPage.findFeatureStoreSection().should('exist');
+        createSpawnerPage.shouldHaveFeatureStoreLoadError();
+      });
     });
 
-    it('should populate feature stores from notebook annotations in edit mode', () => {
-      const notebookWithFeatureStores = mockNotebookK8sResource({
-        name: 'test-notebook',
-        opts: {
-          metadata: {
-            name: 'test-notebook',
-            annotations: {
-              'opendatahub.io/feast-config': 'credit_scoring_local,banking',
-            },
-            labels: {
-              'opendatahub.io/feast-integration': 'true',
-            },
-          },
-        },
+    describe('edit mode', () => {
+      it('should populate feature stores from notebook annotations', () => {
+        const notebookWithFeatureStores = mockNotebookWithFeastConfig([
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+          FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+        ]);
+
+        initIntercepts({
+          isEmpty: false,
+          notebooks: [notebookWithFeatureStores],
+        });
+        initFeatureStoreSpawnerIntercepts();
+        cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
+
+        editSpawnerPage.visit('test-notebook');
+
+        editSpawnerPage.shouldHaveFeatureStoreSelected(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        editSpawnerPage.shouldHaveFeatureStoreSelected(
+          FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+        );
+        editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
       });
 
-      initIntercepts({
-        isEmpty: false,
-        notebooks: [notebookWithFeatureStores],
+      it('should show already connected stores as checked in the selection modal', () => {
+        const notebookWithFeatureStores = mockNotebookWithFeastConfig([
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        ]);
+
+        initIntercepts({
+          isEmpty: false,
+          notebooks: [notebookWithFeatureStores],
+        });
+        initFeatureStoreSpawnerIntercepts();
+        cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
+
+        editSpawnerPage.visit('test-notebook');
+        editSpawnerPage.openSelectFeatureStoresModal();
+        editSpawnerPage.shouldHaveFeatureStoreConnectedInModal(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        editSpawnerPage.shouldHaveSelectFeatureStoresModalButtonDisabled();
+        editSpawnerPage.shouldHaveFeatureStoreOptionsInModal([
+          FEATURE_STORE_SPAWNER_PROJECTS.banking,
+          FEATURE_STORE_SPAWNER_PROJECTS.fraudDetect,
+        ]);
+        editSpawnerPage.toggleFeatureStoreInModal(
+          FEATURE_STORE_SPAWNER_PROJECTS.banking.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+        );
+        editSpawnerPage.shouldHaveSelectFeatureStoresModalButtonEnabled();
       });
 
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-      cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
+      it('should allow removing all feature stores', () => {
+        const notebookWithFeatureStores = mockNotebookWithFeastConfig([
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        ]);
 
-      editSpawnerPage.visit('test-notebook');
+        initIntercepts({
+          isEmpty: false,
+          notebooks: [notebookWithFeatureStores],
+        });
+        initFeatureStoreSpawnerIntercepts();
+        cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
 
-      editSpawnerPage.shouldHaveFeatureStoreSelected('credit_scoring_local');
-      editSpawnerPage.shouldHaveFeatureStoreSelected('banking');
+        editSpawnerPage.visit('test-notebook');
 
-      editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
-    });
-
-    it('should pre-fill feature stores from notebook annotations in edit mode', () => {
-      const notebookWithFeatureStores = mockNotebookK8sResource({
-        name: 'test-notebook-with-feature-stores',
-        opts: {
-          metadata: {
-            name: 'test-notebook-with-feature-stores',
-            annotations: {
-              'opendatahub.io/feast-config': 'credit_scoring_local,banking,fraud_detect',
-            },
-            labels: {
-              'opendatahub.io/feast-integration': 'true',
-            },
-          },
-        },
+        editSpawnerPage.removeFeatureStore(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        editSpawnerPage.findFeatureStoreEmptyState().should('exist');
+        editSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
       });
-
-      initIntercepts({
-        isEmpty: false,
-        notebooks: [notebookWithFeatureStores],
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-      cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
-
-      editSpawnerPage.visit('test-notebook-with-feature-stores');
-      editSpawnerPage.shouldHaveFeatureStoreSelected('credit_scoring_local');
-      editSpawnerPage.shouldHaveFeatureStoreSelected('banking');
-      editSpawnerPage.shouldHaveFeatureStoreSelected('fraud_detect');
-      editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
-      editSpawnerPage.findFeatureStoreSelector().click();
-      editSpawnerPage.shouldHaveFeatureStoreOptionsInList([
-        'credit_scoring_local',
-        'banking',
-        'fraud_detect',
-      ]);
-    });
-
-    it('should allow deselecting all feature stores in edit mode', () => {
-      const notebookWithFeatureStores = mockNotebookK8sResource({
-        name: 'test-notebook',
-        opts: {
-          metadata: {
-            name: 'test-notebook',
-            annotations: {
-              'opendatahub.io/feast-config': 'credit_scoring_local',
-            },
-            labels: {
-              'opendatahub.io/feast-integration': 'true',
-            },
-          },
-        },
-      });
-
-      initIntercepts({
-        isEmpty: false,
-        notebooks: [notebookWithFeatureStores],
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-      cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
-
-      editSpawnerPage.visit('test-notebook');
-
-      editSpawnerPage.deselectFeatureStore('credit_scoring_local');
-      editSpawnerPage.shouldNotHaveFeatureStoreSelected('credit_scoring_local');
-      editSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
     });
   });
 
