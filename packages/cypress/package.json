@@ -22,7 +22,6 @@
   "devDependencies": {
     "@cypress/code-coverage": "^3.12.34",
     "@cypress/grep": "^4.1.0",
-    "@cypress/webpack-preprocessor": "^6.0.4",
     "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/feature-store": "*",
@@ -44,7 +43,6 @@
     "@types/ws": "^8.5.10",
     "chai-subset": "^1.6.0",
     "cross-env": "^10.1.0",
-    "css-loader": "^7.1.2",
     "cypress": "^15.6.0",
     "cypress-axe": "^1.5.0",
     "cypress-high-resolution": "^1.0.0",
@@ -53,22 +51,14 @@
     "cypress-plugin-steps": "^1.1.1",
     "eslint-plugin-cypress": "^3.6.0",
     "dotenv": "^16.4.7",
-    "file-loader": "^6.2.0",
     "https-proxy-agent": "^7.0.6",
     "istanbul-merge": "^2.0.0",
     "js-yaml": "^4.0.0",
     "lodash-es": "^4.18.1",
     "npm-run-all": "^4.1.5",
     "nyc": "^15.1.0",
-    "raw-loader": "^4.0.2",
     "prettier": "^2.2.1",
     "rimraf": "^3.0.2",
-    "sass": "^1.87.0",
-    "sass-loader": "^16.0.0",
-    "style-loader": "^4.0.0",
-    "ts-loader": "^9.5.2",
-    "url-loader": "^4.1.1",
-    "webpack": "5.104.1",
     "ws": "^8.17.1"
   }
 }

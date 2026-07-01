@@ -13,13 +13,9 @@ import cypressHighResolution from 'cypress-high-resolution';
 import { beforeRunHook, afterRunHook } from 'cypress-mochawesome-reporter/lib';
 import { mergeFiles } from 'junit-report-merger';
 import { getModuleFederationConfigs } from '@odh-dashboard/app-config';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore no types available
-import webpack from '@cypress/webpack-preprocessor';
 import { interceptSnapshotFile } from './cypress/utils/snapshotUtils';
 import { setup as setupWebsockets } from './cypress/support/websockets';
 import { env, cypressEnv, BASE_URL } from './cypress/utils/testConfig';
-import webpackConfig from './webpack.config';
 import { extractHttpsUrlsWithLocation } from './cypress/utils/urlExtractor';
 import { validateHttpsUrls } from './cypress/utils/urlValidator';
 import { logToConsole, LogLevel } from './cypress/utils/logger';
@@ -96,8 +92,6 @@ export default defineConfig({
       cypressHighResolution(on, config);
       coverage(on, config);
       setupWebsockets(on, config);
-
-      on('file:preprocessor', webpack({ webpackOptions: webpackConfig, watchOptions: {} }));
 
       on('task', {
         readJSON(filePath: string) {
