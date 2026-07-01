@@ -6,6 +6,8 @@ import { RunStatus } from '@patternfly/react-topology';
 import { RuntimeStateKF, RunDetailsKF, TaskDetailKF } from '~/app/types/pipeline';
 import { PipelineTaskRunStatus } from '~/app/types/topology';
 
+// SUCCEEDED (60) outranks CANCELING (59) / CANCELED (51) because the KFP driver
+// transitions to CANCELED after the main task has already completed successfully.
 const statusWeight = (status?: RuntimeStateKF): number => {
   switch (status) {
     case RuntimeStateKF.PENDING:
@@ -30,7 +32,7 @@ const statusWeight = (status?: RuntimeStateKF): number => {
   }
 };
 
-const lowestProgress = (details: TaskDetailKF[]): TaskDetailKF['state'] =>
+const worstStatus = (details: TaskDetailKF[]): TaskDetailKF['state'] =>
   details.toSorted(
     ({ state: stateA }, { state: stateB }) => statusWeight(stateB) - statusWeight(stateA),
   )[0].state;
@@ -49,7 +51,9 @@ export const parseRuntimeInfoFromRunDetails = (
 
   const nameVariants = [taskId, `${taskId}-driver`];
   const matchingDetails = runDetails.task_details.filter(
-    (td) => nameVariants.includes(td.display_name ?? '') || nameVariants.includes(td.task_id),
+    (td) =>
+      (td.display_name != null && nameVariants.includes(td.display_name)) ||
+      nameVariants.includes(td.task_id),
   );
 
   if (matchingDetails.length === 0) {
@@ -59,7 +63,7 @@ export const parseRuntimeInfoFromRunDetails = (
   return {
     startTime: matchingDetails[0].start_time,
     completeTime: matchingDetails[0].end_time,
-    state: lowestProgress(matchingDetails),
+    state: worstStatus(matchingDetails),
     taskId: matchingDetails[0].task_id,
   };
 };
