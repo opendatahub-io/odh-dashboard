@@ -7,6 +7,7 @@ import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { ModelRegistryMetadataType, ModelState, type ModelRegistry } from '~/app/types';
 import { MODEL_REGISTRY_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { modelVersionsCard } from '~/__tests__/cypress/cypress/pages/modelRegistryView/modelVersionsCard';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import {
   archiveModelVersionDetailsUrl,
   archiveModelVersionListUrl,
@@ -278,7 +279,6 @@ describe('Model Versions Card', () => {
   });
 
   it('does not display model versions list if there are no live model versions', () => {
-    cy.visit(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
     cy.interceptApi(
       `GET /api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
       {
@@ -292,12 +292,13 @@ describe('Model Versions Card', () => {
         items: [],
       }),
     );
+    cy.visit(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
+    appChrome.waitForA11y();
 
     modelVersionsCard.findNoVersionsText().should('be.visible');
   });
 
   it('does not display model versions list if there are no archived model versions', () => {
-    cy.visit(`${registeredModelArchiveDetailsUrl('2', 'modelregistry-sample')}/overview`);
     cy.interceptApi(
       `GET /api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
       {
@@ -311,12 +312,15 @@ describe('Model Versions Card', () => {
         items: [],
       }),
     );
+    cy.visit(`${registeredModelArchiveDetailsUrl('2', 'modelregistry-sample')}/overview`);
+    appChrome.waitForA11y();
 
     modelVersionsCard.findNoVersionsText().should('be.visible');
   });
 
   it('should display live model versions list correctly', () => {
     cy.visit(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
+    appChrome.waitForA11y();
 
     modelVersionsCard.findModelVersion('1').should('exist');
 
@@ -335,6 +339,7 @@ describe('Model Versions Card', () => {
 
   it('should display archived model versions list correctly', () => {
     cy.visit(`${registeredModelArchiveDetailsUrl('2', 'modelregistry-sample')}/overview`);
+    appChrome.waitForA11y();
 
     modelVersionsCard.findModelVersion('5').should('exist');
 
@@ -354,6 +359,7 @@ describe('Model Versions Card', () => {
   it('should have the correct link to the live model version', () => {
     initInterceptsForVersion('4');
     cy.visit(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
+    appChrome.waitForA11y();
 
     modelVersionsCard.findModelVersionLink('4').click();
     cy.url().should('include', `${modelVersionUrl('4', '1', 'modelregistry-sample')}/details`);
@@ -363,6 +369,7 @@ describe('Model Versions Card', () => {
   it('should have the correct link to the archived model version', () => {
     initInterceptsForVersion('8');
     cy.visit(`${registeredModelArchiveDetailsUrl('2', 'modelregistry-sample')}/overview`);
+    appChrome.waitForA11y();
 
     modelVersionsCard.findModelVersionLink('8').click();
     cy.url().should(

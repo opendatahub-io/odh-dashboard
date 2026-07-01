@@ -17,6 +17,7 @@ import {
 import { BanIcon, CubesIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
+import { useNavigateToDeployAgentWizard } from '~/app/deployWizard/useNavigateToDeployAgentWizard';
 import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 import AgentDeploymentsEmptyState from './AgentDeploymentsEmptyState';
@@ -27,6 +28,7 @@ const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelector();
+  const navigateToDeployAgentWizard = useNavigateToDeployAgentWizard();
 
   const {
     runtimes,
@@ -93,7 +95,7 @@ const AgentDeploymentListPage: React.FC = () => {
       <FlexItem>
         <Content component="p">Project</Content>
       </FlexItem>
-      <FlexItem data-testid="agent-ops-project-selector">
+      <FlexItem>
         <AgentOpsProjectSelector namespace={namespace} getRedirectPath={agentOpsDeploymentsRoute} />
       </FlexItem>
       {namespace && (
@@ -137,7 +139,12 @@ const AgentDeploymentListPage: React.FC = () => {
         onPageSizeChange={setPageSize}
         onClearFilters={clearFilters}
         toolbarContent={
-          <AgentRuntimesToolbar filterText={filterText} onFilterChange={setFilterText} />
+          <AgentRuntimesToolbar
+            namespace={namespace}
+            filterText={filterText}
+            onFilterChange={setFilterText}
+            onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
+          />
         }
       />
     );
@@ -163,7 +170,10 @@ const AgentDeploymentListPage: React.FC = () => {
             <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
           </EmptyState>
         ) : (
-          <AgentDeploymentsEmptyState />
+          <AgentDeploymentsEmptyState
+            namespace={namespace}
+            onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
+          />
         )
       }
       provideChildrenPadding
