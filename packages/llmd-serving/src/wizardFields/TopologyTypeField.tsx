@@ -7,7 +7,9 @@ import {
   HelperTextItem,
   Stack,
   StackItem,
+  Tooltip,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import type {
   WizardField,
@@ -100,9 +102,14 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
         return {
           key: topoType,
           label: TopologyTypeLabels[topoType],
-          description: isOptionDisabled
-            ? 'No topology configurations of this type are enabled by your administrator.'
-            : undefined,
+          dropdownLabel: isOptionDisabled ? (
+            <>
+              {TopologyTypeLabels[topoType]}{' '}
+              <Tooltip content="No configurations available. To request one, contact your administrator.">
+                <OutlinedQuestionCircleIcon />
+              </Tooltip>
+            </>
+          ) : undefined,
           isAriaDisabled: isOptionDisabled,
           dataTestId: `topology-type-${topoType}`,
         };

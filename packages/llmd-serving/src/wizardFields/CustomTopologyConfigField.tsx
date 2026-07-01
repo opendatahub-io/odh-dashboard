@@ -66,6 +66,8 @@ const getFilteredConfigs = (
   return configsByTopology[topologyType];
 };
 
+const SINGLE_NODE_DEFAULT_KEY = '__single-node-default__';
+
 const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['component'] = ({
   value,
   onChange,
@@ -85,24 +87,40 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
 
   const existingSelection = value?.selectedConfig;
   const noConfigsAvailable =
-    isLoaded && !hasLoadError && filteredConfigs.length === 0 && !existingSelection;
+    isLoaded &&
+    !hasLoadError &&
+    filteredConfigs.length === 0 &&
+    !existingSelection &&
+    !isSingleNode;
 
-  // Auto-select first config when configs load and nothing is selected yet
+  // Auto-select first config for non-single-node when configs load
   React.useEffect(() => {
-    if (isLoaded && !existingSelection && filteredConfigs.length > 0) {
+    if (isLoaded && !isSingleNode && !existingSelection && filteredConfigs.length > 0) {
       onChange({ selectedConfig: filteredConfigs[0] });
     }
-    // Only run when loaded state or filtered configs change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, filteredConfigs.length, topologyType]);
 
   const options: SimpleSelectOption[] = React.useMemo(() => {
-    const result = filteredConfigs.map((config) => ({
-      key: config.metadata.name,
-      label: getDisplayNameFromK8sResource(config),
-      description: config.metadata.annotations?.['openshift.io/description'],
-      dataTestId: `topology-config-option-${config.metadata.name}`,
-    }));
+    const result: SimpleSelectOption[] = [];
+
+    if (isSingleNode) {
+      result.push({
+        key: SINGLE_NODE_DEFAULT_KEY,
+        label: 'Single node (default)',
+        description: 'LLMInferenceServiceConfig template for this topology type.',
+        dataTestId: 'topology-config-option-single-node-default',
+      });
+    }
+
+    result.push(
+      ...filteredConfigs.map((config) => ({
+        key: config.metadata.name,
+        label: getDisplayNameFromK8sResource(config),
+        description: config.metadata.annotations?.['openshift.io/description'],
+        dataTestId: `topology-config-option-${config.metadata.name}`,
+      })),
+    );
 
     if (
       existingSelection &&
@@ -117,19 +135,13 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
     }
 
     return result;
-  }, [filteredConfigs, existingSelection]);
+  }, [filteredConfigs, existingSelection, isSingleNode]);
 
-  // For single-node without configs, hide the field entirely (it uses existing llm-d behavior)
-  if (isSingleNode && noConfigsAvailable) {
-    return null;
-  }
+  const selectedValue =
+    isSingleNode && !existingSelection ? SINGLE_NODE_DEFAULT_KEY : existingSelection?.metadata.name;
 
   return (
-    <FormGroup
-      fieldId="custom-topology-config"
-      label="Custom topology configurations"
-      isRequired={!isSingleNode}
-    >
+    <FormGroup fieldId="custom-topology-config" label="Topology configuration" isRequired>
       <Stack hasGutter>
         <StackItem>
           <Content component="p">
@@ -141,15 +153,15 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
             isFullWidth
             options={options}
             onChange={(key, isPlaceholder) => {
-              if (!key || isPlaceholder) {
+              if (!key || isPlaceholder || key === SINGLE_NODE_DEFAULT_KEY) {
                 onChange({ selectedConfig: undefined });
                 return;
               }
               const config = filteredConfigs.find((c) => c.metadata.name === key);
               onChange({ selectedConfig: config ?? value?.selectedConfig });
             }}
-            placeholder={isSingleNode ? 'Select configuration (optional)' : 'Select configuration'}
-            value={value?.selectedConfig?.metadata.name}
+            placeholder="Select configuration"
+            value={selectedValue}
             dataTestId="custom-topology-config-select"
             isDisabled={!isLoaded || hasLoadError || noConfigsAvailable}
             autoSelectOnlyOption={false}
