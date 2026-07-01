@@ -286,7 +286,6 @@ const buildOgxConfig = (namespace: string): string => {
           config: {
             base_url: llmUrl,
             max_tokens: '${env.VLLM_MAX_TOKENS:=4096}',
-            api_token: '${env.VLLM_API_TOKEN_1:=fake}',
             tls_verify: '${env.VLLM_TLS_VERIFY:=false}',
           },
         },
