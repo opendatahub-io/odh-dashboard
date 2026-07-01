@@ -75,7 +75,7 @@ class AgentDeploymentsPage {
     return cy.findByTestId('agent-runtimes-filter-project-input');
   }
 
-  selectStatusFilter(status: 'Running' | 'Pending' | 'Failed') {
+  selectStatusFilter(status: 'Ready' | 'Pending' | 'Failed') {
     this.selectFilterOption('status');
     cy.findByTestId('agent-runtimes-filter-status').click();
     cy.findByTestId(status).click();

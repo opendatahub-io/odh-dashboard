@@ -246,8 +246,8 @@ describe('Agent Deployments', () => {
       .should('contain.text', 'Failed');
 
     agentDeploymentsPage.expectSingleStatusFilterChip('Failed');
-    agentDeploymentsPage.selectStatusFilter('Running');
-    agentDeploymentsPage.expectSingleStatusFilterChip('Running');
+    agentDeploymentsPage.selectStatusFilter('Ready');
+    agentDeploymentsPage.expectSingleStatusFilterChip('Ready');
     agentDeploymentsPage.findTableRows().should('have.length', 1);
     agentDeploymentsPage
       .getRow(TEST_NAMESPACE, 'sample-support-agent')

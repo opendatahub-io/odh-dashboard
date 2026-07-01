@@ -67,7 +67,9 @@ const AgentDeploymentListPage: React.FC = () => {
     () =>
       namespaces.filter(
         (ns): ns is { name: string; displayName?: string } =>
-          typeof ns.name === 'string' && ns.name.length > 0,
+          typeof ns.name === 'string' &&
+          ns.name.length > 0 &&
+          (ns.displayName === undefined || typeof ns.displayName === 'string'),
       ),
     [namespaces],
   );

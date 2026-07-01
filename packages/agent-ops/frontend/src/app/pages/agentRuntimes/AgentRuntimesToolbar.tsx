@@ -78,8 +78,9 @@ const AgentRuntimesToolbar: React.FC<AgentRuntimesToolbarProps> = ({
           data-testid="agent-runtimes-filter-project-input"
         />
       ),
-      [AgentRuntimesFilterOption.Status]: ({ value, onChange }) => (
+      [AgentRuntimesFilterOption.Status]: ({ onChange, value, ...props }) => (
         <SimpleSelect
+          {...props}
           value={value ?? ''}
           aria-label="Filter by status"
           placeholder="Select a status"

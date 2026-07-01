@@ -20,7 +20,7 @@ const matchesStatusFilter = (
   const { displayStatus } = mapAgentRuntimeStatus(runtimeStatus);
 
   switch (filterStatus) {
-    case AgentRuntimeStatusFilter.Running:
+    case AgentRuntimeStatusFilter.Ready:
       return displayStatus === AgentRuntimeDisplayStatus.Ready;
     case AgentRuntimeStatusFilter.Pending:
       return displayStatus === AgentRuntimeDisplayStatus.Pending;

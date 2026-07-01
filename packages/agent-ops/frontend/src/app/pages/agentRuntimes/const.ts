@@ -5,7 +5,7 @@ export enum AgentRuntimesFilterOption {
 }
 
 export enum AgentRuntimeStatusFilter {
-  Running = 'Running',
+  Ready = 'Ready',
   Pending = 'Pending',
   Failed = 'Failed',
 }

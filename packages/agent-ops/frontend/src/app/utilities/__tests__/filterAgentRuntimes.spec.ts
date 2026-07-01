@@ -86,13 +86,13 @@ describe('filterAgentRuntimes', () => {
     ).toEqual([otherProjectRuntime]);
   });
 
-  it('filters runtimes by Running status', () => {
+  it('filters runtimes by Ready status', () => {
     expect(
       filterAgentRuntimes(runtimes, {
         ...emptyAgentRuntimesFilterData,
         [AgentRuntimesFilterOption.Status]: {
-          label: AgentRuntimeStatusFilter.Running,
-          value: AgentRuntimeStatusFilter.Running,
+          label: AgentRuntimeStatusFilter.Ready,
+          value: AgentRuntimeStatusFilter.Ready,
         },
       }),
     ).toEqual([createReadyRuntime()]);
