@@ -32,8 +32,6 @@ export const envVarTypeOptions: SimpleSelectOption[] = [
   { key: DeployAgentEnvVarType.CONFIG_MAP, label: 'ConfigMap reference' },
 ];
 
-/** Max toggle width for wizard dropdowns; keep in sync with DeployWizardSelectField.scss. */
-export const DEPLOY_WIZARD_SELECT_MAX_WIDTH = '28rem';
 /** Matches in-form SearchSelector / SimpleSelect menu height elsewhere in the dashboard. */
 export const DEPLOY_WIZARD_SELECT_MAX_MENU_HEIGHT = '200px';
 

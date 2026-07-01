@@ -80,7 +80,7 @@ const NetworkingStep: React.FC = () => {
                       validated={
                         portNameInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
-                      aria-describedby={`deploy-agent-port-name-label-${index}`}
+                      aria-labelledby={`deploy-agent-port-name-label-${index}`}
                       onChange={(_event, value) => updateServicePort(index, { name: value })}
                     />
                   </ServicePortFieldColumn>
@@ -100,7 +100,9 @@ const NetworkingStep: React.FC = () => {
                       validated={
                         servicePortInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
-                      aria-describedby={`deploy-agent-service-port-label-${index}`}
+                      inputProps={{
+                        'aria-labelledby': `deploy-agent-service-port-label-${index}`,
+                      }}
                       onChange={(value) => updateServicePort(index, { port: value ?? port.port })}
                     />
                   </ServicePortFieldColumn>
@@ -120,7 +122,9 @@ const NetworkingStep: React.FC = () => {
                       validated={
                         targetPortInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
-                      aria-describedby={`deploy-agent-target-port-label-${index}`}
+                      inputProps={{
+                        'aria-labelledby': `deploy-agent-target-port-label-${index}`,
+                      }}
                       onChange={(value) =>
                         updateServicePort(index, { targetPort: value ?? port.targetPort })
                       }
@@ -144,8 +148,7 @@ const NetworkingStep: React.FC = () => {
                         popperProps={{ appendTo: 'inline' }}
                         toggleProps={{
                           id: `deploy-agent-port-protocol-${index}`,
-                          'aria-label': 'Protocol',
-                          'aria-describedby': `deploy-agent-port-protocol-label-${index}`,
+                          'aria-labelledby': `deploy-agent-port-protocol-label-${index}`,
                         }}
                       />
                     </DeployWizardSelectField>

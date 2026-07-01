@@ -120,10 +120,7 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
   const addServicePort = React.useCallback(() => {
     setFormData((current) => ({
       ...current,
-      servicePorts: [
-        ...current.servicePorts,
-        { name: '', port: 8080, targetPort: 8000, protocol: DEFAULT_SERVICE_PORT.protocol },
-      ],
+      servicePorts: [...current.servicePorts, { ...DEFAULT_SERVICE_PORT, name: '' }],
     }));
   }, []);
 

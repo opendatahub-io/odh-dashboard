@@ -24,13 +24,6 @@ const SecurityAndIdentityStep: React.FC = () => {
 
   const handleAuthBridgeEnabledChange = (_event: React.FormEvent, checked: boolean) => {
     setFormField('authBridgeEnabled', checked);
-    if (!checked) {
-      setFormField('useEnvoySidecar', false);
-      setFormField('mtlsMode', '');
-      setFormField('authBridgeOutboundPortsExclude', '');
-      setFormField('authBridgeInboundPortsExclude', '');
-      setFormField('authBridgeDefaultOutboundPolicy', '');
-    }
   };
 
   return (

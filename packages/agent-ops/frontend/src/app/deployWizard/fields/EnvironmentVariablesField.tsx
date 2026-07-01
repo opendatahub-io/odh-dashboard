@@ -45,6 +45,9 @@ const clearEnvVarValueFields = (): Partial<DeployAgentEnvVar> => ({
   configMapKey: '',
 });
 
+const isEnvVarReferenceFieldInvalid = (envVar: DeployAgentEnvVar, fieldValue: string): boolean =>
+  envVar.name.trim().length > 0 && fieldValue.trim().length === 0;
+
 const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
   envVars,
   onAdd,
@@ -57,6 +60,11 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
         {envVars.map((envVar, index) => {
           const nameError = getEnvVarNameError(envVar.name);
           const nameInvalid = nameError.length > 0;
+          const directValueInvalid = isEnvVarReferenceFieldInvalid(envVar, envVar.value);
+          const secretNameInvalid = isEnvVarReferenceFieldInvalid(envVar, envVar.secretName);
+          const secretKeyInvalid = isEnvVarReferenceFieldInvalid(envVar, envVar.secretKey);
+          const configMapNameInvalid = isEnvVarReferenceFieldInvalid(envVar, envVar.configMapName);
+          const configMapKeyInvalid = isEnvVarReferenceFieldInvalid(envVar, envVar.configMapKey);
 
           return (
             <div
@@ -117,6 +125,10 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                     aria-label={`Environment variable value ${index + 1}`}
                     placeholder="Value"
                     value={envVar.value}
+                    validated={
+                      directValueInvalid ? ValidatedOptions.error : ValidatedOptions.default
+                    }
+                    aria-invalid={directValueInvalid}
                     onChange={(_event, value) => onUpdate(index, { value })}
                   />
                 </div>
@@ -130,6 +142,10 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                       aria-label={`Secret name ${index + 1}`}
                       placeholder="Secret name"
                       value={envVar.secretName}
+                      validated={
+                        secretNameInvalid ? ValidatedOptions.error : ValidatedOptions.default
+                      }
+                      aria-invalid={secretNameInvalid}
                       onChange={(_event, value) => onUpdate(index, { secretName: value })}
                     />
                   </div>
@@ -140,6 +156,10 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                       aria-label={`Secret key ${index + 1}`}
                       placeholder="Secret key"
                       value={envVar.secretKey}
+                      validated={
+                        secretKeyInvalid ? ValidatedOptions.error : ValidatedOptions.default
+                      }
+                      aria-invalid={secretKeyInvalid}
                       onChange={(_event, value) => onUpdate(index, { secretKey: value })}
                     />
                   </div>
@@ -154,6 +174,10 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                       aria-label={`ConfigMap name ${index + 1}`}
                       placeholder="ConfigMap name"
                       value={envVar.configMapName}
+                      validated={
+                        configMapNameInvalid ? ValidatedOptions.error : ValidatedOptions.default
+                      }
+                      aria-invalid={configMapNameInvalid}
                       onChange={(_event, value) => onUpdate(index, { configMapName: value })}
                     />
                   </div>
@@ -164,6 +188,10 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                       aria-label={`ConfigMap key ${index + 1}`}
                       placeholder="ConfigMap key"
                       value={envVar.configMapKey}
+                      validated={
+                        configMapKeyInvalid ? ValidatedOptions.error : ValidatedOptions.default
+                      }
+                      aria-invalid={configMapKeyInvalid}
                       onChange={(_event, value) => onUpdate(index, { configMapKey: value })}
                     />
                   </div>
@@ -195,7 +223,8 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
     <FormHelperText>
       <HelperText>
         <HelperTextItem>
-          Optional environment variables passed to the agent container at runtime.
+          Optional environment variables passed to the agent container at runtime. Do not enter
+          secrets or credentials as direct values; use Secret reference instead.
         </HelperTextItem>
       </HelperText>
     </FormHelperText>

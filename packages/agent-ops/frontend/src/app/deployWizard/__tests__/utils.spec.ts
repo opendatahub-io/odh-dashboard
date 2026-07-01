@@ -136,7 +136,7 @@ describe('deployWizard utils', () => {
             value: 'info',
           },
         ]),
-      ).toBe('LOG_LEVEL = info');
+      ).toBe('LOG_LEVEL = (direct value)');
       expect(
         formatEnvVarsSummary([
           {

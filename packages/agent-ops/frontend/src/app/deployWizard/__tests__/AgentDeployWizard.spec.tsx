@@ -413,4 +413,38 @@ describe('AgentDeployWizard', () => {
 
     expect(screen.getByTestId('deploy-agent-wizard-next')).toHaveAttribute('aria-disabled', 'true');
   });
+
+  it('renders secret reference fields when env var type is Secret reference', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-add-env-var'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-env-var-type-0'), 'secret');
+
+    expect(screen.getByTestId('deploy-agent-env-var-secret-name-0')).toBeInTheDocument();
+    expect(screen.getByTestId('deploy-agent-env-var-secret-key-0')).toBeInTheDocument();
+    expect(screen.queryByTestId('deploy-agent-env-var-value-0')).not.toBeInTheDocument();
+  });
+
+  it('allows toggling SPIRE identity on the security step', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+
+    const spireCheckbox = screen.getByTestId('deploy-agent-enable-spire-identity');
+    expect(spireCheckbox).not.toBeChecked();
+    await user.click(spireCheckbox);
+    expect(spireCheckbox).toBeChecked();
+  });
 });

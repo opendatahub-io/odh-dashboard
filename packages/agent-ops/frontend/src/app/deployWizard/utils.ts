@@ -186,7 +186,7 @@ export const formatEnvVarSummaryEntry = (envVar: DeployAgentEnvVar): string | nu
   }
 
   if (envVar.type === DeployAgentEnvVarType.DIRECT) {
-    return `${name} = ${envVar.value.trim()}`;
+    return envVar.value.trim() ? `${name} = (direct value)` : null;
   }
   if (envVar.type === DeployAgentEnvVarType.SECRET) {
     return `${name} = secret/${envVar.secretName.trim()}:${envVar.secretKey.trim()}`;

@@ -22,7 +22,7 @@
   width: 100%;
 
   &__label {
-    font-size: 0.875rem;
+    font-size: var(--pf-t--global--font--size--body--sm);
     color: var(--pf-t--global--text--color--subtle);
   }
 
