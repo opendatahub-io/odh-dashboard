@@ -6,15 +6,15 @@ import {
   WatchK8sResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { KnownLabels, type TemplateKind } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeKind } from '#~/k8sTypes';
-import { TemplateModel } from '#~/api/models';
-import { genRandomChars } from '#~/utilities/string';
 import {
-  CustomWatchK8sResult,
+  ServingRuntimeKind,
   ServingRuntimeAPIProtocol,
   ServingRuntimePlatform,
   ServingRuntimeModelType,
-} from '#~/types';
+} from '@odh-dashboard/model-serving-shared';
+import { TemplateModel } from '#~/api/models';
+import { genRandomChars } from '#~/utilities/string';
+import { CustomWatchK8sResult } from '#~/types';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { groupVersionKind } from '#~/api/k8sUtils';

@@ -8,8 +8,8 @@ import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-cor
 import {
   getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,
-} from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving-shared';
 import { type ModelTypeFieldData } from './ModelTypeSelectField';
 import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 

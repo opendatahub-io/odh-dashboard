@@ -32,6 +32,7 @@ COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
 COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
 COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
+COPY --chown=default:root packages/model-serving-shared/ ./packages/model-serving-shared/
 # Copy packages required for @odh-dashboard/llmd-serving and its dependencies
 COPY --chown=default:root packages/llmd-serving/ ./packages/llmd-serving/
 COPY --chown=default:root packages/model-serving/ ./packages/model-serving/

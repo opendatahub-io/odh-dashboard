@@ -27,6 +27,7 @@
     "@odh-dashboard/feature-store": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/llmd-serving": "*",
+    "@odh-dashboard/model-serving-shared": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/maas": "*",
     "@odh-dashboard/nim-serving": "*",

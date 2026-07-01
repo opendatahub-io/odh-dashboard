@@ -7,9 +7,8 @@ import {
   ResourceNameTooltip,
   StateActionToggle,
 } from '@odh-dashboard/ui-core';
-import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/model-serving-shared';
+import { ModelStatusIcon } from '@odh-dashboard/model-serving-shared/components';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';

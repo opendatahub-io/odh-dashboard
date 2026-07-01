@@ -1,17 +1,7 @@
 import type { PodKind } from '@odh-dashboard/k8s-core';
-import { InferenceServiceKind } from '#~/k8sTypes';
-import { ModelDeploymentState, ModelStatus } from '#~/pages/modelServing/screens/types';
-import { asEnumMember } from '#~/utilities/utils';
+import { asEnumMember } from './enumUtils';
+import { ModelDeploymentState, type InferenceServiceKind, type ModelStatus } from '../types';
 
-/**
- * Get the model state of an InferenceService.
- * It prioritizes the targetModelState, then activeModelState, and defaults to UNKNOWN.
- * If the pod associated with the InferenceService failed to schedule, it returns FAILED_TO_LOAD.
- *
- * @param is The InferenceService custom resource.
- * @param podStatus Optional status of the pod associated with the model.
- * @returns The state of the model.
- */
 export const getInferenceServiceModelState = (
   is: InferenceServiceKind,
   podStatus?: ModelStatus | null,
@@ -26,27 +16,11 @@ export const getInferenceServiceModelState = (
   );
 };
 
-/**
- * Get the last failure reason for an InferenceService.
- * It checks for a reason first, then a message, and defaults to 'Unknown'.
- *
- * @param is The InferenceService custom resource.
- * @returns The last failure reason string.
- */
 export const getInferenceServiceLastFailureReason = (is: InferenceServiceKind): string =>
   is.status?.modelStatus?.lastFailureInfo?.reason ||
   is.status?.modelStatus?.lastFailureInfo?.message ||
   'Unknown';
 
-/**
- * Get a status message for an InferenceService.
- * This message provides more context than just the model state.
- * For example, it can indicate if the model is redeploying or if there were resource issues.
- *
- * @param is The InferenceService custom resource.
- * @param podStatus Optional status of the pod associated with the model.
- * @returns A descriptive status message.
- */
 export const getInferenceServiceStatusMessage = (
   is: InferenceServiceKind,
   podStatus?: ModelStatus | null,
@@ -78,12 +52,6 @@ export const getInferenceServiceStatusMessage = (
   return stateMessage;
 };
 
-/**
- * Check the status of a model's pod, specifically if it failed to schedule.
- *
- * @param model The Pod custom resource.
- * @returns An object indicating if the pod failed to schedule and a failure message if applicable.
- */
 export const checkModelPodStatus = (model?: PodKind): ModelStatus => {
   const conditions = model?.status?.conditions ?? [];
   const unschedulableCondition = conditions.find(

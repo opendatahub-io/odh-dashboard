@@ -660,20 +660,6 @@ export type DetectedAccelerators = {
   allocated: { [key: string]: number };
 };
 
-export enum ServingRuntimePlatform {
-  SINGLE = 'single',
-}
-
-export enum ServingRuntimeAPIProtocol {
-  REST = 'REST',
-  GRPC = 'gRPC',
-}
-
-export enum ServingRuntimeModelType {
-  PREDICTIVE = 'predictive',
-  GENERATIVE = 'generative',
-}
-
 export type KeyValuePair = {
   key: string;
   value: string;
