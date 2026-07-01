@@ -15,9 +15,16 @@ import {
   MEMORY_UNITS_FOR_PARSING,
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { QueueSource } from './const';
-import type { HardwareProfileResource } from './types';
-import { HardwareProfileConfig, UseHardwareProfileConfigResult } from './useHardwareProfileConfig';
-import { HardwarePodSpecOptions, CrPathConfig, ResourceType } from './types';
+import type {
+  HardwareProfileResource,
+  HardwarePodSpecOptions,
+  CrPathConfig,
+  ResourceType,
+} from './types';
+import type {
+  HardwareProfileConfig,
+  UseHardwareProfileConfigResult,
+} from './useHardwareProfileConfig';
 
 /**
  * changed order of arguments so that the deprecated accelerator profile is last;

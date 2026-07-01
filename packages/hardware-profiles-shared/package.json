@@ -7,7 +7,9 @@
     ".": "./src/index.ts",
     "./kueueUtils": "./src/kueueUtils.ts",
     "./useHardwareProfileConfig": "./src/useHardwareProfileConfig.ts",
-    "./useAssignHardwareProfile": "./src/useAssignHardwareProfile.ts"
+    "./useAssignHardwareProfile": "./src/useAssignHardwareProfile.ts",
+    "./const": "./src/const.ts",
+    "./utils": "./src/utils.ts"
   },
   "scripts": {
     "lint": "eslint .",

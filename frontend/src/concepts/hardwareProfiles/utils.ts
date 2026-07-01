@@ -1,7 +1,5 @@
-import {
-  HardwareProfileBindingState,
-  type HardwareProfileBindingStateInfo,
-} from '@odh-dashboard/hardware-profiles-shared';
+import { HardwareProfileBindingState } from '@odh-dashboard/hardware-profiles-shared/const';
+import type { HardwareProfileBindingStateInfo } from '@odh-dashboard/hardware-profiles-shared';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import {
@@ -29,7 +27,7 @@ export {
   assemblePodSpecOptions,
   applyHardwareProfileConfig,
   getLocalQueueLabel,
-} from '@odh-dashboard/hardware-profiles-shared';
+} from '@odh-dashboard/hardware-profiles-shared/utils';
 
 export const doesImageStreamSupportHardwareProfile = (
   hardwareProfile: HardwareProfileKind,

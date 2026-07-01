@@ -1,4 +1,4 @@
-import { AlertProps } from '@patternfly/react-core';
+import type { AlertProps } from '@patternfly/react-core';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   HardwareProfileFeatureVisibility,
@@ -8,7 +8,7 @@ import {
   NodeSelector,
 } from '@odh-dashboard/k8s-core';
 import { HardwareProfileBindingState } from './const';
-import { useHardwareProfileConfig } from './useHardwareProfileConfig';
+import type { useHardwareProfileConfig } from './useHardwareProfileConfig';
 
 export type PodSpecOptions = {
   resources?: ContainerResources;
