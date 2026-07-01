@@ -1,7 +1,6 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
 export {
   HardwareProfileBindingState,
   HARDWARE_PROFILE_SELECTION_HELP,

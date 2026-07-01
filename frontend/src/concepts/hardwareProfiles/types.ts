@@ -1,11 +1,9 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
 import type {
   PodSpecOptions,
   useHardwareProfileConfig,
 } from '@odh-dashboard/hardware-profiles-shared';
 import type useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
 
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
 export type {
   PodSpecOptions,
   HardwarePodSpecOptions,

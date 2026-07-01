@@ -1,11 +1,9 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
 import {
   HardwareProfileBindingState,
   type HardwareProfileBindingStateInfo,
 } from '@odh-dashboard/hardware-profiles-shared';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from ui-core for backward compatibility
 import {
   splitValueUnit,
   CPU_UNITS,
@@ -16,7 +14,6 @@ import type { ImageStreamKind } from '#~/k8sTypes';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH } from './const';
 
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles-shared for backward compatibility
 export {
   formatToleration,
   formatNodeSelector,
