@@ -328,6 +328,73 @@ paths:
         deletes it (hard delete) depending on the hard_delete parameter.
 
   # =============================================================================
+  # INTER-BFF: MODEL CATALOG SECURITY ARTIFACTS
+  # =============================================================================
+
+  /eval-hub/api/v1/catalog/sources/{source_id}/security_artifacts/{model_name}:
+    summary: Get security artifacts for a model from the Model Catalog
+    description: >-
+      Proxies the request to the Model-Catalog BFF (model-registry package) to
+      retrieve security artifacts for a specific model. Only the security_artifacts
+      endpoint is permitted by the bffclient allowlist; other model-catalog
+      endpoints are blocked.
+    get:
+      tags:
+        - ModelCatalog
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - name: source_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Catalog source identifier
+          example: 'sample-source'
+        - name: model_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Model name (URL-encoded if it contains slashes, e.g. repo1%2Fgranite-8b)
+          example: 'granite-8b'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/nextPageToken'
+        - $ref: '#/components/parameters/orderBy'
+        - $ref: '#/components/parameters/sortOrder'
+      responses:
+        '200':
+          $ref: '#/components/responses/CatalogSecurityArtifactsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          description: Bad Gateway - Model-Catalog BFF returned an error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Service Unavailable - Model-Catalog BFF is unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      operationId: getCatalogModelSecurityArtifacts
+      summary: Get Model Security Artifacts
+      description: >-
+        Fetches security artifacts for a model from the Model Catalog via
+        inter-BFF communication. The response is proxied from the model-catalog
+        BFF's /model_catalog/sources/{source_id}/security_artifacts/{model_name}
+        endpoint.
+
+  # =============================================================================
   # INFERENCE SERVICES
   # =============================================================================
 
@@ -837,6 +904,80 @@ components:
       properties:
         oci:
           $ref: '#/components/schemas/OciExport'
+
+    # -------------------------------------------------------------------------
+    # Model Catalog security artifact schemas (inter-BFF)
+    # -------------------------------------------------------------------------
+
+    CatalogSecurityArtifact:
+      type: object
+      required:
+        - artifactType
+      properties:
+        artifactType:
+          type: string
+          example: 'metrics-artifact'
+          description: Type of artifact (e.g. metrics-artifact, model-artifact)
+        id:
+          type: string
+          nullable: true
+          example: '259215'
+          description: Unique artifact identifier from the model registry
+        name:
+          type: string
+          nullable: true
+          example: 'security-b1c2d3e4-3001-4000-a000-000000000005'
+          description: Human-readable artifact name
+        externalId:
+          type: string
+          nullable: true
+          example: 'b1c2d3e4-3001-4000-a000-000000000005'
+          description: External identifier for cross-system reference
+        metricsType:
+          type: string
+          nullable: true
+          example: 'security-metrics'
+          description: Sub-type of metrics artifact
+        uri:
+          type: string
+          nullable: true
+          description: URI to the artifact data
+        createTimeSinceEpoch:
+          type: string
+          nullable: true
+          example: '1693526400000'
+          description: Creation timestamp in milliseconds since epoch
+        lastUpdateTimeSinceEpoch:
+          type: string
+          nullable: true
+          description: Last update timestamp in milliseconds since epoch
+        customProperties:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: Custom metadata properties associated with the artifact
+
+    CatalogSecurityArtifactList:
+      type: object
+      required:
+        - items
+        - size
+      properties:
+        nextPageToken:
+          type: string
+          description: Token for fetching the next page of results
+        pageSize:
+          type: integer
+          format: int32
+          description: Maximum items per page
+        size:
+          type: integer
+          format: int32
+          description: Number of items returned in this page
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogSecurityArtifact'
 
     # -------------------------------------------------------------------------
     # InferenceService schemas
@@ -1540,6 +1681,34 @@ components:
                     limit: 5
                     tokenizer: 'google/flan-t5-small'
 
+    CatalogSecurityArtifactsResponse:
+      description: Security artifacts for the requested model
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/CatalogSecurityArtifactList'
+          example:
+            data:
+              nextPageToken: ''
+              pageSize: 10
+              size: 1
+              items:
+                - artifactType: 'metrics-artifact'
+                  metricsType: 'security-metrics'
+                  createTimeSinceEpoch: '1693526400000'
+                  customProperties:
+                    benchmark:
+                      metadataType: 'MetadataStringValue'
+                      string_value: 'intents'
+                    category:
+                      metadataType: 'MetadataStringValue'
+                      string_value: 'security'
+
     CancelEvaluationJobResponse:
       description: Evaluation job cancelled or deleted successfully
       content:
@@ -1663,6 +1832,43 @@ components:
       description: >-
         When false (default), cancels a running evaluation job.
         When true, permanently deletes the evaluation job.
+    pageSize:
+      in: query
+      name: pageSize
+      schema:
+        type: string
+      required: false
+      description: Number of entities in each page
+      examples:
+        pageSize:
+          value: '100'
+    nextPageToken:
+      in: query
+      name: nextPageToken
+      schema:
+        type: string
+      required: false
+      description: Token to use to retrieve next page of results
+    orderBy:
+      in: query
+      name: orderBy
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+      required: false
+      description: Specifies the order of the listed entities
+    sortOrder:
+      in: query
+      name: sortOrder
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+      required: false
+      description: Specifies the sort order for the listed entities
 
   # =============================================================================
   # SECURITY
@@ -1687,3 +1893,5 @@ tags:
     description: Benchmark collection management via EvalHub
   - name: Providers
     description: Evaluation provider and benchmark catalogue management via EvalHub
+  - name: ModelCatalog
+    description: Model Catalog inter-BFF proxy endpoints (security artifacts)

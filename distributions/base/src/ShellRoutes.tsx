@@ -1,8 +1,17 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { PageSection, EmptyState, EmptyStateBody, Spinner, Bullseye } from '@patternfly/react-core';
+import { Spinner, Bullseye } from '@patternfly/react-core';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
-import { isRouteExtension } from '@odh-dashboard/plugin-core/extension-points';
+import {
+  isRouteExtension,
+  isTabRoutePageExtension,
+  isTabRouteTabExtension,
+  type TabRoutePageExtension,
+  type TabRouteTabExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
+import NotFound from './NotFound';
+import TabRoutePage from './TabRoutePage';
+import { ErrorBoundary } from './ErrorBoundary';
 
 const fallback = (
   <Bullseye>
@@ -10,20 +19,18 @@ const fallback = (
   </Bullseye>
 );
 
-const NotFound: React.FC<{ hasRoutes: boolean }> = ({ hasRoutes }) => (
-  <PageSection hasBodyWrapper={false}>
-    <EmptyState headingLevel="h1" titleText={hasRoutes ? 'Page not found' : 'No features loaded'}>
-      <EmptyStateBody>
-        {hasRoutes
-          ? 'The requested page could not be found. Check the URL or navigate using the sidebar.'
-          : 'This is the base shell framework. Add a distribution layer to enable features.'}
-      </EmptyStateBody>
-    </EmptyState>
-  </PageSection>
-);
-
 const ShellRoutes: React.FC = () => {
   const routeExtensions = useExtensions(isRouteExtension);
+  const tabRoutePageExtensions = useExtensions<TabRoutePageExtension>(isTabRoutePageExtension);
+  const tabRouteTabExtensions = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension);
+
+  const usableTabRoutePages = React.useMemo(
+    () =>
+      tabRoutePageExtensions.filter((page) =>
+        tabRouteTabExtensions.some((tab) => tab.properties.pageId === page.properties.id),
+      ),
+    [tabRoutePageExtensions, tabRouteTabExtensions],
+  );
 
   const dynamicRoutes = React.useMemo(
     () =>
@@ -32,22 +39,43 @@ const ShellRoutes: React.FC = () => {
           key={routeExtension.uid}
           path={routeExtension.properties.path}
           element={
-            <LazyCodeRefComponent
-              key={routeExtension.uid}
-              component={routeExtension.properties.component}
-              fallback={fallback}
-            />
+            <ErrorBoundary>
+              <LazyCodeRefComponent
+                key={routeExtension.uid}
+                component={routeExtension.properties.component}
+                fallback={fallback}
+              />
+            </ErrorBoundary>
           }
         />
       )),
     [routeExtensions],
   );
 
+  const tabRoutePages = React.useMemo(
+    () =>
+      usableTabRoutePages.map((pageExtension) => (
+        <Route
+          key={pageExtension.uid}
+          path={pageExtension.properties.path}
+          element={
+            <ErrorBoundary>
+              <TabRoutePage extension={pageExtension} />
+            </ErrorBoundary>
+          }
+        />
+      )),
+    [usableTabRoutePages],
+  );
+
+  const hasRoutes = dynamicRoutes.length > 0 || usableTabRoutePages.length > 0;
+
   return (
     <React.Suspense fallback={fallback}>
       <Routes>
         {dynamicRoutes}
-        <Route path="*" element={<NotFound hasRoutes={dynamicRoutes.length > 0} />} />
+        {tabRoutePages}
+        <Route path="*" element={<NotFound hasRoutes={hasRoutes} />} />
       </Routes>
     </React.Suspense>
   );
