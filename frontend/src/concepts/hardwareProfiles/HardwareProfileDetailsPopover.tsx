@@ -106,12 +106,12 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
                   </StackItem>
                 ))}
             </>
-          ) : (
+          ) : !localQueueName ? (
             <StackItem>
               No matching hardware profile found, using existing settings. Default, min, and max
               values are not available.
             </StackItem>
-          )}
+          ) : null}
           {localQueueName && (
             <StackItem>
               {renderSection(getLocalQueueLabel(queueSource), [localQueueName])}

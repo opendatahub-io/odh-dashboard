@@ -144,6 +144,7 @@ describe('HardwareProfileDetailsPopover', () => {
         const details = screen.getByTestId('hardware-profile-details');
         expect(details).toHaveTextContent(expectedLabel);
         expect(details).toHaveTextContent(queueName);
+        expect(details).not.toHaveTextContent('No matching hardware profile found');
       },
     );
   });

@@ -129,6 +129,7 @@ describe('HardwareProfileTableColumn', () => {
       const details = screen.getByTestId('hardware-profile-details');
       expect(details).toHaveTextContent('Local queue (applied directly)');
       expect(details).toHaveTextContent('gitops-queue');
+      expect(details).not.toHaveTextContent('No matching hardware profile found');
     });
   });
 
