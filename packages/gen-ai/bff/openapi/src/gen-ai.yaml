@@ -3130,29 +3130,6 @@ components:
             annotation (cluster models), metadata.capabilities (custom endpoints),
             or empty array (MaaS). Default when no annotation: ["text-generation"].
           example: ["vision", "text-generation"]
-        sa_token:
-          $ref: '#/components/schemas/SAToken'
-
-    # Service Account Token Schema
-    SAToken:
-      type: object
-      required:
-        - name
-        - token_name
-        - token
-      properties:
-        name:
-          type: string
-          example: 'default'
-          description: Name of the service account
-        token_name:
-          type: string
-          example: 'llama-sa'
-          description: Display name of the service account token (from openshift.io/display-name annotation)
-        token:
-          type: string
-          example: 'aaaaaaaaaaaaaaaaaaaa-mock-token-signature'
-          description: The actual service account token value (JWT)
 
     ModelsData:
       type: array
@@ -5623,10 +5600,6 @@ components:
               display_name: 'GPT-4 Optimized'
               capabilities:
                 - text-generation
-              sa_token:
-                name: ''
-                token_name: ''
-                token: ''
 
     AAVectorStoresResponse:
       description: List of external vector stores as a flat array

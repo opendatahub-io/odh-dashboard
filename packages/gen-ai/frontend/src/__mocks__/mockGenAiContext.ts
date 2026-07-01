@@ -46,11 +46,6 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
         version: 'v1',
         usecase: 'llm',
         status: 'Running',
-        sa_token: {
-          name: '',
-          token_name: '',
-          token: '',
-        },
       }),
       verifyExternalModel: jest.fn().mockResolvedValue({
         success: true,

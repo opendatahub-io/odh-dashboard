@@ -393,11 +393,6 @@ export interface AAModelResponse {
   endpoints: string[];
   status: string; // Kubernetes resource status - can be 'Running', 'Stop', or other values
   display_name: string;
-  sa_token: {
-    name: string;
-    token_name: string;
-    token: string;
-  };
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
   model_type?: 'llm' | 'embedding';
   embedding_dimension?: number;
