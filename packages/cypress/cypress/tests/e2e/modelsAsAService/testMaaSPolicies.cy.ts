@@ -91,9 +91,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
         createCleanProject(projectName);
       })
       .then(() => {
-        cy.log(
-          `Wait for ${projectName}, then grant ${LDAP_ADMIN_USER.USERNAME} namespace admin (oc created the project as cluster admin; deploy wizard needs secrets)`,
-        );
+        cy.log(`Wait for ${projectName}, then grant ${LDAP_ADMIN_USER.USERNAME} namespace admin.`);
         return verifyOpenShiftProjectExists(projectName).then((exists) => {
           if (!exists) {
             throw new Error(
