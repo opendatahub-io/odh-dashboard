@@ -1,6 +1,5 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from hardware-profiles for backward compatibility
-export type { UseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles-shared';
+export type { UseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles-shared/useAssignHardwareProfile';
 export {
   useAssignHardwareProfile,
   useWatchHardwareProfiles,
-} from '@odh-dashboard/hardware-profiles-shared';
+} from '@odh-dashboard/hardware-profiles-shared/useAssignHardwareProfile';

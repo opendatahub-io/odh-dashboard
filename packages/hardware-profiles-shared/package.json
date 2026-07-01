@@ -4,7 +4,10 @@
   "description": "Shared hardware profile types, hooks, components, and utilities consumed by serving-family packages",
   "version": "0.0.0",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./kueueUtils": "./src/kueueUtils.ts",
+    "./useHardwareProfileConfig": "./src/useHardwareProfileConfig.ts",
+    "./useAssignHardwareProfile": "./src/useAssignHardwareProfile.ts"
   },
   "scripts": {
     "lint": "eslint .",
