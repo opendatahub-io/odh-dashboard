@@ -831,6 +831,21 @@ func TestDeletePromptVersionPermissionCheckError(t *testing.T) {
 	mockClient.AssertNotCalled(t, "DeletePromptVersion")
 }
 
+func TestEnforceWritePermissionBypassedWhenAuthDisabled(t *testing.T) {
+	app := &App{
+		config: config.EnvConfig{AuthMethod: config.AuthMethodDisabled},
+		logger: testLogger(),
+		// kubernetesClientFactory intentionally nil — bypass must not call it
+	}
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	rr := httptest.NewRecorder()
+	result := app.enforceWritePermission(context.Background(), rr, req, "my-ns", nil)
+	assert.True(t, result)
+	// ResponseRecorder initializes with implicit 200, but no error response was written
+	// Verify the body is empty to confirm no error handler was called
+	assert.Empty(t, rr.Body.String())
+}
+
 type mockK8sClientFactoryWithError struct{}
 
 func (f *mockK8sClientFactoryWithError) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
