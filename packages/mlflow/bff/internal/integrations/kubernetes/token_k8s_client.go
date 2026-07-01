@@ -147,6 +147,18 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	return username, nil
 }
 
+// CanWritePromptsInNamespace checks if the user can write prompts to the namespace.
+//
+// This uses SelfSubjectAccessReview to check for create permission on
+// mlflow.kubeflow.org/registeredmodels resources. This matches the permissions
+// granted by the mlflow-edit ClusterRole, which allows:
+//   - apiGroups: ["mlflow.kubeflow.org"]
+//     resources: ["registeredmodels", "experiments", "runs"]
+//     verbs: ["create", "update", "patch", "delete"]
+//
+// The prompt registry stores prompts as RegisteredModel resources in MLflow,
+// so checking registeredmodels/create permission is the correct gate for
+// determining if a user can save/delete prompts in a namespace.
 func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
 	ctx context.Context,
 	_ *RequestIdentity,

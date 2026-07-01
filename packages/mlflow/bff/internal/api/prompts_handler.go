@@ -182,6 +182,48 @@ func (app *App) fetchGlobalPrompts(r *http.Request, globalNamespaces []string, n
 	return all, failed
 }
 
+// enforceWritePermission checks if the user has write permissions in the namespace.
+// Returns true if allowed, false if denied or error occurred (response already written).
+func (app *App) enforceWritePermission(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+	workspace string,
+	identity *k8s.RequestIdentity,
+) bool {
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Error("Failed to get Kubernetes client",
+			"workspace", workspace,
+			"error", err)
+		app.serverErrorResponse(w, r, err)
+		return false
+	}
+
+	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, identity, workspace)
+	if err != nil {
+		userID := ""
+		if identity != nil {
+			userID = identity.UserID
+		}
+		app.logger.Error("Failed to check write permissions",
+			"workspace", workspace,
+			"user", userID,
+			"error", err)
+		app.serverErrorResponse(w, r, err)
+		return false
+	}
+
+	if !canWrite {
+		app.forbiddenResponse(w, r, fmt.Errorf(
+			"insufficient permissions to write prompts in namespace %s: requires mlflow-edit role",
+			workspace))
+		return false
+	}
+
+	return true
+}
+
 // MLflowRegisterPromptHandler handles POST /api/v1/prompts
 func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
@@ -219,29 +261,7 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
 	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.logger.Error("Failed to get Kubernetes client",
-			"workspace", workspace,
-			"error", err)
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, identity, workspace)
-	if err != nil {
-		app.logger.Error("Failed to check write permissions",
-			"workspace", workspace,
-			"user", identity.UserID,
-			"error", err)
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	if !canWrite {
-		app.forbiddenResponse(w, r, fmt.Errorf(
-			"insufficient permissions to save prompts in namespace %s: requires mlflow-edit role",
-			workspace))
+	if !app.enforceWritePermission(ctx, w, r, workspace, identity) {
 		return
 	}
 
@@ -361,29 +381,7 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
 	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.logger.Error("Failed to get Kubernetes client",
-			"workspace", workspace,
-			"error", err)
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, identity, workspace)
-	if err != nil {
-		app.logger.Error("Failed to check write permissions",
-			"workspace", workspace,
-			"user", identity.UserID,
-			"error", err)
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	if !canWrite {
-		app.forbiddenResponse(w, r, fmt.Errorf(
-			"insufficient permissions to delete prompts in namespace %s: requires mlflow-edit role",
-			workspace))
+	if !app.enforceWritePermission(ctx, w, r, workspace, identity) {
 		return
 	}
 
@@ -418,29 +416,7 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
 	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.logger.Error("Failed to get Kubernetes client",
-			"workspace", workspace,
-			"error", err)
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, identity, workspace)
-	if err != nil {
-		app.logger.Error("Failed to check write permissions",
-			"workspace", workspace,
-			"user", identity.UserID,
-			"error", err)
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	if !canWrite {
-		app.forbiddenResponse(w, r, fmt.Errorf(
-			"insufficient permissions to delete prompt versions in namespace %s: requires mlflow-edit role",
-			workspace))
+	if !app.enforceWritePermission(ctx, w, r, workspace, identity) {
 		return
 	}
 
