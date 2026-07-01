@@ -115,6 +115,9 @@ export enum SupportedArea {
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',
 
+  /* GPUaaS */
+  GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
+
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',
 

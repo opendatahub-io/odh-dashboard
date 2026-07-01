@@ -1,0 +1,10 @@
+approvers:
+  - dpanshug
+  - claudialphonse78
+
+reviewers:
+  - dpanshug
+  - claudialphonse78
+
+labels:
+  - area/gpuaas
