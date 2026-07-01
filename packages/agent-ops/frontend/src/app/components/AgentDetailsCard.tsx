@@ -29,7 +29,9 @@ const getSafeExternalUrl = (value?: string): string | undefined => {
   }
   try {
     const parsed = new URL(trimmed);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : undefined;
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+      ? parsed.toString()
+      : undefined;
   } catch {
     return undefined;
   }
