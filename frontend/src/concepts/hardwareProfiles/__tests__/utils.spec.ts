@@ -17,7 +17,9 @@ import {
   applyHardwareProfileConfig,
   formatIdentifierDetails,
   formatResource,
+  getLocalQueueLabel,
 } from '#~/concepts/hardwareProfiles/utils';
+import { QueueSource } from '#~/concepts/hardwareProfiles/const';
 import { UseHardwareProfileConfigResult } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts';
 
@@ -745,5 +747,15 @@ describe('applyHardwareProfileConfig', () => {
     expect((result as any).metadata?.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
       'custom-path-test',
     );
+  });
+});
+
+describe('getLocalQueueLabel', () => {
+  it.each([
+    [undefined, 'Local queue'],
+    [QueueSource.DIRECT, 'Local queue (applied directly)'],
+    [QueueSource.HARDWARE_PROFILE, 'Local queue (via hardware profile)'],
+  ])('returns correct label for queueSource %s', (source, expected) => {
+    expect(getLocalQueueLabel(source)).toBe(expected);
   });
 });

@@ -11,7 +11,10 @@ import {
 } from '../../../utils/oc_commands/featureStoreResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { getAllFeatureStoreCounts } from '../../../utils/api/featureStoreRest';
+import {
+  getAllFeatureStoreCounts,
+  getMetricsResourceCounts,
+} from '../../../utils/api/featureStoreRest';
 import { featureMetricsOverview } from '../../../pages/featureStore/featureMetrics';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 
@@ -24,6 +27,12 @@ describe('Feature Store Page Validation', () => {
   let dataSourceCount: number;
   let featureViewCount: number;
   let featureServiceCount: number;
+  let metricsFeatureCount: number;
+  let metricsEntityCount: number;
+  let metricsDatasetCount: number;
+  let metricsDataSourceCount: number;
+  let metricsFeatureViewCount: number;
+  let metricsFeatureServiceCount: number;
   let skipTest = false;
   const uuid = generateTestUUID();
 
@@ -65,18 +74,29 @@ describe('Feature Store Page Validation', () => {
         .then(() => {
           // Create route and fetch counts for the Feast instance
           return createRouteAndGetUrl(projectName, testData.feastInstanceName).then((routeUrl) => {
-            return getAllFeatureStoreCounts(routeUrl, testData.feastCreditScoringProject).then(
-              (feastInstanceCounts) => {
-                // Assign all counts from the returned object
-                featureCount = feastInstanceCounts.featureCount;
-                entityCount = feastInstanceCounts.entityCount;
-                datasetCount = feastInstanceCounts.datasetCount;
-                dataSourceCount = feastInstanceCounts.dataSourceCount;
-                featureViewCount = feastInstanceCounts.featureViewCount;
-                featureServiceCount = feastInstanceCounts.featureServiceCount;
+            return getMetricsResourceCounts(routeUrl, testData.feastCreditScoringProject).then(
+              (metricsCounts) => {
+                metricsFeatureCount = metricsCounts.featureCount;
+                metricsEntityCount = metricsCounts.entityCount;
+                metricsDatasetCount = metricsCounts.datasetCount;
+                metricsDataSourceCount = metricsCounts.dataSourceCount;
+                metricsFeatureViewCount = metricsCounts.featureViewCount;
+                metricsFeatureServiceCount = metricsCounts.featureServiceCount;
 
-                cy.log('Counts assigned successfully:', feastInstanceCounts);
-                return cy.wrap(feastInstanceCounts);
+                return getAllFeatureStoreCounts(routeUrl, testData.feastCreditScoringProject).then(
+                  (listCounts) => {
+                    featureCount = listCounts.featureCount;
+                    entityCount = listCounts.entityCount;
+                    datasetCount = listCounts.datasetCount;
+                    dataSourceCount = listCounts.dataSourceCount;
+                    featureViewCount = listCounts.featureViewCount;
+                    featureServiceCount = listCounts.featureServiceCount;
+
+                    cy.log(`Metrics counts: ${JSON.stringify(metricsCounts)}`);
+                    cy.log(`List counts: ${JSON.stringify(listCounts)}`);
+                    return cy.wrap({ metricsCounts, listCounts });
+                  },
+                );
               },
             );
           });
@@ -108,11 +128,14 @@ describe('Feature Store Page Validation', () => {
       featureStoreGlobal.navigateToOverview();
       featureStoreGlobal.selectProject(testData.feastCreditScoringProject);
       cy.step(`Verify Metrics contents count is displayed correctly`);
-      featureMetricsOverview.findEntitiesCard().should('contain.text', entityCount);
-      featureMetricsOverview.findDataSourcesCard().should('contain.text', dataSourceCount);
-      featureMetricsOverview.findSavedDatasetsCard().should('contain.text', datasetCount);
-      featureMetricsOverview.findFeaturesCard().should('contain.text', featureCount);
-      featureMetricsOverview.findFeatureServicesCard().should('contain.text', featureServiceCount);
+      featureMetricsOverview.findEntitiesCard().should('contain.text', metricsEntityCount);
+      featureMetricsOverview.findDataSourcesCard().should('contain.text', metricsDataSourceCount);
+      featureMetricsOverview.findSavedDatasetsCard().should('contain.text', metricsDatasetCount);
+      featureMetricsOverview.findFeaturesCard().should('contain.text', metricsFeatureCount);
+      featureMetricsOverview.findFeatureViewsCard().should('contain.text', metricsFeatureViewCount);
+      featureMetricsOverview
+        .findFeatureServicesCard()
+        .should('contain.text', metricsFeatureServiceCount);
 
       cy.step(`Navigate to the Feature Store Entities page`);
       featureStoreGlobal.navigateToEntities();
