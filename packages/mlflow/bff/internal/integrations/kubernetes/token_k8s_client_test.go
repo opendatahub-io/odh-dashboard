@@ -51,7 +51,7 @@ func TestCanWritePromptsInNamespace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeClient := fake.NewSimpleClientset()
 
-			fakeClient.Fake.PrependReactor(
+			fakeClient.PrependReactor(
 				"create",
 				"selfsubjectaccessreviews",
 				func(action testingk8s.Action) (handled bool, ret runtime.Object, err error) {
