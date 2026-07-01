@@ -1,0 +1,34 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/gpuaas",
+  "description": "GPU-as-a-Service infrastructure monitoring plugin for cluster capacity and accelerator utilization.",
+  "version": "0.0.0",
+  "e2eCiTags": ["@GpuaasCI"],
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test-unit": "jest --silent",
+    "type-check": "tsc --noEmit"
+  },
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router-dom": "^7"
+  }
+}

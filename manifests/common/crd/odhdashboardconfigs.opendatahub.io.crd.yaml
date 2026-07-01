@@ -195,6 +195,9 @@ spec:
                     llmGatewayField:
                       type: boolean
                       description: 'When true, shows the LLM gateway configuration field on LLMd serving forms.'
+                    gpuaas:
+                      type: boolean
+                      description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'
