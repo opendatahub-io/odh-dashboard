@@ -21,18 +21,24 @@ import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal'
 import DeletePipelineRunsModal from '#~/concepts/pipelines/content/DeletePipelineRunsModal';
 import PipelineDetailsTitle from '#~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
 import usePipelineVersionById from '#~/concepts/pipelines/apiHooks/usePipelineVersionById';
-import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
+import {
+  usePipelineTaskTopology,
+  ROOT_LAYER,
+  PipelineTopologyLayer,
+} from '#~/concepts/pipelines/topology';
 import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 import PipelineRecurringRunReferenceName from '#~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
 import useExecutionsForPipelineRun from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import { useGetEventsByExecutionIds } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { PipelineTopology } from '#~/concepts/topology';
-import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { FetchState } from '#~/utilities/useFetchState';
+import { PipelineRunKF, PipelineSpecVariable, TaskKF } from '#~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '#~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
 import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
 import { isPipelineRunRegistered } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
+import { findParallelForDagExecution } from '#~/concepts/pipelines/topology/parseUtils';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
@@ -51,6 +57,7 @@ const PipelineRunDetails: React.FC<
   const [deleting, setDeleting] = React.useState(false);
   const [archiving, setArchiving] = React.useState(false);
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
+  const [layers, setLayers] = React.useState<PipelineTopologyLayer[]>([ROOT_LAYER]);
 
   const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(run);
   const [artifacts] = usePipelineRunArtifacts(run);
@@ -63,6 +70,7 @@ const PipelineRunDetails: React.FC<
     executions,
     events,
     artifacts,
+    layers,
   );
   const isInvalidPipelineVersion = isArgoWorkflow(version?.pipeline_spec);
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
@@ -74,6 +82,96 @@ const PipelineRunDetails: React.FC<
     }
     return selectedIds ? nodes.find((n) => n.id === selectedIds[0]) : undefined;
   }, [isInvalidPipelineVersion, selectedIds, nodes]);
+
+  const currentLayer = layers[layers.length - 1];
+  const drawerExecutions = React.useMemo(() => {
+    if (currentLayer.type === 'iteration' && currentLayer.parentDagId != null) {
+      return executions.filter((e) => {
+        const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+        return parentId === currentLayer.parentDagId;
+      });
+    }
+    return executions;
+  }, [executions, currentLayer]);
+
+  const handleLayerChange = React.useCallback((newLayers: PipelineTopologyLayer[]) => {
+    setLayers(newLayers);
+    setSelectedIds(undefined);
+  }, []);
+
+  const handleOpenSubDag = React.useCallback(() => {
+    if (!selectedNode?.data?.pipelineTask) {
+      return;
+    }
+    const task = selectedNode.data.pipelineTask;
+    const nodeId = selectedNode.id;
+
+    const iterationMatch = nodeId.match(/^iteration-(.+)-(\d+)$/);
+    if (iterationMatch) {
+      const componentRef = iterationMatch[1];
+      const iterationIndex = parseInt(iterationMatch[2], 10);
+      const { parentDagId } = layers[layers.length - 1];
+
+      const iterExecution =
+        parentDagId != null
+          ? executions.find((e) => {
+              const props = e.getCustomPropertiesMap();
+              return (
+                props.get('parent_dag_id')?.getIntValue() === parentDagId &&
+                props.get('iteration_index')?.getIntValue() === iterationIndex
+              );
+            })
+          : undefined;
+
+      setLayers((prev) => [
+        ...prev,
+        {
+          label: task.name,
+          type: 'iteration',
+          componentRef,
+          iterationIndex,
+          parentDagId: iterExecution?.getId(),
+        },
+      ]);
+      setSelectedIds(undefined);
+      return;
+    }
+
+    if (!pipelineSpec) {
+      return;
+    }
+
+    const taskEntry = findTaskEntryById(pipelineSpec, nodeId);
+    if (!taskEntry) {
+      return;
+    }
+
+    const componentRef = taskEntry.componentRef.name;
+
+    if (task.iterationCount != null && task.iterationCount > 0) {
+      const dagExecution = findParallelForDagExecution(task.name, nodeId, executions);
+      setLayers((prev) => [
+        ...prev,
+        {
+          label: task.name,
+          type: 'parallelForIterations',
+          componentRef,
+          iterationCount: task.iterationCount,
+          parentDagId: dagExecution?.getId(),
+        },
+      ]);
+    } else {
+      setLayers((prev) => [
+        ...prev,
+        {
+          label: task.name,
+          type: 'subDag',
+          componentRef,
+        },
+      ]);
+    }
+    setSelectedIds(undefined);
+  }, [selectedNode, pipelineSpec, executions, layers]);
 
   const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec || !!versionError);
   const error = runError;
@@ -105,7 +203,8 @@ const PipelineRunDetails: React.FC<
       task={selectedNode.data.pipelineTask}
       upstreamTaskName={selectedNode.runAfterTasks?.[0]}
       onClose={() => setSelectedIds(undefined)}
-      executions={executions}
+      executions={drawerExecutions}
+      onOpenSubDag={selectedNode.data.pipelineTask.isSubDag ? handleOpenSubDag : undefined}
     />
   ) : null;
 
@@ -168,6 +267,8 @@ const PipelineRunDetails: React.FC<
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
                 sidePanel={panelContent}
+                layers={layers}
+                onLayerChange={handleLayerChange}
               />
             }
             artifacts={artifacts}
@@ -194,6 +295,34 @@ const PipelineRunDetails: React.FC<
       ) : null}
     </>
   );
+};
+
+/**
+ * Walk the pipeline_spec to locate a task entry by its task ID.
+ * Checks root.dag.tasks first, then recursively checks all sub-DAG components.
+ */
+const findTaskEntryById = (
+  specVariable: PipelineSpecVariable,
+  taskId: string,
+): TaskKF | undefined => {
+  const spec = specVariable.pipeline_spec ?? specVariable;
+  if (!('root' in spec)) {
+    return undefined;
+  }
+
+  const rootTasks = spec.root.dag.tasks;
+  if (taskId in rootTasks) {
+    return rootTasks[taskId];
+  }
+
+  for (const component of Object.values(spec.components)) {
+    const subTasks = component?.dag?.tasks;
+    if (subTasks && taskId in subTasks) {
+      return subTasks[taskId];
+    }
+  }
+
+  return undefined;
 };
 
 export default PipelineRunDetails;

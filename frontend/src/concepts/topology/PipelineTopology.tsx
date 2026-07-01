@@ -4,11 +4,13 @@ import {
   SELECTION_EVENT,
   VisualizationProvider,
 } from '@patternfly/react-topology';
-import { Bullseye, Spinner } from '@patternfly/react-core';
+import { Bullseye, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import PipelineVersionError from '#~/concepts/pipelines/content/pipelinesDetails/PipelineVersionError';
+import { PipelineTopologyLayer } from '#~/concepts/pipelines/topology/pipelineTaskTypes';
 import PipelineTopologyEmpty from './PipelineTopologyEmpty';
 import useTopologyController from './useTopologyController';
 import PipelineVisualizationSurface from './PipelineVisualizationSurface';
+import PipelineTopologyBreadcrumbs from './PipelineTopologyBreadcrumbs';
 
 type PipelineTopologyProps = {
   selectedIds?: string[];
@@ -16,6 +18,8 @@ type PipelineTopologyProps = {
   nodes: PipelineNodeModel[];
   versionError?: Error;
   sidePanel?: React.ReactElement | null;
+  layers?: PipelineTopologyLayer[];
+  onLayerChange?: (layers: PipelineTopologyLayer[]) => void;
 };
 
 const PipelineTopology: React.FC<PipelineTopologyProps> = ({
@@ -24,6 +28,8 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
   onSelectionChange,
   versionError,
   sidePanel,
+  layers,
+  onLayerChange,
 }) => {
   const controller = useTopologyController('g1');
 
@@ -64,10 +70,25 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
     );
   }
 
+  const hasBreadcrumbs = layers && layers.length > 1 && onLayerChange;
+
   return (
-    <VisualizationProvider controller={controller}>
-      <PipelineVisualizationSurface nodes={nodes} selectedIds={selectedIds} sidePanel={sidePanel} />
-    </VisualizationProvider>
+    <Stack className="pf-v6-u-h-100">
+      {hasBreadcrumbs ? (
+        <StackItem className="pf-v6-u-px-md pf-v6-u-py-sm">
+          <PipelineTopologyBreadcrumbs layers={layers} onLayerChange={onLayerChange} />
+        </StackItem>
+      ) : null}
+      <StackItem isFilled>
+        <VisualizationProvider controller={controller}>
+          <PipelineVisualizationSurface
+            nodes={nodes}
+            selectedIds={selectedIds}
+            sidePanel={sidePanel}
+          />
+        </VisualizationProvider>
+      </StackItem>
+    </Stack>
   );
 };
 
