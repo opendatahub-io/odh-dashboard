@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import useModelMetricsEnabled from '@odh-dashboard/internal/pages/modelServing/useModelMetricsEnabled';
+import { useModelMetricsEnabled } from '@odh-dashboard/model-serving-shared';
 import ProjectsRoutes from '@odh-dashboard/internal/concepts/projects/ProjectsRoutes';
 import GlobalModelsPage from './components/global/GlobalModelsPage';
 import { useMetricsRoutes } from './components/metrics/GlobalMetricsRoutes';

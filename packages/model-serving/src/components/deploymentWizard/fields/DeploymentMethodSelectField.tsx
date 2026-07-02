@@ -2,7 +2,7 @@ import React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { z } from 'zod';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving-shared';
 import type { RecursivePartial } from '@odh-dashboard/ui-core/utilities';
 import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
 import {

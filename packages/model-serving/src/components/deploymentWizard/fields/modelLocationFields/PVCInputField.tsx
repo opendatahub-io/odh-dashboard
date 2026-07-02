@@ -12,7 +12,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import { getModelServingPVCAnnotations } from '@odh-dashboard/internal/pages/modelServing/utils';
+import { getModelServingPVCAnnotations } from '@odh-dashboard/model-serving-shared';
 import { getModelPathFromUri } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 
 type PVCInputFieldProps = {

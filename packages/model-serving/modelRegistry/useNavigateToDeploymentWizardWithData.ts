@@ -1,5 +1,5 @@
 import React from 'react';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving-shared';
 import type { DeployPrefillData } from '@odh-dashboard/model-registry/model-catalog-deploy';
 import {
   translateDisplayNameForK8s,

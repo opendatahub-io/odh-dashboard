@@ -1,5 +1,4 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import type { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving-shared';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
 /**

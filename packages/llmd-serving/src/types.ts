@@ -2,9 +2,9 @@ import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugi
 import {
   MetadataAnnotation,
   type DisplayNameAnnotations,
+  type ImagePullSecret,
   type PodContainer,
 } from '@odh-dashboard/k8s-core';
-import type { ImagePullSecret } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import { LLMD_SERVING_ID } from '../extensions/extensions';
 

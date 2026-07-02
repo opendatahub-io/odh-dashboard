@@ -72,6 +72,7 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/model-serving-shared": "*",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*"
   },

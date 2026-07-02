@@ -10,7 +10,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { ProjectKind, SecretKind, TemplateKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving-shared';
 import {
   DEFAULT_LIST_FETCH_STATE,
   DEFAULT_LIST_WATCH_RESULT,

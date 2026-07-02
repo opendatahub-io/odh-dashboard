@@ -1,6 +1,11 @@
 import { K8sStatus, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving-shared';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
@@ -12,11 +17,6 @@ import {
 import { TemplateModel } from '#~/api/models';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
-import {
-  ServingRuntimeAPIProtocol,
-  ServingRuntimePlatform,
-  ServingRuntimeModelType,
-} from '#~/types';
 import { genRandomChars } from '#~/utilities/string';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
