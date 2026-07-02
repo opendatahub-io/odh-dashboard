@@ -3,6 +3,7 @@ import * as React from 'react';
 import type { AgentOpsProjectRef, ProjectsBridgeData } from '~/odh/extension-points';
 import { isProjectsBridgeProviderExtension } from '~/odh/extension-points';
 import { ProjectsBridgeContext } from '~/odh/context/ProjectsBridgeContext';
+import { logAgentOpsProjectsLoadError } from '~/app/hooks/useAgentOpsProjectNamespaces';
 
 type ProjectsBridgeProviderWrapperProps = {
   children: React.ReactNode;
@@ -40,7 +41,7 @@ const BridgeDataSync: React.FC<BridgeDataSyncProps> = ({ data, onBridgeData }) =
 };
 
 type BridgeProviderErrorBoundaryProps = {
-  onError: () => void;
+  onError: (error: Error) => void;
   children: React.ReactNode;
 };
 
@@ -58,8 +59,8 @@ class BridgeProviderErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
-  componentDidCatch(): void {
-    this.props.onError();
+  componentDidCatch(error: Error): void {
+    this.props.onError(error);
   }
 
   render(): React.ReactNode {
@@ -75,17 +76,24 @@ const ProjectsBridgeProviderWrapper: React.FC<ProjectsBridgeProviderWrapperProps
 }) => {
   const [extensions, loaded] = useResolvedExtensions(isProjectsBridgeProviderExtension);
   const [bridgeData, setBridgeData] = React.useState<ProjectsBridgeData | null>(null);
+  const [bridgeLoadError, setBridgeLoadError] = React.useState<Error | null>(null);
 
   const handleBridgeData = React.useCallback((data: ProjectsBridgeData | null) => {
     setBridgeData(data);
+    if (data) {
+      setBridgeLoadError(null);
+    }
   }, []);
 
   const contextValue = React.useMemo(() => {
     if (bridgeData) {
       return { ...bridgeData, bridgeActive: true as const };
     }
+    if (bridgeLoadError) {
+      return { ...INACTIVE_BRIDGE_CONTEXT, loadError: bridgeLoadError };
+    }
     return INACTIVE_BRIDGE_CONTEXT;
-  }, [bridgeData]);
+  }, [bridgeData, bridgeLoadError]);
 
   const DataProvider =
     loaded && extensions.length > 0 ? extensions[0].properties.component.default : null;
@@ -93,11 +101,14 @@ const ProjectsBridgeProviderWrapper: React.FC<ProjectsBridgeProviderWrapperProps
   React.useEffect(() => {
     if (!DataProvider) {
       setBridgeData(null);
+      setBridgeLoadError(null);
     }
   }, [DataProvider]);
 
-  const handleBridgeError = React.useCallback(() => {
+  const handleBridgeError = React.useCallback((error: Error) => {
+    logAgentOpsProjectsLoadError(error);
     setBridgeData(null);
+    setBridgeLoadError(error);
   }, []);
 
   return (

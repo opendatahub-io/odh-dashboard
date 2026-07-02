@@ -427,7 +427,7 @@ describe('AgentDeployWizard', () => {
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
     await user.click(screen.getByTestId('deploy-agent-add-env-var'));
 
-    expect(screen.getByTestId('deploy-agent-wizard-next')).toHaveAttribute('aria-disabled', 'true');
+    expectWizardNextDisabled();
   });
 
   it('renders secret reference fields when env var type is Secret reference', async () => {

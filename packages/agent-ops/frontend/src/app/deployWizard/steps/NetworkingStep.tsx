@@ -23,7 +23,7 @@ import {
   servicePortProtocolOptions,
 } from '~/app/deployWizard/wizardOptions';
 import { MAX_SERVICE_PORT, MIN_SERVICE_PORT } from '~/app/deployWizard/constants';
-import { getServicePortNameError, isValidPortNumber } from '~/app/deployWizard/utils';
+import { getServicePortNameError, getServicePortNumberError } from '~/app/deployWizard/utils';
 import './NetworkingStep.scss';
 
 type ServicePortFieldColumnProps = {
@@ -62,8 +62,10 @@ const NetworkingStep: React.FC = () => {
           {formData.servicePorts.map((port, index) => {
             const portNameError = getServicePortNameError(port.name);
             const portNameInvalid = portNameError.length > 0;
-            const servicePortInvalid = !isValidPortNumber(port.port);
-            const targetPortInvalid = !isValidPortNumber(port.targetPort);
+            const servicePortError = getServicePortNumberError(port.port);
+            const servicePortInvalid = servicePortError.length > 0;
+            const targetPortError = getServicePortNumberError(port.targetPort);
+            const targetPortInvalid = targetPortError.length > 0;
 
             return (
               <Flex
@@ -92,7 +94,7 @@ const NetworkingStep: React.FC = () => {
                       aria-describedby={
                         portNameError ? `deploy-agent-port-name-error-${index}` : undefined
                       }
-                      onChange={(_event, value) => updateServicePort(index, { name: value })}
+                      onChange={(_event, value) => updateServicePort(port.rowId, { name: value })}
                     />
                     {portNameError ? (
                       <HelperText>
@@ -123,9 +125,25 @@ const NetworkingStep: React.FC = () => {
                       }
                       inputProps={{
                         'aria-labelledby': `deploy-agent-service-port-label-${index}`,
+                        'aria-invalid': servicePortInvalid,
+                        'aria-describedby': servicePortInvalid
+                          ? `deploy-agent-service-port-error-${index}`
+                          : undefined,
                       }}
-                      onChange={(value) => updateServicePort(index, { port: value ?? port.port })}
+                      onChange={(value) =>
+                        updateServicePort(port.rowId, { port: value ?? port.port })
+                      }
                     />
+                    {servicePortInvalid ? (
+                      <HelperText>
+                        <HelperTextItem
+                          id={`deploy-agent-service-port-error-${index}`}
+                          variant="error"
+                        >
+                          {servicePortError}
+                        </HelperTextItem>
+                      </HelperText>
+                    ) : null}
                   </ServicePortFieldColumn>
                 </FlexItem>
                 <FlexItem>
@@ -145,11 +163,25 @@ const NetworkingStep: React.FC = () => {
                       }
                       inputProps={{
                         'aria-labelledby': `deploy-agent-target-port-label-${index}`,
+                        'aria-invalid': targetPortInvalid,
+                        'aria-describedby': targetPortInvalid
+                          ? `deploy-agent-target-port-error-${index}`
+                          : undefined,
                       }}
                       onChange={(value) =>
-                        updateServicePort(index, { targetPort: value ?? port.targetPort })
+                        updateServicePort(port.rowId, { targetPort: value ?? port.targetPort })
                       }
                     />
+                    {targetPortInvalid ? (
+                      <HelperText>
+                        <HelperTextItem
+                          id={`deploy-agent-target-port-error-${index}`}
+                          variant="error"
+                        >
+                          {targetPortError}
+                        </HelperTextItem>
+                      </HelperText>
+                    ) : null}
                   </ServicePortFieldColumn>
                 </FlexItem>
                 <FlexItem className="agent-ops-service-port-row__protocol">
@@ -163,7 +195,7 @@ const NetworkingStep: React.FC = () => {
                         placeholder="Select a protocol"
                         value={port.protocol}
                         options={servicePortProtocolOptions}
-                        onChange={(key) => updateServicePort(index, { protocol: key })}
+                        onChange={(key) => updateServicePort(port.rowId, { protocol: key })}
                         isFullWidth
                         maxMenuHeight={DEPLOY_WIZARD_SELECT_MAX_MENU_HEIGHT}
                         popperProps={{ appendTo: 'inline' }}
@@ -182,7 +214,7 @@ const NetworkingStep: React.FC = () => {
                   <Button
                     aria-label={`Remove service port ${index + 1}`}
                     data-testid={`deploy-agent-remove-service-port-${index}`}
-                    onClick={() => removeServicePort(index)}
+                    onClick={() => removeServicePort(port.rowId)}
                     variant="plain"
                     icon={<TrashIcon className="agent-ops-service-port-row__remove-icon" />}
                     isDisabled={formData.servicePorts.length === 1}

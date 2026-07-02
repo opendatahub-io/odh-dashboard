@@ -118,7 +118,7 @@ describe('deployWizard utils', () => {
     it('formats service ports', () => {
       expect(
         formatServicePortsSummary([
-          { name: 'http', port: 8080, targetPort: 8000, protocol: 'TCP' },
+          { rowId: 'test-row', name: 'http', port: 8080, targetPort: 8000, protocol: 'TCP' },
         ]),
       ).toBe('http (TCP): 8080 → 8000');
     });

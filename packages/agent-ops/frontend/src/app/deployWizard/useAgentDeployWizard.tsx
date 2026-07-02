@@ -17,12 +17,12 @@ type AgentDeployWizardContextValue = {
     field: K,
     value: DeployAgentWizardFormData[K],
   ) => void;
-  updateServicePort: (index: number, partial: Partial<DeployAgentServicePort>) => void;
+  updateServicePort: (rowId: string, partial: Partial<DeployAgentServicePort>) => void;
   addServicePort: () => void;
-  removeServicePort: (index: number) => void;
-  updateEnvVar: (index: number, partial: Partial<DeployAgentEnvVar>) => void;
+  removeServicePort: (rowId: string) => void;
+  updateEnvVar: (rowId: string, partial: Partial<DeployAgentEnvVar>) => void;
   addEnvVar: () => void;
-  removeEnvVar: (index: number) => void;
+  removeEnvVar: (rowId: string) => void;
   isDirty: boolean;
   setAgentNameManuallyEdited: (value: boolean) => void;
 };
@@ -134,11 +134,11 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
   );
 
   const updateServicePort = React.useCallback(
-    (index: number, partial: Partial<DeployAgentServicePort>) => {
+    (rowId: string, partial: Partial<DeployAgentServicePort>) => {
       setFormData((current) => ({
         ...current,
-        servicePorts: current.servicePorts.map((port, i) =>
-          i === index ? { ...port, ...partial } : port,
+        servicePorts: current.servicePorts.map((port) =>
+          port.rowId === rowId ? { ...port, ...partial } : port,
         ),
       }));
     },
@@ -152,18 +152,18 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
     }));
   }, []);
 
-  const removeServicePort = React.useCallback((index: number) => {
+  const removeServicePort = React.useCallback((rowId: string) => {
     setFormData((current) => ({
       ...current,
-      servicePorts: current.servicePorts.filter((_, i) => i !== index),
+      servicePorts: current.servicePorts.filter((port) => port.rowId !== rowId),
     }));
   }, []);
 
-  const updateEnvVar = React.useCallback((index: number, partial: Partial<DeployAgentEnvVar>) => {
+  const updateEnvVar = React.useCallback((rowId: string, partial: Partial<DeployAgentEnvVar>) => {
     setFormData((current) => ({
       ...current,
-      envVars: current.envVars.map((envVar, i) =>
-        i === index ? { ...envVar, ...partial } : envVar,
+      envVars: current.envVars.map((envVar) =>
+        envVar.rowId === rowId ? { ...envVar, ...partial } : envVar,
       ),
     }));
   }, []);
@@ -175,10 +175,10 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
     }));
   }, []);
 
-  const removeEnvVar = React.useCallback((index: number) => {
+  const removeEnvVar = React.useCallback((rowId: string) => {
     setFormData((current) => ({
       ...current,
-      envVars: current.envVars.filter((_, i) => i !== index),
+      envVars: current.envVars.filter((envVar) => envVar.rowId !== rowId),
     }));
   }, []);
 

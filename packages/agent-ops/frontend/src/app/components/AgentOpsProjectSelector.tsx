@@ -1,9 +1,11 @@
 import * as React from 'react';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
-import { HelperText, HelperTextItem } from '@patternfly/react-core';
+import { FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import {
+  AGENT_OPS_PROJECTS_LOAD_ERROR_MESSAGE,
   getEffectiveProjectNamespaces,
+  logAgentOpsProjectsLoadError,
   useAgentOpsProjectNamespaces,
 } from '~/app/hooks/useAgentOpsProjectNamespaces';
 
@@ -26,6 +28,12 @@ const AgentOpsProjectSelector: React.FC<AgentOpsProjectSelectorProps> = ({
     [projectNamespaces, isLoading, namespace],
   );
 
+  React.useEffect(() => {
+    if (loadError) {
+      logAgentOpsProjectsLoadError(loadError);
+    }
+  }, [loadError]);
+
   return (
     <div data-testid="agent-ops-project-selector">
       <ProjectSelector
@@ -39,11 +47,11 @@ const AgentOpsProjectSelector: React.FC<AgentOpsProjectSelectorProps> = ({
         namespacesOverride={effectiveNamespaces}
       />
       {loadError ? (
-        <HelperText>
-          <HelperTextItem variant="error">
-            {loadError.message || 'Failed to load projects'}
-          </HelperTextItem>
-        </HelperText>
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem variant="error">{AGENT_OPS_PROJECTS_LOAD_ERROR_MESSAGE}</HelperTextItem>
+          </HelperText>
+        </FormHelperText>
       ) : null}
     </div>
   );

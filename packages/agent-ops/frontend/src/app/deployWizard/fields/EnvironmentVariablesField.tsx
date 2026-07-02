@@ -24,8 +24,8 @@ import './EnvironmentVariablesField.scss';
 type EnvironmentVariablesFieldProps = {
   envVars: DeployAgentEnvVar[];
   onAdd: () => void;
-  onRemove: (index: number) => void;
-  onUpdate: (index: number, partial: Partial<DeployAgentEnvVar>) => void;
+  onRemove: (rowId: string) => void;
+  onUpdate: (rowId: string, partial: Partial<DeployAgentEnvVar>) => void;
 };
 
 const parseEnvVarType = (key: string): DeployAgentEnvVarType | undefined => {
@@ -49,6 +49,87 @@ const clearEnvVarValueFields = (): Partial<DeployAgentEnvVar> => ({
 
 const isEnvVarReferenceFieldInvalid = (envVar: DeployAgentEnvVar, fieldValue: string): boolean =>
   envVar.name.trim().length > 0 && fieldValue.trim().length === 0;
+
+type ReferenceFieldPairProps = {
+  index: number;
+  idPrefix: string;
+  nameLabel: string;
+  keyLabel: string;
+  nameValue: string;
+  keyValue: string;
+  nameInvalid: boolean;
+  keyInvalid: boolean;
+  onNameChange: (value: string) => void;
+  onKeyChange: (value: string) => void;
+};
+
+const ReferenceFieldPair: React.FC<ReferenceFieldPairProps> = ({
+  index,
+  idPrefix,
+  nameLabel,
+  keyLabel,
+  nameValue,
+  keyValue,
+  nameInvalid,
+  keyInvalid,
+  onNameChange,
+  onKeyChange,
+}) => (
+  <>
+    <div className="agent-ops-env-var-row__field">
+      <TextInput
+        className="pf-v6-u-w-100"
+        id={`deploy-agent-env-var-${idPrefix}-name-${index}`}
+        data-testid={`deploy-agent-env-var-${idPrefix}-name-${index}`}
+        aria-label={`${nameLabel} ${index + 1}`}
+        placeholder={nameLabel}
+        value={nameValue}
+        validated={nameInvalid ? ValidatedOptions.error : ValidatedOptions.default}
+        aria-invalid={nameInvalid}
+        aria-describedby={
+          nameInvalid ? `deploy-agent-env-var-${idPrefix}-name-error-${index}` : undefined
+        }
+        onChange={(_event, value) => onNameChange(value)}
+      />
+      {nameInvalid ? (
+        <HelperText>
+          <HelperTextItem
+            id={`deploy-agent-env-var-${idPrefix}-name-error-${index}`}
+            variant="error"
+          >
+            {ENV_VAR_FIELD_REQUIRED_ERROR}
+          </HelperTextItem>
+        </HelperText>
+      ) : null}
+    </div>
+    <div className="agent-ops-env-var-row__field">
+      <TextInput
+        className="pf-v6-u-w-100"
+        id={`deploy-agent-env-var-${idPrefix}-key-${index}`}
+        data-testid={`deploy-agent-env-var-${idPrefix}-key-${index}`}
+        aria-label={`${keyLabel} ${index + 1}`}
+        placeholder={keyLabel}
+        value={keyValue}
+        validated={keyInvalid ? ValidatedOptions.error : ValidatedOptions.default}
+        aria-invalid={keyInvalid}
+        aria-describedby={
+          keyInvalid ? `deploy-agent-env-var-${idPrefix}-key-error-${index}` : undefined
+        }
+        onChange={(_event, value) => onKeyChange(value)}
+      />
+      {keyInvalid ? (
+        <HelperText>
+          <HelperTextItem
+            id={`deploy-agent-env-var-${idPrefix}-key-error-${index}`}
+            variant="error"
+          >
+            {ENV_VAR_FIELD_REQUIRED_ERROR}
+          </HelperTextItem>
+        </HelperText>
+      ) : null}
+    </div>
+  </>
+);
 
 const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
   envVars,
@@ -87,7 +168,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                   aria-describedby={
                     nameError ? `deploy-agent-env-var-name-error-${index}` : undefined
                   }
-                  onChange={(_event, value) => onUpdate(index, { name: value })}
+                  onChange={(_event, value) => onUpdate(envVar.rowId, { name: value })}
                 />
                 {nameError ? (
                   <HelperText>
@@ -107,7 +188,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                     onChange={(key) => {
                       const type = parseEnvVarType(key);
                       if (type) {
-                        onUpdate(index, { type, ...clearEnvVarValueFields() });
+                        onUpdate(envVar.rowId, { type, ...clearEnvVarValueFields() });
                       }
                     }}
                     isFullWidth
@@ -136,7 +217,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                     aria-describedby={
                       directValueInvalid ? `deploy-agent-env-var-value-error-${index}` : undefined
                     }
-                    onChange={(_event, value) => onUpdate(index, { value })}
+                    onChange={(_event, value) => onUpdate(envVar.rowId, { value })}
                   />
                   {directValueInvalid ? (
                     <HelperText>
@@ -151,138 +232,38 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                 </div>
               ) : null}
               {envVar.type === DeployAgentEnvVarType.SECRET ? (
-                <>
-                  <div className="agent-ops-env-var-row__field">
-                    <TextInput
-                      className="pf-v6-u-w-100"
-                      id={`deploy-agent-env-var-secret-name-${index}`}
-                      data-testid={`deploy-agent-env-var-secret-name-${index}`}
-                      aria-label={`Secret name ${index + 1}`}
-                      placeholder="Secret name"
-                      value={envVar.secretName}
-                      validated={
-                        secretNameInvalid ? ValidatedOptions.error : ValidatedOptions.default
-                      }
-                      aria-invalid={secretNameInvalid}
-                      aria-describedby={
-                        secretNameInvalid
-                          ? `deploy-agent-env-var-secret-name-error-${index}`
-                          : undefined
-                      }
-                      onChange={(_event, value) => onUpdate(index, { secretName: value })}
-                    />
-                    {secretNameInvalid ? (
-                      <HelperText>
-                        <HelperTextItem
-                          id={`deploy-agent-env-var-secret-name-error-${index}`}
-                          variant="error"
-                        >
-                          {ENV_VAR_FIELD_REQUIRED_ERROR}
-                        </HelperTextItem>
-                      </HelperText>
-                    ) : null}
-                  </div>
-                  <div className="agent-ops-env-var-row__field">
-                    <TextInput
-                      className="pf-v6-u-w-100"
-                      id={`deploy-agent-env-var-secret-key-${index}`}
-                      data-testid={`deploy-agent-env-var-secret-key-${index}`}
-                      aria-label={`Secret key ${index + 1}`}
-                      placeholder="Secret key"
-                      value={envVar.secretKey}
-                      validated={
-                        secretKeyInvalid ? ValidatedOptions.error : ValidatedOptions.default
-                      }
-                      aria-invalid={secretKeyInvalid}
-                      aria-describedby={
-                        secretKeyInvalid
-                          ? `deploy-agent-env-var-secret-key-error-${index}`
-                          : undefined
-                      }
-                      onChange={(_event, value) => onUpdate(index, { secretKey: value })}
-                    />
-                    {secretKeyInvalid ? (
-                      <HelperText>
-                        <HelperTextItem
-                          id={`deploy-agent-env-var-secret-key-error-${index}`}
-                          variant="error"
-                        >
-                          {ENV_VAR_FIELD_REQUIRED_ERROR}
-                        </HelperTextItem>
-                      </HelperText>
-                    ) : null}
-                  </div>
-                </>
+                <ReferenceFieldPair
+                  index={index}
+                  idPrefix="secret"
+                  nameLabel="Secret name"
+                  keyLabel="Secret key"
+                  nameValue={envVar.secretName}
+                  keyValue={envVar.secretKey}
+                  nameInvalid={secretNameInvalid}
+                  keyInvalid={secretKeyInvalid}
+                  onNameChange={(value) => onUpdate(envVar.rowId, { secretName: value })}
+                  onKeyChange={(value) => onUpdate(envVar.rowId, { secretKey: value })}
+                />
               ) : null}
               {envVar.type === DeployAgentEnvVarType.CONFIG_MAP ? (
-                <>
-                  <div className="agent-ops-env-var-row__field">
-                    <TextInput
-                      className="pf-v6-u-w-100"
-                      id={`deploy-agent-env-var-configmap-name-${index}`}
-                      data-testid={`deploy-agent-env-var-configmap-name-${index}`}
-                      aria-label={`ConfigMap name ${index + 1}`}
-                      placeholder="ConfigMap name"
-                      value={envVar.configMapName}
-                      validated={
-                        configMapNameInvalid ? ValidatedOptions.error : ValidatedOptions.default
-                      }
-                      aria-invalid={configMapNameInvalid}
-                      aria-describedby={
-                        configMapNameInvalid
-                          ? `deploy-agent-env-var-configmap-name-error-${index}`
-                          : undefined
-                      }
-                      onChange={(_event, value) => onUpdate(index, { configMapName: value })}
-                    />
-                    {configMapNameInvalid ? (
-                      <HelperText>
-                        <HelperTextItem
-                          id={`deploy-agent-env-var-configmap-name-error-${index}`}
-                          variant="error"
-                        >
-                          {ENV_VAR_FIELD_REQUIRED_ERROR}
-                        </HelperTextItem>
-                      </HelperText>
-                    ) : null}
-                  </div>
-                  <div className="agent-ops-env-var-row__field">
-                    <TextInput
-                      className="pf-v6-u-w-100"
-                      id={`deploy-agent-env-var-configmap-key-${index}`}
-                      data-testid={`deploy-agent-env-var-configmap-key-${index}`}
-                      aria-label={`ConfigMap key ${index + 1}`}
-                      placeholder="ConfigMap key"
-                      value={envVar.configMapKey}
-                      validated={
-                        configMapKeyInvalid ? ValidatedOptions.error : ValidatedOptions.default
-                      }
-                      aria-invalid={configMapKeyInvalid}
-                      aria-describedby={
-                        configMapKeyInvalid
-                          ? `deploy-agent-env-var-configmap-key-error-${index}`
-                          : undefined
-                      }
-                      onChange={(_event, value) => onUpdate(index, { configMapKey: value })}
-                    />
-                    {configMapKeyInvalid ? (
-                      <HelperText>
-                        <HelperTextItem
-                          id={`deploy-agent-env-var-configmap-key-error-${index}`}
-                          variant="error"
-                        >
-                          {ENV_VAR_FIELD_REQUIRED_ERROR}
-                        </HelperTextItem>
-                      </HelperText>
-                    ) : null}
-                  </div>
-                </>
+                <ReferenceFieldPair
+                  index={index}
+                  idPrefix="configmap"
+                  nameLabel="ConfigMap name"
+                  keyLabel="ConfigMap key"
+                  nameValue={envVar.configMapName}
+                  keyValue={envVar.configMapKey}
+                  nameInvalid={configMapNameInvalid}
+                  keyInvalid={configMapKeyInvalid}
+                  onNameChange={(value) => onUpdate(envVar.rowId, { configMapName: value })}
+                  onKeyChange={(value) => onUpdate(envVar.rowId, { configMapKey: value })}
+                />
               ) : null}
               <div className="agent-ops-env-var-row__remove">
                 <Button
                   aria-label={`Remove environment variable ${index + 1}`}
                   data-testid={`deploy-agent-remove-env-var-${index}`}
-                  onClick={() => onRemove(index)}
+                  onClick={() => onRemove(envVar.rowId)}
                   variant="plain"
                   icon={<MinusCircleIcon />}
                 />

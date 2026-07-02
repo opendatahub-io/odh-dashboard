@@ -14,7 +14,9 @@ import { useAgentDeployWizardContext } from '~/app/deployWizard/useAgentDeployWi
 import DeployWizardSelectField from '~/app/deployWizard/DeployWizardSelectField';
 import { isValidAgentName, isValidPullSecretName } from '~/app/deployWizard/utils';
 import {
+  AGENT_OPS_PROJECTS_LOAD_ERROR_MESSAGE,
   getEffectiveProjectNamespaces,
+  logAgentOpsProjectsLoadError,
   useAgentOpsProjectNamespaces,
 } from '~/app/hooks/useAgentOpsProjectNamespaces';
 
@@ -33,6 +35,12 @@ const ImageSelectionStep: React.FC = () => {
 
   const pullSecretInvalid =
     formData.pullSecret.trim().length > 0 && !isValidPullSecretName(formData.pullSecret);
+
+  React.useEffect(() => {
+    if (loadError) {
+      logAgentOpsProjectsLoadError(loadError);
+    }
+  }, [loadError]);
 
   return (
     <Form>
@@ -56,7 +64,7 @@ const ImageSelectionStep: React.FC = () => {
             <HelperText>
               {loadError ? (
                 <HelperTextItem variant="error">
-                  {loadError.message || 'Failed to load projects'}
+                  {AGENT_OPS_PROJECTS_LOAD_ERROR_MESSAGE}
                 </HelperTextItem>
               ) : (
                 <HelperTextItem>The namespace where the agent will be deployed</HelperTextItem>

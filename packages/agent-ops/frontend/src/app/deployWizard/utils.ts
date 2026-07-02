@@ -127,6 +127,11 @@ export const isValidPortNumber = (port: number | undefined): boolean =>
   port >= MIN_SERVICE_PORT &&
   port <= MAX_SERVICE_PORT;
 
+export const getServicePortNumberError = (port: number | undefined): string =>
+  isValidPortNumber(port)
+    ? ''
+    : `Port must be between ${MIN_SERVICE_PORT} and ${MAX_SERVICE_PORT}.`;
+
 export const isValidServicePortName = (name: string): boolean => isValidAgentName(name);
 
 export const getServicePortNameError = (name: string): string => {
