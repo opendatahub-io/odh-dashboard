@@ -131,6 +131,7 @@ export const useHardwareProfileConfig = (
   } = useHardwareProfilesByFeatureVisibility(visibleIn, resourceNamespace);
 
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
+  const initializedRef = useRef(false);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
     useExistingSettings: false,
@@ -147,52 +148,56 @@ export const useHardwareProfileConfig = (
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
 
   React.useEffect(() => {
-    if (!profilesLoaded || formData.selectedProfile) {
+    if (!profilesLoaded || initializedRef.current) {
       return;
     }
-    // only set form state if not already set
-    if (!formData.resources) {
-      let selectedProfile: HardwareProfileKind | undefined;
 
-      // if editing, try to select existing profile
-      if (resources) {
-        // try to match to existing profile
-        if (existingHardwareProfileName && hardwareProfileNamespace) {
-          if (hardwareProfileNamespace === dashboardNamespace) {
-            selectedProfile = dashboardProfiles.find(
-              (profile) => profile.metadata.name === existingHardwareProfileName,
-            );
-          } else {
-            selectedProfile = projectScopedProfiles.find(
-              (profile) =>
-                profile.metadata.name === existingHardwareProfileName &&
-                profile.metadata.namespace === hardwareProfileNamespace,
-            );
-          }
+    if (existingHardwareProfileName && !resources) {
+      return;
+    }
+
+    initializedRef.current = true;
+
+    let selectedProfile: HardwareProfileKind | undefined;
+
+    // if editing, try to select existing profile
+    if (resources) {
+      // try to match to existing profile
+      if (existingHardwareProfileName && hardwareProfileNamespace) {
+        if (hardwareProfileNamespace === dashboardNamespace) {
+          selectedProfile = dashboardProfiles.find(
+            (profile) => profile.metadata.name === existingHardwareProfileName,
+          );
         } else {
-          selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
+          selectedProfile = projectScopedProfiles.find(
+            (profile) =>
+              profile.metadata.name === existingHardwareProfileName &&
+              profile.metadata.namespace === hardwareProfileNamespace,
+          );
         }
-
-        initialHardwareProfile.current = selectedProfile;
-        const mergedResources = selectedProfile
-          ? mergeProfileIdentifiersIntoResources(resources, selectedProfile)
-          : resources;
-        setFormData('resources', mergedResources);
-        setFormData('useExistingSettings', !selectedProfile);
-        setFormData('selectedProfile', selectedProfile);
+      } else {
+        selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
       }
 
-      // if not editing existing profile, select the first enabled profile
-      else {
-        const filteredProfiles = filterProfilesByKueue(
-          profiles.filter(isHardwareProfileEnabled),
-          kueueFilteringState,
-        );
-        selectedProfile = filteredProfiles.length > 0 ? filteredProfiles[0] : undefined;
-        if (selectedProfile) {
-          setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
-          setFormData('selectedProfile', selectedProfile);
-        }
+      initialHardwareProfile.current = selectedProfile;
+      const mergedResources = selectedProfile
+        ? mergeProfileIdentifiersIntoResources(resources, selectedProfile)
+        : resources;
+      setFormData('resources', mergedResources);
+      setFormData('useExistingSettings', !selectedProfile);
+      setFormData('selectedProfile', selectedProfile);
+    }
+
+    // if not editing existing profile, select the first enabled profile
+    else {
+      const filteredProfiles = filterProfilesByKueue(
+        profiles.filter(isHardwareProfileEnabled),
+        kueueFilteringState,
+      );
+      selectedProfile = filteredProfiles.length > 0 ? filteredProfiles[0] : undefined;
+      if (selectedProfile) {
+        setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
+        setFormData('selectedProfile', selectedProfile);
       }
     }
   }, [
@@ -203,8 +208,6 @@ export const useHardwareProfileConfig = (
     resources,
     tolerations,
     nodeSelector,
-    formData.resources,
-    formData.selectedProfile,
     hardwareProfileNamespace,
     projectScopedProfiles,
     dashboardProfiles,
