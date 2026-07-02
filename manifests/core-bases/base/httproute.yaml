@@ -8,6 +8,19 @@ spec:
       kind: Gateway
       namespace: openshift-ingress
   rules:
+    # Extended timeout for AI inference via the Gen AI Playground responses API.
+    # OpenShift HAProxy defaults to 30s idle timeout, but non-streamed inference
+    # (CPU models, vector stores, guardrails, tool calls) routinely exceeds this.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/_mf/genAi/gen-ai/api/v1/lsd/responses"
+      timeouts:
+        request: 5m
+        backendRequest: 5m
+      backendRefs:
+        - name: odh-dashboard
+          port: 8443
     - matches:
         - path:
             type: PathPrefix

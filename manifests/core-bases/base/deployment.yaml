@@ -93,6 +93,7 @@ spec:
             - --auth-header-user-field-name=X-Auth-Request-User
             - --auth-header-groups-field-name=X-Auth-Request-Groups
             - --proxy-endpoints-port=8444
+            - --upstream-timeout=5m
             - --v=10
           image: $(kube-rbac-proxy)
           ports:
