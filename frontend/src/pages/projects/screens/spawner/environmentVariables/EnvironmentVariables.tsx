@@ -1,16 +1,18 @@
 import * as React from 'react';
-import { Button, Divider } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import { Button, Divider, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { InfoCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { EnvVariable } from '#~/pages/projects/types';
 import EnvTypeSelectField from './EnvTypeSelectField';
 
 type EnvironmentVariablesProps = {
   envVariables: EnvVariable[];
   setEnvVariables: (envVars: EnvVariable[]) => void;
+  namespace: string;
 };
 const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
   envVariables,
   setEnvVariables,
+  namespace,
 }) => (
   <>
     {envVariables.map((envVariable, i) => (
@@ -27,10 +29,19 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
           onRemove={() =>
             setEnvVariables(envVariables.filter((v, filterIndex) => filterIndex !== i))
           }
+          namespace={namespace}
         />
         {i !== envVariables.length - 1 && <Divider />}
       </React.Fragment>
     ))}
+    {envVariables.length > 0 ? (
+      <HelperText data-testid="env-rotation-hint">
+        <HelperTextItem variant="indeterminate" icon={<InfoCircleIcon />}>
+          Environment variables are set at workbench start. If secret values change (e.g.,
+          credential rotation), restart the workbench to pick up new values.
+        </HelperTextItem>
+      </HelperText>
+    ) : null}
     <Button
       variant="link"
       data-testid="add-variable-button"

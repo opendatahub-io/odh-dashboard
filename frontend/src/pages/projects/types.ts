@@ -85,6 +85,16 @@ export type StorageData = {
   modelPath?: string;
 };
 
+export type SecretKeyRefEnvVar = {
+  name: string;
+  valueFrom: {
+    secretKeyRef: {
+      name: string;
+      key: string;
+    };
+  };
+};
+
 export type StartNotebookData = {
   projectName: string;
   notebookData: K8sNameDescriptionFieldData;
@@ -92,6 +102,7 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
+  secretKeyRefEnvVars?: SecretKeyRefEnvVar[];
   dashboardNamespace?: string;
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
@@ -111,10 +122,21 @@ export type EnvVariableData = {
   data: EnvVariableDataEntry[];
 };
 
+export type ExistingSecretRef = {
+  secretName: string;
+  selectedKeys: string[];
+};
+
+export type ExistingSecretMetadata = {
+  name: string;
+  keys: string[];
+};
+
 export type EnvVariable = {
   type: EnvironmentVariableType | null;
   existingName?: string;
   values?: EnvVariableData;
+  existingSecretRefs?: ExistingSecretRef[];
 };
 
 export enum EnvironmentVariableType {
@@ -125,6 +147,7 @@ export enum SecretCategory {
   GENERIC = 'secret key-value',
   AWS = 'aws',
   UPLOAD = 'secret upload',
+  EXISTING = 'existing secret',
 }
 export enum ConfigMapCategory {
   GENERIC = 'configmap key-value',
