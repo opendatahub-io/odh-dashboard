@@ -3,7 +3,9 @@ import * as z from 'zod';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import type {
+  BackTestingData,
   ConfusionMatrixData,
+  CurvesData,
   FeatureImportanceData,
   PipelineRun,
   S3ListObjectsResponse,
@@ -316,6 +318,115 @@ const FeatureImportanceDataSchema = z.object({
  */
 const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.number()));
 
+/* eslint-disable camelcase */
+const ThresholdValueSchema = z.union([z.string(), z.number()]);
+
+const RocCurveEntrySchema = z
+  .object({
+    auc: z.number(),
+    fpr: z.array(z.number()),
+    tpr: z.array(z.number()),
+    thresholds: z.array(ThresholdValueSchema),
+  })
+  .refine((v) => v.fpr.length === v.tpr.length && v.fpr.length === v.thresholds.length, {
+    message: 'fpr, tpr, and thresholds arrays must have equal length',
+  });
+
+const MulticlassRocCurveEntrySchema = RocCurveEntrySchema.and(z.object({ support: z.number() }));
+
+const PrecisionRecallEntrySchema = z
+  .object({
+    average_precision: z.number(),
+    precision: z.array(z.number()),
+    recall: z.array(z.number()),
+    thresholds: z.array(ThresholdValueSchema),
+    baseline_precision: z.number(),
+  })
+  .refine((v) => v.precision.length === v.recall.length, {
+    message: 'precision and recall arrays must have equal length',
+  });
+
+const BinaryCurvesDataSchema = z.object({
+  task_type: z.literal('binary'),
+  positive_class: z.union([z.string(), z.number()]),
+  num_samples: z.number(),
+  num_positive: z.number(),
+  num_negative: z.number(),
+  roc_curve: RocCurveEntrySchema,
+  precision_recall_curve: PrecisionRecallEntrySchema,
+});
+
+const MulticlassCurvesDataSchema = z.object({
+  task_type: z.literal('multiclass'),
+  strategy: z.string(),
+  num_classes: z.number(),
+  classes: z.array(z.union([z.string(), z.number()])),
+  num_samples: z.number(),
+  roc_curve: z.object({
+    auc_macro: z.number(),
+    auc_weighted: z.number(),
+    per_class: z.record(z.string(), MulticlassRocCurveEntrySchema),
+  }),
+  precision_recall_curve: z.object({
+    average_precision_macro: z.number(),
+    average_precision_weighted: z.number(),
+    per_class: z.record(z.string(), PrecisionRecallEntrySchema),
+  }),
+});
+
+const CurvesDataSchema = z.discriminatedUnion('task_type', [
+  BinaryCurvesDataSchema,
+  MulticlassCurvesDataSchema,
+]);
+
+const BackTestingForecastPointSchema = z.object({
+  timestamp: z.string(),
+  actual: z.number(),
+  predicted: z.number(),
+  lower_bound: z.number(),
+  upper_bound: z.number(),
+  lower_quantile: z.number().optional(),
+  upper_quantile: z.number().optional(),
+});
+
+const BackTestingWindowEntrySchema = z.object({
+  window_id: z.number().int(),
+  metrics: z.record(z.string(), z.number()),
+  forecast_data: z.array(BackTestingForecastPointSchema),
+});
+
+const BackTestingSeriesPerformerSchema = z.object({
+  item_id: z.string(),
+  avg_metrics: z.record(z.string(), z.number()),
+  windows: z.array(BackTestingWindowEntrySchema),
+});
+
+const BackTestingDataSchema = z.object({
+  schema_version: z.number().int().optional(),
+  model_name: z.string(),
+  prediction_length: z.number().int(),
+  num_val_windows: z.number().int(),
+  eval_metric: z.string(),
+  target: z.string(),
+  id_column: z.string(),
+  timestamp_column: z.string(),
+  per_window_metrics: z.array(
+    z.object({
+      window_id: z.number().int(),
+      cutoff: z.number().int().optional(),
+      test_start: z.string(),
+      test_end: z.string(),
+      metrics: z.record(z.string(), z.number()),
+    }),
+  ),
+  series_analysis: z.object({
+    num_series_evaluated: z.number().int(),
+    best_performer: BackTestingSeriesPerformerSchema,
+    worst_performer: BackTestingSeriesPerformerSchema,
+  }),
+});
+/* eslint-enable camelcase */
+
 /**
  * Fetches and parses JSON content from S3.
  *
@@ -441,9 +552,12 @@ export function useModelEvaluationArtifactsQuery(
   namespace?: string,
   modelDirectory?: string,
   isClassification?: boolean,
+  isTimeseries?: boolean,
 ): {
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
+  curves?: CurvesData;
+  backTesting?: BackTestingData;
   isLoading: boolean;
 } {
   const baseDir = modelDirectory?.endsWith('/') ? modelDirectory : `${modelDirectory}/`;
@@ -460,7 +574,7 @@ export function useModelEvaluationArtifactsQuery(
               schema: FeatureImportanceDataSchema,
             },
           ),
-        enabled: Boolean(namespace && modelDirectory),
+        enabled: Boolean(namespace && modelDirectory && !isTimeseries),
         retry: false,
       },
       {
@@ -473,11 +587,43 @@ export function useModelEvaluationArtifactsQuery(
         enabled: Boolean(namespace && modelDirectory && isClassification),
         retry: false,
       },
+      {
+        queryKey: ['curves', namespace, modelDirectory],
+        queryFn: ({ signal }) =>
+          fetchS3Json<CurvesData>(namespace!, `${baseDir}metrics/curves.json`, {
+            signal,
+            schema: CurvesDataSchema,
+          }),
+        enabled: Boolean(namespace && modelDirectory && isClassification),
+        retry: false,
+      },
+      {
+        queryKey: ['backTesting', namespace, modelDirectory],
+        queryFn: ({ signal }) =>
+          fetchS3Json<BackTestingData>(namespace!, `${baseDir}metrics/back_testing.json`, {
+            signal,
+            schema: BackTestingDataSchema,
+          }),
+        enabled: Boolean(namespace && modelDirectory && isTimeseries),
+        retry: false,
+      },
     ],
-    combine: (results) => ({
-      featureImportance: results[0].data,
-      confusionMatrix: results[1].data,
-      isLoading: results.some((r) => r.isLoading),
+    combine: ([
+      featureImportanceResult,
+      confusionMatrixResult,
+      curvesResult,
+      backTestingResult,
+    ]) => ({
+      featureImportance: featureImportanceResult.data,
+      confusionMatrix: confusionMatrixResult.data,
+      curves: curvesResult.data,
+      backTesting: backTestingResult.data,
+      isLoading: [
+        featureImportanceResult,
+        confusionMatrixResult,
+        curvesResult,
+        backTestingResult,
+      ].some((r) => r.isLoading),
     }),
   });
 }

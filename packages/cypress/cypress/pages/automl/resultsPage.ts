@@ -134,6 +134,45 @@ class AutomlResultsPage {
     return cy.findByTestId('confusion-matrix-gradient');
   }
 
+  // ROC curve (inside model-evaluation tab)
+  findROCCurveSection() {
+    return cy.findByTestId('roc-curve-section');
+  }
+
+  findROCCurveChart() {
+    return cy.findByTestId('roc-curve-chart');
+  }
+
+  findROCCurveNoData() {
+    return cy.findByTestId('roc-curve-no-data');
+  }
+
+  // Precision-Recall tab
+  findPrecisionRecallChart() {
+    return cy.findByTestId('precision-recall-chart');
+  }
+
+  findPrecisionRecallNoData() {
+    return cy.findByTestId('precision-recall-no-data');
+  }
+
+  // Back-testing tab
+  findBacktestingContent() {
+    return cy.findByTestId('back-testing-content');
+  }
+
+  findBacktestingNoData() {
+    return cy.findByTestId('back-testing-no-data');
+  }
+
+  findBacktestWindowChart() {
+    return cy.findByTestId('backtest-window-chart');
+  }
+
+  findForecastChart(title: string) {
+    return cy.findByTestId(`forecast-chart-${title}`);
+  }
+
   // Register model modal
   findRegisterModelModal() {
     return cy.findByTestId('register-model-modal');
@@ -212,6 +251,8 @@ class AutomlResultsPage {
    * | feature-summary    | yes    | yes        | yes        | no         |
    * | model-evaluation   | yes    | yes        | yes        | yes        |
    * | confusion-matrix   | yes    | yes        | no         | no         |
+   * | precision-recall   | yes    | yes        | no         | no         |
+   * | back-testing       | no     | no         | no         | yes        |
    */
   verifyResultsInteraction(taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries') {
     const isClassification = taskType === 'binary' || taskType === 'multiclass';
@@ -249,11 +290,36 @@ class AutomlResultsPage {
     }
 
     if (isClassification) {
+      cy.step('Verify model-evaluation tab renders ROC curve');
+      this.findModelDetailsTab('model-evaluation').click();
+      this.findROCCurveSection().should('exist');
+      this.findROCCurveChart().should('be.visible');
+
       this.findModelDetailsTab('confusion-matrix').should('exist');
       this.findModelDetailsTab('confusion-matrix').click();
       this.findConfusionMatrixTable().should('be.visible');
+
+      cy.step('Verify precision-recall tab renders chart');
+      this.findModelDetailsTab('precision-recall').should('exist');
+      this.findModelDetailsTab('precision-recall').click();
+      this.findPrecisionRecallChart().should('be.visible');
+
+      this.findModelDetailsTab('back-testing').should('not.exist');
     } else {
       this.findModelDetailsTab('confusion-matrix').should('not.exist');
+      this.findModelDetailsTab('precision-recall').should('not.exist');
+
+      if (isTimeseries) {
+        cy.step('Verify back-testing tab renders content');
+        this.findModelDetailsTab('back-testing').should('exist');
+        this.findModelDetailsTab('back-testing').click();
+        this.findBacktestingContent().should('be.visible');
+        this.findBacktestWindowChart().should('be.visible');
+        this.findForecastChart('best-fit').should('be.visible');
+        this.findForecastChart('worst-fit').should('be.visible');
+      } else {
+        this.findModelDetailsTab('back-testing').should('not.exist');
+      }
     }
 
     cy.step('Close model details modal');
