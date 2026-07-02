@@ -2,7 +2,7 @@ import * as React from 'react';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { Wizard, WizardStep } from '@patternfly/react-core';
 import ScrollLock from '~/app/components/ScrollLock';
-import { deployAgentWizardSteps } from './constants';
+import { deployAgentWizardSteps } from './deployAgentWizardSteps';
 import DeployAgentWizardFooter from './DeployAgentWizardFooter';
 import ExitDeployAgentModal from './ExitDeployAgentModal';
 import { deployAgentWizardStepSubtitles } from './wizardOptions';

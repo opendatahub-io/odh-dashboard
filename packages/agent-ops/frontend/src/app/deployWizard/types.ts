@@ -7,6 +7,31 @@ export enum DeployAgentWizardStepTitle {
   SUMMARY = 'Summary',
 }
 
+export type DeployAgentServicePort = {
+  rowId: string;
+  name: string;
+  port: number;
+  targetPort: number;
+  protocol: string;
+};
+
+export enum DeployAgentEnvVarType {
+  DIRECT = 'direct',
+  SECRET = 'secret',
+  CONFIG_MAP = 'configmap',
+}
+
+export type DeployAgentEnvVar = {
+  rowId: string;
+  name: string;
+  type: DeployAgentEnvVarType;
+  value: string;
+  secretName: string;
+  secretKey: string;
+  configMapName: string;
+  configMapKey: string;
+};
+
 export type DeployAgentWizardFormData = {
   project: string;
   containerImage: string;
@@ -15,10 +40,20 @@ export type DeployAgentWizardFormData = {
   pullSecret: string;
   fullImageReference: string;
   protocol: string;
+  framework: string;
   workloadType: string;
   enablePersistentStorage: boolean;
   persistentVolumeSize: string;
-  // TODO(RHOAIENG-62719): framework — mockup summary shows LangGraph; no BFF source yet
+  servicePorts: DeployAgentServicePort[];
+  createRoute: boolean;
+  authBridgeEnabled: boolean;
+  useEnvoySidecar: boolean;
+  authBridgeOutboundPortsExclude: string;
+  authBridgeInboundPortsExclude: string;
+  authBridgeDefaultOutboundPolicy: string;
+  enableSpireIdentity: boolean;
+  mtlsMode: string;
+  envVars: DeployAgentEnvVar[];
 };
 
 export type DeployAgentWizardLocationState = {

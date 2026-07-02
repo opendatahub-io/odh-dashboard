@@ -5,6 +5,17 @@ import {
   isDeployAgentWizardStepValid,
 } from '~/app/deployWizard/deployAgentWizardValidation';
 import { createInitialFormData } from '~/app/deployWizard/useAgentDeployWizard';
+import { DeployAgentEnvVarType } from '~/app/deployWizard/types';
+import { DEFAULT_ENV_VAR } from '~/app/deployWizard/wizardOptions';
+
+const completeFormData = () => ({
+  ...createInitialFormData('team1'),
+  containerImage: 'quay.io/myorg/my-agent',
+  imageTag: 'latest',
+  agentName: 'my-agent',
+  protocol: 'a2a',
+  workloadType: 'deployment',
+});
 
 describe('deployAgentWizardValidation', () => {
   describe('createDeployAgentWizardValidationState', () => {
@@ -42,17 +53,62 @@ describe('deployAgentWizardValidation', () => {
 
       expect(state.isConfigurationValid).toBe(false);
     });
+
+    it('validates default service ports on step 3', () => {
+      const state = createDeployAgentWizardValidationState(completeFormData());
+
+      expect(state.isNetworkingValid).toBe(true);
+    });
+
+    it('fails networking validation when service ports are empty', () => {
+      const state = createDeployAgentWizardValidationState({
+        ...completeFormData(),
+        servicePorts: [],
+      });
+
+      expect(state.isNetworkingValid).toBe(false);
+      expect(state.isDeployFormValid).toBe(false);
+    });
+
+    it('fails networking validation for invalid port range', () => {
+      const state = createDeployAgentWizardValidationState({
+        ...completeFormData(),
+        servicePorts: [
+          { rowId: 'port-1', name: 'http', port: 0, targetPort: 8000, protocol: 'TCP' },
+        ],
+      });
+
+      expect(state.isNetworkingValid).toBe(false);
+    });
+
+    it('fails environment variable validation for invalid names', () => {
+      const state = createDeployAgentWizardValidationState({
+        ...completeFormData(),
+        envVars: [
+          {
+            ...DEFAULT_ENV_VAR,
+            rowId: 'env-1',
+            name: '1INVALID',
+            type: DeployAgentEnvVarType.DIRECT,
+            value: 'value',
+          },
+        ],
+      });
+
+      expect(state.isEnvironmentVariablesValid).toBe(false);
+      expect(state.isDeployFormValid).toBe(false);
+    });
+
+    it('allows empty environment variables', () => {
+      const state = createDeployAgentWizardValidationState(completeFormData());
+
+      expect(state.isEnvironmentVariablesValid).toBe(true);
+      expect(state.isDeployFormValid).toBe(true);
+    });
   });
 
   describe('step registry helpers', () => {
-    const completeState = createDeployAgentWizardValidationState({
-      ...createInitialFormData('team1'),
-      containerImage: 'quay.io/myorg/my-agent',
-      imageTag: 'latest',
-      agentName: 'my-agent',
-      protocol: 'a2a',
-      workloadType: 'deployment',
-    });
+    const completeState = createDeployAgentWizardValidationState(completeFormData());
 
     const imageOnlyState = createDeployAgentWizardValidationState({
       ...createInitialFormData('team1'),
@@ -95,6 +151,9 @@ describe('deployAgentWizardValidation', () => {
         false,
       );
       expect(isDeployAgentWizardStepValid(2, completeState, deployAgentWizardStepRegistry)).toBe(
+        true,
+      );
+      expect(isDeployAgentWizardStepValid(3, completeState, deployAgentWizardStepRegistry)).toBe(
         true,
       );
       expect(isDeployAgentWizardStepValid(6, completeState, deployAgentWizardStepRegistry)).toBe(

@@ -4,6 +4,13 @@ import type { Namespace } from '@odh-dashboard/internal/types';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { useProjectsBridge } from '~/odh/context/ProjectsBridgeContext';
 
+export const AGENT_OPS_PROJECTS_LOAD_ERROR_MESSAGE = 'Failed to load projects';
+
+export const logAgentOpsProjectsLoadError = (error: Error): void => {
+  // eslint-disable-next-line no-console -- log federated bridge errors for diagnostics only
+  console.error('Failed to load agent-ops projects', error);
+};
+
 const toNamespace = (name: string, displayName?: string): Namespace => ({
   name,
   displayName: displayName || name,
@@ -27,6 +34,7 @@ export const getEffectiveProjectNamespaces = (
 export const useAgentOpsProjectNamespaces = (): {
   projectNamespaces: Namespace[];
   isLoading: boolean;
+  loadError: Error | null;
   onProjectSelection: (projectName: string) => void;
 } => {
   const {
@@ -62,6 +70,7 @@ export const useAgentOpsProjectNamespaces = (): {
       : filteredNamespaces;
 
   const isLoading = bridgeActive ? bridgeIsLoading : !namespacesLoaded && !namespacesLoadError;
+  const loadError = bridgeActive ? (bridgeLoadError ?? null) : (namespacesLoadError ?? null);
 
   const onProjectSelection = React.useCallback(
     (projectName: string) => {
@@ -81,6 +90,7 @@ export const useAgentOpsProjectNamespaces = (): {
   return {
     projectNamespaces,
     isLoading,
+    loadError,
     onProjectSelection,
   };
 };

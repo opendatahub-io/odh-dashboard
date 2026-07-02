@@ -79,6 +79,7 @@ jest.mock('~/app/hooks/useAgentOpsProjectNamespaces', () => ({
   useAgentOpsProjectNamespaces: () => ({
     projectNamespaces: [{ name: 'team1', displayName: 'team1' }],
     isLoading: false,
+    loadError: null,
     onProjectSelection: jest.fn(),
   }),
 }));
@@ -132,6 +133,29 @@ jest.mock('@odh-dashboard/internal/components/SimpleSelect', () => ({
         </option>
       ))}
     </select>
+  ),
+}));
+
+jest.mock('@odh-dashboard/internal/components/NumberInputWrapper', () => ({
+  __esModule: true,
+  default: ({
+    'data-testid': dataTestId,
+    value,
+    onChange,
+  }: {
+    'data-testid'?: string;
+    value?: number;
+    onChange?: (value: number | undefined) => void;
+  }) => (
+    <input
+      data-testid={dataTestId}
+      type="number"
+      value={value ?? ''}
+      onChange={(event) => {
+        const nextValue = event.target.value === '' ? undefined : Number(event.target.value);
+        onChange?.(nextValue);
+      }}
+    />
   ),
 }));
 
@@ -328,11 +352,120 @@ describe('AgentDeployWizard', () => {
     await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
 
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    expect(screen.getByTestId('deploy-agent-port-name-0')).toHaveValue('http');
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+
+    expect(screen.getByTestId('deploy-agent-summary-container-image')).toHaveTextContent(
+      'quay.io/myorg/my-agent',
+    );
+    expect(screen.getByTestId('deploy-agent-summary-framework')).toHaveTextContent('');
+
     await user.click(screen.getByTestId('deploy-agent-wizard-submit'));
 
     expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1');
+  });
+
+  it('allows adding and removing service port rows', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+
+    expect(screen.getByTestId('deploy-agent-port-name-0')).toBeInTheDocument();
+    await user.click(screen.getByTestId('deploy-agent-add-service-port'));
+    expect(screen.getByTestId('deploy-agent-port-name-1')).toBeInTheDocument();
+    await user.click(screen.getByTestId('deploy-agent-remove-service-port-1'));
+    expect(screen.queryByTestId('deploy-agent-port-name-1')).not.toBeInTheDocument();
+  });
+
+  it('shows port name required error when an added service port row is empty', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+
+    await user.click(screen.getByTestId('deploy-agent-add-service-port'));
+
+    expect(screen.getByText('Port name is required')).toBeInTheDocument();
+    expectWizardNextDisabled();
+  });
+
+  it('hides envoy-sidecar and advanced settings when AuthBridge is unchecked', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+
+    expect(screen.getByTestId('deploy-agent-use-envoy-sidecar')).toBeInTheDocument();
+    expect(screen.getByTestId('deploy-agent-auth-bridge-advanced')).toBeInTheDocument();
+    await user.click(screen.getByTestId('deploy-agent-auth-bridge-enabled'));
+    expect(screen.queryByTestId('deploy-agent-use-envoy-sidecar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('deploy-agent-auth-bridge-advanced')).not.toBeInTheDocument();
+  });
+
+  it('keeps Next disabled on step 5 when an environment variable row is incomplete', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-add-env-var'));
+
+    expectWizardNextDisabled();
+    expect(screen.getByText('Environment variable name is required')).toBeInTheDocument();
+    expect(screen.getByTestId('deploy-agent-env-var-name-0')).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
+  });
+
+  it('renders secret reference fields when env var type is Secret reference', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-add-env-var'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-env-var-type-0'), 'secret');
+
+    expect(screen.getByTestId('deploy-agent-env-var-secret-name-0')).toBeInTheDocument();
+    expect(screen.getByTestId('deploy-agent-env-var-secret-key-0')).toBeInTheDocument();
+    expect(screen.queryByTestId('deploy-agent-env-var-value-0')).not.toBeInTheDocument();
+  });
+
+  it('allows toggling SPIRE identity on the security step', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+
+    const spireCheckbox = screen.getByTestId('deploy-agent-enable-spire-identity');
+    expect(spireCheckbox).not.toBeChecked();
+    await user.click(spireCheckbox);
+    expect(spireCheckbox).toBeChecked();
   });
 });

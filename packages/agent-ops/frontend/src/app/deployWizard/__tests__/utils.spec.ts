@@ -1,11 +1,25 @@
 import {
   deriveAgentNameFromImage,
   buildFullImageReference,
+  formatAuthBridgeSummary,
+  formatEnvVarsSummary,
+  formatServicePortsSummary,
+  getEnvVarNameError,
+  getServicePortNameError,
   isValidAgentName,
+  isValidEnvVarName,
   isValidK8sStorageQuantity,
+  isValidPortNumber,
   isValidPullSecretName,
+  isValidServicePortName,
   stripContainerImageTag,
+  ENV_VAR_NAME_REQUIRED_ERROR,
+  SERVICE_PORT_NAME_REQUIRED_ERROR,
 } from '~/app/deployWizard/utils';
+import type { DeployAgentWizardFormData } from '~/app/deployWizard/types';
+import { createInitialFormData } from '~/app/deployWizard/useAgentDeployWizard';
+import { DeployAgentEnvVarType } from '~/app/deployWizard/types';
+import { DEFAULT_ENV_VAR } from '~/app/deployWizard/wizardOptions';
 
 describe('deployWizard utils', () => {
   describe('deriveAgentNameFromImage', () => {
@@ -73,6 +87,85 @@ describe('deployWizard utils', () => {
     it('preserves digest-pinned references', () => {
       const digestImage = 'quay.io/myorg/my-agent@sha256:abcdef0123456789';
       expect(stripContainerImageTag(digestImage)).toBe(digestImage);
+    });
+  });
+
+  describe('service port validators', () => {
+    it('validates port numbers', () => {
+      expect(isValidPortNumber(8080)).toBe(true);
+      expect(isValidPortNumber(0)).toBe(false);
+      expect(isValidPortNumber(70000)).toBe(false);
+    });
+
+    it('validates service port names', () => {
+      expect(isValidServicePortName('http')).toBe(true);
+      expect(isValidServicePortName('bad name')).toBe(false);
+    });
+
+    it('returns port name validation errors', () => {
+      expect(getServicePortNameError('')).toBe(SERVICE_PORT_NAME_REQUIRED_ERROR);
+      expect(getServicePortNameError('http')).toBe('');
+      expect(getServicePortNameError('bad name')).toContain('valid DNS label');
+    });
+  });
+
+  describe('environment variable validators', () => {
+    it('validates environment variable names', () => {
+      expect(isValidEnvVarName('LOG_LEVEL')).toBe(true);
+      expect(isValidEnvVarName('1BAD')).toBe(false);
+    });
+
+    it('returns required error for empty environment variable names', () => {
+      expect(getEnvVarNameError('')).toBe(ENV_VAR_NAME_REQUIRED_ERROR);
+      expect(getEnvVarNameError('LOG_LEVEL')).toBe('');
+      expect(getEnvVarNameError('1BAD')).toContain('letter or underscore');
+    });
+  });
+
+  describe('summary formatters', () => {
+    it('formats service ports', () => {
+      expect(
+        formatServicePortsSummary([
+          { rowId: 'test-row', name: 'http', port: 8080, targetPort: 8000, protocol: 'TCP' },
+        ]),
+      ).toBe('http (TCP): 8080 → 8000');
+    });
+
+    it('formats auth bridge summary', () => {
+      const formData: DeployAgentWizardFormData = {
+        ...createInitialFormData('team1'),
+        authBridgeEnabled: true,
+        useEnvoySidecar: true,
+      };
+
+      expect(formatAuthBridgeSummary(formData)).toBe('Enabled (envoy-sidecar)');
+    });
+
+    it('formats environment variables', () => {
+      expect(formatEnvVarsSummary([])).toBe('');
+      expect(
+        formatEnvVarsSummary([
+          {
+            ...DEFAULT_ENV_VAR,
+            rowId: 'env-1',
+            name: 'LOG_LEVEL',
+            type: DeployAgentEnvVarType.DIRECT,
+            value: 'info',
+          },
+        ]),
+      ).toBe('LOG_LEVEL = (direct value)');
+      expect(
+        formatEnvVarsSummary([
+          {
+            ...DEFAULT_ENV_VAR,
+            rowId: 'env-2',
+            name: 'API_KEY',
+            type: DeployAgentEnvVarType.SECRET,
+            secretName: 'my-secret',
+            secretKey: 'api-key',
+          },
+        ]),
+      ).toBe('API_KEY = secret/my-secret:api-key');
     });
   });
 });
