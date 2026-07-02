@@ -421,6 +421,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     }
 
     setSubmitting(true);
+    setConfiguringPlayground(true);
 
     const install = () => {
       const installLSDPromise = api.installLSD({
@@ -481,7 +482,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               ...(isUpdate && { countPreviousModelsSelected: existingModels.length }),
             },
           );
-          setConfiguringPlayground(true);
         })
         .catch((e) => {
           setError(e);

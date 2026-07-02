@@ -77,6 +77,7 @@ func main() {
 	flag.StringVar(&cfg.PgvectorUser, "pgvector-user", getEnvAsString("PGVECTOR_USER", "vectoruser"), "PostgreSQL user for pgvector")
 	flag.StringVar(&cfg.PgvectorPasswordSecretName, "pgvector-password-secret-name", getEnvAsString("PGVECTOR_PASSWORD_SECRET_NAME", ""), "Kubernetes Secret name containing the pgvector password")
 	flag.StringVar(&cfg.PgvectorPasswordSecretKey, "pgvector-password-secret-key", getEnvAsString("PGVECTOR_PASSWORD_SECRET_KEY", pgvector.DefaultPasswordKey), "Key in the pgvector password Secret")
+	flag.StringVar(&cfg.PgvectorImage, "pgvector-image", getEnvAsString(pgvector.RelatedImageEnvVar, ""), "Container image for auto-provisioned pgvector (set via RELATED_IMAGE_POSTGRESQL_16_IMAGE)")
 
 	// BFF inter-communication configuration
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
