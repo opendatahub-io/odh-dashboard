@@ -7,6 +7,8 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
+  Flex,
+  FlexItem,
   Grid,
   GridItem,
   Spinner,
@@ -57,7 +59,11 @@ const TotalAcceleratorsCard: React.FC<TotalAcceleratorsCardProps> = ({ accelerat
   if (!accelerators) {
     return (
       <Card isFullHeight data-testid="cluster-card-total-accelerators">
-        <CardTitle className="pf-v6-u-text-align-center">Total accelerators</CardTitle>
+        <CardTitle>
+          <Flex justifyContent={{ default: 'justifyContentCenter' }}>
+            <FlexItem>Total accelerators</FlexItem>
+          </Flex>
+        </CardTitle>
         <CardBody>
           <EmptyState
             headingLevel="h4"
@@ -77,24 +83,30 @@ const TotalAcceleratorsCard: React.FC<TotalAcceleratorsCardProps> = ({ accelerat
 
   return (
     <Card isFullHeight data-testid="cluster-card-total-accelerators">
-      <CardTitle className="pf-v6-u-text-align-center">Total accelerators</CardTitle>
-      <CardBody className="pf-v6-u-display-flex pf-v6-u-justify-content-center">
-        <ChartDonutUtilization
-          ariaTitle="Total accelerator utilization"
-          constrainToVisibleArea
-          data={{ x: 'Accelerators in use', y: percentage }}
-          height={CHART_HEIGHT}
-          width={CHART_WIDTH}
-          innerRadius={INNER_RADIUS}
-          labels={({ datum }) =>
-            datum.x === 'Accelerators in use'
-              ? `Accelerators in use: ${percentage}%`
-              : `Available: ${100 - percentage}%`
-          }
-          subTitle="Accelerators in use"
-          title={`${inUse}/${total}`}
-          name="total-accelerators"
-        />
+      <CardTitle>
+        <Flex justifyContent={{ default: 'justifyContentCenter' }}>
+          <FlexItem>Total accelerators</FlexItem>
+        </Flex>
+      </CardTitle>
+      <CardBody>
+        <Bullseye>
+          <ChartDonutUtilization
+            ariaTitle="Total accelerator utilization"
+            constrainToVisibleArea
+            data={{ x: 'Accelerators in use', y: percentage }}
+            height={CHART_HEIGHT}
+            width={CHART_WIDTH}
+            innerRadius={INNER_RADIUS}
+            labels={({ datum }) =>
+              datum.x === 'Accelerators in use'
+                ? `Accelerators in use: ${percentage}%`
+                : `Available: ${100 - percentage}%`
+            }
+            subTitle="Accelerators in use"
+            title={`${inUse}/${total}`}
+            name="total-accelerators"
+          />
+        </Bullseye>
       </CardBody>
     </Card>
   );
@@ -108,7 +120,11 @@ const ComputeUtilizationCard: React.FC<UtilizationCardProps> = ({ utilization })
   if (!utilization) {
     return (
       <Card isFullHeight data-testid="cluster-card-compute-utilization">
-        <CardTitle className="pf-v6-u-text-align-center">Avg. compute utilization</CardTitle>
+        <CardTitle>
+          <Flex justifyContent={{ default: 'justifyContentCenter' }}>
+            <FlexItem>Avg. compute utilization</FlexItem>
+          </Flex>
+        </CardTitle>
         <CardBody>
           <EmptyState
             headingLevel="h4"
@@ -127,24 +143,30 @@ const ComputeUtilizationCard: React.FC<UtilizationCardProps> = ({ utilization })
 
   return (
     <Card isFullHeight data-testid="cluster-card-compute-utilization">
-      <CardTitle className="pf-v6-u-text-align-center">Avg. compute utilization</CardTitle>
-      <CardBody className="pf-v6-u-display-flex pf-v6-u-justify-content-center">
-        <ChartDonutUtilization
-          ariaTitle="Average compute utilization"
-          constrainToVisibleArea
-          data={{ x: 'Compute', y: utilization.percentage }}
-          height={CHART_HEIGHT}
-          width={CHART_WIDTH}
-          innerRadius={INNER_RADIUS}
-          labels={({ datum }) =>
-            datum.x === 'Compute'
-              ? `Compute: ${utilization.percentage}%`
-              : `Available: ${100 - utilization.percentage}%`
-          }
-          subTitle="utilization"
-          title={`${utilization.percentage}%`}
-          name="compute-utilization"
-        />
+      <CardTitle>
+        <Flex justifyContent={{ default: 'justifyContentCenter' }}>
+          <FlexItem>Avg. compute utilization</FlexItem>
+        </Flex>
+      </CardTitle>
+      <CardBody>
+        <Bullseye>
+          <ChartDonutUtilization
+            ariaTitle="Average compute utilization"
+            constrainToVisibleArea
+            data={{ x: 'Compute', y: utilization.percentage }}
+            height={CHART_HEIGHT}
+            width={CHART_WIDTH}
+            innerRadius={INNER_RADIUS}
+            labels={({ datum }) =>
+              datum.x === 'Compute'
+                ? `Compute: ${utilization.percentage}%`
+                : `Available: ${100 - utilization.percentage}%`
+            }
+            subTitle="utilization"
+            title={`${utilization.percentage}%`}
+            name="compute-utilization"
+          />
+        </Bullseye>
       </CardBody>
     </Card>
   );
@@ -154,8 +176,10 @@ const MemoryUtilizationCard: React.FC<UtilizationCardProps> = ({ utilization }) 
   if (!utilization) {
     return (
       <Card isFullHeight data-testid="cluster-card-memory-utilization">
-        <CardTitle className="pf-v6-u-text-align-center">
-          Avg. accelerator memory utilization
+        <CardTitle>
+          <Flex justifyContent={{ default: 'justifyContentCenter' }}>
+            <FlexItem>Avg. accelerator memory utilization</FlexItem>
+          </Flex>
         </CardTitle>
         <CardBody>
           <EmptyState
@@ -175,26 +199,30 @@ const MemoryUtilizationCard: React.FC<UtilizationCardProps> = ({ utilization }) 
 
   return (
     <Card isFullHeight data-testid="cluster-card-memory-utilization">
-      <CardTitle className="pf-v6-u-text-align-center">
-        Avg. accelerator memory utilization
+      <CardTitle>
+        <Flex justifyContent={{ default: 'justifyContentCenter' }}>
+          <FlexItem>Avg. accelerator memory utilization</FlexItem>
+        </Flex>
       </CardTitle>
-      <CardBody className="pf-v6-u-display-flex pf-v6-u-justify-content-center">
-        <ChartDonutUtilization
-          ariaTitle="Average accelerator memory utilization"
-          constrainToVisibleArea
-          data={{ x: 'Memory', y: utilization.percentage }}
-          height={CHART_HEIGHT}
-          width={CHART_WIDTH}
-          innerRadius={INNER_RADIUS}
-          labels={({ datum }) =>
-            datum.x === 'Memory'
-              ? `Memory: ${utilization.percentage}%`
-              : `Available: ${100 - utilization.percentage}%`
-          }
-          subTitle="utilization"
-          title={`${utilization.percentage}%`}
-          name="memory-utilization"
-        />
+      <CardBody>
+        <Bullseye>
+          <ChartDonutUtilization
+            ariaTitle="Average accelerator memory utilization"
+            constrainToVisibleArea
+            data={{ x: 'Memory', y: utilization.percentage }}
+            height={CHART_HEIGHT}
+            width={CHART_WIDTH}
+            innerRadius={INNER_RADIUS}
+            labels={({ datum }) =>
+              datum.x === 'Memory'
+                ? `Memory: ${utilization.percentage}%`
+                : `Available: ${100 - utilization.percentage}%`
+            }
+            subTitle="utilization"
+            title={`${utilization.percentage}%`}
+            name="memory-utilization"
+          />
+        </Bullseye>
       </CardBody>
     </Card>
   );
