@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -277,7 +278,9 @@ func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 }
 
 func parseReplicaCount(s string) (int32, error) {
-	var n int32
-	_, err := fmt.Sscanf(s, "%d", &n)
-	return n, err
+	n, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return int32(n), nil
 }
