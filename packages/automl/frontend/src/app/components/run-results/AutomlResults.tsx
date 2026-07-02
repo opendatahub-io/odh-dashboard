@@ -14,11 +14,13 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
+import { AUTOML_EVENTS } from '~/app/tracking/automlTrackingConstants';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { downloadBlob, isRunInTerminalState } from '~/app/utilities/utils';
@@ -131,6 +133,9 @@ function AutomlResults(): React.JSX.Element {
         const safeModelName = sanitizeFilename(modelName);
         const notebookFilename = `${displayName}_${safeModelName}_notebook.ipynb`;
         downloadBlob(notebook, notebookFilename);
+        fireMiscTrackingEvent(AUTOML_EVENTS.NOTEBOOK_SAVED, {
+          taskType: parameters?.task_type ?? '',
+        });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         setDownloadError({
@@ -139,7 +144,7 @@ function AutomlResults(): React.JSX.Element {
         });
       }
     },
-    [namespace, models, pipelineRun?.display_name],
+    [namespace, models, pipelineRun?.display_name, parameters?.task_type],
   );
 
   const isCanceled = pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED;

@@ -23,11 +23,14 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useModelRegistriesQuery } from '~/app/hooks/useModelRegistriesQuery';
 import { registerModel } from '~/app/api/modelRegistry';
 import type { ModelRegistry, RegisterModelRequest } from '~/app/types';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { useNotification } from '~/app/hooks/useNotification';
+import { AUTOML_EVENTS } from '~/app/tracking/automlTrackingConstants';
 
 type RegisterModelModalProps = {
   onClose: () => void;
@@ -111,6 +114,11 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
       });
     },
     onSuccess: (data, variables) => {
+      fireFormTrackingEvent(AUTOML_EVENTS.MODEL_REGISTERED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        registryId: variables.registryId,
+      });
       const modelDetailsUrl = `/ai-hub/registry/${encodeURIComponent(variables.registryName)}/registered-models/${encodeURIComponent(data.registered_model_id)}/overview`;
       notification.success(`${registeredModelName.trim()} registered successfully`, undefined, [
         {
@@ -121,6 +129,11 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
       onClose();
     },
     onError: (error: unknown) => {
+      fireFormTrackingEvent(AUTOML_EVENTS.MODEL_REGISTERED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       notification.error(
         'Failed to register model',
         error instanceof Error ? error.message : 'An unexpected error occurred',

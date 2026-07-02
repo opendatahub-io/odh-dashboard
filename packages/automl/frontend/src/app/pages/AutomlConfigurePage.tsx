@@ -17,6 +17,8 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
@@ -26,6 +28,7 @@ import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
+import { AUTOML_EVENTS } from '~/app/tracking/automlTrackingConstants';
 import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
 
 const configureSchema = createConfigureSchema();
@@ -222,10 +225,30 @@ function AutomlConfigurePage({
 
             form.handleSubmit(
               async (data: ConfigureSchema) => {
+                const eventName = sourceRunId
+                  ? AUTOML_EVENTS.RUN_RECONFIGURED
+                  : AUTOML_EVENTS.PIPELINE_RUN_CREATED;
+                const trackingProps = {
+                  outcome: TrackingOutcome.submit,
+                  taskType: data.task_type,
+                  preset: data.preset,
+                  topN: data.top_n,
+                  evalMetric: data.eval_metric ?? '',
+                  ...(data.task_type === 'timeseries' && {
+                    predictionLength: data.prediction_length ?? 1,
+                    knownCovariatesCount: data.known_covariates_names?.length ?? 0,
+                  }),
+                };
                 try {
                   const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
+                  fireFormTrackingEvent(eventName, { ...trackingProps, success: true });
                   navigate(`${automlResultsPathname}/${namespace}/${pipelineRun.run_id}`);
                 } catch (error) {
+                  fireFormTrackingEvent(eventName, {
+                    ...trackingProps,
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                  });
                   notification.error(
                     'Failed to create pipeline run',
                     error instanceof Error ? error.message : '',
