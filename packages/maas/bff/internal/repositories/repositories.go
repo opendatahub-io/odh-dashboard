@@ -48,6 +48,7 @@ type Repositories struct {
 	Subscriptions SubscriptionsRepositoryInterface
 	Policies      PoliciesRepositoryInterface
 	MaaSModelRefs MaaSModelRefsRepositoryInterface
+	Yaml          YamlRepositoryInterface
 }
 
 func NewRepositories(
@@ -57,6 +58,7 @@ func NewRepositories(
 	subscriptions SubscriptionsRepositoryInterface,
 	policies PoliciesRepositoryInterface,
 	maasModelRefs MaaSModelRefsRepositoryInterface,
+	yamlRepo YamlRepositoryInterface,
 ) (*Repositories, error) {
 	apiKeysRepo, err := NewAPIKeysRepository(logger, config.MaasApiUrl)
 	if err != nil {
@@ -77,5 +79,6 @@ func NewRepositories(
 		Subscriptions: subscriptions,
 		Policies:      policies,
 		MaaSModelRefs: maasModelRefs,
+		Yaml:          yamlRepo,
 	}, nil
 }

@@ -19,6 +19,13 @@ const (
 	defaultPVCSize             = 20
 	defaultIdlenessCheckPeriod = "1"
 	notebookControllerDeploy   = "notebook-controller-deployment"
+
+	keyCullingEnabled      = "ENABLE_CULLING"
+	keyCullIdleTime        = "CULL_IDLE_TIME"
+	keyIdlenessCheckPeriod = "IDLENESS_CHECK_PERIOD"
+	keySegmentKeyEnabled   = "segmentKeyEnabled"
+
+	annotationRestartedAt = "kubectl.kubernetes.io/restartedAt"
 )
 
 // ClusterSettingsRepository handles cluster settings derived from DashboardConfig and ConfigMaps.
