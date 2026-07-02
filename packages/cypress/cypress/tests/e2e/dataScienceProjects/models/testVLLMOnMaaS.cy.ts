@@ -37,6 +37,7 @@ let modelName: string;
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let modelURI: string;
+let deploymentMethod: DataScienceProjectData['deploymentMethod'];
 const llmInferenceServiceConfigName = 'kserve-config-llm-template-cpu';
 const llmInferenceServiceConfigDisplayName = 'vLLM CPU LLMInferenceServiceConfig';
 const llmInferenceServiceConfigYamlPath =
@@ -45,13 +46,14 @@ const llmInferenceServiceConfigYamlPath =
 describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadDSPFixture('e2e/dataScienceProjects/testDeployLLMDServing.yaml')
+    return loadDSPFixture('e2e/dataScienceProjects/testDeployVLLMOnMaaS.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-maas-${uuid}`;
         modelName = `${testData.singleModelName}-maas`;
         modelURI = testData.modelLocationURI;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
+        deploymentMethod = testData.deploymentMethod;
 
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
@@ -127,7 +129,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
         .then((val) => {
           resourceName = val as string;
         });
-      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
+      modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard

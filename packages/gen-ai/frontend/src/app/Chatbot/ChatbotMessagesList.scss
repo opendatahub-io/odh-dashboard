@@ -1,0 +1,22 @@
+.chatbot-citation-inline {
+  all: unset;
+  cursor: pointer;
+  display: inline;
+  font-size: var(--pf-t--global--font--size--xs);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--link--default);
+  vertical-align: super;
+  line-height: 1;
+  padding: 0 1px;
+
+  &:hover {
+    color: var(--pf-t--global--text--color--link--hover);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--pf-t--global--border--color--clicked);
+    outline-offset: 1px;
+    border-radius: var(--pf-t--global--border--radius--tiny);
+  }
+}

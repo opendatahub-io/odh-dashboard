@@ -54,6 +54,18 @@ export type TabRouteTabExtension = Extension<
     id: string;
     /** The display title for the tab. */
     title: string;
+    /**
+     * Title to display in the page header when this is the only active tab.
+     * When a single tab is active the tab bar is hidden, so this title replaces
+     * the generic page title to give users context (e.g. "Model deployments").
+     */
+    singleTabTitle?: string;
+    /**
+     * Object type string for the page title icon when this is the only active tab.
+     * Overrides the page-level `objectType` so each tab can show its own icon
+     * (e.g. 'model-catalog', 'deployed-models').
+     */
+    objectType?: string;
     /** The component to render as tab content. */
     component: ComponentCodeRef;
     /** Group used to sort tabs lexicographically. Unspecified tabs will be sorted into the '5_default' group. */

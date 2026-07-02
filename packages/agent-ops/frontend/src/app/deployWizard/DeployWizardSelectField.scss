@@ -1,0 +1,5 @@
+.deploy-agent-wizard-dropdown {
+  --deploy-agent-wizard-dropdown-max-width: 28rem;
+
+  width: min(100%, var(--deploy-agent-wizard-dropdown-max-width));
+}

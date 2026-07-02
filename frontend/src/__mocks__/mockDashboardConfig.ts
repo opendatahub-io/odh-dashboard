@@ -64,6 +64,7 @@ export type MockDashboardConfigType = {
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
+  gpuaas?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -129,6 +130,7 @@ export const mockDashboardConfig = ({
   maasSettingsIaRedesign = false,
   agentOps = false,
   roleManagement = false,
+  gpuaas = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -317,6 +319,7 @@ export const mockDashboardConfig = ({
       maasSettingsIaRedesign,
       agentOps,
       roleManagement,
+      gpuaas,
     },
     notebookController: {
       enabled: !disableNotebookController,

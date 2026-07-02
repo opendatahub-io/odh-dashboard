@@ -1,28 +1,11 @@
-import React from 'react';
-import {
-  ModularArchConfig,
-  DeploymentMode,
-  ModularArchContextProvider,
-  NotificationContextProvider,
-  BrowserStorageContextProvider,
-} from 'mod-arch-core';
-import { URL_PREFIX } from '~/app/utilities/const';
+import * as React from 'react';
 import AppRoutes from '~/app/AppRoutes';
-
-const modularArchConfig: ModularArchConfig = {
-  deploymentMode: DeploymentMode.Federated,
-  URL_PREFIX,
-  BFF_API_VERSION: 'v1',
-};
+import AgentOpsFederatedProviders from './AgentOpsFederatedProviders';
 
 const AgentOpsWrapper: React.FC = () => (
-  <ModularArchContextProvider config={modularArchConfig}>
-    <BrowserStorageContextProvider>
-      <NotificationContextProvider>
-        <AppRoutes />
-      </NotificationContextProvider>
-    </BrowserStorageContextProvider>
-  </ModularArchContextProvider>
+  <AgentOpsFederatedProviders>
+    <AppRoutes />
+  </AgentOpsFederatedProviders>
 );
 
 export default AgentOpsWrapper;

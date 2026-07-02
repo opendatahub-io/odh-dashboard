@@ -72,7 +72,7 @@ import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
 import AttachExistingStorageModal from './storage/AttachExistingStorageModal';
 import WorkbenchStorageModal from './storage/WorkbenchStorageModal';
 import { FeatureStoreFormSection } from './featureStore/FeatureStoreFormSection';
-import type { WorkbenchFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
+import type { SelectedFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
 import { useWorkbenchFeatureStores } from './featureStore/useWorkbenchFeatureStores';
 import { getFeatureStoresFromNotebook } from './featureStore/utils';
 
@@ -166,7 +166,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     error: featureStoresError,
   } = useWorkbenchFeatureStores();
   const [selectedFeatureStores, setSelectedFeatureStores] = React.useState<
-    WorkbenchFeatureStoreConfig[]
+    SelectedFeatureStoreConfig[]
   >([]);
   const hasUserInteractedRef = React.useRef<boolean>(false);
   const notebookIdRef = React.useRef<string | undefined>();
@@ -437,13 +437,13 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
             />
             <FeatureStoreFormSection
               selectedFeatureStores={selectedFeatureStores}
+              availableFeatureStores={availableFeatureStores}
+              loaded={featureStoresLoaded}
+              error={featureStoresError}
               onSelect={(featureStores) => {
                 setSelectedFeatureStores(featureStores);
                 hasUserInteractedRef.current = true;
               }}
-              availableFeatureStores={availableFeatureStores}
-              loaded={featureStoresLoaded}
-              error={featureStoresError}
             />
           </Form>
         </GenericSidebar>

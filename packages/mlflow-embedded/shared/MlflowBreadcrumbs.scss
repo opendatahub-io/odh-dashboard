@@ -1,0 +1,18 @@
+// Workaround so the link underline spans the full text+icon row.
+// FIXME: Upstream still open — https://github.com/patternfly/patternfly/issues/7554 (breadcrumb icon underline). Re-check after PF ships fix.
+.mlflow-breadcrumb-project-link {
+  position: relative;
+  text-decoration: none;
+
+  &::after {
+    content: '\00A0';
+    position: absolute;
+    text-decoration: underline;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    top: 2px;
+    letter-spacing: 1000px;
+    overflow: hidden;
+  }
+}

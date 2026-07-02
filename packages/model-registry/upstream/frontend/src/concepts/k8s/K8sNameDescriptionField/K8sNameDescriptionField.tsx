@@ -8,8 +8,9 @@ import {
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
+import { ThemeAwareFormGroupWrapper } from 'mod-arch-shared';
 import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
-import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
+import ThemeAwareFieldset from '~/app/pages/modelRegistry/screens/components/ThemeAwareFieldset';
 import {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunction,
@@ -100,50 +101,55 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
     />
   );
 
+  const nameHelperTextNode =
+    nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
+      <HelperText data-testid={`${dataTestId}-name-helper`}>
+        {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
+        {!showK8sField && !k8sName.state.immutable && (
+          <>
+            {hasEmptyResourceName ? (
+              <HelperTextItem variant="error">
+                The name must contain at least one alphanumeric character.
+              </HelperTextItem>
+            ) : k8sName.value ? (
+              <HelperTextItem>
+                The resource name will be <b>{k8sName.value}</b>.
+              </HelperTextItem>
+            ) : null}
+            {k8sName.state.invalidLength && (
+              <HelperTextItem variant="error">
+                {getMaxLengthErrorMessage(k8sName.state.maxLength)}
+              </HelperTextItem>
+            )}
+            {k8sName.state.invalidCharacters && (
+              <HelperTextItem variant="error">{INVALID_K8S_NAME_CHARACTERS_MESSAGE}</HelperTextItem>
+            )}
+            <HelperTextItem>
+              <Button
+                data-testid={`${dataTestId}-editResourceLink`}
+                variant="link"
+                isInline
+                onClick={() => setShowK8sField(true)}
+              >
+                Edit resource name
+              </Button>{' '}
+              <ResourceNameDefinitionTooltip />
+            </HelperTextItem>
+          </>
+        )}
+      </HelperText>
+    ) : null;
+
   return (
     <>
-      <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
-        <FormFieldset component={nameInput} field="Name" />
-        {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
-          <HelperText data-testid={`${dataTestId}-name-helper`}>
-            {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
-            {!showK8sField && !k8sName.state.immutable && (
-              <>
-                {hasEmptyResourceName ? (
-                  <HelperTextItem variant="error">
-                    The name must contain at least one alphanumeric character.
-                  </HelperTextItem>
-                ) : k8sName.value ? (
-                  <HelperTextItem>
-                    The resource name will be <b>{k8sName.value}</b>.
-                  </HelperTextItem>
-                ) : null}
-                {k8sName.state.invalidLength && (
-                  <HelperTextItem variant="error">
-                    {getMaxLengthErrorMessage(k8sName.state.maxLength)}
-                  </HelperTextItem>
-                )}
-                {k8sName.state.invalidCharacters && (
-                  <HelperTextItem variant="error">
-                    {INVALID_K8S_NAME_CHARACTERS_MESSAGE}
-                  </HelperTextItem>
-                )}
-                <HelperTextItem>
-                  <Button
-                    data-testid={`${dataTestId}-editResourceLink`}
-                    variant="link"
-                    isInline
-                    onClick={() => setShowK8sField(true)}
-                  >
-                    Edit resource name
-                  </Button>{' '}
-                  <ResourceNameDefinitionTooltip />
-                </HelperTextItem>
-              </>
-            )}
-          </HelperText>
-        ) : null}
-      </FormGroup>
+      <ThemeAwareFormGroupWrapper
+        label={nameLabel}
+        fieldId={`${dataTestId}-name`}
+        isRequired
+        helperTextNode={nameHelperTextNode}
+      >
+        {nameInput}
+      </ThemeAwareFormGroupWrapper>
 
       <ResourceNameField
         allowEdit={showK8sField}
@@ -154,7 +160,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
 
       {!hideDescription && (
         <FormGroup label={descriptionLabel} fieldId={`${dataTestId}-description`}>
-          <FormFieldset component={descriptionTextArea} field="Description" />
+          <ThemeAwareFieldset field="Description">{descriptionTextArea}</ThemeAwareFieldset>
         </FormGroup>
       )}
     </>
