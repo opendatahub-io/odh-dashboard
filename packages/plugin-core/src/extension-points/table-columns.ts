@@ -1,6 +1,7 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import type { ComponentCodeRef } from '../core/types';
+// eslint-disable-next-line no-restricted-syntax
 import { createExtensionGuard } from './utils';
+import type { ComponentCodeRef } from '../core/types';
 
 /**
  * Reusable base properties for any table-column extension point.
