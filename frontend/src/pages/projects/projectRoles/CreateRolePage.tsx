@@ -179,7 +179,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     const k8sName = k8sNameDescriptionData.data.k8sName.value;
     const roleDisplayName = k8sNameDescriptionData.data.name || k8sName;
     const preservedLabels = Object.fromEntries(
-      Object.entries(existingRole?.metadata.labels ?? {}).filter(
+      Object.entries(initialRole?.metadata.labels ?? {}).filter(
         ([key]) => !key.startsWith(USER_LABEL_PREFIX),
       ),
     );
@@ -206,7 +206,16 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
       setSubmitError(error);
       throw error;
     }
-  }, [namespace, k8sNameDescriptionData.data, description, rules, labels, navigate, existingRole]);
+  }, [
+    namespace,
+    k8sNameDescriptionData.data,
+    description,
+    rules,
+    labels,
+    navigate,
+    existingRole,
+    initialRole?.metadata.labels,
+  ]);
 
   const handleSubmit = React.useCallback(async () => {
     if (rules.length === 0) {

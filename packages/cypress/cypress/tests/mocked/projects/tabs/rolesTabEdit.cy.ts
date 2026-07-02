@@ -21,18 +21,22 @@ import { projectRoles } from '../../../../pages/projectRoles';
 const NAMESPACE = 'test-project';
 const ROLE_NAME = 'my-custom-role';
 
-const existingRole = mockRoleK8sResource({
-  name: ROLE_NAME,
-  namespace: NAMESPACE,
-  labels: { 'opendatahub.io/dashboard': 'true' },
-  rules: [
-    {
-      verbs: ['get', 'list'],
-      apiGroups: [''],
-      resources: ['pods'],
-    },
-  ],
-});
+const existingRole = (() => {
+  const role = mockRoleK8sResource({
+    name: ROLE_NAME,
+    namespace: NAMESPACE,
+    labels: { 'opendatahub.io/dashboard': 'true' },
+    rules: [
+      {
+        verbs: ['get', 'list'],
+        apiGroups: [''],
+        resources: ['pods'],
+      },
+    ],
+  });
+  role.metadata.resourceVersion = '12345';
+  return role;
+})();
 
 const initIntercepts = () => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ roleManagement: true }));
@@ -79,6 +83,7 @@ describe('Edit Role', () => {
     cy.wait('@updateRole').then((interception) => {
       expect(interception.request.body.metadata.name).to.equal(ROLE_NAME);
       expect(interception.request.body.metadata.namespace).to.equal(NAMESPACE);
+      expect(interception.request.body.metadata.resourceVersion).to.equal('12345');
       expect(interception.request.body.metadata.labels).to.have.property(
         'opendatahub.io/dashboard',
         'true',

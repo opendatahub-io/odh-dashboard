@@ -63,7 +63,7 @@ describe('Duplicate Role', () => {
     projectRoles.findRoleNameInput().should('have.value', `Copy of ${SOURCE_ROLE_NAME}`);
   });
 
-  it('should have submit button enabled with auto-generated resource name', () => {
+  it('should have submit button enabled when form is pre-populated', () => {
     projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
     projectRoles.findSubmitButton().should('be.enabled');
   });
