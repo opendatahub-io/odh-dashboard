@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { handlePipelineFailures, PipelineAPIError } from '#~/api/pipelines/errorUtils';
+import { handlePipelineFailures } from '#~/api/pipelines/errorUtils';
 import { mockPipelineKF } from '#~/__mocks__/mockPipelineKF';
 import { NotReadyError } from '#~/utilities/useFetchState';
 
@@ -13,31 +13,19 @@ describe('handlePipelineFailures', () => {
   it('should handle and throw KF errors with gRPC code', async () => {
     const statusMock = { error: 'error', code: 5, message: 'not-found' };
 
-    await expect(handlePipelineFailures(Promise.resolve(statusMock))).rejects.toThrow('error');
-
-    // Verify it's converted to PipelineAPIError with normalized HTTP status
-    try {
-      await handlePipelineFailures(Promise.resolve(statusMock));
-      fail('Expected promise to reject');
-    } catch (error) {
-      expect(error).toBeInstanceOf(PipelineAPIError);
-      expect((error as PipelineAPIError).response.status).toBe(404); // gRPC 5 → HTTP 404
-    }
+    await expect(handlePipelineFailures(Promise.resolve(statusMock))).rejects.toMatchObject({
+      message: 'error',
+      response: { status: 404 }, // gRPC 5 → HTTP 404
+    });
   });
 
   it('should handle and throw KF errors with HTTP status code', async () => {
     const statusMock = { error: 'error', code: 404, message: 'not-found' };
 
-    await expect(handlePipelineFailures(Promise.resolve(statusMock))).rejects.toThrow('error');
-
-    // Verify it's converted to PipelineAPIError with preserved HTTP status
-    try {
-      await handlePipelineFailures(Promise.resolve(statusMock));
-      fail('Expected promise to reject');
-    } catch (error) {
-      expect(error).toBeInstanceOf(PipelineAPIError);
-      expect((error as PipelineAPIError).response.status).toBe(404); // HTTP 404 → HTTP 404
-    }
+    await expect(handlePipelineFailures(Promise.resolve(statusMock))).rejects.toMatchObject({
+      message: 'error',
+      response: { status: 404 }, // HTTP 404 → HTTP 404
+    });
   });
 
   it('should handle error details', async () => {
