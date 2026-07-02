@@ -20,12 +20,3 @@
   --pf-v6-c-accordion__item--m-expanded__toggle--BackgroundColor: transparent;
   background-color: transparent;
 }
-
-// Content small uses --pf-v6-c-content--small--Color (subtle grey); override with severity/warning tokens for not recommended reasons.
-.automl-prediction-type__reason--not-recommended {
-  --pf-v6-c-content--small--Color: var(--pf-t--global--color--severity--moderate--200);
-
-  :root:where(.pf-v6-theme-dark) & {
-    --pf-v6-c-content--small--Color: var(--pf-t--global--dark--color--severity--moderate--100);
-  }
-}
