@@ -1,6 +1,5 @@
 import React from 'react';
 import { Label, Spinner, Stack, StackItem } from '@patternfly/react-core';
-import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ConnectionTestStatus } from '#~/concepts/connectionTypes/types';
 
 type ConnectionTestStatusLabelProps = {
@@ -20,14 +19,14 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
   switch (status) {
     case ConnectionTestStatus.NOT_TESTED:
       return (
-        <Label variant="outline" color="grey" data-testid="connection-test-label-not-tested">
+        <Label variant="outline" data-testid="connection-test-label-not-tested">
           Not tested
         </Label>
       );
     case ConnectionTestStatus.TESTING:
       return (
         <Label
-          color="grey"
+          variant="outline"
           icon={<Spinner size="sm" aria-label="Testing connection" />}
           data-testid="connection-test-label-testing"
         >
@@ -38,7 +37,7 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
       return (
         <Stack data-testid="connection-test-label-verified">
           <StackItem>
-            <Label variant="outline" color="green" icon={<CheckCircleIcon />}>
+            <Label status="success" variant="outline">
               Verified
             </Label>
           </StackItem>
@@ -53,7 +52,7 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
       return (
         <Stack data-testid="connection-test-label-failed">
           <StackItem>
-            <Label variant="outline" color="red" icon={<ExclamationCircleIcon />}>
+            <Label status="danger" variant="outline">
               Failed
             </Label>
           </StackItem>
