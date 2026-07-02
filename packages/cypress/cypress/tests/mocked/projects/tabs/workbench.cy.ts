@@ -2764,5 +2764,49 @@ describe('Workbench page', () => {
         .findHaveNotebookStatusText()
         .should('have.text', 'Inadmissible');
     });
+
+    it('displays queue position in subtitle for Queued workload when Visibility API is available', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      cy.intercept(
+        'GET',
+        '/api/k8s/apis/visibility.kueue.x-k8s.io/v1beta2/namespaces/test-project/localqueues/test-queue/pendingworkloads',
+        {
+          kind: 'PendingWorkloadsSummary',
+          apiVersion: 'visibility.kueue.x-k8s.io/v1beta2',
+          metadata: {},
+          items: [
+            {
+              metadata: {
+                name: 'workload-test-notebook',
+                namespace: 'test-project',
+              },
+              priority: 0,
+              localQueueName: 'test-queue',
+              positionInClusterQueue: 2,
+              positionInLocalQueue: 2,
+            },
+          ],
+        },
+      ).as('pendingWorkloads');
+      workbenchPage.visit('test-project');
+      cy.wait('@pendingWorkloads');
+      workbenchPage.getNotebookRow('Test Notebook').find().should('contain.text', 'position 3');
+    });
+
+    it('displays subtitle without position when Visibility API returns 403', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      cy.intercept(
+        'GET',
+        '/api/k8s/apis/visibility.kueue.x-k8s.io/v1beta2/namespaces/test-project/localqueues/test-queue/pendingworkloads',
+        { statusCode: 403, body: { kind: 'Status', code: 403, message: 'Forbidden' } },
+      ).as('pendingWorkloads403');
+      workbenchPage.visit('test-project');
+      cy.wait('@pendingWorkloads403');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .find()
+        .should('contain.text', 'Waiting for')
+        .and('not.contain.text', 'position');
+    });
   });
 });
