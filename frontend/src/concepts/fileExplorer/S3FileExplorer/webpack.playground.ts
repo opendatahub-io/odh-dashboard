@@ -1,7 +1,21 @@
+/**
+ * S3FileExplorer/webpack.playground.ts
+ * To allow easier manual testing and debugging of the S3FileExplorer component,
+ * this minimal webpack configuration allows a lightweight playground (ie: storybook-like) UI to render.
+ * The component can be rendered by itself without having to run all of odh-dashboard &
+ * any top-level feature that makes use of S3FileExplorer.
+ *
+ * Running this playground is done through webpack as a serve command:
+ * ```
+ * TS_NODE_PROJECT=./frontend/src/concepts/fileExplorer/S3FileExplorer/tsconfig.playground.json webpack serve --config ./frontend/src/concepts/fileExplorer/S3FileExplorer/webpack.playground.ts
+ * ```
+ */
+
 /* eslint-disable no-console */
 
+// Modules -------------------------------------------------------------------->
+
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import dotenv from 'dotenv';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
@@ -10,11 +24,12 @@ import webpack from 'webpack'; // eslint-disable-line import/no-named-as-default
 import type { Configuration } from 'webpack';
 import type { Configuration as DevServerConfiguration } from 'webpack-dev-server';
 
-const currentFile = fileURLToPath(import.meta.url);
-const currentDir = path.dirname(currentFile);
+// Globals -------------------------------------------------------------------->
 
-const PROJECT_ROOT = path.resolve(currentDir, '../../../../../');
-const ODH_ROOT = path.resolve(PROJECT_ROOT, '../../../');
+const currentDir = __dirname;
+
+const PROJECT_ROOT = path.resolve(currentDir, '../../../../');
+const ODH_ROOT = path.resolve(PROJECT_ROOT, '../');
 
 const getProxyHeaders = () => {
   try {
@@ -26,32 +41,34 @@ const getProxyHeaders = () => {
       'x-forwarded-access-token': token,
     };
   } catch (error: unknown) {
-    throw new Error('Failed to get Kubernetes token. Ensure you are logged in with `oc login`.', {
-      cause: error,
-    });
+    throw new Error(
+      `Failed to get Kubernetes token. Ensure you are logged in with \`oc login\`. Cause: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    );
   }
 };
 
 const ENV_TO_INCLUDE = [
   /**
-   * `AUTORAG_PLAYGROUND_S3_NAMESPACE`: The openshift namespace the playground should make calls against.
+   * `S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE`: The openshift namespace the playground should make calls against.
    */
-  'AUTORAG_PLAYGROUND_S3_NAMESPACE',
+  'S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE',
 
   /**
-   * `AUTORAG_PLAYGROUND_S3_SECRET_NAME`: The odh secret name that should be used when fetching S3 Files (secret should be a valid S3-compatible connection secret).
+   * `S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME`: The odh secret name that should be used when fetching S3 Files (secret should be a valid S3-compatible connection secret).
    */
-  'AUTORAG_PLAYGROUND_S3_SECRET_NAME',
+  'S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME',
 
   /**
-   * `AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with no provided bucket.
+   * `S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with no provided bucket.
    */
-  'AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET',
+  'S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET',
 
   /**
-   * `AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with http as the url scheme.
+   * `S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with http as the url scheme.
    */
-  'AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP',
+  'S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP',
 ];
 const ENV_STUB_FALSE = [
   'APP_ENV',
@@ -90,7 +107,9 @@ ENV_TO_INCLUDE.forEach((key) => {
 ENV_STUB_FALSE.forEach((key) => {
   playgroundEnv[`process.env.${key}`] = 'false';
 });
-const NODE_MODULES = path.resolve(PROJECT_ROOT, 'node_modules');
+const NODE_MODULES = path.resolve(ODH_ROOT, 'node_modules');
+
+// Config --------------------------------------------------------------------->
 
 const config: Configuration & { devServer?: DevServerConfiguration } = {
   mode: 'development',
@@ -99,6 +118,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     alias: {
+      '#~': path.resolve(PROJECT_ROOT, 'src'),
       '~': path.resolve(PROJECT_ROOT, 'src'),
     },
   },
@@ -150,5 +170,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
     ],
   },
 };
+
+// Public --------------------------------------------------------------------->
 
 export default config;
