@@ -46,10 +46,6 @@ describe('ConnectionTestStatusLabel', () => {
     const label = screen.getByTestId('connection-test-label-verified');
     expect(label).toBeInTheDocument();
     expect(label).toHaveTextContent('Verified');
-
-    // The tooltip wraps the label — the tooltip content is not directly visible in the DOM
-    // but the label should still be rendered inside a Tooltip container
-    expect(label.closest('[class*="tooltip"]') ?? label.parentElement).toBeTruthy();
   });
 
   it('should display formatted timestamp when provided for FAILED status', () => {

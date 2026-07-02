@@ -67,14 +67,11 @@ describe('ConnectionsTableRow', () => {
 
     renderRow(<ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} />);
 
-    // Without any test annotations, the status should show as the default
-    // (the status cell will display based on annotation values on the connection)
-    expect(screen.getByText('test-conn')).toBeInTheDocument();
+    expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
   });
 
   it('should render Verified status from annotations', () => {
     const connection = mockConnection({ displayName: 'test-conn' });
-    // Add test status annotations
     connection.metadata.annotations = {
       ...connection.metadata.annotations,
       [CONNECTION_TEST_ANNOTATIONS.STATUS]: ConnectionTestStatus.VERIFIED,
@@ -84,7 +81,7 @@ describe('ConnectionsTableRow', () => {
 
     renderRow(<ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} />);
 
-    expect(screen.getByText('test-conn')).toBeInTheDocument();
+    expect(screen.getByTestId('connection-test-label-verified')).toBeInTheDocument();
   });
 
   it('should render Failed status from annotations with timestamp', () => {
@@ -98,7 +95,7 @@ describe('ConnectionsTableRow', () => {
 
     renderRow(<ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} />);
 
-    expect(screen.getByText('test-conn')).toBeInTheDocument();
+    expect(screen.getByTestId('connection-test-label-failed')).toBeInTheDocument();
   });
 
   it('should render connection type ref when no matching type found', () => {
