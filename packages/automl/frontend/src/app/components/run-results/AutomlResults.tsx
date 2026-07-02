@@ -73,7 +73,7 @@ function AutomlResults(): React.JSX.Element {
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
-  const useStageMap = hasStageMapTask && !componentStageMapError;
+  const useStageMap = hasStageMapTask && !componentStageMapError && stageMapNodes.length > 0;
   const nodes = useStageMap ? stageMapNodes : fallbackNodes;
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
