@@ -1,7 +1,8 @@
 /* eslint-disable camelcase -- ColumnSchema.task_type matches BFF API response field name */
 import {
   findTimestampColumn,
-  getColumnConstraintTooltip,
+  formatTargetColumnUniqueValuesMessage,
+  getTargetColumnUniqueValueCount,
   getTypeAcronym,
 } from '~/app/utilities/columnUtils';
 
@@ -44,6 +45,7 @@ describe('findTimestampColumn', () => {
     'date',
     'time',
     'dt',
+    'ds',
     'ts',
     'created_at',
     'created-at',
@@ -74,10 +76,19 @@ describe('findTimestampColumn', () => {
     expect(findTimestampColumn([])).toBeUndefined();
   });
 
+  it('should match "ds" columns with numeric types (common forecasting datestamp)', () => {
+    const columns = [
+      { name: 'y', type: 'double' },
+      { name: 'ds', type: 'integer' },
+    ];
+    expect(findTimestampColumn(columns)).toBe('ds');
+  });
+
   it('should not match partial name patterns', () => {
     const columns = [
       { name: 'my_timestamp_col', type: 'string' },
       { name: 'timestamps', type: 'string' },
+      { name: 'ids', type: 'integer' },
     ];
     expect(findTimestampColumn(columns)).toBeUndefined();
   });
@@ -100,92 +111,44 @@ describe('getTypeAcronym', () => {
   });
 });
 
-describe('getColumnConstraintTooltip', () => {
-  it('should return undefined when no column is selected', () => {
-    expect(getColumnConstraintTooltip('binary', undefined)).toBeUndefined();
-  });
-
-  it('should return undefined for multiclass regardless of column', () => {
+describe('getTargetColumnUniqueValueCount', () => {
+  it('should return unique_count when provided', () => {
     expect(
-      getColumnConstraintTooltip('multiclass', {
-        name: 'col',
-        type: 'string',
-        task_type: 'multiclass',
+      getTargetColumnUniqueValueCount({
+        name: 'credit_score',
+        type: 'integer',
+        task_type: 'regression',
+        unique_count: 3,
       }),
-    ).toBeUndefined();
+    ).toBe(3);
   });
 
-  describe('timeseries', () => {
-    it('should reject string columns', () => {
-      expect(
-        getColumnConstraintTooltip('timeseries', {
-          name: 'col',
-          type: 'string',
-          task_type: 'regression',
-        }),
-      ).toBe('Time series forecasting requires a numerical target column');
-    });
-
-    it('should accept numeric columns', () => {
-      expect(
-        getColumnConstraintTooltip('timeseries', {
-          name: 'col',
-          type: 'double',
-          task_type: 'regression',
-        }),
-      ).toBeUndefined();
-    });
+  it('should fall back to values length when unique_count is omitted', () => {
+    expect(
+      getTargetColumnUniqueValueCount({
+        name: 'status',
+        type: 'string',
+        task_type: 'binary',
+        values: ['yes', 'no'],
+      }),
+    ).toBe(2);
   });
 
-  describe('binary', () => {
-    it('should reject columns with more than 2 values', () => {
-      expect(
-        getColumnConstraintTooltip('binary', {
-          name: 'col',
-          type: 'string',
-          task_type: 'binary',
-          values: ['a', 'b', 'c'],
-        }),
-      ).toBe('Binary classification requires a target column with at most 2 distinct values');
-    });
+  it('should return undefined when column is undefined', () => {
+    expect(getTargetColumnUniqueValueCount(undefined)).toBeUndefined();
+  });
+});
 
-    it('should reject columns with no values array', () => {
-      expect(
-        getColumnConstraintTooltip('binary', { name: 'col', type: 'string', task_type: 'binary' }),
-      ).toBe('Binary classification requires a target column with at most 2 distinct values');
-    });
-
-    it('should accept columns with exactly 2 values', () => {
-      expect(
-        getColumnConstraintTooltip('binary', {
-          name: 'col',
-          type: 'string',
-          task_type: 'binary',
-          values: ['yes', 'no'],
-        }),
-      ).toBeUndefined();
-    });
+describe('formatTargetColumnUniqueValuesMessage', () => {
+  it('should pluralize values for counts other than 1', () => {
+    expect(formatTargetColumnUniqueValuesMessage('credit_score', 3)).toBe(
+      '3 unique values detected in "credit_score"',
+    );
   });
 
-  describe('regression', () => {
-    it('should reject string columns', () => {
-      expect(
-        getColumnConstraintTooltip('regression', {
-          name: 'col',
-          type: 'string',
-          task_type: 'regression',
-        }),
-      ).toBe('Regression requires a numerical target column');
-    });
-
-    it('should accept numeric columns', () => {
-      expect(
-        getColumnConstraintTooltip('regression', {
-          name: 'col',
-          type: 'integer',
-          task_type: 'regression',
-        }),
-      ).toBeUndefined();
-    });
+  it('should use singular value for a count of 1', () => {
+    expect(formatTargetColumnUniqueValuesMessage('flag', 1)).toBe(
+      '1 unique value detected in "flag"',
+    );
   });
 });

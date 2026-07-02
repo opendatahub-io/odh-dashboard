@@ -46,6 +46,7 @@ export enum KnownLabels {
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
   MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
+  GLOBAL_MLFLOW_WORKSPACE = 'opendatahub.io/global-mlflow-workspace',
 }
 
 export enum MetadataAnnotation {
@@ -268,8 +269,10 @@ export type DashboardCommonConfig = {
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
+  llmdTopologyConfigs?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
+  agentConfigManagement?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
@@ -278,7 +281,7 @@ export type DashboardCommonConfig = {
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
-  agentProfileManagement?: boolean;
+  gpuaas?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -298,6 +301,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
       deploymentStrategy?: string;
       isLLMdDefault?: boolean;
     };
+    globalMLflowNamespaces?: string[];
     genAiStudioConfig?: {
       aiAssetCustomEndpoints?: {
         externalProviders?: boolean;

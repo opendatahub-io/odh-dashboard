@@ -133,4 +133,13 @@ type EnvConfig struct {
 	// Used to determine where to create the gen-ai trace collector CR.
 	// When empty, auto-discovered from the "data-science-collector" CR.
 	OTelCollectorNamespace string
+
+	// When PgvectorHost is set, the BFF configures remote::pgvector as the
+	// default vector_io provider instead of inline::milvus.
+	PgvectorHost               string
+	PgvectorPort               int    // default: 5432
+	PgvectorDB                 string // default: "vectordb"
+	PgvectorUser               string // default: "vectoruser"
+	PgvectorPasswordSecretName string // K8s Secret name containing the password
+	PgvectorPasswordSecretKey  string // key inside the password Secret, default: "password"
 }

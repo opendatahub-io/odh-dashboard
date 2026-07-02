@@ -1,3 +1,5 @@
+# This spec is maintained by hand until a cross-BFF auto-generation strategy is
+# agreed upon. Keep it in sync with routes.go and handler implementations.
 openapi: '3.0.3'
 info:
   title: 'Core BFF REST API'

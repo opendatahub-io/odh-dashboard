@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { FileDetailsLabel, MessageProps, ToolResponseProps } from '@patternfly/chatbot';
+import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
@@ -9,6 +9,8 @@ import {
   ApiError,
   ChatMessageRole,
   CreateResponseRequest,
+  FileCitationAnnotation,
+  FileSearchCallData,
   GuardrailInlineConfig,
   isApiError,
   InputContentPart,
@@ -51,6 +53,9 @@ export type ChatbotMessageProps = MessageProps & {
   metrics?: ResponseMetrics;
   errorClassification?: ClassifiedError;
   onRetryError?: () => void;
+  fileSearchData?: FileSearchCallData;
+  annotations?: FileCitationAnnotation[];
+  citationMap?: Map<string, number>;
 };
 
 export interface UseChatbotMessagesReturn {
@@ -63,7 +68,6 @@ export interface UseChatbotMessagesReturn {
     compareID?: string,
     fileId?: string,
     imagePreview?: { previewUrl: string; fileName: string },
-    docAttachments?: string[],
   ) => Promise<void>;
   handleStopStreaming: () => void;
   clearConversation: () => void;
@@ -332,7 +336,6 @@ const useChatbotMessages = ({
     compareID?: string,
     fileId?: string,
     imagePreview?: { previewUrl: string; fileName: string },
-    docAttachments?: string[],
   ) => {
     // Reset streaming content tracker for new message
     streamingReceivedRef.current = false;
@@ -355,20 +358,6 @@ const useChatbotMessages = ({
         },
       });
     }
-    if (docAttachments?.length) {
-      extraContent.afterMainContent = React.createElement(
-        'div',
-        { style: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' } },
-        ...docAttachments.map((fileName, index) =>
-          React.createElement(FileDetailsLabel, {
-            key: `${fileName}-${index}`,
-            fileName,
-            hasTruncation: true,
-          }),
-        ),
-      );
-    }
-
     const userMessage: MessageProps = {
       id: getId(),
       role: 'user',
@@ -673,19 +662,6 @@ const useChatbotMessages = ({
           clearTimeout(timeoutRef.current);
         }
 
-        // Build sources prop for PatternFly SourcesCard if sources exist
-        // Add onClick to prevent link navigation (display only)
-        const sourcesProps = streamingResponse.sources?.length
-          ? {
-              sources: {
-                sources: streamingResponse.sources.map((source) => ({
-                  ...source,
-                  onClick: (e: React.MouseEvent) => e.preventDefault(),
-                })),
-              },
-            }
-          : {};
-
         // Finalize message in a single update to avoid flicker
         const toolResponse = streamingResponse.toolCallData
           ? createToolResponse(streamingResponse.toolCallData)
@@ -703,12 +679,20 @@ const useChatbotMessages = ({
                   ...msg,
                   content: streamingResponse.content,
                   isLoading: false,
-                  ...sourcesProps,
                   ...(toolResponse && { toolResponse }),
                   ...(thinkingCollapsible && {
                     extraContent: { ...msg.extraContent, beforeMainContent: thinkingCollapsible },
                   }),
+                  ...(streamingResponse.annotations && {
+                    annotations: streamingResponse.annotations,
+                  }),
+                  ...(streamingResponse.citationMap && {
+                    citationMap: streamingResponse.citationMap,
+                  }),
                   ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
+                  ...(streamingResponse.fileSearchData && {
+                    fileSearchData: streamingResponse.fileSearchData,
+                  }),
                 }
               : msg,
           ),
@@ -727,19 +711,6 @@ const useChatbotMessages = ({
         const toolResponse = response.toolCallData
           ? createToolResponse(response.toolCallData)
           : undefined;
-
-        // Build sources prop for PatternFly SourcesCard if sources exist
-        // Add onClick to prevent link navigation (display only)
-        const sourcesProps = response.sources?.length
-          ? {
-              sources: {
-                sources: response.sources.map((source) => ({
-                  ...source,
-                  onClick: (e: React.MouseEvent) => e.preventDefault(),
-                })),
-              },
-            }
-          : {};
 
         const thinkingCollapsible =
           typeof response.reasoningContent === 'string' && response.reasoningContent
@@ -761,8 +732,10 @@ const useChatbotMessages = ({
                   ...(thinkingCollapsible && {
                     extraContent: { beforeMainContent: thinkingCollapsible },
                   }),
-                  ...sourcesProps,
+                  ...(response.annotations && { annotations: response.annotations }),
+                  ...(response.citationMap && { citationMap: response.citationMap }),
                   ...(response.metrics && { metrics: response.metrics }),
+                  ...(response.fileSearchData && { fileSearchData: response.fileSearchData }),
                 }
               : msg,
           ),

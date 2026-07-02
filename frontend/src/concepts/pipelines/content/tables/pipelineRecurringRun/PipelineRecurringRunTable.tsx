@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
+import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
 import { PipelineRecurringRunKF } from '#~/concepts/pipelines/kfTypes';
-import { getTableColumnSort, useCheckboxTable, TableBase } from '#~/components/table';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { useCheckboxTable } from '#~/components/table';
 import DeletePipelineRunsModal from '#~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';

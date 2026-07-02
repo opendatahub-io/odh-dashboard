@@ -1,7 +1,7 @@
 import * as React from 'react';
+import { Table } from '@odh-dashboard/ui-core';
 import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
 import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
-import { Table } from '#~/components/table';
 import { NoWorkloadState } from '#~/pages/distributedWorkloads/components/NoWorkloadState';
 import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
 import { getStatusInfo } from '#~/concepts/distributedWorkloads/utils';

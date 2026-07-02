@@ -108,6 +108,36 @@ describe('Roles tab table', () => {
     projectRoles.getRow('dashboard-custom').findType().contains('Cluster role').should('not.exist');
   });
 
+  describe('label rendering', () => {
+    it('should display user-defined label values as chips', () => {
+      initIntercepts({
+        roles: [
+          mockRoleK8sResource({
+            name: 'labeled-role',
+            namespace: NAMESPACE,
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+              'labels.opendatahub.io/team': 'platform',
+              'labels.opendatahub.io/env': 'production',
+            },
+          }),
+        ],
+      });
+      projectRoles.visit(NAMESPACE);
+
+      const row = projectRoles.getRow('labeled-role');
+      row.findLabelsCell().findByTestId('role-label-team').should('have.text', 'platform');
+      row.findLabelsCell().findByTestId('role-label-env').should('have.text', 'production');
+    });
+
+    it('should show dash when role has no user-defined labels', () => {
+      initIntercepts();
+      projectRoles.visit(NAMESPACE);
+
+      projectRoles.getRow('dashboard-custom').findLabelsCell().should('have.text', '-');
+    });
+  });
+
   describe('search filtering', () => {
     it('should filter roles by name', () => {
       initIntercepts();

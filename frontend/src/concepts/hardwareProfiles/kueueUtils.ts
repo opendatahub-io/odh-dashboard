@@ -5,7 +5,7 @@ import {
   type HardwareProfileKind,
   type ProjectKind,
 } from '@odh-dashboard/k8s-core';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 /**
  * Custom hook to manage Kueue configuration state and determine various Kueue-related behaviors.
  *

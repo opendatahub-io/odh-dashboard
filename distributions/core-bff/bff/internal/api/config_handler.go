@@ -7,17 +7,13 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 // GetConfigHandler returns the merged DashboardConfig with defaults.
 func (app *App) GetConfigHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-
-	if err := app.validateCallerToken(ctx); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
 
 	var featureFlagOverrides map[string]bool
 	if flagsHeader := r.Header.Get("x-odh-feature-flags"); flagsHeader != "" {
@@ -62,7 +58,7 @@ func (app *App) PatchConfigHandler(w http.ResponseWriter, r *http.Request, _ htt
 		ctx, app.config.Namespace, app.config.DashboardConfigName, body, types.MergePatchType,
 	)
 	if err != nil {
-		if isResourceUnavailable(err) {
+		if k8sutil.IsResourceUnavailable(err) {
 			app.notFoundResponse(w, r)
 		} else {
 			app.serverErrorResponse(w, r, err)

@@ -6,6 +6,7 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { genRandomChars } from '@odh-dashboard/k8s-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
@@ -22,9 +23,9 @@ import {
   replaceSecret,
 } from '#~/api/k8s/secrets';
 import { SecretModel } from '#~/api/models/k8s';
-import { genRandomChars } from '#~/utilities/string';
 
-jest.mock('#~/utilities/string', () => ({
+jest.mock('@odh-dashboard/k8s-core', () => ({
+  ...jest.requireActual('@odh-dashboard/k8s-core'),
   genRandomChars: jest.fn(),
 }));
 
@@ -128,7 +129,7 @@ describe('assembleSecret', () => {
       metadata: {
         annotations: {},
         labels: { 'opendatahub.io/dashboard': 'true' },
-        name: 'secret-undefined',
+        name: expect.stringMatching(/^secret-[a-z0-9]{6}$/),
         namespace: 'secret',
       },
       stringData: data,

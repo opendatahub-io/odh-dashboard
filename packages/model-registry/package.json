@@ -23,7 +23,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "acdf0135544891be7e245017356b6731e5e01e56"
+    "commit": "d40303726d77a1f2860ff45893ac9c6ba5117c0d"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -71,7 +71,9 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/contract-tests": "*",

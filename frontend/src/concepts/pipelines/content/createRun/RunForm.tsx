@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Form, FormGroup, FormSection } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
 import {
   MlflowFormData,
@@ -17,7 +18,6 @@ import {
   RuntimeConfigParameters,
 } from '#~/concepts/pipelines/kfTypes';
 import ProjectSection from '#~/concepts/pipelines/content/createRun/contentSections/ProjectSection';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { ActiveExperimentSelector } from '#~/concepts/pipelines/content/experiment/ExperimentSelector';
 import { useLatestPipelineVersion } from '#~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import { getNameEqualsFilter } from '#~/concepts/pipelines/utils';

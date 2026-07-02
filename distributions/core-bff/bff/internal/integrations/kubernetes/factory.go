@@ -98,5 +98,9 @@ func (f *TokenClientFactory) GetClient(ctx context.Context) (KubernetesClientInt
 		return nil, fmt.Errorf("invalid or missing identity token")
 	}
 
+	if identity.DevFallback {
+		return NewKubeconfigKubernetesClient(f.Logger)
+	}
+
 	return f.NewTokenKubernetesClientFn(identity.Token.Raw(), f.Logger)
 }

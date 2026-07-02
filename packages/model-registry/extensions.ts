@@ -1,28 +1,18 @@
-import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type {
   AutofillConnectionButtonExtension,
+  CatalogSettingsUrlExtension,
+  ModelCatalogBannerExtension,
   NamespaceSelectorExtension,
   ProjectsBridgeProviderExtension,
+  RegistrySettingsUrlExtension,
 } from '@mf/modelRegistry/extension-points';
 
 const CATALOG_SETTINGS_PAGE_TITLE = 'Model catalog settings';
 const CATALOG_SETTINGS_URL = '/settings/model-resources-operations/model-catalog';
 
-type ModelCatalogBannerExtension = Extension<
-  'model-catalog.page/banner',
-  {
-    id: string;
-    component: CodeRef<React.ComponentType>;
-  }
->;
-
-type CatalogSettingsUrlExtension = Extension<
-  'model-catalog.settings/url',
-  {
-    url: string;
-    title: string;
-  }
->;
+const REGISTRY_SETTINGS_PAGE_TITLE = 'Model registry settings';
+const REGISTRY_SETTINGS_URL = '/settings/model-resources-operations/model-registry';
 
 const extensions: (
   | AutofillConnectionButtonExtension
@@ -30,6 +20,7 @@ const extensions: (
   | ProjectsBridgeProviderExtension
   | ModelCatalogBannerExtension
   | CatalogSettingsUrlExtension
+  | RegistrySettingsUrlExtension
   | Extension
 )[] = [
   {
@@ -56,6 +47,13 @@ const extensions: (
     properties: {
       url: CATALOG_SETTINGS_URL,
       title: CATALOG_SETTINGS_PAGE_TITLE,
+    },
+  },
+  {
+    type: 'model-registry.settings/url',
+    properties: {
+      url: REGISTRY_SETTINGS_URL,
+      title: REGISTRY_SETTINGS_PAGE_TITLE,
     },
   },
   {

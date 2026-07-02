@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import React from 'react';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { BiasMetricConfig } from '#~/concepts/trustyai/types';
 import { byId } from '#~/pages/modelServing/screens/metrics/utils';
 

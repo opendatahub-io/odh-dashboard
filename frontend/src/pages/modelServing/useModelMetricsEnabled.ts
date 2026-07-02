@@ -1,4 +1,4 @@
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 
 const useModelMetricsEnabled = (): [modelMetricsEnabled: boolean] => {
   const performanceMetricsAreaAvailable = useIsAreaAvailable(

@@ -17,8 +17,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo/nemomocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
@@ -69,7 +67,6 @@ type App struct {
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
 	nemoClientFactory       nemopkg.NemoClientFactory
-	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
 	mlflowExternalURL       string
@@ -153,15 +150,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		nemoClientFactory = nemopkg.NewRealClientFactory()
 	}
 
-	// Initialize MaaS client factory - clients will be created per request
-	var maasClientFactory maas.MaaSClientFactory
-	if cfg.MockMaaSClient {
-		logger.Info("Using mock MaaS client factory")
-		maasClientFactory = maasmocks.NewMockClientFactory()
-	} else {
-		logger.Info("Using real MaaS client factory", "url", cfg.MaaSURL)
-		maasClientFactory = maas.NewRealClientFactory()
-	}
+	// Note: MaaS client factory removed - Gen AI BFF now communicates with MaaS via inter-BFF
+	// communication through the BFF client factory initialized below
 
 	// Initialize OpenAPI handler
 	openAPIHandler, err := NewOpenAPIHandler(logger)
@@ -325,7 +315,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: llamaStackClientFactory,
 		nemoClientFactory:       nemoClientFactory,
-		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowFactory,
 		mlflowExternalURL:       mlflowExternalURL,
@@ -396,7 +385,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackModelsHandler))))
 
 	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
-	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
+	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
 
 	// Responses passthrough — forwards pre-built OGX API request bodies as-is.
 	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).
@@ -427,8 +416,9 @@ func (app *App) Routes() http.Handler {
 
 	// Kubernetes routes
 
-	// AI Assets Models (Kubernetes)
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.ModelsAAHandler))
+	// AI Assets Models (Kubernetes + MaaS)
+	// AttachBFFMaaSClient middleware enables MaaS model fetching when sources=maas query param is used
+	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.ModelsAAHandler))))
 	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
 	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
 
@@ -448,7 +438,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.OGXServerStatusPath, app.AttachNamespace(app.LlamaStackDistributionStatusHandler))
 
 	// OGX server install endpoint (URL remains /lsd/install)
-	apiRouter.POST(constants.OGXServerInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
+	apiRouter.POST(constants.OGXServerInstallPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.LlamaStackDistributionInstallHandler))))
 
 	// OGX server delete endpoint (URL remains /lsd/delete)
 	apiRouter.DELETE(constants.OGXServerDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
@@ -468,16 +458,15 @@ func (app *App) Routes() http.Handler {
 
 	// MaaS API routes
 
-	// Models (MaaS)
-	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler))))
+	// Models (MaaS) - via inter-BFF communication with MaaS BFF
+	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSModelsHandler))))
 
-	// Tokens (MaaS) - direct calls to MaaS controller
-	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
-	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
-
-	// Inter-BFF Communication routes - calls to MaaS BFF service
-	apiRouter.POST(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSIssueTokenHandler))))
-	apiRouter.DELETE(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSRevokeAllTokensHandler))))
+	// Tokens (MaaS) - via inter-BFF communication with MaaS BFF
+	// Note: DELETE /maas/tokens was removed (commit c66288920) - token lifecycle
+	// is managed through the MaaS BFF /api-keys endpoint directly by the MaaS frontend.
+	// The Gen AI BFF only provides POST for ephemeral token issuance for playground sessions.
+	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSIssueTokenHandler))))
+	// Confirmed: no frontend callers reference DELETE /maas/tokens (verified packages/gen-ai/frontend).
 
 	// MLflow API routes
 	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Button } from '@patternfly/react-core';
+import { Button, Label, LabelGroup } from '@patternfly/react-core';
 import { getRoleDescription, getRoleDisplayName } from '#~/concepts/permissions/utils';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
 import type { RoleListRow } from './types';
@@ -20,10 +20,11 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
   onEdit,
   onDuplicate,
 }) => {
-  const { roleRef, role } = row;
+  const { roleRef, role, userLabels } = row;
   const isClusterRole = roleRef.kind === 'ClusterRole';
   const displayName = getRoleDisplayName(roleRef, role);
   const description = getRoleDescription(roleRef, role);
+  const labelEntries = Object.entries(userLabels);
 
   const clusterRoleEditTooltip = 'Cluster roles cannot be edited from a project page';
   const clusterRoleDuplicateTooltip = 'Cluster roles cannot be duplicated from a project page';
@@ -59,6 +60,19 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
         </Button>
       </Td>
       <Td dataLabel="Description">{description ?? '-'}</Td>
+      <Td dataLabel="Labels" data-testid="role-labels-cell">
+        {labelEntries.length > 0 ? (
+          <LabelGroup>
+            {labelEntries.map(([key, value]) => (
+              <Label key={key} isCompact variant="outline" data-testid={`role-label-${key}`}>
+                {value}
+              </Label>
+            ))}
+          </LabelGroup>
+        ) : (
+          '-'
+        )}
+      </Td>
       <Td dataLabel="Type">
         <RoleLabel roleRef={roleRef} role={role} isCompact />
       </Td>
