@@ -1578,7 +1578,11 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	// Auto-provision pgvector or fall back to manual BFF env config.
 	var pgConn *pgvector.Connection
 	pgvectorProvisioned := false
-	if kc.SAClient != nil {
+	provisionClient := kc.SAClient
+	if provisionClient == nil && kc.EnvConfig.PgvectorImage != "" {
+		provisionClient = kc.Client
+	}
+	if provisionClient != nil && kc.EnvConfig.PgvectorImage != "" {
 		// Gate SA-elevated provisioning on user authorization: the caller must
 		// be allowed to create OGXServers in the target namespace before the SA
 		// client creates Deployments/PVCs/Secrets on their behalf.
@@ -1590,9 +1594,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			return nil, fmt.Errorf("user is not authorized to manage OGXServers in namespace %s", namespace)
 		}
 
-		if kc.EnvConfig.PgvectorImage == "" {
-			return nil, fmt.Errorf("pgvector image not configured: set %s via the operator or the --pgvector-image flag", pgvector.RelatedImageEnvVar)
-		}
 		opts := pgvector.Options{
 			Image: kc.EnvConfig.PgvectorImage,
 			OGXServerLabelSelector: map[string]string{
@@ -1600,7 +1601,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			},
 			Logger: kc.Logger,
 		}
-		provisioned, err := pgvector.EnsurePostgres(ctx, kc.SAClient, namespace, opts)
+		provisioned, err := pgvector.EnsurePostgres(ctx, provisionClient, namespace, opts)
 		if err != nil {
 			if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
 				return nil, fmt.Errorf("the dashboard service account does not have permission to provision the vector database; contact your cluster administrator to apply the required ClusterRole: %w", err)
@@ -1619,20 +1620,24 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			pgConn = &conn
 			kc.Logger.Info("using manually configured pgvector", "host", pgConn.Host)
 		} else {
-			kc.Logger.Info("pgvector not configured (no SAClient, no PGVECTOR_HOST); vector store features will be unavailable")
+			kc.Logger.Info("pgvector not configured (no pgvector image, no PGVECTOR_HOST); vector store features will be unavailable")
 		}
 	}
 
 	// rollbackPgvector cleans up auto-provisioned pgvector resources when a
 	// later step in the install pipeline fails. No-op when pgvector was not
-	// provisioned (manual config path or SAClient == nil).
+	// provisioned (manual config path).
 	rollbackPgvector := func(cause error) error {
 		if !pgvectorProvisioned {
 			return cause
 		}
 		rollbackCtx, rollbackCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer rollbackCancel()
-		if deleteErr := pgvector.DeletePostgresResources(rollbackCtx, kc.SAClient, namespace); deleteErr != nil {
+		rollbackClient := kc.SAClient
+		if rollbackClient == nil {
+			rollbackClient = kc.Client
+		}
+		if deleteErr := pgvector.DeletePostgresResources(rollbackCtx, rollbackClient, namespace); deleteErr != nil {
 			kc.Logger.Error("failed to roll back pgvector resources", "error", deleteErr, "namespace", namespace)
 			return fmt.Errorf("%w; additionally failed to roll back pgvector resources: %v", cause, deleteErr)
 		}
@@ -2645,8 +2650,12 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	// During a reconfigure, strip owner references from pgvector resources BEFORE
 	// deleting the OGXServer. Otherwise Kubernetes GC cascading-deletes pgvector
 	// when the OGXServer (the owner) is removed.
-	if !deletePgvector && kc.SAClient != nil {
-		if err := pgvector.ClearOwnerReferences(ctx, kc.SAClient, namespace); err != nil {
+	if !deletePgvector {
+		ownerRefClient := kc.SAClient
+		if ownerRefClient == nil {
+			ownerRefClient = kc.Client
+		}
+		if err := pgvector.ClearOwnerReferences(ctx, ownerRefClient, namespace); err != nil {
 			kc.Logger.Warn("failed to clear pgvector owner references before reconfigure delete", "error", err, "namespace", namespace)
 		}
 	}
@@ -2661,8 +2670,12 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 
 	// Clean up auto-provisioned pgvector resources only on full playground delete,
 	// not on reconfigure (model switch) where the vector store data should persist.
-	if deletePgvector && kc.SAClient != nil {
-		if err := pgvector.DeletePostgresResources(ctx, kc.SAClient, namespace); err != nil {
+	if deletePgvector {
+		deleteClient := kc.SAClient
+		if deleteClient == nil {
+			deleteClient = kc.Client
+		}
+		if err := pgvector.DeletePostgresResources(ctx, deleteClient, namespace); err != nil {
 			kc.Logger.Error("failed to delete pgvector resources", "error", err, "namespace", namespace)
 			return targetServer, fmt.Errorf("OGXServer deleted but pgvector cleanup failed: %w", err)
 		}

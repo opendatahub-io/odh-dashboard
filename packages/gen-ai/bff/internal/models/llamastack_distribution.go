@@ -154,7 +154,7 @@ type ErrorResponse struct {
 }
 
 type OGXServerDeleteRequest struct {
-	Name               string `json:"name"`
+	Name                string `json:"name"`
 	PreserveVectorStore *bool  `json:"preserve_vector_store,omitempty"`
 }
 

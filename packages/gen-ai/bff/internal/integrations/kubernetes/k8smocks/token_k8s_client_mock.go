@@ -617,8 +617,12 @@ func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identit
 	}
 
 	// Clean up pgvector resources only on full playground delete (mirrors real implementation).
-	if deletePgvector && m.SAClient != nil {
-		_ = pgvector.DeletePostgresResources(ctx, m.SAClient, namespace)
+	if deletePgvector {
+		deleteClient := m.SAClient
+		if deleteClient == nil {
+			deleteClient = m.Client
+		}
+		_ = pgvector.DeletePostgresResources(ctx, deleteClient, namespace)
 	}
 
 	return target, nil
