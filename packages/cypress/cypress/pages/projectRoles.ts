@@ -13,6 +13,10 @@ class RolesTableRow extends TableRow {
     return this.find().find('[data-label="Type"]');
   }
 
+  findLabelsCell() {
+    return this.find().findByTestId('role-labels-cell');
+  }
+
   shouldHaveName(name: string) {
     this.findNameLink().should('have.text', name);
     return this;
@@ -208,6 +212,38 @@ class ProjectRolesTab {
 
   findRuleSaveButton() {
     return cy.findByTestId('modal-submit-button');
+  }
+
+  findSelectTemplateModal() {
+    return cy.findByTestId('select-template-modal');
+  }
+
+  findTemplateSearchInput() {
+    return cy.findByTestId('template-search-input').find('input');
+  }
+
+  findDiscardChangesModal() {
+    return cy.findByTestId('discard-changes-confirm-modal');
+  }
+
+  findDiscardButton() {
+    return cy.findByTestId('discard-confirm-button');
+  }
+
+  findDiscardCancelButton() {
+    return cy.findByTestId('discard-cancel-button');
+  }
+
+  findTemplateItem(templateId: string) {
+    return cy.findByTestId(`template-item-${templateId}`);
+  }
+
+  findSelectTemplateButton(templateId: string) {
+    return cy.findByTestId(`select-template-${templateId}`);
+  }
+
+  findPermissionRulesTable() {
+    return cy.findByTestId('permission-rules-table');
   }
 
   getRow(name: string) {

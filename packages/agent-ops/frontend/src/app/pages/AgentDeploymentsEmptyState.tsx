@@ -1,8 +1,22 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateVariant,
+} from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
+import DeployAgentButton from '~/app/components/DeployAgentButton';
 
-const AgentDeploymentsEmptyState: React.FC = () => (
+type AgentDeploymentsEmptyStateProps = {
+  namespace?: string;
+  onDeployAgent: () => void;
+};
+
+const AgentDeploymentsEmptyState: React.FC<AgentDeploymentsEmptyStateProps> = ({
+  namespace,
+  onDeployAgent,
+}) => (
   <EmptyState
     headingLevel="h2"
     icon={CubesIcon}
@@ -13,6 +27,9 @@ const AgentDeploymentsEmptyState: React.FC = () => (
     <EmptyStateBody>
       No agents have been deployed yet. Deploy an agent to get started.
     </EmptyStateBody>
+    <EmptyStateFooter>
+      <DeployAgentButton namespace={namespace} onDeployAgent={onDeployAgent} />
+    </EmptyStateFooter>
   </EmptyState>
 );
 

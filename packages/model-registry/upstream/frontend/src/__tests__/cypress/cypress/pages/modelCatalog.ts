@@ -41,6 +41,11 @@ class ModelCatalog {
     cy.testA11y();
   }
 
+  waitForPerformanceInsightsTab() {
+    this.findPerformanceInsightsTabContent().should('be.visible');
+    cy.testA11y();
+  }
+
   findFilter(title: string) {
     return new ModelCatalogFilter(title).find();
   }
@@ -381,6 +386,15 @@ class ModelCatalog {
   clickResetFilter() {
     this.findResetFilterButton().click();
     return this;
+  }
+
+  // Hardware slider filter helpers (sidebar)
+  findMinVramFilter() {
+    return cy.findByTestId('minimum-vram-filter');
+  }
+
+  findContainerSizeFilter() {
+    return cy.findByTestId('container-size-filter');
   }
 
   // Cold start latency filter helpers

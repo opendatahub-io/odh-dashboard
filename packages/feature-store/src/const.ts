@@ -1,6 +1,9 @@
 import { ProjectList } from './types/featureStoreProjects';
 
 export const FEATURE_STORE_API_VERSION = 'v1';
+
+/** Max items per page for /all endpoints (Feast API rejects limit > 100 with 422). */
+export const FEATURE_STORE_PAGE_SIZE = 100;
 export const FEATURE_STORE_UI_LABEL_KEY = 'feature-store-ui';
 export const FEATURE_STORE_UI_LABEL_VALUE = 'enabled';
 

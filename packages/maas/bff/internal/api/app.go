@@ -160,18 +160,21 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	var subscriptionsRepo repositories.SubscriptionsRepositoryInterface
 	var policiesRepo repositories.PoliciesRepositoryInterface
 	var modelRefsRepo repositories.MaaSModelRefsRepositoryInterface
+	var yamlRepo repositories.YamlRepositoryInterface
 
 	if cfg.MockK8Client {
 		subscriptionsRepo = repositories.NewMockSubscriptionsRepository(logger)
 		policiesRepo = repositories.NewMockPoliciesRepository(logger)
 		modelRefsRepo = repositories.NewMockMaaSModelRefsRepository(logger)
+		yamlRepo = repositories.NewMockYamlRepository(logger)
 	} else {
 		subscriptionsRepo = repositories.NewSubscriptionsRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
 		policiesRepo = repositories.NewPoliciesRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
 		modelRefsRepo = repositories.NewMaaSModelRefsRepository(logger, k8sFactory)
+		yamlRepo = repositories.NewYamlRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
 	}
 
-	repos, err := repositories.NewRepositories(logger, k8sFactory, cfg, subscriptionsRepo, policiesRepo, modelRefsRepo)
+	repos, err := repositories.NewRepositories(logger, k8sFactory, cfg, subscriptionsRepo, policiesRepo, modelRefsRepo, yamlRepo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create repositories: %w", err)
 	}
@@ -219,6 +222,7 @@ func (app *App) Routes() http.Handler {
 	attachSubscriptionHandlers(apiRouter, app)
 	attachPolicyHandlers(apiRouter, app)
 	attachMaaSModelRefHandlers(apiRouter, app)
+	attachYamlHandlers(apiRouter, app)
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithApp(app, ListModelsHandler))
 	apiRouter.GET(constants.ModelsOverviewPath, handlerWithApp(app, ListModelsOverviewHandler))
 	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))

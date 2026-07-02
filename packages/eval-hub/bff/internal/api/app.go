@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/bffclient"
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/bffclient/bffmocks"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 	ehmocks "github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub/ehmocks"
 	k8s "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
@@ -40,8 +42,13 @@ const (
 	ProvidersPath            = ApiPathPrefix + "/evaluations/providers"
 	EvalHubCRStatusPath      = ApiPathPrefix + "/evalhub/status"
 	EvalHubServiceHealthPath = ApiPathPrefix + "/evalhub/health"
-	InferenceServicesPath    = ApiPathPrefix + "/inferenceservices"
-	VerifyConnectionPath     = ApiPathPrefix + "/evaluations/verify-connection"
+
+	// Inter-BFF: model-catalog security artifacts
+	CatalogSourceID                   = "source_id"
+	CatalogModelName                  = "model_name"
+	CatalogModelSecurityArtifactsPath = ApiPathPrefix + "/catalog/sources/:" + CatalogSourceID + "/security_artifacts/*" + CatalogModelName
+	InferenceServicesPath             = ApiPathPrefix + "/inferenceservices"
+	VerifyConnectionPath              = ApiPathPrefix + "/evaluations/verify-connection"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -71,6 +78,7 @@ type App struct {
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	evalHubClientFactory    evalhub.EvalHubClientFactory
+	bffClientFactory        bffclient.BFFClientFactory
 	repositories            *repositories.Repositories
 	testEnv                 *envtest.Environment
 	rootCAs                 *x509.CertPool
@@ -160,6 +168,40 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		ehFactory = evalhub.NewRealClientFactory()
 	}
 
+	// Inter-BFF client factory (model-catalog BFF)
+	bffConfig := bffclient.NewDefaultBFFClientConfig()
+	bffConfig.MockBFFClients = cfg.MockBFFClients
+	bffConfig.PodNamespace = dashboardNamespace
+	bffConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
+
+	if mcConfig := bffConfig.GetServiceConfig(bffclient.BFFTargetModelCatalog); mcConfig != nil {
+		if cfg.BFFModelCatalogServiceName != "" {
+			mcConfig.ServiceName = cfg.BFFModelCatalogServiceName
+		}
+		if cfg.BFFModelCatalogServicePort != 0 {
+			mcConfig.Port = cfg.BFFModelCatalogServicePort
+		}
+		mcConfig.TLSEnabled = cfg.BFFModelCatalogTLSEnabled
+		mcConfig.DevOverrideURL = cfg.BFFModelCatalogDevURL
+		if cfg.BFFModelCatalogAuthMethod != "" {
+			mcConfig.AuthMethod = cfg.BFFModelCatalogAuthMethod
+		}
+		if cfg.BFFModelCatalogAuthTokenHeader != "" {
+			mcConfig.AuthTokenHeader = cfg.BFFModelCatalogAuthTokenHeader
+		}
+		// AuthTokenPrefix can be empty (which is the ODH default)
+		mcConfig.AuthTokenPrefix = cfg.BFFModelCatalogAuthTokenPrefix
+	}
+
+	var bffFactory bffclient.BFFClientFactory
+	if cfg.MockBFFClients {
+		bffFactory = bffmocks.NewMockClientFactory(logger)
+		logger.Info("Using mock BFF clients for inter-BFF communication")
+	} else {
+		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
+		logger.Info("Inter-BFF client configured", "target", bffclient.BFFTargetModelCatalog)
+	}
+
 	var openAPIHandler *OpenAPIHandler
 	openAPIHandler, err = NewOpenAPIHandler(logger)
 	if err != nil {
@@ -171,6 +213,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
 		evalHubClientFactory:    ehFactory,
+		bffClientFactory:        bffFactory,
 		repositories:            repositories.NewRepositories(),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
@@ -218,6 +261,11 @@ func (app *App) Routes() http.Handler {
 
 	// Connection verification (probes external endpoints, no EvalHub REST client needed)
 	apiRouter.POST(VerifyConnectionPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyConnectionHandler)))
+
+	// Inter-BFF: model-catalog security artifacts (only security_artifacts endpoint is allowed by the bffclient allowlist)
+	apiRouter.GET(CatalogModelSecurityArtifactsPath, app.AttachNamespace(app.RequireAccessToService(
+		bffclient.AttachBFFClient(app.bffClientFactory, bffclient.BFFTargetModelCatalog)(
+			app.GetCatalogModelSecurityArtifactsHandler))))
 
 	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
 	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.EvalHubCRStatusHandler))
