@@ -1,5 +1,6 @@
 import { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes';
 import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
+import parseK8sQuantity from './parseK8sQuantity';
 
 type FlavorResourceUsage = {
   name: string;
@@ -10,23 +11,13 @@ type FlavorResourceUsage = {
   }[];
 };
 
-const parseQuantity = (value: string | number | undefined): number => {
-  if (value == null) {
-    return 0;
-  }
-  if (typeof value === 'number') {
-    return value;
-  }
-  return parseFloat(value) || 0;
-};
-
 const getTotalBorrowed = (flavorsUsage?: FlavorResourceUsage[]): number => {
   if (!flavorsUsage) {
     return 0;
   }
   return flavorsUsage.reduce(
     (total, flavor) =>
-      total + flavor.resources.reduce((sum, r) => sum + parseQuantity(r.borrowed), 0),
+      total + flavor.resources.reduce((sum, r) => sum + parseK8sQuantity(r.borrowed), 0),
     0,
   );
 };
@@ -39,7 +30,7 @@ const getNominalQuota = (cq: ClusterQueueKind): number => {
     (total, rg) =>
       total +
       rg.flavors.reduce(
-        (sum, f) => sum + f.resources.reduce((s, r) => s + parseQuantity(r.nominalQuota), 0),
+        (sum, f) => sum + f.resources.reduce((s, r) => s + parseK8sQuantity(r.nominalQuota), 0),
         0,
       ),
     0,
@@ -51,7 +42,8 @@ const getTotalUsage = (flavorsUsage?: FlavorResourceUsage[]): number => {
     return 0;
   }
   return flavorsUsage.reduce(
-    (total, flavor) => total + flavor.resources.reduce((sum, r) => sum + parseQuantity(r.total), 0),
+    (total, flavor) =>
+      total + flavor.resources.reduce((sum, r) => sum + parseK8sQuantity(r.total), 0),
     0,
   );
 };
