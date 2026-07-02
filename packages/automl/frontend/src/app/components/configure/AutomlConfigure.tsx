@@ -906,7 +906,7 @@ function AutomlConfigure({
                       </ConfigureFormGroup>
                     </StackItem>
 
-                    <StackItem>
+                    <StackItem className="automl-configure__form-field">
                       <ConfigureFormGroup
                         label="Prediction type"
                         isRequired
