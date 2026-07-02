@@ -29,7 +29,7 @@ import FeatureStoreLabels from '../FeatureStoreLabels';
 const highlightText = (textContent: string, searchTerm: string): React.ReactNode => {
   if (!searchTerm.trim()) return textContent;
 
-  const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i');
   const parts = textContent.split(regex);
 
   return parts.map((part, index) =>

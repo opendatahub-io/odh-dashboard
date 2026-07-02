@@ -216,23 +216,6 @@ rules:
     resources:
       - auths
   - apiGroups:
-      - ogx.io
-    verbs:
-      - get
-      - list
-      - watch
-    resources:
-      - ogxservers
-  - apiGroups:
-      - trustyai.opendatahub.io
-    verbs:
-      - get
-      - list
-      - watch
-    resources:
-      - guardrailsorchestrators
-      - evalhubs
-  - apiGroups:
       - feast.dev
     verbs:
       - get

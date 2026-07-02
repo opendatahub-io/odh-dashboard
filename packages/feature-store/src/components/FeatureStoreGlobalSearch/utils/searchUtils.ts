@@ -20,7 +20,10 @@ export const getFeatureStoreRoute = (
     case 'dataSource':
       return featureDataSourceRoute(name, project);
     case 'feature':
-      return featureRoute(name, featureView ?? '', project);
+      if (!featureView) {
+        return `/develop-train/feature-store/${project}`;
+      }
+      return featureRoute(name, featureView, project);
     case 'featureView':
       return featureViewRoute(name, project);
     case 'featureService':
