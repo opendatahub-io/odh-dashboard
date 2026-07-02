@@ -13,7 +13,7 @@ const ArtifactRunsContext = React.createContext<RunsCache>({
   loading: new Set(),
 });
 
-export const useArtifactRuns = (): RunsCache => React.useContext(ArtifactRunsContext);
+export const useArtifactRunsCache = (): RunsCache => React.useContext(ArtifactRunsContext);
 
 type ArtifactRunsProviderProps = {
   children: React.ReactNode;

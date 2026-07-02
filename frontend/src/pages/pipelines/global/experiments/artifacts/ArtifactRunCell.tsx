@@ -5,7 +5,7 @@ import { Artifact } from '#~/third_party/mlmd';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { globalPipelineRunDetailsRoute } from '#~/routes/pipelines/runs';
 import { getGenericErrorCode } from '#~/api/errorUtils';
-import { useArtifactRuns } from './ArtifactRunsContext';
+import { useArtifactRunsCache } from './ArtifactRunsContext';
 import { extractRunIdFromUri } from './utils';
 
 type ArtifactRunCellProps = {
@@ -16,7 +16,7 @@ const ArtifactRunCell: React.FC<ArtifactRunCellProps> = ({ artifact }) => {
   const { namespace } = usePipelinesAPI();
   const uri = artifact.getUri();
   const runId = extractRunIdFromUri(uri);
-  const { runs, errors, loading } = useArtifactRuns();
+  const { runs, errors, loading } = useArtifactRunsCache();
 
   if (!runId) {
     return <>—</>;
