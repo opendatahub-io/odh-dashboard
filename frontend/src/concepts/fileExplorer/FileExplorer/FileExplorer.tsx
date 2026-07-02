@@ -76,7 +76,13 @@ import {
   ActionsColumn,
   type IAction,
 } from '@patternfly/react-table';
-import { EllipsisVIcon, InfoCircleIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
+import {
+  EllipsisVIcon,
+  InfoCircleIcon,
+  OutlinedEyeIcon,
+  TimesIcon,
+  TrashIcon,
+} from '@patternfly/react-icons';
 import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 import type {
   ExplorerFile,
@@ -433,7 +439,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     title: defaults.labels.tableActionRemoveSelection,
                     onClick: () => onRemoveSelection(file),
                   });
-                } else {
+                } else if (!isUnselectable) {
                   actions.push({
                     title: isFolder(file)
                       ? defaults.labels.tableActionSelectFolder
@@ -496,7 +502,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         flexWrap={{ default: 'nowrap' }}
                       >
                         <FlexItem>
-                          {isFolder(file) ? (
+                          {isFolder(file) && !file.disabled ? (
                             <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>
                               <Truncate content={file.name} />
                             </Button>
@@ -810,6 +816,7 @@ interface DetailsPanelProps {
   filesToView?: ExplorerFiles;
   onViewDetails: (file: ExplorerFile) => void;
   onRemoveSelection: (file: ExplorerFile) => void;
+  onClearAllSelections: () => void;
   onClearDetails: () => void;
 }
 const DetailsPanel: React.FC<DetailsPanelProps> = ({
@@ -817,6 +824,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
   filesToView,
   onViewDetails,
   onRemoveSelection,
+  onClearAllSelections,
   onClearDetails,
 }) => {
   const detailsSubCard = (
@@ -851,7 +859,27 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
 
   const selectedFilesSubCard = (
     <Card isPlain isCompact>
-      <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
+      <CardHeader
+        actions={{
+          hasNoOffset: true,
+          actions: [
+            <Button
+              key="clear"
+              variant="link"
+              isInline
+              isDisabled={!Array.isArray(selectedFiles) || selectedFiles.length < 1}
+              onClick={onClearAllSelections}
+              data-testid="file-explorer-clear-all-selections"
+              icon={<TrashIcon />}
+              iconPosition="end"
+            >
+              Clear selection
+            </Button>,
+          ],
+        }}
+      >
+        <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
+      </CardHeader>
       <CardBody className="pf-v6-u-pt-sm">
         {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
           <SelectedFilesDataList
@@ -1173,8 +1201,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                       folders && folders.length > 0
                         ? folders[folders.length - 1].name
                         : source
-                          ? `${source.name} (root)`
-                          : undefined,
+                        ? `${source.name} (root)`
+                        : undefined,
                     )
                   }
                   value={searchQuery}
@@ -1240,6 +1268,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     filesToView={filesToView}
                     onViewDetails={handleViewDetails}
                     onRemoveSelection={handleRemoveSelection}
+                    onClearAllSelections={() => {
+                      setSelectedFiles([]);
+                      setFilesToView([]);
+                    }}
                     onClearDetails={handleClearDetails}
                   />
                 </GridItem>

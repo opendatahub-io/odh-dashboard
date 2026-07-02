@@ -90,6 +90,9 @@ interface S3FileExplorerProps {
 
   /** The file selection mode: "radio" for single selection, "checkbox" for multi-select. Defaults to "radio". */
   selection?: 'radio' | 'checkbox';
+
+  /** Absolute folder paths that should be disabled (unselectable and unnavigable). Example: `["/pipeline-output"]` disables the `pipeline-output` folder at the bucket root. */
+  disabledPaths?: string[];
 }
 const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   id,
@@ -105,11 +108,12 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   unselectableReason,
   rootPath,
   selection: selectionProp = 'radio',
+  disabledPaths,
 }) => {
   const effectiveRoot = rootPath && rootPath !== '/' ? rootPath : '/';
   const rootFolderName =
     effectiveRoot !== '/'
-      ? (effectiveRoot.split('/').filter(Boolean).pop() ?? effectiveRoot)
+      ? effectiveRoot.split('/').filter(Boolean).pop() ?? effectiveRoot
       : undefined;
 
   // State -------------------------------------------------------------------->
@@ -312,17 +316,24 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   // Derived state -------------------------------------------------------------->
 
   const filesWithSelection = useMemo(() => {
-    if (!selectedFolder) {
-      return filesToRender;
-    }
-    const folderPrefix = selectedFolder.path.endsWith('/')
-      ? selectedFolder.path
-      : `${selectedFolder.path}/`;
+    const disabledSet = disabledPaths ? new Set(disabledPaths) : undefined;
+    const folderPrefix = selectedFolder
+      ? selectedFolder.path.endsWith('/')
+        ? selectedFolder.path
+        : `${selectedFolder.path}/`
+      : undefined;
+
     return filesToRender.map((file) => {
-      const isChild = file.path.startsWith(folderPrefix);
-      return isChild ? { ...file, forceShowAsSelected: true, selectable: false } : file;
+      let result = file;
+      if (folderPrefix && file.path.startsWith(folderPrefix)) {
+        result = { ...result, forceShowAsSelected: true, selectable: false };
+      }
+      if (disabledSet?.has(file.path) && isFolder(file)) {
+        result = { ...result, selectable: false, disabled: true };
+      }
+      return result;
     });
-  }, [filesToRender, selectedFolder]);
+  }, [filesToRender, selectedFolder, disabledPaths]);
 
   // Rendering ---------------------------------------------------------------->
 
@@ -444,13 +455,16 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const handleNavigate = useCallback(
     (folder: Folder) => {
+      if (disabledPaths?.includes(folder.path)) {
+        return;
+      }
       navigateTo(folder.path, perPageToRender);
     },
-    [navigateTo, perPageToRender],
+    [navigateTo, perPageToRender, disabledPaths],
   );
 
   const handleNavigateRoot = useCallback(() => {
-    navigateTo(effectiveRoot, perPageToRender ?? DEFAULT_PER_PAGE);
+    navigateTo(effectiveRoot, perPageToRender);
   }, [navigateTo, perPageToRender, effectiveRoot]);
 
   const handleSearch = useCallback(
