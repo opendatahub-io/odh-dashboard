@@ -253,7 +253,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
   });
 
   describe('advanced routing field', () => {
-    it('should show checkbox in advanced settings when llm-d active and flag enabled', () => {
+    it('should show routing dropdown with default selected when llm-d active and flag enabled', () => {
       initIntercepts();
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
@@ -263,10 +263,11 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      cy.findByTestId('advanced-routing-checkbox').should('exist');
+      cy.findByTestId('routing-config-select').should('exist');
+      cy.findByTestId('routing-config-select').should('contain.text', 'Default optimized routing');
     });
 
-    it('should hide checkbox when flag disabled', () => {
+    it('should hide routing dropdown when flag disabled', () => {
       initIntercepts({ llmdTopologyConfigsEnabled: false });
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
@@ -276,25 +277,25 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      cy.findByTestId('advanced-routing-checkbox').should('not.exist');
-    });
-
-    it('should reveal routing config dropdown when checkbox is checked', () => {
-      initIntercepts();
-      modelServingGlobal.visit('test-project');
-      modelServingGlobal.findDeployModelButton().click();
-      navigateToModelDeploymentStep();
-
-      modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().should('be.enabled').click();
-
       cy.findByTestId('routing-config-select').should('not.exist');
-      cy.findByTestId('advanced-routing-checkbox').click();
-      cy.findByTestId('routing-config-select').should('exist');
     });
 
-    it('should show router configs in dropdown', () => {
+    it('should disable routing dropdown when no router configs exist', () => {
+      initIntercepts({ topologyConfigs: [], routerConfigs: [] });
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.findModelDeploymentNameInput().type('test-model');
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      cy.findByTestId('routing-config-select').should('exist');
+      cy.findByTestId('routing-config-select').should('contain.text', 'Default optimized routing');
+      cy.findByTestId('routing-config-select').should('be.disabled');
+    });
+
+    it('should show router configs alongside default option in dropdown', () => {
       initIntercepts();
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
@@ -304,13 +305,13 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      cy.findByTestId('advanced-routing-checkbox').click();
       cy.findByTestId('routing-config-select').click();
+      cy.findByTestId('routing-config-option-default').should('exist');
       cy.findByTestId('routing-config-option-managed-scheduler-httproute').should('exist');
       cy.findByTestId('routing-config-option-managed-scheduler').should('exist');
     });
 
-    it('should clear selection when checkbox is unchecked', () => {
+    it('should allow selecting a custom routing config', () => {
       initIntercepts();
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
@@ -320,8 +321,25 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      // Check and select a config
-      cy.findByTestId('advanced-routing-checkbox').click();
+      cy.findByTestId('routing-config-select').click();
+      cy.findByTestId('routing-config-option-managed-scheduler-httproute').click();
+      cy.findByTestId('routing-config-select').should(
+        'contain.text',
+        'Managed scheduler with HTTPRoute',
+      );
+    });
+
+    it('should revert to default when default option is re-selected', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.findModelDeploymentNameInput().type('test-model');
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Select a custom config
       cy.findByTestId('routing-config-select').click();
       cy.findByTestId('routing-config-option-managed-scheduler-httproute').click();
       cy.findByTestId('routing-config-select').should(
@@ -329,9 +347,10 @@ describe('Model Serving LLMD Topology & Routing', () => {
         'Managed scheduler with HTTPRoute',
       );
 
-      // Uncheck — dropdown should disappear
-      cy.findByTestId('advanced-routing-checkbox').click();
-      cy.findByTestId('routing-config-select').should('not.exist');
+      // Switch back to default
+      cy.findByTestId('routing-config-select').click();
+      cy.findByTestId('routing-config-option-default').click();
+      cy.findByTestId('routing-config-select').should('contain.text', 'Default optimized routing');
     });
   });
 });

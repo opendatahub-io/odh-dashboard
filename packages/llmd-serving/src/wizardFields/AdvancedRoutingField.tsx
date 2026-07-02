@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Checkbox,
+  Content,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -66,7 +66,6 @@ type AdvancedRoutingDependencies = {
 // --- Field value ---
 
 export type AdvancedRoutingFieldData = {
-  enabled: boolean;
   selectedConfig?: LLMInferenceServiceConfigKind;
 };
 
@@ -91,6 +90,8 @@ const getCompatibleRouterConfigs = (
   });
 };
 
+const DEFAULT_ROUTING_KEY = '__default-optimized-routing__';
+
 const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
   value,
   onChange,
@@ -107,11 +108,17 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
     [routerConfigs, topologyType],
   );
 
-  const noConfigsAvailable = isLoaded && !hasLoadError && compatibleConfigs.length === 0;
+  const options: SimpleSelectOption[] = React.useMemo(() => {
+    const result: SimpleSelectOption[] = [
+      {
+        key: DEFAULT_ROUTING_KEY,
+        label: 'Default optimized routing',
+        dataTestId: 'routing-config-option-default',
+      },
+    ];
 
-  const options: SimpleSelectOption[] = React.useMemo(
-    () =>
-      compatibleConfigs.map((config) => {
+    result.push(
+      ...compatibleConfigs.map((config) => {
         const routingType = getConfigRoutingType(config);
         const routingLabel = routingType ? ` · ${RoutingTypeLabels[routingType]}` : '';
         return {
@@ -121,72 +128,49 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
           dataTestId: `routing-config-option-${config.metadata.name}`,
         };
       }),
-    [compatibleConfigs],
-  );
+    );
+
+    return result;
+  }, [compatibleConfigs]);
+
+  const selectedValue = value?.selectedConfig?.metadata.name ?? DEFAULT_ROUTING_KEY;
 
   return (
     <FormGroup fieldId="advanced-routing" label="Advanced routing">
       <Stack hasGutter>
         <StackItem>
-          <Checkbox
-            id="advanced-routing-checkbox"
-            label="Use advanced routing"
-            isChecked={value?.enabled ?? false}
-            onChange={(_event, checked) => {
-              onChange({
-                enabled: checked,
-                selectedConfig: checked ? value?.selectedConfig : undefined,
-              });
-            }}
-            data-testid="advanced-routing-checkbox"
-          />
+          <Content component="p">
+            Select the llm-d routing configuration for this deployment
+          </Content>
         </StackItem>
-        {value?.enabled && (
-          <StackItem>
-            <FormGroup
-              fieldId="routing-config-select"
-              label="Custom routing configuration"
-              isRequired
-            >
-              <SimpleSelect
-                isFullWidth
-                options={options}
-                onChange={(key, isPlaceholder) => {
-                  if (!key || isPlaceholder) {
-                    onChange({ enabled: true, selectedConfig: undefined });
-                    return;
-                  }
-                  const config = compatibleConfigs.find((c) => c.metadata.name === key);
-                  onChange({ enabled: true, selectedConfig: config });
-                }}
-                placeholder="Select routing configuration"
-                value={value.selectedConfig?.metadata.name}
-                dataTestId="routing-config-select"
-                isDisabled={!isLoaded || hasLoadError || noConfigsAvailable}
-                autoSelectOnlyOption={false}
-                toggleProps={hasLoadError ? { status: 'warning' } : undefined}
-              />
-              {hasLoadError ? (
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem variant="warning">
-                      Failed to load routing configurations.
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-              ) : noConfigsAvailable ? (
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem variant="warning">
-                      No routing configurations available for this topology type. Contact your
-                      administrator to create one.
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-              ) : null}
-            </FormGroup>
-          </StackItem>
-        )}
+        <StackItem>
+          <SimpleSelect
+            isFullWidth
+            options={options}
+            onChange={(key, isPlaceholder) => {
+              if (!key || isPlaceholder || key === DEFAULT_ROUTING_KEY) {
+                onChange({ selectedConfig: undefined });
+                return;
+              }
+              const config = compatibleConfigs.find((c) => c.metadata.name === key);
+              onChange({ selectedConfig: config ?? value?.selectedConfig });
+            }}
+            value={selectedValue}
+            dataTestId="routing-config-select"
+            isDisabled={!isLoaded || hasLoadError || compatibleConfigs.length === 0}
+            autoSelectOnlyOption={false}
+            toggleProps={hasLoadError ? { status: 'warning' } : undefined}
+          />
+          {hasLoadError && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="warning">
+                  Failed to load routing configurations.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
+        </StackItem>
       </Stack>
     </FormGroup>
   );
@@ -194,24 +178,21 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
 
 // --- Review ---
 
-const getReviewSections = (value: AdvancedRoutingFieldData): WizardReviewSection[] => {
-  if (!value.enabled || !value.selectedConfig) {
-    return [];
-  }
-  return [
-    {
-      title: 'Advanced settings',
-      items: [
-        {
-          key: 'routing-config',
-          label: 'Routing configuration',
-          value: () =>
-            value.selectedConfig ? getDisplayNameFromK8sResource(value.selectedConfig) : '',
-        },
-      ],
-    },
-  ];
-};
+const getReviewSections = (value: AdvancedRoutingFieldData): WizardReviewSection[] => [
+  {
+    title: 'Advanced settings',
+    items: [
+      {
+        key: 'routing-config',
+        label: 'Routing configuration',
+        value: () =>
+          value.selectedConfig
+            ? getDisplayNameFromK8sResource(value.selectedConfig)
+            : 'Default optimized routing',
+      },
+    ],
+  },
+];
 
 // --- isActive ---
 
@@ -239,7 +220,7 @@ export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
     },
     setFieldData: (value: AdvancedRoutingFieldData) => value,
     getInitialFieldData: (existingFieldData?: AdvancedRoutingFieldData): AdvancedRoutingFieldData =>
-      existingFieldData ?? { enabled: false },
+      existingFieldData ?? { selectedConfig: undefined },
   },
   externalDataHook: useAdvancedRoutingData,
   component: AdvancedRoutingFieldComponent,
