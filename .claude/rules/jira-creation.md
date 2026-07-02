@@ -15,13 +15,25 @@ User requests Jira creation (e.g., "create jira", "make jira tickets", "log a bu
 ## General Information & Best Practices
 
 * **Project Key**: `RHOAIENG` (This is the primary project for Dashboard-related issues).
-* **Team Field**:
-  * ID: `customfield_10001` (Jira Teams / `atlassian-team`)
-  * Value: `"ec74d716-af36-4b3c-950f-f79213d08f71-1809"` (RHOAI Dashboard team)
+* **Team Field** (`customfield_10001`):
+  * Each scrum team has its own Jira Team value. When the user specifies a scrum team, use the corresponding ID from the table below. If no scrum team is specified, **ask the user** which team the issue belongs to — do not silently default.
+  * When setting the team, also add the corresponding `dashboard-{team}-scrum` label.
+
+  | Scrum Team | Jira Team Name | Team ID | Label |
+  |---|---|---|---|
+  | Tangerine | RHAI Tangerine | `9679da1b-1866-4348-b65c-5ba033e9b761` | `dashboard-tangerine-scrum` |
+  | Crimson | RHAI Crimson | `c6e27e7d-7675-4a9c-98cc-1625898636ba` | `dashboard-crimson-scrum` |
+  | Razzmatazz | RHAI Razzmatazz | `a3b9f319-0849-47bb-a8ee-ac908b882105` | `dashboard-razzmatazz-scrum` |
+  | Onyx | RHAI Onyx | `2c35865b-83c2-4931-911f-041d57c82532` | `dashboard-onyx-scrum` |
+  | Zaffre | RHAI Zaffre | `c1466179-4c13-43a4-895d-c632789ded28` | `dashboard-zaffre-scrum` |
+  | Green | RHAI Green | `cffa1fd0-e59a-4305-b39e-1d40ae31112e` | `dashboard-green-scrum` |
+  | Purple | RHAI Purple | `2cddc7b3-7a62-4be8-942d-1e160767cef1` | `dashboard-purple-scrum` |
+  | Monarch | RHAI Monarch | `6cb9996b-0281-4bee-b062-611b1d2d1baa` | `dashboard-monarch-scrum` |
+  | *(fallback)* | RHOAI Dashboard | `ec74d716-af36-4b3c-950f-f79213d08f71-1809` | — |
 * **Component**: `'AI Core Dashboard'` (This string value should be used for the components field).
 * **Epic Link Custom Field ID** (for Stories/Tasks under an Epic): `customfield_12311140`.
 * **Verify Information**: Always confirm specific details like summaries, descriptions, parent epic keys, and any ambiguous fields with the user.
-* **Team Value is a plain string**: Pass `{"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809"}` in `additional_fields`. Do NOT wrap in `{"id": "..."}` — the mcp-atlassian server expects the bare team ID string.
+* **Team Value is a plain string**: Pass `{"customfield_10001": "<TEAM_ID>"}` in `additional_fields`, where `<TEAM_ID>` is the UUID from the scrum team table above. Do NOT wrap in `{"id": "..."}` — the mcp-atlassian server expects the bare team ID string.
 * **Component is a STRING argument**: The `components` parameter is a direct top-level argument in the tool call.
 * **Iterative Creation**: If multiple issues are requested, create them one by one, confirming success or handling errors for each before proceeding.
 * **Error Handling**: If a tool call fails, analyze the error message. It often provides clues about field formats or missing required fields.
@@ -163,9 +175,9 @@ summary="BUG: [User-provided summary]",
 description="[Formatted markdown string including Description, Steps, Actual, Expected, Reproducibility, and Acceptance Criteria]",
 components="AI Core Dashboard",
 additional_fields={
-	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
+	"customfield_10001": "<TEAM_ID>",  # Team: use scrum team ID from table (ask user if not specified)
 	"priority": {"name": "..."},     # e.g., "Critical", "Major", "Normal", "Minor" (See Appendix A)
-	"labels": ["..."]                # e.g., ["needs-info"] (See Appendix B for other general labels)
+	"labels": ["dashboard-<team>-scrum", "..."]  # Always include the scrum team label (See Appendix B)
 }
 ```
 
@@ -213,9 +225,9 @@ summary="[User-provided summary]",
 description="[Formatted markdown string including Description of enhancement, Acceptance Criteria, and Additional info]",
 components="AI Core Dashboard",
 additional_fields={
-	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
+	"customfield_10001": "<TEAM_ID>",  # Team: use scrum team ID from table (ask user if not specified)
 	"priority": {"name": "..."},     # e.g., "Major", "Normal" (See Appendix A)
-	"labels": ["enhancement", "..."] # e.g., ["enhancement", "needs-ux"] (See Appendix B for other general labels)
+	"labels": ["dashboard-<team>-scrum", "enhancement", "..."]  # Always include the scrum team label (See Appendix B)
 }
 ```
 
@@ -262,9 +274,9 @@ summary="[User-provided summary]",
 description="[Formatted markdown string including Description of task, Acceptance Criteria, and Additional info]",
 components="AI Core Dashboard",
 additional_fields={
-	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
+	"customfield_10001": "<TEAM_ID>",  # Team: use scrum team ID from table (ask user if not specified)
 	"priority": {"name": "..."},     # e.g., "Normal", "Minor" (See Appendix A)
-	"labels": ["tech-debt", "..."]   # e.g., ["tech-debt", "needs-info"] (See Appendix B for other general labels)
+	"labels": ["dashboard-<team>-scrum", "tech-debt", "..."]  # Always include the scrum team label (See Appendix B)
 }
 ```
 
@@ -298,9 +310,9 @@ description="[Formatted markdown string for Story description, AC, and Additiona
 components="AI Core Dashboard",
 additional_fields={
 	"customfield_12311140": PARENT_EPIC_KEY,  # Epic Link field
-	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
+	"customfield_10001": "<TEAM_ID>",  # Team: use scrum team ID from table (ask user if not specified)
 	"priority": {"name": "..."},
-	"labels": ["enhancement", "..."]
+	"labels": ["dashboard-<team>-scrum", "enhancement", "..."]
 }
 ```
 
@@ -336,9 +348,9 @@ description="[Formatted markdown string for Task description, AC, and Additional
 components="AI Core Dashboard",
 additional_fields={
 	"customfield_12311140": PARENT_EPIC_KEY,  # Epic Link field
-	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
+	"customfield_10001": "<TEAM_ID>",  # Team: use scrum team ID from table (ask user if not specified)
 	"priority": {"name": "..."},
-	"labels": ["tech-debt", "..."]
+	"labels": ["dashboard-<team>-scrum", "tech-debt", "..."]
 }
 
 ```
@@ -389,9 +401,9 @@ summary="[User-provided Epic Name]",
 description="[User-provided concise, high-level description of what the Epic aims to accomplish]",
 components="AI Core Dashboard",  # Or other relevant components for the Epic
 additional_fields={
-	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
+	"customfield_10001": "<TEAM_ID>",  # Team: use scrum team ID from table (ask user if not specified)
 	"priority": {"name": "..."},     # e.g., "Major", "Critical"
-	"labels": ["..."]                # (See Appendix B for other general labels)
+	"labels": ["dashboard-<team>-scrum", "..."]  # Always include the scrum team label (See Appendix B)
 }
 
 ```
@@ -427,7 +439,7 @@ These steps are typically for issues already created, but the principles guide f
    * **Informational**: Console output issues, React warnings.
    * *Note*: Set via `additional_fields`: `{"priority": {"name": "Blocker"}}` (or other levels).
 
-3. **Team**: Covered by `customfield_10001: "ec74d716-af36-4b3c-950f-f79213d08f71-1809"` (plain string, not `{"id": "..."}`).
+3. **Team**: Set `customfield_10001` to the scrum team ID from the mapping table (plain string, not `{"id": "..."}`). Ask the user which scrum team if not specified.
 
 4. **Post-Creation Status**: API-created issues might start in 'New' or 'Backlog' depending on project workflow. If triaging implies moving from 'New' to 'Backlog', this might require a subsequent `mcp_atlassian_jira_transition_issue` call.
 
@@ -444,5 +456,18 @@ These steps are typically for issues already created, but the principles guide f
 * `enhancement`: For Stories that are standalone new features or improvements.
 * `tech-debt`: Ticket addresses technical debt.
 * `advisor-tech-debt`: Tech debt item identified/scoped by the Advisor group. (Only for Stories, Epics, Tasks. Bugs are not tech debt).
+
+### Scrum Team Labels
+
+Always include the scrum team label when creating an issue. These correspond to the team mapping table in the General Information section.
+
+* `dashboard-tangerine-scrum`
+* `dashboard-crimson-scrum`
+* `dashboard-razzmatazz-scrum`
+* `dashboard-onyx-scrum`
+* `dashboard-zaffre-scrum`
+* `dashboard-green-scrum`
+* `dashboard-purple-scrum`
+* `dashboard-monarch-scrum`
 
 *(Always ask the user for the most appropriate labels if unsure, drawing from this list or others they provide.)*
