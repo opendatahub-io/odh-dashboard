@@ -1,12 +1,11 @@
 import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import {
+import type {
   MetadataAnnotation,
-  type DisplayNameAnnotations,
-  type PodContainer,
+  DisplayNameAnnotations,
+  PodContainer,
 } from '@odh-dashboard/k8s-core';
 import type { ImagePullSecret } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
-import { LLMD_SERVING_ID } from '../extensions/extensions';
 
 export const MAAS_ENDPOINT_LABEL = 'opendatahub.io/maas-endpoint';
 
@@ -141,8 +140,9 @@ export const isLLMInferenceServiceConfig = (
 
 export type LLMdDeployment = Deployment<LLMInferenceServiceKind, LLMInferenceServiceConfigKind>;
 
-export const isLLMdDeployment = (deployment: Deployment): deployment is LLMdDeployment =>
-  deployment.modelServingPlatformId === LLMD_SERVING_ID;
+// Moved to formUtils.ts to keep types.ts free of runtime imports (enables Cypress type-only import)
+// export const isLLMdDeployment = (deployment: Deployment): deployment is LLMdDeployment =>
+//   deployment.modelServingPlatformId === LLMD_SERVING_ID;
 
 export const LLMInferenceServiceModel: K8sModelCommon = {
   apiVersion: 'v1alpha2',
