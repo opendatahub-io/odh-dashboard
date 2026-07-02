@@ -1,11 +1,12 @@
 ---
-name: cluster-deploy-genai
+name: cluster-deploy-dashboard
 description: >-
-  Builds and deploys the gen-ai sidecar container to a personal OpenShift cluster
-  for testing. Handles frontend build, Go BFF cross-compile, Podman image
-  build/push to quay.io, and deployment patching. Supports both initial deploy
-  and fast iteration (rebuild + pod delete). Use when the user wants to test
-  local gen-ai changes on a real (dev) cluster.
+  Builds and deploys the main odh-dashboard container (host frontend + backend)
+  to a personal OpenShift cluster for testing. Handles monorepo build,
+  production node_modules pruning, Podman image build/push to quay.io, and CSV
+  env var patching. Use when changes span the host frontend or backend (feature
+  flags, shared components, backend routes) — for gen-ai sidecar-only changes
+  use /cluster-deploy-genai instead.
 argument-hint: "press Enter — you'll be prompted for any parameters needed"
 allowed-tools:
   - Bash
@@ -13,33 +14,36 @@ allowed-tools:
   - AskUserQuestion
 ---
 
-# Cluster Deploy Gen-AI
+# Cluster Deploy Dashboard
 
-Build and deploy the gen-ai sidecar container to a personal OpenShift cluster for testing local changes.
+Build and deploy the main `odh-dashboard` container to a personal OpenShift cluster for testing local changes to the host frontend or backend.
 
 ## Scope
 
-Staged under `packages/gen-ai/.claude/skills/` for gen-ai team testing. Only replaces the gen-ai sidecar container (`gen-ai-ui`) in the `odh-dashboard` deployment — does not rebuild the full dashboard.
+Staged under `packages/gen-ai/.claude/skills/` for gen-ai team testing. Replaces the main `odh-dashboard` container in the `odh-dashboard` deployment — does not touch sidecar containers (gen-ai-ui, model-registry-ui, etc.).
 
-## When to use this vs Jenkins
+## When to use this vs other options
 
-**This skill** — fast iteration on gen-ai package changes:
-- Only replaces the gen-ai sidecar container, not the full dashboard
-- Builds from local — changes don't need to be pushed to a branch
-- Faster redeploy cycle after initial setup
+**This skill** — host frontend or backend changes:
+- Feature flags (`frontend/src/concepts/areas/const.ts`)
+- Backend route changes, shared components, sidebar/nav changes
+- Anything in `frontend/`, `backend/`, or `packages/app-config/`
+
+**`/cluster-deploy-genai`** — gen-ai sidecar-only changes:
+- Gen-ai frontend, BFF, or extension changes
+- Faster cycle — only rebuilds the gen-ai container
 
 **Jenkins (rhoai-test-flow)** — full dashboard rebuild:
-- Rebuilds the entire odh-dashboard (host frontend, backend, and all sidecar containers)
-- Needed when changes span the host or multiple packages
-- Can trigger tests on the build
+- Rebuilds everything including all sidecar containers
+- Needed when changes span multiple packages
 
 ## Background
 
-The gen-ai package runs as a sidecar container (`gen-ai-ui`) in the `odh-dashboard` deployment. To test branch changes in a real cluster, we build a custom image and patch the operator's CSV to deploy it. The operator reads `RELATED_IMAGE_*` env vars from its process environment (set via the CSV deployment spec) and uses them to override the default images in its built-in `params.env`. By patching the CSV (Cluster Service Version), OLM (Operator Lifecycle Manager) restarts the operator pod with the new env var, and the operator reconciles the dashboard deployment with our custom image — no operator scale-down needed.
+The main dashboard container runs the Node.js backend (Fastify) and serves the host frontend static files. The operator determines its image from the `RELATED_IMAGE_ODH_DASHBOARD_IMAGE` env var (mapped from `odh-dashboard-image` in `params.env` — see `dashboard_support.go` `imagesMap`). By patching this env var in the CSV (Cluster Service Version), OLM (Operator Lifecycle Manager) restarts the operator pod, and the operator reconciles the dashboard deployment with our custom image — no operator scale-down needed.
 
-**Why build the frontend/BFF outside of the Docker container?** If we use the gen-ai Dockerfile on ARM and build with podman, because it runs `go build` inside a linux/amd64 container (via QEMU emulation with podman), it deadlocks Go's networking goroutines during `go mod download`. Docker buildx may avoid that bug, but it requires installing/running Docker Engine separately (can't use Docker Desktop due to licensing). So we build the frontend/backend natively on the host and use a COPY-only Dockerfile with `podman build --platform linux/amd64` to produce the final image. This approach is faster for development vs building inside the container.
+**Why use a staging directory?** The repo root `.dockerignore` excludes `frontend/public`, `backend/dist`, and `node_modules/` because the production Dockerfile builds everything inside the container. Additionally, the full `node_modules/` is ~1.6GB — too large for the podman build context. Instead, we build locally, create a staging directory with only runtime artifacts (~170MB), and build from there.
 
-**Not a substitute for CI Docker builds** — this skill cross-compiles Go locally with `CGO_ENABLED=0` (no FIPS flags) and uses a minimal COPY-only Dockerfile, not the production `Dockerfile.workspace`. It's faster for iteration but won't catch issues in the real multi-stage Docker build (e.g., broken Dockerfile steps, missing build args, CGo/FIPS-related failures). Rely on CI for production build validation.
+**Not a substitute for CI Docker builds** — this skill uses a minimal COPY-only Dockerfile, not the production `Dockerfile`. It won't catch issues in the real multi-stage Docker build. Rely on CI for production build validation.
 
 ## Phase 1: Check prerequisites and gather parameters
 
@@ -62,9 +66,6 @@ oc whoami --show-server
 # jq (required for CSV patching)
 jq --version
 
-# Go >= 1.24
-go version
-
 # Node >= 22
 node --version
 
@@ -76,13 +77,12 @@ ls node_modules/.package-lock.json
 
 Ask the user for:
 
-1. **Quay.io username** — used in the image path `quay.io/<user>/odh-mod-arch-gen-ai:<tag>`
+1. **Quay.io username** — used in the image path `quay.io/<user>/odh-dashboard:<tag>`
 2. **Image tag** — default `dev`. Mention the user can alternatively use a tag based on their current branch name (e.g., the output of `git rev-parse --abbrev-ref HEAD`)
-3. **What to rebuild** — options: "Both frontend and BFF" (default), "Frontend only", or "BFF only". This lets users skip rebuilding the part they didn't change for faster iteration.
 
 ### Auto-detect target namespace
 
-Do NOT ask the user — determine it from the installed operator:
+Do NOT ask the user — determine it from the installed operator.
 
 Find the operator by its **deployment** (authoritative), not by CSV alone — OLM copies CSVs to multiple namespaces, but the deployment only exists in one:
 
@@ -139,7 +139,7 @@ Do NOT ask the user — determine it automatically by inspecting the current con
 
 ```bash
 CURRENT_IMAGE=$(oc get deployment/odh-dashboard -n $APPS_NS \
-  -o jsonpath='{.spec.template.spec.containers[?(@.name=="gen-ai-ui")].image}')
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="odh-dashboard")].image}')
 ```
 
 - If `$CURRENT_IMAGE` contains the user's quay username → **iteration** mode (just rebuild/push + delete pod)
@@ -147,71 +147,124 @@ CURRENT_IMAGE=$(oc get deployment/odh-dashboard -n $APPS_NS \
 
 ### Derived values
 
-- Image: `quay.io/<user>/odh-mod-arch-gen-ai:<tag>`
-- Container name in deployment: `gen-ai-ui`
-- Frontend path: `packages/gen-ai/frontend`
-- BFF path: `packages/gen-ai/bff`
+- Image: `quay.io/<user>/odh-dashboard:<tag>`
+- Container name in deployment: `odh-dashboard`
 
 ## Phase 2: Build
 
 Run all commands from the **repo root** (`odh-dashboard/`).
 
-Based on the user's "what to rebuild" choice, skip Step 1 and/or Step 2. However, the Dockerfile COPYs both `bff-linux-amd64` and `frontend/dist/` — if either artifact is missing, `podman build` will fail. So before skipping a step, check that the other artifact exists from a prior build:
-
-- Skipping frontend → check `packages/gen-ai/frontend/dist/` exists
-- Skipping BFF → check `packages/gen-ai/bff/bff-linux-amd64` exists
-
-If the required artifact is missing, tell the user both need to be built (first-time deploy) and build both.
-
-### Step 1: Build the frontend (skip if "BFF only")
+### Step 1: Build the monorepo
 
 ```bash
-cd packages/gen-ai/frontend && npm run build:prod
+npm run build
 ```
 
-Output goes to `packages/gen-ai/frontend/dist/`.
+This uses Turbo to build `frontend/`, `backend/`, and `packages/app-config/` (and their dependencies). Output:
+- `frontend/public/` — host frontend static files
+- `backend/dist/` — compiled backend
+- `packages/app-config/dist/` — shared config
 
-### Step 2: Cross-compile the Go BFF (skip if "Frontend only")
+### Step 2: Create production node_modules
+
+The full `node_modules/` is ~1.6GB and includes dev dependencies. Create a pruned production set:
 
 ```bash
-cd packages/gen-ai/bff && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bff-linux-amd64 ./cmd
+STAGING="/tmp/odh-dashboard-dev-deploy"
+PROD_NM="/tmp/odh-dashboard-prod-node-modules"
+rm -rf "$STAGING" "$PROD_NM"
+mkdir -p "$STAGING" "$PROD_NM/backend" "$PROD_NM/packages/app-config"
+
+# prepare-production-manifest.js strips devDependencies from package.json in-place
+node scripts/prepare-production-manifest.js
+
+# Copy the modified package.json and workspace package.jsons for npm install
+cp package.json package-lock.json .npmrc "$PROD_NM/"
+cp backend/package.json "$PROD_NM/backend/"
+cp packages/app-config/package.json "$PROD_NM/packages/app-config/"
+
+# IMPORTANT: restore original package.json immediately
+git checkout package.json
+
+# Install production-only deps (includes workspace deps like fastify)
+cd "$PROD_NM" && npm install --omit=dev --omit=optional --ignore-scripts
 ```
 
-### Step 3: Create `Dockerfile.dev-deploy` if missing
+This produces a ~75MB `node_modules/` with only runtime dependencies.
 
-Check if `packages/gen-ai/Dockerfile.dev-deploy` exists. If not, create it:
+### Step 3: Create the staging directory
+
+Copy only the runtime artifacts needed by the container:
 
 ```bash
-cat > packages/gen-ai/Dockerfile.dev-deploy << 'EOF'
-# Minimal Dockerfile for dev deployment — pre-built artifacts only, no RUN steps
-FROM registry.access.redhat.com/ubi9-minimal:latest
+cd <repo-root>
 
-WORKDIR /
-COPY packages/gen-ai/bff/bff-linux-amd64 ./bff
-COPY packages/gen-ai/bff/openapi/ ./openapi/
-COPY packages/gen-ai/frontend/dist/ ./static/
-USER 65532:65532
+# Built artifacts
+cp -r frontend/public "$STAGING/frontend-public"
+cp -r backend/dist "$STAGING/backend-dist"
+cp -r backend/node_modules "$STAGING/backend-node_modules"
+cp backend/package.json "$STAGING/backend-package.json"
+cp -r packages/app-config/dist "$STAGING/app-config-dist"
+cp packages/app-config/package.json "$STAGING/app-config-package.json"
 
-EXPOSE 8080
+# Root files needed at runtime
+cp package.json "$STAGING/package.json"
+cp package-lock.json "$STAGING/package-lock.json"
+cp .npmrc "$STAGING/.npmrc"
+cp .env "$STAGING/.env"
+cp -r data "$STAGING/data"
 
-ENTRYPOINT ["/bff"]
+# Production node_modules — use -rL to resolve workspace symlinks
+# (npm creates symlinks like node_modules/@odh-dashboard/app-config -> ../../packages/app-config
+# which break in a container context since the target is outside the build context)
+cp -rL "$PROD_NM/node_modules" "$STAGING/node_modules"
+```
+
+### Step 4: Create the Dockerfile in the staging directory
+
+Check if `$STAGING/Dockerfile` exists. If not, create it:
+
+```bash
+cat > "$STAGING/Dockerfile" << 'EOF'
+# Minimal dev Dockerfile — pre-built artifacts only
+FROM registry.access.redhat.com/ubi9/nodejs-22:latest
+
+USER root
+RUN dnf install -y curl-minimal && dnf clean all
+USER 1001:0
+
+WORKDIR /usr/src/app
+RUN mkdir /usr/src/app/logs && chmod 775 /usr/src/app/logs
+
+COPY frontend-public /usr/src/app/frontend/public
+COPY backend-package.json /usr/src/app/backend/package.json
+COPY backend-node_modules /usr/src/app/backend/node_modules
+COPY backend-dist /usr/src/app/backend/dist
+COPY app-config-package.json /usr/src/app/packages/app-config/package.json
+COPY app-config-dist /usr/src/app/packages/app-config/dist
+COPY package.json /usr/src/app/package.json
+COPY package-lock.json /usr/src/app/package-lock.json
+COPY node_modules /usr/src/app/node_modules
+COPY .npmrc /usr/src/app/.npmrc
+COPY .env /usr/src/app/.env
+COPY data /usr/src/app/data
+
+WORKDIR /usr/src/app/backend
+CMD ["npm", "run", "start"]
 EOF
 ```
 
-### Step 4: Build the container image
-
-From the repo root:
+### Step 5: Build the container image
 
 ```bash
-podman build --platform linux/amd64 \
-  --file ./packages/gen-ai/Dockerfile.dev-deploy \
-  -t quay.io/<user>/odh-mod-arch-gen-ai:<tag> .
+cd "$STAGING" && podman build --platform linux/amd64 \
+  -t quay.io/<user>/odh-dashboard:<tag> .
 ```
 
-### Step 5: Push the image
+### Step 6: Push the image
 
 ```bash
-podman push quay.io/<user>/odh-mod-arch-gen-ai:<tag>
+podman push quay.io/<user>/odh-dashboard:<tag>
 ```
 
 Remind the user: the quay.io repository must be set to **public**, or the cluster won't be able to pull it. (New quay.io repos default to private.)
@@ -224,13 +277,13 @@ Use `$OPERATOR_NS`, `$CSV_NAME`, and `$APPS_NS` from the auto-detect step throug
 
 The operator continuously reconciles the `odh-dashboard` deployment. Patching the deployment image directly with `oc set image` gets reverted within seconds. Instead, we patch the operator's own CSV to set a `RELATED_IMAGE_*` environment variable — the operator reads this on startup and uses it to override the image in `params.env`. OLM propagates the CSV change to the operator deployment, the operator pod restarts, and when it reconciles it deploys *our* custom image. No operator scale-down needed.
 
-The env var that controls the gen-ai-ui image is:
+The env var that controls the odh-dashboard image is:
 
 ```
-RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE
+RELATED_IMAGE_ODH_DASHBOARD_IMAGE
 ```
 
-This maps to the `gen-ai-ui-image` key in the operator's `params.env` (see `dashboard_support.go` `imagesMap`).
+This maps to the `odh-dashboard-image` key in the operator's `params.env` (see `dashboard_support.go` `imagesMap`).
 
 ### Initial deploy
 
@@ -239,8 +292,8 @@ This maps to the `gen-ai-ui-image` key in the operator's `params.env` (see `dash
 The RHOAI CSV typically already has `RELATED_IMAGE_*` env vars. The ODH CSV may not. Detect and handle both:
 
 ```bash
-ENV_NAME="RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE"
-CUSTOM_IMAGE="quay.io/<user>/odh-mod-arch-gen-ai:<tag>"
+ENV_NAME="RELATED_IMAGE_ODH_DASHBOARD_IMAGE"
+CUSTOM_IMAGE="quay.io/<user>/odh-dashboard:<tag>"
 
 # Find the env var location in the CSV
 CSV_JSON=$(oc get csv "$CSV_NAME" -n "$OPERATOR_NS" -o json)
@@ -298,8 +351,8 @@ sleep 15
 
 # Verify the image was picked up
 DEPLOYED_IMAGE=$(oc get deployment/odh-dashboard -n $APPS_NS \
-  -o jsonpath='{.spec.template.spec.containers[?(@.name=="gen-ai-ui")].image}')
-echo "gen-ai-ui image: $DEPLOYED_IMAGE"
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="odh-dashboard")].image}')
+echo "odh-dashboard image: $DEPLOYED_IMAGE"
 
 # Wait for rollout
 oc rollout status deployment/odh-dashboard -n $APPS_NS --timeout=180s
@@ -339,7 +392,7 @@ Get the dashboard route URL so the user can click it directly:
 oc get route odh-dashboard -n $APPS_NS -o jsonpath='https://{.spec.host}'
 ```
 
-Tell the user to open that URL and navigate to the gen-ai pages to confirm their changes are live.
+Tell the user to open that URL and confirm their changes are live.
 
 ## Reverting
 
@@ -347,7 +400,7 @@ Remind the user how to restore the original state when done testing. Remove the 
 
 ```bash
 # Find and remove the RELATED_IMAGE env var override from the CSV
-ENV_NAME="RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE"
+ENV_NAME="RELATED_IMAGE_ODH_DASHBOARD_IMAGE"
 CSV_JSON=$(oc get csv "$CSV_NAME" -n "$OPERATOR_NS" -o json)
 
 LOC=$(echo "$CSV_JSON" | jq -c --arg env "$ENV_NAME" '
@@ -377,15 +430,20 @@ oc rollout status deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS --timeout=120s
 oc annotate dsc default-dsc --overwrite "dev.deploy/trigger=$(date +%s)"
 ```
 
-For RHOAI clusters where `RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE` existed before your override, restore the original value instead of removing it. Check `oc get csv "$CSV_NAME" -n "$OPERATOR_NS" -o json | jq '.spec.relatedImages[] | select(.name | test("gen-ai"))'` for the original image reference.
+For RHOAI clusters where `RELATED_IMAGE_ODH_DASHBOARD_IMAGE` existed before your override, restore the original value instead of removing it. Check `oc get csv "$CSV_NAME" -n "$OPERATOR_NS" -o json | jq '.spec.relatedImages[] | select(.name | test("dashboard"))'` for the original image reference.
 
 ## Cleanup
 
-Remove local build artifacts:
+Remove staging directory and temporary files:
 
 ```bash
-rm packages/gen-ai/bff/bff-linux-amd64
-rm -f packages/gen-ai/Dockerfile.dev-deploy
+rm -rf /tmp/odh-dashboard-dev-deploy /tmp/odh-dashboard-prod-node-modules
+```
+
+Also clean up any dev deploy files created at the repo root:
+
+```bash
+rm -f Dockerfile.dev-deploy Dockerfile.dev-deploy.dockerignore
 ```
 
 ## Troubleshooting
@@ -416,6 +474,16 @@ Check events for details:
 oc get events -n $APPS_NS --sort-by='.lastTimestamp' | grep -i "pull\|image"
 ```
 
+### Container crashes with `MODULE_NOT_FOUND`
+
+The production `node_modules` is missing a runtime dependency. Common causes:
+
+- **Missing workspace symlinks**: `npm install --omit=dev` creates symlinks for workspace packages (e.g., `node_modules/@odh-dashboard/app-config -> ../../packages/app-config`). Use `cp -rL` (follow symlinks) when copying `node_modules` to the staging directory so the symlink targets are included as real directories.
+
+- **`prepare-production-manifest.js` not run**: The script strips `devDependencies` from `package.json` before `npm install --omit=dev`. Without it, npm resolves the full dependency tree and may skip hoisting production deps that are also referenced by dev packages.
+
+- **Forgot to restore `package.json`**: The script modifies `package.json` in-place. Run `git checkout package.json` after copying it to the staging directory, or the next `npm install` in the repo will be broken.
+
 ### Operator reverts image change
 
 The operator reconciles the `odh-dashboard` deployment and will revert any manual `oc set image` changes within seconds. This skill avoids the problem by patching the CSV env var so the operator itself deploys the custom image. If you see the old image reappearing, verify the CSV patch took effect:
@@ -423,7 +491,7 @@ The operator reconciles the `odh-dashboard` deployment and will revert any manua
 ```bash
 oc get csv "$CSV_NAME" -n "$OPERATOR_NS" -o json | jq -r '
   .spec.install.spec.deployments[].spec.template.spec.containers[].env[]?
-  | select(.name == "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE")
+  | select(.name == "RELATED_IMAGE_ODH_DASHBOARD_IMAGE")
   | "\(.name)=\(.value)"'
 ```
 
@@ -434,9 +502,6 @@ If the env var is missing or has the wrong value, re-run the initial deploy patc
 OLM should propagate CSV deployment spec changes to the actual deployment within seconds. If the operator pod doesn't restart:
 
 ```bash
-# Check if OLM updated the deployment
-oc get deployment $OPERATOR_DEPLOY -n $OPERATOR_NS -o jsonpath='{.spec.template.metadata.annotations}' | jq .
-
 # Force a restart if needed
 oc rollout restart deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS
 ```
@@ -445,38 +510,6 @@ oc rollout restart deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS
 
 OLM catalog-driven upgrades replace the CSV entirely, which clears any env var overrides. After an operator upgrade, re-run the initial deploy patch from Phase 3.
 
-### Fallback: ConfigMap mount approach
+### Build context too large for podman
 
-If the env var approach doesn't work (e.g., the operator's `imagesMap` changes or `ApplyParams` stops reading env vars), there is an alternative: mount a custom ConfigMap over the operator's `params.env` file via the CSV. This bypasses the env var lookup entirely — the operator reads the modified file directly on startup.
-
-```bash
-# 1. Get the current params.env content
-OPERATOR_POD=$(oc get pods -n $OPERATOR_NS -o name | grep "$OPERATOR_DEPLOY" | head -1)
-PARAMS=$(oc exec -n $OPERATOR_NS $OPERATOR_POD -- \
-  cat /opt/manifests/dashboard/modular-architecture/params.env)
-
-# 2. Create a ConfigMap with the gen-ai-ui-image overridden
-echo "$PARAMS" | sed "s|gen-ai-ui-image=.*|gen-ai-ui-image=$CUSTOM_IMAGE|" > /tmp/params.env
-oc create configmap dev-params-override -n $OPERATOR_NS \
-  --from-file=params.env=/tmp/params.env --dry-run=client -o yaml | oc apply -f -
-rm /tmp/params.env
-
-# 3. Patch the CSV to mount it over the original params.env
-oc patch csv "$CSV_NAME" -n "$OPERATOR_NS" --type json -p '[
-  {"op": "add",
-   "path": "/spec/install/spec/deployments/0/spec/template/spec/volumes/-",
-   "value": {"name": "dev-params-override", "configMap": {"name": "dev-params-override"}}},
-  {"op": "add",
-   "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/volumeMounts/-",
-   "value": {"name": "dev-params-override",
-             "mountPath": "/opt/manifests/dashboard/modular-architecture/params.env",
-             "subPath": "params.env"}}
-]'
-
-# 4. Wait for operator restart + trigger reconciliation (same as env var approach)
-sleep 10
-oc rollout status deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS --timeout=120s
-oc annotate dsc default-dsc --overwrite "dev.deploy/trigger=$(date +%s)"
-```
-
-To revert, remove the volume/volumeMount from the CSV and delete the ConfigMap. This approach was verified working on an ODH-based cluster. The env var approach is preferred because it is simpler (single JSON patch, no ConfigMap to manage) and works with the operator's own override mechanism.
+If podman fails with `io: read/write on closed pipe` or EOF errors, the build context is too large. Verify you're building from the staging directory (`/tmp/odh-dashboard-dev-deploy`, ~170MB), not the repo root (~1.6GB+ with `node_modules`).

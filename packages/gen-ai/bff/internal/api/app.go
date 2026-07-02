@@ -34,6 +34,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/services"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -541,7 +542,13 @@ func (app *App) Routes() http.Handler {
 	combinedMux.HandleFunc(constants.OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
 	combinedMux.HandleFunc(constants.SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
 
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
+	combinedMux.Handle("/", otelhttp.NewHandler(
+		app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))),
+		"gen-ai-bff",
+		otelhttp.WithSpanNameFormatter(func(_ string, _ *http.Request) string {
+			return "gen-ai-bff"
+		}),
+	))
 
 	return combinedMux
 }

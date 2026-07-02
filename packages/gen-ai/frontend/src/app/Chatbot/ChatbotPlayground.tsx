@@ -49,6 +49,7 @@ import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import ChatbotPaneHeader from './components/ChatbotPaneHeader';
 import ChatbotMessageInput, { ImageUploadState } from './components/ChatbotMessageInput';
+import TracePanel from './components/TracePanel';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
@@ -131,6 +132,8 @@ type ChatbotPlaygroundProps = {
   setIsDrawerExpanded?: (expanded: boolean) => void;
   welcomeContent?: React.ReactNode;
   placeholderBotContent?: string;
+  /** Whether the current playground was created with tracing enabled */
+  lsdTracingEnabled?: boolean;
   onOpenLoad?: () => void;
   onOpenSave?: () => void;
   onOpenSaveAs?: () => void;
@@ -150,6 +153,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setIsDrawerExpanded: setIsDrawerExpandedProp,
   welcomeContent,
   placeholderBotContent,
+  lsdTracingEnabled,
   onOpenLoad,
   onOpenSave,
   onOpenSaveAs,
@@ -241,6 +245,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // UI state — can be controlled externally (e.g. from header Settings button)
   const [isDrawerExpandedInternal, setIsDrawerExpandedInternal] = React.useState(true);
   const [pendingCloseConfigId, setPendingCloseConfigId] = React.useState<string | null>(null);
+  const [selectedTraceId, setSelectedTraceId] = React.useState<string | null>(null);
   const isDrawerExpanded = isDrawerExpandedProp ?? isDrawerExpandedInternal;
   const setIsDrawerExpanded = setIsDrawerExpandedProp ?? setIsDrawerExpandedInternal;
 
@@ -864,6 +869,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           configIndex={isCompareMode ? index + 1 : 0}
           isCompareMode={isCompareMode}
           hasImagesInConversation={hasImageInConversation}
+          onViewTrace={lsdTracingEnabled ? setSelectedTraceId : undefined}
         />
       </ChatbotContent>
     </Chatbot>
@@ -945,6 +951,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           }
         >
           <DrawerContentBody style={{ padding: 0, height: '100%' }}>
+            <TracePanel
+              isOpen={!!selectedTraceId}
+              traceId={selectedTraceId || ''}
+              workspace={namespace?.name}
+              onClose={() => setSelectedTraceId(null)}
+            >
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               {/* Single mode header */}
               {!isCompareMode && !isEmbedded && (
@@ -1037,6 +1049,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 onMessageBarValueChange={setMessageBarValue}
               />
             </div>
+            </TracePanel>
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>

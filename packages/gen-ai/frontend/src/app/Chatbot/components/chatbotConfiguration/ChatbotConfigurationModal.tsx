@@ -3,11 +3,17 @@ import React from 'react';
 import {
   Alert,
   Button,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Label,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
   ModalVariant,
+  Switch,
 } from '@patternfly/react-core';
 import { ArrowLeftIcon } from '@patternfly/react-icons';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -30,6 +36,7 @@ import {
 } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
+import useTracingEnabled from '~/app/Chatbot/hooks/useTracingEnabled';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import ChatbotConfigurationTable from './ChatbotConfigurationTable';
 import ChatbotConfigurationCollectionsTable from './ChatbotConfigurationCollectionsTable';
@@ -92,6 +99,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
   const guardrailsEnabled = useGuardrailsEnabled();
+  const tracingEnabled = useTracingEnabled();
   const vectorStoresEnabled = useAiAssetVectorStoresEnabled();
 
   const maasAsAIModels: AIModel[] = React.useMemo(
@@ -282,6 +290,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const [configuringPlayground, setConfiguringPlayground] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [alertTitle, setAlertTitle] = React.useState<string>();
+  const [enableTracing, setEnableTracing] = React.useState(false);
 
   const isUpdate = !!lsdStatus;
 
@@ -442,6 +451,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           };
         }),
         enable_guardrails: guardrailsEnabled,
+        ...(tracingEnabled && { enable_tracing: enableTracing }),
         ...(selectedCollections.length > 0 && {
           vector_stores: selectedCollections.map((c) => ({ vector_store_id: c.vector_store_id })),
         }),
@@ -572,7 +582,29 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         )}
       </ModalBody>
       {!configuringPlayground && (
-        <ModalFooter>
+        <ModalFooter style={tracingEnabled && isFirstStep ? { flexWrap: 'wrap' } : undefined}>
+          {tracingEnabled && isFirstStep && (
+            <FormGroup
+              fieldId="enable-tracing"
+              style={{ flexBasis: '100%', marginBottom: 'var(--pf-t--global--spacer--md)' }}
+            >
+              <Switch
+                id="enable-tracing-switch"
+                label={<>Enable tracing <Label isCompact>Tech Preview</Label></>}
+                isChecked={enableTracing}
+                onChange={(_event, checked) => setEnableTracing(checked)}
+                aria-label="Toggle tracing for this playground"
+                data-testid="enable-tracing-switch"
+              />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    When enabled, execution traces are collected for debugging and observability.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </FormGroup>
+          )}
           {!isStepsLoading && isLastStep ? (
             <Button
               variant="primary"

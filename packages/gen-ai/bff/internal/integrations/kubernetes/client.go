@@ -33,7 +33,7 @@ type KubernetesClientInterface interface {
 	// OGX Server (OGXServer CR)
 	GetOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*ogxapi.OGXServerList, error)
 	CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
-	InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error)
+	InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, enableTracing bool, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error)
 	DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error)
 	GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*types.ModelProviderInfo, error)
 

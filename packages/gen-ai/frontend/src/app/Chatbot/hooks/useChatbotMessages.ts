@@ -99,6 +99,8 @@ interface UseChatbotMessagesProps {
   guardrailsConfig?: GuardrailsConfig;
   // MaaS subscription name for API key generation
   subscription?: string;
+  // Tracing
+  isTracingEnabled?: boolean;
   // Compare-mode analytics
   configIndex?: number;
   isCompareMode?: boolean;
@@ -125,6 +127,7 @@ const useChatbotMessages = ({
   namespace,
   guardrailsConfig,
   subscription,
+  isTracingEnabled,
   configIndex,
   isCompareMode,
   isGuardrailEnabled,
@@ -158,6 +161,7 @@ const useChatbotMessages = ({
   const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
     new Map(),
   );
+  const sessionIdRef = React.useRef<string>(getId());
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
 
@@ -394,7 +398,8 @@ const useChatbotMessages = ({
       // Create placeholder bot message FIRST (before any validation that could throw)
       // This ensures error handling can update the message consistently
       botMessageIdRef.current = getId();
-      const placeholderBotMessage: MessageProps = {
+      const requestStartTime = Date.now();
+      const placeholderBotMessage: ChatbotMessageProps = {
         id: botMessageIdRef.current,
         role: 'bot',
         content: '',
@@ -402,6 +407,7 @@ const useChatbotMessages = ({
         avatar: botAvatar,
         isLoading: true,
         timestamp: new Date().toLocaleString(),
+        metrics: { latency_ms: 0 },
       };
       setMessages((prevMessages) => [...prevMessages, placeholderBotMessage]);
 
@@ -467,11 +473,19 @@ const useChatbotMessages = ({
       // Create abort controller for this request (works for both streaming and non-streaming)
       abortControllerRef.current = new AbortController();
 
+      const tracingHeaders: Record<string, string> = isTracingEnabled
+        ? { 'X-Session-ID': sessionIdRef.current }
+        : {};
+
       if (isStreamingEnabled) {
         // Handle streaming response with line-by-line display like ChatGPT
         const completeLines: string[] = [];
         let currentPartialLine = '';
         let isInReasoningPhase = false;
+
+        // Progressive metrics tracking (updates per SSE event)
+        let firstTokenTime: number | undefined;
+        let streamedResponseBytes = 0;
 
         // Separate accumulators for reasoning content (streamed inside collapsible)
         const reasoningLines: string[] = [];
@@ -524,6 +538,14 @@ const useChatbotMessages = ({
               }
             : {};
 
+          const progressiveMetrics: ResponseMetrics = {
+            latency_ms: Date.now() - requestStartTime,
+            ...(firstTokenTime && {
+              time_to_first_token_ms: firstTokenTime - requestStartTime,
+            }),
+            response_size_bytes: streamedResponseBytes,
+          };
+
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
               msg.id === botMessageIdRef.current
@@ -532,6 +554,7 @@ const useChatbotMessages = ({
                     content: displayContent,
                     isLoading: !hasContent,
                     ...thinkingExtra,
+                    metrics: progressiveMetrics,
                   }
                 : msg,
             ),
@@ -540,6 +563,7 @@ const useChatbotMessages = ({
 
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          headers: tracingHeaders,
           onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => {
             if (clearPrevious) {
               completeLines.length = 0;
@@ -584,6 +608,14 @@ const useChatbotMessages = ({
             // Track if we have any content
             const hasAnyContent =
               completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
+
+            // Record first answer token time for TTFT
+            if (chunk && !firstTokenTime) {
+              firstTokenTime = Date.now();
+            }
+
+            // Accumulate response payload size
+            streamedResponseBytes += new TextEncoder().encode(chunk).length;
 
             // On first non-empty chunk, hide loading dots
             if (chunk && isStreamingWithoutContent) {
@@ -673,6 +705,7 @@ const useChatbotMessages = ({
         // Handle non-streaming response
         const response = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          headers: tracingHeaders,
         });
 
         const toolResponse = response.toolCallData
