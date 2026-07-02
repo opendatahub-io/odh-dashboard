@@ -15,7 +15,10 @@ import { DEFAULT_PROJECT_LIST } from '../const';
 jest.mock('../hooks/useRegistryFeatureStores');
 jest.mock('../apiHooks/useFeatureStoreAPIState');
 jest.mock('../apiHooks/useFeatureStoreProjectsAPI');
-jest.mock('react-router-dom', () => ({ useParams: jest.fn(() => ({})) }));
+jest.mock('react-router-dom', () => ({
+  useParams: jest.fn(() => ({})),
+  useLocation: jest.fn(() => ({ state: null })),
+}));
 jest.mock('@odh-dashboard/internal/concepts/areas/AreaComponent', () => ({
   conditionalArea: () => (Component: React.ComponentType) => Component,
 }));
