@@ -63,12 +63,34 @@ describe('Model Catalog Performance Filters API Behavior', () => {
     });
 
     it('should NOT include performance filter params in /models requests when toggle is OFF', () => {
-      cy.intercept('GET', '**/model_catalog/models*').as('getModels');
+      const capturedUrls: string[] = [];
 
-      triggerFilterRefresh();
+      cy.intercept('GET', '**/model_catalog/models*', (req) => {
+        capturedUrls.push(req.url);
+        req.continue();
+      });
 
-      cy.wait('@getModels').then((interception) => {
-        const { url } = interception.request;
+      modelCatalog.findFilter('Task').should('be.visible');
+      modelCatalog.findModelCatalogDetailLink().should('have.length.at.least', 1);
+
+      let baselineCount = 0;
+      cy.then(() => {
+        baselineCount = capturedUrls.length;
+      });
+
+      modelCatalog.findFilterCheckbox('Task', 'text-generation').click();
+
+      cy.wrap(null).should(() => {
+        const postClickUrls = capturedUrls.slice(baselineCount);
+        expect(
+          postClickUrls,
+          'models request should fire after filter click',
+        ).to.have.length.at.least(1);
+
+        const url = postClickUrls.find((u) => u.includes('task')) ?? postClickUrls[0];
+
+        // Basic filters should still work
+        expect(url).to.include('task');
 
         // Performance filter params should NOT be present
         expect(url).to.not.include('artifacts.use_case');
@@ -81,9 +103,6 @@ describe('Model Catalog Performance Filters API Behavior', () => {
         expect(url).to.not.include('modelcar_image_size');
         expect(url).to.not.include('targetRPS');
         expect(url).to.not.include('latencyProperty');
-
-        // Basic filters should still work
-        expect(url).to.include('task');
       });
     });
 

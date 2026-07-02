@@ -213,7 +213,10 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       categoryDescription={categoryDescription}
       headerExtra={
         isSingleCategory && performanceViewEnabled ? (
-          <ModelCatalogSortDropdown performanceViewEnabled={performanceViewEnabled} />
+          <ModelCatalogSortDropdown
+            performanceViewEnabled={performanceViewEnabled}
+            testId="model-catalog-category-sort-dropdown"
+          />
         ) : undefined
       }
       renderExtraEmptyStates={() => {
