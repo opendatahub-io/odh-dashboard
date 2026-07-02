@@ -1,5 +1,10 @@
 import { SortableData } from '@odh-dashboard/ui-core';
-import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import {
+  Connection,
+  ConnectionTestStatus,
+  ConnectionTypeConfigMapObj,
+  CONNECTION_TEST_ANNOTATIONS,
+} from '#~/concepts/connectionTypes/types';
 import { getConnectionTypeDisplayName } from '#~/concepts/connectionTypes/utils';
 
 export const getColumns = (
@@ -42,9 +47,11 @@ export const getColumns = (
     width: 15,
     sortable: (a, b) => {
       const statusA =
-        a.metadata.annotations['opendatahub.io/connection-test-status'] ?? 'not-tested';
+        a.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS] ??
+        ConnectionTestStatus.NOT_TESTED;
       const statusB =
-        b.metadata.annotations['opendatahub.io/connection-test-status'] ?? 'not-tested';
+        b.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS] ??
+        ConnectionTestStatus.NOT_TESTED;
       return statusA.localeCompare(statusB);
     },
   },

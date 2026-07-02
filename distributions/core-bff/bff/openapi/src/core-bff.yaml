@@ -507,6 +507,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '503':
           description: Probe queue full — too many concurrent connection tests.
+          headers:
+            Retry-After:
+              description: Suggested wait time in seconds before retrying.
+              schema:
+                type: integer
+                example: 5
           content:
             application/json:
               schema:

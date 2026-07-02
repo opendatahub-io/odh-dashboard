@@ -655,10 +655,19 @@ describe('ManageConnectionModal test connection', () => {
     renderModal();
 
     await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'my-conn' },
+      });
+      fireEvent.change(screen.getByRole('textbox', { name: 'Endpoint' }), {
+        target: { value: 'http://example.com' },
+      });
+    });
+
+    await act(async () => {
       fireEvent.click(screen.getByTestId('test-connection-button'));
     });
 
     const createButton = screen.getByTestId('modal-submit-button');
-    expect(createButton).toBeInTheDocument();
+    expect(createButton).not.toBeDisabled();
   });
 });
