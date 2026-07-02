@@ -23,10 +23,24 @@ import (
 )
 
 var validPromptName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+var validNamespace = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 
 func validatePromptName(name string) error {
 	if name == "" || !validPromptName.MatchString(name) {
 		return fmt.Errorf("invalid prompt name %q: must start with an alphanumeric character and contain only alphanumerics, hyphens, underscores, or dots", name)
+	}
+	return nil
+}
+
+func validateNamespace(namespace string) error {
+	if namespace == "" {
+		return errors.New("namespace cannot be empty")
+	}
+	if len(namespace) > 63 {
+		return errors.New("namespace must be 63 characters or fewer")
+	}
+	if !validNamespace.MatchString(namespace) {
+		return errors.New("namespace must be lowercase alphanumeric characters or hyphens, and must start and end with an alphanumeric character")
 	}
 	return nil
 }
@@ -182,6 +196,64 @@ func (app *App) fetchGlobalPrompts(r *http.Request, globalNamespaces []string, n
 	return all, failed
 }
 
+// enforceWritePermission checks if the user has write permissions in the namespace.
+// Returns true if allowed, false if denied or error occurred (response already written).
+// The verb parameter should be "create" for save operations or "delete" for delete operations.
+func (app *App) enforceWritePermission(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+	workspace string,
+	verb string,
+) bool {
+	if app.config.AuthMethod == config.AuthMethodDisabled {
+		app.logger.Warn("Skipping permission check (auth disabled)",
+			slog.String("workspace", workspace))
+		return true
+	}
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Error("Failed to get Kubernetes client",
+			slog.String("workspace", workspace),
+			slog.Any("error", err))
+		app.serverErrorResponse(w, r, err)
+		return false
+	}
+
+	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, workspace, verb)
+	if err != nil {
+		var invalidVerbErr *k8s.InvalidVerbError
+		if errors.As(err, &invalidVerbErr) {
+			app.logger.Error("BUG: Invalid verb passed to permission check",
+				slog.String("workspace", workspace),
+				slog.String("verb", verb),
+				slog.Any("error", err))
+		} else {
+			app.logger.Error("Failed to check write permissions",
+				slog.String("workspace", workspace),
+				slog.Any("error", err))
+		}
+		app.serverErrorResponse(w, r, err)
+		return false
+	}
+
+	if !canWrite {
+		err := errors.New("insufficient permissions to write prompts: requires mlflow-edit role")
+		app.logger.Warn("Permission denied",
+			slog.String("workspace", workspace),
+			slog.String("verb", verb))
+		httpError := &HTTPError{
+			StatusCode: http.StatusForbidden,
+			Error:      ErrorPayload{Code: "403", Message: err.Error()},
+		}
+		app.errorResponse(w, r, httpError)
+		return false
+	}
+
+	return true
+}
+
 // MLflowRegisterPromptHandler handles POST /api/v1/prompts
 func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
@@ -216,6 +288,20 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
+	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
+	if strings.TrimSpace(workspace) == "" {
+		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
+		return
+	}
+	if err := validateNamespace(workspace); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid workspace: %w", err))
+		return
+	}
+
+	if !app.enforceWritePermission(ctx, w, r, workspace, "create") {
+		return
+	}
+
 	// TOCTOU: not atomic, but MLflow's RegisterPrompt is idempotent (worst case
 	// is a duplicate version, not corruption). Atomic create requires server support.
 	if req.CreateOnly {
@@ -242,7 +328,6 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	response := PromptVersionEnvelope{Data: *result}
-	workspace, _ := r.Context().Value(constants.WorkspaceQueryParameterKey).(string)
 	headers := http.Header{
 		"Location": {fmt.Sprintf("%s/%s?workspace=%s&version=%d", PromptsPath, url.PathEscape(result.Name), url.QueryEscape(workspace), result.Version)},
 	}
@@ -330,6 +415,20 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
+	if strings.TrimSpace(workspace) == "" {
+		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
+		return
+	}
+	if err := validateNamespace(workspace); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid workspace: %w", err))
+		return
+	}
+
+	if !app.enforceWritePermission(ctx, w, r, workspace, "delete") {
+		return
+	}
+
 	if err := app.repositories.Prompts.DeletePrompt(ctx, name); err != nil {
 		app.handleMLflowClientError(w, r, err)
 		return
@@ -355,6 +454,20 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 	}
 	if version <= 0 {
 		app.badRequestResponse(w, r, errors.New("version must be a positive integer"))
+		return
+	}
+
+	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
+	if strings.TrimSpace(workspace) == "" {
+		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
+		return
+	}
+	if err := validateNamespace(workspace); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid workspace: %w", err))
+		return
+	}
+
+	if !app.enforceWritePermission(ctx, w, r, workspace, "delete") {
 		return
 	}
 
