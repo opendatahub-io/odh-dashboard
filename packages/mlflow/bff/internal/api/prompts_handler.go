@@ -23,10 +23,24 @@ import (
 )
 
 var validPromptName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+var validNamespace = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 
 func validatePromptName(name string) error {
 	if name == "" || !validPromptName.MatchString(name) {
 		return fmt.Errorf("invalid prompt name %q: must start with an alphanumeric character and contain only alphanumerics, hyphens, underscores, or dots", name)
+	}
+	return nil
+}
+
+func validateNamespace(namespace string) error {
+	if namespace == "" {
+		return errors.New("namespace cannot be empty")
+	}
+	if len(namespace) > 63 {
+		return errors.New("namespace must be 63 characters or fewer")
+	}
+	if !validNamespace.MatchString(namespace) {
+		return errors.New("namespace must be lowercase alphanumeric characters or hyphens, and must start and end with an alphanumeric character")
 	}
 	return nil
 }
@@ -279,6 +293,10 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
 		return
 	}
+	if err := validateNamespace(workspace); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid workspace: %w", err))
+		return
+	}
 
 	if !app.enforceWritePermission(ctx, w, r, workspace, "create") {
 		return
@@ -402,6 +420,10 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
 		return
 	}
+	if err := validateNamespace(workspace); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid workspace: %w", err))
+		return
+	}
 
 	if !app.enforceWritePermission(ctx, w, r, workspace, "delete") {
 		return
@@ -438,6 +460,10 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
 	if strings.TrimSpace(workspace) == "" {
 		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
+		return
+	}
+	if err := validateNamespace(workspace); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid workspace: %w", err))
 		return
 	}
 

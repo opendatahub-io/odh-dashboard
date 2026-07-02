@@ -34,12 +34,13 @@ func newTestAppWithPromptsRepos() *App {
 }
 
 func newMockK8sClientFactoryWithVerb(canWrite bool, expectedVerb string) k8s.KubernetesClientFactory {
-	return &mockK8sClientFactory{canWrite: canWrite, expectedVerb: expectedVerb}
+	return &mockK8sClientFactory{canWrite: canWrite, expectedVerb: expectedVerb, expectedNamespace: "my-ns"}
 }
 
 type mockK8sClientFactory struct {
-	canWrite     bool
-	expectedVerb string
+	canWrite          bool
+	expectedVerb      string
+	expectedNamespace string
 }
 
 func (f *mockK8sClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
@@ -51,12 +52,13 @@ func (f *mockK8sClientFactory) ValidateRequestIdentity(identity *k8s.RequestIden
 }
 
 func (f *mockK8sClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
-	return &mockK8sClient{canWrite: f.canWrite, expectedVerb: f.expectedVerb}, nil
+	return &mockK8sClient{canWrite: f.canWrite, expectedVerb: f.expectedVerb, expectedNamespace: f.expectedNamespace}, nil
 }
 
 type mockK8sClient struct {
-	canWrite     bool
-	expectedVerb string
+	canWrite          bool
+	expectedVerb      string
+	expectedNamespace string
 }
 
 func (c *mockK8sClient) GetNamespaces(ctx context.Context, identity *k8s.RequestIdentity) ([]corev1.Namespace, error) {
@@ -72,6 +74,9 @@ func (c *mockK8sClient) GetUser(identity *k8s.RequestIdentity) (string, error) {
 }
 
 func (c *mockK8sClient) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
+	if c.expectedNamespace != "" && namespace != c.expectedNamespace {
+		return false, fmt.Errorf("unexpected namespace: got %q, expected %q", namespace, c.expectedNamespace)
+	}
 	if c.expectedVerb != "" && verb != c.expectedVerb {
 		return false, fmt.Errorf("unexpected verb: got %q, expected %q", verb, c.expectedVerb)
 	}
