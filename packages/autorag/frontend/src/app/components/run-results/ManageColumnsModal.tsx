@@ -79,13 +79,17 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   }, [currentColumns, presets]);
 
   React.useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
     setCurrentColumns(
       appliedColumns.map((col) => ({
         ...col,
         isShown: col.isShown ?? col.isShownByDefault,
       })),
     );
-  }, [appliedColumns]);
+    setIsPresetOpen(false);
+  }, [isOpen, appliedColumns]);
 
   const resetToDefault = () => {
     setCurrentColumns(
