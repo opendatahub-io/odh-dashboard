@@ -17,6 +17,7 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension)[] = [
       href: '/evaluation',
       section: 'develop-and-train',
       path: '/evaluation/*',
+      label: 'Tech Preview',
     },
   },
   {
