@@ -1,0 +1,37 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/hardware-profiles-shared",
+  "description": "Shared hardware profile types, hooks, components, and utilities consumed by serving-family packages",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./kueueUtils": "./src/kueueUtils.ts",
+    "./useHardwareProfileConfig": "./src/useHardwareProfileConfig.ts",
+    "./useAssignHardwareProfile": "./src/useAssignHardwareProfile.ts",
+    "./const": "./src/const.ts",
+    "./utils": "./src/utils.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
+    "lodash-es": "^4.17.21",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "react": "^18"
+  }
+}

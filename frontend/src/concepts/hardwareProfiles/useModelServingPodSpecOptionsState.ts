@@ -1,9 +1,9 @@
 import React from 'react';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { useAppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
-import { ModelServingSize } from '#~/pages/modelServing/screens/types';
+import type { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import { getInferenceServiceSize } from '#~/pages/modelServing/utils';
 import useServingHardwareProfileConfig from './useServingHardwareProfileConfig';
 import { PodSpecOptions, HardwarePodSpecOptionsState } from './types';
@@ -41,7 +41,6 @@ export const useModelServingHardwareProfileState = (
   );
   const [modelSize, setModelSize] = React.useState(sizes[0]);
 
-  // set initial model size
   React.useEffect(() => {
     if (inferenceService) {
       setModelSize(existingSize);

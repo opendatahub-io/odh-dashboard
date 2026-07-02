@@ -15,3 +15,22 @@ export { default as DashboardPopupIconButton } from './components/DashboardPopup
 export { default as StateActionToggle } from './components/StateActionToggle';
 export type { ToggleState, StateActionToggleProps } from './components/StateActionToggle';
 export { default as DashboardEmptyTableView } from './components/DashboardEmptyTableView';
+
+export {
+  splitValueUnit,
+  convertToUnit,
+  isEqual,
+  isCpuResourceEqual,
+  isMemoryResourceEqual,
+  isLarger,
+  isCpuLarger,
+  isCpuLimitLarger,
+  isMemoryLarger,
+  isMemoryLimitLarger,
+  formatMemory,
+  CPU_UNITS,
+  MEMORY_UNITS_FOR_SELECTION,
+  MEMORY_UNITS_FOR_PARSING,
+  OTHER,
+} from './utilities/valueUnits';
+export type { ValueUnitString, ValueUnitCPU, UnitOption } from './utilities/valueUnits';
