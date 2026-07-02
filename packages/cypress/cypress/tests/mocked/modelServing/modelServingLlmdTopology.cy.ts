@@ -80,17 +80,16 @@ const initIntercepts = ({
       },
     }),
   );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dashboardConfig = {
+  const config = mockDashboardConfig({
     disableNIMModelServing: true,
     disableKServe: false,
     genAiStudio: true,
     modelAsService: true,
     disableLLMd: false,
-    llmdTopologyConfigs: llmdTopologyConfigsEnabled,
     vLLMDeploymentOnMaaS: true,
-  } as any;
-  cy.interceptOdh('GET /api/config', mockDashboardConfig(dashboardConfig));
+  });
+  config.spec.dashboardConfig.llmdTopologyConfigs = llmdTopologyConfigsEnabled;
+  cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
