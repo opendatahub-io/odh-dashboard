@@ -972,23 +972,19 @@ function AutomlConfigure({
                                     name="preset"
                                     label={PRESET_LABELS[preset]}
                                     description={
-                                      <Stack>
-                                        {preset === PRESET_FASTER ? (
-                                          <>
-                                            <StackItem>4 vCPU / 16 GiB</StackItem>
-                                            <StackItem>
-                                              Use fewer resources to prioritize speed
-                                            </StackItem>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <StackItem>8 vCPU / 32 GiB</StackItem>
-                                            <StackItem>
-                                              Use more resources to prioritize accuracy
-                                            </StackItem>
-                                          </>
-                                        )}
-                                      </Stack>
+                                      preset === PRESET_FASTER ? (
+                                        <>
+                                          4 vCPU / 16 GiB
+                                          <br />
+                                          Use fewer resources to prioritize speed
+                                        </>
+                                      ) : (
+                                        <>
+                                          8 vCPU / 32 GiB
+                                          <br />
+                                          Use more resources to prioritize accuracy
+                                        </>
+                                      )
                                     }
                                     isChecked={field.value === preset}
                                     isDisabled={formIsSubmitting}
