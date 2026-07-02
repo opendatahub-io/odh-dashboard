@@ -108,6 +108,15 @@ func (r *AgentRuntimesRepository) DeployAgent(ctx context.Context, params *agent
 	}, nil
 }
 
+// DeleteAgent removes an agent via the agent data source.
+func (r *AgentRuntimesRepository) DeleteAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+	return translateAgentError(client.DeleteAgent(ctx, namespace, name))
+}
+
 func translateAgentError(err error) error {
 	if err == nil {
 		return nil
