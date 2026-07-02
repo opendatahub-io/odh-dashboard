@@ -104,6 +104,7 @@ export const blankDashboardCR: DashboardConfig = {
       vLLMDeploymentOnMaaS: false,
       llmGatewayField: false,
       promptManagement: false,
+      globalProjectPrompts: false,
       mySubscriptions: true,
       maasSettingsIaRedesign: false,
       gpuaas: false,

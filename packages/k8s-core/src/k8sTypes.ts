@@ -275,6 +275,7 @@ export type DashboardCommonConfig = {
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  globalProjectPrompts?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
