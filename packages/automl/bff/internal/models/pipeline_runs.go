@@ -18,6 +18,7 @@ type PipelineRun struct {
 	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
 	FinishedAt               string                    `json:"finished_at,omitempty"`
 	PipelineSpec             json.RawMessage           `json:"pipeline_spec,omitempty"`
+	PipelineVersionName      string                    `json:"pipeline_version_name,omitempty"`
 	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
 	Error                    *ErrorInfo                `json:"error,omitempty"`
 	RunDetails               *RunDetails               `json:"run_details,omitempty"`
