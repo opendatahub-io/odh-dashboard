@@ -150,10 +150,14 @@ const useChatbotMessages = ({
   const messagesRef = React.useRef<ChatbotMessageProps[]>(messages);
   // Keep handleMessageSend in a ref for handleRetry to access latest function
   const handleMessageSendRef = React.useRef<
-    ((message: string, compareID?: string) => Promise<void>) | null
+    | ((
+        message: string,
+        compareID?: string,
+        fileId?: string,
+        imagePreview?: { previewUrl: string; fileName: string },
+      ) => Promise<void>)
+    | null
   >(null);
-  // Keep bot message ID in a ref for handleRetry to access latest value
-  const botMessageIdRef = React.useRef<string | undefined>(undefined);
   const multimodalContentRef = React.useRef<Map<string, InputContentPart[]>>(new Map());
   const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
     new Map(),
@@ -390,12 +394,14 @@ const useChatbotMessages = ({
       setIsStreamingWithoutContent(true);
     }
 
+    let botMessageId: string | undefined;
+
     try {
       // Create placeholder bot message FIRST (before any validation that could throw)
       // This ensures error handling can update the message consistently
-      botMessageIdRef.current = getId();
+      botMessageId = getId();
       const placeholderBotMessage: MessageProps = {
-        id: botMessageIdRef.current,
+        id: botMessageId,
         role: 'bot',
         content: '',
         name: modelDisplayName,
@@ -427,6 +433,7 @@ const useChatbotMessages = ({
             vector_store_ids: [currentVectorStoreId],
           }),
         chat_context: messages
+          .filter((msg) => msg.content && !msg.errorClassification)
           .map((msg) => ({
             role:
               msg.role === ChatMessageRole.USER ? ChatMessageRole.USER : ChatMessageRole.ASSISTANT,
@@ -487,7 +494,7 @@ const useChatbotMessages = ({
 
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
-              msg.id === botMessageIdRef.current
+              msg.id === botMessageId
                 ? {
                     ...msg,
                     content: '',
@@ -526,7 +533,7 @@ const useChatbotMessages = ({
 
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
-              msg.id === botMessageIdRef.current
+              msg.id === botMessageId
                 ? {
                     ...msg,
                     content: displayContent,
@@ -642,7 +649,7 @@ const useChatbotMessages = ({
 
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
-            msg.id === botMessageIdRef.current
+            msg.id === botMessageId
               ? {
                   ...msg,
                   content: streamingResponse.content,
@@ -687,7 +694,7 @@ const useChatbotMessages = ({
         // Update the placeholder message with the full response
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
-            msg.id === botMessageIdRef.current
+            msg.id === botMessageId
               ? {
                   ...msg,
                   content: response.content || 'No response received',
@@ -763,12 +770,12 @@ const useChatbotMessages = ({
         (isAbortError || errorMessage === 'Response stopped by user');
 
       // Handle user-stopped messages (not errors, just user action)
-      if (wasUserStopped) {
-        if (isStreamingEnabled && botMessageIdRef.current) {
+      if (wasUserStopped && botMessageId) {
+        if (isStreamingEnabled) {
           // For streaming, append "You stopped this message" to existing content
           setMessages((prevMessages) =>
             prevMessages.map((msg) => {
-              if (msg.id === botMessageIdRef.current) {
+              if (msg.id === botMessageId) {
                 const stoppedContent = msg.content
                   ? `${msg.content}\n\n*You stopped this message*`
                   : '*You stopped this message*';
@@ -804,47 +811,25 @@ const useChatbotMessages = ({
         // TODO: Add toolName if error is from MCP tool call
       });
 
-      // Retry handler - resends the same prompt (uses refs to avoid stale closure)
-      // botMessageIdRef.current is set before errors can occur, so it's always available when retry is called
       const handleRetry = () => {
-        // Read latest messages from ref (avoid stale closure)
-        const currentMessages = messagesRef.current;
-        const lastUserMessage = currentMessages
-          .slice()
-          .reverse()
-          .find((msg) => msg.role === 'user');
-
-        if (!lastUserMessage?.content) {
-          return; // No user message to retry
+        if (!botMessageId) {
+          return;
         }
 
-        const userContent = lastUserMessage.content;
+        setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== botMessageId));
 
-        // Remove the error message (pure state update)
-        setMessages((prevMessages) =>
-          prevMessages.filter((msg) => msg.id !== botMessageIdRef.current),
-        );
-
-        // Schedule retry outside the updater, with guard against clearing
         setTimeout(() => {
-          if (!isClearingRef.current) {
-            // Verify messages still exist and include the user message (read from ref)
-            const stillHasUserMessage = messagesRef.current.some(
-              (msg) => msg.id === lastUserMessage.id && msg.role === 'user',
-            );
-            // Call latest handleMessageSend from ref
-            if (stillHasUserMessage && handleMessageSendRef.current) {
-              handleMessageSendRef.current(userContent);
-            }
+          if (!isClearingRef.current && handleMessageSendRef.current) {
+            handleMessageSendRef.current(message, compareID, fileId, imagePreview);
           }
         }, 0);
       };
 
-      if (isStreamingEnabled && botMessageIdRef.current) {
+      if (isStreamingEnabled && botMessageId) {
         // For streaming errors, update existing bot message with error classification
         setMessages((prevMessages) =>
           prevMessages.map((msg) => {
-            if (msg.id === botMessageIdRef.current) {
+            if (msg.id === botMessageId) {
               // Determine if this is a streaming interruption (had some content)
               const hadContent = msg.content && msg.content.length > 0;
 
@@ -869,11 +854,11 @@ const useChatbotMessages = ({
             return msg;
           }),
         );
-      } else {
+      } else if (botMessageId) {
         // For non-streaming, update the placeholder bot message with error classification
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
-            msg.id === botMessageIdRef.current
+            msg.id === botMessageId
               ? {
                   ...msg,
                   content: '', // No content, error alert will be shown
@@ -886,6 +871,10 @@ const useChatbotMessages = ({
         );
       }
     } finally {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setIsMessageSendButtonDisabled(false);
       setIsLoading(false);
       setIsStreamingWithoutContent(false);
