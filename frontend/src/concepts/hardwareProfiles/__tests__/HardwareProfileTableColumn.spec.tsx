@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import userEvent from '@testing-library/user-event';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
 import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
+import { NotebookKind } from '#~/k8sTypes';
+import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -54,7 +57,7 @@ describe('HardwareProfileTableColumn', () => {
       renderWithContext(
         <HardwareProfileTableColumn
           namespace="test-project"
-          resource={mockNotebookResource as never}
+          resource={mockNotebookResource as unknown as NotebookKind}
           bindingState={{
             bindingStateInfo: {
               profile,
@@ -72,11 +75,11 @@ describe('HardwareProfileTableColumn', () => {
   });
 
   describe('Custom scenario (no hardware profile)', () => {
-    it('renders Custom text and no details popover', () => {
+    it('renders Custom text as a focusable button with no details popover', () => {
       renderWithContext(
         <HardwareProfileTableColumn
           namespace="test-project"
-          resource={mockNotebookResource as never}
+          resource={mockNotebookResource as unknown as NotebookKind}
           bindingState={{
             bindingStateInfo: {
               profile: undefined,
@@ -89,13 +92,25 @@ describe('HardwareProfileTableColumn', () => {
 
       expect(screen.getByTestId('hardware-profile-table-column')).toHaveTextContent('Custom');
       expect(screen.queryByTestId('hardware-profile-details-popover')).not.toBeInTheDocument();
+      expect(screen.getByText('Custom').closest('button')).toBeInTheDocument();
     });
 
-    it('renders Custom trigger as a focusable element', () => {
+    it('renders details popover with "applied directly" when notebook has a direct queue label and no HP', async () => {
+      const notebookWithQueueLabel = {
+        ...mockNotebookResource,
+        metadata: {
+          ...mockNotebookResource.metadata,
+          labels: {
+            ...mockNotebookResource.metadata.labels,
+            [KUEUE_QUEUE_LABEL]: 'gitops-queue',
+          },
+        },
+      };
+
       renderWithContext(
         <HardwareProfileTableColumn
           namespace="test-project"
-          resource={mockNotebookResource as never}
+          resource={notebookWithQueueLabel as unknown as NotebookKind}
           bindingState={{
             bindingStateInfo: {
               profile: undefined,
@@ -106,8 +121,15 @@ describe('HardwareProfileTableColumn', () => {
         />,
       );
 
-      const trigger = screen.getByText('Custom').closest('button');
-      expect(trigger).toBeInTheDocument();
+      expect(screen.getByTestId('hardware-profile-details-popover')).toBeInTheDocument();
+      expect(screen.queryByText('Custom')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+      const details = screen.getByTestId('hardware-profile-details');
+      expect(details).toHaveTextContent('Local queue (applied directly)');
+      expect(details).toHaveTextContent('gitops-queue');
+      expect(details).not.toHaveTextContent('No matching hardware profile found');
     });
   });
 
@@ -116,7 +138,7 @@ describe('HardwareProfileTableColumn', () => {
       renderWithContext(
         <HardwareProfileTableColumn
           namespace="test-project"
-          resource={mockNotebookResource as never}
+          resource={mockNotebookResource as unknown as NotebookKind}
           bindingState={{
             bindingStateInfo: null,
             bindingStateLoaded: false,

@@ -79,6 +79,41 @@ func TestApplyKustomizeParams(t *testing.T) {
 		"computed params should also be written to modular-architecture")
 }
 
+func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
+	dir := t.TempDir()
+	overlay := filepath.Join(dir, "rhoai")
+	require.NoError(t, os.MkdirAll(overlay, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"),
+		[]byte("odh-dashboard-image=quay.io/opendatahub/odh-dashboard@sha256:abc123\nkube-rbac-proxy=quay.io/opendatahub/odh-kube-rbac-proxy@sha256:def456\n"), 0644))
+
+	modArch := filepath.Join(dir, "modular-architecture")
+	require.NoError(t, os.MkdirAll(modArch, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(modArch, "params.env"),
+		[]byte("model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-model-registry@sha256:ghi789\n"), 0644))
+
+	for _, envVar := range imagesMap {
+		t.Setenv(envVar, "")
+	}
+
+	dashboard := &v1alpha1.Dashboard{}
+	manifests := manifestSets(dir, cluster.SelfManagedRhoai)
+	require.NoError(t, applyKustomizeParams(dashboard, manifests, cluster.SelfManagedRhoai))
+
+	overlayData, err := os.ReadFile(filepath.Join(overlay, "params.env"))
+	require.NoError(t, err)
+	overlayContent := string(overlayData)
+	assert.Contains(t, overlayContent, "odh-dashboard-image=quay.io/opendatahub/odh-dashboard@sha256:abc123",
+		"digest-pinned default from params.env must survive when no env var override is provided")
+	assert.Contains(t, overlayContent, "kube-rbac-proxy=quay.io/opendatahub/odh-kube-rbac-proxy@sha256:def456",
+		"digest-pinned default from params.env must survive when no env var override is provided")
+
+	modArchData, err := os.ReadFile(filepath.Join(modArch, "params.env"))
+	require.NoError(t, err)
+	modArchContent := string(modArchData)
+	assert.Contains(t, modArchContent, "model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-model-registry@sha256:ghi789",
+		"digest-pinned default in modular-architecture params.env must survive when no env var override is provided")
+}
+
 func TestExtractDashboardURL(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, routev1.AddToScheme(scheme))

@@ -28,6 +28,9 @@
     }
   },
   "e2eCiTags": ["@AgentOpsCI"],
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
   "bffConfig": {
     "enabled": true,
     "port": 4021,
