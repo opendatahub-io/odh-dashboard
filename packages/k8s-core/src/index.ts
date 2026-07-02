@@ -61,7 +61,6 @@ export type {
 } from './k8sTypes';
 
 export {
-  genRandomChars,
   isK8sDSGResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,

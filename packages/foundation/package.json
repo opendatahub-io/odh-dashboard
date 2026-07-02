@@ -1,7 +1,7 @@
 {
   "private": true,
-  "name": "@odh-dashboard/k8s-core",
-  "description": "Shared Kubernetes resource types and utilities",
+  "name": "@odh-dashboard/foundation",
+  "description": "Pure types and generic utility functions — tier 0, zero @odh-dashboard dependencies",
   "version": "0.0.0",
   "exports": {
     ".": "./src/index.ts"
@@ -10,12 +10,6 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@odh-dashboard/foundation": "*",
-    "@openshift/dynamic-plugin-sdk": "^5.0.1",
-    "@openshift/dynamic-plugin-sdk-utils": "^5.0.0",
-    "lodash-es": "^4.18.1"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
