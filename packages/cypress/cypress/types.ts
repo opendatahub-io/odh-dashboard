@@ -509,6 +509,7 @@ export type ModelRegistryTestData = {
   defaultMysqlPort: string;
   defaultPostgresPort: string;
   defaultDatabaseName: string;
+  defaultPostgresDatabaseName: string;
   statusAvailable: string;
 
   // Database configuration testing

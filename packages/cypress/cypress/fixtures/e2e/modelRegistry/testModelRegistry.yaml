@@ -47,7 +47,8 @@ rhodsUsersGroup: "rhods-users"
 # Default database form values
 defaultMysqlPort: "3306"
 defaultPostgresPort: "5432"
-defaultDatabaseName: "model-registry"
+defaultDatabaseName: "model_registry"
+defaultPostgresDatabaseName: "model-registry"
 statusAvailable: "Available"
 
 # Database credentials for E2E tests

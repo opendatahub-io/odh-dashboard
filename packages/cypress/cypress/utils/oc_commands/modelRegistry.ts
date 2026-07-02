@@ -702,7 +702,7 @@ export const cleanupRegisteredModelsFromDatabase = (
       ].join(' ');
 
       const escapeShellDoubleQuotes = (s: string) => s.replace(/["$`\\]/g, '\\$&');
-      const cleanupCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model-registry" -e "${escapeShellDoubleQuotes(
+      const cleanupCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model_registry" -e "${escapeShellDoubleQuotes(
         sqlCommands,
       )}"`;
 
@@ -746,7 +746,7 @@ export const checkModelExistsInDatabase = (
         /'/g,
         "''",
       )}';`;
-      const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model-registry" -e "${sqlQuery}" --skip-column-names`;
+      const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model_registry" -e "${sqlQuery}" --skip-column-names`;
 
       cy.log(`Checking if model '${modelName}' exists in database '${databaseName}'`);
 
@@ -915,7 +915,7 @@ export const checkModelVersionExistsInDatabase = (
         /'/g,
         "''",
       )}%';`;
-      const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model-registry" -e "${sqlQuery}" --skip-column-names`;
+      const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model_registry" -e "${sqlQuery}" --skip-column-names`;
 
       cy.log(`Checking if version '${versionName}' exists in database '${databaseName}'`);
 
@@ -1028,7 +1028,7 @@ export const checkCustomPropertiesInDatabase = (
       const whereClause =
         matchType === 'exact' ? `c.name = '${escapedName}'` : `c.name LIKE '%${escapedName}%'`;
       const sqlQuery = `SELECT cp.name FROM ContextProperty cp JOIN Context c ON cp.context_id = c.id WHERE ${whereClause};`;
-      const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model-registry" -e "${sqlQuery}" --skip-column-names`;
+      const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model_registry" -e "${sqlQuery}" --skip-column-names`;
 
       cy.log(`Checking custom properties for '${entityName}' in database '${databaseName}'`);
       cy.log(`Expected property keys: ${expectedPropertyKeys.join(', ')}`);
