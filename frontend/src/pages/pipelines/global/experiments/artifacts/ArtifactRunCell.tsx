@@ -22,6 +22,11 @@ const ArtifactRunCell: React.FC<ArtifactRunCellProps> = ({ artifact }) => {
     return <>—</>;
   }
 
+  // Check if we're currently loading this run (takes priority over stale errors)
+  if (loading.has(runId)) {
+    return <Skeleton />;
+  }
+
   // Check if we have an error for this run
   if (runId in errors) {
     const errorCode = getGenericErrorCode(errors[runId]);
@@ -31,11 +36,6 @@ const ArtifactRunCell: React.FC<ArtifactRunCellProps> = ({ artifact }) => {
     }
     // Other errors (500, network, etc.) - show the run ID as fallback
     return <Truncate content={runId} tooltipPosition="top" />;
-  }
-
-  // Check if we're still loading this run
-  if (loading.has(runId)) {
-    return <Skeleton />;
   }
 
   // Get the run from cache
