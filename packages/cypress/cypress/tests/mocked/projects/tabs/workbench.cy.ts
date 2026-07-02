@@ -67,6 +67,7 @@ import {
   initFeatureStoreSpawnerIntercepts,
   mockEmptyWorkbenchIntegrationResponse,
   mockNotebookWithFeastConfig,
+  mockWorkbenchIntegrationResponse,
 } from '../../../../utils/featureStoreSpawnerMocks';
 
 const configYamlPath = './cypress/fixtures/resources/yaml/mock-upload-configmap.yaml';
@@ -2178,6 +2179,70 @@ describe('Workbench page', () => {
       notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
     });
+
+    it('renders available store names as links when workbench integration is loaded', () => {
+      initIntercepts({
+        notebooks: [
+          mockNotebookK8sResource({
+            lastImageSelection: 'test-imagestream:1.2',
+            opts: {
+              metadata: {
+                name: 'test-notebook',
+                labels: { 'opendatahub.io/notebook-image': 'true' },
+                annotations: {
+                  'opendatahub.io/image-display-name': 'Test image',
+                  'opendatahub.io/feast-config': `${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName},${FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName}`,
+                },
+              },
+            },
+          }),
+        ],
+      });
+      enableFeatureStoreArea();
+      cy.interceptOdh(
+        'GET /api/featurestores/workbench-integration',
+        mockWorkbenchIntegrationResponse,
+      );
+      workbenchPage.visit('test-project');
+      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+      notebookRow.findExpansionButton().click();
+      notebookRow.shouldHaveFeatureStoreLinks([
+        {
+          name: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+          href: `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName}`,
+        },
+        {
+          name: FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+          href: `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName}`,
+        },
+      ]);
+    });
+
+    it('renders store names as plain text when workbench integration is not loaded', () => {
+      initIntercepts({
+        notebooks: [
+          mockNotebookK8sResource({
+            lastImageSelection: 'test-imagestream:1.2',
+            opts: {
+              metadata: {
+                name: 'test-notebook',
+                labels: { 'opendatahub.io/notebook-image': 'true' },
+                annotations: {
+                  'opendatahub.io/image-display-name': 'Test image',
+                  'opendatahub.io/feast-config': 'project-a,project-b',
+                },
+              },
+            },
+          }),
+        ],
+      });
+      enableFeatureStoreArea();
+      workbenchPage.visit('test-project');
+      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+      notebookRow.findExpansionButton().click();
+      notebookRow.shouldHaveFeatureStoreItems(['project-a', 'project-b']);
+      notebookRow.shouldNotHaveFeatureStoreLinks();
+    });
   });
 
   it('Delete Workbench', () => {
@@ -2449,6 +2514,22 @@ describe('Workbench page', () => {
         );
         createSpawnerPage.shouldHaveFeatureStoreSelected(
           FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+        );
+      });
+
+      it('should render connected feature store names as links', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts();
+
+        visitCreateSpawner();
+        createSpawnerPage.selectFeatureStore(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+
+        createSpawnerPage.shouldHaveFeatureStoreLink(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+          `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName}`,
         );
       });
 

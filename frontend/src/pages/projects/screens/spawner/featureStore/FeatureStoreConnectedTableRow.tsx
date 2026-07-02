@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import {
   ActionList,
   ActionListItem,
@@ -47,7 +48,12 @@ export const FeatureStoreConnectedTableRow: React.FC<FeatureStoreConnectedTableR
             </FlexItem>
           </Flex>
         ) : (
-          <Truncate content={featureStore.projectName} />
+          <Link
+            to={`/develop-train/feature-store/overview/${featureStore.projectName}`}
+            state={{ registryNamespace: featureStore.namespace }}
+          >
+            <Truncate content={featureStore.projectName} />
+          </Link>
         )}
       </Td>
       <Td dataLabel="Namespace">
