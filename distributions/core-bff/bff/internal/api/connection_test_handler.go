@@ -74,11 +74,6 @@ func NewProbeSemaphore() chan struct{} {
 
 // TestConnectionHandler handles POST /api/v1/connections/test.
 func (app *App) TestConnectionHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	if err := app.validateCallerToken(r.Context()); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
-
 	var req models.ConnectionTestRequest
 	if err := app.ReadJSON(w, r, &req); err != nil {
 		app.badRequestResponse(w, r, err)

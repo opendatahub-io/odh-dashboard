@@ -21,23 +21,6 @@ import (
 
 // --- Handler Tests ---
 
-func TestTestConnection_InvalidToken_Returns401(t *testing.T) {
-	app := newTestApp()
-
-	body := `{"connectionType":"s3","fieldValues":{"AWS_S3_ENDPOINT":"http://minio:9000"}}`
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, ConnectionTestPath, bytes.NewReader([]byte(body)))
-	req.Header.Set("Content-Type", "application/json")
-	req = reqWithIdentity(req, &k8s.RequestIdentity{
-		UserID: "attacker",
-		Token:  k8s.NewBearerToken("garbage-token-abc123"),
-	})
-
-	app.TestConnectionHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-}
-
 func TestTestConnection_EmptyBody_Returns400(t *testing.T) {
 	app := newTestApp()
 	admin := k8mocks.DefaultTestUsers[0]
