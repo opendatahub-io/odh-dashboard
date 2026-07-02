@@ -974,6 +974,7 @@ export type WorkloadPodSet = {
 export enum WorkloadOwnerType {
   RayCluster = 'RayCluster',
   Job = 'Job',
+  StatefulSet = 'StatefulSet',
 }
 
 // https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-Workload
@@ -1026,20 +1027,21 @@ export type WorkloadKind = K8sResourceCommon & {
   };
 };
 
+export type WorkloadConditionType =
+  | 'QuotaReserved'
+  | 'Admitted'
+  | 'PodsReady'
+  | 'Finished'
+  | 'Evicted'
+  | 'Preempted';
+
 export type WorkloadCondition = {
   lastTransitionTime: string;
   message: string;
   observedGeneration?: number;
   reason: string;
   status: 'True' | 'False' | 'Unknown';
-  type:
-    | 'QuotaReserved'
-    | 'Admitted'
-    | 'PodsReady'
-    | 'Finished'
-    | 'Evicted'
-    | 'Preempted'
-    | 'Failed';
+  type: WorkloadConditionType | (string & NonNullable<unknown>);
 };
 
 export type WorkloadPriorityClassKind = K8sResourceCommon & {
@@ -1049,6 +1051,24 @@ export type WorkloadPriorityClassKind = K8sResourceCommon & {
   };
   value: number;
   description?: string;
+};
+
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#visibility-kueue-x-k8s-io-v1beta2-PendingWorkload
+export type PendingWorkload = {
+  metadata: {
+    name: string;
+    namespace: string;
+    creationTimestamp?: string;
+  };
+  priority: number;
+  priorityClassName?: string;
+  localQueueName: string;
+  positionInClusterQueue: number;
+  positionInLocalQueue: number;
+};
+
+export type PendingWorkloadsSummary = {
+  items: PendingWorkload[];
 };
 
 export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
@@ -1359,104 +1379,5 @@ export type AuthKind = K8sResourceCommon & {
   spec: {
     adminGroups: string[];
     allowedGroups: string[];
-  };
-};
-
-export type Server = {
-  env?: Record<string, never>[][];
-  envFrom?: Record<string, never>[];
-  grpc?: boolean;
-  image?: string;
-  restAPI?: boolean;
-  tls?: {
-    secretKeyNames: {
-      tlsCrt: string;
-      tlsKey: string;
-    };
-    secretRef: {
-      name: string;
-    };
-  };
-  volumeMounts?: Record<string, never>[];
-};
-
-export type Persistence = {
-  file?: { path?: string; pvc?: Record<string, never> };
-  store?: { type?: string; secretKeyName?: Record<string, never> };
-};
-
-export type Services = {
-  offlineStore?: {
-    persistence?: Persistence;
-    server?: Server;
-  };
-  onlineStore?: {
-    persistence?: Persistence;
-    server?: Server;
-  };
-  registry: {
-    local: {
-      persistence?: Persistence;
-      server?: Server;
-    };
-  };
-  ui?: Server;
-};
-
-export type FeastProjectDir = {
-  git?: {
-    url: string;
-    featureRepoPath: string;
-    ref: string;
-  };
-  init?: { minimal?: boolean; template?: string };
-};
-
-export type FeatureStoreKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-    namespace: string;
-    annotations?: Record<string, string>;
-    labels?: Record<string, string>;
-  };
-  spec: {
-    feastProject: string;
-    feastProjectDir?: FeastProjectDir;
-    services: Services;
-    authz?: {
-      kubernetes?: {
-        roles?: string[];
-      };
-      oidc?: {
-        secretRef: {
-          name: string;
-        };
-      };
-    };
-    cronJob?: Record<string, never>;
-    volumes?: Record<string, never>[];
-  };
-  status?: {
-    applied?: {
-      cronJob?: {
-        concurrencyPolicy: string;
-        containerConfigs: {
-          commands: string[];
-          image: string;
-        };
-        schedule: string;
-        startingDeadlineSeconds: number;
-        suspend: boolean;
-      };
-      feastProject: string;
-      feastProjectDir?: FeastProjectDir;
-      services?: Services;
-    };
-    clientConfigMap?: string;
-    conditions?: K8sCondition[];
-    cronJob?: string;
-    feastVersion?: string;
-    phase?: string;
-    serviceHostnames?: Record<string, string>;
   };
 };

@@ -13,6 +13,7 @@ import {
   StackItem,
   Button,
   Popover,
+  Tooltip,
   ActionListGroup,
   Skeleton,
   Label,
@@ -59,21 +60,28 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     encodeURIComponent(`${decodedParams.modelName}`),
   );
 
-  const registerButtonPopover = (
+  const registerButtonTooltip = (
     headerContent: string,
     bodyContent: string,
     variant: 'primary' | 'secondary' = 'primary',
   ) => (
-    <Popover
-      headerContent={headerContent}
-      triggerAction="hover"
-      data-testid="register-catalog-model-popover"
-      bodyContent={<div>{bodyContent}</div>}
+    <Tooltip
+      content={
+        headerContent ? (
+          <div>
+            <strong>{headerContent}</strong>
+            <div>{bodyContent}</div>
+          </div>
+        ) : (
+          bodyContent
+        )
+      }
+      data-testid="register-catalog-model-tooltip"
     >
       <Button variant={variant} isAriaDisabled data-testid="register-model-button">
         Register model
       </Button>
-    </Popover>
+    </Tooltip>
   );
 
   const registerModelButton = (variant: 'primary' | 'secondary' = 'primary') => {
@@ -82,7 +90,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     }
 
     if (artifactsLoadError) {
-      return registerButtonPopover(
+      return registerButtonTooltip(
         'Unable to load model artifacts',
         'Model registration is unavailable due to an error loading model artifacts. Please try again later.',
       );
@@ -97,13 +105,13 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     }
 
     return modelRegistries.length === 0 ? (
-      registerButtonPopover(
+      registerButtonTooltip(
         'Request access to a model registry',
         'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
         variant,
       )
     ) : artifacts.items.length === 0 || !hasModelArtifacts(artifacts.items) ? (
-      registerButtonPopover('', 'Model location is unavailable', variant)
+      registerButtonTooltip('', 'Model location is unavailable', variant)
     ) : (
       <Button
         data-testid="register-model-button"

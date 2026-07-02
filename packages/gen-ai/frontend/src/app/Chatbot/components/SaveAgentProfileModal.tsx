@@ -23,7 +23,7 @@ import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { DEFAULT_CONFIG_ID, useChatbotConfigStore } from '~/app/Chatbot/store';
-import { isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
 import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 import { MCPServerFromAPI } from '~/app/types/mcp';
@@ -50,12 +50,13 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   onSaved,
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
-  const { aiModels, models: playgroundModels } = React.useContext(ChatbotContext);
+  const { aiModels, maasModels, models: playgroundModels } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
 
   const config = useChatbotConfigStore((s) => s.configurations[DEFAULT_CONFIG_ID]);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
+  const loadedResourceVersion = useChatbotConfigStore((s) => s.loadedResourceVersion);
   const loadedProfileDescription = useChatbotConfigStore((s) => s.loadedProfileDescription);
 
   const { data: externalVectorStores = [] } = useFetchAAEVectorStores();
@@ -67,17 +68,29 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   );
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [conflictError, setConflictError] = React.useState<'modified' | 'deleted' | null>(null);
 
   const llamaModel = React.useMemo(
     () => playgroundModels.find((m) => m.id === config?.selectedModel),
     [playgroundModels, config?.selectedModel],
   );
+  const allAIModels = React.useMemo(
+    () => [...aiModels, ...maasModels.map(convertMaaSModelToAIModel)],
+    [aiModels, maasModels],
+  );
   const aiModel = React.useMemo(
     () =>
       llamaModel
-        ? aiModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai))
+        ? allAIModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai))
         : undefined,
-    [llamaModel, aiModels],
+    [llamaModel, allAIModels],
+  );
+  const asrModel = React.useMemo(
+    () =>
+      config?.isAsrModelEnabled && config.selectedAsrModel
+        ? aiModels.find((ai) => ai.model_id === config.selectedAsrModel)
+        : undefined,
+    [config?.isAsrModelEnabled, config?.selectedAsrModel, aiModels],
   );
 
   const externalVectorStoreName = React.useMemo(() => {
@@ -131,6 +144,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
         description.trim() || undefined,
         {
           model: aiModel,
+          asrModel,
           mcpServers,
           mcpConfigMapName: mcpConfigMapName ?? MCP_CONFIG_MAP_NAME_FALLBACK,
         },
@@ -139,17 +153,38 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
       if (mode === 'save-as' || !loadedProfileId) {
         const response = await api.createAgentProfile({ spec });
         onSaved(response.profileId, response.displayName, description.trim());
+        // Set after onSaved for the same reason as the update branch below.
+        useChatbotConfigStore.getState().setLoadedResourceVersion(response.resourceVersion);
       } else {
-        const currentProfile = await api.getAgentProfile({ id: loadedProfileId });
+        // Use the stored resourceVersion directly — no intermediate GET needed.
+        // The server returns 409 if the profile was modified elsewhere, or 404 if deleted.
         const response = await api.updateAgentProfile({
           id: loadedProfileId,
           spec,
-          resourceVersion: currentProfile.metadata.resourceVersion,
+          resourceVersion: loadedResourceVersion ?? '',
         });
         onSaved(loadedProfileId, response.displayName, description.trim());
+        // Set after onSaved: applyAgentProfile (called inside onSaved) resets the store
+        // from storeInitialState, which would clear anything set before it.
+        useChatbotConfigStore.getState().setLoadedResourceVersion(response.resourceVersion);
       }
+      // Update the dirty-detection baseline to the spec that was just persisted.
+      // Any subsequent config changes will now be detected as unsaved.
+      useChatbotConfigStore.getState().setLoadedProfileSpec(spec);
       onClose();
     } catch (err) {
+      if (err instanceof Error && 'code' in err) {
+        if (err.code === 'conflict') {
+          setConflictError('modified');
+          setIsSaving(false);
+          return;
+        }
+        if (err.code === 'not_found' || err.code === '404') {
+          setConflictError('deleted');
+          setIsSaving(false);
+          return;
+        }
+      }
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
       setIsSaving(false);
     }
@@ -241,6 +276,26 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
               data-testid="save-agent-profile-description-input"
             />
           </FormGroup>
+          {error && (
+            <HelperText>
+              <HelperTextItem variant="error">{error}</HelperTextItem>
+            </HelperText>
+          )}
+          {conflictError && (
+            <Alert
+              variant="warning"
+              isInline
+              title={
+                conflictError === 'deleted'
+                  ? 'This agent configuration could not be found'
+                  : 'This agent configuration was modified elsewhere'
+              }
+              data-testid="save-conflict-alert"
+            >
+              Your changes cannot be saved directly. Use Save As to create a new agent configuration
+              with your changes.
+            </Alert>
+          )}
           <Divider />
           {/* Agent configuration details */}
           <Title headingLevel="h3" size="md">
@@ -389,12 +444,6 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
               title="Playground guardrails will not be saved with this profile"
             />
           </FormGroup>
-
-          {error && (
-            <HelperText>
-              <HelperTextItem variant="error">{error}</HelperTextItem>
-            </HelperText>
-          )}
         </Form>
       </ModalBody>
       <ModalFooter>

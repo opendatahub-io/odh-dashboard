@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Radio, Skeleton, Stack, StackItem } from '@patternfly/react-core';
-import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import { InferenceServiceStorageType } from '#~/pages/modelServing/screens/types';
 import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';

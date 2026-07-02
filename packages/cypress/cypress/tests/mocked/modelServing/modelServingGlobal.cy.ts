@@ -30,7 +30,7 @@ import {
   mockProjectScopedHardwareProfiles,
   mockHardwareProfile,
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import {
   kserveModalEdit,
@@ -598,7 +598,7 @@ describe('Model Serving Global', () => {
 
       it('root', () => {
         cy.visitWithLogin('/modelServing');
-        cy.findByTestId('app-tab-page-title').contains('Models');
+        cy.findByTestId('app-tab-page-title').contains('Model deployments');
         cy.url().should('include', '/ai-hub/models/deployments');
       });
 

@@ -24,7 +24,7 @@ import TypeBorderedCard from '@odh-dashboard/internal/concepts/design/TypeBorder
 import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
 import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';

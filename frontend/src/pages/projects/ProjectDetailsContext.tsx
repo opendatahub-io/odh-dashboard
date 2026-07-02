@@ -7,6 +7,7 @@ import type {
   SecretKind,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   GroupKind,
   InferenceServiceKind,
@@ -34,7 +35,6 @@ import useTemplateOrder from '#~/pages/modelServing/customServingRuntimes/useTem
 import useTemplateDisablement from '#~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { getTokenNames } from '#~/pages/modelServing/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { useGroups, useTemplates } from '#~/api';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
@@ -42,6 +42,7 @@ import useProjectKueueInfo from './useProjectKueueInfo';
 import { NotebookState } from './notebook/types';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import { useKueueStatusForNotebooks } from './notebook/useKueueStatusForNotebooks';
+import { useQueuePositions } from './notebook/useQueuePositions';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useProjectSharing from './projectSharing/useProjectSharing';
 import useConnections from './screens/detail/connections/useConnections';
@@ -93,11 +94,23 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
   const notebooks = useProjectNotebookStates(namespace, { refreshRate: POLL_INTERVAL });
-  const { kueueStatusByNotebookName, isLoading: isKueueLoading } = useKueueStatusForNotebooks(
-    notebooks.data,
-    project ?? undefined,
-  );
+  const { kueueStatusByNotebookName: rawKueueStatus, isLoading: isKueueLoading } =
+    useKueueStatusForNotebooks(notebooks.data, project ?? undefined);
   const isKueueLoaded = !isKueueLoading;
+  const queuePositions = useQueuePositions(namespace, rawKueueStatus);
+  const kueueStatusByNotebookName = React.useMemo(() => {
+    if (Object.keys(queuePositions).length === 0) {
+      return rawKueueStatus;
+    }
+    const result: Record<string, KueueWorkloadStatusWithMessage | null> = {};
+    for (const [name, status] of Object.entries(rawKueueStatus)) {
+      result[name] =
+        status && name in queuePositions
+          ? { ...status, queuePosition: queuePositions[name] }
+          : status;
+    }
+    return result;
+  }, [rawKueueStatus, queuePositions]);
 
   const pvcs = useProjectPvcs(namespace, { refreshRate: POLL_INTERVAL });
   const connections = useConnections(namespace, { refreshRate: POLL_INTERVAL });

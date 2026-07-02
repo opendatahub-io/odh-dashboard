@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
@@ -41,27 +42,27 @@ type WorkspaceActionPauseEnvelope Envelope[*models.WorkspaceActionPause]
 //	@ID				updateWorkspacePauseState
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace		path		string							true	"Namespace of the workspace"	extensions(x-example=default)
-//	@Param			workspaceName	path		string							true	"Name of the workspace"			extensions(x-example=my-workspace)
-//	@Param			body			body		WorkspaceActionPauseEnvelope	true	"Intended pause state of the workspace"
-//	@Success		200				{object}	WorkspaceActionPauseEnvelope	"Successful action. Returns the current pause state."
-//	@Failure		400				{object}	ErrorEnvelope					"Bad Request."
-//	@Failure		401				{object}	ErrorEnvelope					"Unauthorized. Authentication is required."
-//	@Failure		403				{object}	ErrorEnvelope					"Forbidden. User does not have permission to access the workspace."
-//	@Failure		404				{object}	ErrorEnvelope					"Not Found. Workspace does not exist."
-//	@Failure		409				{object}	ErrorEnvelope					"Conflict. Workspace not in valid state for action."
-//	@Failure		413				{object}	ErrorEnvelope					"Request Entity Too Large. The request body is too large."
-//	@Failure		415				{object}	ErrorEnvelope					"Unsupported Media Type. Content-Type header is not correct."
-//	@Failure		422				{object}	ErrorEnvelope					"Unprocessable Entity. Validation error."
-//	@Failure		500				{object}	ErrorEnvelope					"Internal server error. An unexpected error occurred on the server."
-//	@Router			/workspaces/{namespace}/{workspaceName}/actions/pause [post]
+//	@Param			namespace	path		string							true	"Namespace of the workspace"	extensions(x-example=default)
+//	@Param			name		path		string							true	"Name of the workspace"			extensions(x-example=my-workspace)
+//	@Param			body		body		WorkspaceActionPauseEnvelope	true	"Intended pause state of the workspace"
+//	@Success		200			{object}	WorkspaceActionPauseEnvelope	"Successful action. Returns the current pause state."
+//	@Failure		400			{object}	ErrorEnvelope					"Bad Request."
+//	@Failure		401			{object}	ErrorEnvelope					"Unauthorized. Authentication is required."
+//	@Failure		403			{object}	ErrorEnvelope					"Forbidden. User does not have permission to access the workspace."
+//	@Failure		404			{object}	ErrorEnvelope					"Not Found. Workspace does not exist."
+//	@Failure		409			{object}	ErrorEnvelope					"Conflict. Workspace not in valid state for action."
+//	@Failure		413			{object}	ErrorEnvelope					"Request Entity Too Large. The request body is too large."
+//	@Failure		415			{object}	ErrorEnvelope					"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422			{object}	ErrorEnvelope					"Unprocessable Entity. Validation error."
+//	@Failure		500			{object}	ErrorEnvelope					"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspaces/{namespace}/{name}/actions/pause [post]
 func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
-	workspaceName := ps.ByName(ResourceNamePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
+	workspaceName := ps.ByName(constants.ResourceNamePathParam)
 
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(constants.ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -101,7 +102,7 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbUpdate, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceName}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================

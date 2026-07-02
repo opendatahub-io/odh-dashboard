@@ -47,7 +47,7 @@ export const BaseLLMInferenceService = (
   annotations?: Record<string, string>,
 ): LLMInferenceServiceKind => {
   return {
-    apiVersion: 'serving.kserve.io/v1alpha1',
+    apiVersion: 'serving.kserve.io/v1alpha2',
     kind: 'LLMInferenceService',
     metadata: {
       name: name ?? '',

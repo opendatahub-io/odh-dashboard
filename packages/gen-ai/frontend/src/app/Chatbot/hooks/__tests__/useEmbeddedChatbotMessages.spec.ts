@@ -106,6 +106,43 @@ describe('buildRequestBody', () => {
     );
   });
 
+  describe('string input format', () => {
+    const stringInputTemplate: ResponsesTemplate = {
+      ...mockTemplate,
+      input: USER_QUERY_PLACEHOLDER,
+    };
+
+    it('should substitute placeholder in string input', () => {
+      const result = buildRequestBody(stringInputTemplate, 'What is RAG?', []);
+
+      expect(result.input).toHaveLength(1);
+      expect(result.input[0].content[0].text).toBe('What is RAG?');
+    });
+
+    it('should use user message directly when string input has no placeholder', () => {
+      const noPlaceholder: ResponsesTemplate = {
+        ...mockTemplate,
+        input: 'static prompt text',
+      };
+
+      const result = buildRequestBody(noPlaceholder, 'My question', []);
+
+      expect(result.input[0].content[0].text).toBe('My question');
+    });
+
+    it('should include previous messages for multi-turn with string input', () => {
+      const previousMessages: ChatbotMessageProps[] = [
+        { role: 'user', content: 'First question', id: '1', name: 'User', avatar: '' },
+        { role: 'bot', content: 'First answer', id: '2', name: 'Bot', avatar: '' },
+      ];
+
+      const result = buildRequestBody(stringInputTemplate, 'Follow-up', previousMessages);
+
+      expect(result.input).toHaveLength(3);
+      expect(result.input[2].content[0].text).toBe('Follow-up');
+    });
+  });
+
   describe('multi-turn conversation', () => {
     it('should have only one input message for the first turn', () => {
       const result = buildRequestBody(mockTemplate, 'First question', []);

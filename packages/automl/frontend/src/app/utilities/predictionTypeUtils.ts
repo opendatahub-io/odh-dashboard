@@ -1,11 +1,12 @@
 import type { ColumnSchema } from '~/app/hooks/queries';
-import { TASK_TYPES, type ConfigureSchema } from '~/app/schemas/configure.schema';
+import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   TASK_TYPE_BINARY,
   TASK_TYPE_LABELS,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
+  TASK_TYPES,
 } from '~/app/utilities/const';
 import { findTimestampColumn, getTargetColumnUniqueValueCount } from '~/app/utilities/columnUtils';
 
