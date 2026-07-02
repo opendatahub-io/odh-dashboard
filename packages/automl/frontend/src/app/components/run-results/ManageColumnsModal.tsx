@@ -160,9 +160,10 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
     if (currentColumns.length !== appliedColumns.length) {
       return true;
     }
-    return currentColumns.some(
-      (col, i) => col.key !== appliedColumns[i].key || col.isShown !== appliedColumns[i].isShown,
-    );
+    return currentColumns.some((col, i) => {
+      const appliedIsShown = appliedColumns[i].isShown ?? appliedColumns[i].isShownByDefault;
+      return col.key !== appliedColumns[i].key || col.isShown !== appliedIsShown;
+    });
   }, [currentColumns, appliedColumns]);
 
   const renderDataListItem = (col: ColumnState, index: number) => (
