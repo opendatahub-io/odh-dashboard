@@ -358,7 +358,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
                 isExpandable
                 title="Connection failed"
               >
-                {testResult.error || testResult.message}
+                {testResult.message}
               </Alert>
             </StackItem>
           ) : null}
