@@ -49,6 +49,8 @@ type App struct {
 	wsTracker *proxy.ConnectionTracker
 	// wsProxy handles /wss/k8s/* WebSocket relay to the K8s API server
 	wsProxy http.Handler
+	// probeSemaphore limits concurrent connection test probes
+	probeSemaphore chan struct{}
 }
 
 type k8sSetupResult struct {
@@ -94,6 +96,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffClientFactory: bffFactory,
 		openAPI:          openAPIHandler,
 		clusterInfo:      ci,
+		probeSemaphore:   NewProbeSemaphore(),
 	}
 
 	if err := app.initK8sProxy(cfg, k8sResult); err != nil {

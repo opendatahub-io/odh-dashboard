@@ -5,6 +5,7 @@ import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connecti
 import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import { mockProjectK8sResource } from '#~/__mocks__';
 import { mockConnection } from '#~/__mocks__/mockConnection';
+import * as connectionTestService from '#~/services/connectionTestService';
 
 describe('Create connection modal', () => {
   const onCloseMock = jest.fn();
@@ -550,5 +551,123 @@ describe('Edit connection modal', () => {
     expect(screen.getByRole('textbox', { name: 'UNMATCHED_1' })).toHaveValue('unmatched1!');
     expect(screen.getByRole('textbox', { name: 'env1' })).toHaveValue('true');
     expect(screen.getByRole('textbox', { name: 'UNMATCHED_2' })).toHaveValue('unmatched2!');
+  });
+});
+
+describe('ManageConnectionModal test connection', () => {
+  const onCloseMock = jest.fn();
+  const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
+  let mockedTestConnection: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedTestConnection = jest
+      .spyOn(connectionTestService, 'testConnection')
+      .mockResolvedValue({ success: true, message: 'ok' });
+  });
+
+  afterEach(() => {
+    mockedTestConnection.mockRestore();
+  });
+
+  const renderModal = () =>
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 's3',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'Endpoint',
+                envVar: 'endpoint',
+                required: true,
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+  it('should render Test connection button in footer', () => {
+    renderModal();
+    expect(screen.getByTestId('test-connection-button')).toBeInTheDocument();
+  });
+
+  it('should show Not tested status label in header by default', () => {
+    renderModal();
+    expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
+  });
+
+  it('should show Testing status when test button clicked', async () => {
+    mockedTestConnection.mockReturnValue(
+      new Promise(() => {
+        /* never resolves */
+      }),
+    );
+    renderModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(screen.getByTestId('connection-test-label-testing')).toBeInTheDocument();
+  });
+
+  it('should show success alert on successful test', async () => {
+    mockedTestConnection.mockResolvedValue({ success: true, message: 'Connection successful' });
+    renderModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(screen.getByTestId('connection-test-success-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('connection-test-label-verified')).toBeInTheDocument();
+  });
+
+  it('should show danger alert on failed test', async () => {
+    mockedTestConnection.mockResolvedValue({
+      success: false,
+      error: 'AUTH_FAILED',
+      message: 'Invalid credentials',
+    });
+    renderModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(screen.getByTestId('connection-test-failure-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('connection-test-label-failed')).toBeInTheDocument();
+  });
+
+  it('should not block Create button while test is in progress', async () => {
+    mockedTestConnection.mockReturnValue(
+      new Promise(() => {
+        /* never resolves */
+      }),
+    );
+    renderModal();
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'my-conn' },
+      });
+      fireEvent.change(screen.getByRole('textbox', { name: 'Endpoint' }), {
+        target: { value: 'http://example.com' },
+      });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    const createButton = screen.getByTestId('modal-submit-button');
+    expect(createButton).not.toBeDisabled();
   });
 });

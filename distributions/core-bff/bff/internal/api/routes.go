@@ -42,6 +42,9 @@ const (
 	// OpenShift-only endpoints
 	AllowedUsersPath = APIPathPrefix + "/status/:namespace/allowedUsers"
 
+	// Connection endpoints
+	ConnectionTestPath = APIPathPrefix + APIVersion + "/connections/test"
+
 	// Connection type endpoints
 	ConnectionTypesPath      = APIPathPrefix + "/connection-types"
 	ConnectionTypeSinglePath = APIPathPrefix + "/connection-types/:name"
@@ -168,6 +171,9 @@ func (app *App) registerOpenShiftRoutes(r *httprouter.Router) {
 }
 
 func (app *App) registerConnectionTypeRoutes(r *httprouter.Router) {
+	// Connection test — any authenticated user
+	r.POST(ConnectionTestPath, app.secureRoute(app.TestConnectionHandler))
+
 	// Authenticated
 	r.GET(ConnectionTypesPath, app.secureRoute(app.ListConnectionTypesHandler))
 	r.GET(ConnectionTypeSinglePath, app.secureRoute(app.GetConnectionTypeHandler))
