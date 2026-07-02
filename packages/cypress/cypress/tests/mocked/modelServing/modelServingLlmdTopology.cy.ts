@@ -28,26 +28,24 @@ const MULTI_NODE = 'workload-multi-node-data-parallel';
 const SINGLE_NODE_PD = 'workload-single-node-pd';
 const MULTI_NODE_PD = 'workload-multi-node-data-parallel-pd';
 
+const buildTopologyConfig = (
+  name: string,
+  displayName: string,
+  topologyType: string,
+  disabled?: boolean,
+) => {
+  const config = mockLLMInferenceServiceConfigK8sResource({ name, displayName, disabled });
+  config.metadata.labels = {
+    ...config.metadata.labels,
+    'opendatahub.io/config-type': topologyType,
+  };
+  return config;
+};
+
 const mockTopologyConfigs = [
-  mockLLMInferenceServiceConfigK8sResource({
-    name: 'single-node-config',
-    displayName: 'Single Node Config',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    configType: SINGLE_NODE as any,
-  }),
-  mockLLMInferenceServiceConfigK8sResource({
-    name: 'multi-node-config',
-    displayName: 'Multi-node Data Parallel',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    configType: MULTI_NODE as any,
-  }),
-  mockLLMInferenceServiceConfigK8sResource({
-    name: 'disabled-config',
-    displayName: 'Disabled Config',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    configType: MULTI_NODE as any,
-    disabled: true,
-  }),
+  buildTopologyConfig('single-node-config', 'Single Node Config', SINGLE_NODE),
+  buildTopologyConfig('multi-node-config', 'Multi-node Data Parallel', MULTI_NODE),
+  buildTopologyConfig('disabled-config', 'Disabled Config', MULTI_NODE, true),
 ];
 
 const mockRouterConfigs = [
