@@ -54,12 +54,14 @@
 
     // Cypress tasks
     "cypress:server:build": {
-      // no caching until we can optimize the dependency graph
-      "cache": false
+      "cache": true,
+      "outputs": ["**/public-cypress/**"],
+      "dependsOn": ["^build"]
     },
     "cypress:server:build:coverage": {
-      // no caching until we can optimize the dependency graph
-      "cache": false
+      "cache": true,
+      "outputs": ["**/public-cypress/**"],
+      "dependsOn": ["^build"]
     },
     "cypress:server": {
       // TODO depend on build once caching is enabled
