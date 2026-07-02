@@ -43,9 +43,9 @@ describe('ConnectionTestStatusLabel', () => {
       <ConnectionTestStatusLabel status={ConnectionTestStatus.VERIFIED} timestamp={timestamp} />,
     );
 
-    const label = screen.getByTestId('connection-test-label-verified');
-    expect(label).toBeInTheDocument();
-    expect(label).toHaveTextContent('Verified');
+    const container = screen.getByTestId('connection-test-label-verified');
+    expect(container).toHaveTextContent('Verified');
+    expect(container).toHaveTextContent('Last tested');
   });
 
   it('should display formatted timestamp when provided for FAILED status', () => {
@@ -54,9 +54,9 @@ describe('ConnectionTestStatusLabel', () => {
       <ConnectionTestStatusLabel status={ConnectionTestStatus.FAILED} timestamp={timestamp} />,
     );
 
-    const label = screen.getByTestId('connection-test-label-failed');
-    expect(label).toBeInTheDocument();
-    expect(label).toHaveTextContent('Failed');
+    const container = screen.getByTestId('connection-test-label-failed');
+    expect(container).toHaveTextContent('Failed');
+    expect(container).toHaveTextContent('Last tested');
   });
 
   it('should not display timestamp for NOT_TESTED status', () => {
