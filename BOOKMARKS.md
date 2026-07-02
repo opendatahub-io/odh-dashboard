@@ -134,7 +134,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [MLflow Embedded](packages/mlflow-embedded/docs/overview.md) | Embedded MLflow UI variant; Module Federation config |
 | [Model Training](packages/model-training/docs/overview.md) | Training job management; pipeline integration; resource configuration |
 | [Notebooks](packages/notebooks/docs/overview.md) | Notebook management package; workbenches frontend area interactions |
-| [Observability](packages/observability/docs/overview.md) | Metrics, logging, tracing integration; Prometheus endpoint patterns |
+| [Observability](packages/observability/docs/overview.md) | Embedded Perses dashboards for metrics and monitoring; DSCI-gated visibility, SAR-based RBAC, embeddable API |
 | [Feature Store](packages/feature-store/docs/overview.md) | Feature store management UI; dataset versioning; see also [README](packages/feature-store/README.md) and [AGENTS.md](packages/feature-store/AGENTS.md) |
 | [LLMD Serving](packages/llmd-serving/docs/overview.md) | LLM-dedicated serving; interactions with gen-ai frontend area |
 
