@@ -434,6 +434,75 @@ describe('ModelLocationSelectField', () => {
         additionalFields: {},
       });
     });
+    it('should treat an owned connection as NEW when it is not hidden', () => {
+      const ownedConnection = {
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'owned-conn',
+          namespace: 'test-project',
+          labels: {
+            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          },
+          annotations: {
+            'opendatahub.io/connection-type': 'uri-v1',
+            'openshift.io/display-name': 'owned-conn',
+          },
+          ownerReferences: [
+            { name: 'owner', uid: 'uid-1', kind: 'InferenceService', apiVersion: 'v1' },
+          ],
+        },
+        data: {
+          URI: btoa('uri://test'),
+        },
+      } as unknown as Connection;
+      mockConnections.length = 0;
+      mockConnections.push(ownedConnection);
+      const { result } = renderHook(() =>
+        useModelLocationData('test-project', {
+          type: ModelLocationType.EXISTING,
+          connection: 'owned-conn',
+          fieldValues: {},
+          additionalFields: {},
+        }),
+      );
+      expect(result.current.data?.type).toBe(ModelLocationType.NEW);
+    });
+    it('should preserve hidden owned connection as EXISTING instead of converting to NEW', () => {
+      const hiddenOwnedConnection = {
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'hidden-conn',
+          namespace: 'test-project',
+          labels: {
+            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          },
+          annotations: {
+            'opendatahub.io/connection-type': 'uri-v1',
+            'openshift.io/display-name': 'hidden-conn',
+            'opendatahub.io/connection-hidden': 'true',
+          },
+          ownerReferences: [
+            { name: 'owner', uid: 'uid-1', kind: 'InferenceService', apiVersion: 'v1' },
+          ],
+        },
+        data: {
+          URI: btoa('uri://test'),
+        },
+      } as unknown as Connection;
+      mockConnections.length = 0;
+      mockConnections.push(hiddenOwnedConnection);
+      const { result } = renderHook(() =>
+        useModelLocationData('test-project', {
+          type: ModelLocationType.EXISTING,
+          connection: 'hidden-conn',
+          fieldValues: {},
+          additionalFields: {},
+        }),
+      );
+      expect(result.current.data?.type).toBe(ModelLocationType.EXISTING);
+    });
   });
   describe('Component', () => {
     const mockSetModelLocationData = jest.fn();
