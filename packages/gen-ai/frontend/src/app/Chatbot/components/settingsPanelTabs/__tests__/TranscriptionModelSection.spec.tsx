@@ -26,7 +26,6 @@ const mockAsrModel = {
   description: '',
   endpoints: ['http://whisper:80'],
   status: 'Running',
-  sa_token: { name: '', token_name: '', token: '' },
 } as AIModel;
 
 const mockAsrModel2 = {
@@ -42,7 +41,6 @@ const mockAsrModel2 = {
   description: '',
   endpoints: ['http://whisper-small:80'],
   status: 'Running',
-  sa_token: { name: '', token_name: '', token: '' },
 } as AIModel;
 
 const mockChatModel = {
@@ -58,7 +56,6 @@ const mockChatModel = {
   description: '',
   endpoints: ['http://llama:8080'],
   status: 'Running',
-  sa_token: { name: '', token_name: '', token: '' },
 } as AIModel;
 
 const baseContextValue = {

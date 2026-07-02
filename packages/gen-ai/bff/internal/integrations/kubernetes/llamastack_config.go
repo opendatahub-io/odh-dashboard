@@ -434,7 +434,6 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
 	providerConfig["max_tokens"] = fmt.Sprintf("${env.VLLM_MAX_TOKENS_%d:=4096}", index+1)
-	providerConfig["api_token"] = fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", index+1)
 	providerConfig["tls_verify"] = "${env.VLLM_TLS_VERIFY:=true}"
 
 	// Add provider

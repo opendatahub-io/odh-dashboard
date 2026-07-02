@@ -23,7 +23,6 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
   endpoints: [],
   status: 'Running' as const,
   display_name: 'Test',
-  sa_token: { name: '', token_name: '', token: '' },
   model_source_type: 'namespace',
   ...overrides,
 });

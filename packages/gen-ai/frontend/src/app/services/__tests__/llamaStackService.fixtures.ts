@@ -157,11 +157,6 @@ export const mockAAModels = [
     ],
     status: 'Running',
     display_name: 'Granite 7B code',
-    sa_token: {
-      name: 'granite-7b-code-sa',
-      token_name: 'granite-7b-code-sa-token-abcde',
-      token: 'token-value',
-    },
   },
 ];
 

@@ -422,7 +422,6 @@ providers:
     config:
       base_url: http://mock-model-predictor.` + namespace + `.svc.cluster.local:8080/v1
       max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}
-      api_token: ${env.VLLM_API_TOKEN_1:=fake}
       tls_verify: ${env.VLLM_TLS_VERIFY:=true}
   - provider_id: sentence-transformers
     provider_type: inline::sentence-transformers
