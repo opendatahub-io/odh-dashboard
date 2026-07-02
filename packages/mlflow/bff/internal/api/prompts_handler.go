@@ -210,13 +210,8 @@ func (app *App) enforceWritePermission(
 
 	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, workspace, verb)
 	if err != nil {
-		userID := ""
-		if identity != nil {
-			userID = identity.UserID
-		}
 		app.logger.Error("Failed to check write permissions",
 			"workspace", workspace,
-			"user", userID,
 			"error", err)
 		app.serverErrorResponse(w, r, err)
 		return false
@@ -267,7 +262,7 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
-	if workspace == "" {
+	if strings.TrimSpace(workspace) == "" {
 		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
 		return
 	}
@@ -392,7 +387,7 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
-	if workspace == "" {
+	if strings.TrimSpace(workspace) == "" {
 		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
 		return
 	}
@@ -432,7 +427,7 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 	}
 
 	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
-	if workspace == "" {
+	if strings.TrimSpace(workspace) == "" {
 		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
 		return
 	}
