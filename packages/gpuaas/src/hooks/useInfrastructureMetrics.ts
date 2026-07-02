@@ -31,7 +31,7 @@ export type ClusterMetrics = {
 };
 
 const parseScalarResult = (response: PrometheusQueryResponse | null): number | null => {
-  if (!response?.data.result[0]?.value?.[1]) {
+  if (response?.data.result[0]?.value?.[1] == null) {
     return null;
   }
   const val = parseFloat(response.data.result[0].value[1]);
@@ -40,6 +40,7 @@ const parseScalarResult = (response: PrometheusQueryResponse | null): number | n
 
 const useInfrastructureMetrics = (): ClusterMetrics => {
   const [lastRefreshed, setLastRefreshed] = React.useState<Date | null>(null);
+  const refreshCountRef = React.useRef(0);
   const fetchOptions = React.useMemo(() => ({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }), []);
 
   const allocatable = usePrometheusQuery(
@@ -70,7 +71,7 @@ const useInfrastructureMetrics = (): ClusterMetrics => {
     if (total === null) {
       return null;
     }
-    return { total, inUse: used ?? 0 };
+    return { total, inUse: Math.min(used ?? 0, total) };
   }, [allocatable.data, inUse.data]);
 
   const computeUtilization = React.useMemo((): UtilizationMetrics | null => {
@@ -94,7 +95,10 @@ const useInfrastructureMetrics = (): ClusterMetrics => {
     inUse.refresh();
     compute.refresh();
     memory.refresh();
-  }, [allocatable, inUse, compute, memory]);
+    refreshCountRef.current += 1;
+    setLastRefreshed(new Date());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- .refresh references are stable from useFetch
+  }, [allocatable.refresh, inUse.refresh, compute.refresh, memory.refresh]);
 
   return {
     accelerators,
