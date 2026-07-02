@@ -283,6 +283,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
             </FlexItem>
           </Flex>
         }
+        description="Define a connection type and name to create your asset. Testing the connection to verify your credentials and registry host settings is completely optional and will not block you from saving."
       />
       <ModalBody>
         <Stack hasGutter>
@@ -336,10 +337,6 @@ export const ManageConnectionModal: React.FC<Props> = ({
             </Form>
           </StackItem>
 
-        </Stack>
-      </ModalBody>
-      <ModalFooter>
-        <Stack hasGutter className="pf-v6-u-flex-grow-1">
           {testStatus === ConnectionTestStatus.VERIFIED && testResult ? (
             <StackItem>
               <Alert
@@ -365,6 +362,10 @@ export const ManageConnectionModal: React.FC<Props> = ({
               </Alert>
             </StackItem>
           ) : null}
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
+        <Stack hasGutter className="pf-v6-u-flex-grow-1">
           {submitError ? (
             <StackItem>
               <Alert data-testid="error-message-alert" isInline variant="danger" title="">

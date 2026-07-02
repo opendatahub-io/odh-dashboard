@@ -1,5 +1,5 @@
 import React from 'react';
-import { Label, Spinner, Tooltip } from '@patternfly/react-core';
+import { Label, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ConnectionTestStatus } from '#~/concepts/connectionTypes/types';
 
@@ -34,38 +34,36 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
           Testing...
         </Label>
       );
-    case ConnectionTestStatus.VERIFIED: {
-      const label = (
-        <Label
-          color="green"
-          icon={<CheckCircleIcon />}
-          data-testid="connection-test-label-verified"
-        >
-          Verified
-        </Label>
+    case ConnectionTestStatus.VERIFIED:
+      return (
+        <Stack data-testid="connection-test-label-verified">
+          <StackItem>
+            <Label color="green" icon={<CheckCircleIcon />}>
+              Verified
+            </Label>
+          </StackItem>
+          {timestamp ? (
+            <StackItem className="pf-v6-u-font-size-xs pf-v6-u-color-200">
+              Last tested {formatTimestamp(timestamp)}
+            </StackItem>
+          ) : null}
+        </Stack>
       );
-      return timestamp ? (
-        <Tooltip content={`Last tested ${formatTimestamp(timestamp)}`}>{label}</Tooltip>
-      ) : (
-        label
+    case ConnectionTestStatus.FAILED:
+      return (
+        <Stack data-testid="connection-test-label-failed">
+          <StackItem>
+            <Label color="red" icon={<ExclamationCircleIcon />}>
+              Failed
+            </Label>
+          </StackItem>
+          {timestamp ? (
+            <StackItem className="pf-v6-u-font-size-xs pf-v6-u-color-200">
+              Last tested {formatTimestamp(timestamp)}
+            </StackItem>
+          ) : null}
+        </Stack>
       );
-    }
-    case ConnectionTestStatus.FAILED: {
-      const label = (
-        <Label
-          color="red"
-          icon={<ExclamationCircleIcon />}
-          data-testid="connection-test-label-failed"
-        >
-          Failed
-        </Label>
-      );
-      return timestamp ? (
-        <Tooltip content={`Last tested ${formatTimestamp(timestamp)}`}>{label}</Tooltip>
-      ) : (
-        label
-      );
-    }
     default:
       return null;
   }
