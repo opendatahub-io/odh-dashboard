@@ -1,14 +1,5 @@
 import * as React from 'react';
-import {
-  Form,
-  getUniqueId,
-  Stack,
-  StackItem,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-} from '@patternfly/react-core';
+import { Form, getUniqueId, Stack, StackItem } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import type {
   PersistentVolumeClaimKind,
@@ -31,10 +22,11 @@ import {
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
+import { createModelServingError } from '#~/api/errorUtils';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import ContentModal from '#~/components/modals/ContentModal';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
@@ -271,8 +263,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     setPvcSubPath('');
   };
 
-  const setErrorModal = (e: Error) => {
-    setError(e);
+  const setErrorModal = (e: unknown) => {
+    setError(createModelServingError(e));
     setActionInProgress(false);
   };
 
@@ -388,12 +380,29 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   };
 
   return (
-    <Modal variant="medium" isOpen onClose={() => onBeforeClose(false)}>
-      <ModalHeader
-        title={`${editInfo ? 'Edit' : 'Deploy'} model with NVIDIA NIM`}
-        description="Configure properties for deploying your model using an NVIDIA NIM."
-      />
-      <ModalBody>
+    <ContentModal
+      title={`${editInfo ? 'Edit' : 'Deploy'} model with NVIDIA NIM`}
+      description="Configure properties for deploying your model using an NVIDIA NIM."
+      onClose={() => onBeforeClose(false)}
+      variant="medium"
+      error={error}
+      alertTitle="Error creating model server"
+      buttonActions={[
+        {
+          label: editInfo ? 'Redeploy' : 'Deploy',
+          onClick: submit,
+          variant: 'primary',
+          isDisabled: isDisabledServingRuntime || isDisabledInferenceService,
+          dataTestId: 'modal-submit-button',
+        },
+        {
+          label: 'Cancel',
+          onClick: () => onBeforeClose(false),
+          variant: 'link',
+          dataTestId: 'modal-cancel-button',
+        },
+      ]}
+      contents={
         <Form
           onSubmit={(e) => {
             e.preventDefault();
@@ -456,7 +465,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                 data={createDataInferenceService}
                 setData={setCreateDataInferenceService}
                 infoContent="A replica is an independent instance of your model server.
-                Multiple replicas improve availability and handle higher traffic loads. 
+                Multiple replicas improve availability and handle higher traffic loads.
                 Consider network traffic and failover scenarios when specifying the number of model server replicas.
                 More replicas enhance fault tolerance but use additional resources."
               />
@@ -481,18 +490,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             )}
           </Stack>
         </Form>
-      </ModalBody>
-      <ModalFooter>
-        <DashboardModalFooter
-          submitLabel={editInfo ? 'Redeploy' : 'Deploy'}
-          onSubmit={submit}
-          onCancel={() => onBeforeClose(false)}
-          isSubmitDisabled={isDisabledServingRuntime || isDisabledInferenceService}
-          error={error}
-          alertTitle="Error creating model server"
-        />
-      </ModalFooter>
-    </Modal>
+      }
+    />
   );
 };
 

@@ -21,6 +21,13 @@ jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
   getSubmitServingRuntimeResourcesFn: jest.fn(() => jest.fn()),
   useCreateInferenceServiceObject: jest.fn(),
   useCreateServingRuntimeObject: jest.fn(),
+  validateEnvVarName: jest.fn(() => true),
+}));
+
+jest.mock('#~/api/errorUtils', () => ({
+  createModelServingError: jest.fn(
+    (e: unknown) => new Error(e instanceof Error ? e.message : String(e)),
+  ),
 }));
 
 jest.mock('#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled', () => ({
@@ -145,11 +152,6 @@ jest.mock('../../../kServeModal/KServeAutoscalerReplicaSection', () => ({
 jest.mock('../../../ServingRuntimeModal/AuthServingRuntimeSection', () => ({
   __esModule: true,
   default: jest.fn(() => <div data-testid="auth-serving-runtime-section">Auth Section</div>),
-}));
-
-jest.mock('#~/concepts/dashboard/DashboardModalFooter', () => ({
-  __esModule: true,
-  default: jest.fn(() => <div data-testid="modal-footer">Modal Footer</div>),
 }));
 
 jest.mock('../../../kServeModal/EnvironmentVariablesSection', () => ({
@@ -277,6 +279,8 @@ describe('ManageNIMServingModal', () => {
     project: 'test-project',
     k8sName: 'test-model',
     format: { name: 'test-model-format' },
+    minReplicas: 1,
+    maxReplicas: 1,
   };
 
   const defaultMockServingRuntimeData = {
@@ -473,12 +477,13 @@ describe('ManageNIMServingModal', () => {
         jest.fn(),
       ]);
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-submit-button')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
     });
 
     it('enables submit button when form is valid', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-submit-button')).not.toBeDisabled();
     });
   });
 
@@ -490,9 +495,10 @@ describe('ManageNIMServingModal', () => {
       expect(mockOnClose).toHaveBeenCalledWith(false);
     });
 
-    it('handles form submission', () => {
+    it('calls onClose when cancel button is clicked', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('modal-cancel-button'));
+      expect(mockOnClose).toHaveBeenCalledWith(false);
     });
   });
 
@@ -521,7 +527,6 @@ describe('ManageNIMServingModal', () => {
 
   describe('Environment Variables', () => {
     it('allows adding environment variables when serving runtime params are enabled', async () => {
-      // Mock serving runtime params as enabled
       const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockImplementation((area: string) => {
         if (area === 'serving-runtime-params') {
@@ -530,6 +535,7 @@ describe('ManageNIMServingModal', () => {
         return { status: true };
       });
 
+      // Mock serving runtime params as enabled
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
 
       // Find the environment variables section
@@ -560,7 +566,6 @@ describe('ManageNIMServingModal', () => {
     });
 
     it('validates environment variable names correctly', async () => {
-      // Mock serving runtime params as enabled
       const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockImplementation((area: string) => {
         if (area === 'serving-runtime-params') {
@@ -569,6 +574,7 @@ describe('ManageNIMServingModal', () => {
         return { status: true };
       });
 
+      // Mock serving runtime params as enabled
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
 
       // Add an environment variable
@@ -598,7 +604,6 @@ describe('ManageNIMServingModal', () => {
     });
 
     it('does not show environment variables section when serving runtime params are disabled', () => {
-      // Mock serving runtime params as disabled
       const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockImplementation((area: string) => {
         if (area === 'serving-runtime-params') {
@@ -607,6 +612,7 @@ describe('ManageNIMServingModal', () => {
         return { status: true };
       });
 
+      // Mock serving runtime params as disabled
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
 
       // Environment variables section should not be present
@@ -774,10 +780,9 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     it('shows disabled select when no ODH storage class configs exist', async () => {
       const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: true });
-      // Mock no ODH configs but OpenShift default available
       mockUseDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
 
-      // Create a storage class with no ODH config annotation
+      // Mock no ODH configs but OpenShift default available
       const noConfigStorageClass = {
         ...mockStorageClasses[0],
         metadata: {
@@ -786,6 +791,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
         },
       };
 
+      // Create a storage class with no ODH config annotation
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [noConfigStorageClass],
         storageClassesLoaded: true,
@@ -897,7 +903,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
   describe('Storage Class Loading States', () => {
     it('does not render storage class select when storage classes are not available', () => {
       const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
-      useIsAreaAvailable.mockReturnValue({ status: false }); // Storage classes not available
+      useIsAreaAvailable.mockReturnValue({ status: false });
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [],
@@ -912,7 +918,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
     it('renders storage class select when storage classes are available', () => {
       const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
-      useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
+      useIsAreaAvailable.mockReturnValue({ status: true });
 
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
@@ -929,7 +935,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
     it('renders storage class skeleton when storage classes are available but not loaded', () => {
       const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
-      useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
+      useIsAreaAvailable.mockReturnValue({ status: true });
 
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
