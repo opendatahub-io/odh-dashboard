@@ -45,6 +45,18 @@ class ProjectRolesTab {
     cy.testA11y();
   }
 
+  visitEditRole(namespace: string, roleName: string) {
+    cy.visitWithLogin(`/projects/${namespace}/roles/${roleName}/edit`);
+    cy.findByTestId('create-role-page');
+    cy.testA11y();
+  }
+
+  visitDuplicateRole(namespace: string, roleName: string) {
+    cy.visitWithLogin(`/projects/${namespace}/roles/${roleName}/duplicate`);
+    cy.findByTestId('create-role-page');
+    cy.testA11y();
+  }
+
   private wait() {
     cy.findByTestId('app-page-title');
     cy.testA11y();
