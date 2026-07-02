@@ -35,7 +35,9 @@ describe('useAgentOpsProjectNamespaces', () => {
       namespaces: [{ name: 'team1', displayName: 'Team 1' }],
       namespacesLoaded: true,
       namespacesLoadError: undefined,
+      preferredNamespace: undefined,
       updatePreferredNamespace: jest.fn(),
+      clearStoredNamespace: jest.fn(),
     });
   });
 
@@ -68,7 +70,7 @@ describe('useAgentOpsProjectNamespaces', () => {
 
     expect(result.current.projectNamespaces).toEqual([{ name: 'team1', displayName: 'Team 1' }]);
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.loadError).toBeUndefined();
+    expect(result.current.loadError).toBeNull();
   });
 
   it('uses bridged projects when bridge is active and loaded', () => {
@@ -128,7 +130,9 @@ describe('useAgentOpsProjectNamespaces', () => {
       namespaces: [],
       namespacesLoaded: false,
       namespacesLoadError: namespaceError,
+      preferredNamespace: undefined,
       updatePreferredNamespace: jest.fn(),
+      clearStoredNamespace: jest.fn(),
     });
 
     const { result } = testHook(useAgentOpsProjectNamespaces)();
@@ -163,7 +167,9 @@ describe('useAgentOpsProjectNamespaces', () => {
       namespaces: [{ name: 'team1', displayName: 'Team 1' }],
       namespacesLoaded: true,
       namespacesLoadError: undefined,
+      preferredNamespace: undefined,
       updatePreferredNamespace,
+      clearStoredNamespace: jest.fn(),
     });
 
     const { result } = testHook(useAgentOpsProjectNamespaces)();

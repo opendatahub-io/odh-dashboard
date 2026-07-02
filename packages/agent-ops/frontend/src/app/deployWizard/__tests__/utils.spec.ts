@@ -4,6 +4,7 @@ import {
   formatAuthBridgeSummary,
   formatEnvVarsSummary,
   formatServicePortsSummary,
+  getServicePortNameError,
   isValidAgentName,
   isValidEnvVarName,
   isValidK8sStorageQuantity,
@@ -11,6 +12,7 @@ import {
   isValidPullSecretName,
   isValidServicePortName,
   stripContainerImageTag,
+  SERVICE_PORT_NAME_REQUIRED_ERROR,
 } from '~/app/deployWizard/utils';
 import type { DeployAgentWizardFormData } from '~/app/deployWizard/types';
 import { createInitialFormData } from '~/app/deployWizard/useAgentDeployWizard';
@@ -96,6 +98,12 @@ describe('deployWizard utils', () => {
     it('validates service port names', () => {
       expect(isValidServicePortName('http')).toBe(true);
       expect(isValidServicePortName('bad name')).toBe(false);
+    });
+
+    it('returns port name validation errors', () => {
+      expect(getServicePortNameError('')).toBe(SERVICE_PORT_NAME_REQUIRED_ERROR);
+      expect(getServicePortNameError('http')).toBe('');
+      expect(getServicePortNameError('bad name')).toContain('valid DNS label');
     });
   });
 

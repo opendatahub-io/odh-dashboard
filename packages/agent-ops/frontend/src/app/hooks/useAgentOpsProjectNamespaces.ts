@@ -63,7 +63,7 @@ export const useAgentOpsProjectNamespaces = (): {
       : filteredNamespaces;
 
   const isLoading = bridgeActive ? bridgeIsLoading : !namespacesLoaded && !namespacesLoadError;
-  const loadError = bridgeActive ? bridgeLoadError : namespacesLoadError;
+  const loadError = bridgeActive ? (bridgeLoadError ?? null) : (namespacesLoadError ?? null);
 
   const onProjectSelection = React.useCallback(
     (projectName: string) => {

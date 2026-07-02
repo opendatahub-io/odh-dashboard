@@ -53,10 +53,33 @@ export const createInitialFormData = (namespace: string): DeployAgentWizardFormD
   envVars: [],
 });
 
+const normalizeFormDataForComparison = (data: DeployAgentWizardFormData) => ({
+  ...data,
+  servicePorts: data.servicePorts.map(({ name, port, targetPort, protocol }) => ({
+    name,
+    port,
+    targetPort,
+    protocol,
+  })),
+  envVars: data.envVars.map(
+    ({ name, type, value, secretName, secretKey, configMapName, configMapKey }) => ({
+      name,
+      type,
+      value,
+      secretName,
+      secretKey,
+      configMapName,
+      configMapKey,
+    }),
+  ),
+});
+
 const isFormDataEqual = (
   left: DeployAgentWizardFormData,
   right: DeployAgentWizardFormData,
-): boolean => JSON.stringify(left) === JSON.stringify(right);
+): boolean =>
+  JSON.stringify(normalizeFormDataForComparison(left)) ===
+  JSON.stringify(normalizeFormDataForComparison(right));
 
 type AgentDeployWizardProviderProps = {
   namespace: string;
@@ -70,6 +93,11 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
   const initialFormData = React.useMemo(() => createInitialFormData(namespace), [namespace]);
   const [formData, setFormData] = React.useState<DeployAgentWizardFormData>(initialFormData);
   const agentNameManuallyEditedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    setFormData(initialFormData);
+    agentNameManuallyEditedRef.current = false;
+  }, [initialFormData]);
 
   const setAgentNameManuallyEdited = React.useCallback((value: boolean) => {
     agentNameManuallyEditedRef.current = value;

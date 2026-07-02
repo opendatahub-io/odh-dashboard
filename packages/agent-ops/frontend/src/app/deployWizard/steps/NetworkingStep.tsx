@@ -23,7 +23,7 @@ import {
   servicePortProtocolOptions,
 } from '~/app/deployWizard/wizardOptions';
 import { MAX_SERVICE_PORT, MIN_SERVICE_PORT } from '~/app/deployWizard/constants';
-import { isValidPortNumber, isValidServicePortName } from '~/app/deployWizard/utils';
+import { getServicePortNameError, isValidPortNumber } from '~/app/deployWizard/utils';
 import './NetworkingStep.scss';
 
 type ServicePortFieldColumnProps = {
@@ -37,12 +37,18 @@ const ServicePortFieldColumn: React.FC<ServicePortFieldColumnProps> = ({
   labelId,
   children,
 }) => (
-  <div className="deploy-agent-service-port-field">
-    {children}
-    <span id={labelId} className="deploy-agent-service-port-field__label">
-      {label}
-    </span>
-  </div>
+  <Flex
+    direction={{ default: 'column' }}
+    spaceItems={{ default: 'spaceItemsXs' }}
+    className="agent-ops-service-port-field"
+  >
+    <FlexItem>{children}</FlexItem>
+    <FlexItem>
+      <span id={labelId} className="agent-ops-service-port-field__label">
+        {label}
+      </span>
+    </FlexItem>
+  </Flex>
 );
 
 const NetworkingStep: React.FC = () => {
@@ -54,15 +60,15 @@ const NetworkingStep: React.FC = () => {
       <FormSection title="Networking">
         <FormGroup label="Service ports" isRequired fieldId="deploy-agent-service-ports">
           {formData.servicePorts.map((port, index) => {
-            const portNameInvalid =
-              port.name.trim().length > 0 && !isValidServicePortName(port.name);
+            const portNameError = getServicePortNameError(port.name);
+            const portNameInvalid = portNameError.length > 0;
             const servicePortInvalid = !isValidPortNumber(port.port);
             const targetPortInvalid = !isValidPortNumber(port.targetPort);
 
             return (
               <Flex
                 key={port.rowId}
-                className="deploy-agent-service-port-row"
+                className="agent-ops-service-port-row"
                 gap={{ default: 'gapMd' }}
                 alignItems={{ default: 'alignItemsFlexStart' }}
                 id={`deploy-agent-service-port-row-${index}`}
@@ -73,6 +79,7 @@ const NetworkingStep: React.FC = () => {
                     labelId={`deploy-agent-port-name-label-${index}`}
                   >
                     <TextInput
+                      className="pf-v6-u-w-100"
                       id={`deploy-agent-port-name-${index}`}
                       data-testid={`deploy-agent-port-name-${index}`}
                       placeholder="http"
@@ -81,8 +88,22 @@ const NetworkingStep: React.FC = () => {
                         portNameInvalid ? ValidatedOptions.error : ValidatedOptions.default
                       }
                       aria-labelledby={`deploy-agent-port-name-label-${index}`}
+                      aria-invalid={portNameInvalid}
+                      aria-describedby={
+                        portNameError ? `deploy-agent-port-name-error-${index}` : undefined
+                      }
                       onChange={(_event, value) => updateServicePort(index, { name: value })}
                     />
+                    {portNameError ? (
+                      <HelperText>
+                        <HelperTextItem
+                          id={`deploy-agent-port-name-error-${index}`}
+                          variant="error"
+                        >
+                          {portNameError}
+                        </HelperTextItem>
+                      </HelperText>
+                    ) : null}
                   </ServicePortFieldColumn>
                 </FlexItem>
                 <FlexItem>
@@ -131,7 +152,7 @@ const NetworkingStep: React.FC = () => {
                     />
                   </ServicePortFieldColumn>
                 </FlexItem>
-                <FlexItem className="deploy-agent-service-port-row__protocol">
+                <FlexItem className="agent-ops-service-port-row__protocol">
                   <ServicePortFieldColumn
                     label="Protocol"
                     labelId={`deploy-agent-port-protocol-label-${index}`}
@@ -156,14 +177,14 @@ const NetworkingStep: React.FC = () => {
                 </FlexItem>
                 <FlexItem
                   alignSelf={{ default: 'alignSelfFlexStart' }}
-                  className="deploy-agent-service-port-row__remove"
+                  className="agent-ops-service-port-row__remove"
                 >
                   <Button
                     aria-label={`Remove service port ${index + 1}`}
                     data-testid={`deploy-agent-remove-service-port-${index}`}
                     onClick={() => removeServicePort(index)}
                     variant="plain"
-                    icon={<TrashIcon className="deploy-agent-service-port-row__remove-icon" />}
+                    icon={<TrashIcon className="agent-ops-service-port-row__remove-icon" />}
                     isDisabled={formData.servicePorts.length === 1}
                   />
                 </FlexItem>

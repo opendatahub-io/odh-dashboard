@@ -9,6 +9,9 @@ import {
 import { protocolOptions, workloadTypeOptions } from './wizardOptions';
 
 export const ENV_VAR_FIELD_REQUIRED_ERROR = 'Required when variable name is set';
+export const SERVICE_PORT_NAME_REQUIRED_ERROR = 'Port name is required';
+const SERVICE_PORT_NAME_FORMAT_ERROR =
+  'Port name must be a valid DNS label (lowercase alphanumeric and hyphens)';
 
 const K8S_STORAGE_QUANTITY_REGEX = /^\d+(\.\d+)?(Gi|Mi|Ti|G|M|T)$/;
 const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
@@ -125,6 +128,14 @@ export const isValidPortNumber = (port: number | undefined): boolean =>
   port <= MAX_SERVICE_PORT;
 
 export const isValidServicePortName = (name: string): boolean => isValidAgentName(name);
+
+export const getServicePortNameError = (name: string): string => {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    return SERVICE_PORT_NAME_REQUIRED_ERROR;
+  }
+  return isValidServicePortName(name) ? '' : SERVICE_PORT_NAME_FORMAT_ERROR;
+};
 
 export const isValidServicePortProtocol = (protocol: string): boolean =>
   VALID_SERVICE_PORT_PROTOCOLS.has(protocol);

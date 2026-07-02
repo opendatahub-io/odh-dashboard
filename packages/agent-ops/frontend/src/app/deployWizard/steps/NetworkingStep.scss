@@ -1,4 +1,4 @@
-.deploy-agent-service-port-row {
+.agent-ops-service-port-row {
   margin-bottom: var(--pf-t--global--spacer--md);
 
   &__protocol {
@@ -14,25 +14,12 @@
   }
 }
 
-.deploy-agent-service-port-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pf-t--global--spacer--xs);
+.agent-ops-service-port-field {
   min-width: 0;
   width: 100%;
 
   &__label {
     font-size: var(--pf-t--global--font--size--body--sm);
     color: var(--pf-t--global--text--color--subtle);
-  }
-
-  .pf-v6-c-form-control,
-  .odh-number-input-wrapper,
-  .deploy-agent-wizard-dropdown {
-    width: 100%;
-  }
-
-  .pf-v6-c-form-control {
-    --pf-v6-c-form-control--BorderWidth: var(--pf-t--global--border--width--regular);
   }
 }

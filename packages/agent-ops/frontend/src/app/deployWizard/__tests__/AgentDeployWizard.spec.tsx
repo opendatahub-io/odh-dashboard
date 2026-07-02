@@ -383,6 +383,21 @@ describe('AgentDeployWizard', () => {
     expect(screen.queryByTestId('deploy-agent-port-name-1')).not.toBeInTheDocument();
   });
 
+  it('shows port name required error when an added service port row is empty', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+    await user.selectOptions(screen.getByTestId('deploy-agent-workload-type-select'), 'deployment');
+    await user.click(screen.getByTestId('deploy-agent-wizard-next'));
+
+    await user.click(screen.getByTestId('deploy-agent-add-service-port'));
+
+    expect(screen.getByText('Port name is required')).toBeInTheDocument();
+    expectWizardNextDisabled();
+  });
+
   it('hides envoy-sidecar and advanced settings when AuthBridge is unchecked', async () => {
     const user = userEvent.setup();
     renderWizard();

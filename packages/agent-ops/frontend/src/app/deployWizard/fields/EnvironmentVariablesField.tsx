@@ -5,6 +5,8 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Stack,
+  StackItem,
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
@@ -56,7 +58,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
 }) => (
   <>
     {envVars.length > 0 ? (
-      <div className="deploy-agent-env-vars-list">
+      <Stack hasGutter={false}>
         {envVars.map((envVar, index) => {
           const nameError = getEnvVarNameError(envVar.name);
           const nameInvalid = nameError.length > 0;
@@ -67,13 +69,14 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
           const configMapKeyInvalid = isEnvVarReferenceFieldInvalid(envVar, envVar.configMapKey);
 
           return (
-            <div
+            <StackItem
               key={envVar.rowId}
-              className="deploy-agent-env-var-row"
+              className="agent-ops-env-var-row"
               id={`deploy-agent-env-var-row-${index}`}
             >
-              <div className="deploy-agent-env-var-row__field deploy-agent-env-var-row__field--name">
+              <div className="agent-ops-env-var-row__field agent-ops-env-var-row__field--name">
                 <TextInput
+                  className="pf-v6-u-w-100"
                   id={`deploy-agent-env-var-name-${index}`}
                   data-testid={`deploy-agent-env-var-name-${index}`}
                   aria-label={`Environment variable name ${index + 1}`}
@@ -94,7 +97,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                   </HelperText>
                 ) : null}
               </div>
-              <div className="deploy-agent-env-var-row__field deploy-agent-env-var-row__field--type">
+              <div className="agent-ops-env-var-row__field agent-ops-env-var-row__field--type">
                 <DeployWizardSelectField>
                   <SimpleSelect
                     dataTestId={`deploy-agent-env-var-type-${index}`}
@@ -118,8 +121,9 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                 </DeployWizardSelectField>
               </div>
               {envVar.type === DeployAgentEnvVarType.DIRECT ? (
-                <div className="deploy-agent-env-var-row__field">
+                <div className="agent-ops-env-var-row__field">
                   <TextInput
+                    className="pf-v6-u-w-100"
                     id={`deploy-agent-env-var-value-${index}`}
                     data-testid={`deploy-agent-env-var-value-${index}`}
                     aria-label={`Environment variable value ${index + 1}`}
@@ -148,8 +152,9 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
               ) : null}
               {envVar.type === DeployAgentEnvVarType.SECRET ? (
                 <>
-                  <div className="deploy-agent-env-var-row__field">
+                  <div className="agent-ops-env-var-row__field">
                     <TextInput
+                      className="pf-v6-u-w-100"
                       id={`deploy-agent-env-var-secret-name-${index}`}
                       data-testid={`deploy-agent-env-var-secret-name-${index}`}
                       aria-label={`Secret name ${index + 1}`}
@@ -177,8 +182,9 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                       </HelperText>
                     ) : null}
                   </div>
-                  <div className="deploy-agent-env-var-row__field">
+                  <div className="agent-ops-env-var-row__field">
                     <TextInput
+                      className="pf-v6-u-w-100"
                       id={`deploy-agent-env-var-secret-key-${index}`}
                       data-testid={`deploy-agent-env-var-secret-key-${index}`}
                       aria-label={`Secret key ${index + 1}`}
@@ -210,8 +216,9 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
               ) : null}
               {envVar.type === DeployAgentEnvVarType.CONFIG_MAP ? (
                 <>
-                  <div className="deploy-agent-env-var-row__field">
+                  <div className="agent-ops-env-var-row__field">
                     <TextInput
+                      className="pf-v6-u-w-100"
                       id={`deploy-agent-env-var-configmap-name-${index}`}
                       data-testid={`deploy-agent-env-var-configmap-name-${index}`}
                       aria-label={`ConfigMap name ${index + 1}`}
@@ -239,8 +246,9 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                       </HelperText>
                     ) : null}
                   </div>
-                  <div className="deploy-agent-env-var-row__field">
+                  <div className="agent-ops-env-var-row__field">
                     <TextInput
+                      className="pf-v6-u-w-100"
                       id={`deploy-agent-env-var-configmap-key-${index}`}
                       data-testid={`deploy-agent-env-var-configmap-key-${index}`}
                       aria-label={`ConfigMap key ${index + 1}`}
@@ -270,7 +278,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                   </div>
                 </>
               ) : null}
-              <div className="deploy-agent-env-var-row__remove">
+              <div className="agent-ops-env-var-row__remove">
                 <Button
                   aria-label={`Remove environment variable ${index + 1}`}
                   data-testid={`deploy-agent-remove-env-var-${index}`}
@@ -279,10 +287,10 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
                   icon={<MinusCircleIcon />}
                 />
               </div>
-            </div>
+            </StackItem>
           );
         })}
-      </div>
+      </Stack>
     ) : null}
     <Button
       isInline

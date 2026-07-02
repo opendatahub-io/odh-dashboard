@@ -1,10 +1,4 @@
-.deploy-agent-env-vars-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.deploy-agent-env-var-row {
+.agent-ops-env-var-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--pf-t--global--spacer--sm);
@@ -16,15 +10,6 @@
   &__field {
     flex: 1 1 0;
     min-width: 0;
-
-    .pf-v6-c-form-control,
-    .deploy-agent-wizard-dropdown {
-      width: 100%;
-    }
-
-    .pf-v6-c-form-control {
-      --pf-v6-c-form-control--BorderWidth: var(--pf-t--global--border--width--regular);
-    }
 
     &--name {
       flex: 2 1 12rem;
