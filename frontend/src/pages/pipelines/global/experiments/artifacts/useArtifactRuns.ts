@@ -96,7 +96,12 @@ export const useArtifactRuns = (
       });
 
       setRuns((prev) => ({ ...prev, ...newRuns }));
-      setErrors((prev) => ({ ...prev, ...newErrors }));
+      setErrors((prev) => {
+        // Remove errors for runs that were successfully fetched on retry
+        const next = { ...prev, ...newErrors };
+        Object.keys(newRuns).forEach((id) => delete next[id]);
+        return next;
+      });
       setLoading((prev) => {
         const next = new Set(prev);
         runIdsToFetch.forEach((id) => next.delete(id));
