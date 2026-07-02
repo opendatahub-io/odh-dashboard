@@ -282,7 +282,7 @@ describe('Model Catalog Performance Filters API Behavior', () => {
     });
   });
 
-  describe('Reset all defaults functionality', () => {
+  describe('Reset all filters functionality', () => {
     beforeEach(() => {
       visitWithPerformanceToggle(true);
     });
@@ -299,8 +299,8 @@ describe('Model Catalog Performance Filters API Behavior', () => {
       modelCatalog.openColdStartLatencyFilter();
       modelCatalog.applyColdStartLatencyFilter();
 
-      // Click Reset all defaults button in the toolbar
-      cy.findByRole('button', { name: 'Reset all defaults' }).click();
+      // Click Reset all filters button in the toolbar
+      cy.findByRole('button', { name: 'Reset all filters' }).click();
 
       // Verify workload type is reset - should NOT show Code Fixing
       cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.workloadType)
@@ -321,8 +321,8 @@ describe('Model Catalog Performance Filters API Behavior', () => {
       modelCatalog.selectLatencyMetric('E2E');
       modelCatalog.clickApplyFilter();
 
-      // Click 'Reset all defaults (PatternFly's native button)
-      cy.findByRole('button', { name: 'Reset all defaults' }).click();
+      // Click 'Reset all filters' (PatternFly's native button)
+      cy.findByRole('button', { name: 'Reset all filters' }).click();
 
       // Latency filter should be reset to default (TTFT, not E2E)
       cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.latency)
