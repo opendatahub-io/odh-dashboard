@@ -85,11 +85,14 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
   );
 
   React.useEffect(() => {
-    if (navRegistryNamespace && registryLoaded) {
+    if (!registryLoaded) {
+      return;
+    }
+    if (navRegistryNamespace) {
       const match = registryFeatureStores.find((fs) => fs.namespace === navRegistryNamespace);
-      if (match) {
-        setSelectedFeatureStoreName(match.name);
-      }
+      setSelectedFeatureStoreName(match ? match.name : null);
+    } else {
+      setSelectedFeatureStoreName(null);
     }
   }, [navRegistryNamespace, registryLoaded, registryFeatureStores]);
 
