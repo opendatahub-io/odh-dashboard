@@ -628,6 +628,7 @@ func TestPromptHandlerPermissions(t *testing.T) {
 		handler         string
 		verb            string
 		canWrite        bool
+		permissionError bool
 		method          string
 		path            string
 		body            string
@@ -720,14 +721,57 @@ func TestPromptHandlerPermissions(t *testing.T) {
 				m.On("DeletePromptVersion", tmock.Anything, "test-prompt", 1).Return(nil)
 			},
 		},
+		{
+			name:            "RegisterPrompt permission check error",
+			handler:         "register",
+			verb:            "create",
+			permissionError: true,
+			method:          http.MethodPost,
+			path:            "/api/v1/prompts?workspace=my-ns",
+			body:            `{"name":"test-prompt","messages":[{"role":"user","content":"Hello"}]}`,
+			wantStatus:      http.StatusInternalServerError,
+			assertNotCalled: "RegisterChatPrompt",
+		},
+		{
+			name:            "DeletePrompt permission check error",
+			handler:         "delete",
+			verb:            "delete",
+			permissionError: true,
+			method:          http.MethodDelete,
+			path:            "/api/v1/prompts/test-prompt?workspace=my-ns",
+			params:          httprouter.Params{{Key: "name", Value: "test-prompt"}},
+			wantStatus:      http.StatusInternalServerError,
+			assertNotCalled: "DeletePrompt",
+		},
+		{
+			name:            "DeletePromptVersion permission check error",
+			handler:         "deleteVersion",
+			verb:            "delete",
+			permissionError: true,
+			method:          http.MethodDelete,
+			path:            "/api/v1/prompts/test-prompt/versions/1?workspace=my-ns",
+			params: httprouter.Params{
+				{Key: "name", Value: "test-prompt"},
+				{Key: "version", Value: "1"},
+			},
+			wantStatus:      http.StatusInternalServerError,
+			assertNotCalled: "DeletePromptVersion",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var factory k8s.KubernetesClientFactory
+			if tt.permissionError {
+				factory = &mockK8sClientFactoryWithError{}
+			} else {
+				factory = newMockK8sClientFactoryWithVerb(tt.canWrite, tt.verb)
+			}
+
 			app := &App{
 				logger:                  testLogger(),
 				repositories:            repositories.NewRepositories(),
-				kubernetesClientFactory: newMockK8sClientFactoryWithVerb(tt.canWrite, tt.verb),
+				kubernetesClientFactory: factory,
 			}
 
 			mockClient := &mlflowpkg.MockClient{}
@@ -763,81 +807,6 @@ func TestPromptHandlerPermissions(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestRegisterPromptPermissionCheckError(t *testing.T) {
-	mockFactory := &mockK8sClientFactoryWithError{}
-
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: mockFactory,
-	}
-
-	mockClient := &mlflowpkg.MockClient{}
-
-	body := `{"name":"test-prompt","messages":[{"role":"user","content":"Hello"}]}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts?workspace=my-ns", strings.NewReader(body))
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
-
-	app.MLflowRegisterPromptHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	mockClient.AssertNotCalled(t, "RegisterChatPrompt")
-}
-
-func TestDeletePromptPermissionCheckError(t *testing.T) {
-	mockFactory := &mockK8sClientFactoryWithError{}
-
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: mockFactory,
-	}
-
-	mockClient := &mlflowpkg.MockClient{}
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/test-prompt?workspace=my-ns", nil)
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
-
-	ps := httprouter.Params{{Key: "name", Value: "test-prompt"}}
-	app.MLflowDeletePromptHandler(rr, req, ps)
-
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	mockClient.AssertNotCalled(t, "DeletePrompt")
-}
-
-func TestDeletePromptVersionPermissionCheckError(t *testing.T) {
-	mockFactory := &mockK8sClientFactoryWithError{}
-
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: mockFactory,
-	}
-
-	mockClient := &mlflowpkg.MockClient{}
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/test-prompt/versions/1?workspace=my-ns", nil)
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
-
-	ps := httprouter.Params{
-		{Key: "name", Value: "test-prompt"},
-		{Key: "version", Value: "1"},
-	}
-	app.MLflowDeletePromptVersionHandler(rr, req, ps)
-
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	mockClient.AssertNotCalled(t, "DeletePromptVersion")
 }
 
 func TestEnforceWritePermissionBypassedWhenAuthDisabled(t *testing.T) {

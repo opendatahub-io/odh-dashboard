@@ -141,6 +141,15 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	return username, nil
 }
 
+// InvalidVerbError is returned when an unsupported verb is passed to CanWritePromptsInNamespace.
+type InvalidVerbError struct {
+	Verb string
+}
+
+func (e *InvalidVerbError) Error() string {
+	return fmt.Sprintf("invalid verb %q: must be 'create' or 'delete'", e.Verb)
+}
+
 // CanWritePromptsInNamespace checks if the user can write prompts to the namespace.
 //
 // This uses SelfSubjectAccessReview to check permission on
@@ -163,7 +172,7 @@ func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
 ) (bool, error) {
 	// Validate verb to prevent misuse
 	if verb != "create" && verb != "delete" {
-		return false, fmt.Errorf("invalid verb %q: must be 'create' or 'delete'", verb)
+		return false, &InvalidVerbError{Verb: verb}
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -183,8 +192,8 @@ func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
 		kc.Logger.Error("failed to check write permissions",
-			"namespace", namespace,
-			"error", err)
+			slog.String("namespace", namespace),
+			slog.Any("error", err))
 		return false, fmt.Errorf("failed to check write permissions in namespace %s: %w", namespace, err)
 	}
 

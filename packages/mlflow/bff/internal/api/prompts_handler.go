@@ -209,9 +209,17 @@ func (app *App) enforceWritePermission(
 
 	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, workspace, verb)
 	if err != nil {
-		app.logger.Error("Failed to check write permissions",
-			slog.String("workspace", workspace),
-			slog.Any("error", err))
+		var invalidVerbErr *k8s.InvalidVerbError
+		if errors.As(err, &invalidVerbErr) {
+			app.logger.Error("BUG: Invalid verb passed to permission check",
+				slog.String("workspace", workspace),
+				slog.String("verb", verb),
+				slog.Any("error", err))
+		} else {
+			app.logger.Error("Failed to check write permissions",
+				slog.String("workspace", workspace),
+				slog.Any("error", err))
+		}
 		app.serverErrorResponse(w, r, err)
 		return false
 	}
