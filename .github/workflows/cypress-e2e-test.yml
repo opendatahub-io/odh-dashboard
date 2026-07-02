@@ -12,6 +12,8 @@ name: Cypress e2e Test
 #   Primary:   dash-e2e-int (checked first via DSC health)
 #   Secondary: dash-e2e     (used if primary is unhealthy)
 #   Health Check: Logs into cluster → checks DSC conditions (Available, Degraded, odh-dashboardReady)
+#                → verifies OdhDashboardConfig exists with readable spec
+#                → verifies test admin user can create projects
 #
 # TEST SELECTION (priority order):
 #   Default (always run):
@@ -148,14 +150,18 @@ jobs:
             
             # Get DSC status with full output for debugging
             echo "  🔍 Fetching DataScienceCluster status..."
-            DSC_JSON=$(oc get datasciencecluster -o json 2>&1)
+            DSC_ERR_FILE="$(mktemp)"
+            DSC_JSON=$(oc get datasciencecluster -o json 2>"$DSC_ERR_FILE")
             DSC_EXIT_CODE=$?
             
             if [[ $DSC_EXIT_CODE -ne 0 ]]; then
               echo "  ❌ Failed to get DSC (exit code: $DSC_EXIT_CODE)"
-              echo "  📝 Output: $DSC_JSON" | head -5
+              echo "  📝 Output:"
+              head -5 "$DSC_ERR_FILE"
+              rm -f "$DSC_ERR_FILE"
               return 1
             fi
+            rm -f "$DSC_ERR_FILE"
             
             if [[ -z "$DSC_JSON" || "$DSC_JSON" == "null" || "$DSC_JSON" == '{"apiVersion":"datasciencecluster.opendatahub.io/v1","items":[],"kind":"List","metadata":{"resourceVersion":""}}' ]]; then
               echo "  ❌ No DataScienceCluster found on $cluster_name"
@@ -174,9 +180,47 @@ jobs:
             echo "  📋 DSC Conditions:"
             echo "$DSC_JSON" | jq -r '.items[0].status.conditions[]? | "     - \(.type): \(.status) (\(.reason // "no reason"))"' 2>/dev/null || echo "     (no conditions found)"
             
+            # Preflight checks beyond DSC Ready — catches missing CRs and RBAC gaps
+            # that would otherwise fail deep inside Cypress setup hooks.
+            run_cluster_preflight() {
+              echo "  🔍 Checking OdhDashboardConfig..."
+              ODC_ERR_FILE="$(mktemp)"
+              ODC_JSON=$(oc get OdhDashboardConfig -A -o json 2>"$ODC_ERR_FILE")
+              ODC_EXIT_CODE=$?
+              if [[ $ODC_EXIT_CODE -ne 0 ]]; then
+                echo "  ❌ Failed to get OdhDashboardConfig on $cluster_name (exit code: $ODC_EXIT_CODE)"
+                echo "  📝 Output:"
+                head -5 "$ODC_ERR_FILE"
+                rm -f "$ODC_ERR_FILE"
+                return 1
+              fi
+              ODC_COUNT=$(echo "$ODC_JSON" | jq '.items | length' 2>/dev/null || echo "0")
+              rm -f "$ODC_ERR_FILE"
+              if [[ "$ODC_COUNT" == "0" || -z "$ODC_COUNT" ]]; then
+                echo "  ❌ OdhDashboardConfig missing or empty on $cluster_name (got count=$ODC_COUNT)"
+                echo "  📝 This would cause SyntaxError: Unexpected end of JSON input in test hooks"
+                return 1
+              fi
+              if ! echo "$ODC_JSON" | jq -e '.items[0].spec' > /dev/null 2>&1; then
+                echo "  ❌ OdhDashboardConfig .spec is empty or unreadable on $cluster_name"
+                return 1
+              fi
+              echo "  ✅ OdhDashboardConfig is present and has a readable spec"
+
+              echo "  🔍 Checking test-user RBAC (create projects)..."
+              if ! oc auth can-i create projects --all-namespaces > /dev/null 2>&1; then
+                echo "  ❌ Test user cannot create projects on $cluster_name"
+                echo "  📝 This would cause Forbidden errors in test setup hooks"
+                return 1
+              fi
+              echo "  ✅ Test user can create projects"
+              return 0
+            }
+
             # If phase is Ready, cluster is healthy
             if [[ "$PHASE" == "Ready" ]]; then
               echo "  ✅ DSC is Ready!"
+              run_cluster_preflight || return 1
               return 0
             fi
             
@@ -187,6 +231,7 @@ jobs:
             # Fallback: if conditions show healthy even though phase isn't Ready
             if [[ "$AVAILABLE" == "True" && "$DEGRADED" != "True" ]]; then
               echo "  ✅ Conditions look healthy despite phase=$PHASE"
+              run_cluster_preflight || return 1
               return 0
             fi
             

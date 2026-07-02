@@ -180,6 +180,13 @@ export const getDashboardConfig = (key?: string): Cypress.Chainable<unknown> => 
       const maskedStderr = maskSensitiveInfo(result.stderr || '');
       throw new Error(`Failed to get DashboardConfig: ${maskedStderr}`);
     }
+    if (!result.stdout || result.stdout.trim() === '') {
+      throw new Error(
+        'Cluster preflight: OdhDashboardConfig returned empty output. ' +
+          'The CR may be missing or the test user lacks read access. ' +
+          `stderr: ${maskSensitiveInfo(result.stderr || '(none)')}`,
+      );
+    }
     const config = JSON.parse(result.stdout) as DashboardConfig;
 
     if (key) {
