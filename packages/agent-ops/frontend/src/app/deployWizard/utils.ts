@@ -9,6 +9,7 @@ import {
 import { protocolOptions, workloadTypeOptions } from './wizardOptions';
 
 export const ENV_VAR_FIELD_REQUIRED_ERROR = 'Required when variable name is set';
+export const ENV_VAR_NAME_REQUIRED_ERROR = 'Environment variable name is required';
 export const SERVICE_PORT_NAME_REQUIRED_ERROR = 'Port name is required';
 const SERVICE_PORT_NAME_FORMAT_ERROR =
   'Port name must be a valid DNS label (lowercase alphanumeric and hyphens)';
@@ -151,8 +152,9 @@ export const isValidEnvVarName = (name: string): boolean => {
 };
 
 export const getEnvVarNameError = (name: string): string => {
-  if (name.trim().length === 0) {
-    return '';
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    return ENV_VAR_NAME_REQUIRED_ERROR;
   }
   return isValidEnvVarName(name)
     ? ''

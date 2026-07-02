@@ -4,6 +4,7 @@ import {
   formatAuthBridgeSummary,
   formatEnvVarsSummary,
   formatServicePortsSummary,
+  getEnvVarNameError,
   getServicePortNameError,
   isValidAgentName,
   isValidEnvVarName,
@@ -12,6 +13,7 @@ import {
   isValidPullSecretName,
   isValidServicePortName,
   stripContainerImageTag,
+  ENV_VAR_NAME_REQUIRED_ERROR,
   SERVICE_PORT_NAME_REQUIRED_ERROR,
 } from '~/app/deployWizard/utils';
 import type { DeployAgentWizardFormData } from '~/app/deployWizard/types';
@@ -111,6 +113,12 @@ describe('deployWizard utils', () => {
     it('validates environment variable names', () => {
       expect(isValidEnvVarName('LOG_LEVEL')).toBe(true);
       expect(isValidEnvVarName('1BAD')).toBe(false);
+    });
+
+    it('returns required error for empty environment variable names', () => {
+      expect(getEnvVarNameError('')).toBe(ENV_VAR_NAME_REQUIRED_ERROR);
+      expect(getEnvVarNameError('LOG_LEVEL')).toBe('');
+      expect(getEnvVarNameError('1BAD')).toContain('letter or underscore');
     });
   });
 

@@ -428,6 +428,11 @@ describe('AgentDeployWizard', () => {
     await user.click(screen.getByTestId('deploy-agent-add-env-var'));
 
     expectWizardNextDisabled();
+    expect(screen.getByText('Environment variable name is required')).toBeInTheDocument();
+    expect(screen.getByTestId('deploy-agent-env-var-name-0')).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
   });
 
   it('renders secret reference fields when env var type is Secret reference', async () => {
