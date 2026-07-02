@@ -16,71 +16,21 @@ import (
 	"github.com/opendatahub-io/mlflow/bff/internal/config"
 	"github.com/opendatahub-io/mlflow/bff/internal/constants"
 	k8s "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes/k8mocks"
 	mlflowpkg "github.com/opendatahub-io/mlflow/bff/internal/integrations/mlflow"
 	"github.com/opendatahub-io/mlflow/bff/internal/models"
 	"github.com/opendatahub-io/mlflow/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	tmock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
 )
 
 func newTestAppWithPromptsRepos() *App {
 	return &App{
 		logger:                  testLogger(),
 		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: newMockK8sClientFactoryWithVerb(true, ""),
+		kubernetesClientFactory: k8mocks.NewSimpleMockFactory(true, "", "my-ns"),
 	}
-}
-
-func newMockK8sClientFactoryWithVerb(canWrite bool, expectedVerb string) k8s.KubernetesClientFactory {
-	return &mockK8sClientFactory{canWrite: canWrite, expectedVerb: expectedVerb, expectedNamespace: "my-ns"}
-}
-
-type mockK8sClientFactory struct {
-	canWrite          bool
-	expectedVerb      string
-	expectedNamespace string
-}
-
-func (f *mockK8sClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
-	return &k8s.RequestIdentity{UserID: "test-user"}, nil
-}
-
-func (f *mockK8sClientFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {
-	return nil
-}
-
-func (f *mockK8sClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
-	return &mockK8sClient{canWrite: f.canWrite, expectedVerb: f.expectedVerb, expectedNamespace: f.expectedNamespace}, nil
-}
-
-type mockK8sClient struct {
-	canWrite          bool
-	expectedVerb      string
-	expectedNamespace string
-}
-
-func (c *mockK8sClient) GetNamespaces(ctx context.Context, identity *k8s.RequestIdentity) ([]corev1.Namespace, error) {
-	return nil, nil
-}
-
-func (c *mockK8sClient) IsClusterAdmin(identity *k8s.RequestIdentity) (bool, error) {
-	return false, nil
-}
-
-func (c *mockK8sClient) GetUser(identity *k8s.RequestIdentity) (string, error) {
-	return "test-user", nil
-}
-
-func (c *mockK8sClient) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
-	if c.expectedNamespace != "" && namespace != c.expectedNamespace {
-		return false, fmt.Errorf("unexpected namespace: got %q, expected %q", namespace, c.expectedNamespace)
-	}
-	if c.expectedVerb != "" && verb != c.expectedVerb {
-		return false, fmt.Errorf("unexpected verb: got %q, expected %q", verb, c.expectedVerb)
-	}
-	return c.canWrite, nil
 }
 
 // --- ListPrompts ---
@@ -768,9 +718,9 @@ func TestPromptHandlerPermissions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var factory k8s.KubernetesClientFactory
 			if tt.permissionError {
-				factory = &mockK8sClientFactoryWithError{}
+				factory = k8mocks.NewSimpleMockFactoryWithError()
 			} else {
-				factory = newMockK8sClientFactoryWithVerb(tt.canWrite, tt.verb)
+				factory = k8mocks.NewSimpleMockFactory(tt.canWrite, tt.verb, "my-ns")
 			}
 
 			app := &App{
@@ -827,36 +777,4 @@ func TestEnforceWritePermissionBypassedWhenAuthDisabled(t *testing.T) {
 	// ResponseRecorder initializes with implicit 200, but no error response was written
 	// Verify the body is empty to confirm no error handler was called
 	assert.Empty(t, rr.Body.String())
-}
-
-type mockK8sClientFactoryWithError struct{}
-
-func (f *mockK8sClientFactoryWithError) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
-	return &k8s.RequestIdentity{UserID: "test-user"}, nil
-}
-
-func (f *mockK8sClientFactoryWithError) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {
-	return nil
-}
-
-func (f *mockK8sClientFactoryWithError) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
-	return &mockK8sClientWithPermissionError{}, nil
-}
-
-type mockK8sClientWithPermissionError struct{}
-
-func (c *mockK8sClientWithPermissionError) GetNamespaces(ctx context.Context, identity *k8s.RequestIdentity) ([]corev1.Namespace, error) {
-	return nil, nil
-}
-
-func (c *mockK8sClientWithPermissionError) IsClusterAdmin(identity *k8s.RequestIdentity) (bool, error) {
-	return false, nil
-}
-
-func (c *mockK8sClientWithPermissionError) GetUser(identity *k8s.RequestIdentity) (string, error) {
-	return "test-user", nil
-}
-
-func (c *mockK8sClientWithPermissionError) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
-	return false, fmt.Errorf("k8s api error")
 }
