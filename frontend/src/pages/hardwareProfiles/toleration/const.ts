@@ -1,6 +1,6 @@
+import { type Toleration, TolerationEffect, TolerationOperator } from '@odh-dashboard/k8s-core';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { SimpleSelectOption } from '#~/components/SimpleSelect';
-import { SortableData } from '#~/components/table';
-import { Toleration, TolerationEffect, TolerationOperator } from '#~/types';
 
 export const tolerationColumns: SortableData<Toleration>[] = [
   {

@@ -9,6 +9,11 @@ import { NumReplicasField } from '../fields/NumReplicasField';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { ExternalDataMap } from '../ExternalDataLoader';
 
+const EXPLICIT_TOPOLOGY_FIELD_IDS = [
+  'llmd-serving/topology-type',
+  'llmd-serving/custom-topology-config',
+];
+
 type ModelDeploymentStepProps = {
   projectName?: string;
   wizardState: UseModelDeploymentWizardState;
@@ -24,7 +29,13 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
 }) => {
   const modelDeploymentExtensionFields = React.useMemo(
     () =>
-      wizardState.fields.filter((f) => f.step === 'modelDeployment' && !f.stateKey && !f.parentId),
+      wizardState.fields.filter(
+        (f) =>
+          f.step === 'modelDeployment' &&
+          !f.stateKey &&
+          !f.parentId &&
+          !EXPLICIT_TOPOLOGY_FIELD_IDS.includes(f.id),
+      ),
     [wizardState.fields],
   );
 
@@ -49,6 +60,24 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           dataTestId="model-deployment"
           nameLabel="Model deployment name"
           nameHelperTextAbove="Name this deployment. This name is also used for the inference service created when the model is deployed."
+        />
+        <GenericFieldRenderer
+          fieldId="deploymentMethod"
+          wizardState={wizardState}
+          externalData={externalData}
+          isEditing={wizardState.initialData?.isEditing}
+        />
+        <GenericFieldRenderer
+          fieldId="llmd-serving/topology-type"
+          wizardState={wizardState}
+          externalData={externalData}
+          isEditing={wizardState.initialData?.isEditing}
+        />
+        <GenericFieldRenderer
+          fieldId="llmd-serving/custom-topology-config"
+          wizardState={wizardState}
+          externalData={externalData}
+          isEditing={wizardState.initialData?.isEditing}
         />
         <ModelServingHardwareProfileSection
           project={projectName}

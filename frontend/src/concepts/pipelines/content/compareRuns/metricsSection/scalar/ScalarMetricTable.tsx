@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { InnerScrollContainer, TableVariant, Td, Tr } from '@patternfly/react-table';
 import { Bullseye, Flex, Spinner, Switch } from '@patternfly/react-core';
-import { Table } from '#~/components/table';
+import { Table } from '@odh-dashboard/ui-core';
 import { RunArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
 import { CompareRunsEmptyState } from '#~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
 import { CompareRunsNoMetrics } from '#~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';

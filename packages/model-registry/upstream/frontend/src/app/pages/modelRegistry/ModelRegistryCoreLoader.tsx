@@ -23,6 +23,7 @@ type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type ModelRegistryCoreLoaderProps = {
   getInvalidRedirectPath: (modelRegistry: string) => string;
   emptyStatePage?: React.ReactNode;
+  unavailableStatePage?: (registryDisplayName: string) => React.ReactNode;
 };
 
 type ApplicationPageRenderState = Pick<
@@ -33,6 +34,7 @@ type ApplicationPageRenderState = Pick<
 const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> = ({
   getInvalidRedirectPath,
   emptyStatePage,
+  unavailableStatePage,
 }) => {
   const { modelRegistry } = useParams<{ modelRegistry: string }>();
   const {
@@ -90,12 +92,13 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> = ({
     const foundModelRegistry = modelRegistries.find((mr) => mr.name === modelRegistry);
     if (foundModelRegistry) {
       if (isRegistryUnavailable(foundModelRegistry)) {
+        const displayName = foundModelRegistry.displayName || foundModelRegistry.name;
         renderStateProps = {
           empty: true,
-          emptyStatePage: (
-            <UnavailableModelRegistry
-              registryDisplayName={foundModelRegistry.displayName || foundModelRegistry.name}
-            />
+          emptyStatePage: unavailableStatePage ? (
+            unavailableStatePage(displayName)
+          ) : (
+            <UnavailableModelRegistry registryDisplayName={displayName} />
           ),
           headerContent: (
             <ModelRegistrySelectorNavigator

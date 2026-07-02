@@ -110,6 +110,38 @@ type EnvConfig struct {
 	// Default is false (secure) for production environments
 	InsecureSkipVerify bool
 
+	// ─── INTER-BFF COMMUNICATION ────────────────────────────────
+	MockBFFClients bool
+
+	// BFFModelCatalogServiceName is the Kubernetes service name for the Model-Catalog BFF.
+	// Default: "odh-dashboard" (shared service in single-pod deployment)
+	BFFModelCatalogServiceName string
+
+	// BFFModelCatalogServicePort is the port for the Model-Catalog BFF service.
+	// Default: 8043
+	BFFModelCatalogServicePort int
+
+	// BFFModelCatalogTLSEnabled enables HTTPS for Model-Catalog BFF communication.
+	// Default: false (same pod, TLS not required)
+	BFFModelCatalogTLSEnabled bool
+
+	// BFFModelCatalogDevURL is a developer override URL for Model-Catalog BFF (local development).
+	// When set, overrides service discovery. Example: "http://localhost:4000/api/v1"
+	BFFModelCatalogDevURL string
+
+	// BFFModelCatalogAuthMethod specifies the auth method used by the target Model-Catalog BFF.
+	// Supported values: "internal" (kubeflow-userid header), "user_token" (token in header)
+	// Default: "user_token" (recommended for ODH/RHOAI)
+	BFFModelCatalogAuthMethod string
+
+	// BFFModelCatalogAuthTokenHeader specifies the header Model-Catalog BFF expects for user_token auth.
+	// Default: "x-forwarded-access-token" (ODH standard)
+	BFFModelCatalogAuthTokenHeader string
+
+	// BFFModelCatalogAuthTokenPrefix specifies the prefix Model-Catalog BFF expects in the token header.
+	// Default: "" (empty for ODH's x-forwarded-access-token)
+	BFFModelCatalogAuthTokenPrefix string
+
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility
 	// Use DeploymentMode instead

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { registeredModelDeploymentsRoute } from '@odh-dashboard/internal/routes/modelRegistry/registeredModels';
 import type { RegisteredModel } from '@mf/modelRegistry/compiled-types/src/app/types';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';

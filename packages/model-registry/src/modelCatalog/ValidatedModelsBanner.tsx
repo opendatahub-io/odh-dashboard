@@ -10,7 +10,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import { useBrowserStorage } from '@odh-dashboard/internal/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import validatedModelsBannerImg from '@odh-dashboard/internal/images/validated-models-banner.svg';
 
 const BANNER_STORAGE_KEY = 'odh.dashboard.modelCatalog.validatedModelsBanner.dismissed';
@@ -76,7 +76,7 @@ const ValidatedModelsBanner: React.FC = () => {
               onClick={handleExploreClick}
               data-testid="explore-validated-models-button"
             >
-              Explore Red Hat AI validated models
+              Explore Red Hat AI - validated models
             </Button>
           </CardFooter>
         </Flex>

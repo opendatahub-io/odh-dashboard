@@ -41,6 +41,11 @@ class ModelCatalog {
     cy.testA11y();
   }
 
+  waitForPerformanceInsightsTab() {
+    this.findPerformanceInsightsTabContent().should('be.visible');
+    cy.testA11y();
+  }
+
   findFilter(title: string) {
     return new ModelCatalogFilter(title).find();
   }
@@ -383,9 +388,18 @@ class ModelCatalog {
     return this;
   }
 
+  // Hardware slider filter helpers (sidebar)
+  findMinVramFilter() {
+    return cy.findByTestId('minimum-vram-filter');
+  }
+
+  findContainerSizeFilter() {
+    return cy.findByTestId('container-size-filter');
+  }
+
   // Cold start latency filter helpers
   findColdStartLatencyFilter() {
-    return cy.findByTestId('cold-start-latency-filter');
+    return cy.findByTestId('cold-start-load-time-filter');
   }
 
   openColdStartLatencyFilter() {
@@ -394,12 +408,12 @@ class ModelCatalog {
   }
 
   applyColdStartLatencyFilter() {
-    cy.findByTestId('cold-start-latency-apply-filter').click();
+    cy.findByTestId('cold-start-load-time-apply-filter').click();
     return this;
   }
 
   resetColdStartLatencyFilter() {
-    cy.findByTestId('cold-start-latency-reset-filter').click();
+    cy.findByTestId('cold-start-load-time-reset-filter').click();
     return this;
   }
 
@@ -507,8 +521,46 @@ class ModelCatalog {
     return cy.findByTestId('register-model-button');
   }
 
+  findRegisterCatalogModelTooltip() {
+    return cy.findByTestId('register-catalog-model-tooltip');
+  }
+
   findModelTypeSelect() {
     return cy.findByTestId('register-model-type-select');
+  }
+
+  findManageColumnsButton() {
+    return cy.findByTestId('manage-columns-button');
+  }
+
+  findManageColumnsModal() {
+    return cy.findByTestId('hardware-config-manage-columns');
+  }
+
+  findManageColumnsUpdateButton() {
+    return cy.findByTestId('hardware-config-manage-columns-update-button');
+  }
+
+  findManageColumnsCancelButton() {
+    return cy.findByTestId('hardware-config-manage-columns-cancel-button');
+  }
+
+  findManageColumnsRestoreDefaults() {
+    return cy.findByTestId('hardware-config-manage-columns-restore-defaults');
+  }
+
+  findManageColumnsSearch() {
+    return cy.findByTestId('hardware-config-manage-columns-search');
+  }
+
+  findManageColumnCheckbox(columnLabel: string) {
+    return this.findManageColumnsModal().find(`[aria-label="${columnLabel}"]`).scrollIntoView();
+  }
+
+  openManageColumnsModal() {
+    this.findManageColumnsButton().click();
+    this.findManageColumnsModal().should('be.visible');
+    return this;
   }
 }
 

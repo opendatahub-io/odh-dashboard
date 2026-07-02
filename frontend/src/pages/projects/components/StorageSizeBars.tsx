@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Popover, Spinner, Content, Tooltip, Flex, ContentVariants } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import {
   getEffectiveCapacityGiB,
   getPvcPercentageUsed,
@@ -10,7 +11,6 @@ import {
 } from '#~/pages/projects/utils';
 import { usePVCFreeAmount } from '#~/api';
 import { bytesAsRoundedGiB } from '#~/utilities/number';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import ProgressBarWithLabels from '#~/components/ProgressBarWithLabels';
 
 type StorageSizeBarProps = {

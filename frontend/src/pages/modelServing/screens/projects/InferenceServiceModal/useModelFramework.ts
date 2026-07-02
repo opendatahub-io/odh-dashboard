@@ -1,6 +1,6 @@
 import * as React from 'react';
+import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import { getServingRuntime } from '#~/api';
-import { SupportedModelFormats } from '#~/k8sTypes';
 
 const useModelFramework = (
   name?: string,

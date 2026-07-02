@@ -12,6 +12,7 @@ import {
 } from '~/__mocks__';
 import { mockCatalogFilterOptionsList } from '~/__mocks__/mockCatalogFilterOptionsList';
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { ModelRegistryMetadataType } from '~/app/types';
 import { catalogModelDetailsTabUrl } from '~/__tests__/cypress/cypress/utils/modelCatalogTestRoutes';
@@ -112,6 +113,7 @@ const visitPerformanceTab = (modelName: string) => {
   cy.visit(
     catalogModelDetailsTabUrl(ModelDetailsTab.PERFORMANCE_INSIGHTS, modelName, 'sample-source'),
   );
+  appChrome.waitForA11y();
 };
 
 describe('Compression Level Comparison Card', () => {

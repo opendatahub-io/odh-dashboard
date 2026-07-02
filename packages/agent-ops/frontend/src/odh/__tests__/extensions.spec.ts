@@ -1,14 +1,15 @@
-import { agentDeploymentsPath, globAgentOpsAll } from '~/app/utilities/routes';
 import extensions from '~/odh/extensions';
+import { agentDeploymentsPath, agentDeployWizardPath } from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
 
 describe('agent-ops extensions', () => {
-  it('should register area, navigation, and route extensions', () => {
-    expect(extensions).toHaveLength(3);
+  it('should register area, tab-route tab, and route extensions', () => {
+    expect(extensions).toHaveLength(4);
     expect(extensions.map((extension) => extension.type)).toEqual([
       'app.area',
-      'app.navigation/href',
+      'app.tab-route/tab',
+      'app.route',
       'app.route',
     ]);
   });
@@ -24,35 +25,46 @@ describe('agent-ops extensions', () => {
     });
   });
 
-  it('should register deployments navigation under ai-hub', () => {
-    const nav = extensions.find((extension) => extension.type === 'app.navigation/href');
-    expect(nav).toMatchObject({
-      type: 'app.navigation/href',
+  it('should register deployments tab for the agents tab page', () => {
+    const tab = extensions.find((extension) => extension.type === 'app.tab-route/tab');
+    expect(tab).toMatchObject({
+      type: 'app.tab-route/tab',
       flags: {
         required: [AGENT_OPS],
       },
       properties: {
-        id: 'agent-ops-deployments',
-        title: 'Agents',
-        href: agentDeploymentsPath,
-        section: 'ai-hub',
-        path: globAgentOpsAll,
-        label: 'Tech Preview',
+        pageId: 'agents-tab-page',
+        id: 'deployments',
+        title: 'Deployments',
+        group: '1_deployments',
       },
     });
+    expect(tab?.type === 'app.tab-route/tab' && tab.properties.component).toBeTruthy();
   });
 
-  it('should register federated route for agent ops wrapper', () => {
-    const route = extensions.find((extension) => extension.type === 'app.route');
-    expect(route).toMatchObject({
-      type: 'app.route',
-      flags: {
-        required: [AGENT_OPS],
-      },
-      properties: {
-        path: globAgentOpsAll,
-      },
+  it('standalone route paths match routes.ts constants', () => {
+    const paths = extensions
+      .filter((extension) => extension.type === 'app.route')
+      .map((extension) => extension.properties.path);
+    expect(paths).toContain(agentDeployWizardPath);
+    expect(paths).toContain(`${agentDeploymentsPath}/:namespace/:agentId/*`);
+  });
+
+  it('should register standalone breakout routes outside the tab layout', () => {
+    const routes = extensions.filter((extension) => extension.type === 'app.route');
+    expect(routes).toHaveLength(2);
+    expect(routes.map((route) => route.properties.path)).toEqual([
+      `${agentDeploymentsPath}/:namespace/:agentId/*`,
+      agentDeployWizardPath,
+    ]);
+    routes.forEach((route) => {
+      expect(route).toMatchObject({
+        type: 'app.route',
+        flags: {
+          required: [AGENT_OPS],
+        },
+      });
+      expect(route.properties.component).toBeTruthy();
     });
-    expect(route?.type === 'app.route' && route.properties.component).toBeTruthy();
   });
 });

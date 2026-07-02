@@ -10,14 +10,15 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import Table from '#~/components/table/Table';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleDetailsModal from '#~/pages/projects/projectPermissions/roleDetails/RoleDetailsModal';
+import { SEARCH_PLACEHOLDER } from './const';
 import type { RoleListRow } from './types';
 import { columns } from './columns';
 import RolesTableRow from './RolesTableRow';
 import PreviewYAMLModal from './PreviewYAMLModal';
+import './RolesTable.scss';
 
 type RolesTableProps = {
   rows: RoleListRow[];
@@ -49,7 +50,8 @@ const RolesTable: React.FC<RolesTableProps> = ({
     <>
       <ToolbarItem>
         <SearchInput
-          placeholder="Search by name or description"
+          className="odh-roles-table__search"
+          placeholder={SEARCH_PLACEHOLDER}
           value={searchFilter}
           onChange={(_e, value) => onSearchChange(value)}
           onClear={() => onSearchChange('')}

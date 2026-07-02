@@ -12,7 +12,7 @@ import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { featureStoreGlobal } from '../../../pages/featureStore/featureStoreGlobal';
 import { featureEntitiesTable } from '../../../pages/featureStore/featureEntities';
 import { featureEntityDetails } from '../../../pages/featureStore/featureEntityDetails';
@@ -332,15 +332,6 @@ describe('Feature Entities', () => {
     featureStoreGlobal.findProjectSelector().should('exist');
     featureStoreGlobal.findProjectSelector().click();
     featureStoreGlobal.findProjectSelectorDropdown().should('contain.text', fsProjectName);
-  });
-
-  it('should display connected workbenches link as disabled', () => {
-    featureStoreGlobal.visitEntities(fsProjectName);
-    featureStoreGlobal
-      .findConnectedWorkbenchesLink()
-      .should('be.visible')
-      .and('have.text', 'View connected workbenches')
-      .and('have.attr', 'aria-disabled', 'true');
   });
 
   it('should display entities table with data', () => {

@@ -15,7 +15,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
-import { PodKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
 import { RayJobKind } from '../../k8sTypes';
 import useRayJobPods from '../../hooks/useRayJobPods';
 import { getPodStatusIcon } from '../podUtils';

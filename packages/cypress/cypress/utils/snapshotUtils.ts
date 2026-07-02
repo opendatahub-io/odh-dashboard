@@ -64,7 +64,7 @@ export const readJSON = (
 }> => cy.task('readJSON', path) as Cypress.Chainable<{ [key: string]: unknown }>;
 
 export const waitSnapshot = (
-  alias: string,
+  alias: `@${string}`,
   options?: Partial<WaitOptions>,
 ): Cypress.Chainable<Interception> => {
   if (Cypress.env('MOCK') || !Cypress.env('RECORD')) {

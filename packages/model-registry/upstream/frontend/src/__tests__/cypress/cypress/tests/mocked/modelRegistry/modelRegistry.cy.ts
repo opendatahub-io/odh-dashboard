@@ -195,13 +195,14 @@ describe('Model Registry core', () => {
     modelRegistry.navigate();
     // Navigate to the unavailable registry (app would redirect to first registry; we go there directly)
     cy.visit(modelRegistryUrl(unavailableRegistryName));
+    modelRegistry.waitForPageLoaded();
 
     modelRegistry.findUnavailableModelRegistryState().should('exist');
     cy.contains('Model registry unavailable').should('be.visible');
     cy.contains('The Unavailable Registry Example registry is currently unavailable').should(
       'be.visible',
     );
-    cy.findByTestId('whos-my-admin-link').should('exist');
+    modelRegistry.findWhosMyAdministratorLink().should('exist');
     // View details button should not be present when registry is unavailable
     modelRegistry.findViewDetailsButton().should('not.exist');
   });
@@ -394,7 +395,7 @@ describe('Model Registry selector persistence', () => {
       },
     });
 
-    cy.findByTestId('model-registry-selector-dropdown').should('exist');
+    modelRegistry.waitForPageLoaded();
 
     modelRegistry.findModelRegistry().should('contain.text', 'modelregistry-sample-2');
     verifyRelativeURL(modelRegistryUrl('modelregistry-sample-2'));
@@ -410,7 +411,7 @@ describe('Model Registry selector persistence', () => {
       },
     });
 
-    cy.findByTestId('model-registry-selector-dropdown').should('exist');
+    modelRegistry.waitForPageLoaded();
 
     modelRegistry.findModelRegistry().should('contain.text', 'Model Registry Sample');
     verifyRelativeURL(modelRegistryUrl('modelregistry-sample'));

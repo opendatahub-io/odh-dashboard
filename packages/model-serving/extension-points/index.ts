@@ -1,18 +1,14 @@
 import type { Extension, CodeRef, ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import type { SortableData } from '@odh-dashboard/internal/components/table/types';
-import type {
-  DisplayNameAnnotations,
-  K8sAPIOptions,
-  ProjectKind,
-} from '@odh-dashboard/internal/k8sTypes';
+import type { SortableData, ToggleState } from '@odh-dashboard/ui-core';
+import type { DisplayNameAnnotations, ProjectKind } from '@odh-dashboard/k8s-core';
+import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 
 export type DeploymentStatus = {

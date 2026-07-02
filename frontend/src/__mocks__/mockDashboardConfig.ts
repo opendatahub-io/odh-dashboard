@@ -1,6 +1,5 @@
-import { DashboardConfigKind, KnownLabels } from '#~/k8sTypes';
+import { type DashboardConfigKind, KnownLabels, NotebookSize } from '@odh-dashboard/k8s-core';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
-import { NotebookSize } from '#~/types';
 
 export type MockDashboardConfigType = {
   disableInfo?: boolean;
@@ -45,6 +44,7 @@ export type MockDashboardConfigType = {
   modelAsService?: boolean;
   maasAuthPolicies?: boolean;
   externalVectorStores?: boolean;
+  agentConfigManagement?: boolean;
   aiAssetCustomEndpoints?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
@@ -61,8 +61,11 @@ export type MockDashboardConfigType = {
   promptManagement?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
+  maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
+  gpuaas?: boolean;
+  globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -118,14 +121,18 @@ export const mockDashboardConfig = ({
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
+  agentConfigManagement = false,
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
   promptManagement = false,
   nimWizard = false,
-  mySubscriptions = false,
+  mySubscriptions = true,
+  maasSettingsIaRedesign = false,
   agentOps = false,
   roleManagement = false,
+  gpuaas = false,
   hardwareProfileOrder = ['test-hardware-profile'],
+  globalMLflowNamespaces = [],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
       externalProviders: false,
@@ -303,13 +310,16 @@ export const mockDashboardConfig = ({
       disableLLMd,
       deploymentWizardYAMLViewer,
       externalVectorStores,
+      agentConfigManagement,
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,
       nimWizard,
       mySubscriptions,
+      maasSettingsIaRedesign,
       agentOps,
       roleManagement,
+      gpuaas,
     },
     notebookController: {
       enabled: !disableNotebookController,
@@ -324,6 +334,7 @@ export const mockDashboardConfig = ({
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
     hardwareProfileOrder,
+    globalMLflowNamespaces,
     genAiStudioConfig,
   },
 });

@@ -37,4 +37,10 @@ const (
 	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"
 	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
+
+	// Overview routes
+	ModelsOverviewPath = ApiPathPrefix + "/overview/models"
+
+	// YAML export
+	YamlPath = ApiPathPrefix + "/yaml"
 )

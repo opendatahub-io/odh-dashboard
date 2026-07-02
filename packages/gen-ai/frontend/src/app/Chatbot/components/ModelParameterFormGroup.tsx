@@ -20,6 +20,7 @@ interface ModelParameterFormGroupProps {
   max?: number;
   step?: number;
   showPopoverCloseButton?: boolean;
+  isDisabled?: boolean;
 }
 
 const ModelParameterFormGroup: React.FunctionComponent<ModelParameterFormGroupProps> = ({
@@ -32,6 +33,7 @@ const ModelParameterFormGroup: React.FunctionComponent<ModelParameterFormGroupPr
   max = 1,
   step = 0.1,
   showPopoverCloseButton = true,
+  isDisabled = false,
 }) => (
   <FormGroup
     fieldId={fieldId}
@@ -66,6 +68,7 @@ const ModelParameterFormGroup: React.FunctionComponent<ModelParameterFormGroupPr
           max={max}
           step={step}
           showBoundaries={false}
+          isDisabled={isDisabled}
         />
       </GridItem>
       <GridItem span={4}>
@@ -83,6 +86,7 @@ const ModelParameterFormGroup: React.FunctionComponent<ModelParameterFormGroupPr
           max={max}
           step={step}
           data-testid={`${fieldId}-input`}
+          isDisabled={isDisabled}
         />
       </GridItem>
     </Grid>

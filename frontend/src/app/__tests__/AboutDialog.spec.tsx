@@ -2,6 +2,12 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
+import type {
+  DashboardConfigKind,
+  DataScienceClusterInitializationKindStatus,
+  DataScienceClusterKindStatus,
+} from '@odh-dashboard/k8s-core';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ClusterState, UserState } from '#~/redux/selectors/types';
 import { useUser, useClusterInfo } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
@@ -9,16 +15,10 @@ import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { mockDashboardConfig } from '#~/__mocks__';
 import { BuildStatus, SubscriptionStatusData } from '#~/types';
-import {
-  DashboardConfigKind,
-  DataScienceClusterInitializationKindStatus,
-  DataScienceClusterKindStatus,
-  StorageClassKind,
-} from '#~/k8sTypes';
+import { StorageClassKind } from '#~/k8sTypes';
 import { FetchState } from '#~/utilities/useFetchState';
 import AboutDialog from '#~/app/AboutDialog';
 import { useWatchOperatorSubscriptionStatus } from '#~/utilities/useWatchOperatorSubscriptionStatus';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 jest.mock('#~/app/AppContext', () => ({
   __esModule: true,

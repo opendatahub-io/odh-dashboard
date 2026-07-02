@@ -4,8 +4,15 @@
 
 import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
-import { EnvironmentFromVariable } from '#~/pages/projects/types';
-import { FeatureFlag } from '#~/concepts/areas/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
+import type {
+  Toleration,
+  NodeSelector,
+  PodAffinity,
+  PodContainer,
+  Volume,
+} from '@odh-dashboard/k8s-core';
+import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
@@ -59,40 +66,9 @@ export type NotebookControllerUserState = {
   lastActivity?: number;
 };
 
-export enum ContainerResourceAttributes {
-  CPU = 'cpu',
-  MEMORY = 'memory',
-}
-
-export type ContainerResources = {
-  requests?: {
-    [key: string]: number | string | undefined;
-    cpu?: string | number;
-    memory?: string;
-  };
-  limits?: {
-    [key: string]: number | string | undefined;
-    cpu?: string | number;
-    memory?: string;
-  };
-};
-
-export type EnvironmentVariable = EitherNotBoth<
-  { value: string | number },
-  { valueFrom: Record<string, unknown> }
-> & {
-  name: string;
-};
-
 export type EnvVarReducedTypeKeyValues = {
   configMap: Record<string, string>;
   secrets: Record<string, string>;
-};
-
-export type NotebookSize = {
-  name: string;
-  resources: ContainerResources;
-  notUserDefined?: boolean;
 };
 
 export type TolerationSettings = {
@@ -293,98 +269,7 @@ export type Section = {
   actions: ApplicationAction[];
 };
 
-export type NotebookPort = {
-  name: string;
-  containerPort: number;
-  protocol: string;
-};
-
-export type HardwareProfileAnnotations = Partial<{
-  'opendatahub.io/display-name': string;
-  'opendatahub.io/description': string;
-  'opendatahub.io/dashboard-feature-visibility': string; // JSON stringified HardwareProfileFeatureVisibility[]
-  'opendatahub.io/disabled': string;
-}>;
-
-export type HardwareProfileBindingAnnotations = {
-  'opendatahub.io/hardware-profile-name': string;
-  'opendatahub.io/hardware-profile-namespace': string | null;
-  'opendatahub.io/hardware-profile-resource-version': string;
-};
-
-export type HardwareProfileScheduling = {
-  type: SchedulingType;
-  kueue?: {
-    localQueueName: string;
-    priorityClass?: string;
-  };
-  node?: {
-    nodeSelector?: NodeSelector;
-    tolerations?: Toleration[];
-  };
-};
-
-export enum SchedulingType {
-  QUEUE = 'Queue',
-  NODE = 'Node',
-}
-
-export enum TolerationOperator {
-  EXISTS = 'Exists',
-  EQUAL = 'Equal',
-}
-
-export enum TolerationEffect {
-  NO_SCHEDULE = 'NoSchedule',
-  PREFER_NO_SCHEDULE = 'PreferNoSchedule',
-  NO_EXECUTE = 'NoExecute',
-}
-
-export type Toleration = {
-  key: string;
-  operator?: TolerationOperator;
-  value?: string;
-  effect?: TolerationEffect;
-  tolerationSeconds?: number;
-};
-
-export enum IdentifierResourceType {
-  CPU = 'CPU',
-  MEMORY = 'Memory',
-  ACCELERATOR = 'Accelerator',
-}
-
-export type Identifier = {
-  displayName: string;
-  identifier: string;
-  minCount: number | string;
-  maxCount?: number | string;
-  defaultCount: number | string;
-  resourceType?: IdentifierResourceType;
-};
-
-export type NodeSelector = Record<string, string>;
-
-export type PodContainer = {
-  name: string;
-  image: string;
-  imagePullPolicy?: string;
-  workingDir?: string;
-  env: EnvironmentVariable[];
-  envFrom?: EnvironmentFromVariable[];
-  ports?: NotebookPort[];
-  resources?: ContainerResources;
-  livenessProbe?: Record<string, unknown>;
-  readinessProbe?: Record<string, unknown>;
-  volumeMounts?: VolumeMount[];
-  terminationMessagePath?: string;
-  terminationMessagePolicy?: string;
-  securityContext?: unknown;
-};
-
-export type PodAffinity = {
-  nodeAffinity?: { [key: string]: unknown };
-};
+// NotebookPort, HardwareProfile*, Scheduling*, Toleration*, Identifier*, NodeSelector,
 
 export type Notebook = K8sResourceCommon & {
   metadata: {
@@ -620,26 +505,6 @@ export enum DisplayNameAnnotation {
   ODH_DISP_NAME = 'opendatahub.io/display-name',
   ODH_DESC = 'opendatahub.io/description',
 }
-
-export type Volume = {
-  name: string;
-  emptyDir?: Record<string, unknown>;
-  persistentVolumeClaim?: {
-    claimName: string;
-  };
-  secret?: {
-    secretName: string;
-    optional?: boolean;
-    defaultMode?: number;
-  };
-  configMap?: {
-    name: string;
-    optional?: boolean;
-    defaultMode?: number;
-  };
-};
-
-export type VolumeMount = { mountPath: string; name: string; subPath?: string };
 
 export type ResourceGetter<T extends K8sResourceCommon> = (
   projectName: string,

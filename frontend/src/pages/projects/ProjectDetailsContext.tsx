@@ -1,16 +1,19 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
-import {
-  GroupKind,
+import type {
   HardwareProfileKind,
-  InferenceServiceKind,
-  LocalQueueKind,
   PersistentVolumeClaimKind,
   ProjectKind,
-  RoleBindingKind,
   SecretKind,
-  ServingRuntimeKind,
   TemplateKind,
+} from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import {
+  GroupKind,
+  InferenceServiceKind,
+  LocalQueueKind,
+  RoleBindingKind,
+  ServingRuntimeKind,
 } from '#~/k8sTypes';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
@@ -32,7 +35,6 @@ import useTemplateOrder from '#~/pages/modelServing/customServingRuntimes/useTem
 import useTemplateDisablement from '#~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { getTokenNames } from '#~/pages/modelServing/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { useGroups, useTemplates } from '#~/api';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';

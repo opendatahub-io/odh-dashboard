@@ -32,6 +32,7 @@ type PoliciesRepositoryInterface interface {
 
 // MaaSModelRefsRepositoryInterface defines the contract for MaaSModelRef operations.
 type MaaSModelRefsRepositoryInterface interface {
+	ListMaaSModelRefs(ctx context.Context) ([]models.MaaSModelRefSummary, error)
 	CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error)
 	UpdateMaaSModelRef(ctx context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error)
 	DeleteMaaSModelRef(ctx context.Context, namespace, name string, dryRun bool) error
@@ -47,6 +48,7 @@ type Repositories struct {
 	Subscriptions SubscriptionsRepositoryInterface
 	Policies      PoliciesRepositoryInterface
 	MaaSModelRefs MaaSModelRefsRepositoryInterface
+	Yaml          YamlRepositoryInterface
 }
 
 func NewRepositories(
@@ -56,6 +58,7 @@ func NewRepositories(
 	subscriptions SubscriptionsRepositoryInterface,
 	policies PoliciesRepositoryInterface,
 	maasModelRefs MaaSModelRefsRepositoryInterface,
+	yamlRepo YamlRepositoryInterface,
 ) (*Repositories, error) {
 	apiKeysRepo, err := NewAPIKeysRepository(logger, config.MaasApiUrl)
 	if err != nil {
@@ -76,5 +79,6 @@ func NewRepositories(
 		Subscriptions: subscriptions,
 		Policies:      policies,
 		MaaSModelRefs: maasModelRefs,
+		Yaml:          yamlRepo,
 	}, nil
 }

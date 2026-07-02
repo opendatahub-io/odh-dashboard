@@ -58,7 +58,10 @@ func ListSubscriptionsPassthroughHandler(app *App, w http.ResponseWriter, r *htt
 func enrichSubscriptionsWithKeyCount(app *App, r *http.Request, subscriptions []models.SubscriptionListItem) {
 	for i := range subscriptions {
 		resp, err := app.repositories.APIKeys.SearchAPIKeys(r.Context(), models.APIKeySearchRequest{
-			Filters:    &models.APIKeySearchFilters{Subscription: subscriptions[i].SubscriptionIDHeader},
+			Filters: &models.APIKeySearchFilters{
+				Subscription: subscriptions[i].SubscriptionIDHeader,
+				Status:       []string{models.APIKeyStatusActive},
+			},
 			Pagination: &models.APIKeySearchPagination{Limit: subscriptionKeyCountCap},
 		})
 		if err != nil {
@@ -200,10 +203,7 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 		}
 		details[sub.SubscriptionIDHeader] = models.SubscriptionDetail{DisplayName: displayName, Models: modelNames}
 	}
-
-	if len(details) > 0 {
-		response.SubscriptionDetails = details
-	}
+	response.SubscriptionDetails = details
 }
 
 // GetAPIKeyHandler handles GET /api/v1/api-keys/:id

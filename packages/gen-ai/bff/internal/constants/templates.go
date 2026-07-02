@@ -3,20 +3,16 @@ package constants
 const PythonCodeTemplate = `# OGX Quickstart Script
 #
 # README:
-# This example shows how to configure an assistant using the OGX client.
+# This example shows how to configure an assistant using the OpenAI Python SDK.
 # Before using this code, make sure of the following:
 #
 # Required Packages:
 #    - Install the required dependencies using pip:
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
-#      pip install ogx-client requests{{if .ASRModel}} openai{{end}}
-{{- else if .ASRModel }}
-#      pip install ogx-client openai
+#      pip install openai requests
 {{- else }}
-#      pip install ogx-client
+#      pip install openai
 {{- end }}
-#    - NOTE: Verify the correct ogx-client version for your OGX server instance,
-#      then install that version as needed.
 #
 # OGX Server:
 #    - Your OGX instance must be running and accessible
@@ -69,6 +65,11 @@ const PythonCodeTemplate = `# OGX Quickstart Script
 
 # Configuration adjust as needed:
 OGX_URL = ""
+# Client configuration — adjust these if you experience timeouts with RAG or large file uploads.
+# timeout: Maximum seconds to wait for a response (default: 600s / 10 minutes).
+# max_retries: Number of automatic retries on transient errors (default: 2).
+MAX_RETRIES = 2
+REQUEST_TIMEOUT = 600.0
 {{- if .ASRModel }}
 ASR_MODEL_URL = ""
 ASR_MODEL_NAME = "{{.ASRModel}}"
@@ -122,13 +123,10 @@ import os
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 import requests
 {{- end }}
-{{- if .ASRModel }}
+
 from openai import OpenAI
-{{- end }}
 
-from ogx_client import OgxClient
-
-client = OgxClient(base_url=OGX_URL)
+client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused", max_retries=MAX_RETRIES, timeout=REQUEST_TIMEOUT)
 {{- if .ASRModel }}
 
 # --- Audio Transcription ---

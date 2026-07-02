@@ -9,6 +9,7 @@ type ExternalModelRequest struct {
 	UseCases           string        `json:"use_cases,omitempty"`
 	ModelType          ModelTypeEnum `json:"model_type"`
 	EmbeddingDimension *int          `json:"embedding_dimension,omitempty"`
+	Capabilities       []string      `json:"capabilities,omitempty"`
 }
 
 // VerifyExternalModelRequest represents a request to verify an external model
@@ -102,6 +103,7 @@ type RegisteredModelMetadata struct {
 	DisplayName        string                      `yaml:"display_name"`
 	EmbeddingDimension *int                        `yaml:"embedding_dimension,omitempty"`
 	CustomGenAI        *RegisteredModelCustomGenAI `yaml:"custom_gen_ai,omitempty"`
+	Capabilities       []string                    `yaml:"capabilities,omitempty"`
 }
 
 // RegisteredModelCustomGenAI represents custom gen AI metadata

@@ -1,9 +1,10 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import type { ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';
 import { mockStorageClasses } from '#~/__mocks__';
-import { InferenceServiceKind, ServingRuntimeKind, ProjectKind, SecretKind } from '#~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
 import * as utils from '#~/pages/modelServing/screens/projects/utils';
 import * as useNIMPVCModule from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC';
@@ -27,12 +28,8 @@ jest.mock('#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesE
   default: jest.fn(() => true),
 }));
 
-jest.mock('#~/concepts/areas', () => ({
-  SupportedArea: {
-    K_SERVE_AUTH: 'k-serve-auth',
-    STORAGE_CLASSES: 'storage-classes',
-    SERVING_RUNTIME_PARAMS: 'serving-runtime-params',
-  },
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(() => ({ status: true })),
 }));
 
@@ -513,7 +510,7 @@ describe('ManageNIMServingModal', () => {
 
   describe('Authentication', () => {
     it('does not show NoAuthAlert when auth is available', () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: true });
 
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
@@ -525,7 +522,7 @@ describe('ManageNIMServingModal', () => {
   describe('Environment Variables', () => {
     it('allows adding environment variables when serving runtime params are enabled', async () => {
       // Mock serving runtime params as enabled
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockImplementation((area: string) => {
         if (area === 'serving-runtime-params') {
           return { status: true };
@@ -564,7 +561,7 @@ describe('ManageNIMServingModal', () => {
 
     it('validates environment variable names correctly', async () => {
       // Mock serving runtime params as enabled
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockImplementation((area: string) => {
         if (area === 'serving-runtime-params') {
           return { status: true };
@@ -602,7 +599,7 @@ describe('ManageNIMServingModal', () => {
 
     it('does not show environment variables section when serving runtime params are disabled', () => {
       // Mock serving runtime params as disabled
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockImplementation((area: string) => {
         if (area === 'serving-runtime-params') {
           return { status: false };
@@ -775,7 +772,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
   describe('Storage Class Configuration Display', () => {
     it('shows disabled select when no ODH storage class configs exist', async () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: true });
       // Mock no ODH configs but OpenShift default available
       mockUseDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
@@ -899,7 +896,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
   describe('Storage Class Loading States', () => {
     it('does not render storage class select when storage classes are not available', () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: false }); // Storage classes not available
 
       mockUseGetStorageClassConfig.mockReturnValue({
@@ -914,7 +911,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     });
 
     it('renders storage class select when storage classes are available', () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
 
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
@@ -931,7 +928,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     });
 
     it('renders storage class skeleton when storage classes are available but not loaded', () => {
-      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      const { useIsAreaAvailable } = require('@odh-dashboard/plugin-core/areas');
       useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
 
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);

@@ -647,6 +647,16 @@ describe('isRawModelV35', () => {
 });
 /* eslint-enable camelcase */
 
+// jsdom's Blob lacks .text() — polyfill so fetchS3Json can decode streamed Blobs
+Blob.prototype.text = function blobText() {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(this);
+  });
+};
+
 /* eslint-disable camelcase */
 describe('useModelEvaluationArtifactsQuery', () => {
   const mockFeatureImportance = {
@@ -664,9 +674,23 @@ describe('useModelEvaluationArtifactsQuery', () => {
    */
   const mockBlobJsonResponse = (data: unknown) => {
     const json = JSON.stringify(data);
+    const encoded = new TextEncoder().encode(json);
+    let done = false;
     return {
       ok: true,
-      blob: async () => ({ text: async () => json }),
+      headers: new Headers({ 'Content-Length': String(encoded.byteLength) }),
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (done) {
+              return { done: true, value: undefined };
+            }
+            done = true;
+            return { done: false, value: encoded };
+          },
+        }),
+      },
+      blob: async () => ({ size: encoded.byteLength, text: async () => json }),
     };
   };
 

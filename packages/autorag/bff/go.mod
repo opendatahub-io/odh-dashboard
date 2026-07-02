@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/autorag-library/bff
 
-go 1.24.3
+go 1.26
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.2

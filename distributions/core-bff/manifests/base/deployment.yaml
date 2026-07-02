@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rhaii-dashboard
+  labels:
+    app.kubernetes.io/name: rhaii-dashboard
+    app.kubernetes.io/part-of: odh-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      deployment: rhaii-dashboard
+  template:
+    metadata:
+      labels:
+        deployment: rhaii-dashboard
+        app.kubernetes.io/name: rhaii-dashboard
+        app.kubernetes.io/part-of: odh-dashboard
+    spec:
+      serviceAccountName: rhaii-dashboard
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: rhaii-dashboard
+          image: $(rhaii-dashboard-image)
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+              name: core-bff-api
+              protocol: TCP
+          env:
+            - name: AUTH_METHOD
+              value: user_token
+            - name: DEV_MODE
+              value: "false"
+            - name: DEPLOYMENT_MODE
+              value: standalone
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 4000
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 4000
+            initialDelaySeconds: 3
+            timeoutSeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

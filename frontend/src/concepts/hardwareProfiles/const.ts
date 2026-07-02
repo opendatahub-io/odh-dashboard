@@ -1,5 +1,5 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes.ts';
+import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import { HardwareProfileBindingConfig, CrPathConfig } from './types';
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
@@ -85,3 +85,8 @@ export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
   tolerationsPath: 'spec.predictor.tolerations',
   nodeSelectorPath: 'spec.predictor.nodeSelector',
 };
+
+export enum QueueSource {
+  HARDWARE_PROFILE = 'hardware-profile',
+  DIRECT = 'direct',
+}

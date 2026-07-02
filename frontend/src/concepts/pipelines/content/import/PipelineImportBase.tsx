@@ -11,9 +11,10 @@ import {
   Spinner,
   Alert,
 } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type { K8sNameDescriptionFieldUpdateFunction } from '@odh-dashboard/k8s-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { DuplicateNameHelperText } from '#~/concepts/pipelines/content/DuplicateNameHelperText';
 import {
   PIPELINE_IMPORT_ARGO_ERROR_TEXT,
@@ -32,7 +33,6 @@ import K8sNameDescriptionField, {
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField.tsx';
 import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import usePipelineNamespaceCR from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
-import { K8sNameDescriptionFieldUpdateFunction } from '#~/concepts/k8s/K8sNameDescriptionField/types.ts';
 import { PipelineUploadOption, extractKindFromPipelineYAML, isYAMLPipelineV1 } from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineImportData } from './useImportModalData';

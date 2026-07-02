@@ -1,10 +1,12 @@
 import { AlertProps } from '@patternfly/react-core';
 import {
-  AcceleratorProfileKind,
   HardwareProfileFeatureVisibility,
-  HardwareProfileKind,
-} from '#~/k8sTypes';
-import { ContainerResources, Toleration, NodeSelector } from '#~/types';
+  type HardwareProfileKind,
+  ContainerResources,
+  Toleration,
+  NodeSelector,
+} from '@odh-dashboard/k8s-core';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
 import useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
 import { HardwareProfileBindingState } from '#~/concepts/hardwareProfiles/const';
 import { useHardwareProfileConfig } from './useHardwareProfileConfig';

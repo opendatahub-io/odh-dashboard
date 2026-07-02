@@ -1,4 +1,14 @@
-import { fetchS3File } from '~/app/hooks/queries';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react';
+import React from 'react';
+import { fetchS3File, fetchS3Json, useSecretCredentialsQuery } from '~/app/hooks/queries';
+import { getSecretByName } from '~/app/api/k8s';
+
+jest.mock('~/app/api/k8s', () => ({
+  getSecretByName: jest.fn(),
+}));
+
+const getSecretByNameMock = jest.mocked(getSecretByName);
 
 global.fetch = jest.fn();
 
@@ -118,5 +128,145 @@ describe('fetchS3File', () => {
     await expect(fetchS3File('ns', 'key')).rejects.toThrow(
       'Failed to fetch file: Internal Server Error',
     );
+  });
+});
+
+describe('fetchS3Json', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const mockBlobResponse = (content: string, size?: number) => {
+    const byteLength = size ?? new TextEncoder().encode(content).byteLength;
+    return {
+      ok: true,
+      headers: new Headers({ 'Content-Length': String(byteLength) }),
+      blob: () =>
+        Promise.resolve({
+          size: byteLength,
+          text: () => Promise.resolve(content),
+        }),
+    } as unknown as Response;
+  };
+
+  it('should parse JSON from the fetched blob', async () => {
+    const data = { componentId: 'test', stages: [] };
+    jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse(JSON.stringify(data)));
+
+    const result = await fetchS3Json('ns', 'path/to/file.json');
+    expect(result).toEqual(data);
+  });
+
+  it('should pass signal through to fetch', async () => {
+    jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse('{}'));
+
+    await fetchS3Json('ns', 'key.json');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('should throw on invalid JSON', async () => {
+    jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse('not valid json'));
+
+    await expect(fetchS3Json('ns', 'bad.json')).rejects.toThrow();
+  });
+
+  it('should throw when blob exceeds maxBytes', async () => {
+    jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse('{}', 100));
+
+    await expect(fetchS3Json('ns', 'big.json', { maxBytes: 50 })).rejects.toThrow(
+      'S3 file too large: 100 bytes exceeds limit of 50 bytes',
+    );
+  });
+
+  it('should propagate fetch errors from fetchS3File', async () => {
+    jest.mocked(global.fetch).mockResolvedValue({
+      ok: false,
+      statusText: 'Not Found',
+      json: () => Promise.reject(new Error('no json')),
+    } as unknown as Response);
+
+    await expect(fetchS3Json('ns', 'missing.json')).rejects.toThrow(
+      'Failed to fetch file: Not Found',
+    );
+  });
+});
+
+describe('useSecretCredentialsQuery', () => {
+  const createWrapper = () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+    return Wrapper;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should be disabled when namespace is undefined', () => {
+    const { result } = renderHook(() => useSecretCredentialsQuery(undefined, 'secret'), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.isFetching).toBe(false);
+    expect(result.current.data).toBeUndefined();
+    expect(getSecretByNameMock).not.toHaveBeenCalled();
+  });
+
+  it('should be disabled when secretName is undefined', () => {
+    const { result } = renderHook(() => useSecretCredentialsQuery('ns', undefined), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.isFetching).toBe(false);
+    expect(result.current.data).toBeUndefined();
+    expect(getSecretByNameMock).not.toHaveBeenCalled();
+  });
+
+  it('should be disabled when both params are undefined', () => {
+    const { result } = renderHook(() => useSecretCredentialsQuery(undefined, undefined), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.isFetching).toBe(false);
+    expect(result.current.data).toBeUndefined();
+    expect(getSecretByNameMock).not.toHaveBeenCalled();
+  });
+
+  it('should fetch when both namespace and secretName are provided', async () => {
+    const mockData = { OGX_CLIENT_API_KEY: 'key', OGX_CLIENT_BASE_URL: 'url' };
+    getSecretByNameMock.mockReturnValue((() => () => Promise.resolve(mockData)) as never);
+
+    const { result } = renderHook(() => useSecretCredentialsQuery('test-ns', 'my-secret'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toEqual(mockData);
+  });
+
+  it('should return error when fetch fails', async () => {
+    getSecretByNameMock.mockReturnValue(
+      (() => () => Promise.reject(new Error('Not found'))) as never,
+    );
+
+    const { result } = renderHook(() => useSecretCredentialsQuery('test-ns', 'bad-secret'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(result.current.error?.message).toBe('Not found');
   });
 });

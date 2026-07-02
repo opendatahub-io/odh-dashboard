@@ -1,13 +1,7 @@
-/**
- * Format: '{value: number}{unit: string}'
- * eg. 1Unit; 100Mi; 10Gi; 5m
- */
+export { formatMemory } from '@odh-dashboard/ui-core/utilities';
+
 export type ValueUnitString = string;
 
-/**
- * Format: '{value: number}'
- * eg. 1; "1"
- */
 export type ValueUnitCPU = string | number;
 
 export type UnitOption = {
@@ -188,20 +182,4 @@ export const isMemoryLimitLarger = (
   }
 
   return isLarger(limitMemory, requestMemory, MEMORY_UNITS_FOR_PARSING, isEqualOkay);
-};
-
-export const formatMemory = <T extends ValueUnitString | undefined>(
-  value: T,
-): T | ValueUnitString => {
-  if (!value) {
-    return value;
-  }
-
-  const match = value.match(/^(\d*\.?\d*)(.*)$/);
-  if (!(match && match[1] && match[2])) {
-    return value;
-  }
-  return `${match[1]}${
-    MEMORY_UNITS_FOR_PARSING.find((o) => o.unit === match[2])?.name || match[2]
-  }`;
 };

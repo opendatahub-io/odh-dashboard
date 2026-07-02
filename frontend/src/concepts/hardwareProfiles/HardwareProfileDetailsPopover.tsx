@@ -11,8 +11,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
-import { Toleration, NodeSelector } from '#~/types';
-import { HardwareProfileKind } from '#~/k8sTypes';
+import type { Toleration, NodeSelector, HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import {
   getClusterQueueNameFromLocalQueues,
   getHardwareProfileDescription,
@@ -24,10 +23,13 @@ import {
   formatNodeSelector,
   formatIdentifierDetails,
   sortIdentifiers,
+  getLocalQueueLabel,
 } from './utils';
+import { QueueSource } from './const';
 
 type HardwareProfileDetailsPopoverProps = {
   localQueueName?: string;
+  queueSource?: QueueSource;
   priorityClass?: string;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
@@ -37,6 +39,7 @@ type HardwareProfileDetailsPopoverProps = {
 
 const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps> = ({
   localQueueName,
+  queueSource,
   priorityClass,
   tolerations,
   nodeSelector,
@@ -103,14 +106,16 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
                   </StackItem>
                 ))}
             </>
-          ) : (
+          ) : !localQueueName ? (
             <StackItem>
               No matching hardware profile found, using existing settings. Default, min, and max
               values are not available.
             </StackItem>
-          )}
+          ) : null}
           {localQueueName && (
-            <StackItem>{renderSection('Local queue', [localQueueName])}</StackItem>
+            <StackItem>
+              {renderSection(getLocalQueueLabel(queueSource), [localQueueName])}
+            </StackItem>
           )}
           {clusterQueueName && (
             <StackItem>{renderSection('Cluster queue', [clusterQueueName])}</StackItem>

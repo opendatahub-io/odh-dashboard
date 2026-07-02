@@ -1,0 +1,7 @@
+name: "preflight-check"
+experiment_id: "1"
+workspace: "odh-dashboard-tracing"
+judges:
+  - judges/posted_review.py
+  - judges/completeness_score.py
+  - judges/tool_call_errors.py

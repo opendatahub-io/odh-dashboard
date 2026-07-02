@@ -1,6 +1,10 @@
-import { KnownLabels, PodKind } from '#~/k8sTypes';
+import {
+  KnownLabels,
+  TolerationEffect,
+  TolerationOperator,
+  type PodKind,
+} from '@odh-dashboard/k8s-core';
 import { genUID } from '#~/__mocks__/mockUtils';
-import { TolerationEffect, TolerationOperator } from '#~/types';
 
 type MockResourceConfigType = {
   user?: string;

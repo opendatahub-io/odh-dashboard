@@ -1,5 +1,5 @@
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
-import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { assembleNIMSecret, assembleNIMAccount, assembleUpdatedSecret } from '../k8s';
 import {
   isAccountReady,

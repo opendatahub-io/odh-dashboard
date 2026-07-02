@@ -1,10 +1,9 @@
 import * as React from 'react';
+import type { PersistentVolumeClaimKind, ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import {
   ConfigMapKind,
   InferenceServiceKind,
-  PersistentVolumeClaimKind,
-  ProjectKind,
-  SecretKind,
   ServingContainer,
   ServingRuntimeKind,
 } from '#~/k8sTypes';
@@ -20,7 +19,6 @@ import {
 import { ServingRuntimePlatform } from '#~/types';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { getServingRuntimeTokens, setUpTokenAuth } from '#~/pages/modelServing/utils';
 import {

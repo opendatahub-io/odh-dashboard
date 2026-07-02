@@ -3,6 +3,8 @@ import { NotebookApis } from '~/shared/api/notebookApi';
 import {
   mockAllWorkspaces,
   mockedHealthCheckResponse,
+  mockListValuesImages,
+  mockListValuesPodConfigs,
   mockNamespaces,
   mockPVCCreate,
   mockPVCsList,
@@ -16,7 +18,7 @@ import {
   mockWorkspaceUpdate,
 } from '~/shared/mock/mockNotebookServiceData';
 import { buildAxiosError, isInvalidWorkspace, isInvalidYaml } from '~/shared/mock/mockUtils';
-import { buildMockWorkspaceUpdateFromWorkspace } from './mockBuilder';
+import { buildMockWorkspaceKindUpdate, buildMockWorkspaceUpdateFromWorkspace } from './mockBuilder';
 
 const delay = (ms: number) =>
   new Promise((resolve) => {
@@ -77,9 +79,56 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
   },
   workspaceKinds: {
     listWorkspaceKinds: async () => ({ data: mockWorkspaceKinds }),
-    getWorkspaceKind: async (kind) => ({
-      data: mockWorkspaceKinds.find((w) => w.name === kind)!,
+    getWorkspaceKind: async (kind) => {
+      const found = mockWorkspaceKinds.find((w) => w.name === kind)!;
+      return { data: buildMockWorkspaceKindUpdate(found) };
+    },
+    updateWorkspaceKind: async () => ({
+      data: buildMockWorkspaceKindUpdate(mockWorkspaceKind1),
     }),
+    deleteWorkspaceKind: async () => {
+      await delay(1500);
+    },
+    getWorkspaceKindIcon: async () => {
+      const response = await fetch(
+        'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
+      );
+      return (await response.blob()) as unknown as File;
+    },
+    getWorkspaceKindLogo: async () => {
+      const response = await fetch(
+        'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
+      );
+      return (await response.blob()) as unknown as File;
+    },
+    podTemplateOptionsListValues: async (_name, body) => {
+      const imageId = body.data.context.imageConfig?.id;
+      let podConfigs = mockListValuesPodConfigs;
+      if (imageId) {
+        const selectedImage = mockListValuesImages.find((img) => img.id === imageId);
+        const isGpuImage = selectedImage?.labels?.some(
+          (l) => l.key === 'gpuRequired' && l.value === 'true',
+        );
+        if (!isGpuImage) {
+          podConfigs = podConfigs.filter((pc) => !pc.labels?.some((l) => l.key === 'gpu'));
+        }
+      }
+
+      return {
+        data: {
+          imageConfig: {
+            default: mockListValuesImages[0]?.id ?? '',
+            values: imageId
+              ? mockListValuesImages.filter((img) => img.id === imageId)
+              : mockListValuesImages,
+          },
+          podConfig: {
+            default: mockListValuesPodConfigs[0]?.id ?? '',
+            values: podConfigs,
+          },
+        },
+      };
+    },
     createWorkspaceKind: async (body) => {
       if (isInvalidYaml(body)) {
         const apiErrorEnvelope: ApiErrorEnvelope = {
@@ -111,7 +160,14 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
 
         throw buildAxiosError(apiErrorEnvelope);
       }
-      return { data: mockWorkspaceKind1 };
+      const update = buildMockWorkspaceKindUpdate(mockWorkspaceKind1);
+      return {
+        data: {
+          name: mockWorkspaceKind1.name,
+          podTemplate: update.podTemplate,
+          spawner: update.spawner,
+        },
+      };
     },
   },
   secrets: {

@@ -1,3 +1,4 @@
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import {
   isDefaultRoleRef,
@@ -9,7 +10,6 @@ import {
   getAssignmentStatus,
 } from '#~/pages/projects/projectPermissions/utils';
 import { mockRoleK8sResource, mockClusterRoleK8sResource } from '#~/__mocks__';
-import { KnownLabels } from '#~/k8sTypes';
 import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/permissions/const';
 import { AssignmentStatus } from '#~/pages/projects/projectPermissions/types';
 
