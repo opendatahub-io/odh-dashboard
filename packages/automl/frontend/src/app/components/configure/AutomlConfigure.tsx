@@ -972,19 +972,23 @@ function AutomlConfigure({
                                     name="preset"
                                     label={PRESET_LABELS[preset]}
                                     description={
-                                      <div>
+                                      <Stack>
                                         {preset === PRESET_FASTER ? (
                                           <>
-                                            <div>4 vCPU / 16 GiB</div>
-                                            <div>Use fewer resources to prioritize speed</div>
+                                            <StackItem>4 vCPU / 16 GiB</StackItem>
+                                            <StackItem>
+                                              Use fewer resources to prioritize speed
+                                            </StackItem>
                                           </>
                                         ) : (
                                           <>
-                                            <div>8 vCPU / 32 GiB</div>
-                                            <div>Use more resources to prioritize accuracy</div>
+                                            <StackItem>8 vCPU / 32 GiB</StackItem>
+                                            <StackItem>
+                                              Use more resources to prioritize accuracy
+                                            </StackItem>
                                           </>
                                         )}
-                                      </div>
+                                      </Stack>
                                     }
                                     isChecked={field.value === preset}
                                     isDisabled={formIsSubmitting}
