@@ -109,6 +109,7 @@ export const useSourcePreview = ({
 
     const request: CatalogSourcePreviewRequest = {
       type: payload.type,
+      enabled: payload.enabled,
       includedModels: payload.includedModels,
       excludedModels: payload.excludedModels,
     };

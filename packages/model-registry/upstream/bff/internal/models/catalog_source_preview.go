@@ -2,6 +2,7 @@ package models
 
 type CatalogSourcePreviewRequest struct {
 	Type           string                 `json:"type"`
+	Enabled        *bool                  `json:"enabled,omitempty"`
 	IncludedModels []string               `json:"includedModels,omitempty"`
 	ExcludedModels []string               `json:"excludedModels,omitempty"`
 	Properties     map[string]interface{} `json:"properties,omitempty"`
