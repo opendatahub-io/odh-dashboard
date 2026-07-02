@@ -42,9 +42,6 @@ export type CatalogSecurityArtifact = {
 
 export type CatalogSecurityArtifactList = {
   items: CatalogSecurityArtifact[];
-  nextPageToken: string;
-  pageSize: number;
-  size: number;
 };
 
 export type CatalogSecurityArtifactListEnvelope = {
@@ -65,8 +62,13 @@ export type SecurityInsight = {
   result: string;
 };
 
-const formatRate = (value: number | undefined): string =>
-  value !== undefined ? `${(value * 100).toFixed(1)}%` : '';
+const formatRate = (value: number | undefined): string => {
+  if (value === undefined) {
+    return '';
+  }
+  const normalized = value > 1 ? value : value * 100;
+  return `${normalized.toFixed(1)}%`;
+};
 
 export const mapArtifactToInsight = (artifact: CatalogSecurityArtifact): SecurityInsight => {
   const props = artifact.customProperties;

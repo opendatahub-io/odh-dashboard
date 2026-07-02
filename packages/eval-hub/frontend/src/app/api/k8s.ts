@@ -277,7 +277,7 @@ export const getCatalogSecurityArtifacts =
       restGET(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/catalog/sources/${encodeURIComponent(sourceId)}/security_artifacts/${encodeURIComponent(modelName)}`,
-        { ...(namespace && { namespace }), pageSize: '999' },
+        { ...(namespace && { namespace }) },
         opts,
       ),
     ).then((response) => {

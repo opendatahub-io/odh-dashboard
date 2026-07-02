@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Alert,
+  Bullseye,
   Content,
   ContentVariants,
   Flex,
@@ -10,12 +11,11 @@ import {
   MenuToggleElement,
   Pagination,
   PaginationVariant,
-  PageSection,
   SearchInput,
   Select,
   SelectList,
   SelectOption,
-  Skeleton,
+  Spinner,
   Title,
   Toolbar,
   ToolbarContent,
@@ -38,33 +38,9 @@ import {
   type SortConfig,
   FILTER_LABELS,
   FILTER_PLACEHOLDERS,
-  SKELETON_ROWS,
   getFilterValue,
   getSortableValue,
 } from './const';
-import SecurityInsightsEmptyState from './SecurityInsightsEmptyState';
-
-const LoadingRows: React.FC = () => (
-  <>
-    {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
-      // eslint-disable-next-line react/no-array-index-key
-      <Tr key={i}>
-        <Td>
-          <Skeleton screenreaderText="Loading" />
-        </Td>
-        <Td>
-          <Skeleton width="80px" screenreaderText="Loading" />
-        </Td>
-        <Td>
-          <Skeleton screenreaderText="Loading" />
-        </Td>
-        <Td>
-          <Skeleton width="60px" screenreaderText="Loading" />
-        </Td>
-      </Tr>
-    ))}
-  </>
-);
 
 const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
   sourceId,
@@ -138,13 +114,19 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
     </MenuToggle>
   );
 
+  if (!loaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
   if (loadError) {
     return (
-      <PageSection padding={{ default: 'noPadding' }} data-testid="security-insights-error">
-        <Alert variant="danger" isInline title="Error loading security insights">
-          {loadError.message}
-        </Alert>
-      </PageSection>
+      <Alert variant="danger" isInline title="Error loading security insights">
+        {loadError.message}
+      </Alert>
     );
   }
 
@@ -209,7 +191,6 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                     value={filterValue}
                     onChange={(_event, value) => setFilterValue(value)}
                     onClear={() => setFilterValue('')}
-                    isDisabled={!loaded}
                     data-testid="security-filter-text-field"
                   />
                 </ToolbarItem>
@@ -226,7 +207,6 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                   setPage(newPage);
                 }}
                 perPageOptions={TABLE_PER_PAGE_OPTIONS}
-                isDisabled={!loaded}
                 data-testid="security-insights-pagination-top"
               />
             </ToolbarItem>
@@ -236,15 +216,15 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
         <Table aria-label="Safety and security insights" data-testid="security-insights-table">
           <Thead>
             <Tr>
-              <Th sort={loaded ? getSortParams(0) : undefined} modifier="nowrap">
+              <Th sort={getSortParams(0)} modifier="nowrap">
                 Evaluation
               </Th>
-              <Th sort={loaded ? getSortParams(1) : undefined} modifier="nowrap">
+              <Th sort={getSortParams(1)} modifier="nowrap">
                 Category
               </Th>
-              <Th sort={loaded ? getSortParams(2) : undefined}>Benchmark</Th>
+              <Th sort={getSortParams(2)}>Benchmark</Th>
               <Th
-                sort={loaded ? getSortParams(3) : undefined}
+                sort={getSortParams(3)}
                 modifier="nowrap"
                 info={{
                   popover: "The normalized value of the benchmark's primary metric.",
@@ -255,37 +235,29 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
             </Tr>
           </Thead>
           <Tbody>
-            {!loaded ? (
-              <LoadingRows />
-            ) : paginated.length === 0 ? (
-              <Tr>
-                <Td colSpan={4}>
-                  <SecurityInsightsEmptyState />
+            {paginated.map((insight) => (
+              <Tr
+                key={`${insight.benchmarkName}-${insight.evaluation}`}
+                data-testid="security-insight-row"
+              >
+                <Td dataLabel="Evaluation">{insight.evaluation}</Td>
+                <Td dataLabel="Category">
+                  {insight.category && (
+                    <Label color={getCategoryColor(insight.category)} isCompact>
+                      {capitalizeFirst(insight.category)}
+                    </Label>
+                  )}
                 </Td>
+                <Td dataLabel="Benchmark">
+                  <TableRowTitleDescription
+                    title={insight.benchmarkName}
+                    description={insight.benchmarkDescription}
+                    truncateDescriptionLines={2}
+                  />
+                </Td>
+                <Td dataLabel="Result">{insight.result}</Td>
               </Tr>
-            ) : (
-              paginated.map((insight, index) => (
-                // eslint-disable-next-line react/no-array-index-key
-                <Tr key={`${insight.benchmarkName}-${index}`} data-testid="security-insight-row">
-                  <Td dataLabel="Evaluation">{insight.evaluation}</Td>
-                  <Td dataLabel="Category">
-                    {insight.category && (
-                      <Label color={getCategoryColor(insight.category)} isCompact>
-                        {capitalizeFirst(insight.category)}
-                      </Label>
-                    )}
-                  </Td>
-                  <Td dataLabel="Benchmark">
-                    <TableRowTitleDescription
-                      title={insight.benchmarkName}
-                      description={insight.benchmarkDescription}
-                      truncateDescriptionLines={2}
-                    />
-                  </Td>
-                  <Td dataLabel="Result">{insight.result}</Td>
-                </Tr>
-              ))
-            )}
+            ))}
           </Tbody>
         </Table>
 
@@ -300,7 +272,6 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
             setPage(newPage);
           }}
           perPageOptions={TABLE_PER_PAGE_OPTIONS}
-          isDisabled={!loaded}
           data-testid="security-insights-pagination-bottom"
         />
       </FlexItem>

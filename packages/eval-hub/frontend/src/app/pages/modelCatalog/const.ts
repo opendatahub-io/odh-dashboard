@@ -14,8 +14,6 @@ export const FILTER_PLACEHOLDERS: Record<FilterOption, string> = {
   benchmark: 'Filter by benchmark',
 };
 
-export const SKELETON_ROWS = 5;
-
 export type SortConfig = {
   index: number;
   direction: 'asc' | 'desc';

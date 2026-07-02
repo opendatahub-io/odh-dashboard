@@ -13,12 +13,7 @@ type UseSecurityArtifactsResult = {
   loadError: Error | undefined;
 };
 
-const EMPTY_LIST: CatalogSecurityArtifactList = {
-  items: [],
-  nextPageToken: '',
-  pageSize: 0,
-  size: 0,
-};
+const EMPTY_RESPONSE: CatalogSecurityArtifactList = { items: [] };
 
 const useSecurityArtifacts = (
   sourceId: string,
@@ -32,7 +27,7 @@ const useSecurityArtifacts = (
 
   const [data, loaded, loadError] = useFetchState<CatalogSecurityArtifactList>(
     callback,
-    EMPTY_LIST,
+    EMPTY_RESPONSE,
   );
 
   const insights = React.useMemo(() => data.items.map(mapArtifactToInsight), [data.items]);
