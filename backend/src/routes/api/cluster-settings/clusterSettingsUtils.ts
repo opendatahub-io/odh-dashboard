@@ -1,11 +1,13 @@
 import { FastifyRequest } from 'fastify';
 import { V1ConfigMap } from '@kubernetes/client-node';
 import { errorHandler, isHttpError } from '../../../utils';
+import { createCustomError } from '../../../utils/requestUtils';
 import { rolloutDeployment } from '../../../utils/deployment';
-import { KubeFastifyInstance, ClusterSettings } from '../../../types';
+import { KubeFastifyInstance, ClusterSettings, OauthFastifyRequest } from '../../../types';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { setDashboardConfig } from '../config/configUtils';
 import { checkJupyterEnabled } from '../../../utils/resourceUtils';
+import { updateGlobalMLflowNamespaces } from './mlflowGlobalNamespaceUtils';
 
 const nbcCfg = 'notebook-controller-culler-config';
 const segmentKeyCfg = 'odh-segment-key-config';
@@ -171,6 +173,30 @@ export const updateClusterSettings = async (
     if (needsNotebookControllerRollout) {
       await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
     }
+
+    if (request.body.globalMLflowNamespaces !== undefined) {
+      const { globalMLflowNamespaces } = request.body;
+      if (
+        !Array.isArray(globalMLflowNamespaces) ||
+        !globalMLflowNamespaces.every((ns) => typeof ns === 'string' && ns.trim().length > 0)
+      ) {
+        throw createCustomError(
+          'Validation error',
+          'globalMLflowNamespaces must be an array of non-empty strings',
+          400,
+        );
+      }
+      const trimmed = globalMLflowNamespaces.map((ns) => ns.trim());
+      const mlflowResult = await updateGlobalMLflowNamespaces(
+        fastify,
+        request as OauthFastifyRequest,
+        trimmed,
+      );
+      if (mlflowResult.warnings?.length) {
+        fastify.log.warn(`Global MLflow namespace warnings: ${mlflowResult.warnings.join('; ')}`);
+      }
+    }
+
     return { success: true, error: '' };
   } catch (e) {
     fastify.log.error(e, `Setting cluster settings error: ${errorHandler(e)}`);
@@ -197,6 +223,7 @@ export const getClusterSettings = async (
     },
     isDistributedInferencingDefault: dashConfig.spec.modelServing?.isLLMdDefault,
     defaultDeploymentStrategy: dashConfig.spec.modelServing?.deploymentStrategy,
+    globalMLflowNamespaces: dashConfig.spec.globalMLflowNamespaces ?? [],
   };
 
   if (!dashConfig.spec.dashboardConfig.disableTracking) {
