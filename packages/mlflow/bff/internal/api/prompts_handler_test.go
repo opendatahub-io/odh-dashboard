@@ -622,153 +622,147 @@ func TestListPromptsNoGlobalNamespacesConfigured(t *testing.T) {
 
 // --- Permission Tests ---
 
-func TestRegisterPromptForbiddenWithoutPermission(t *testing.T) {
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: newMockK8sClientFactoryWithVerb(false, "create"),
+func TestPromptHandlerPermissions(t *testing.T) {
+	tests := []struct {
+		name            string
+		handler         string
+		verb            string
+		canWrite        bool
+		method          string
+		path            string
+		body            string
+		params          httprouter.Params
+		wantStatus      int
+		setupMock       func(*mlflowpkg.MockClient)
+		assertNotCalled string
+	}{
+		{
+			name:            "RegisterPrompt forbidden without permission",
+			handler:         "register",
+			verb:            "create",
+			canWrite:        false,
+			method:          http.MethodPost,
+			path:            "/api/v1/prompts?workspace=my-ns",
+			body:            `{"name":"test-prompt","messages":[{"role":"user","content":"Hello"}]}`,
+			wantStatus:      http.StatusForbidden,
+			assertNotCalled: "RegisterChatPrompt",
+		},
+		{
+			name:       "RegisterPrompt success with permission",
+			handler:    "register",
+			verb:       "create",
+			canWrite:   true,
+			method:     http.MethodPost,
+			path:       "/api/v1/prompts?workspace=my-ns",
+			body:       `{"name":"test-prompt","messages":[{"role":"user","content":"Hello"}]}`,
+			wantStatus: http.StatusCreated,
+			setupMock: func(m *mlflowpkg.MockClient) {
+				now := time.Now()
+				m.On("RegisterChatPrompt", tmock.Anything, "test-prompt", tmock.Anything, tmock.Anything).
+					Return(&promptregistry.PromptVersion{
+						Name: "test-prompt", Version: 1,
+						Messages:  []promptregistry.ChatMessage{{Role: "user", Content: "Hello"}},
+						CreatedAt: now, UpdatedAt: now,
+					}, nil)
+			},
+		},
+		{
+			name:            "DeletePrompt forbidden without permission",
+			handler:         "delete",
+			verb:            "delete",
+			canWrite:        false,
+			method:          http.MethodDelete,
+			path:            "/api/v1/prompts/test-prompt?workspace=my-ns",
+			params:          httprouter.Params{{Key: "name", Value: "test-prompt"}},
+			wantStatus:      http.StatusForbidden,
+			assertNotCalled: "DeletePrompt",
+		},
+		{
+			name:       "DeletePrompt success with permission",
+			handler:    "delete",
+			verb:       "delete",
+			canWrite:   true,
+			method:     http.MethodDelete,
+			path:       "/api/v1/prompts/test-prompt?workspace=my-ns",
+			params:     httprouter.Params{{Key: "name", Value: "test-prompt"}},
+			wantStatus: http.StatusNoContent,
+			setupMock: func(m *mlflowpkg.MockClient) {
+				m.On("DeletePrompt", tmock.Anything, "test-prompt").Return(nil)
+			},
+		},
+		{
+			name:     "DeletePromptVersion forbidden without permission",
+			handler:  "deleteVersion",
+			verb:     "delete",
+			canWrite: false,
+			method:   http.MethodDelete,
+			path:     "/api/v1/prompts/test-prompt/versions/1?workspace=my-ns",
+			params: httprouter.Params{
+				{Key: "name", Value: "test-prompt"},
+				{Key: "version", Value: "1"},
+			},
+			wantStatus:      http.StatusForbidden,
+			assertNotCalled: "DeletePromptVersion",
+		},
+		{
+			name:     "DeletePromptVersion success with permission",
+			handler:  "deleteVersion",
+			verb:     "delete",
+			canWrite: true,
+			method:   http.MethodDelete,
+			path:     "/api/v1/prompts/test-prompt/versions/1?workspace=my-ns",
+			params: httprouter.Params{
+				{Key: "name", Value: "test-prompt"},
+				{Key: "version", Value: "1"},
+			},
+			wantStatus: http.StatusNoContent,
+			setupMock: func(m *mlflowpkg.MockClient) {
+				m.On("DeletePromptVersion", tmock.Anything, "test-prompt", 1).Return(nil)
+			},
+		},
 	}
 
-	mockClient := &mlflowpkg.MockClient{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := &App{
+				logger:                  testLogger(),
+				repositories:            repositories.NewRepositories(),
+				kubernetesClientFactory: newMockK8sClientFactoryWithVerb(tt.canWrite, tt.verb),
+			}
 
-	body := `{"name":"test-prompt","messages":[{"role":"user","content":"Hello"}]}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts?workspace=my-ns", strings.NewReader(body))
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
+			mockClient := &mlflowpkg.MockClient{}
+			if tt.setupMock != nil {
+				tt.setupMock(mockClient)
+			}
 
-	app.MLflowRegisterPromptHandler(rr, req, nil)
+			var req *http.Request
+			if tt.body != "" {
+				req = httptest.NewRequest(tt.method, tt.path, strings.NewReader(tt.body))
+			} else {
+				req = httptest.NewRequest(tt.method, tt.path, nil)
+			}
+			req = requestWithMLflowClient(req, mockClient)
+			req = withWorkspace(req, "my-ns")
+			req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
+			rr := httptest.NewRecorder()
 
-	assert.Equal(t, http.StatusForbidden, rr.Code)
-	mockClient.AssertNotCalled(t, "RegisterChatPrompt")
-}
+			switch tt.handler {
+			case "register":
+				app.MLflowRegisterPromptHandler(rr, req, nil)
+			case "delete":
+				app.MLflowDeletePromptHandler(rr, req, tt.params)
+			case "deleteVersion":
+				app.MLflowDeletePromptVersionHandler(rr, req, tt.params)
+			}
 
-func TestRegisterPromptSuccessWithPermission(t *testing.T) {
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: newMockK8sClientFactoryWithVerb(true, "create"),
+			assert.Equal(t, tt.wantStatus, rr.Code)
+			if tt.assertNotCalled != "" {
+				mockClient.AssertNotCalled(t, tt.assertNotCalled)
+			} else if tt.setupMock != nil {
+				mockClient.AssertExpectations(t)
+			}
+		})
 	}
-
-	mockClient := &mlflowpkg.MockClient{}
-	now := time.Now()
-	mockClient.On("RegisterChatPrompt", tmock.Anything, "test-prompt", tmock.Anything, tmock.Anything).
-		Return(&promptregistry.PromptVersion{
-			Name: "test-prompt", Version: 1,
-			Messages:  []promptregistry.ChatMessage{{Role: "user", Content: "Hello"}},
-			CreatedAt: now, UpdatedAt: now,
-		}, nil)
-
-	body := `{"name":"test-prompt","messages":[{"role":"user","content":"Hello"}]}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts?workspace=my-ns", strings.NewReader(body))
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
-
-	app.MLflowRegisterPromptHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusCreated, rr.Code)
-	mockClient.AssertExpectations(t)
-}
-
-func TestDeletePromptForbiddenWithoutPermission(t *testing.T) {
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: newMockK8sClientFactoryWithVerb(false, "delete"),
-	}
-
-	mockClient := &mlflowpkg.MockClient{}
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/test-prompt?workspace=my-ns", nil)
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
-
-	ps := httprouter.Params{{Key: "name", Value: "test-prompt"}}
-	app.MLflowDeletePromptHandler(rr, req, ps)
-
-	assert.Equal(t, http.StatusForbidden, rr.Code)
-	mockClient.AssertNotCalled(t, "DeletePrompt")
-}
-
-func TestDeletePromptSuccessWithPermission(t *testing.T) {
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: newMockK8sClientFactoryWithVerb(true, "delete"),
-	}
-
-	mockClient := &mlflowpkg.MockClient{}
-	mockClient.On("DeletePrompt", tmock.Anything, "test-prompt").
-		Return(nil)
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/test-prompt?workspace=my-ns", nil)
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
-
-	ps := httprouter.Params{{Key: "name", Value: "test-prompt"}}
-	app.MLflowDeletePromptHandler(rr, req, ps)
-
-	assert.Equal(t, http.StatusNoContent, rr.Code)
-	mockClient.AssertExpectations(t)
-}
-
-func TestDeletePromptVersionForbiddenWithoutPermission(t *testing.T) {
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: newMockK8sClientFactoryWithVerb(false, "delete"),
-	}
-
-	mockClient := &mlflowpkg.MockClient{}
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/test-prompt/versions/1?workspace=my-ns", nil)
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
-
-	ps := httprouter.Params{
-		{Key: "name", Value: "test-prompt"},
-		{Key: "version", Value: "1"},
-	}
-	app.MLflowDeletePromptVersionHandler(rr, req, ps)
-
-	assert.Equal(t, http.StatusForbidden, rr.Code)
-	mockClient.AssertNotCalled(t, "DeletePromptVersion")
-}
-
-func TestDeletePromptVersionSuccessWithPermission(t *testing.T) {
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: newMockK8sClientFactoryWithVerb(true, "delete"),
-	}
-
-	mockClient := &mlflowpkg.MockClient{}
-	mockClient.On("DeletePromptVersion", tmock.Anything, "test-prompt", 1).
-		Return(nil)
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/test-prompt/versions/1?workspace=my-ns", nil)
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
-
-	ps := httprouter.Params{
-		{Key: "name", Value: "test-prompt"},
-		{Key: "version", Value: "1"},
-	}
-	app.MLflowDeletePromptVersionHandler(rr, req, ps)
-
-	assert.Equal(t, http.StatusNoContent, rr.Code)
-	mockClient.AssertExpectations(t)
 }
 
 func TestRegisterPromptPermissionCheckError(t *testing.T) {
