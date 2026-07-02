@@ -182,25 +182,12 @@ describe('Model Serving LLMD Topology & Routing', () => {
       cy.findByTestId('topology-type-select').click();
 
       cy.findByTestId(`topology-type-${SINGLE_NODE}`).should(
-        'not.have.attr',
-        'aria-disabled',
-        'true',
+        'not.have.class',
+        'pf-m-aria-disabled',
       );
-      cy.findByTestId(`topology-type-${MULTI_NODE}`).should(
-        'not.have.attr',
-        'aria-disabled',
-        'true',
-      );
-      cy.findByTestId(`topology-type-${SINGLE_NODE_PD}`).should(
-        'have.attr',
-        'aria-disabled',
-        'true',
-      );
-      cy.findByTestId(`topology-type-${MULTI_NODE_PD}`).should(
-        'have.attr',
-        'aria-disabled',
-        'true',
-      );
+      cy.findByTestId(`topology-type-${MULTI_NODE}`).should('not.have.class', 'pf-m-aria-disabled');
+      cy.findByTestId(`topology-type-${SINGLE_NODE_PD}`).should('have.class', 'pf-m-aria-disabled');
+      cy.findByTestId(`topology-type-${MULTI_NODE_PD}`).should('have.class', 'pf-m-aria-disabled');
     });
 
     it('should always enable Single node even without configs', () => {
@@ -213,9 +200,8 @@ describe('Model Serving LLMD Topology & Routing', () => {
       cy.findByTestId('topology-type-select').click();
 
       cy.findByTestId(`topology-type-${SINGLE_NODE}`).should(
-        'not.have.attr',
-        'aria-disabled',
-        'true',
+        'not.have.class',
+        'pf-m-aria-disabled',
       );
     });
   });
@@ -275,8 +261,9 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
 
+      modelServingWizard.findModelDeploymentNameInput().type('test-model');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.findByTestId('advanced-routing-checkbox').should('exist');
     });
@@ -287,8 +274,9 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
 
+      modelServingWizard.findModelDeploymentNameInput().type('test-model');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.findByTestId('advanced-routing-checkbox').should('not.exist');
     });
@@ -299,8 +287,9 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
 
+      modelServingWizard.findModelDeploymentNameInput().type('test-model');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.findByTestId('routing-config-select').should('not.exist');
       cy.findByTestId('advanced-routing-checkbox').click();
@@ -313,8 +302,9 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
 
+      modelServingWizard.findModelDeploymentNameInput().type('test-model');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.findByTestId('advanced-routing-checkbox').click();
       cy.findByTestId('routing-config-select').click();
@@ -328,8 +318,9 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
 
+      modelServingWizard.findModelDeploymentNameInput().type('test-model');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Check and select a config
       cy.findByTestId('advanced-routing-checkbox').click();
