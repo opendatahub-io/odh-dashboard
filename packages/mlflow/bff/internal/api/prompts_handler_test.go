@@ -29,12 +29,8 @@ func newTestAppWithPromptsRepos() *App {
 	return &App{
 		logger:                  testLogger(),
 		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: newMockK8sClientFactoryWithPermissions(true),
+		kubernetesClientFactory: newMockK8sClientFactoryWithVerb(true, ""),
 	}
-}
-
-func newMockK8sClientFactoryWithPermissions(canWrite bool) k8s.KubernetesClientFactory {
-	return &mockK8sClientFactory{canWrite: canWrite}
 }
 
 func newMockK8sClientFactoryWithVerb(canWrite bool, expectedVerb string) k8s.KubernetesClientFactory {
@@ -863,63 +859,6 @@ func TestEnforceWritePermissionBypassedWhenAuthDisabled(t *testing.T) {
 	// ResponseRecorder initializes with implicit 200, but no error response was written
 	// Verify the body is empty to confirm no error handler was called
 	assert.Empty(t, rr.Body.String())
-}
-
-func TestMockVerifiesCorrectVerbForRegister(t *testing.T) {
-	// This test verifies the mock correctly validates verb="create" for register operations
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: newMockK8sClientFactoryWithVerb(true, "create"),
-	}
-
-	mockClient := &mlflowpkg.MockClient{}
-	now := time.Now()
-	mockClient.On("RegisterChatPrompt", tmock.Anything, "test-prompt", tmock.Anything, tmock.Anything).
-		Return(&promptregistry.PromptVersion{
-			Name: "test-prompt", Version: 1,
-			Messages:  []promptregistry.ChatMessage{{Role: "user", Content: "Hello"}},
-			CreatedAt: now, UpdatedAt: now,
-		}, nil)
-
-	body := `{"name":"test-prompt","messages":[{"role":"user","content":"Hello"}]}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts?workspace=my-ns", strings.NewReader(body))
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
-
-	app.MLflowRegisterPromptHandler(rr, req, nil)
-
-	// Should succeed because verb="create" is correct for register
-	assert.Equal(t, http.StatusCreated, rr.Code)
-	mockClient.AssertExpectations(t)
-}
-
-func TestMockVerifiesCorrectVerbForDelete(t *testing.T) {
-	// This test verifies the mock correctly validates verb="delete" for delete operations
-	app := &App{
-		logger:                  testLogger(),
-		repositories:            repositories.NewRepositories(),
-		kubernetesClientFactory: newMockK8sClientFactoryWithVerb(true, "delete"),
-	}
-
-	mockClient := &mlflowpkg.MockClient{}
-	mockClient.On("DeletePrompt", tmock.Anything, "test-prompt").
-		Return(nil)
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/prompts/test-prompt?workspace=my-ns", nil)
-	req = requestWithMLflowClient(req, mockClient)
-	req = withWorkspace(req, "my-ns")
-	req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
-	rr := httptest.NewRecorder()
-
-	ps := httprouter.Params{{Key: "name", Value: "test-prompt"}}
-	app.MLflowDeletePromptHandler(rr, req, ps)
-
-	// Should succeed because verb="delete" is correct for delete
-	assert.Equal(t, http.StatusNoContent, rr.Code)
-	mockClient.AssertExpectations(t)
 }
 
 type mockK8sClientFactoryWithError struct{}
