@@ -20,9 +20,10 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useExtensions } from '@odh-dashboard/plugin-core';
+import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
+import { isNavigateToDeploymentWizardWithDataExtension } from '~/odh/extension-points';
 import {
   decodeParams,
   getModelName,
@@ -59,9 +60,10 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     ModelRegistrySelectorContext,
   );
   const actionExtensions = useExtensions(isActionExtension);
-  const hasDeployAction = actionExtensions.some(
-    (a) => a.properties.group === MODEL_CATALOG_DEPLOY_GROUP,
+  const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(
+    isNavigateToDeploymentWizardWithDataExtension,
   );
+  const isDeployAvailable = navigateExtensionsLoaded && navigateExtensions.length > 0;
 
   const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
@@ -219,7 +221,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
                   group={MODEL_CATALOG_DEPLOY_GROUP}
                   componentProps={{ model }}
                 />
-                {registerModelButton(hasDeployAction ? 'secondary' : 'primary')}
+                {registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
               </ActionListGroup>
             </ActionList>
           )

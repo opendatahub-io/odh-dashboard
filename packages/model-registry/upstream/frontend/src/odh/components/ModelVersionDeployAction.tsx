@@ -9,6 +9,7 @@ import { getDeployButtonState } from '~/odh/utils';
 type ModelVersionDeployActionProps = {
   mv: ModelVersion;
   renderAs?: 'button' | 'dropdown-item';
+  onRenderModal?: (modal: React.ReactNode) => void;
 };
 
 /**
@@ -25,6 +26,7 @@ type ModelVersionDeployActionProps = {
 const ModelVersionDeployAction: React.FC<ModelVersionDeployActionProps> = ({
   mv,
   renderAs = 'button',
+  onRenderModal,
 }) => {
   const [extensions, extensionsLoaded] = useResolvedExtensions(isModelRegistryDeployModalExtension);
   const [openModal, setOpenModal] = React.useState(false);
@@ -45,8 +47,7 @@ const ModelVersionDeployAction: React.FC<ModelVersionDeployActionProps> = ({
     />
   ));
 
-  const modal =
-    openModal &&
+  const createModal = (onClose: () => void) =>
     extensions.map((extension) => (
       <MRDeployFormDataLoader
         key={extension.uid}
@@ -54,25 +55,35 @@ const ModelVersionDeployAction: React.FC<ModelVersionDeployActionProps> = ({
         renderData={(modelDeployPrefill) => (
           <extension.properties.modalComponent
             modelDeployPrefill={modelDeployPrefill}
-            onClose={() => setOpenModal(false)}
+            onClose={onClose}
           />
         )}
       />
     ));
 
+  const modal = openModal && createModal(() => setOpenModal(false));
+
   if (renderAs === 'dropdown-item') {
+    const handleDropdownClick = () => {
+      if (onRenderModal) {
+        onRenderModal(createModal(() => onRenderModal(null)));
+      } else {
+        setOpenModal(true);
+      }
+    };
+
     return (
       <>
         {hookNotifiers}
         <DropdownItem
-          onClick={() => setOpenModal(true)}
+          onClick={handleDropdownClick}
           isAriaDisabled={!buttonState.enabled}
           tooltipProps={buttonState.tooltip ? { content: buttonState.tooltip } : undefined}
           data-testid="deploy-action-dropdown-item"
         >
           Deploy <strong>{mv.name}</strong>
         </DropdownItem>
-        {modal}
+        {!onRenderModal && modal}
       </>
     );
   }

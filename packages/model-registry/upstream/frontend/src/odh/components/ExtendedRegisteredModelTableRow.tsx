@@ -4,7 +4,6 @@ import {
   ContentVariants,
   Divider,
   Dropdown,
-  DropdownGroup,
   DropdownItem,
   DropdownList,
   FlexItem,
@@ -15,12 +14,15 @@ import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import {
+  useExtensions,
+  useResolvedExtensions,
+  LazyCodeRefComponent,
+} from '@odh-dashboard/plugin-core';
 import {
   isActionExtension,
   isTableColumnExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
@@ -62,6 +64,7 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
   const [isKebabOpen, setKebabOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const [deployModal, setDeployModal] = React.useState<React.ReactNode>(null);
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.name);
 
   const allColumnExtensions = useExtensions(isTableColumnExtension);
@@ -72,7 +75,10 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
     extension.flags?.required?.includes('model-serving-shell'),
   );
 
-  const actionExtensions = useExtensions(isActionExtension);
+  const [resolvedActionExtensions] = useResolvedExtensions(isActionExtension);
+  const deployActions = resolvedActionExtensions.filter(
+    (ext) => ext.properties.group === MODEL_VERSION_DEPLOY_GROUP,
+  );
 
   const handleModelNameNavigation = (rmId: string) =>
     isArchiveRow
@@ -168,41 +174,50 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
           )}
         >
           <DropdownList>
-            <DropdownGroup label="View model information">
-              <DropdownItem
-                onClick={() =>
-                  navigate(
-                    isArchiveRow
-                      ? registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.name)
-                      : rmUrl,
-                  )
-                }
-              >
-                Overview
+            <DropdownItem isDisabled>View model information</DropdownItem>
+            <DropdownItem
+              onClick={() =>
+                navigate(
+                  isArchiveRow
+                    ? registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.name)
+                    : rmUrl,
+                )
+              }
+            >
+              Overview
+            </DropdownItem>
+            <DropdownItem
+              onClick={() =>
+                navigate(
+                  isArchiveRow
+                    ? archiveModelVersionListUrl(rm.id, preferredModelRegistry?.name)
+                    : modelVersionListUrl(rm.id, preferredModelRegistry?.name),
+                )
+              }
+            >
+              Versions
+            </DropdownItem>
+            {!isArchiveRow && isModelServingEnabled && (
+              <DropdownItem onClick={() => navigate(`${rmUrl}/deployments`)}>
+                Deployments
               </DropdownItem>
-              <DropdownItem
-                onClick={() =>
-                  navigate(
-                    isArchiveRow
-                      ? archiveModelVersionListUrl(rm.id, preferredModelRegistry?.name)
-                      : modelVersionListUrl(rm.id, preferredModelRegistry?.name),
-                  )
-                }
-              >
-                Versions
-              </DropdownItem>
-              {!isArchiveRow && isModelServingEnabled && (
-                <DropdownItem onClick={() => navigate(`${rmUrl}/deployments`)}>
-                  Deployments
-                </DropdownItem>
-              )}
-            </DropdownGroup>
-            {latestModelVersion && !isArchiveRow && (
-              <ExtensibleActions
-                actions={actionExtensions}
-                group={MODEL_VERSION_DEPLOY_GROUP}
-                componentProps={{ mv: latestModelVersion, renderAs: 'dropdown-item' }}
-              />
+            )}
+            {latestModelVersion && !isArchiveRow && deployActions.length > 0 && (
+              <>
+                <Divider />
+                <DropdownItem isDisabled>Latest version actions</DropdownItem>
+                {deployActions.map((action) => {
+                  const ActionComponent = action.properties.component.default;
+                  return (
+                    <ActionComponent
+                      key={action.properties.id}
+                      mv={latestModelVersion}
+                      renderAs="dropdown-item"
+                      onRenderModal={setDeployModal}
+                    />
+                  );
+                })}
+              </>
             )}
             <Divider />
             {isArchiveRow ? (
@@ -226,6 +241,7 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
             )}
           </DropdownList>
         </Dropdown>
+        {deployModal}
         {isArchiveModalOpen ? (
           <ArchiveRegisteredModelModal
             onCancel={() => setIsArchiveModalOpen(false)}

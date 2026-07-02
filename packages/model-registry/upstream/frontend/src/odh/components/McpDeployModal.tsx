@@ -1,7 +1,6 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate } from 'react-router';
 import {
-  Alert,
   Content,
   Form,
   FormGroup,
@@ -9,7 +8,6 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
-  Spinner,
   TextInput,
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
@@ -18,33 +16,26 @@ import { DashboardModalFooter, FieldGroupHelpLabelIcon } from 'mod-arch-shared';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
 import { isValidK8sName, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
-import useMcpServerConverter from '~/odh/hooks/useMcpServerConverter';
 import K8sNameDescriptionField from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import { MAX_K8S_NAME_LENGTH } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { createMcpDeployment, updateMcpDeployment } from '~/odh/api/mcpCatalogDeployment/service';
 import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
-import { mcpServerCRToYaml } from '~/odh/utils/mcpServerYaml';
-import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
+import { McpDeployModalData } from '~/odh/types/mcpDeploymentTypes';
 
 type McpDeployModalProps = {
   isOpen?: boolean;
   onClose: (saved?: boolean) => void;
-  existingDeployment?: McpDeployment;
+  data?: McpDeployModalData;
 };
 
-const McpDeployModal: React.FC<McpDeployModalProps> = ({
-  isOpen = true,
-  onClose,
-  existingDeployment,
-}) => {
-  const { serverId = '' } = useParams<{ serverId: string }>();
+const McpDeployModal: React.FC<McpDeployModalProps> = ({ isOpen = true, onClose, data }) => {
+  const isEdit = !!data?.name;
   const navigate = useNavigate();
   const { theme } = useThemeContext();
-  const [crData, crLoaded, crError] = useMcpServerConverter(existingDeployment ? '' : serverId);
 
   const [displayNameValue, setDisplayNameValue] = React.useState(
-    existingDeployment ? (existingDeployment.displayName ?? existingDeployment.name) : '',
+    data?.displayName ?? data?.name ?? '',
   );
   const [k8sNameManual, setK8sNameManual] = React.useState('');
   const [k8sTouched, setK8sTouched] = React.useState(false);
@@ -53,11 +44,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     () => translateDisplayNameForK8s(displayNameValue),
     [displayNameValue],
   );
-  const effectiveK8sName = existingDeployment
-    ? existingDeployment.name
-    : k8sTouched
-      ? k8sNameManual
-      : autoK8sName;
+  const effectiveK8sName = isEdit ? (data.name ?? '') : k8sTouched ? k8sNameManual : autoK8sName;
 
   const nameDescData = React.useMemo<K8sNameDescriptionFieldData>(
     () => ({
@@ -66,7 +53,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
       k8sName: {
         value: effectiveK8sName,
         state: {
-          immutable: !!existingDeployment,
+          immutable: isEdit,
           invalidCharacters:
             effectiveK8sName.length > 0 ? !isValidK8sName(effectiveK8sName) : false,
           invalidLength: effectiveK8sName.length > MAX_K8S_NAME_LENGTH,
@@ -75,7 +62,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
         },
       },
     }),
-    [displayNameValue, effectiveK8sName, k8sTouched, existingDeployment],
+    [displayNameValue, effectiveK8sName, k8sTouched, isEdit],
   );
 
   const onNameDescChange = React.useCallback(
@@ -90,25 +77,13 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     [],
   );
 
-  const [selectedNamespace, setSelectedNamespace] = React.useState(
-    existingDeployment?.namespace ?? '',
-  );
+  const [selectedNamespace, setSelectedNamespace] = React.useState(data?.namespace ?? '');
   const queryParams = React.useMemo(() => ({ namespace: selectedNamespace }), [selectedNamespace]);
-  const [yamlContent, setYamlContent] = React.useState(existingDeployment?.yaml ?? '');
-  const [ociImageValue, setOciImageValue] = React.useState(existingDeployment?.image ?? '');
+  const [yamlContent, setYamlContent] = React.useState(data?.yaml ?? '');
+  const ociImageValue = data?.image ?? '';
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error>();
   const abortControllerRef = React.useRef<AbortController>();
-  const crInitializedRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (!existingDeployment && crData && !crInitializedRef.current) {
-      crInitializedRef.current = true;
-      const yaml = mcpServerCRToYaml(crData);
-      setYamlContent(yaml);
-      setOciImageValue(crData.spec.source.containerImage?.ref ?? '');
-    }
-  }, [existingDeployment, crData]);
 
   React.useEffect(
     () => () => {
@@ -135,10 +110,10 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
 
     try {
       const opts: APIOptions = { signal: controller.signal };
-      if (existingDeployment) {
+      if (isEdit && data.name) {
         await updateMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(
           opts,
-          existingDeployment.name,
+          data.name,
           {
             displayName: displayNameValue,
             image: ociImageValue,
@@ -150,7 +125,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
         await createMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(opts, {
           name: effectiveK8sName,
           displayName: displayNameValue,
-          serverName: crData?.metadata.name || undefined,
+          serverName: data?.serverName,
           image: ociImageValue,
           yaml: yamlContent,
         });
@@ -159,9 +134,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
       }
     } catch (e) {
       setSubmitError(
-        e instanceof Error
-          ? e
-          : new Error(`Failed to ${existingDeployment ? 'update' : 'deploy'} MCP server`),
+        e instanceof Error ? e : new Error(`Failed to ${isEdit ? 'update' : 'deploy'} MCP server`),
       );
     } finally {
       setIsSubmitting(false);
@@ -172,11 +145,11 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     effectiveK8sName,
     displayNameValue,
     yamlContent,
-    crData,
+    data,
+    isEdit,
     queryParams,
     onClose,
     navigate,
-    existingDeployment,
   ]);
 
   const hasValidName =
@@ -185,31 +158,9 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     isValidK8sName(effectiveK8sName) &&
     effectiveK8sName.length <= MAX_K8S_NAME_LENGTH;
 
-  const dataReady = !!existingDeployment || crLoaded;
+  const isDeployDisabled = !hasValidName || !ociImageValue || !selectedNamespace || isSubmitting;
 
-  const isDeployDisabled =
-    !hasValidName || !ociImageValue || !selectedNamespace || isSubmitting || !dataReady;
-
-  const modalTitle = existingDeployment ? 'Edit MCP server deployment' : 'Deploy MCP server';
-
-  if (!existingDeployment && !crLoaded && !crError) {
-    return (
-      <Modal
-        isOpen={isOpen}
-        variant="medium"
-        onClose={() => onClose()}
-        data-testid="mcp-deploy-modal"
-      >
-        <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
-        <ModalBody>
-          <Spinner
-            aria-label="Loading MCP server configuration"
-            data-testid="mcp-deploy-modal-spinner"
-          />
-        </ModalBody>
-      </Modal>
-    );
-  }
+  const modalTitle = isEdit ? 'Edit MCP server deployment' : 'Deploy MCP server';
 
   return (
     <Modal
@@ -220,17 +171,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     >
       <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
       <ModalBody>
-        {crError && (
-          <Alert
-            variant="danger"
-            isInline
-            title="Failed to load MCP server configuration"
-            className="pf-v6-u-mb-md"
-            data-testid="mcp-deploy-load-error"
-          >
-            {crError.message}
-          </Alert>
-        )}
         <Form>
           <K8sNameDescriptionField
             data={nameDescData}
@@ -256,7 +196,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
             />
           </FormGroup>
 
-          {existingDeployment ? (
+          {isEdit ? (
             <FormGroup label="Project" isRequired fieldId="mcp-deploy-project">
               <TextInput
                 id="mcp-deploy-project"
@@ -297,7 +237,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
       </ModalBody>
       <ModalFooter>
         <DashboardModalFooter
-          submitLabel={existingDeployment ? 'Save' : 'Deploy'}
+          submitLabel={isEdit ? 'Save' : 'Deploy'}
           onSubmit={handleDeploy}
           onCancel={() => onClose()}
           isSubmitDisabled={isDeployDisabled}
