@@ -107,6 +107,8 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
     [routerConfigs, topologyType],
   );
 
+  const noConfigsAvailable = isLoaded && !hasLoadError && compatibleConfigs.length === 0;
+
   const options: SimpleSelectOption[] = React.useMemo(
     () =>
       compatibleConfigs.map((config) => {
@@ -141,7 +143,11 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
         </StackItem>
         {value?.enabled && (
           <StackItem>
-            <FormGroup fieldId="routing-config-select" label="Custom routing configuration">
+            <FormGroup
+              fieldId="routing-config-select"
+              label="Custom routing configuration"
+              isRequired
+            >
               <SimpleSelect
                 isFullWidth
                 options={options}
@@ -156,11 +162,11 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
                 placeholder="Select routing configuration"
                 value={value.selectedConfig?.metadata.name}
                 dataTestId="routing-config-select"
-                isDisabled={!isLoaded || hasLoadError}
+                isDisabled={!isLoaded || hasLoadError || noConfigsAvailable}
                 autoSelectOnlyOption={false}
                 toggleProps={hasLoadError ? { status: 'warning' } : undefined}
               />
-              {hasLoadError && (
+              {hasLoadError ? (
                 <FormHelperText>
                   <HelperText>
                     <HelperTextItem variant="warning">
@@ -168,7 +174,16 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
                     </HelperTextItem>
                   </HelperText>
                 </FormHelperText>
-              )}
+              ) : noConfigsAvailable ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="warning">
+                      No routing configurations available for this topology type. Contact your
+                      administrator to create one.
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
             </FormGroup>
           </StackItem>
         )}
