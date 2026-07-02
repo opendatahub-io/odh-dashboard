@@ -42,9 +42,9 @@ export const identifierSchema = baseIdentifierSchema.superRefine((identifier, ct
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: createIdentifierWarningMessage(
-          `${fieldName} for ${
-            identifier.resourceType ?? identifier.displayName
-          } cannot be negative.`,
+          `${fieldName} for ${String(
+            identifier.resourceType ?? identifier.displayName,
+          )} cannot be negative.`,
         ),
         params: {
           code: HardwareProfileWarningType.CANNOT_BE_NEGATIVE,
@@ -61,9 +61,9 @@ export const identifierSchema = baseIdentifierSchema.superRefine((identifier, ct
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: createIdentifierWarningMessage(
-          `${fieldName} for ${
-            identifier.resourceType ?? identifier.displayName
-          } cannot be a decimal.`,
+          `${fieldName} for ${String(
+            identifier.resourceType ?? identifier.displayName,
+          )} cannot be a decimal.`,
         ),
         params: {
           code: HardwareProfileWarningType.CANNOT_BE_DECIMAL,
@@ -128,9 +128,9 @@ export const identifierSchema = baseIdentifierSchema.superRefine((identifier, ct
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: createIdentifierWarningMessage(
-        `The resource count for ${
-          identifier.resourceType ?? identifier.displayName
-        } has an invalid unit.`,
+        `The resource count for ${String(
+          identifier.resourceType ?? identifier.displayName,
+        )} has an invalid unit.`,
       ),
       params: {
         code: HardwareProfileWarningType.INVALID_UNIT,
