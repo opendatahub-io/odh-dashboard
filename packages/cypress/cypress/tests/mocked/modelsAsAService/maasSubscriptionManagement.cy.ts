@@ -238,4 +238,59 @@ describe('Subscription Management Page', () => {
     premiumPolicy.findExpandedModelName().should('not.be.visible');
     premiumPolicy.findExpandedGroupName().should('not.be.visible');
   });
+
+  it('should filter by model name, model ID, description, group name, subscription name, and authorization policy name', () => {
+    subscriptionManagementPage.visit('overview');
+    // Display name
+    overviewTabPage.findFilterInput('model').type('Llama');
+    overviewTabPage.findModelRows().should('have.length', 1);
+    overviewTabPage.clearAllFilters();
+
+    // Resource name
+    overviewTabPage.findFilterInput('model').type('granite-3-8b-instruct');
+    overviewTabPage.findModelRows().should('have.length', 1);
+    overviewTabPage.clearAllFilters();
+
+    // Description
+    overviewTabPage.findFilterInput('model').type('instruction');
+    overviewTabPage.findModelRows().should('have.length', 2);
+
+    // Group name
+    overviewTabPage.clearAllFilters();
+    overviewTabPage.findFilterDropdownButton().click();
+    overviewTabPage.findFilterDropdownItem('groupName').click();
+    overviewTabPage.findFilterInput('group').type('interns');
+    overviewTabPage.findModelRows().should('have.length', 2);
+    overviewTabPage.clearAllFilters();
+    overviewTabPage.findModelRows().should('have.length', 4);
+
+    // Subscription name
+    overviewTabPage.findFilterDropdownButton().click();
+    overviewTabPage.findFilterDropdownItem('subscriptionName').click();
+    overviewTabPage.findFilterInput('subscription').type('Team');
+    overviewTabPage.findModelRows().should('have.length', 2);
+    overviewTabPage.clearAllFilters();
+    overviewTabPage.findModelRows().should('have.length', 4);
+
+    // Authorization policy name
+    overviewTabPage.findFilterDropdownButton().click();
+    overviewTabPage.findFilterDropdownItem('authPolicyName').click();
+    overviewTabPage.findFilterInput('policy').type('Team');
+    overviewTabPage.findModelRows().should('have.length', 2);
+    overviewTabPage.clearAllFilters();
+    overviewTabPage.findModelRows().should('have.length', 4);
+  });
+
+  it('should navigate to the correct form when creating a subscription or authorization policy via the overview toolbar', () => {
+    subscriptionManagementPage.visit('overview');
+    overviewTabPage.findCreateSubscriptionButton().click();
+    cy.url().should('include', '/subscription-management/subscriptions/create');
+    createSubscriptionPage.findCancelButton().click();
+    cy.url().should('include', '/subscription-management/overview');
+    subscriptionManagementPage.findOverviewTab().click();
+    overviewTabPage.findCreateAuthorizationPolicyButton().click();
+    cy.url().should('include', '/subscription-management/auth-policies/create');
+    policyPage.findCancelButton().click();
+    cy.url().should('include', '/subscription-management/overview');
+  });
 });
