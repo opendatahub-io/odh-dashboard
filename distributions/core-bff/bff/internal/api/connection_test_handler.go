@@ -56,6 +56,17 @@ func buildRegistry(isMocked bool) map[string]ProbeFunc {
 	return registry
 }
 
+// normalizeConnectionType strips version suffixes (e.g. "uri-v1" → "uri")
+// to match probe registry keys when the frontend sends the full ConfigMap name.
+func normalizeConnectionType(connType string) string {
+	for key := range probeEntries {
+		if strings.HasPrefix(connType, key+"-") || strings.HasPrefix(connType, key+"_") {
+			return key
+		}
+	}
+	return connType
+}
+
 // NewProbeSemaphore creates a semaphore channel for limiting concurrent probes.
 func NewProbeSemaphore() chan struct{} {
 	return make(chan struct{}, maxConcurrentProbes)
@@ -96,6 +107,9 @@ func (app *App) TestConnectionHandler(w http.ResponseWriter, r *http.Request, _ 
 	registry := buildRegistry(app.config.MockHTTPClient)
 
 	probe, ok := registry[connectionType]
+	if !ok {
+		probe, ok = registry[normalizeConnectionType(connectionType)]
+	}
 	if !ok {
 		httpError := &HTTPError{
 			StatusCode: http.StatusBadRequest,
