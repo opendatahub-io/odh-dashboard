@@ -1,6 +1,6 @@
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { TopologyType } from '@odh-dashboard/llmd-serving/types';
+import { type TopologyType } from '@odh-dashboard/llmd-serving/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
@@ -24,17 +24,28 @@ import {
 } from '../../../utils/models';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
 
+const SINGLE_NODE = 'workload-single-node';
+const MULTI_NODE = 'workload-multi-node-data-parallel';
+const SINGLE_NODE_PD = 'workload-single-node-pd';
+const MULTI_NODE_PD = 'workload-multi-node-data-parallel-pd';
+
 const buildTopologyConfig = (
   name: string,
   displayName: string,
-  configType: TopologyType,
+  configType: string,
   disabled?: boolean,
-) => mockLLMInferenceServiceConfigK8sResource({ name, displayName, configType, disabled });
+) =>
+  mockLLMInferenceServiceConfigK8sResource({
+    name,
+    displayName,
+    configType: configType as TopologyType,
+    disabled,
+  });
 
 const mockTopologyConfigs = [
-  buildTopologyConfig('single-node-config', 'Single Node Config', TopologyType.SINGLE_NODE),
-  buildTopologyConfig('multi-node-config', 'Multi-node Data Parallel', TopologyType.MULTI_NODE),
-  buildTopologyConfig('disabled-config', 'Disabled Config', TopologyType.MULTI_NODE, true),
+  buildTopologyConfig('single-node-config', 'Single Node Config', SINGLE_NODE),
+  buildTopologyConfig('multi-node-config', 'Multi-node Data Parallel', MULTI_NODE),
+  buildTopologyConfig('disabled-config', 'Disabled Config', MULTI_NODE, true),
 ];
 
 const mockRouterConfigs = [
@@ -170,22 +181,13 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('topology-type-select').click();
 
-      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).should(
+      cy.findByTestId(`topology-type-${SINGLE_NODE}`).should(
         'not.have.class',
         'pf-m-aria-disabled',
       );
-      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).should(
-        'not.have.class',
-        'pf-m-aria-disabled',
-      );
-      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE_DISAGGREGATED}`).should(
-        'have.class',
-        'pf-m-aria-disabled',
-      );
-      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE_DISAGGREGATED}`).should(
-        'have.class',
-        'pf-m-aria-disabled',
-      );
+      cy.findByTestId(`topology-type-${MULTI_NODE}`).should('not.have.class', 'pf-m-aria-disabled');
+      cy.findByTestId(`topology-type-${SINGLE_NODE_PD}`).should('have.class', 'pf-m-aria-disabled');
+      cy.findByTestId(`topology-type-${MULTI_NODE_PD}`).should('have.class', 'pf-m-aria-disabled');
     });
 
     it('should always enable Single node even without configs', () => {
@@ -197,7 +199,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('topology-type-select').click();
 
-      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).should(
+      cy.findByTestId(`topology-type-${SINGLE_NODE}`).should(
         'not.have.class',
         'pf-m-aria-disabled',
       );
@@ -214,7 +216,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
 
       cy.findByTestId('topology-type-select').click();
-      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
+      cy.findByTestId(`topology-type-${MULTI_NODE}`).click();
 
       cy.findByTestId('custom-topology-config-select').should('exist').click();
       cy.findByTestId('topology-config-option-multi-node-config').should('exist');
@@ -232,7 +234,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
 
       // Select Multi-node and pick a config
       cy.findByTestId('topology-type-select').click();
-      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
+      cy.findByTestId(`topology-type-${MULTI_NODE}`).click();
       cy.findByTestId('custom-topology-config-select').click();
       cy.findByTestId('topology-config-option-multi-node-config').click();
 
@@ -243,7 +245,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
 
       // Switch to Single node — config should reset
       cy.findByTestId('topology-type-select').click();
-      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).click();
+      cy.findByTestId(`topology-type-${SINGLE_NODE}`).click();
 
       cy.findByTestId('custom-topology-config-select').should(
         'not.contain.text',
