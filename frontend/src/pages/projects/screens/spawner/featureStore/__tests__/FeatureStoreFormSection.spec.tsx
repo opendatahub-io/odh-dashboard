@@ -1,6 +1,7 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { render, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { FeatureStoreFormSection } from '#~/pages/projects/screens/spawner/featureStore/FeatureStoreFormSection';
 import type {
@@ -126,12 +127,14 @@ describe('FeatureStoreFormSection', () => {
 
   it('should render the connected table and example code for selected stores', () => {
     const result = render(
-      <FeatureStoreFormSection
-        loaded
-        availableFeatureStores={[mockFeatureStore()]}
-        selectedFeatureStores={[mockFeatureStore()]}
-        onSelect={jest.fn()}
-      />,
+      <MemoryRouter>
+        <FeatureStoreFormSection
+          loaded
+          availableFeatureStores={[mockFeatureStore()]}
+          selectedFeatureStores={[mockFeatureStore()]}
+          onSelect={jest.fn()}
+        />
+      </MemoryRouter>,
     );
 
     expect(result.getByTestId('feature-store-connected-table')).toBeInTheDocument();
@@ -178,12 +181,14 @@ describe('FeatureStoreFormSection', () => {
     const availableStore = mockFeatureStore();
 
     const result = render(
-      <FeatureStoreFormSection
-        loaded
-        availableFeatureStores={[availableStore]}
-        selectedFeatureStores={[availableStore, unavailableStore]}
-        onSelect={jest.fn()}
-      />,
+      <MemoryRouter>
+        <FeatureStoreFormSection
+          loaded
+          availableFeatureStores={[availableStore]}
+          selectedFeatureStores={[availableStore, unavailableStore]}
+          onSelect={jest.fn()}
+        />
+      </MemoryRouter>,
     );
 
     await act(async () => {
@@ -209,12 +214,14 @@ describe('FeatureStoreFormSection', () => {
     ];
 
     const result = render(
-      <FeatureStoreFormSection
-        loaded
-        availableFeatureStores={availableFeatureStores}
-        selectedFeatureStores={selectedFeatureStores}
-        onSelect={onSelect}
-      />,
+      <MemoryRouter>
+        <FeatureStoreFormSection
+          loaded
+          availableFeatureStores={availableFeatureStores}
+          selectedFeatureStores={selectedFeatureStores}
+          onSelect={onSelect}
+        />
+      </MemoryRouter>,
     );
 
     await act(async () => {
