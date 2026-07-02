@@ -86,6 +86,19 @@ describe('ArtifactRunCell', () => {
     expect(container.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
   });
 
+  it('should show skeleton when run not yet fetched (first render before useEffect)', () => {
+    const runId = 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d';
+    const mockArtifact = {
+      getUri: jest.fn(() => `s3://bucket/pipeline/${runId}/task/artifact`),
+    } as unknown as Artifact;
+
+    // Simulate first render: empty runs, errors, loading (before useEffect populates loading)
+    const { container } = mockRenderWithContext(mockArtifact, {}, {}, new Set());
+
+    // Should show skeleton to avoid flash of "—"
+    expect(container.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
+  });
+
   it('should show dash when run is deleted (404)', () => {
     const runId = 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d';
     const mockArtifact = {

@@ -41,8 +41,9 @@ const ArtifactRunCell: React.FC<ArtifactRunCellProps> = ({ artifact }) => {
   // Get the run from cache
   const run = runs[runId];
   if (!run) {
-    // Run not found (shouldn't happen after successful load, but handle it)
-    return <>—</>;
+    // Not yet fetched (first render before useEffect populates loading)
+    // Show skeleton to avoid flash of "—" on initial mount
+    return <Skeleton />;
   }
 
   const displayName = run.display_name || runId;
