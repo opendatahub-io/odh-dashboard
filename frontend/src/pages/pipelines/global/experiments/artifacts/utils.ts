@@ -19,9 +19,28 @@ export const getIsArtifactModelRegistered = (artifact?: Artifact): boolean => {
 
 /**
  * Extract run ID from artifact URI.
+ *
  * KFP artifact URIs follow the pattern:
  * s3://bucket/pipeline-name/run-id/task-name/artifact-name
  * The run ID is always in the 3rd path segment (index 2) after the protocol.
+ *
+ * ## Why URI parsing instead of MLMD metadata?
+ *
+ * The authoritative MLMD path exists: Artifact → Event → Execution → Context → Run ID
+ * However, URI parsing is preferred because:
+ * - **Performance**: 0 API calls vs 3 sequential MLMD queries per artifact
+ * - **Simplicity**: Synchronous string parsing vs async relationship traversal
+ * - **Reliability**: URI pattern is standardized by KFP and validated with UUID regex
+ * - **Scale**: For tables with 50+ artifacts, URI parsing is instant while MLMD would
+ *   require 150+ sequential API calls
+ *
+ * The MLMD relationship chain is available via:
+ * - `useGetEventByArtifactId(artifactId)` → Event
+ * - `Event.getExecutionId()` → Execution ID
+ * - `useGetPipelineRunContextByExecution(executionId)` → Context
+ * - `Context.getName()` → Run ID (UUID)
+ *
+ * This function validates the extracted UUID format before returning to ensure safety.
  */
 export const extractRunIdFromUri = (uri: string): string | undefined => {
   if (!uri) {
