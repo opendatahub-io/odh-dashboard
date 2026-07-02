@@ -11,9 +11,8 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { useExtensions } from '@odh-dashboard/plugin-core';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
-import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { KnownLabels } from '~/odh/k8sTypes';
@@ -46,7 +45,10 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
   const navigate = useNavigate();
 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-  const actionExtensions = useExtensions(isActionExtension);
+  const [resolvedActionExtensions] = useResolvedExtensions(isActionExtension);
+  const deployActions = resolvedActionExtensions.filter(
+    (ext) => ext.properties.group === MODEL_VERSION_DEPLOY_GROUP,
+  );
 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
@@ -125,11 +127,10 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
             <ToolbarContent>
               <ToolbarGroup>
                 <ToolbarItem>
-                  <ExtensibleActions
-                    actions={actionExtensions}
-                    group={MODEL_VERSION_DEPLOY_GROUP}
-                    componentProps={{ mv }}
-                  />
+                  {deployActions.map((action) => {
+                    const ActionComponent = action.properties.component.default;
+                    return <ActionComponent key={action.properties.id} mv={mv} />;
+                  })}
                 </ToolbarItem>
                 <ToolbarItem>
                   <ModelVersionsDetailsHeaderActions mv={mv} />

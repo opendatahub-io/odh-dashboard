@@ -5,7 +5,11 @@ import type {
   ModelRegistryVersionDeploymentsContextExtension,
 } from '@mf/modelRegistry/extension-points';
 
-const extensions: (ModelRegistryDeployModalExtension | ModelRegistryVersionDeploymentsContextExtension | Extension)[] = [
+const extensions: (
+  | ModelRegistryDeployModalExtension
+  | ModelRegistryVersionDeploymentsContextExtension
+  | Extension
+)[] = [
   {
     type: 'model-registry.model-version/deploy-modal',
     properties: {

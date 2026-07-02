@@ -66,12 +66,16 @@ const CatalogDeployAction: React.FC<CatalogDeployActionProps> = ({ model }) => {
   const canInitializeWizardNavigation =
     isWizardAvailable && artifactsLoaded && !artifactsLoadError && !!uri;
 
+  const isLoading = canInitializeWizardNavigation && navigateToWizard === null;
+
   const buttonState =
     platformIdButtonState.enabled && canInitializeWizardNavigation && navigateToWizard !== null
       ? { enabled: true }
       : {
           enabled: false,
-          tooltip: platformIdButtonState.tooltip || 'Deployment wizard is not available',
+          tooltip: isLoading
+            ? 'Loading deployment data...'
+            : platformIdButtonState.tooltip || 'Deployment wizard is not available',
         };
 
   if (!isWizardAvailable) {
@@ -83,7 +87,7 @@ const CatalogDeployAction: React.FC<CatalogDeployActionProps> = ({ model }) => {
       id="deploy-button"
       aria-label="Deploy model"
       variant={ButtonVariant.primary}
-      onClick={buttonState.enabled && navigateToWizard ? navigateToWizard : undefined}
+      onClick={buttonState.enabled && navigateToWizard ? () => navigateToWizard() : undefined}
       isAriaDisabled={!buttonState.enabled}
       data-testid="deploy-button"
     >
@@ -109,6 +113,8 @@ const CatalogDeployAction: React.FC<CatalogDeployActionProps> = ({ model }) => {
             onNotify={(fn) => {
               if (fn && typeof fn === 'function') {
                 setNavigateToWizard(() => fn);
+              } else {
+                setNavigateToWizard(null);
               }
             }}
           />
