@@ -243,16 +243,14 @@ func (r *DashboardReconciler) reconcile(
 
 	switch obsErr := deployObservabilityManifests(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
 	case obsErr == nil:
-		if dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled {
-			cm.MarkTrue(conditionObservabilityAvailable,
-				conditions.WithReason("Deployed"),
-				conditions.WithMessage("Observability manifests applied successfully"))
-		} else {
-			cm.MarkFalse(conditionObservabilityAvailable,
-				conditions.WithReason("Disabled"),
-				conditions.WithMessage("Observability is not enabled"),
-				conditions.WithSeverity(common.ConditionSeverityInfo))
-		}
+		cm.MarkTrue(conditionObservabilityAvailable,
+			conditions.WithReason("Deployed"),
+			conditions.WithMessage("Observability manifests applied successfully"))
+	case errors.Is(obsErr, ErrObservabilityDisabled):
+		cm.MarkFalse(conditionObservabilityAvailable,
+			conditions.WithReason("Disabled"),
+			conditions.WithMessage("Observability is not enabled"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
 	case errors.Is(obsErr, ErrPersesCRDNotFound):
 		cm.MarkFalse(conditionObservabilityAvailable,
 			conditions.WithReason("PersesCRDNotFound"),

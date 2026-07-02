@@ -10,9 +10,8 @@ import (
 	"strings"
 
 	routev1 "github.com/openshift/api/route/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -28,6 +27,7 @@ import (
 var (
 	ErrDashboardRouteNotReady = errors.New("dashboard route not yet ready")
 	ErrPersesCRDNotFound      = errors.New("PersesDashboard CRD not installed")
+	ErrObservabilityDisabled  = errors.New("observability is not enabled")
 )
 
 func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
@@ -113,23 +113,28 @@ func deployObservabilityManifests(
 	logger := log.FromContext(ctx)
 
 	if dashboard.Spec.Observability == nil || !dashboard.Spec.Observability.Enabled {
-		return nil
+		return ErrObservabilityDisabled
 	}
 
 	if dashboard.Spec.Observability.PersesService == nil {
-		return nil
+		return ErrObservabilityDisabled
 	}
 
-	crd := &apiextensionsv1.CustomResourceDefinition{}
-	if err := cli.Get(ctx, types.NamespacedName{Name: "persesdashboards.perses.dev"}, crd); err != nil {
-		if k8serrors.IsNotFound(err) {
+	// Use a discovery-based check to avoid requiring apiextensions.k8s.io RBAC.
+	persesList := &unstructured.UnstructuredList{}
+	persesList.SetGroupVersionKind(persesdashboardGVK)
+	if err := cli.List(ctx, persesList, client.Limit(1)); err != nil {
+		if meta.IsNoMatchError(err) {
 			return ErrPersesCRDNotFound
 		}
 
-		return fmt.Errorf("failed to check PersesDashboard CRD: %w", err)
+		return fmt.Errorf("failed to check PersesDashboard CRD availability: %w", err)
 	}
 
 	obsNamespace := dashboard.Spec.Observability.PersesService.Namespace
+	if obsNamespace == "" {
+		return fmt.Errorf("observability PersesService namespace must not be empty")
+	}
 
 	m := observabilityManifestInfo(basePath, platform)
 	engine := kustomize.NewEngine()

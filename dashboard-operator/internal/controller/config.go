@@ -16,6 +16,7 @@ import (
 const operatorConfigMapName = "dashboard-operator-config"
 const distributionConfigMapName = "opendatahub-dashboard-config"
 const minReconcileInterval = 5 * time.Second
+const maxDistributionFieldLen = 256
 
 // OperatorConfig holds internal controller flags read from a ConfigMap.
 // A missing or malformed ConfigMap results in zero-value defaults and
@@ -85,6 +86,16 @@ func readDistributionConfig(ctx context.Context, cli client.Client, namespace st
 
 	if name == "" && version == "" {
 		return nil
+	}
+
+	if len(name) > maxDistributionFieldLen {
+		logger.Info("Truncating distribution.name", "original_length", len(name))
+		name = name[:maxDistributionFieldLen]
+	}
+
+	if len(version) > maxDistributionFieldLen {
+		logger.Info("Truncating distribution.version", "original_length", len(version))
+		version = version[:maxDistributionFieldLen]
 	}
 
 	return &v1alpha1.Distribution{

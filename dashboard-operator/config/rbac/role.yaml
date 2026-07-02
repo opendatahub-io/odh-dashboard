@@ -98,19 +98,6 @@ rules:
       - update
       - patch
       - delete
-  # CRDs
-  - apiGroups:
-      - apiextensions.k8s.io
-    resources:
-      - customresourcedefinitions
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
   # Networking
   - apiGroups:
       - networking.k8s.io
