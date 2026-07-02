@@ -1,0 +1,351 @@
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+import {
+  mockConnectionTypeConfigMap,
+  mockModelServingFields,
+} from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  HardwareProfileModel,
+  LLMInferenceServiceConfigModel,
+  LLMInferenceServiceModel,
+  ProjectModel,
+  SecretModel,
+  TemplateModel,
+} from '../../../utils/models';
+import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
+
+// Topology type values (inlined to avoid webpack bundling @odh-dashboard/llmd-serving/types)
+const SINGLE_NODE = 'workload-single-node';
+const MULTI_NODE = 'workload-multi-node-data-parallel';
+const SINGLE_NODE_PD = 'workload-single-node-pd';
+const MULTI_NODE_PD = 'workload-multi-node-data-parallel-pd';
+
+const mockTopologyConfigs = [
+  mockLLMInferenceServiceConfigK8sResource({
+    name: 'single-node-config',
+    displayName: 'Single Node Config',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    configType: SINGLE_NODE as any,
+  }),
+  mockLLMInferenceServiceConfigK8sResource({
+    name: 'multi-node-config',
+    displayName: 'Multi-node Data Parallel',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    configType: MULTI_NODE as any,
+  }),
+  mockLLMInferenceServiceConfigK8sResource({
+    name: 'disabled-config',
+    displayName: 'Disabled Config',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    configType: MULTI_NODE as any,
+    disabled: true,
+  }),
+];
+
+const mockRouterConfigs = [
+  mockLLMInferenceServiceConfigK8sResource({
+    name: 'managed-scheduler-httproute',
+    displayName: 'Managed scheduler with HTTPRoute',
+    configType: 'router',
+  }),
+  mockLLMInferenceServiceConfigK8sResource({
+    name: 'managed-scheduler',
+    displayName: 'Managed scheduler',
+    configType: 'router',
+  }),
+];
+
+const initIntercepts = ({
+  topologyConfigs = mockTopologyConfigs,
+  routerConfigs = mockRouterConfigs,
+  llmdTopologyConfigsEnabled = true,
+}: {
+  topologyConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
+  routerConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
+  llmdTopologyConfigsEnabled?: boolean;
+} = {}) => {
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+      },
+    }),
+  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dashboardConfig = {
+    disableNIMModelServing: true,
+    disableKServe: false,
+    genAiStudio: true,
+    modelAsService: true,
+    disableLLMd: false,
+    llmdTopologyConfigs: llmdTopologyConfigsEnabled,
+    vLLMDeploymentOnMaaS: true,
+  } as any;
+  cy.interceptOdh('GET /api/config', mockDashboardConfig(dashboardConfig));
+  cy.interceptOdh('GET /api/components', null, []);
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  );
+  cy.interceptK8sList(
+    { model: SecretModel, ns: 'test-project' },
+    mockK8sResourceList([
+      mockSecretK8sResource({ name: 'test-s3-secret', displayName: 'test-s3-secret' }),
+    ]),
+  );
+  cy.interceptOdh('GET /api/connection-types', [
+    mockConnectionTypeConfigMap({
+      displayName: 'URI - v1',
+      name: 'uri-v1',
+      category: ['existing-category'],
+      fields: [
+        {
+          type: 'uri',
+          name: 'URI',
+          envVar: 'URI',
+          required: true,
+          properties: {},
+        },
+      ],
+    }),
+    mockConnectionTypeConfigMap({
+      displayName: 'S3',
+      name: 's3',
+      category: ['existing-category'],
+      fields: mockModelServingFields,
+    }),
+  ]);
+  cy.interceptK8sList(
+    TemplateModel,
+    mockK8sResourceList(mockStandardModelServingTemplateK8sResources(), {
+      namespace: 'opendatahub',
+    }),
+  );
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([mockProjectK8sResource({ enableKServe: true })]),
+  );
+  cy.interceptK8sList(LLMInferenceServiceModel, mockK8sResourceList([]));
+  cy.interceptK8sList(
+    { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+    mockK8sResourceList([...topologyConfigs, ...routerConfigs]),
+  );
+  cy.interceptK8sList(
+    { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+    mockK8sResourceList([]),
+  );
+};
+
+const navigateToModelDeploymentStep = () => {
+  modelServingWizard.findModelLocationSelectOption('URI').click();
+  modelServingWizard.findUrilocationInput().type('hf://test/model');
+  modelServingWizard.findSaveConnectionCheckbox().click();
+  modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+  modelServingWizard.findNextButton().click();
+};
+
+describe('Model Serving LLMD Topology & Routing', () => {
+  describe('topology type field', () => {
+    it('should show topology type dropdown when flag enabled and llm-d active', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      cy.findByTestId('topology-type-select').should('exist').should('be.visible');
+    });
+
+    it('should hide topology type dropdown when flag disabled', () => {
+      initIntercepts({ llmdTopologyConfigsEnabled: false });
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      cy.findByTestId('topology-type-select').should('not.exist');
+    });
+
+    it('should disable topology types without configs via aria-disabled', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      cy.findByTestId('topology-type-select').click();
+
+      cy.findByTestId(`topology-type-${SINGLE_NODE}`).should(
+        'not.have.attr',
+        'aria-disabled',
+        'true',
+      );
+      cy.findByTestId(`topology-type-${MULTI_NODE}`).should(
+        'not.have.attr',
+        'aria-disabled',
+        'true',
+      );
+      cy.findByTestId(`topology-type-${SINGLE_NODE_PD}`).should(
+        'have.attr',
+        'aria-disabled',
+        'true',
+      );
+      cy.findByTestId(`topology-type-${MULTI_NODE_PD}`).should(
+        'have.attr',
+        'aria-disabled',
+        'true',
+      );
+    });
+
+    it('should always enable Single node even without configs', () => {
+      initIntercepts({ topologyConfigs: [] });
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      cy.findByTestId('topology-type-select').click();
+
+      cy.findByTestId(`topology-type-${SINGLE_NODE}`).should(
+        'not.have.attr',
+        'aria-disabled',
+        'true',
+      );
+    });
+  });
+
+  describe('custom topology config field', () => {
+    it('should show configs matching the selected topology type', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${MULTI_NODE}`).click();
+
+      cy.findByTestId('custom-topology-config-select').should('exist').click();
+      cy.findByTestId('topology-config-option-multi-node-config').should('exist');
+      cy.findByTestId('topology-config-option-single-node-config').should('not.exist');
+      cy.findByTestId('topology-config-option-disabled-config').should('not.exist');
+    });
+
+    it('should reset custom config when topology type changes', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+
+      // Select Multi-node and pick a config
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${MULTI_NODE}`).click();
+      cy.findByTestId('custom-topology-config-select').click();
+      cy.findByTestId('topology-config-option-multi-node-config').click();
+
+      cy.findByTestId('custom-topology-config-select').should(
+        'contain.text',
+        'Multi-node Data Parallel',
+      );
+
+      // Switch to Single node — config should reset
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${SINGLE_NODE}`).click();
+
+      cy.findByTestId('custom-topology-config-select').should(
+        'not.contain.text',
+        'Multi-node Data Parallel',
+      );
+    });
+  });
+
+  describe('advanced routing field', () => {
+    it('should show checkbox in advanced settings when llm-d active and flag enabled', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findNextButton().click();
+
+      cy.findByTestId('advanced-routing-checkbox').should('exist');
+    });
+
+    it('should hide checkbox when flag disabled', () => {
+      initIntercepts({ llmdTopologyConfigsEnabled: false });
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findNextButton().click();
+
+      cy.findByTestId('advanced-routing-checkbox').should('not.exist');
+    });
+
+    it('should reveal routing config dropdown when checkbox is checked', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findNextButton().click();
+
+      cy.findByTestId('routing-config-select').should('not.exist');
+      cy.findByTestId('advanced-routing-checkbox').click();
+      cy.findByTestId('routing-config-select').should('exist');
+    });
+
+    it('should show router configs in dropdown', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findNextButton().click();
+
+      cy.findByTestId('advanced-routing-checkbox').click();
+      cy.findByTestId('routing-config-select').click();
+      cy.findByTestId('routing-config-option-managed-scheduler-httproute').should('exist');
+      cy.findByTestId('routing-config-option-managed-scheduler').should('exist');
+    });
+
+    it('should clear selection when checkbox is unchecked', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findNextButton().click();
+
+      // Check and select a config
+      cy.findByTestId('advanced-routing-checkbox').click();
+      cy.findByTestId('routing-config-select').click();
+      cy.findByTestId('routing-config-option-managed-scheduler-httproute').click();
+      cy.findByTestId('routing-config-select').should(
+        'contain.text',
+        'Managed scheduler with HTTPRoute',
+      );
+
+      // Uncheck — dropdown should disappear
+      cy.findByTestId('advanced-routing-checkbox').click();
+      cy.findByTestId('routing-config-select').should('not.exist');
+    });
+  });
+});

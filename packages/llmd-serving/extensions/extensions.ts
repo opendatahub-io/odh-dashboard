@@ -21,6 +21,7 @@ import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../src/types
 import type { LLMConfigOptionsFieldType } from '../src/wizardFields/LlmConfigOptionsField';
 import type { TopologyTypeFieldType } from '../src/wizardFields/TopologyTypeField';
 import type { CustomTopologyConfigFieldType } from '../src/wizardFields/CustomTopologyConfigField';
+import type { AdvancedRoutingFieldType } from '../src/wizardFields/AdvancedRoutingField';
 import type {
   GatewaySelectFieldData,
   GatewaySelectFieldType,
@@ -67,6 +68,23 @@ const customTopologyConfigFieldExtension: WizardFieldExtension<
     field: () =>
       import('../src/wizardFields/CustomTopologyConfigField').then(
         (m) => m.CustomTopologyConfigFieldWizardField,
+      ),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+  },
+};
+
+const advancedRoutingFieldExtension: WizardFieldExtension<
+  AdvancedRoutingFieldType,
+  LLMdDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    platform: LLMD_SERVING_ID,
+    field: () =>
+      import('../src/wizardFields/AdvancedRoutingField').then(
+        (m) => m.AdvancedRoutingFieldWizardField,
       ),
   },
   flags: {
@@ -168,6 +186,7 @@ const extensions: (
   | WizardFieldExtension<LLMConfigOptionsFieldType, LLMdDeployment>
   | WizardFieldExtension<TopologyTypeFieldType, LLMdDeployment>
   | WizardFieldExtension<CustomTopologyConfigFieldType, LLMdDeployment>
+  | WizardFieldExtension<AdvancedRoutingFieldType, LLMdDeployment>
   | WizardFieldExtension<GatewaySelectFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
@@ -359,6 +378,7 @@ const extensions: (
   llmConfigOptionsFieldExtension,
   topologyTypeFieldExtension,
   customTopologyConfigFieldExtension,
+  advancedRoutingFieldExtension,
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
   gatewaySelectExtractorExtension,
