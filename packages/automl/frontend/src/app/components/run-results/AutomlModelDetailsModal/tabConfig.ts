@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { TaskType, FeatureImportanceData, ConfusionMatrixData } from '~/app/types';
+import type { TaskType, FeatureImportanceData, ConfusionMatrixData, CurvesData } from '~/app/types';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -12,6 +12,7 @@ import ModelInformationTab from './tabs/ModelInformationTab';
 import FeatureSummaryTab from './tabs/FeatureSummaryTab';
 import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
+import PrecisionRecallTab from './tabs/PrecisionRecallTab';
 
 export type TabContentProps = {
   model: AutomlModel;
@@ -20,6 +21,7 @@ export type TabContentProps = {
   createdAt?: string;
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
+  curves?: CurvesData;
   isArtifactsLoading?: boolean;
 };
 
@@ -79,6 +81,14 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     section: 'Evaluation',
     visibleFor: CLASSIFICATION_TYPES,
     component: ConfusionMatrixTab,
+  },
+  {
+    key: 'precision-recall',
+    label: 'Precision recall',
+    tooltip: 'Precision-recall curve showing the trade-off between precision and recall',
+    section: 'Evaluation',
+    visibleFor: CLASSIFICATION_TYPES,
+    component: PrecisionRecallTab,
   },
 ];
 

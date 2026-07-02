@@ -134,6 +134,28 @@ class AutomlResultsPage {
     return cy.findByTestId('confusion-matrix-gradient');
   }
 
+  // ROC curve (inside model-evaluation tab)
+  findROCCurveSection() {
+    return cy.findByTestId('roc-curve-section');
+  }
+
+  findROCCurveChart() {
+    return cy.findByTestId('roc-curve-chart');
+  }
+
+  findROCCurveNoData() {
+    return cy.findByTestId('roc-curve-no-data');
+  }
+
+  // Precision-Recall tab
+  findPrecisionRecallChart() {
+    return cy.findByTestId('precision-recall-chart');
+  }
+
+  findPrecisionRecallNoData() {
+    return cy.findByTestId('precision-recall-no-data');
+  }
+
   // Register model modal
   findRegisterModelModal() {
     return cy.findByTestId('register-model-modal');
@@ -212,6 +234,7 @@ class AutomlResultsPage {
    * | feature-summary    | yes    | yes        | yes        | no         |
    * | model-evaluation   | yes    | yes        | yes        | yes        |
    * | confusion-matrix   | yes    | yes        | no         | no         |
+   * | precision-recall   | yes    | yes        | no         | no         |
    */
   verifyResultsInteraction(taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries') {
     const isClassification = taskType === 'binary' || taskType === 'multiclass';
@@ -249,11 +272,22 @@ class AutomlResultsPage {
     }
 
     if (isClassification) {
+      cy.step('Verify model-evaluation tab renders ROC curve');
+      this.findModelDetailsTab('model-evaluation').click();
+      this.findROCCurveSection().should('exist');
+      this.findROCCurveChart().should('be.visible');
+
       this.findModelDetailsTab('confusion-matrix').should('exist');
       this.findModelDetailsTab('confusion-matrix').click();
       this.findConfusionMatrixTable().should('be.visible');
+
+      cy.step('Verify precision-recall tab renders chart');
+      this.findModelDetailsTab('precision-recall').should('exist');
+      this.findModelDetailsTab('precision-recall').click();
+      this.findPrecisionRecallChart().should('be.visible');
     } else {
       this.findModelDetailsTab('confusion-matrix').should('not.exist');
+      this.findModelDetailsTab('precision-recall').should('not.exist');
     }
 
     cy.step('Close model details modal');
