@@ -28,7 +28,6 @@ import {
   type BulkSelectValue,
   type ColumnManagementModalColumn,
 } from '@patternfly/react-component-groups';
-// eslint-disable-next-line import/no-extraneous-dependencies -- transitive dep via @patternfly/react-component-groups
 import { DragDropSort, Droppable, type DraggableObject } from '@patternfly/react-drag-drop';
 
 export type ColumnPreset = {
