@@ -36,15 +36,6 @@ func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err
 	app.errorResponse(w, r, httpError)
 }
 
-func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, err error) {
-	app.logger.Warn("Access forbidden", "error", err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
-	httpError := &HTTPError{
-		StatusCode: http.StatusForbidden,
-		Error:      ErrorPayload{Code: strconv.Itoa(http.StatusForbidden), Message: "Forbidden"},
-	}
-	app.errorResponse(w, r, httpError)
-}
-
 func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusBadRequest,
