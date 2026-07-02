@@ -266,6 +266,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
+      - name: Cache turbo (Cypress)
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            **/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-cypress-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-cypress-
       - name: Build for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: npm run cypress:server:build:coverage -- --concurrency=4
