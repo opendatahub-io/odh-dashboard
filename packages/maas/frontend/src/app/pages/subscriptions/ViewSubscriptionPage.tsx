@@ -22,6 +22,7 @@ import {
   getBreadcrumbLabelFromState,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
 import SubscriptionGroupsSection from './viewSubscription/SubscriptionGroupsSection';
@@ -95,6 +96,9 @@ const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSumm
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const location = useLocation();
+  const isSubscriptionManagement = location.pathname.startsWith(
+    `${URL_PREFIX}/subscription-management`,
+  );
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [subscriptionInfo, loaded, loadError] = useGetSubscriptionInfo(subscriptionName);
   const displaySubscriptionName =
@@ -155,6 +159,19 @@ const ViewSubscriptionPage: React.FC = () => {
               />
             </PageSection>
           </Tab>
+          {isSubscriptionManagement && (
+            <Tab
+              eventKey="yaml"
+              title={<TabTitleText>YAML</TabTitleText>}
+              aria-label="YAML tab"
+              data-testid="subscription-yaml-tab"
+            >
+              <SubscriptionManagementYamlTab
+                resourceName={subscriptionName}
+                resourceType="subscription"
+              />
+            </Tab>
+          )}
         </Tabs>
       )}
     </ApplicationsPage>

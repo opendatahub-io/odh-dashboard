@@ -1213,6 +1213,10 @@ declare global {
           response: OdhResponse<{ data: MaaSAuthPolicy }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /maas/api/v1/yaml',
+          response: OdhResponse<{ content: string }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /maas/api/v1/view-policy/:name',
           options: { path: { name: string } },
           response: OdhResponse<{ data: PolicyInfoResponse }>,
