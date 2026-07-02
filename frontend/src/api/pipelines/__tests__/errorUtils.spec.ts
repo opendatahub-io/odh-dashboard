@@ -57,9 +57,26 @@ describe('handlePipelineFailures', () => {
     expect(result).toStrictEqual(malformedMock);
   });
 
-  it('should accept KF errors without error field', async () => {
-    const validMock = { code: 5, message: 'not-found', details: [] };
+  it('should pass through responses without error field (e.g., gRPC status)', async () => {
+    // Responses with code/message but no 'error' field are not treated as ErrorKF
+    // (e.g., gRPC cancelled status: {code: 1, message: '...', details: []})
+    const grpcStatus = { code: 1, message: 'cancelled', details: [] };
 
-    await expect(handlePipelineFailures(Promise.resolve(validMock))).rejects.toThrow('not-found');
+    const result = await handlePipelineFailures(Promise.resolve(grpcStatus));
+    expect(result).toStrictEqual(grpcStatus);
+  });
+
+  it('should not treat HTTP 2xx success responses as errors', async () => {
+    const successMock = { code: 200, message: 'OK', data: { result: 'success' } };
+
+    const result = await handlePipelineFailures(Promise.resolve(successMock));
+    expect(result).toStrictEqual(successMock);
+  });
+
+  it('should not treat gRPC code 0 (OK) as error', async () => {
+    const successMock = { code: 0, message: 'Success', data: [] };
+
+    const result = await handlePipelineFailures(Promise.resolve(successMock));
+    expect(result).toStrictEqual(successMock);
   });
 });

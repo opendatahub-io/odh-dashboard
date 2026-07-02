@@ -32,14 +32,23 @@ const isErrorKF = (e: unknown): e is ErrorKF => {
   if (typeof e !== 'object' || e === null) {
     return false;
   }
-  // Must have code (number) and message (string)
+  // Must have error (string), code (number), and message (string)
+  // The 'error' field distinguishes true KFP errors from other responses (e.g., gRPC status without error field)
   if (
-    !('code' in e && 'message' in e && typeof e.code === 'number' && typeof e.message === 'string')
+    !(
+      'error' in e &&
+      'code' in e &&
+      'message' in e &&
+      typeof e.error === 'string' &&
+      typeof e.code === 'number' &&
+      typeof e.message === 'string'
+    )
   ) {
     return false;
   }
-  // If error field is present, it must be a string
-  if ('error' in e && typeof e.error !== 'string') {
+  // Filter out success responses: gRPC OK (0) or HTTP 2xx codes
+  // Only treat as error if code indicates failure
+  if (e.code === 0 || (e.code >= 200 && e.code < 300)) {
     return false;
   }
   return true;
