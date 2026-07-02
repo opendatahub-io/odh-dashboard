@@ -177,7 +177,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         '@SmokeSet5',
         '@Dashboard',
         '@ModelServing',
-        '@NonConcurrent',
         '@MaaSCI',
         `@MaasSubscriptions`,
       ],
