@@ -47,8 +47,8 @@ import {
   ServingRuntimeModel,
   TemplateModel,
   TrustyAIApplicationsModel,
-} from '../../../utils/models';
-import { projectDetailsSettingsTab } from '../../../pages/projects';
+} from '@odh-dashboard/cypress/cypress/utils/models';
+import { projectDetailsSettingsTab } from '@odh-dashboard/cypress/cypress/pages/projects';
 import {
   configureBiasMetricModal,
   modelMetricsBias,
@@ -56,7 +56,7 @@ import {
   modelMetricsKserve,
   modelMetricsKserveNim,
   modelMetricsPerformance,
-} from '../../../pages/modelMetrics';
+} from '@odh-dashboard/cypress/cypress/pages/modelMetrics';
 
 type HandlersProps = {
   disablePerformanceMetrics?: boolean;

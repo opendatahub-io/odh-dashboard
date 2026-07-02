@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
@@ -29,16 +28,12 @@ import {
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
-import { deleteModal } from '../../../pages/components/DeleteModal';
-import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
+import { deleteModal } from '@odh-dashboard/cypress/cypress/pages/components/DeleteModal';
+import { hardwareProfileSection } from '@odh-dashboard/cypress/cypress/pages/components/HardwareProfileSection';
 import {
   initMockGatewayIntercepts,
   initMockModelAuthIntercepts,
-} from '../../../utils/modelServingUtils';
+} from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -48,14 +43,18 @@ import {
   TemplateModel,
   SecretModel,
   LLMInferenceServiceModel,
-} from '../../../utils/models';
+} from '@odh-dashboard/cypress/cypress/utils/models';
 import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
   modelServingWizardEdit,
-} from '../../../pages/modelServing';
-import { projectDetailsOverviewTab } from '../../../pages/projects';
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { projectDetailsOverviewTab } from '@odh-dashboard/cypress/cypress/pages/projects';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
 
 const initIntercepts = ({
   llmInferenceServices = [],
