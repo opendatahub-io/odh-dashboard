@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/autox-core",
+  "description": "AutoX shared library package - provides shared BFF and Frontend utilities for AutoML, AutoRAG, and related packages.",
+  "version": "0.0.0",
+  "scripts": {
+    "install:module": "npm install --prefix ui",
+    "type-check": "cd ui && npm run test:type-check",
+    "lint": "cd ui && npm run test:lint",
+    "test-unit-coverage": "cd ui && npm run test:unit:coverage -- --coverageDirectory=../jest-coverage"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}

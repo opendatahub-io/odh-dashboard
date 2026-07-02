@@ -1,37 +1,24 @@
 package repositories
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	neturl "net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/kubeflow/model-registry/pkg/openapi"
-	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	metameta "k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-)
-
-const (
-	registeredModelsPath = "/registered_models"
-	versionsPath         = "versions"
-	modelVersionsPath    = "/model_versions"
-	artifactsPath        = "artifacts"
-
-	// Default artifact type for Model Registry model-artifact resources.
-	defaultModelArtifactType = "model-artifact"
 )
 
 // ErrModelRegistryForbidden is returned when the caller lacks permission to list
@@ -132,11 +119,26 @@ type modelRegistryCR struct {
 }
 
 // ModelRegistryRepository handles Model Registry API operations and cluster discovery.
-type ModelRegistryRepository struct{}
+type ModelRegistryRepository struct {
+	client           modelregistry.ModelRegistryClientInterface
+	k8sService       kubernetes.Service
+	pipelinesService pipelines.Service
+	logger           *slog.Logger
+}
 
 // NewModelRegistryRepository creates a new ModelRegistryRepository.
-func NewModelRegistryRepository() *ModelRegistryRepository {
-	return &ModelRegistryRepository{}
+func NewModelRegistryRepository(
+	logger *slog.Logger,
+	client modelregistry.ModelRegistryClientInterface,
+	k8sService kubernetes.Service,
+	pipelinesService pipelines.Service,
+) *ModelRegistryRepository {
+	return &ModelRegistryRepository{
+		client:           client,
+		k8sService:       k8sService,
+		pipelinesService: pipelinesService,
+		logger:           logger,
+	}
 }
 
 // buildModelRegistryURI constructs the S3 URI format expected by the Model Registry UI:
@@ -163,12 +165,39 @@ func buildModelRegistryURI(bucket, key, endpoint, region string) string {
 // fails, resources created in prior steps remain in the registry. The Model Registry API
 // would need DELETE support to implement cleanup; consider manual cleanup of orphaned
 // RegisteredModels if failures occur.
+// RegisterModel resolves the target registry, discovers DSPA storage, and creates
+// a RegisteredModel + ModelVersion + ModelArtifact in sequence. It is the single
+// repo call for the register model handler.
 func (r *ModelRegistryRepository) RegisterModel(
 	ctx context.Context,
-	client modelregistry.HTTPClientInterface,
+	registryUID string,
 	req models.RegisterModelRequest,
-	dspaStorage *models.DSPAObjectStorage,
+	namespace string,
 ) (string, *openapi.ModelArtifact, error) {
+	// Resolve registry and get its URL.
+	reg, err := r.ResolveModelRegistryByUID(ctx, registryUID)
+	if err != nil {
+		return "", nil, err
+	}
+	// Note: The model-registry-operator may create a NetworkPolicy that blocks in-cluster
+	// traffic to the kube-rbac-proxy on port 8443. If this becomes an issue, prefer
+	// reg.ExternalURL (the Route) when available, falling back to reg.ServerURL.
+	baseURL := strings.TrimSpace(reg.ServerURL)
+	if baseURL == "" {
+		return "", nil, fmt.Errorf("model registry %q has no usable internal URL", reg.Name)
+	}
+
+	// Best-effort DSPA discovery: pull object storage config from the DSPA spec (bucket,
+	// endpoint, region) without requiring a ready pipeline server. This is needed to
+	// construct the full S3 URI for the model artifact.
+	dspa, err := r.pipelinesService.DiscoverReadyDSPA(ctx, namespace)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to discover DSPA in namespace %s: %w", namespace, err)
+	}
+	if dspa.ObjectStorage == nil {
+		return "", nil, fmt.Errorf("DSPA %q in namespace %s has no object storage configured", dspa.Name, namespace)
+	}
+
 	// Normalize fields — validation checked for non-blank, now trim for clean API payloads.
 	req.S3Path = strings.TrimSpace(req.S3Path)
 	req.ModelName = strings.TrimSpace(req.ModelName)
@@ -181,39 +210,20 @@ func (r *ModelRegistryRepository) RegisterModel(
 	req.ModelFormatVersion = strings.TrimSpace(req.ModelFormatVersion)
 
 	// 1. Create RegisteredModel
-	regModelCreate := openapi.RegisteredModelCreate{
-		Name: req.ModelName,
-	}
+	regModelCreate := openapi.RegisteredModelCreate{Name: req.ModelName}
 	if req.ModelDescription != "" {
 		regModelCreate.Description = &req.ModelDescription
 	}
-
-	regModelJSON, err := json.Marshal(regModelCreate)
+	regModel, err := r.client.CreateRegisteredModel(ctx, baseURL, regModelCreate)
 	if err != nil {
-		return "", nil, fmt.Errorf("error marshaling registered model: %w", err)
+		return "", nil, err
 	}
-
-	regModelResp, err := client.POST(ctx, registeredModelsPath, bytes.NewBuffer(regModelJSON))
-	if err != nil {
-		return "", nil, fmt.Errorf("error creating registered model: %w", err)
-	}
-
-	var regModel openapi.RegisteredModel
-	if err := json.Unmarshal(regModelResp, &regModel); err != nil {
-		return "", nil, fmt.Errorf("error decoding registered model response: %w", err)
-	}
-
 	regModelID := regModel.GetId()
 	if regModelID == "" {
 		return "", nil, fmt.Errorf("registered model created but ID is empty")
 	}
 
 	// 2. Create ModelVersion under the RegisteredModel
-	versionsURL, err := neturl.JoinPath(registeredModelsPath, regModelID, versionsPath)
-	if err != nil {
-		return "", nil, fmt.Errorf("error building versions path: %w", err)
-	}
-
 	versionCreate := openapi.ModelVersionCreate{
 		Name:              req.VersionName,
 		RegisteredModelId: regModelID,
@@ -221,60 +231,36 @@ func (r *ModelRegistryRepository) RegisterModel(
 	if req.VersionDescription != "" {
 		versionCreate.Description = &req.VersionDescription
 	}
-
-	versionJSON, err := json.Marshal(versionCreate)
+	modelVersion, err := r.client.CreateModelVersion(ctx, baseURL, regModelID, versionCreate)
 	if err != nil {
-		return "", nil, fmt.Errorf("error marshaling model version: %w", err)
+		return "", nil, err
 	}
-
-	versionResp, err := client.POST(ctx, versionsURL, bytes.NewBuffer(versionJSON))
-	if err != nil {
-		return "", nil, fmt.Errorf("error creating model version: %w", err)
-	}
-
-	var modelVersion openapi.ModelVersion
-	if err := json.Unmarshal(versionResp, &modelVersion); err != nil {
-		return "", nil, fmt.Errorf("error decoding model version response: %w", err)
-	}
-
 	versionID := modelVersion.GetId()
 	if versionID == "" {
 		return "", nil, fmt.Errorf("model version created but ID is empty")
 	}
 
 	// 3. Create ModelArtifact pointing to the S3 URI
-	artifactsURL, err := neturl.JoinPath(modelVersionsPath, versionID, artifactsPath)
-	if err != nil {
-		return "", nil, fmt.Errorf("error building artifacts path: %w", err)
+	objectStorage := dspa.ObjectStorage
+	if objectStorage.Bucket == "" {
+		return "", nil, fmt.Errorf("DSPA %q object storage is missing bucket name — contact your administrator", dspa.Name)
 	}
+	if objectStorage.EndpointURL == "" {
+		return "", nil, fmt.Errorf("DSPA %q object storage is missing endpoint URL — contact your administrator", dspa.Name)
+	}
+	parsedEndpoint, err := neturl.Parse(objectStorage.EndpointURL)
+	if err != nil || parsedEndpoint.Host == "" || (parsedEndpoint.Scheme != "http" && parsedEndpoint.Scheme != "https") {
+		return "", nil, fmt.Errorf("DSPA %q object storage has invalid endpoint URL: %s", dspa.Name, objectStorage.EndpointURL)
+	}
+	artifactURI := buildModelRegistryURI(objectStorage.Bucket, req.S3Path, objectStorage.EndpointURL, objectStorage.Region)
 
 	artifactName := req.ArtifactName
 	if artifactName == "" {
 		artifactName = req.VersionName
 	}
-
-	// Build the full S3 URI in the format the Model Registry UI expects:
-	// s3://{bucket}/{key}?endpoint={endpoint}&defaultRegion={region}
-	if dspaStorage == nil {
-		return "", nil, fmt.Errorf("DSPA object storage config is required to construct the artifact URI")
-	}
-	if dspaStorage.Bucket == "" {
-		return "", nil, fmt.Errorf("DSPA object storage config is missing bucket name")
-	}
-	if dspaStorage.EndpointURL == "" {
-		return "", nil, fmt.Errorf("DSPA object storage config is missing endpoint URL")
-	}
-	parsedEndpoint, err := neturl.Parse(dspaStorage.EndpointURL)
-	if err != nil || parsedEndpoint.Host == "" || (parsedEndpoint.Scheme != "http" && parsedEndpoint.Scheme != "https") {
-		return "", nil, fmt.Errorf("DSPA object storage config has invalid endpoint URL: %s", dspaStorage.EndpointURL)
-	}
-	artifactURI := buildModelRegistryURI(dspaStorage.Bucket, req.S3Path, dspaStorage.EndpointURL, dspaStorage.Region)
-
-	artifactType := defaultModelArtifactType
 	artifactCreate := openapi.ModelArtifactCreate{
-		Name:         &artifactName,
-		Uri:          &artifactURI,
-		ArtifactType: &artifactType,
+		Name: &artifactName,
+		Uri:  &artifactURI,
 	}
 	if req.ArtifactDescription != "" {
 		artifactCreate.Description = &req.ArtifactDescription
@@ -285,36 +271,21 @@ func (r *ModelRegistryRepository) RegisterModel(
 	if req.ModelFormatVersion != "" {
 		artifactCreate.ModelFormatVersion = &req.ModelFormatVersion
 	}
-
-	artifactJSON, err := json.Marshal(artifactCreate)
+	modelArtifact, err := r.client.CreateModelArtifact(ctx, baseURL, versionID, artifactCreate)
 	if err != nil {
-		return "", nil, fmt.Errorf("error marshaling model artifact: %w", err)
+		return "", nil, err
 	}
 
-	artifactResp, err := client.POST(ctx, artifactsURL, bytes.NewBuffer(artifactJSON))
-	if err != nil {
-		return "", nil, fmt.Errorf("error creating model artifact: %w", err)
-	}
-
-	var modelArtifact openapi.ModelArtifact
-	if err := json.Unmarshal(artifactResp, &modelArtifact); err != nil {
-		return "", nil, fmt.Errorf("error decoding model artifact response: %w", err)
-	}
-
-	return regModelID, &modelArtifact, nil
+	return regModelID, modelArtifact, nil
 }
 
 // ResolveModelRegistryByUID lists ModelRegistry CRs visible to the caller and returns the one
 // whose ID matches registryUID. The registry must be ready (Available=True).
 func (r *ModelRegistryRepository) ResolveModelRegistryByUID(
 	ctx context.Context,
-	client k8s.KubernetesClientInterface,
-	identity *k8s.RequestIdentity,
-	mockK8Client bool,
 	registryUID string,
-	logger *slog.Logger,
 ) (*models.ModelRegistry, error) {
-	data, err := r.ListModelRegistries(ctx, client, identity, mockK8Client, logger)
+	data, err := r.ListModelRegistries(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -332,74 +303,28 @@ func (r *ModelRegistryRepository) ResolveModelRegistryByUID(
 }
 
 // ListModelRegistries lists all ModelRegistry instance CRs in the model registries namespace.
-// Uses modelregistry.opendatahub.io/v1beta1 which represents individual user-created registries
-// (distinct from the platform-level components.platform.opendatahub.io operator config CR).
-// In mock mode, realistic test fixtures are returned without touching the cluster.
+// Uses modelregistry.opendatahub.io/v1beta1 which represents individual user-created registries.
 // Returns ErrModelRegistryForbidden when the caller lacks RBAC permission.
 // Returns an empty list (not an error) when the ModelRegistry CRD is not installed.
 //
-// Authorization: the dynamic client is scoped to the requesting user's identity.
-// For user_token auth the user's Bearer token is used directly; for internal
-// (SA) auth the SA impersonates the requesting user so RBAC is evaluated against
-// that user rather than the service account.
+// Authorization: the autox-core K8sService scopes the request to the calling user's identity
+// from context — Bearer token for user_token auth, SA impersonation for internal auth.
 func (r *ModelRegistryRepository) ListModelRegistries(
 	ctx context.Context,
-	client k8s.KubernetesClientInterface,
-	identity *k8s.RequestIdentity,
-	mockK8Client bool,
-	logger *slog.Logger,
 ) (*models.ModelRegistriesData, error) {
-	if mockK8Client {
-		return getMockModelRegistries(), nil
-	}
-
-	restConfig := client.GetRestConfig()
-	if restConfig == nil {
-		return nil, fmt.Errorf("failed to get rest.Config from kubernetes client")
-	}
-
-	// Scope the dynamic client to the requesting user so RBAC is evaluated against
-	// their permissions, not the service account's.
-	userConfig := rest.CopyConfig(restConfig)
-	if identity != nil {
-		if identity.Token != "" {
-			// user_token auth: the identity already carries the user's Bearer token;
-			// use it directly instead of the SA token in the base config.
-			userConfig.BearerToken = identity.Token
-			userConfig.BearerTokenFile = ""
-			userConfig.Impersonate = rest.ImpersonationConfig{}
-		} else if identity.UserID != "" {
-			// internal auth: impersonate the requesting user so K8s enforces their RBAC.
-			userConfig.Impersonate = rest.ImpersonationConfig{
-				UserName: identity.UserID,
-				Groups:   identity.Groups,
-			}
-		}
-	}
-	// Clear client certificates to prevent credential leakage across user boundaries
-	userConfig.CertData = nil
-	userConfig.CertFile = ""
-	userConfig.KeyData = nil
-	userConfig.KeyFile = ""
-
-	dynamicClient, err := dynamic.NewForConfig(userConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
-	}
-
+	logger := r.logger
 	// All ModelRegistry instance CRs live in the operator-managed registries namespace.
-	unstructuredList, err := dynamicClient.Resource(modelRegistryGVR).
-		Namespace(modelRegistriesNamespace).
-		List(ctx, metav1.ListOptions{})
+	// Identity is extracted from context by the autox-core K8s client automatically.
+	unstructuredList, err := r.k8sService.ListResources(ctx, modelRegistryGVR, modelRegistriesNamespace)
 	if err != nil {
 		// CRD not installed: metameta.IsNoMatchError covers NoKindMatchError and
 		// NoResourceMatchError, which the dynamic client returns when the resource
 		// type is unknown. Return an empty list rather than an error.
-		if metameta.IsNoMatchError(err) || k8serrors.IsNotFound(err) {
+		if metameta.IsNoMatchError(err) || errors.Is(err, kubernetes.ErrNotFound) {
 			logger.Debug("ModelRegistry CRD not found on this cluster, returning empty list")
 			return &models.ModelRegistriesData{ModelRegistries: []models.ModelRegistry{}}, nil
 		}
-		if k8serrors.IsForbidden(err) {
+		if errors.Is(err, kubernetes.ErrForbidden) {
 			// Join sentinel with original so errors.Is(err, ErrModelRegistryForbidden)
 			// succeeds in the handler while the API server message is retained for logs.
 			return nil, errors.Join(ErrModelRegistryForbidden, err)
@@ -468,17 +393,28 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 	shortForm := fmt.Sprintf("%s.%s", name, modelRegistriesNamespace)
 	for _, host := range hosts {
 		// Classify the host.
-		// Internal: contains ".svc." or ".cluster.local" (cluster-DNS FQDN).
+		// Internal: must match the exact expected FQDN for this registry's service.
+		// Suffix-only matching is insufficient — "attacker.other-ns.svc.cluster.local"
+		// would pass a suffix check but route tokens to the wrong service.
 		// External: not internal, not a short form (bare name or name.namespace),
 		//           and contains no spaces — avoids hardcoding platform-specific
 		//           suffixes like ".apps." that do not apply outside OpenShift.
-		isInternal := strings.Contains(host, ".svc.") || strings.Contains(host, ".cluster.local")
+		expectedFQDN := fmt.Sprintf("%s.%s.%s", name, modelRegistriesNamespace, strings.TrimSuffix(modelRegistryClusterDomain(), "."))
+		isInternal := strings.EqualFold(strings.TrimSuffix(host, "."), expectedFQDN)
 		isExternal := !isInternal && host != name && host != shortForm && !strings.Contains(host, " ")
 
 		if isInternal && serverURL == "" {
-			serverURL = fmt.Sprintf("https://%s:%d%s", host, modelRegistryServicePort, modelRegistryRESTAPIPath())
+			serverURL = (&neturl.URL{
+				Scheme: "https",
+				Host:   net.JoinHostPort(host, strconv.Itoa(modelRegistryServicePort)),
+				Path:   modelRegistryRESTAPIPath(),
+			}).String()
 		} else if isExternal && externalURL == "" {
-			externalURL = fmt.Sprintf("https://%s%s", host, modelRegistryRESTAPIPath())
+			externalURL = (&neturl.URL{
+				Scheme: "https",
+				Host:   host,
+				Path:   modelRegistryRESTAPIPath(),
+			}).String()
 		}
 	}
 
@@ -487,41 +423,44 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 	if serverURL == "" {
 		logger.Warn("ModelRegistry status.hosts is empty, constructing fallback in-cluster URL",
 			"name", name)
-		serverURL = fmt.Sprintf(
-			"https://%s.%s.%s:%d%s",
-			name,
-			modelRegistriesNamespace,
-			modelRegistryClusterDomain(),
-			modelRegistryServicePort,
-			modelRegistryRESTAPIPath(),
-		)
+		fallbackHost := fmt.Sprintf("%s.%s.%s", name, modelRegistriesNamespace, modelRegistryClusterDomain())
+		serverURL = (&neturl.URL{
+			Scheme: "https",
+			Host:   net.JoinHostPort(fallbackHost, strconv.Itoa(modelRegistryServicePort)),
+			Path:   modelRegistryRESTAPIPath(),
+		}).String()
 	}
 
 	return serverURL, externalURL
 }
 
-// getMockModelRegistries returns realistic mock data for development and testing.
-func getMockModelRegistries() *models.ModelRegistriesData {
-	return &models.ModelRegistriesData{
-		ModelRegistries: []models.ModelRegistry{
-			{
-				ID:          "a1b2c3d4-e5f6-7890-abcd-111111111111",
-				Name:        "default-modelregistry",
-				DisplayName: "Default Model Registry",
-				Description: "Default shared model registry for the organization",
-				IsReady:     true,
-				ServerURL:   "https://default-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1alpha3",
-				ExternalURL: "https://default-modelregistry-rest.apps.example.com/api/model_registry/v1alpha3",
-			},
-			{
-				ID:          "b2c3d4e5-f6a7-8901-bcde-222222222222",
-				Name:        "team-modelregistry",
-				DisplayName: "Team Model Registry",
-				Description: "Dedicated model registry for the ML team",
-				IsReady:     true,
-				ServerURL:   "https://team-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1alpha3",
-				ExternalURL: "https://team-modelregistry-rest.apps.example.com/api/model_registry/v1alpha3",
-			},
-		},
+// ValidateRegisterModelRequest validates the RegisterModelRequest body fields.
+// The registry ID is validated by the handler from the path parameter, not here.
+// s3_path is a relative S3 object key (e.g., "pipeline/run/.../predictor").
+// The handler constructs the full URI from the DSPA object storage config.
+func ValidateRegisterModelRequest(req models.RegisterModelRequest) error {
+	s3Path := strings.TrimSpace(req.S3Path)
+	if s3Path == "" {
+		return errors.New("s3_path is required and cannot be empty")
 	}
+	// s3_path must be a relative key — reject URI schemes, path traversal, and query/fragment syntax.
+	if strings.Contains(s3Path, "://") {
+		return errors.New("s3_path must be a relative S3 object key, not a full URI")
+	}
+	if strings.HasPrefix(s3Path, "/") || strings.HasPrefix(s3Path, "./") || strings.HasPrefix(s3Path, "../") {
+		return errors.New("s3_path must be a relative path without leading '/', './', or '../'")
+	}
+	if strings.Contains(s3Path, "/../") || strings.HasSuffix(s3Path, "/..") {
+		return errors.New("s3_path must not contain path traversal sequences")
+	}
+	if strings.ContainsAny(s3Path, "?#@") {
+		return errors.New("s3_path must not contain query, fragment, or host delimiters ('?', '#', '@')")
+	}
+	if strings.TrimSpace(req.ModelName) == "" {
+		return errors.New("model_name is required and cannot be empty")
+	}
+	if strings.TrimSpace(req.VersionName) == "" {
+		return errors.New("version_name is required and cannot be empty")
+	}
+	return nil
 }

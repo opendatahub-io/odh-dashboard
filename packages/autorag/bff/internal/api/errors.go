@@ -104,7 +104,7 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 	app.errorResponse(w, r, httpError)
 }
 
-func (app *App) serverErrorResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) {
+func (app *App) serverErrorResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) { //nolint:unused
 	app.LogError(r, err)
 
 	httpError := &integrations.HTTPError{

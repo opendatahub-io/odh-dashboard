@@ -323,6 +323,9 @@ function AutoragResultsPage(): React.JSX.Element {
                         variant="secondary"
                         icon={<StopCircleIcon />}
                         onClick={() => setIsStopModalOpen(true)}
+                        isDisabled={isTerminating || isStopModalOpen}
+                        isLoading={isTerminating || isStopModalOpen}
+                        spinnerAriaValueText="Stopping run"
                         data-testid="stop-run-button"
                       >
                         Stop
