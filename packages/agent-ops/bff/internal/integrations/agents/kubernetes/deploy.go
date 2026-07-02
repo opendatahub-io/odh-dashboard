@@ -192,7 +192,7 @@ func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 		}
 
 		if currentReplicas == 0 {
-			return &agents.UnavailableError{Message: fmt.Sprintf("agent %s/%s is already stopped", namespace, name)}
+			return fmt.Errorf("agent %s/%s is already stopped: %w", namespace, name, agents.ErrConflict)
 		}
 
 		if deployment.Annotations == nil {
@@ -244,7 +244,7 @@ func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 		}
 
 		if currentReplicas > 0 {
-			return &agents.UnavailableError{Message: fmt.Sprintf("agent %s/%s is already running", namespace, name)}
+			return fmt.Errorf("agent %s/%s is already running: %w", namespace, name, agents.ErrConflict)
 		}
 
 		targetReplicas := int32(1)

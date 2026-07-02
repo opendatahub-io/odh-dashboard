@@ -169,12 +169,14 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: stopAgent
       summary: Stop an agent
       description: >-
-        Scales the agent Deployment to zero replicas. The original replica count
+        Scales the agent Deployment to zero replicas. Returns 409 if already stopped. The original replica count
         is stored as an annotation for later restoration via the start endpoint.
   /api/v1/agents/runtimes/{ns}/{name}/start:
     summary: Start an agent deployment.
@@ -197,6 +199,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: startAgent
@@ -767,11 +771,17 @@ components:
     LifecycleResult:
       description: Result of a lifecycle operation (stop/start).
       required:
+        - success
         - name
         - namespace
+        - action
         - message
       type: object
       properties:
+        success:
+          type: boolean
+          description: Whether the operation completed successfully.
+          example: true
         name:
           type: string
           description: Name of the agent.
@@ -780,10 +790,17 @@ components:
           type: string
           description: Namespace of the agent.
           example: agent-ops-demo
+        action:
+          type: string
+          description: The lifecycle action that was performed.
+          enum:
+            - stop
+            - start
+          example: stop
         message:
           type: string
           description: Human-readable result message.
-          example: Lifecycle operation completed successfully
+          example: Agent stop completed successfully
   responses:
     HealthCheckResponse:
       description: BFF service health status
@@ -981,16 +998,20 @@ components:
               summary: Agent stopped
               value:
                 data:
+                  success: true
                   name: my-agent
                   namespace: agent-ops-demo
-                  message: Agent stopped successfully
+                  action: stop
+                  message: Agent stop completed successfully
             started:
               summary: Agent started
               value:
                 data:
+                  success: true
                   name: my-agent
                   namespace: agent-ops-demo
-                  message: Agent started successfully
+                  action: start
+                  message: Agent start completed successfully
       description: Confirms a lifecycle operation completed successfully.
 
   parameters:
