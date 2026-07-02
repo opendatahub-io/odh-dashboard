@@ -31,16 +31,13 @@ const MULTI_NODE_PD = 'workload-multi-node-data-parallel-pd';
 const buildTopologyConfig = (
   name: string,
   displayName: string,
-  topologyType: string,
+  configType:
+    | 'workload-single-node'
+    | 'workload-multi-node-data-parallel'
+    | 'workload-single-node-pd'
+    | 'workload-multi-node-data-parallel-pd',
   disabled?: boolean,
-) => {
-  const config = mockLLMInferenceServiceConfigK8sResource({ name, displayName, disabled });
-  config.metadata.labels = {
-    ...config.metadata.labels,
-    'opendatahub.io/config-type': topologyType,
-  };
-  return config;
-};
+) => mockLLMInferenceServiceConfigK8sResource({ name, displayName, configType, disabled });
 
 const mockTopologyConfigs = [
   buildTopologyConfig('single-node-config', 'Single Node Config', SINGLE_NODE),
