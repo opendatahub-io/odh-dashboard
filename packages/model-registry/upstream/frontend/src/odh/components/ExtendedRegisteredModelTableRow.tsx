@@ -1,8 +1,28 @@
-import { Button, Content, ContentVariants, FlexItem, Truncate } from '@patternfly/react-core';
-import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
+import {
+  Button,
+  Content,
+  ContentVariants,
+  Divider,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  FlexItem,
+  MenuToggle,
+  Truncate,
+} from '@patternfly/react-core';
+import { EllipsisVIcon } from '@patternfly/react-icons';
+import { Td, Tr } from '@patternfly/react-table';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import {
+  useExtensions,
+  useResolvedExtensions,
+  LazyCodeRefComponent,
+} from '@odh-dashboard/plugin-core';
+import {
+  isActionExtension,
+  isTableColumnExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
@@ -18,8 +38,10 @@ import {
   registeredModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { ModelState, ModelVersion, RegisteredModel } from '~/app/types';
-import { isModelRegistryTableColumnExtension } from '~/odh/extension-points/table';
-import DeployModalExtension from '~/odh/components/DeployModalExtension';
+
+const MODEL_REGISTRY_TABLE_COLUMN_GROUP = 'model-registry.registered-models';
+
+const MODEL_VERSION_DEPLOY_GROUP = 'model-registry.version-deploy';
 
 type ExtendedRegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -39,85 +61,24 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
   const { apiState } = React.useContext(ModelRegistryContext);
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const [isKebabOpen, setKebabOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const [deployModal, setDeployModal] = React.useState<React.ReactNode>(null);
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.name);
 
-  const columnExtensions = useExtensions(isModelRegistryTableColumnExtension);
-  // Check if deployments column extension is available by checking for the required flag
+  const allColumnExtensions = useExtensions(isTableColumnExtension);
+  const columnExtensions = allColumnExtensions.filter(
+    (ext) => ext.properties.group === MODEL_REGISTRY_TABLE_COLUMN_GROUP,
+  );
   const isModelServingEnabled = columnExtensions.some((extension) =>
     extension.flags?.required?.includes('model-serving-shell'),
   );
 
-  const baseActions: IAction[] = [
-    {
-      title: 'View model information',
-      isDisabled: true,
-    },
-    {
-      title: 'Overview',
-      onClick: () => {
-        navigate(
-          isArchiveRow
-            ? registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.name)
-            : rmUrl,
-        );
-      },
-    },
-    {
-      title: 'Versions',
-      onClick: () => {
-        navigate(
-          isArchiveRow
-            ? archiveModelVersionListUrl(rm.id, preferredModelRegistry?.name)
-            : modelVersionListUrl(rm.id, preferredModelRegistry?.name),
-        );
-      },
-    },
-    ...(!isArchiveRow && isModelServingEnabled
-      ? [
-          {
-            title: 'Deployments',
-            onClick: () => {
-              navigate(`${rmUrl}/deployments`);
-            },
-          },
-        ]
-      : []),
-  ];
-
-  const latestVersionActionsHeader: IAction[] = [
-    { isSeparator: true },
-    {
-      title: 'Latest version actions',
-      isDisabled: true,
-    },
-  ];
-
-  const archiveRestoreActions: IAction[] = [
-    { isSeparator: true },
-    ...(isArchiveRow
-      ? [
-          {
-            title: 'Restore model',
-            onClick: () => setIsRestoreModalOpen(true),
-          },
-        ]
-      : [
-          {
-            title: 'Archive model',
-            onClick: () => {
-              if (!hasDeploys) {
-                setIsArchiveModalOpen(true);
-              }
-            },
-            isAriaDisabled: hasDeploys,
-            tooltipProps: hasDeploys
-              ? { content: 'Models with deployed versions cannot be archived.' }
-              : undefined,
-          },
-        ]),
-  ];
+  const [resolvedActionExtensions] = useResolvedExtensions(isActionExtension);
+  const deployActions = resolvedActionExtensions.filter(
+    (ext) => ext.properties.group === MODEL_VERSION_DEPLOY_GROUP,
+  );
 
   const handleModelNameNavigation = (rmId: string) =>
     isArchiveRow
@@ -195,38 +156,92 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
         </Content>
       </Td>
       <Td isActionCell>
-        {latestModelVersion && !isArchiveRow ? (
-          <DeployModalExtension
-            mv={latestModelVersion}
-            render={(buttonState, onOpenModal, isModalAvailable) =>
-              isModalAvailable ? (
-                <ActionsColumn
-                  items={[
-                    ...baseActions,
-                    ...latestVersionActionsHeader,
-                    {
-                      title: (
-                        <>
-                          Deploy <strong>{latestModelVersion.name}</strong>
-                        </>
-                      ),
-                      onClick: onOpenModal,
-                      isAriaDisabled: !buttonState.enabled,
-                      tooltipProps: buttonState.tooltip
-                        ? { content: buttonState.tooltip }
-                        : undefined,
-                    },
-                    ...archiveRestoreActions,
-                  ]}
-                />
-              ) : (
-                <ActionsColumn items={[...baseActions, ...archiveRestoreActions]} />
-              )
-            }
-          />
-        ) : (
-          <ActionsColumn items={[...baseActions, ...archiveRestoreActions]} />
-        )}
+        <Dropdown
+          isOpen={isKebabOpen}
+          onSelect={() => setKebabOpen(false)}
+          onOpenChange={setKebabOpen}
+          popperProps={{ position: 'end' }}
+          toggle={(toggleRef) => (
+            <MenuToggle
+              ref={toggleRef}
+              variant="plain"
+              onClick={() => setKebabOpen(!isKebabOpen)}
+              isExpanded={isKebabOpen}
+              aria-label="Kebab toggle"
+            >
+              <EllipsisVIcon />
+            </MenuToggle>
+          )}
+        >
+          <DropdownList>
+            <DropdownItem isDisabled>View model information</DropdownItem>
+            <DropdownItem
+              onClick={() =>
+                navigate(
+                  isArchiveRow
+                    ? registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.name)
+                    : rmUrl,
+                )
+              }
+            >
+              Overview
+            </DropdownItem>
+            <DropdownItem
+              onClick={() =>
+                navigate(
+                  isArchiveRow
+                    ? archiveModelVersionListUrl(rm.id, preferredModelRegistry?.name)
+                    : modelVersionListUrl(rm.id, preferredModelRegistry?.name),
+                )
+              }
+            >
+              Versions
+            </DropdownItem>
+            {!isArchiveRow && isModelServingEnabled && (
+              <DropdownItem onClick={() => navigate(`${rmUrl}/deployments`)}>
+                Deployments
+              </DropdownItem>
+            )}
+            {latestModelVersion && !isArchiveRow && deployActions.length > 0 && (
+              <>
+                <Divider />
+                <DropdownItem isDisabled>Latest version actions</DropdownItem>
+                {deployActions.map((action) => {
+                  const ActionComponent = action.properties.component.default;
+                  return (
+                    <ActionComponent
+                      key={action.properties.id}
+                      mv={latestModelVersion}
+                      renderAs="dropdown-item"
+                      onRenderModal={setDeployModal}
+                    />
+                  );
+                })}
+              </>
+            )}
+            <Divider />
+            {isArchiveRow ? (
+              <DropdownItem onClick={() => setIsRestoreModalOpen(true)}>Restore model</DropdownItem>
+            ) : (
+              <DropdownItem
+                onClick={() => {
+                  if (!hasDeploys) {
+                    setIsArchiveModalOpen(true);
+                  }
+                }}
+                isAriaDisabled={hasDeploys}
+                tooltipProps={
+                  hasDeploys
+                    ? { content: 'Models with deployed versions cannot be archived.' }
+                    : undefined
+                }
+              >
+                Archive model
+              </DropdownItem>
+            )}
+          </DropdownList>
+        </Dropdown>
+        {deployModal}
         {isArchiveModalOpen ? (
           <ArchiveRegisteredModelModal
             onCancel={() => setIsArchiveModalOpen(false)}

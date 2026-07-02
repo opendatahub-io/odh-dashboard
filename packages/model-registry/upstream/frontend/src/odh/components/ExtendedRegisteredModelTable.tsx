@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { Table, DashboardEmptyTableView } from 'mod-arch-shared';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { isTableColumnExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import { getLatestVersionForRegisteredModel } from '~/app/pages/modelRegistry/screens/utils';
 import { rmColumns } from '~/app/pages/modelRegistry/screens/RegisteredModels/RegisteredModelsTableColumns';
-import { isModelRegistryTableColumnExtension } from '~/odh/extension-points/table';
 import ExtendedRegisteredModelTableRow from './ExtendedRegisteredModelTableRow';
+
+const MODEL_REGISTRY_TABLE_COLUMN_GROUP = 'model-registry.registered-models';
 
 type ExtendedRegisteredModelTableProps = {
   clearFilters: () => void;
@@ -21,8 +23,14 @@ const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> 
   toolbarContent,
   refresh,
 }) => {
-  const [columnExtensions, columnExtensionsLoaded] = useResolvedExtensions(
-    isModelRegistryTableColumnExtension,
+  const [allColumnExtensions, columnExtensionsLoaded] =
+    useResolvedExtensions(isTableColumnExtension);
+  const columnExtensions = React.useMemo(
+    () =>
+      allColumnExtensions.filter(
+        (ext) => ext.properties.group === MODEL_REGISTRY_TABLE_COLUMN_GROUP,
+      ),
+    [allColumnExtensions],
   );
 
   const { extendedColumns, defaultSortColumnIndex } = React.useMemo(() => {

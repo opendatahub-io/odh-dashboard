@@ -11,6 +11,8 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { KnownLabels } from '~/odh/k8sTypes';
@@ -28,8 +30,9 @@ import {
 import ModelVersionSelector from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionSelector';
 import ModelVersionDetailsTabs from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
 import ModelVersionsDetailsHeaderActions from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsHeaderActions';
-import { MRDeployButton } from '~/odh/components/MRDeployButton';
 import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
+
+const MODEL_VERSION_DEPLOY_GROUP = 'model-registry.version-deploy';
 
 type ModelVersionsDetailProps = {
   tab: string;
@@ -42,6 +45,10 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
   const navigate = useNavigate();
 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const [resolvedActionExtensions] = useResolvedExtensions(isActionExtension);
+  const deployActions = resolvedActionExtensions.filter(
+    (ext) => ext.properties.group === MODEL_VERSION_DEPLOY_GROUP,
+  );
 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
@@ -120,7 +127,10 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
             <ToolbarContent>
               <ToolbarGroup>
                 <ToolbarItem>
-                  <MRDeployButton mv={mv} />
+                  {deployActions.map((action) => {
+                    const ActionComponent = action.properties.component.default;
+                    return <ActionComponent key={action.properties.id} mv={mv} />;
+                  })}
                 </ToolbarItem>
                 <ToolbarItem>
                   <ModelVersionsDetailsHeaderActions mv={mv} />
