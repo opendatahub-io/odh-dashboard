@@ -30,6 +30,7 @@ type ConnectionsTableRowProps = {
   showStatusCell?: boolean;
   showWarningIcon?: boolean;
   onEditConnection?: (connection: Connection) => void;
+  isTesting?: boolean;
 };
 
 const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
@@ -41,6 +42,7 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   showStatusCell = true,
   showWarningIcon = false,
   onEditConnection,
+  isTesting = false,
 }) => {
   const connectionTypeDisplayName = React.useMemo(
     () => getConnectionTypeDisplayName(obj, connectionTypes ?? []) || 'Unknown',
@@ -52,8 +54,9 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   const statusAnnotation = obj.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS];
   const isValidStatus = (value: string): value is ConnectionTestStatus =>
     Object.values<string>(ConnectionTestStatus).includes(value);
-  const connectionStatus =
-    statusAnnotation && isValidStatus(statusAnnotation)
+  const connectionStatus = isTesting
+    ? ConnectionTestStatus.TESTING
+    : statusAnnotation && isValidStatus(statusAnnotation)
       ? statusAnnotation
       : ConnectionTestStatus.NOT_TESTED;
   const connectionTimestamp = obj.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.TIMESTAMP];
