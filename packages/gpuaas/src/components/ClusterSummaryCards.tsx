@@ -16,6 +16,7 @@ import {
 import { CubesIcon } from '@patternfly/react-icons';
 import { ChartDonutUtilization } from '@patternfly/react-charts/victory';
 import { ClusterMetrics } from '../hooks/useInfrastructureMetrics';
+import './ClusterSummaryCards.scss';
 
 type ClusterSummaryCardsProps = {
   metrics: ClusterMetrics;
@@ -30,7 +31,7 @@ const ClusterSummaryCards: React.FC<ClusterSummaryCardsProps> = ({ metrics }) =>
 
   if (!loaded) {
     return (
-      <Bullseye style={{ minHeight: 150 }}>
+      <Bullseye className="gpuaas-cluster-spinner">
         <Spinner />
       </Bullseye>
     );
