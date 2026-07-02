@@ -86,8 +86,6 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           Create subscription
         </Button>
       </ToolbarItem>
-    </ToolbarGroup>
-    <ToolbarGroup>
       <ToolbarItem>
         <Button
           variant="secondary"
