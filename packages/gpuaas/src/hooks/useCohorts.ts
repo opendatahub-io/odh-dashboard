@@ -6,11 +6,10 @@ import { listCohorts } from '@odh-dashboard/internal/api/k8s/cohorts';
 import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import { FlavorQuota, UnifiedCohort } from '../types';
 import { INFRASTRUCTURE_REFRESH_INTERVAL } from '../const';
+import parseK8sQuantity from '../utils/parseK8sQuantity';
 
+// CQs with no cohortName are bucketed under the empty-string key
 const STANDALONE_BUCKET_NAME = '';
-
-const parseQuantity = (value: string | number): number =>
-  typeof value === 'number' ? value : parseFloat(value) || 0;
 
 const buildExplicitPool = (cohort: CohortKind): FlavorQuota[] =>
   (cohort.spec.resourceGroups ?? []).flatMap((rg) =>
@@ -18,7 +17,7 @@ const buildExplicitPool = (cohort: CohortKind): FlavorQuota[] =>
       name: f.name,
       resources: f.resources.map((r) => ({
         name: r.name,
-        nominalQuota: parseQuantity(r.nominalQuota),
+        nominalQuota: parseK8sQuantity(r.nominalQuota),
       })),
     })),
   );
@@ -36,7 +35,7 @@ const buildImplicitPool = (memberCQs: ClusterQueueKind[]): FlavorQuota[] => {
         }
         for (const r of flavor.resources) {
           const current = resourceMap.get(r.name) ?? 0;
-          resourceMap.set(r.name, current + parseQuantity(r.nominalQuota));
+          resourceMap.set(r.name, current + parseK8sQuantity(r.nominalQuota));
         }
       }
     }
