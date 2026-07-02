@@ -6,3 +6,31 @@
     }
   }
 }
+
+.pipeline-run-status-summary {
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  flex-shrink: 0;
+}
+
+// Transparent HTML button overlay rendered inside SVG <foreignObject>.
+// Enables keyboard focus and screen reader access on topology pipeline nodes.
+// Mouse events pass through (pointer-events: none) to the SVG below;
+// only keyboard (Tab / Enter / Space) and assistive technology use this element.
+.pipeline-node-a11y-button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--pf-t--global--color--brand--default, #06c);
+    outline-offset: 2px;
+    border-radius: 3px;
+    pointer-events: none;
+  }
+}
