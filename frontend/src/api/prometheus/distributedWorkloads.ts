@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { PrometheusQueryResponse } from '#~/types';
-import { FetchStateObject } from '#~/utilities/useFetch';
 import { DEFAULT_VALUE_FETCH_STATE } from '#~/utilities/const';
 import { WorkloadKind, WorkloadOwnerType } from '#~/k8sTypes';
 import { TopWorkloadUsageType, getWorkloadOwner } from '#~/concepts/distributedWorkloads/utils';

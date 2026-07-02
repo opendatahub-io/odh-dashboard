@@ -1,8 +1,8 @@
 import React from 'react';
 
 import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import { FetchStateRefreshPromise } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
-import { FetchStateRefreshPromise } from '#~/utilities/useFetchState';
 import { getStorageClassConfig, setDefaultStorageClass } from './utils';
 
 export interface StorageClassContextProps {
