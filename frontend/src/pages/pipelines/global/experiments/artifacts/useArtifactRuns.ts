@@ -2,6 +2,7 @@ import React from 'react';
 import { Artifact } from '#~/third_party/mlmd';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { getGenericErrorCode } from '#~/api/errorUtils';
 import { extractRunIdFromUri } from './utils';
 
 /**
@@ -41,9 +42,27 @@ export const useArtifactRuns = (
     // Note: We read runs/errors state but don't include them in deps to avoid infinite loops.
     // inFlightRef prevents concurrent duplicates; stale closure state is acceptable here
     // since we only care about deduping within the current render cycle.
-    const runIdsToFetch = Array.from(runIds).filter(
-      (id) => !(id in runs) && !(id in errors) && !inFlightRef.current.has(id),
-    );
+    //
+    // We distinguish between permanent (404) and retryable errors:
+    // - 404: run was deleted, will never exist -> don't retry
+    // - Network/5xx: transient failure -> allow retry on component remount or page reload
+    const runIdsToFetch = Array.from(runIds).filter((id) => {
+      if (id in runs) {
+        return false; // Already have the run
+      }
+      if (inFlightRef.current.has(id)) {
+        return false; // Currently fetching
+      }
+      if (id in errors) {
+        // Allow retry for retryable errors (network, 5xx), but not 404 (run deleted)
+        const errorCode = getGenericErrorCode(errors[id]);
+        if (errorCode === 404) {
+          return false; // Permanent error, don't retry
+        }
+        // For other errors (network, 5xx, etc.), allow retry on remount
+      }
+      return true;
+    });
 
     if (runIdsToFetch.length === 0) {
       return;
