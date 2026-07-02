@@ -76,7 +76,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
   const useStageMap = hasStageMapTask && !componentStageMapError;
-  const nodes = useStageMap ? stageMapNodes : fallbackNodes;
+  const nodes = useStageMap && stageMapNodes.length > 0 ? stageMapNodes : fallbackNodes;
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);
