@@ -1602,6 +1602,9 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		}
 		provisioned, err := pgvector.EnsurePostgres(ctx, kc.SAClient, namespace, opts)
 		if err != nil {
+			if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
+				return nil, fmt.Errorf("the dashboard service account does not have permission to provision the vector database; contact your cluster administrator to apply the required ClusterRole: %w", err)
+			}
 			return nil, fmt.Errorf("failed to provision pgvector: %w", err)
 		}
 		pgConn = provisioned
@@ -2608,7 +2611,7 @@ func isInternalClusterHost(host string) bool {
 	return strings.HasSuffix(hostname, ".svc.cluster.local")
 }
 
-func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error) {
+func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string, deletePgvector bool) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -2617,11 +2620,6 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	if err != nil {
 		kc.Logger.Error("failed to fetch OGXServers", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to fetch OGXServers: %w", err)
-	}
-
-	if len(serverList.Items) == 0 {
-		kc.Logger.Error("no OGXServer found with OpenDataHubDashboardLabelKey label", "namespace", namespace)
-		return nil, fmt.Errorf("no OGXServer found in namespace %s with OpenDataHubDashboardLabelKey label", namespace)
 	}
 
 	var targetServer *ogxapi.OGXServer
@@ -2634,8 +2632,23 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	}
 
 	if targetServer == nil {
+		// During a reconfigure (!deletePgvector), the OGXServer may already be
+		// gone — treat this as success since the goal is to clear it before reinstall.
+		if !deletePgvector {
+			kc.Logger.Info("OGXServer already absent during reconfigure, nothing to delete", "name", name, "namespace", namespace)
+			return nil, nil
+		}
 		kc.Logger.Error("OGXServer with matching name not found", "k8sName", name, "namespace", namespace)
 		return nil, fmt.Errorf("OGXServer with name '%s' not found in namespace %s", name, namespace)
+	}
+
+	// During a reconfigure, strip owner references from pgvector resources BEFORE
+	// deleting the OGXServer. Otherwise Kubernetes GC cascading-deletes pgvector
+	// when the OGXServer (the owner) is removed.
+	if !deletePgvector && kc.SAClient != nil {
+		if err := pgvector.ClearOwnerReferences(ctx, kc.SAClient, namespace); err != nil {
+			kc.Logger.Warn("failed to clear pgvector owner references before reconfigure delete", "error", err, "namespace", namespace)
+		}
 	}
 
 	err = kc.Client.Delete(ctx, &ogxapi.OGXServer{ObjectMeta: metav1.ObjectMeta{Name: targetServer.Name, Namespace: namespace}})
@@ -2646,8 +2659,9 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 
 	kc.Logger.Info("successfully deleted OGXServer", "namespace", namespace, "name", targetServer.Name, "displayName", name)
 
-	// Clean up auto-provisioned pgvector resources on full playground delete.
-	if kc.SAClient != nil {
+	// Clean up auto-provisioned pgvector resources only on full playground delete,
+	// not on reconfigure (model switch) where the vector store data should persist.
+	if deletePgvector && kc.SAClient != nil {
 		if err := pgvector.DeletePostgresResources(ctx, kc.SAClient, namespace); err != nil {
 			kc.Logger.Error("failed to delete pgvector resources", "error", err, "namespace", namespace)
 			return targetServer, fmt.Errorf("OGXServer deleted but pgvector cleanup failed: %w", err)

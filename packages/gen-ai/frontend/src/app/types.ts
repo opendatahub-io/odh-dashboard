@@ -535,6 +535,7 @@ export type InstallLSDRequest = {
 
 export type DeleteLSDRequest = {
   name: string;
+  preserve_vector_store?: boolean;
 };
 
 export type CreateVectorStoreRequest = {

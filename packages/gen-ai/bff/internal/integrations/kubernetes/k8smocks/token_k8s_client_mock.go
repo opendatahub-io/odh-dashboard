@@ -589,14 +589,10 @@ server:
 	return ogxServer, nil
 }
 
-func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error) {
+func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string, deletePgvector bool) (*ogxapi.OGXServer, error) {
 	serverList, err := m.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch OGXServers: %w", err)
-	}
-
-	if len(serverList.Items) == 0 {
-		return nil, fmt.Errorf("no OGXServer found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
 	}
 
 	var target *ogxapi.OGXServer
@@ -609,6 +605,9 @@ func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identit
 	}
 
 	if target == nil {
+		if !deletePgvector {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("OGXServer with name '%s' not found in namespace %s", name, namespace)
 	}
 
@@ -617,8 +616,8 @@ func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identit
 		return nil, fmt.Errorf("failed to delete OGXServer: %w", err)
 	}
 
-	// Clean up pgvector resources if SA client is available (mirrors real implementation).
-	if m.SAClient != nil {
+	// Clean up pgvector resources only on full playground delete (mirrors real implementation).
+	if deletePgvector && m.SAClient != nil {
 		_ = pgvector.DeletePostgresResources(ctx, m.SAClient, namespace)
 	}
 

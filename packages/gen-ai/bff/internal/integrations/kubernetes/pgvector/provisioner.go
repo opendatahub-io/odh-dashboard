@@ -262,6 +262,42 @@ func SetOwnerReferences(ctx context.Context, c client.Client, namespace string, 
 	return nil
 }
 
+// ClearOwnerReferences removes owner references from all pgvector-managed
+// resources in the namespace. This prevents Kubernetes garbage collection from
+// cascading-deleting pgvector when the OGXServer is deleted during a reconfigure.
+func ClearOwnerReferences(ctx context.Context, c client.Client, namespace string) error {
+	var errs []error
+
+	clearOwner := func(obj client.Object, kind, name string) {
+		key := client.ObjectKey{Name: name, Namespace: namespace}
+		if err := c.Get(ctx, key, obj); err != nil {
+			if !apierrors.IsNotFound(err) {
+				errs = append(errs, fmt.Errorf("get %s %s: %w", kind, name, err))
+			}
+			return
+		}
+		if len(obj.GetOwnerReferences()) == 0 {
+			return
+		}
+		obj.SetOwnerReferences(nil)
+		if err := c.Update(ctx, obj); err != nil {
+			errs = append(errs, fmt.Errorf("clear %s %s owner: %w", kind, name, err))
+		}
+	}
+
+	clearOwner(&corev1.Secret{}, "Secret", CredentialsSecretName)
+	clearOwner(&corev1.ConfigMap{}, "ConfigMap", InitConfigMapName)
+	clearOwner(&corev1.PersistentVolumeClaim{}, "PVC", StoragePVCName)
+	clearOwner(&appsv1.Deployment{}, "Deployment", DeploymentName)
+	clearOwner(&corev1.Service{}, "Service", ServiceName)
+	clearOwner(&networkingv1.NetworkPolicy{}, "NetworkPolicy", NetworkPolicyName)
+
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to clear owner references on pgvector resources: %v", errs)
+	}
+	return nil
+}
+
 // validateExistingManagedResources verifies the full pgvector resource set
 // (Secret, ConfigMap, PVC, Service, NetworkPolicy) exists and none are
 // terminating. This prevents returning a Connection when supporting resources

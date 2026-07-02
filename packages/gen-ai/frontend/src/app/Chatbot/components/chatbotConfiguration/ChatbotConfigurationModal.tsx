@@ -491,11 +491,13 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         });
     };
 
-    // If LSD status is provided, delete the existing LSD and install the new models
+    // If LSD status is provided, delete the existing LSD and install the new models.
+    // Preserve the vector store so uploaded document embeddings survive the model switch.
     if (isUpdate) {
       api
         .deleteLSD({
           name: lsdStatus.name,
+          preserve_vector_store: true,
         })
         .then(install)
         .catch((e) => {
