@@ -17,6 +17,7 @@ import (
 type UserEnvelope Envelope[*models.User, None]
 type NamespacesEnvelope Envelope[[]models.NamespaceModel, None]
 type SecretsEnvelope Envelope[[]models.SecretListItem, None]
+type SecretDataEnvelope Envelope[map[string]string, None]
 
 func (app *App) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	userInfo, err := app.k8sService.GetUserInfo(r.Context())
@@ -143,6 +144,63 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	err = app.WriteJSON(w, http.StatusOK, secretsEnvelope, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// GetSecretHandler retrieves OGX credentials from a named secret, base64-encoded.
+func (app *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+		return
+	}
+
+	name := ps.ByName("name")
+	if name == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing secret name in path"))
+		return
+	}
+
+	data, err := app.repositories.K8s.GetSecretCredentials(app.k8sService, ctx, namespace, name)
+	if err != nil {
+		switch {
+		case errors.Is(err, kubernetes.ErrNotFound):
+			httpError := &integrations.HTTPError{
+				StatusCode: http.StatusNotFound,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    strconv.Itoa(http.StatusNotFound),
+					Message: fmt.Sprintf("secret '%s' not found in namespace '%s'", name, namespace),
+				},
+			}
+			app.errorResponse(w, r, httpError)
+		case errors.Is(err, kubernetes.ErrForbidden):
+			app.forbiddenResponse(w, r, "insufficient permissions to access this secret")
+		case errors.Is(err, kubernetes.ErrUnauthorized):
+			app.unauthorizedResponse(w, r, "access unauthorized")
+		case errors.Is(err, kubernetes.ErrInvalid):
+			httpError := &integrations.HTTPError{
+				StatusCode: http.StatusBadRequest,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    strconv.Itoa(http.StatusBadRequest),
+					Message: fmt.Sprintf("invalid request for secret '%s'", name),
+				},
+			}
+			app.errorResponse(w, r, httpError)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	envelope := SecretDataEnvelope{Data: data}
+
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
+	err = app.WriteJSON(w, http.StatusOK, envelope, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

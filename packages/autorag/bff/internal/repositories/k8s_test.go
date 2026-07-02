@@ -2,18 +2,21 @@ package repositories
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"testing"
 
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// mockK8sService only needs GetSecretInfos.
+// mockK8sService stubs the kubernetes.Service interface for repository tests.
 type mockK8sService struct {
 	getSecretInfosFn func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error)
+	getSecretFn      func(ctx context.Context, namespace, name string) (*v1.Secret, error)
 }
 
 func (m *mockK8sService) GetSecretInfos(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
@@ -39,7 +42,10 @@ func (m *mockK8sService) GetPods(context.Context, string) (*v1.PodList, error) {
 func (m *mockK8sService) GetSecrets(context.Context, string) ([]v1.Secret, error) {
 	return nil, nil
 }
-func (m *mockK8sService) GetSecret(context.Context, string, string) (*v1.Secret, error) {
+func (m *mockK8sService) GetSecret(ctx context.Context, namespace, name string) (*v1.Secret, error) {
+	if m.getSecretFn != nil {
+		return m.getSecretFn(ctx, namespace, name)
+	}
 	return nil, nil
 }
 func (m *mockK8sService) GetUser(context.Context) (string, error) { return "", nil }
@@ -315,6 +321,103 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 		if s.Data["OGX_CLIENT_BASE_URL"] != "[REDACTED]" {
 			t.Errorf("OGX_CLIENT_BASE_URL = %q, want [REDACTED]", s.Data["OGX_CLIENT_BASE_URL"])
+		}
+	})
+}
+
+// === GetSecretCredentials ===
+
+func TestGetSecretCredentials(t *testing.T) {
+	repo := NewK8sRepository()
+
+	t.Run("returns base64-encoded OGX keys", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretFn: func(_ context.Context, _, _ string) (*v1.Secret, error) {
+				return &v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "my-ogx-secret", Namespace: "ns"},
+					Data: map[string][]byte{
+						"OGX_CLIENT_API_KEY":  []byte("sk-test-api-key-123"),
+						"OGX_CLIENT_BASE_URL": []byte("https://ogx.example.com"),
+					},
+				}, nil
+			},
+		}
+
+		result, err := repo.GetSecretCredentials(k8s, context.Background(), "ns", "my-ogx-secret")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 2 {
+			t.Fatalf("expected 2 keys, got %d", len(result))
+		}
+		if result["OGX_CLIENT_API_KEY"] != base64.StdEncoding.EncodeToString([]byte("sk-test-api-key-123")) {
+			t.Errorf("OGX_CLIENT_API_KEY = %q", result["OGX_CLIENT_API_KEY"])
+		}
+		if result["OGX_CLIENT_BASE_URL"] != base64.StdEncoding.EncodeToString([]byte("https://ogx.example.com")) {
+			t.Errorf("OGX_CLIENT_BASE_URL = %q", result["OGX_CLIENT_BASE_URL"])
+		}
+	})
+
+	t.Run("filters to only OGX keys from mixed secret", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretFn: func(_ context.Context, _, _ string) (*v1.Secret, error) {
+				return &v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "mixed-secret", Namespace: "ns"},
+					Data: map[string][]byte{
+						"OGX_CLIENT_API_KEY":    []byte("sk-test-key"),
+						"OGX_CLIENT_BASE_URL":   []byte("https://ogx.example.com"),
+						"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+						"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG"),
+						"OTHER_FIELD":           []byte("should-not-appear"),
+					},
+				}, nil
+			},
+		}
+
+		result, err := repo.GetSecretCredentials(k8s, context.Background(), "ns", "mixed-secret")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 2 {
+			t.Fatalf("expected 2 keys, got %d", len(result))
+		}
+		if _, ok := result["AWS_ACCESS_KEY_ID"]; ok {
+			t.Error("AWS_ACCESS_KEY_ID should not be present")
+		}
+		if _, ok := result["OTHER_FIELD"]; ok {
+			t.Error("OTHER_FIELD should not be present")
+		}
+	})
+
+	t.Run("empty secret returns empty map", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretFn: func(_ context.Context, _, _ string) (*v1.Secret, error) {
+				return &v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "empty-secret", Namespace: "ns"},
+					Data:       map[string][]byte{},
+				}, nil
+			},
+		}
+
+		result, err := repo.GetSecretCredentials(k8s, context.Background(), "ns", "empty-secret")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 0 {
+			t.Errorf("expected empty map, got %d keys", len(result))
+		}
+	})
+
+	t.Run("service error propagated", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretFn: func(_ context.Context, _, _ string) (*v1.Secret, error) {
+				return nil, fmt.Errorf("not found")
+			},
+		}
+
+		_, err := repo.GetSecretCredentials(k8s, context.Background(), "ns", "missing")
+		if err == nil {
+			t.Error("expected error")
 		}
 	})
 }

@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -77,6 +78,30 @@ func (r *K8sRepository) GetFilteredSecrets(
 	}
 
 	return result, nil
+}
+
+// GetSecretCredentials retrieves a named secret and returns only the OGX credential
+// keys (OGX_CLIENT_BASE_URL, OGX_CLIENT_API_KEY) with base64-encoded values.
+// Returns an empty map if the secret contains no OGX keys.
+func (r *K8sRepository) GetSecretCredentials(
+	k8sService kubernetes.Service,
+	ctx context.Context,
+	namespace, name string,
+) (map[string]string, error) {
+	secret, err := k8sService.GetSecret(ctx, namespace, name)
+	if err != nil {
+		return nil, err
+	}
+
+	ogxKeys := ogxTypeRequiredKeys["ogx"]
+	data := make(map[string]string, len(ogxKeys))
+	for _, key := range ogxKeys {
+		if value, ok := secret.Data[key]; ok {
+			data[key] = base64.StdEncoding.EncodeToString(value)
+		}
+	}
+
+	return data, nil
 }
 
 // detectType determines the type for a secret, checking annotation first,
