@@ -19,6 +19,7 @@ import {
   getBreadcrumbLabelFromState,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
 import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
@@ -90,6 +91,9 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
 const ViewAuthPoliciesPage: React.FC = () => {
   const { authPolicyName = '' } = useParams<{ authPolicyName: string }>();
   const location = useLocation();
+  const isSubscriptionManagement = location.pathname.startsWith(
+    `${URL_PREFIX}/subscription-management`,
+  );
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [policyInfo, loaded, loadError] = useGetPolicyInfo(authPolicyName);
 
@@ -144,6 +148,19 @@ const ViewAuthPoliciesPage: React.FC = () => {
               />
             </PageSection>
           </Tab>
+          {isSubscriptionManagement && (
+            <Tab
+              eventKey="yaml"
+              title={<TabTitleText>YAML</TabTitleText>}
+              aria-label="YAML tab"
+              data-testid="policy-yaml-tab"
+            >
+              <SubscriptionManagementYamlTab
+                resourceName={authPolicyName}
+                resourceType="authorizationpolicy"
+              />
+            </Tab>
+          )}
         </Tabs>
       )}
     </ApplicationsPage>
