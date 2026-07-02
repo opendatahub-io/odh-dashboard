@@ -343,8 +343,9 @@ it('should create project', { tags: ['@Smoke', '@Dashboard'], timeout: 30000 }, 
 | Tag                           | Purpose                   |
 | ----------------------------- | ------------------------- |
 | `@Smoke`                      | P1/2 Critical Priority    |
-| `@Sanity`                     | P3 Normal Priority        |
-| `@Tier1`                      | P4 Low Priority           |
+| `@Tier1`                      | P3 Normal Priority        |
+| `@Tier2`                      | Low Priority              |
+| `@Tier3`                      | Destructive Tests         |
 | `@ODS-1234`                   | Test Case ID              |
 | `@Dashboard` / `@Workbenches` | Team / Functional Area    |
 | `@Bug` / `@Maintenance`       | Tests requiring attention |

@@ -119,8 +119,8 @@ describe('Verify models can be deployed from model registry', () => {
         '@ModelRegistry',
         '@TestRegistryDeployModel',
         '@NonConcurrent',
-        '@Sanity',
-        '@SanitySet4',
+        '@Tier1',
+        '@Tier1Set4',
       ],
     },
     () => {
