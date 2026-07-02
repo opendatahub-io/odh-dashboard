@@ -498,12 +498,18 @@ export const useNotebookStatus = (
   const lastItem = filteredEvents[filteredEvents.length - 1];
   const { step, description, status } = getNotebookEventStatus(lastItem, gracePeriod);
 
+  // When the notebook pod has fully recovered (containers ready and running),
+  // stale error events (e.g. BackOff from a previous restart) should not
+  // keep the UI in a "Failed" state.
+  const resolvedStatus =
+    isNotebookRunning && status === EventStatus.ERROR ? EventStatus.SUCCESS : status;
+
   return [
     {
       currentEvent: description || ProgressionStepTitles[step],
       currentEventReason: lastItem.reason,
       currentEventDescription: lastItem.message,
-      currentStatus: status,
+      currentStatus: resolvedStatus,
     },
     thisInstanceEvents,
   ];
