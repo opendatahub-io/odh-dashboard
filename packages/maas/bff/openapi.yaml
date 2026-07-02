@@ -2396,6 +2396,14 @@ components:
           type: string
           description: Endpoint URL for the model (from status)
           example: https://llama-2-7b-chat.example.com
+        modelCapabilities:
+          type: array
+          items:
+            type: string
+          description: >
+            Model capability tags from the opendatahub.io/model-capabilities annotation
+            (e.g. text-generation, vision). Absent when the annotation was not set.
+          example: ["text-generation", "vision"]
       required:
         - name
         - namespace
@@ -2642,6 +2650,15 @@ components:
           type: string
           description: Human-readable description stored as openshift.io/description annotation
           example: A high-performance instruction-tuned language model
+        modelCapabilities:
+          type: array
+          items:
+            type: string
+          description: >
+            Model capability tags copied from the opendatahub.io/model-capabilities annotation on the
+            source LLMInferenceService (e.g. text-generation, vision). Omit or leave empty when the
+            annotation is absent.
+          example: ["text-generation", "vision"]
       required:
         - name
         - namespace
@@ -2665,6 +2682,14 @@ components:
           type: string
           description: Human-readable description stored as openshift.io/description annotation
           example: A high-performance instruction-tuned language model
+        modelCapabilities:
+          type: array
+          items:
+            type: string
+          description: >
+            Model capability tags to set as the opendatahub.io/model-capabilities annotation.
+            Omit to leave the existing annotation unchanged; send an empty array to remove it.
+          example: ["text-generation", "vision"]
       required:
         - modelRef
 
