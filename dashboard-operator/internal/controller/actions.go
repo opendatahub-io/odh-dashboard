@@ -28,6 +28,7 @@ var (
 	ErrDashboardRouteNotReady = errors.New("dashboard route not yet ready")
 	ErrPersesCRDNotFound      = errors.New("PersesDashboard CRD not installed")
 	ErrObservabilityDisabled  = errors.New("observability is not enabled")
+	ErrPersesServiceRequired  = errors.New("observability is enabled but PersesService is not configured")
 )
 
 func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
@@ -117,7 +118,7 @@ func deployObservabilityManifests(
 	}
 
 	if dashboard.Spec.Observability.PersesService == nil {
-		return ErrObservabilityDisabled
+		return ErrPersesServiceRequired
 	}
 
 	// Use a discovery-based check to avoid requiring apiextensions.k8s.io RBAC.

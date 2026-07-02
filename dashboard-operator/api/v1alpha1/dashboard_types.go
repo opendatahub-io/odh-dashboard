@@ -65,9 +65,11 @@ type ModuleOverride struct {
 
 // Distribution reports the product distribution identity (e.g. "RHOAI" / "2.20").
 type Distribution struct {
+	// +kubebuilder:validation:MaxLength=256
 	// +optional
 	Name string `json:"name,omitempty"`
 
+	// +kubebuilder:validation:MaxLength=256
 	// +optional
 	Version string `json:"version,omitempty"`
 }

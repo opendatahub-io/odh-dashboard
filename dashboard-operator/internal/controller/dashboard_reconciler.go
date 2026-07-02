@@ -147,7 +147,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	dashboard.Status.ObservedGeneration = dashboard.Generation
 
 	cfg := readOperatorConfig(ctx, r.Client, r.Namespace)
-	dashboard.Status.Distribution = readDistributionConfig(ctx, r.Client, r.Namespace)
+
+	if dist, distErr := readDistributionConfig(ctx, r.Client, r.Namespace); distErr != nil {
+		logger.Error(distErr, "Failed to read distribution config, preserving last-known-good value")
+	} else {
+		dashboard.Status.Distribution = dist
+	}
 
 	// Ready is the rollup condition — auto-derived by the Manager from
 	// ProvisioningSucceeded, Degraded, and ObservabilityAvailable.
@@ -251,6 +256,11 @@ func (r *DashboardReconciler) reconcile(
 			conditions.WithReason("Disabled"),
 			conditions.WithMessage("Observability is not enabled"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
+	case errors.Is(obsErr, ErrPersesServiceRequired):
+		cm.MarkFalse(conditionObservabilityAvailable,
+			conditions.WithReason("InvalidConfig"),
+			conditions.WithError(obsErr))
+		logger.Error(obsErr, "Observability is enabled but PersesService is not configured")
 	case errors.Is(obsErr, ErrPersesCRDNotFound):
 		cm.MarkFalse(conditionObservabilityAvailable,
 			conditions.WithReason("PersesCRDNotFound"),

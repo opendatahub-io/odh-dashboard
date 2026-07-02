@@ -214,8 +214,10 @@ spec:
                 description: Distribution reports the product distribution identity.
                 properties:
                   name:
+                    maxLength: 256
                     type: string
                   version:
+                    maxLength: 256
                     type: string
                 type: object
               moduleStatuses:

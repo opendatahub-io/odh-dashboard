@@ -2,7 +2,9 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
+	"unicode/utf8"
 
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -61,45 +63,46 @@ func readOperatorConfig(ctx context.Context, cli client.Client, namespace string
 }
 
 // readDistributionConfig reads the distribution identity from the
-// chart-deployed ConfigMap. Returns nil when the ConfigMap is absent
-// or contains no distribution keys.
-func readDistributionConfig(ctx context.Context, cli client.Client, namespace string) *v1alpha1.Distribution {
+// chart-deployed ConfigMap. Returns (nil, nil) when the ConfigMap is
+// absent or contains no distribution keys, and (nil, err) on transient
+// read failures so the caller can preserve last-known-good status.
+func readDistributionConfig(ctx context.Context, cli client.Client, namespace string) (*v1alpha1.Distribution, error) {
 	logger := log.FromContext(ctx)
 
 	cm := &corev1.ConfigMap{}
 	key := types.NamespacedName{Name: distributionConfigMapName, Namespace: namespace}
 
 	if err := cli.Get(ctx, key, cm); err != nil {
-		if !k8serrors.IsNotFound(err) {
-			logger.Error(err, "Failed to read distribution config ConfigMap")
+		if k8serrors.IsNotFound(err) {
+			return nil, nil
 		}
 
-		return nil
+		return nil, fmt.Errorf("failed to read distribution config ConfigMap: %w", err)
 	}
 
 	if cm.Data == nil {
-		return nil
+		return nil, nil
 	}
 
 	name := cm.Data["distribution.name"]
 	version := cm.Data["distribution.version"]
 
 	if name == "" && version == "" {
-		return nil
+		return nil, nil
 	}
 
-	if len(name) > maxDistributionFieldLen {
-		logger.Info("Truncating distribution.name", "original_length", len(name))
-		name = name[:maxDistributionFieldLen]
+	if runeCount := utf8.RuneCountInString(name); runeCount > maxDistributionFieldLen {
+		logger.Info("Truncating distribution.name", "original_runes", runeCount)
+		name = string([]rune(name)[:maxDistributionFieldLen])
 	}
 
-	if len(version) > maxDistributionFieldLen {
-		logger.Info("Truncating distribution.version", "original_length", len(version))
-		version = version[:maxDistributionFieldLen]
+	if runeCount := utf8.RuneCountInString(version); runeCount > maxDistributionFieldLen {
+		logger.Info("Truncating distribution.version", "original_runes", runeCount)
+		version = string([]rune(version)[:maxDistributionFieldLen])
 	}
 
 	return &v1alpha1.Distribution{
 		Name:    name,
 		Version: version,
-	}
+	}, nil
 }
