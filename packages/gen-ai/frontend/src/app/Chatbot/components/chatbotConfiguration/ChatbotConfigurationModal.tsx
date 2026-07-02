@@ -14,11 +14,11 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import {
+  AAModelResponse,
   AIModel,
   ExternalVectorStoreSummary,
   LlamaModel,
   LlamaStackDistributionModel,
-  MaaSModel,
   VectorStore,
 } from '~/app/types';
 import {
@@ -52,7 +52,7 @@ type ChatbotConfigurationModalProps = {
   /** All available AI assets models in the namespace */
   aiModels: AIModel[];
   /** All available MaaS models in the namespace */
-  maasModels?: MaaSModel[];
+  maasModels?: AAModelResponse[];
   /** Models that are already available in the playground,
    * passing this means that the modal will be in update mode */
   existingModels?: LlamaModel[];
@@ -552,7 +552,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
                   variant="danger"
                   title={alertTitle || 'Error configuring playground'}
                   isInline
-                  style={{ marginTop: '1rem' }}
+                  style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
                 >
                   {error.message}
                 </Alert>

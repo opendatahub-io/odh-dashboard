@@ -402,13 +402,13 @@ export interface AAModelResponse {
   model_type?: 'llm' | 'embedding';
   embedding_dimension?: number;
   capabilities?: string[];
+  subscriptions?: SubscriptionInfo[];
 }
 
 export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
-  subscriptions?: SubscriptionInfo[];
 }
 
 export type ExternalModelRequest = {
@@ -576,7 +576,6 @@ export type GenAiAPIs = {
   deleteLSD: DeleteLSD;
   getAAModels: GetAAModels;
   getAAVectorStores: GetAAVectorStores;
-  getMaaSModels: GetMaaSModels;
   generateMaaSToken: GenerateMaaSToken;
   getMCPServerTools: GetMCPServerTools;
   getMCPServers: GetMCPServers;
@@ -665,7 +664,6 @@ type InstallLSD = ModArchRestCREATE<LlamaStackDistributionModel, InstallLSDReque
 type DeleteLSD = ModArchRestDELETE<string, DeleteLSDRequest>;
 type GetAAModels = ModArchRestGET<AAModelResponse[]>;
 type GetAAVectorStores = ModArchRestGET<ExternalVectorStoreSummary[]>;
-type GetMaaSModels = ModArchRestGET<MaaSModel[]>;
 type GenerateMaaSToken = ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>;
 type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
 type GetMCPServers = ModArchRestGET<MCPServersResponse>;

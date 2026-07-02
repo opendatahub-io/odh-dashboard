@@ -1,9 +1,9 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { MaaSModel } from '~/app/types';
+import type { AAModelResponse } from '~/app/types';
 
 jest.mock('@odh-dashboard/internal/components/FieldGroupHelpLabelIcon', () => ({
   __esModule: true,
@@ -12,21 +12,28 @@ jest.mock('@odh-dashboard/internal/components/FieldGroupHelpLabelIcon', () => ({
   ),
 }));
 
-const createMaaSModel = (overrides: Partial<MaaSModel> = {}): MaaSModel => ({
-  id: 'test-model',
-  object: 'model',
-  created: 1672531200,
-  owned_by: 'test-ns',
-  ready: true,
+const createMaaSModel = (overrides: Partial<AAModelResponse> = {}): AAModelResponse => ({
+  model_id: 'test-model',
+  model_name: 'test-model',
+  display_name: 'Test Model',
+  description: '',
+  endpoints: ['external:https://maas.example.com/v1'],
+  serving_runtime: 'MaaS',
+  api_protocol: 'OpenAI',
+  version: '',
+  usecase: 'LLM',
+  status: 'Running',
+  sa_token: { name: '', token_name: '', token: '' },
+  model_source_type: 'maas' as const,
   ...overrides,
 });
 
-const createContextValue = (maasModels: MaaSModel[] = []) =>
+const createContextValue = (aiModels: AAModelResponse[] = [], maasModels: AAModelResponse[] = []) =>
   ({
     models: [],
     modelsLoaded: true,
     modelsError: undefined,
-    aiModels: [],
+    aiModels,
     aiModelsLoaded: true,
     aiModelsError: undefined,
     maasModels,
@@ -42,11 +49,9 @@ const createContextValue = (maasModels: MaaSModel[] = []) =>
 
 const TestWrapper: React.FC<{
   children: React.ReactNode;
-  maasModels?: MaaSModel[];
-}> = ({ children, maasModels = [] }) => (
-  <ChatbotContext.Provider value={createContextValue(maasModels)}>
-    {children}
-  </ChatbotContext.Provider>
+  contextValue: React.ContextType<typeof ChatbotContext>;
+}> = ({ children, contextValue }) => (
+  <ChatbotContext.Provider value={contextValue}>{children}</ChatbotContext.Provider>
 );
 
 describe('SubscriptionDropdown', () => {
@@ -62,7 +67,7 @@ describe('SubscriptionDropdown', () => {
 
   it('renders nothing when selectedModel is empty', () => {
     const { container } = render(
-      <TestWrapper>
+      <TestWrapper contextValue={createContextValue([], [])}>
         <SubscriptionDropdown {...defaultProps} selectedModel="" />
       </TestWrapper>,
     );
@@ -70,9 +75,9 @@ describe('SubscriptionDropdown', () => {
   });
 
   it('renders nothing when model has no subscriptions', () => {
-    const model = createMaaSModel({ id: 'test-model' });
+    const model = createMaaSModel({ model_id: 'test-model' });
     const { container } = render(
-      <TestWrapper maasModels={[model]}>
+      <TestWrapper contextValue={createContextValue([], [model])}>
         <SubscriptionDropdown {...defaultProps} />
       </TestWrapper>,
     );
@@ -80,9 +85,9 @@ describe('SubscriptionDropdown', () => {
   });
 
   it('renders nothing when model has empty subscriptions array', () => {
-    const model = createMaaSModel({ id: 'test-model', subscriptions: [] });
+    const model = createMaaSModel({ model_id: 'test-model', subscriptions: [] });
     const { container } = render(
-      <TestWrapper maasModels={[model]}>
+      <TestWrapper contextValue={createContextValue([], [model])}>
         <SubscriptionDropdown {...defaultProps} />
       </TestWrapper>,
     );
@@ -90,16 +95,14 @@ describe('SubscriptionDropdown', () => {
   });
 
   it('does not resolve subscriptions or auto-select when selectedModel has a non-MaaS provider prefix', () => {
-    // Regression: before the isMaasLlamaModelId guard, a namespace/non-MaaS model whose
-    // base model_id matched a MaaS entry would incorrectly pull up MaaS subscriptions.
     const onSubscriptionChange = jest.fn();
     const model = createMaaSModel({
-      id: 'test-model',
+      model_id: 'test-model',
       subscriptions: [{ name: 'only-sub', displayName: 'Only Subscription' }],
     });
 
     const { container } = render(
-      <TestWrapper maasModels={[model]}>
+      <TestWrapper contextValue={createContextValue([], [model])}>
         <SubscriptionDropdown
           selectedModel="provider/test-model"
           selectedSubscription=""
@@ -108,21 +111,19 @@ describe('SubscriptionDropdown', () => {
       </TestWrapper>,
     );
 
-    // Component must render nothing — the non-MaaS prefix should block resolution.
     expect(container.firstChild).toBeNull();
-    // Auto-select must not fire even though the model has a subscription.
     expect(onSubscriptionChange).not.toHaveBeenCalled();
   });
 
   it('auto-selects when model has exactly one subscription', () => {
     const onSubscriptionChange = jest.fn();
     const model = createMaaSModel({
-      id: 'test-model',
+      model_id: 'test-model',
       subscriptions: [{ name: 'only-sub', displayName: 'Only Subscription' }],
     });
 
     render(
-      <TestWrapper maasModels={[model]}>
+      <TestWrapper contextValue={createContextValue([], [model])}>
         <SubscriptionDropdown {...defaultProps} onSubscriptionChange={onSubscriptionChange} />
       </TestWrapper>,
     );
@@ -130,106 +131,93 @@ describe('SubscriptionDropdown', () => {
     expect(onSubscriptionChange).toHaveBeenCalledWith('only-sub');
   });
 
-  it('renders dropdown with multiple subscriptions', () => {
+  it('renders subscription dropdown with multiple subscriptions', () => {
     const model = createMaaSModel({
-      id: 'test-model',
+      model_id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Subscription' },
-        {
-          name: 'premium-sub',
-          displayName: 'Premium Subscription',
-          description: 'Higher rate limits',
-        },
-      ],
-    });
-
-    render(
-      <TestWrapper maasModels={[model]}>
-        <SubscriptionDropdown {...defaultProps} />
-      </TestWrapper>,
-    );
-
-    expect(screen.getByText('Subscription')).toBeInTheDocument();
-    expect(screen.getByTestId('subscription-selector-toggle')).toBeInTheDocument();
-  });
-
-  it('auto-selects first subscription when model has multiple subscriptions and no selection', () => {
-    const onSubscriptionChange = jest.fn();
-    const model = createMaaSModel({
-      id: 'test-model',
-      subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Subscription' },
         { name: 'premium-sub', displayName: 'Premium Subscription' },
-      ],
-    });
-
-    render(
-      <TestWrapper maasModels={[model]}>
-        <SubscriptionDropdown
-          {...defaultProps}
-          selectedSubscription=""
-          onSubscriptionChange={onSubscriptionChange}
-        />
-      </TestWrapper>,
-    );
-
-    expect(onSubscriptionChange).toHaveBeenCalledWith('basic-sub');
-  });
-
-  it('shows display name in toggle when subscription is selected', () => {
-    const model = createMaaSModel({
-      id: 'test-model',
-      subscriptions: [
         { name: 'basic-sub', displayName: 'Basic Subscription' },
-        { name: 'premium-sub', displayName: 'Premium Subscription' },
       ],
     });
 
-    render(
-      <TestWrapper maasModels={[model]}>
+    const { getByText, getByTestId } = render(
+      <TestWrapper contextValue={createContextValue([], [model])}>
         <SubscriptionDropdown {...defaultProps} selectedSubscription="premium-sub" />
       </TestWrapper>,
     );
 
-    expect(screen.getByTestId('subscription-selector-toggle')).toHaveTextContent(
-      'Premium Subscription',
-    );
+    expect(getByText('Subscription')).toBeInTheDocument();
+    expect(getByTestId('subscription-selector-toggle')).toBeInTheDocument();
   });
 
-  it('falls back to name when displayName is absent', () => {
+  it('auto-selects first subscription when multiple subscriptions exist', () => {
+    const onSubscriptionChange = jest.fn();
     const model = createMaaSModel({
-      id: 'test-model',
-      subscriptions: [{ name: 'raw-sub-name' }, { name: 'another-sub', displayName: 'Another' }],
+      model_id: 'test-model',
+      subscriptions: [
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+      ],
     });
 
     render(
-      <TestWrapper maasModels={[model]}>
-        <SubscriptionDropdown {...defaultProps} selectedSubscription="raw-sub-name" />
+      <TestWrapper contextValue={createContextValue([], [model])}>
+        <SubscriptionDropdown {...defaultProps} onSubscriptionChange={onSubscriptionChange} />
       </TestWrapper>,
     );
 
-    expect(screen.getByTestId('subscription-selector-toggle')).toHaveTextContent('raw-sub-name');
+    expect(onSubscriptionChange).toHaveBeenCalledWith('premium-sub');
+  });
+
+  it('displays selected subscription displayName in toggle', () => {
+    const model = createMaaSModel({
+      model_id: 'test-model',
+      subscriptions: [
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+      ],
+    });
+
+    const { getByTestId } = render(
+      <TestWrapper contextValue={createContextValue([], [model])}>
+        <SubscriptionDropdown {...defaultProps} selectedSubscription="basic-sub" />
+      </TestWrapper>,
+    );
+
+    expect(getByTestId('subscription-selector-toggle')).toHaveTextContent('Basic Subscription');
+  });
+
+  it('falls back to subscription name when displayName is absent', () => {
+    const model = createMaaSModel({
+      model_id: 'test-model',
+      subscriptions: [{ name: 'basic-sub' }],
+    });
+
+    const { getByTestId } = render(
+      <TestWrapper contextValue={createContextValue([], [model])}>
+        <SubscriptionDropdown {...defaultProps} selectedSubscription="basic-sub" />
+      </TestWrapper>,
+    );
+
+    expect(getByTestId('subscription-selector-toggle')).toHaveTextContent('basic-sub');
   });
 
   it('clears invalid subscription when model changes', () => {
     const onSubscriptionChange = jest.fn();
-    const model = createMaaSModel({
-      id: 'test-model',
-      subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Subscription' },
-        { name: 'premium-sub', displayName: 'Premium Subscription' },
-      ],
+    const model1 = createMaaSModel({
+      model_id: 'model-1',
+      subscriptions: [{ name: 'sub-1', displayName: 'Subscription 1' }],
     });
-    const otherModel = createMaaSModel({
-      id: 'other-model',
-      subscriptions: [{ name: 'different-sub', displayName: 'Different' }],
+    const model2 = createMaaSModel({
+      model_id: 'model-2',
+      subscriptions: [{ name: 'sub-2', displayName: 'Subscription 2' }],
     });
 
     const { rerender } = render(
-      <TestWrapper maasModels={[model, otherModel]}>
+      <TestWrapper contextValue={createContextValue([], [model1, model2])}>
         <SubscriptionDropdown
-          selectedModel="maas-provider/test-model"
-          selectedSubscription="premium-sub"
+          selectedModel="maas-provider/model-1"
+          selectedSubscription="sub-1"
           onSubscriptionChange={onSubscriptionChange}
         />
       </TestWrapper>,
@@ -238,65 +226,74 @@ describe('SubscriptionDropdown', () => {
     onSubscriptionChange.mockClear();
 
     rerender(
-      <TestWrapper maasModels={[model, otherModel]}>
+      <TestWrapper contextValue={createContextValue([], [model1, model2])}>
         <SubscriptionDropdown
-          selectedModel="maas-provider/other-model"
-          selectedSubscription="premium-sub"
+          selectedModel="maas-provider/model-2"
+          selectedSubscription="sub-1"
           onSubscriptionChange={onSubscriptionChange}
         />
       </TestWrapper>,
     );
 
-    expect(onSubscriptionChange).toHaveBeenCalledWith('different-sub');
+    expect(onSubscriptionChange).toHaveBeenCalledWith('sub-2');
   });
 
-  it('resolves MaaS model via splitLlamaModelId from LSD-style model ID', () => {
+  it('renders help label icon with subscription information', () => {
     const model = createMaaSModel({
-      id: 'my-actual-model',
-      subscriptions: [{ name: 'sub-1', displayName: 'Subscription One' }],
+      model_id: 'test-model',
+      subscriptions: [{ name: 'sub-1', displayName: 'Subscription 1' }],
     });
 
+    const { getByTestId } = render(
+      <TestWrapper contextValue={createContextValue([], [model])}>
+        <SubscriptionDropdown {...defaultProps} selectedSubscription="sub-1" />
+      </TestWrapper>,
+    );
+
+    expect(getByTestId('help-label-icon')).toBeInTheDocument();
+    expect(getByTestId('help-label-icon')).toHaveTextContent(
+      'Select the subscription to use for this model',
+    );
+  });
+
+  it('does not auto-select when component is disabled', () => {
     const onSubscriptionChange = jest.fn();
+    const model = createMaaSModel({
+      model_id: 'test-model',
+      subscriptions: [{ name: 'only-sub', displayName: 'Only Subscription' }],
+    });
+
     render(
-      <TestWrapper maasModels={[model]}>
+      <TestWrapper contextValue={createContextValue([], [model])}>
         <SubscriptionDropdown
-          selectedModel="maas-provider/my-actual-model"
+          {...defaultProps}
+          onSubscriptionChange={onSubscriptionChange}
+          isDisabled
+        />
+      </TestWrapper>,
+    );
+
+    expect(onSubscriptionChange).not.toHaveBeenCalled();
+  });
+
+  it('handles malformed subscriptions data gracefully', () => {
+    const onSubscriptionChange = jest.fn();
+    const modelWithInvalidSubs = {
+      ...createMaaSModel({ model_id: 'test-model' }),
+      subscriptions: null,
+    } as unknown as AAModelResponse;
+
+    const { container } = render(
+      <TestWrapper contextValue={createContextValue([], [modelWithInvalidSubs])}>
+        <SubscriptionDropdown
+          selectedModel="maas-provider/test-model"
           selectedSubscription=""
           onSubscriptionChange={onSubscriptionChange}
         />
       </TestWrapper>,
     );
 
-    expect(onSubscriptionChange).toHaveBeenCalledWith('sub-1');
-  });
-
-  it('renders help label icon with appropriate content', () => {
-    const model = createMaaSModel({
-      id: 'test-model',
-      subscriptions: [{ name: 'sub-1', displayName: 'Sub One' }],
-    });
-
-    render(
-      <TestWrapper maasModels={[model]}>
-        <SubscriptionDropdown {...defaultProps} selectedSubscription="sub-1" />
-      </TestWrapper>,
-    );
-
-    expect(screen.getByTestId('help-label-icon')).toBeInTheDocument();
-  });
-
-  it('should disable the toggle when isDisabled is true', () => {
-    const model = createMaaSModel({
-      id: 'test-model',
-      subscriptions: [{ name: 'sub-1', displayName: 'Sub One' }],
-    });
-
-    render(
-      <TestWrapper maasModels={[model]}>
-        <SubscriptionDropdown {...defaultProps} selectedSubscription="sub-1" isDisabled />
-      </TestWrapper>,
-    );
-
-    expect(screen.getByRole('button', { name: /sub one/i })).toBeDisabled();
+    expect(container).toBeEmptyDOMElement();
+    expect(onSubscriptionChange).not.toHaveBeenCalled();
   });
 });

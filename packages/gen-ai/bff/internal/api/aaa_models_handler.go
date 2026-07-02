@@ -96,7 +96,7 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 		maasModels, err := app.fetchMaaSModels(ctx, namespace)
 		if err != nil {
 			// If only MaaS was requested, return the BFF error (preserves original status code)
-			isMaasOnly := len(requestedSources) == 1
+			isMaasOnly := requestedSources[models.ModelSourceTypeMaaS] && len(requestedSources) == 1
 			if isMaasOnly {
 				app.handleBFFClientError(w, r, err)
 				return
@@ -206,10 +206,10 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 	// Convert MaaS models to AAModel format
 	aaModels := make([]models.AAModel, 0, len(bffResponse.Data.Data))
 	for _, maasModel := range bffResponse.Data.Data {
-		// Build endpoints array, skipping empty URLs
+		// Build endpoints array with external: prefix, skipping empty URLs
 		var endpoints []string
 		if maasModel.URL != "" {
-			endpoints = []string{maasModel.URL}
+			endpoints = []string{"external:" + maasModel.URL}
 		}
 
 		aaModel := models.AAModel{
@@ -219,6 +219,7 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 			Status:          getMaaSModelStatus(maasModel.Ready),
 			ModelSourceType: models.ModelSourceTypeMaaS,
 			ModelType:       models.ModelTypeEnum(maasModel.ModelType),
+			Subscriptions:   maasModel.Subscriptions,
 		}
 
 		// Extract fields from nested ModelDetails if present

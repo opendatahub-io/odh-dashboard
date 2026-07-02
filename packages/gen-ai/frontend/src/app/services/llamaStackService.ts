@@ -60,7 +60,6 @@ import {
   ExternalVectorStoreSummary,
   VerifyExternalModelRequest,
   VerifyExternalModelResponse,
-  MaaSModel,
   MaaSTokenRequest,
   MaaSTokenResponse,
 } from '~/app/types';
@@ -1108,7 +1107,6 @@ export const getMCPServerStatus = (
 export const getMCPServerTools = modArchRestGET<MCPToolsStatus>('/mcp/tools');
 
 /** MaaS Endpoints */
-export const getMaaSModels = modArchRestGET<MaaSModel[]>('/maas/models');
 export const generateMaaSToken = modArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>(
   '/maas/tokens',
 );

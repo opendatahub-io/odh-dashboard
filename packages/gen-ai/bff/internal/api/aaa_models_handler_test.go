@@ -346,7 +346,7 @@ var _ = Describe("fetchMaaSModels", func() {
 		assert.Equal(t, models.ModelStatusRunning, firstModel.Status)
 		assert.Equal(t, "model-namespace", firstModel.ServingRuntime)
 		assert.Len(t, firstModel.Endpoints, 1)
-		assert.Equal(t, "https://llama-2-7b-chat.apps.example.openshift.com/v1", firstModel.Endpoints[0])
+		assert.Equal(t, "external:https://llama-2-7b-chat.apps.example.openshift.com/v1", firstModel.Endpoints[0])
 
 		// Verify third model (not ready)
 		thirdModel := aaModels[2]
