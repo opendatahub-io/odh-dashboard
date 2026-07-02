@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,8 +12,7 @@ import (
 )
 
 // AuthRepository handles Auth CRD operations for group-based access control.
-// Uses a service-account-scoped dynamic client for reads, matching the privileged watcher model
-// privileged watcher model where auth config is read with SA credentials.
+// Uses a service-account-scoped dynamic client for reads, matching the privileged watcher model.
 type AuthRepository struct {
 	saDynClient dynamic.Interface
 }
@@ -35,9 +35,9 @@ func (r *AuthRepository) GetAuth(ctx context.Context) (*AuthConfig, error) {
 		return nil, fmt.Errorf("auth dynamic client unavailable")
 	}
 
-	result, err := r.saDynClient.Resource(models.AuthGVR).Get(ctx, "auth", metav1.GetOptions{})
+	result, err := r.saDynClient.Resource(models.AuthGVR).Get(ctx, models.AuthInstanceName, metav1.GetOptions{})
 	if err != nil {
-		if isDiscoveryError(err) {
+		if k8sutil.IsDiscoveryError(err) {
 			return nil, nil
 		}
 		if k8serrors.IsNotFound(err) {
