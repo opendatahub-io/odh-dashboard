@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import EvaluationFileCreator from '~/app/components/configure/EvaluationFileCreator';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
-import { SecretListItem } from '~/app/types';
 
 jest.mock('~/app/hooks/mutations', () => ({
   ...jest.requireActual('~/app/hooks/mutations'),
@@ -22,7 +21,7 @@ jest.mock('~/app/hooks/useNotification', () => ({
   })),
 }));
 
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
+jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,
@@ -61,19 +60,12 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
 
 const mockUseUploadToStorageMutation = jest.mocked(useUploadToStorageMutation);
 
-const mockSecret: SecretListItem = {
-  uuid: 'test-uuid',
-  name: 'test-secret',
-  type: 'storage',
-};
-
 const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
   onCreated: jest.fn(),
   namespace: 'test-namespace',
   secretName: 'test-secret',
-  s3Secret: mockSecret,
   experimentName: 'My Experiment',
   inputDataKey: 'data-folder/',
 };
@@ -380,6 +372,35 @@ describe('EvaluationFileCreator', () => {
       expect(defaultProps.onCreated).toHaveBeenCalledWith('eval-file.json');
     });
 
+    it('should reset all state after successful submission', async () => {
+      const user = userEvent.setup();
+      mockUploadMutateAsync.mockResolvedValue({ key: 'eval-file.json' });
+
+      const { rerender } = render(
+        <EvaluationFileCreator {...defaultProps} inputDataKey="folder/data.json" />,
+      );
+
+      // Add a row and submit
+      await user.type(screen.getByTestId('eval-question'), 'What is ML?');
+      await user.type(screen.getByTestId('eval-answer'), 'Machine Learning');
+      await user.click(screen.getByTestId('eval-add-row'));
+      await user.click(screen.getByTestId('eval-create-submit'));
+
+      await waitFor(() => {
+        expect(defaultProps.onCreated).toHaveBeenCalled();
+      });
+
+      // Simulate parent closing and reopening the modal
+      rerender(
+        <EvaluationFileCreator {...defaultProps} isOpen={false} inputDataKey="folder/data.json" />,
+      );
+      rerender(<EvaluationFileCreator {...defaultProps} isOpen inputDataKey="folder/data.json" />);
+
+      // Table should be empty — the previous row should not persist
+      expect(screen.getByText('No questions or answers')).toBeInTheDocument();
+      expect(screen.queryByText('What is ML?')).not.toBeInTheDocument();
+    });
+
     it('should show error notification on upload failure', async () => {
       const user = userEvent.setup();
       mockUploadMutateAsync.mockRejectedValue(new Error('Upload failed'));
@@ -445,16 +466,33 @@ describe('EvaluationFileCreator', () => {
   });
 
   describe('cancel and close', () => {
-    it('should call onClose and reset state when Cancel is clicked', async () => {
+    it('should reset all state when Cancel is clicked and modal is reopened', async () => {
       const user = userEvent.setup();
-      render(<EvaluationFileCreator {...defaultProps} />);
+      const { rerender } = render(
+        <EvaluationFileCreator {...defaultProps} inputDataKey="folder/data.json" />,
+      );
 
-      // Type something
+      // Add a row and partially fill the form
+      await user.type(screen.getByTestId('eval-question'), 'What is ML?');
+      await user.type(screen.getByTestId('eval-answer'), 'Machine Learning');
+      await user.click(screen.getByTestId('eval-add-row'));
       await user.type(screen.getByTestId('eval-question'), 'partial');
 
       await user.click(screen.getByTestId('eval-create-cancel'));
 
       expect(defaultProps.onClose).toHaveBeenCalled();
+
+      // Simulate parent closing and reopening
+      rerender(
+        <EvaluationFileCreator {...defaultProps} isOpen={false} inputDataKey="folder/data.json" />,
+      );
+      rerender(<EvaluationFileCreator {...defaultProps} isOpen inputDataKey="folder/data.json" />);
+
+      // Table should be empty and form fields should be cleared
+      expect(screen.getByText('No questions or answers')).toBeInTheDocument();
+      expect(screen.queryByText('What is ML?')).not.toBeInTheDocument();
+      expect(screen.getByTestId('eval-question')).toHaveValue('');
+      expect(screen.getByTestId('eval-answer')).toHaveValue('');
     });
   });
 

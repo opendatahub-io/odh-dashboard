@@ -10,6 +10,7 @@ import {
   mockS3PaginatedResponse,
   mockDatasetsPrefixes,
   mockDatasetsObjects,
+  mockDatasetsTrainObjects,
 } from '#~/concepts/fileExplorer/__mocks__/mockS3ListObjectsResponse';
 import { getFiles } from '#~/concepts/fileExplorer/api/s3.ts';
 
@@ -902,6 +903,218 @@ describe('S3FileExplorer', () => {
       // The UI should still show the successful result, not an error
       expect(screen.getByText('success.txt')).toBeInTheDocument();
       expect(screen.queryByText('Something went wrong')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('rootPath prop', () => {
+    it('should fetch from the rootPath on mount instead of /', async () => {
+      render(<S3FileExplorer {...defaultProps} rootPath="/datasets" />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      expect(mockGetFiles).toHaveBeenCalledWith(
+        '',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        expect.objectContaining({
+          path: 'datasets/',
+        }),
+      );
+    });
+
+    it('should navigate to rootPath (not /) when root breadcrumb is clicked', async () => {
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: mockDatasetsPrefixes(),
+          contents: mockDatasetsObjects(),
+        }),
+      );
+
+      render(<S3FileExplorer {...defaultProps} rootPath="/datasets" />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+      mockGetFiles.mockClear();
+
+      // Navigate into a subfolder
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: [],
+          contents: mockDatasetsTrainObjects(),
+        }),
+      );
+
+      const trainRow = screen.getByTestId('file-explorer-row--datasets-train');
+      const folderLink = within(trainRow).getByRole('button', { name: 'train' });
+      fireEvent.click(folderLink);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+      mockGetFiles.mockClear();
+
+      // Click root breadcrumb — should go back to rootPath, not /
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: mockDatasetsPrefixes(),
+          contents: mockDatasetsObjects(),
+        }),
+      );
+
+      const rootBreadcrumb = screen.getByTestId('file-explorer-breadcrumb-root');
+      fireEvent.click(rootBreadcrumb);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      expect(mockGetFiles).toHaveBeenCalledWith(
+        '',
+        expect.anything(),
+        expect.objectContaining({
+          path: 'datasets/',
+        }),
+      );
+    });
+
+    it('should strip rootPath segments from the breadcrumb trail', async () => {
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: mockDatasetsPrefixes(),
+          contents: mockDatasetsObjects(),
+        }),
+      );
+
+      render(<S3FileExplorer {...defaultProps} rootPath="/datasets" />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      // At the rootPath level, no breadcrumb folders should be shown
+      expect(screen.queryByTestId('file-explorer-breadcrumb-current')).not.toBeInTheDocument();
+
+      // Navigate into a subfolder
+      mockGetFiles.mockClear();
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: [],
+          contents: mockDatasetsTrainObjects(),
+        }),
+      );
+
+      const trainRow = screen.getByTestId('file-explorer-row--datasets-train');
+      const folderLink = within(trainRow).getByRole('button', { name: 'train' });
+      fireEvent.click(folderLink);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      // Only "train" should appear as a breadcrumb — "datasets" is the root and should be stripped
+      await waitFor(() => {
+        expect(screen.getByTestId('file-explorer-breadcrumb-current')).toHaveTextContent('train');
+      });
+    });
+
+    it('should show custom search placeholder derived from rootPath folder name', async () => {
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: mockDatasetsPrefixes(),
+          contents: mockDatasetsObjects(),
+        }),
+      );
+
+      render(<S3FileExplorer {...defaultProps} rootPath="/datasets" />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      // At root level (no breadcrumb folders), the search placeholder should mention the root folder name
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+      expect(searchInput).toHaveAttribute('placeholder', "Search within 'datasets'");
+    });
+
+    it('should not show custom search placeholder when navigated into a subfolder', async () => {
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: mockDatasetsPrefixes(),
+          contents: mockDatasetsObjects(),
+        }),
+      );
+
+      render(<S3FileExplorer {...defaultProps} rootPath="/datasets" />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      // Navigate into a subfolder
+      mockGetFiles.mockClear();
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: [],
+          contents: mockDatasetsTrainObjects(),
+        }),
+      );
+
+      const trainRow = screen.getByTestId('file-explorer-row--datasets-train');
+      const folderLink = within(trainRow).getByRole('button', { name: 'train' });
+      fireEvent.click(folderLink);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      // Inside a subfolder, placeholder should revert to the standard folder-name-based placeholder
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+      expect(searchInput.getAttribute('placeholder')).not.toBe("Search within 'datasets'");
+    });
+
+    it('should treat rootPath="/" the same as no rootPath', async () => {
+      render(<S3FileExplorer {...defaultProps} rootPath="/" />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      // Should fetch from root (no path param) just like without rootPath
+      expect(mockGetFiles).toHaveBeenCalledWith(
+        '',
+        expect.anything(),
+        expect.not.objectContaining({ path: expect.anything() }),
+      );
+    });
+  });
+
+  describe('selection prop', () => {
+    it('should default to radio selection mode', async () => {
+      render(<S3FileExplorer {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('config.yaml')).toBeInTheDocument();
+      });
+
+      const configRow = screen.getByTestId('file-explorer-row--config-yaml');
+      expect(configRow.querySelector('input[type="radio"]')).toBeInTheDocument();
+    });
+
+    it('should use checkbox selection mode when selection="checkbox"', async () => {
+      render(<S3FileExplorer {...defaultProps} selection="checkbox" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('config.yaml')).toBeInTheDocument();
+      });
+
+      const configRow = screen.getByTestId('file-explorer-row--config-yaml');
+      expect(configRow.querySelector('input[type="checkbox"]')).toBeInTheDocument();
     });
   });
 });

@@ -8,7 +8,6 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
 import AutoragEvaluationSelect from '~/app/components/configure/AutoragEvaluationSelect';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
-import { useSecretsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -18,11 +17,6 @@ import {
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: jest.fn(),
-}));
-
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
-  useSecretsQuery: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
@@ -101,7 +95,6 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
 }));
 
 const mockUseParams = jest.mocked(useParams);
-const mockUseSecretsQuery = jest.mocked(useSecretsQuery);
 const mockUseUploadToStorageMutation = jest.mocked(useUploadToStorageMutation);
 
 const configureSchema = createConfigureSchema();
@@ -210,20 +203,11 @@ const renderWithProviders = (
 };
 
 describe('AutoragEvaluationSelect', () => {
-  const mockSecrets = [
-    { name: 'test-secret-1', type: 'storage' },
-    { name: 'test-secret-2', type: 'storage' },
-  ];
-
   const mockUploadMutateAsync = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
-    mockUseSecretsQuery.mockReturnValue({
-      data: mockSecrets,
-      isLoading: false,
-    } as unknown as ReturnType<typeof useSecretsQuery>);
     mockUseUploadToStorageMutation.mockReturnValue({
       mutateAsync: mockUploadMutateAsync,
     } as unknown as ReturnType<typeof useUploadToStorageMutation>);

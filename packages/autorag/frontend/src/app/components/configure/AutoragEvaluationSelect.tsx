@@ -8,7 +8,6 @@ import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3File
 import FileSelector from '~/app/components/common/FileSelector';
 import EvaluationFileCreator from '~/app/components/configure/EvaluationFileCreator';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
-import { useSecretsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -42,7 +41,6 @@ function AutoragEvaluationSelect(): React.JSX.Element {
     name: ['test_data_secret_name', 'display_name', 'input_data_key'],
   });
 
-  const { data: secrets } = useSecretsQuery(namespace ?? '', 'storage');
   const uploadToStorageMutation = useUploadToStorageMutation(namespace ?? '', testDataSecretName);
 
   const handleEvaluationDropRejected = useCallback(
@@ -54,8 +52,6 @@ function AutoragEvaluationSelect(): React.JSX.Element {
     },
     [notification],
   );
-
-  const s3Secret = secrets?.find((secret) => secret.name === testDataSecretName);
 
   return (
     <div data-testid="evaluation-file-selector">
@@ -149,7 +145,6 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         }}
         namespace={namespace ?? ''}
         secretName={testDataSecretName}
-        s3Secret={s3Secret}
         experimentName={displayName}
         inputDataKey={inputDataKey}
       />

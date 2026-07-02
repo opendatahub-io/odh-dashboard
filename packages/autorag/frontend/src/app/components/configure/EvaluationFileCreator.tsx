@@ -29,10 +29,10 @@ import {
 } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td, ActionsColumn } from '@patternfly/react-table';
 import { AngleRightIcon, CubesIcon, PlusCircleIcon, TimesIcon } from '@patternfly/react-icons';
-import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer';
+import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
-import type { EvaluationFileEntry, SecretListItem } from '~/app/types';
+import type { EvaluationFileEntry } from '~/app/types';
 import './EvaluationFileCreator.scss';
 
 const MIN_ROWS = 1;
@@ -81,7 +81,6 @@ type EvaluationFileCreatorProps = {
   onCreated: (key: string) => void;
   namespace: string;
   secretName: string;
-  s3Secret?: SecretListItem;
   experimentName: string;
   inputDataKey: string;
 };
@@ -92,7 +91,6 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
   onCreated,
   namespace,
   secretName,
-  s3Secret,
   experimentName,
   inputDataKey,
 }) => {
@@ -193,6 +191,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
     setIsSubmitting(true);
     try {
       const response = await uploadMutation.mutateAsync({ file });
+      resetAll();
       onCreated(response.key);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -200,7 +199,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [rows, experimentName, uploadMutation, onCreated, notification]);
+  }, [rows, experimentName, uploadMutation, onCreated, notification, resetAll]);
 
   if (!isOpen) {
     return null;
@@ -416,8 +415,9 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
         </ModalFooter>
       </Modal>
       <S3FileExplorer
+        apiPath="/autorag/api/v1/s3"
         namespace={namespace}
-        s3Secret={s3Secret}
+        s3SecretName={secretName}
         isOpen={fileExplorerOpen}
         onClose={() => setFileExplorerOpen(false)}
         onSelectFiles={(files) => {
