@@ -61,6 +61,9 @@ type K8sProxyConfig struct {
 	// The configured K8s host is automatically allowlisted so private-IP blocking
 	// does not reject the proxy's own target.
 	SSRFValidateTarget bool
+	// DevFallbackToken is the kubeconfig's bearer token used when the request identity
+	// has DevFallback set. Empty means no token fallback (client cert auth handles it).
+	DevFallbackToken string
 	// Logger is used for logging proxy operations.
 	Logger *slog.Logger
 }
@@ -97,7 +100,7 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			if !ok || identity == nil {
 				return ""
 			}
-			return "Bearer " + identity.Token.Raw()
+			return k8s.BearerTokenPrefix + identity.ResolveToken(cfg.DevFallbackToken)
 		},
 		ModifyResponse: ssrf.NewRedirectValidator(cfg.Logger),
 	})

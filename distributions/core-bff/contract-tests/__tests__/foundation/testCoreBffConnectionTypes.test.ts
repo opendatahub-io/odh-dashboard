@@ -37,12 +37,23 @@ describe('Core BFF Connection Types', () => {
       expectError(await apiClient.get('/api/connection-types/nonexistent-ct-12345'), 404);
     });
 
-    it('should return 401 for non-admin on PUT', async () => {
+    it('should return 401 when no auth token is provided', async () => {
+      expectError(
+        await unauthenticatedClient.get('/api/connection-types/nonexistent-ct-12345'),
+        401,
+      );
+    });
+
+    it('should return 404 for non-existent connection type as non-admin', async () => {
+      expectError(await restrictedClient.get('/api/connection-types/nonexistent-ct-12345'), 404);
+    });
+
+    it('should return 403 for non-admin on PUT', async () => {
       expectError(
         await restrictedClient.put('/api/connection-types/test', {
           metadata: { name: 'test', labels: {} },
         }),
-        401,
+        403,
       );
     });
   });
@@ -94,26 +105,48 @@ describe('Core BFF Connection Types', () => {
   });
 
   describe('Admin Enforcement', () => {
-    it('should return 401 for non-admin on POST', async () => {
+    it('should return 403 for non-admin on POST', async () => {
       expectError(
         await restrictedClient.post('/api/connection-types', {
+          metadata: { name: 'test', labels: {} },
+        }),
+        403,
+      );
+    });
+
+    it('should return 403 for non-admin on PATCH', async () => {
+      expectError(
+        await restrictedClient.patch('/api/connection-types/test', [
+          { op: 'replace', path: '/data/key', value: 'val' },
+        ]),
+        403,
+      );
+    });
+
+    it('should return 403 for non-admin on DELETE', async () => {
+      expectError(await restrictedClient.delete('/api/connection-types/test'), 403);
+    });
+
+    it('should return 401 for unauthenticated on POST', async () => {
+      expectError(
+        await unauthenticatedClient.post('/api/connection-types', {
           metadata: { name: 'test', labels: {} },
         }),
         401,
       );
     });
 
-    it('should return 401 for non-admin on PATCH', async () => {
+    it('should return 401 for unauthenticated on PUT', async () => {
       expectError(
-        await restrictedClient.patch('/api/connection-types/test', [
-          { op: 'replace', path: '/data/key', value: 'val' },
-        ]),
+        await unauthenticatedClient.put('/api/connection-types/test', {
+          metadata: { name: 'test', labels: {} },
+        }),
         401,
       );
     });
 
-    it('should return 401 for non-admin on DELETE', async () => {
-      expectError(await restrictedClient.delete('/api/connection-types/test'), 401);
+    it('should return 401 for unauthenticated on DELETE', async () => {
+      expectError(await unauthenticatedClient.delete('/api/connection-types/test'), 401);
     });
   });
 

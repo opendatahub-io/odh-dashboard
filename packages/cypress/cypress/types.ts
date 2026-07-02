@@ -245,6 +245,7 @@ export type TestConfig = {
   PIP_INDEX_URL: string;
   PIP_TRUSTED_HOST: string;
   NGC_API_KEY: string;
+  GEMINI_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
   OGX_URL?: string;
@@ -638,6 +639,16 @@ export type GenAiTestData = {
   configMapName: string;
   playgroundServiceName: string;
   servingRuntimesPath: string;
+};
+
+export type CustomEndpointTestData = {
+  modelId: string;
+  displayName: string;
+  endpointUrl: string;
+  testMessage: string;
+  lsdServiceName: string;
+  lsdPodPrefix: string;
+  lsdPodReadyTimeout: string;
 };
 
 /** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */

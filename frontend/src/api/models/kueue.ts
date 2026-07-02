@@ -27,3 +27,10 @@ export const WorkloadPriorityClassModel: K8sModelCommon = {
   kind: 'WorkloadPriorityClass',
   plural: 'workloadpriorityclasses',
 };
+
+export const VisibilityLocalQueueModel: K8sModelCommon = {
+  apiVersion: 'v1beta2',
+  apiGroup: 'visibility.kueue.x-k8s.io',
+  kind: 'LocalQueue',
+  plural: 'localqueues',
+};

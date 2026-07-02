@@ -1,4 +1,5 @@
 const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true';
+const GEN_AI_CUSTOM_ENDPOINTS_FLAG = 'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -9,6 +10,22 @@ class GenAiPlayground {
   navigateToAssets(projectName: string) {
     cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_DEV_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToAssetsWithCustomEndpoints(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateWithCustomEndpoints(projectName: string) {
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
+  }
+
+  navigateToPlaygroundWithRetry(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-model-selector-toggle', { timeout: 120000 }).should('be.visible');
   }
 
   findEmptyState() {
@@ -43,19 +60,18 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-message-user');
   }
 
+  findAssistantMessage(options?: { timeout?: number }) {
+    return cy.findByTestId('chatbot-message-bot', options);
+  }
+
   sendMessage(message: string) {
-    // Type the message into the input field
     this.findMessageInput().should('be.visible').and('be.enabled').clear().type(message);
-    // Press Enter to send the message
     this.findMessageInput().type('{enter}');
-    // Verify message was cleared after sending (indicates successful send)
     this.findMessageInput().should('have.value', '');
   }
 
   ensureModelCheckboxIsChecked(modelName: string) {
-    // Sanitize model name for testid: remove all characters except alphanumeric and hyphens
     const sanitizedModelName = modelName.replace(/[^a-zA-Z0-9-]/g, '');
-    // Find the checkbox input within the td with the testid
     cy.findByTestId(`${sanitizedModelName}-checkbox`)
       .find('input[type="checkbox"]')
       .then(($checkbox) => {
@@ -69,17 +85,81 @@ class GenAiPlayground {
   }
 
   selectModelFromDropdown(modelName: string) {
-    // Open the model selector dropdown
     this.findModelToggleButton().click();
-    // Find the dropdown item by text content that contains the model name
-    // The model might have a dynamic prefix like "vllm-inference-1/llama-3.2-1b-instruct"
-    // We search for list items with testid starting with "model-option-" and containing the model name
     cy.get('[role="menuitem"]').contains(modelName).click();
   }
 
   verifyModelIsSelected(modelName: string) {
-    // Verify the model name is visible in the toggle button (could be with prefix)
     this.findModelToggleButton().should('contain', modelName);
+  }
+
+  // Custom endpoint methods
+  findCreateEndpointButton() {
+    return cy.findByTestId('create-endpoint-button');
+  }
+
+  findEmptyStateCreateEndpointButton() {
+    return cy.findByTestId('empty-state-secondary-action-button');
+  }
+
+  findCreateExternalModelModal() {
+    return cy.findByTestId('create-external-model-modal');
+  }
+
+  findModelIdInput() {
+    return cy.findByTestId('create-external-model-id-input');
+  }
+
+  findDisplayNameInput() {
+    return cy.findByTestId('create-external-model-display-name-input');
+  }
+
+  findEndpointUrlInput() {
+    return cy.findByTestId('create-external-model-url-input');
+  }
+
+  findTokenInput() {
+    return cy.findByTestId('create-external-model-token-input');
+  }
+
+  findVerifyModelButton() {
+    return cy.findByTestId('create-external-model-verify-button');
+  }
+
+  findVerifySuccessAlert(options?: { timeout?: number }) {
+    return cy.findByTestId('create-external-model-verify-success-alert', options);
+  }
+
+  findCreateEndpointSubmitButton() {
+    return cy.findByTestId('create-external-model-submit-button');
+  }
+
+  findAiModelsTable() {
+    return cy.findByTestId('ai-models-table');
+  }
+
+  findModelActionsKebab(modelName: string) {
+    return this.findAiModelsTable()
+      .find('tr')
+      .contains(modelName)
+      .parents('tr')
+      .findByTestId('model-actions-kebab');
+  }
+
+  findRemoveAssetAction() {
+    return cy.findByTestId('remove-asset-action');
+  }
+
+  findDeleteModelModal() {
+    return cy.findByTestId('delete-model-modal');
+  }
+
+  findDeleteModelConfirmButton() {
+    return cy.findByTestId('delete-model-modal').findByRole('button', { name: /^delete$/i });
+  }
+
+  findTryInPlaygroundButton() {
+    return cy.findByTestId('try-playground-button');
   }
 }
 
