@@ -20,6 +20,7 @@ import {
 import {
   HardwareProfileBindingState,
   REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH,
+  QueueSource,
 } from '#~/concepts/hardwareProfiles/const';
 import {
   HardwarePodSpecOptions,
@@ -336,4 +337,15 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     }
   }
   return result;
+};
+
+export const getLocalQueueLabel = (queueSource?: QueueSource): string => {
+  const commonLabel = 'Local queue';
+  if (queueSource === QueueSource.DIRECT) {
+    return `${commonLabel} (applied directly)`;
+  }
+  if (queueSource === QueueSource.HARDWARE_PROFILE) {
+    return `${commonLabel} (via hardware profile)`;
+  }
+  return commonLabel;
 };

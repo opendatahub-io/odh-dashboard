@@ -33,11 +33,39 @@
 
 .autorag-view-code-modal {
   &__body {
-    height: 60vh;
+    overflow: hidden;
   }
 
   &__code-block {
-    max-height: 45vh;
+    max-height: 50vh;
     overflow: auto;
+  }
+
+  &__tabs-container {
+    position: relative;
+  }
+
+  &__credentials-toggle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 1;
+  }
+
+  &__credentials-alert {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-bottom: 0;
+    transition:
+      max-height 0.25s ease,
+      opacity 0.2s ease,
+      margin-bottom 0.2s ease;
+
+    &--visible {
+      max-height: 10rem;
+      opacity: 1;
+      margin-bottom: var(--pf-t--global--spacer--md);
+    }
   }
 }

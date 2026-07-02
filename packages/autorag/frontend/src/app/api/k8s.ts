@@ -55,6 +55,24 @@ export const getSecrets =
     });
   };
 
+export const getSecretByName =
+  (hostPath: string) =>
+  (namespace: string, secretName: string) =>
+  (opts: APIOptions): Promise<Record<string, string>> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/secret/${encodeURIComponent(secretName)}`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Record<string, string>>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
 export const getOgxModels =
   (hostPath: string) =>
   (namespace: string, secretName: string) =>

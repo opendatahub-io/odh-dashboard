@@ -14,6 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '#~/pages/notebookController/const';
 import {
   ConfigMap,
@@ -41,7 +42,6 @@ import { NotebookControllerContext } from '#~/pages/notebookController/NotebookC
 import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { getEnvConfigMap, getEnvSecret } from '#~/services/envService';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';

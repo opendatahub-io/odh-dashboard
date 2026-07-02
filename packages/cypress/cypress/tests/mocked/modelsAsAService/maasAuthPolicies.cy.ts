@@ -1,5 +1,5 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { pageNotfound } from '../../../pages/pageNotFound';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
@@ -115,29 +115,29 @@ describe('MaaS Auth Policies', () => {
   it('should display the auth policies table with correct page content', () => {
     authPoliciesPage.findTitle().should('contain.text', 'Authorization policies');
     authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 6);
+    authPoliciesPage.findRows().should('have.length', 7);
     const premiumRow = authPoliciesPage.getRow('Premium Team Policy');
     premiumRow.findName().should('contain.text', 'Premium Team Policy');
-    premiumRow.findPhase().should('contain.text', 'Active');
-    premiumRow.findGroups().should('contain.text', '1 Group');
-    premiumRow.findModels().should('contain.text', '2 Models');
+    premiumRow.findPhase().should('contain.text', 'Ready');
+    premiumRow.findGroups().should('contain.text', '1');
+    premiumRow.findModels().should('contain.text', '2');
     const basicRow = authPoliciesPage.getRow('basic-team-policy');
     basicRow.findName().should('contain.text', 'basic-team-policy');
-    basicRow.findPhase().should('contain.text', 'Active');
-    basicRow.findGroups().should('contain.text', '1 Group');
-    basicRow.findModels().should('contain.text', '1 Model');
+    basicRow.findPhase().should('contain.text', 'Ready');
+    basicRow.findGroups().should('contain.text', '1');
+    basicRow.findModels().should('contain.text', '1');
 
     const failedRow = authPoliciesPage.getRow('failed-policy');
     failedRow.findPhase().should('contain.text', 'Failed');
     failedRow.findPhaseLabel().click();
-    failedRow.findPhasePopover().should('contain.text', 'Failed');
+    failedRow.findPhasePopover().should('contain.text', 'Policy failed');
 
     const pendingRow = authPoliciesPage.getRow('pending-policy');
     pendingRow.findPhase().should('contain.text', 'Pending');
   });
 
   it('should filter policies by keyword', () => {
-    authPoliciesPage.findRows().should('have.length', 6);
+    authPoliciesPage.findRows().should('have.length', 7);
 
     authPoliciesPage.findKeywordFilterInput().type('premium');
     authPoliciesPage.findRows().should('have.length', 1);
@@ -147,7 +147,7 @@ describe('MaaS Auth Policies', () => {
       .should('contain.text', 'Premium Team Policy');
 
     authPoliciesPage.clearAllFilters();
-    authPoliciesPage.findRows().should('have.length', 6);
+    authPoliciesPage.findRows().should('have.length', 7);
   });
 
   it('should disable the action buttons for a deleting policy in the table and view page', () => {
@@ -273,8 +273,8 @@ describe('View Auth Policy Page', () => {
     viewAuthPolicyPage
       .findDetailsSection()
       .should('contain.text', policyName)
-      .and('contain.text', 'Phase')
-      .and('contain.text', 'Active')
+      .and('contain.text', 'Status')
+      .and('contain.text', 'Ready')
       .and('contain.text', 'Name')
       .and('contain.text', 'Resource name')
       .and('contain.text', 'Date created');

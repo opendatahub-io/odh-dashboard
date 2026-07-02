@@ -6,7 +6,7 @@ import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockPr
 import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,

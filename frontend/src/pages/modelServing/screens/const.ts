@@ -32,3 +32,7 @@ export enum ServingRuntimeVersionStatusLabel {
   LATEST = 'Latest',
   OUTDATED = 'Outdated',
 }
+
+export enum ServingRuntimeTemplateStatusLabel {
+  TEMPLATE_REMOVED = 'Template removed',
+}

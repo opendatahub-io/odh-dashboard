@@ -1,4 +1,4 @@
-import { SortableData, checkboxTableColumn } from '#~/components/table';
+import { SortableData, checkboxTableColumn } from '@odh-dashboard/ui-core';
 import { getFullArtifactPathLabel } from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
 import { FullArtifactPathsAndConfig } from './types';
 

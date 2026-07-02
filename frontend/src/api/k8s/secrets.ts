@@ -8,19 +8,17 @@ import {
   k8sPatchResource,
   K8sResourceCommon,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { KnownLabels, type SecretKind } from '@odh-dashboard/k8s-core';
+import {
+  KnownLabels,
+  DATA_CONNECTION_PREFIX,
+  genRandomChars,
+  getGeneratedSecretName,
+  translateDisplayNameForK8s,
+} from '@odh-dashboard/k8s-core';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { SecretModel } from '#~/api/models';
-import { genRandomChars } from '#~/utilities/string';
-import { translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
-
-export const DATA_CONNECTION_PREFIX = 'aws-connection';
-export const SECRET_PREFIX = 'secret-';
-
-export const getGeneratedSecretName = (): string => `${SECRET_PREFIX}${genRandomChars()}`;
-export const isGeneratedSecretName = (name: string): boolean =>
-  new RegExp(`^${SECRET_PREFIX}[a-z0-9]{6}$`).test(name);
 
 export const assembleSecret = (
   projectName: string,

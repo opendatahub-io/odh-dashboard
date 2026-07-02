@@ -11,7 +11,13 @@ import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { LLMInferenceServiceConfigModel, type LLMInferenceServiceConfigKind } from '../types';
+import {
+  LLMInferenceServiceConfigModel,
+  TopologyType,
+  CONFIG_TYPE_LABEL,
+  CONFIG_TYPE_ROUTER,
+  type LLMInferenceServiceConfigKind,
+} from '../types';
 
 export const createLLMInferenceServiceConfig = (
   llmInferenceServiceConfig: LLMInferenceServiceConfigKind,
@@ -114,6 +120,120 @@ export const useWatchLLMInferenceServiceConfigs = (
       isList: true,
       groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
       namespace,
+    },
+    LLMInferenceServiceConfigModel,
+    opts,
+  );
+};
+
+// --- Topology Configuration APIs ---
+
+const TOPOLOGY_TYPE_VALUES = Object.values(TopologyType);
+const TOPOLOGY_LABEL_SELECTOR = `${CONFIG_TYPE_LABEL} in (${TOPOLOGY_TYPE_VALUES.join(',')})`;
+
+export const listTopologyConfigs = async (
+  namespace: string,
+  topologyType: TopologyType,
+): Promise<LLMInferenceServiceConfigKind[]> => {
+  return k8sListResourceItems<LLMInferenceServiceConfigKind>({
+    model: LLMInferenceServiceConfigModel,
+    queryOptions: {
+      ns: namespace,
+      queryParams: {
+        labelSelector: `${CONFIG_TYPE_LABEL}=${topologyType}`,
+      },
+    },
+  });
+};
+
+export const listAllTopologyConfigs = async (
+  namespace: string,
+): Promise<LLMInferenceServiceConfigKind[]> => {
+  return k8sListResourceItems<LLMInferenceServiceConfigKind>({
+    model: LLMInferenceServiceConfigModel,
+    queryOptions: {
+      ns: namespace,
+      queryParams: {
+        labelSelector: TOPOLOGY_LABEL_SELECTOR,
+      },
+    },
+  });
+};
+
+export const useFetchTopologyConfigs = (
+  namespace: string,
+): FetchStateObject<LLMInferenceServiceConfigKind[]> => {
+  const fetchCallbackPromise = React.useCallback(async () => {
+    return listAllTopologyConfigs(namespace);
+  }, [namespace]);
+
+  return useFetch(fetchCallbackPromise, []);
+};
+
+export const useWatchTopologyConfigs = (
+  namespace: string,
+  opts?: K8sAPIOptions,
+): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
+  return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
+    {
+      isList: true,
+      groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
+      namespace,
+      selector: {
+        matchExpressions: [
+          {
+            key: CONFIG_TYPE_LABEL,
+            operator: 'In',
+            values: TOPOLOGY_TYPE_VALUES,
+          },
+        ],
+      },
+    },
+    LLMInferenceServiceConfigModel,
+    opts,
+  );
+};
+
+// --- Router Configuration APIs ---
+
+export const listRouterConfigs = async (
+  namespace: string,
+): Promise<LLMInferenceServiceConfigKind[]> => {
+  return k8sListResourceItems<LLMInferenceServiceConfigKind>({
+    model: LLMInferenceServiceConfigModel,
+    queryOptions: {
+      ns: namespace,
+      queryParams: {
+        labelSelector: `${CONFIG_TYPE_LABEL}=${CONFIG_TYPE_ROUTER}`,
+      },
+    },
+  });
+};
+
+export const useFetchRouterConfigs = (
+  namespace: string,
+): FetchStateObject<LLMInferenceServiceConfigKind[]> => {
+  const fetchCallbackPromise = React.useCallback(async () => {
+    return listRouterConfigs(namespace);
+  }, [namespace]);
+
+  return useFetch(fetchCallbackPromise, []);
+};
+
+export const useWatchRouterConfigs = (
+  namespace: string,
+  opts?: K8sAPIOptions,
+): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
+  return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
+    {
+      isList: true,
+      groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
+      namespace,
+      selector: {
+        matchLabels: {
+          [CONFIG_TYPE_LABEL]: CONFIG_TYPE_ROUTER,
+        },
+      },
     },
     LLMInferenceServiceConfigModel,
     opts,

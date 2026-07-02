@@ -7,14 +7,14 @@ import {
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
-import {
+import type {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunction,
   UseK8sNameDescriptionDataConfiguration,
   UseK8sNameDescriptionFieldData,
-} from '#~/concepts/k8s/K8sNameDescriptionField/types';
+} from '@odh-dashboard/k8s-core';
+import { handleUpdateLogic, setupDefaults } from '@odh-dashboard/k8s-core';
 import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitionTooltip';
-import { handleUpdateLogic, setupDefaults } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { HelperTextItemResourceNameTaken } from './HelperTextItemVariants';
 import ResourceNameField from './ResourceNameField';
 

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Alert, FormGroup, FormHelperText, Label } from '@patternfly/react-core';
 import { TypeaheadSelectOption } from '@patternfly/react-templates';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ExistingStorageObject } from '#~/pages/projects/types';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import TypeaheadSelect from '#~/components/TypeaheadSelect';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';

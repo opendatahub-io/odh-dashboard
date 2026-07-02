@@ -16,10 +16,7 @@ import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { APIOptions } from 'mod-arch-core';
 import { DashboardModalFooter, FieldGroupHelpLabelIcon } from 'mod-arch-shared';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
-import {
-  translateDisplayNameForK8s,
-  isValidK8sName,
-} from '@odh-dashboard/internal/concepts/k8s/utils';
+import { isValidK8sName, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
 import useMcpServerConverter from '~/odh/hooks/useMcpServerConverter';
 import K8sNameDescriptionField from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';

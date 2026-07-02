@@ -1,12 +1,12 @@
 import type {
   EnvironmentFromVariable,
+  K8sNameDescriptionFieldData,
   Volume,
   VolumeMount,
   PersistentVolumeClaimKind,
 } from '@odh-dashboard/k8s-core';
 import { ImageStreamAndVersion, KeyValuePair } from '#~/types';
 import { NotebookKind } from '#~/k8sTypes';
-import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { Connection } from '#~/concepts/connectionTypes/types.ts';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';

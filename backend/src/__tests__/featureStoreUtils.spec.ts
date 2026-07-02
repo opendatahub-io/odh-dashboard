@@ -25,6 +25,7 @@ import {
   fetchFeastProjectsFromRegistry,
   getFeastProjectRegistryInfo,
   extractPermissionLevel,
+  fetchPermissionLevel,
   buildWorkbenchesByFeastProjectMap,
   type FeatureStoreCRD,
   type FeastIntegrationNotebook,
@@ -1118,6 +1119,121 @@ describe('featureStoreUtils', () => {
       });
 
       expect(result).toEqual(['read']);
+    });
+
+    it('should filter out non-string entries from actions', () => {
+      const result = extractPermissionLevel({
+        permissions: [
+          { spec: { actions: ['read', 123, null, 'write', undefined] as unknown as string[] } },
+        ],
+      });
+
+      expect(result).toEqual(['read', 'write']);
+    });
+  });
+
+  describe('fetchPermissionLevel', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockFastify = createMockKubeFastify();
+      process.env = { ...originalEnv, NODE_ENV: 'development' };
+      delete process.env.KUBERNETES_SERVICE_HOST;
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+      mockHttpsRequest.mockReset();
+    });
+
+    it('should return empty array and log warning on HTTP error', async () => {
+      mockHttpsJsonResponse(500, { error: 'internal server error' });
+
+      const result = await fetchPermissionLevel(
+        mockFastify,
+        createFeatureStoreCRD(),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.info).toHaveBeenCalledWith(
+        expect.stringContaining(`Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`),
+      );
+    });
+
+    it('should return empty array and log warning on network error', async () => {
+      mockHttpsJsonResponse(200, {}, { requestError: new Error('ECONNREFUSED') });
+
+      const result = await fetchPermissionLevel(
+        mockFastify,
+        createFeatureStoreCRD(),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.info).toHaveBeenCalledWith(
+        expect.stringContaining(`Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`),
+      );
+    });
+
+    it('should return empty array on malformed response (no permissions key)', async () => {
+      mockHttpsJsonResponse(200, { unexpected: 'data' });
+
+      const result = await fetchPermissionLevel(
+        mockFastify,
+        createFeatureStoreCRD(),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array on timeout', async () => {
+      mockHttpsRequest.mockImplementation(() => {
+        const req = new EventEmitter() as any;
+        req.end = jest.fn();
+        req.destroy = jest.fn();
+        req.setTimeout = jest.fn((_ms: number, cb: () => void) => {
+          process.nextTick(cb);
+        });
+        return req;
+      });
+
+      const result = await fetchPermissionLevel(
+        mockFastify,
+        createFeatureStoreCRD(),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.info).toHaveBeenCalledWith(
+        expect.stringContaining(`Permissions check for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`),
+      );
+    });
+
+    it('should deduplicate actions across permissions', async () => {
+      mockHttpsJsonResponse(200, {
+        permissions: [
+          { spec: { actions: ['Read', 'Read', 'Write'] } },
+          { spec: { actions: ['Read', 'Describe'] } },
+        ],
+      });
+
+      const result = await fetchPermissionLevel(
+        mockFastify,
+        createFeatureStoreCRD(),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual(expect.arrayContaining(['Read', 'Write', 'Describe']));
+      expect(result).toHaveLength(3);
     });
   });
 

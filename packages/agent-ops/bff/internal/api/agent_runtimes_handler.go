@@ -17,8 +17,15 @@ type AgentRuntimesEnvelope Envelope[*models.AgentRuntimesResponse, None]
 
 func parseListAgentRuntimesOptions(r *http.Request) (models.ListAgentRuntimesOptions, error) {
 	opts := models.ListAgentRuntimesOptions{
+		Namespace:     r.URL.Query().Get("namespace"),
 		Limit:         repositories.DefaultAgentRuntimesLimit,
 		ContinueToken: r.URL.Query().Get("continueToken"),
+	}
+
+	if ns := opts.Namespace; ns != "" {
+		if !isValidDNS1123Label(ns) {
+			return models.ListAgentRuntimesOptions{}, fmt.Errorf("invalid namespace %q: must match RFC 1123 label format (lowercase alphanumeric and hyphens, max 63 chars)", ns)
+		}
 	}
 
 	limitValue := r.URL.Query().Get("limit")

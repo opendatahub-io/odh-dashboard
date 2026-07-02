@@ -43,9 +43,21 @@ function AutomlCreate(): React.JSX.Element {
       <Controller
         control={form.control}
         name="description"
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <FormGroup fieldId={field.name} label="Description">
-            <TextArea {...field} id={field.name} data-testid="automl-description-input" />
+            <TextArea
+              {...field}
+              id={field.name}
+              data-testid="automl-description-input"
+              validated={fieldState.invalid ? 'error' : undefined}
+            />
+            {fieldState.error && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem variant="error">{fieldState.error.message}</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
           </FormGroup>
         )}
       />

@@ -9,6 +9,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   createNotebook,
   K8sStatusError,
@@ -28,7 +29,6 @@ import {
 } from '#~/concepts/analyticsTracking/trackingProperties';
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
@@ -36,7 +36,7 @@ import {
   updatePvcDataForNotebook,
 } from './service';
 import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
-import type { WorkbenchFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
+import type { SelectedFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
 import { generateFeastMetadata } from './featureStore/utils';
 
 type SpawnerFooterProps = {
@@ -45,7 +45,7 @@ type SpawnerFooterProps = {
   envVariables: EnvVariable[];
   connections: Connection[];
   canEnablePipelines: boolean;
-  selectedFeatureStores?: WorkbenchFeatureStoreConfig[];
+  selectedFeatureStores?: SelectedFeatureStoreConfig[];
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({

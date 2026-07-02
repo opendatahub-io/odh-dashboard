@@ -28,7 +28,7 @@ describe('DeleteAgentProfileModal', () => {
     );
 
     expect(screen.getByTestId('delete-agent-profile-modal')).toBeInTheDocument();
-    expect(screen.getByText('Delete agent profile?')).toBeInTheDocument();
+    expect(screen.getByText('Delete agent configuration?')).toBeInTheDocument();
     expect(screen.getByText('My Agent')).toBeInTheDocument();
     expect(screen.getByText(/will be permanently/)).toBeInTheDocument();
   });

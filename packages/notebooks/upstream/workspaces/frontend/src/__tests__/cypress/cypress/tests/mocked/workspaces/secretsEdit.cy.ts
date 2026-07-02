@@ -15,6 +15,7 @@ import {
   buildMockWorkspaceUpdateFromWorkspace,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 
 describe('Edit Secret Modal', () => {
@@ -92,10 +93,11 @@ describe('Edit Secret Modal', () => {
     ).as('getWorkspace');
 
     cy.interceptApi(
-      'GET /api/:apiVersion/workspacekinds/:kind',
-      { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKindInfo.name } },
-      mockModArchResponse(mockWorkspaceKindFull),
-    ).as('getWorkspaceKind');
+      'GET /api/:apiVersion/workspacekinds',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse([mockWorkspaceKindFull]),
+    ).as('getWorkspaceKinds');
+    interceptListValues(mockWorkspaceKindFull);
 
     cy.interceptApi(
       'GET /api/:apiVersion/secrets/:namespace',
@@ -125,7 +127,7 @@ describe('Edit Secret Modal', () => {
     cy.wait('@getWorkspaces');
     workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
     cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
     editWorkspace.clickNext();
@@ -239,7 +241,7 @@ describe('Edit Secret Modal', () => {
       .findAction({ action: 'edit', workspaceName: workspaceWithImmutableSecret.name })
       .click();
     cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
     editWorkspace.clickNext();
@@ -295,7 +297,7 @@ describe('Edit Secret Modal', () => {
     cy.wait('@getWorkspaces');
     workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
     cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
     editWorkspace.clickNext();

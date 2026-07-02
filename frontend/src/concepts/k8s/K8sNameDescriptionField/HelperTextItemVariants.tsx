@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { HelperTextItem } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 
 type Variants = React.ComponentProps<typeof HelperTextItem>['variant'];
 
