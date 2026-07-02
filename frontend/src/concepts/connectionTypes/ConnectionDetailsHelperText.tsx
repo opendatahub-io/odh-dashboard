@@ -13,7 +13,7 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+} from '@odh-dashboard/k8s-core';
 import { Connection, ConnectionTypeConfigMapObj } from './types';
 import { getConnectionTypeDisplayName, parseConnectionSecretValues } from './utils';
 

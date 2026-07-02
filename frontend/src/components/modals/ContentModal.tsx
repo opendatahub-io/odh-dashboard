@@ -36,6 +36,7 @@ type ContentModalProps = {
   disableFocusTrap?: boolean;
   dataTestId?: string;
   bodyClassName?: string;
+  noBodyPadding?: boolean;
   variant?: ModalProps['variant'];
   bodyLabel?: string;
   titleIconVariant?: ModalHeaderProps['titleIconVariant'];
@@ -64,6 +65,7 @@ const ContentModal: React.FC<ContentModalProps> = ({
   disableFocusTrap,
   dataTestId = 'content-modal',
   bodyClassName = 'odh-modal__content-height',
+  noBodyPadding,
   variant = 'medium',
   bodyLabel,
   titleIconVariant,
@@ -91,7 +93,10 @@ const ContentModal: React.FC<ContentModalProps> = ({
         titleIconVariant={titleIconVariant}
         data-testid="generic-modal-header"
       />
-      <ModalBody className={bodyClassName} aria-label={bodyLabel}>
+      <ModalBody
+        className={`${bodyClassName}${noBodyPadding ? ' pf-v6-u-p-0' : ''}`}
+        aria-label={bodyLabel}
+      >
         {contents}
       </ModalBody>
       {(error || (buttonActions && buttonActions.length > 0)) && (

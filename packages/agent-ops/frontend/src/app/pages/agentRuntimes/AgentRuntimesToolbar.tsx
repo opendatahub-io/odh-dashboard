@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
+import DeployAgentButton from '~/app/components/DeployAgentButton';
 
 export enum AgentRuntimesFilterOption {
   Name = 'name',
@@ -11,13 +12,17 @@ export const agentRuntimesFilterOptions: Record<AgentRuntimesFilterOption, strin
 };
 
 type AgentRuntimesToolbarProps = {
+  namespace?: string;
   filterText: string;
   onFilterChange: (value: string) => void;
+  onDeployAgent: () => void;
 };
 
 const AgentRuntimesToolbar: React.FC<AgentRuntimesToolbarProps> = ({
+  namespace,
   filterText,
   onFilterChange,
+  onDeployAgent,
 }) => (
   <FilterToolbar<AgentRuntimesFilterOption>
     data-testid="agent-runtimes-table-toolbar"
@@ -44,10 +49,7 @@ const AgentRuntimesToolbar: React.FC<AgentRuntimesToolbarProps> = ({
   >
     <ToolbarGroup>
       <ToolbarItem>
-        {/* Deploy agent - functionality to be implemented */}
-        <Button variant="primary" data-testid="deploy-agent-button" isDisabled>
-          Deploy agent
-        </Button>
+        <DeployAgentButton namespace={namespace} onDeployAgent={onDeployAgent} />
       </ToolbarItem>
     </ToolbarGroup>
   </FilterToolbar>

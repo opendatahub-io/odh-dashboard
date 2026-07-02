@@ -1,5 +1,5 @@
 import { SortableData } from '@odh-dashboard/ui-core';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 import { getAccessModePopover } from '#~/pages/projects/screens/spawner/storage/getAccessModePopover';

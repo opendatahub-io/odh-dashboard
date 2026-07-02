@@ -72,6 +72,7 @@ class ModelVersionArchive {
     const rmId = '1';
     const preferredModelRegistry = 'modelregistry-sample';
     cy.visit(modelVersionArchiveDetailsUrl(mvId, rmId, preferredModelRegistry));
+    this.wait();
   }
 
   visitModelVersionList() {

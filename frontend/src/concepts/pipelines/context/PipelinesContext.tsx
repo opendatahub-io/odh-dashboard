@@ -13,6 +13,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import {
   DSPAMlflowIntegrationMode,
   DSPipelineKind,
@@ -26,7 +27,6 @@ import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProjec
 import { conditionalArea } from '#~/concepts/areas';
 import { DEV_MODE } from '#~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
 
 import usePipelineNamespaceCR, {

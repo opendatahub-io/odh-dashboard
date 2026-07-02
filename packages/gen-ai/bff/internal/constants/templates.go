@@ -65,6 +65,11 @@ const PythonCodeTemplate = `# OGX Quickstart Script
 
 # Configuration adjust as needed:
 OGX_URL = ""
+# Client configuration — adjust these if you experience timeouts with RAG or large file uploads.
+# timeout: Maximum seconds to wait for a response (default: 600s / 10 minutes).
+# max_retries: Number of automatic retries on transient errors (default: 2).
+MAX_RETRIES = 2
+REQUEST_TIMEOUT = 600.0
 {{- if .ASRModel }}
 ASR_MODEL_URL = ""
 ASR_MODEL_NAME = "{{.ASRModel}}"
@@ -121,7 +126,7 @@ import requests
 
 from openai import OpenAI
 
-client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused")
+client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused", max_retries=MAX_RETRIES, timeout=REQUEST_TIMEOUT)
 {{- if .ASRModel }}
 
 # --- Audio Transcription ---

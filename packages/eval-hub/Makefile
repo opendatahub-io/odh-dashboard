@@ -31,9 +31,13 @@ dev-install-dependencies:
 	cd frontend && npm install
 
 .PHONY: dev-bff
-dev-bff:
+dev-bff: ## Run BFF with all mocks enabled (K8s, EvalHub, BFF clients)
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4002 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone 
+	cd bff && make run PORT=4002 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true MOCK_BFF_CLIENTS=true DEV_MODE=true DEPLOYMENT_MODE=standalone
+
+.PHONY: dev-bff-inter-bff
+dev-bff-inter-bff: ## Run BFF with Model-Catalog BFF dev URL for inter-BFF testing (mock K8s, real HTTP to Model-Catalog BFF on port 4000)
+	cd bff && make run PORT=4002 LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEPLOYMENT_MODE=standalone BFF_MODEL_CATALOG_DEV_URL=http://localhost:4000/api/v1
 
 .PHONY: dev-frontend
 dev-frontend:
@@ -91,7 +95,7 @@ E2E_BFF_PORT ?= 4002
 
 .PHONY: dev-bff-e2e-mock
 dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true MOCK_BFF_CLIENTS=true DEV_MODE=true DEPLOYMENT_MODE=federated
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)

@@ -1,13 +1,37 @@
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 
-type SnippetParams = {
+export type SnippetCredentials = {
+  hostname: string;
+  apiKey: string;
+};
+
+export type SnippetParams = {
   template: ResponsesTemplate;
   secretName: string;
   namespace: string;
 };
 
-export const generateCurlSnippet = ({ template, secretName, namespace }: SnippetParams): string => {
-  const body = JSON.stringify(template, null, 2);
+const escapeShellDoubleQuote = (s: string): string =>
+  s.replace(/[\\"$`!\n]/g, (c) => (c === '\n' ? '\\n' : `\\${c}`));
+
+const escapeShellSingleQuote = (s: string): string => s.replace(/'/g, "'\\''");
+
+const escapeDoubleQuotedString = (s: string): string =>
+  s.replace(/[\\"]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
+
+export const generateCurlSnippet = (
+  { template, secretName, namespace }: SnippetParams,
+  credentials?: SnippetCredentials,
+): string => {
+  const body = escapeShellSingleQuote(JSON.stringify(template, null, 2));
+  if (credentials) {
+    const hostname = escapeShellDoubleQuote(credentials.hostname);
+    const apiKey = escapeShellDoubleQuote(credentials.apiKey);
+    return `curl -X POST "https://${hostname}/v1/responses" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -d '${body}'`;
+  }
   return `OGX_CLIENT_BASE_URL=$(oc get secret ${secretName} -n ${namespace} \\
   -o jsonpath='{.data.OGX_CLIENT_BASE_URL}' | base64 -d)
 OGX_CLIENT_API_KEY=$(oc get secret ${secretName} -n ${namespace} \\
@@ -19,11 +43,39 @@ curl -X POST "\${OGX_CLIENT_BASE_URL}/v1/responses" \\
   -d '${body}'`;
 };
 
-export const generateNodeSnippet = ({ template, secretName, namespace }: SnippetParams): string => {
+export const generateNodeSnippet = (
+  { template, secretName, namespace }: SnippetParams,
+  credentials?: SnippetCredentials,
+): string => {
   const body = JSON.stringify(template, null, 2)
     .split('\n')
     .map((line, i) => (i === 0 ? line : `  ${line}`))
     .join('\n');
+  if (credentials) {
+    const hostname = escapeDoubleQuotedString(credentials.hostname);
+    const apiKey = escapeDoubleQuotedString(credentials.apiKey);
+    return `// Build the JSON request body
+const payload = ${body};
+
+// Send a request to the Responses API
+const response = await fetch("https://${hostname}/v1/responses", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer ${apiKey}",
+  },
+  body: JSON.stringify(payload),
+  signal: AbortSignal.timeout(30_000),
+});
+
+if (!response.ok) {
+  const errorBody = await response.text();
+  throw new Error(\`Request failed (\${response.status}): \${errorBody}\`);
+}
+
+const result = await response.json();
+console.log(result.output ?? result);`;
+  }
   return `// Prerequisites: Node.js 18+, npm install @kubernetes/client-node
 // Save as .mjs or add "type": "module" to package.json
 import * as k8s from "@kubernetes/client-node";
@@ -68,13 +120,62 @@ const result = await response.json();
 console.log(result.output ?? result);`;
 };
 
-export const generateGoSnippet = ({ template, secretName, namespace }: SnippetParams): string => {
+export const generateGoSnippet = (
+  { template, secretName, namespace }: SnippetParams,
+  credentials?: SnippetCredentials,
+): string => {
   const body = JSON.stringify(template, null, 2)
     .split('\n')
     .map((line, i) =>
       i === 0 ? `\tpayload := []byte(${JSON.stringify(line)}` : `\t\t${JSON.stringify(line)}`,
     )
     .join(' +\n');
+  if (credentials) {
+    const hostname = escapeDoubleQuotedString(credentials.hostname);
+    const apiKey = escapeDoubleQuotedString(credentials.apiKey);
+    const lines = [
+      'package main',
+      '',
+      'import (',
+      '\t"bytes"',
+      '\t"fmt"',
+      '\t"io"',
+      '\t"net/http"',
+      '\t"time"',
+      ')',
+      '',
+      'func main() {',
+      '\t// Build the JSON request body',
+      `${body})`,
+      '',
+      `\tbaseURL := "https://${hostname}"`,
+      `\tapiKey := "${apiKey}"`,
+      '',
+      '\t// Send a POST request to the Responses API',
+      '\treq, err := http.NewRequest("POST", baseURL+"/v1/responses", bytes.NewBuffer(payload))',
+      '\tif err != nil {',
+      '\t\tpanic(err)',
+      '\t}',
+      '',
+      '\treq.Header.Set("Content-Type", "application/json")',
+      '\treq.Header.Set("Authorization", "Bearer "+apiKey)',
+      '',
+      '\tclient := &http.Client{Timeout: 30 * time.Second}',
+      '\tresp, err := client.Do(req)',
+      '\tif err != nil {',
+      '\t\tpanic(err)',
+      '\t}',
+      '\tdefer resp.Body.Close()',
+      '',
+      '\tbody, _ := io.ReadAll(resp.Body)',
+      '\tif resp.StatusCode < 200 || resp.StatusCode >= 300 {',
+      '\t\tpanic(fmt.Sprintf("request failed (%d): %s", resp.StatusCode, string(body)))',
+      '\t}',
+      '\tfmt.Println(string(body))',
+      '}',
+    ];
+    return lines.join('\n');
+  }
   const lines = [
     '// Prerequisites: go get k8s.io/client-go k8s.io/apimachinery',
     'package main',
@@ -181,12 +282,37 @@ const jsonToPython = (value: unknown, indent = 0): string => {
   return JSON.stringify(value);
 };
 
-export const generatePythonSnippet = ({
-  template,
-  secretName,
-  namespace,
-}: SnippetParams): string => {
+export const generatePythonSnippet = (
+  { template, secretName, namespace }: SnippetParams,
+  credentials?: SnippetCredentials,
+): string => {
   const params = jsonToPython(template, 0);
+  if (credentials) {
+    const hostname = escapeDoubleQuotedString(credentials.hostname);
+    const apiKey = escapeDoubleQuotedString(credentials.apiKey);
+    return `import requests
+
+base_url = "https://${hostname}"
+api_key = "${apiKey}"
+
+# Build the request payload
+payload = ${params}
+
+# Send a request to the Responses API
+response = requests.post(
+    f"{base_url}/v1/responses",
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    },
+    json=payload,
+    timeout=30,
+)
+response.raise_for_status()
+
+result = response.json()
+print(result.get("output", result))`;
+  }
   return `# Prerequisites: pip install kubernetes requests
 import base64
 import requests

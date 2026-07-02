@@ -35,6 +35,7 @@ const (
 	UserPath            = ApiPathPrefix + "/user"
 	NamespacePath       = ApiPathPrefix + "/namespaces"
 	SecretsPath         = ApiPathPrefix + "/secrets"
+	SecretPath          = ApiPathPrefix + "/secret/:name"
 	S3FilePath          = ApiPathPrefix + "/s3/files/:key"
 	S3FilesPath         = ApiPathPrefix + "/s3/files"
 	OGXModelsPath       = ApiPathPrefix + "/ogx/models"
@@ -258,6 +259,7 @@ func (app *App) Routes() http.Handler {
 
 	// Secrets
 	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
+	apiRouter.GET(SecretPath, app.AttachNamespace(app.GetSecretHandler))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.PipelineRunHandler)))

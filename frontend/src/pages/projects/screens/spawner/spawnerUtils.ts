@@ -1,5 +1,6 @@
 import compareVersions from 'compare-versions';
 import type { Volume, VolumeMount, K8sDSGResource } from '@odh-dashboard/k8s-core';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import type { ImageStreamStatusTag } from '#~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
 import {
@@ -11,7 +12,6 @@ import {
 } from '#~/pages/projects/types';
 import { AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
 import { FieldOptions } from '#~/components/FieldList';
-import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import {
   BuildStatus,
   ImageVersionDependencyType,

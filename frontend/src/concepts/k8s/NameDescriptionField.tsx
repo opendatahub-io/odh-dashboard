@@ -10,8 +10,8 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { isValidK8sName, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { NameDescType } from '#~/pages/projects/types';
-import { isValidK8sName, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitionTooltip';
 import { CharLimitHelperText } from '#~/components/CharLimitHelperText';
 
