@@ -111,6 +111,7 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.multiModel:
     case ProjectObjectType.modelServer:
     case ProjectObjectType.registeredModels:
+    case ProjectObjectType.modelRegistry:
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
       return 'var(--ai-model-server--IconColor)';
@@ -180,6 +181,7 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.multiModel:
     case ProjectObjectType.modelServer:
     case ProjectObjectType.registeredModels:
+    case ProjectObjectType.modelRegistry:
     case ProjectObjectType.modelRegistryContext:
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
@@ -245,6 +247,7 @@ export const typedColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-cluster-storage--Color)';
     case ProjectObjectType.modelServer:
     case ProjectObjectType.registeredModels:
+    case ProjectObjectType.modelRegistry:
     case ProjectObjectType.modelRegistryContext:
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:

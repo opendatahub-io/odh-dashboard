@@ -227,6 +227,63 @@ describe('getStatusSubtitle', () => {
         }),
       ).toBeNull();
     });
+
+    it.each([
+      [
+        KueueWorkloadStatus.Queued,
+        'insufficient unused quota',
+        3,
+        'Waiting for quota in test-queue (position 3)',
+      ],
+      [
+        KueueWorkloadStatus.Inadmissible,
+        'queue not found',
+        1,
+        'Queue test-queue does not exist (position 1)',
+      ],
+    ])(
+      'should append queue position for %s status when position is available',
+      (status, message, position, expected) => {
+        expect(
+          getStatusSubtitle({
+            isStarting: false,
+            isStopping: false,
+            notebookStatus: null,
+            kueueStatus: { status, message, queueName: 'test-queue', queuePosition: position },
+          }),
+        ).toBe(expected);
+      },
+    );
+
+    it('should not append position for non-pending statuses even if queuePosition is set', () => {
+      expect(
+        getStatusSubtitle({
+          isStarting: false,
+          isStopping: false,
+          notebookStatus: null,
+          kueueStatus: {
+            status: KueueWorkloadStatus.Failed,
+            message: 'error occurred',
+            queueName: 'test-queue',
+            queuePosition: 5,
+          },
+        }),
+      ).toBe('error occurred');
+    });
+
+    it('should not append position when queuePosition is undefined', () => {
+      expect(
+        getStatusSubtitle({
+          isStarting: false,
+          isStopping: false,
+          notebookStatus: null,
+          kueueStatus: {
+            status: KueueWorkloadStatus.Queued,
+            queueName: 'test-queue',
+          },
+        }),
+      ).toBe('Waiting for quota in test-queue');
+    });
   });
 
   describe('isStarting', () => {

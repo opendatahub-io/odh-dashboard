@@ -48,6 +48,7 @@ export const useKueueStatusForNotebooks = (
       statusMap[name] = {
         ...statusWithMessage,
         queueName: notebook?.metadata.labels?.[KUEUE_QUEUE_LABEL],
+        workloadName: workload.metadata?.name,
       };
     }
     return statusMap;
