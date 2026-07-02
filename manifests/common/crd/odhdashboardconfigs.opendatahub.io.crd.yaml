@@ -59,7 +59,7 @@ spec:
                       description: 'When true, hides the Data Science Projects page from the dashboard navigation.'
                     disableProjectScoped:
                       type: boolean
-                      description: 'When true, disables project-scoped navigation mode for workbenches and model serving.'
+                      description: 'When true, disables project-scoped resource management, such as project-level hardware profiles for workbenches and model serving.'
                     disableModelServing:
                       type: boolean
                       description: 'When true, hides the Model Serving pages and disables model deployment features.'
@@ -188,7 +188,7 @@ spec:
                       description: 'When true, enables the YAML viewer in the model deployment wizard.'
                     vLLMDeploymentOnMaaS:
                       type: boolean
-                      description: 'When true, enables vLLM deployment options within Model-as-a-Service.'
+                      description: 'When true, enables vLLM deployment options in the model serving deployment wizard for generative AI model deployments.'
                     promptManagement:
                       type: boolean
                       description: 'When true, enables prompt management features.'
@@ -318,13 +318,13 @@ spec:
                       type: string
                 # Likely needs a better spot to exist -- hard to do granular permissions
                 templateOrder:
-                  description: 'Ordered list of workbench image template names controlling their display order.'
+                  description: 'Ordered list of serving runtime template names controlling their display order in the Custom Serving Runtimes admin page.'
                   type: array
                   items:
                     type: string
                 # Likely needs a better spot to exist -- hard to do granular permissions
                 templateDisablement:
-                  description: 'List of workbench image template names to hide from users.'
+                  description: 'List of serving runtime template names to hide from the Custom Serving Runtimes admin page.'
                   type: array
                   items:
                     type: string
@@ -346,7 +346,7 @@ spec:
                         - rolling
                         - recreate
                     isLLMdDefault:
-                      description: 'When true, sets LLMd as the default serving platform for new model deployments.'
+                      description: 'When true, pre-selects LLMd as the suggested serving platform in the model deployment wizard.'
                       type: boolean
                 globalMLflowNamespaces:
                   description: >-
