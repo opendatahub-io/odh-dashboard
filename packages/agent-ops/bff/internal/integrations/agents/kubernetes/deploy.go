@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 )
 
 // DeployAgent creates all Kubernetes resources for a new agent deployment.
@@ -164,14 +166,121 @@ func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error 
 	return &agents.UnavailableError{Message: fmt.Sprintf("delete not yet implemented for agent %s/%s", namespace, name)}
 }
 
-// StopAgent scales down the agent workload to zero replicas.
+const (
+	// AnnotationOriginalReplicas stores the original replica count before a stop operation.
+	AnnotationOriginalReplicas = "opendatahub.io/original-replicas"
+)
+
+// StopAgent scales down the agent Deployment to zero replicas.
+// The original replica count is preserved in an annotation so StartAgent can restore it.
+// Uses RetryOnConflict to handle concurrent modifications safely.
 func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
-	_ = ctx
-	return &agents.UnavailableError{Message: fmt.Sprintf("stop not yet implemented for agent %s/%s", namespace, name)}
+	clientset := c.k8sClient.KubernetesClientset()
+
+	var stoppedReplicas int32
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		deployment, getErr := clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		if getErr != nil {
+			return fmt.Errorf("failed to get Deployment %s/%s: %w", namespace, name, mapK8sError(getErr))
+		}
+		if deployment.Labels[labelManagedBy] != managedByValue {
+			return fmt.Errorf("cannot stop agent %s/%s: not managed by %s", namespace, name, managedByValue)
+		}
+
+		currentReplicas := int32(1)
+		if deployment.Spec.Replicas != nil {
+			currentReplicas = *deployment.Spec.Replicas
+		}
+
+		if currentReplicas == 0 {
+			return fmt.Errorf("agent %s/%s is already stopped: %w", namespace, name, agents.ErrConflict)
+		}
+
+		if deployment.Annotations == nil {
+			deployment.Annotations = make(map[string]string)
+		}
+		deployment.Annotations[AnnotationOriginalReplicas] = fmt.Sprintf("%d", currentReplicas)
+
+		zero := int32(0)
+		deployment.Spec.Replicas = &zero
+
+		_, updateErr := clientset.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
+		if updateErr != nil {
+			return updateErr
+		}
+		stoppedReplicas = currentReplicas
+		return nil
+	})
+	if err != nil {
+		return mapK8sError(err)
+	}
+
+	c.logger.Info("Agent stopped (scaled to 0)",
+		slog.String("name", name),
+		slog.String("namespace", namespace),
+		slog.Int("originalReplicas", int(stoppedReplicas)))
+
+	return nil
 }
 
-// StartAgent scales the agent workload back up.
+// StartAgent scales the agent Deployment back up to its original replica count.
+// If no original replica count is stored, it defaults to 1.
+// Uses RetryOnConflict to handle concurrent modifications safely.
 func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
-	_ = ctx
-	return &agents.UnavailableError{Message: fmt.Sprintf("start not yet implemented for agent %s/%s", namespace, name)}
+	clientset := c.k8sClient.KubernetesClientset()
+
+	var startedReplicas int32
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		deployment, getErr := clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		if getErr != nil {
+			return fmt.Errorf("failed to get Deployment %s/%s: %w", namespace, name, mapK8sError(getErr))
+		}
+		if deployment.Labels[labelManagedBy] != managedByValue {
+			return fmt.Errorf("cannot start agent %s/%s: not managed by %s", namespace, name, managedByValue)
+		}
+
+		currentReplicas := int32(1)
+		if deployment.Spec.Replicas != nil {
+			currentReplicas = *deployment.Spec.Replicas
+		}
+
+		if currentReplicas > 0 {
+			return fmt.Errorf("agent %s/%s is already running: %w", namespace, name, agents.ErrConflict)
+		}
+
+		targetReplicas := int32(1)
+		if stored, ok := deployment.Annotations[AnnotationOriginalReplicas]; ok {
+			if parsed, parseErr := parseReplicaCount(stored); parseErr == nil && parsed > 0 {
+				targetReplicas = parsed
+			}
+			delete(deployment.Annotations, AnnotationOriginalReplicas)
+		}
+
+		deployment.Spec.Replicas = &targetReplicas
+
+		_, updateErr := clientset.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
+		if updateErr != nil {
+			return updateErr
+		}
+		startedReplicas = targetReplicas
+		return nil
+	})
+	if err != nil {
+		return mapK8sError(err)
+	}
+
+	c.logger.Info("Agent started",
+		slog.String("name", name),
+		slog.String("namespace", namespace),
+		slog.Int("replicas", int(startedReplicas)))
+
+	return nil
+}
+
+func parseReplicaCount(s string) (int32, error) {
+	n, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return int32(n), nil
 }

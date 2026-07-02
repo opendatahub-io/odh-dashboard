@@ -148,6 +148,66 @@ paths:
       operationId: getAgentRuntimeDetail
       summary: Get agent runtime detail
       description: Returns full runtime detail for a single deployed agent.
+  /api/v1/agents/runtimes/{ns}/{name}/stop:
+    summary: Stop an agent deployment.
+    description: >-
+      Scales the agent Deployment to zero replicas.
+    post:
+      tags:
+        - AgentOperation
+      parameters:
+        - $ref: "#/components/parameters/agentNamespace"
+        - $ref: "#/components/parameters/agentName"
+      responses:
+        "200":
+          $ref: "#/components/responses/LifecycleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: stopAgent
+      summary: Stop an agent
+      description: >-
+        Scales the agent Deployment to zero replicas. Returns 409 if already stopped. The original replica count
+        is stored as an annotation for later restoration via the start endpoint.
+  /api/v1/agents/runtimes/{ns}/{name}/start:
+    summary: Start an agent deployment.
+    description: >-
+      Scales the agent Deployment back to its original replica count.
+    post:
+      tags:
+        - AgentOperation
+      parameters:
+        - $ref: "#/components/parameters/agentNamespace"
+        - $ref: "#/components/parameters/agentName"
+      responses:
+        "200":
+          $ref: "#/components/responses/LifecycleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: startAgent
+      summary: Start an agent
+      description: >-
+        Scales the agent Deployment back to its original replica count (read from
+        the annotation set by stop, defaults to 1 if not found).
   /api/v1/agents/deploy:
     summary: Deploy a new agent runtime.
     description: >-
@@ -708,6 +768,39 @@ components:
         message:
           type: string
           example: Agent deployed successfully
+    LifecycleResult:
+      description: Result of a lifecycle operation (stop/start).
+      required:
+        - success
+        - name
+        - namespace
+        - action
+        - message
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether the operation completed successfully.
+          example: true
+        name:
+          type: string
+          description: Name of the agent.
+          example: my-agent
+        namespace:
+          type: string
+          description: Namespace of the agent.
+          example: agent-ops-demo
+        action:
+          type: string
+          description: The lifecycle action that was performed.
+          enum:
+            - stop
+            - start
+          example: stop
+        message:
+          type: string
+          description: Human-readable result message.
+          example: Agent stop completed successfully
   responses:
     HealthCheckResponse:
       description: BFF service health status
@@ -890,7 +983,36 @@ components:
                   namespace: agent-ops-demo
                   message: Agent deployed successfully
       description: A response confirming successful agent deployment.
-
+    LifecycleResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/LifecycleResult"
+          examples:
+            stopped:
+              summary: Agent stopped
+              value:
+                data:
+                  success: true
+                  name: my-agent
+                  namespace: agent-ops-demo
+                  action: stop
+                  message: Agent stop completed successfully
+            started:
+              summary: Agent started
+              value:
+                data:
+                  success: true
+                  name: my-agent
+                  namespace: agent-ops-demo
+                  action: start
+                  message: Agent start completed successfully
+      description: Confirms a lifecycle operation completed successfully.
 
   parameters:
     agentNamespace:

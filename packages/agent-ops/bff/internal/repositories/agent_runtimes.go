@@ -108,6 +108,34 @@ func (r *AgentRuntimesRepository) DeployAgent(ctx context.Context, params *agent
 	}, nil
 }
 
+// StopAgent scales down an agent to zero replicas.
+func (r *AgentRuntimesRepository) StopAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+
+	if err := client.StopAgent(ctx, namespace, name); err != nil {
+		return translateAgentError(err)
+	}
+
+	return nil
+}
+
+// StartAgent scales an agent back up to its original replica count.
+func (r *AgentRuntimesRepository) StartAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+
+	if err := client.StartAgent(ctx, namespace, name); err != nil {
+		return translateAgentError(err)
+	}
+
+	return nil
+}
+
 func translateAgentError(err error) error {
 	if err == nil {
 		return nil

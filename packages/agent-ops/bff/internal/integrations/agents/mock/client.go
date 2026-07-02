@@ -133,13 +133,31 @@ func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error 
 // StopAgent implements agents.Client.
 func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 	_ = ctx
-	return agents.ErrUnavailable
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	key := detailKey(namespace, name)
+	detail, ok := c.Details[key]
+	if !ok {
+		return agents.ErrNotFound
+	}
+	detail.ReadyStatus = "Stopped"
+	c.Details[key] = detail
+	return nil
 }
 
 // StartAgent implements agents.Client.
 func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 	_ = ctx
-	return agents.ErrUnavailable
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	key := detailKey(namespace, name)
+	detail, ok := c.Details[key]
+	if !ok {
+		return agents.ErrNotFound
+	}
+	detail.ReadyStatus = "Ready"
+	c.Details[key] = detail
+	return nil
 }
 
 // cloneAgentDetail returns a defensive copy of detail. Spec and Status use maps.Clone
