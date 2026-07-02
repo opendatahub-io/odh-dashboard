@@ -52,6 +52,28 @@ const initResultsIntercepts = () => {
     mockModArchResponse(mockPipelineRunWithSpec),
   );
 
+  // S3 files listing — Stage 0: discover training task directory under the run
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: '/automl/api/v1/s3/files',
+      query: {
+        path: `autogluon-tabular-training-pipeline/${RUN_ID}`,
+      },
+    },
+    mockModArchResponse(
+      mockS3ListObjectsResponse({
+        common_prefixes: [
+          {
+            prefix: `autogluon-tabular-training-pipeline/${RUN_ID}/autogluon-models-training/`,
+          },
+        ],
+        contents: [],
+        key_count: 1,
+      }),
+    ),
+  );
+
   // S3 files listing — Stage 1: list task directories
   cy.intercept(
     {
@@ -102,10 +124,7 @@ const initResultsIntercepts = () => {
     cy.intercept(
       {
         method: 'GET',
-        pathname: '/automl/api/v1/s3/file',
-        query: {
-          key: `${baseDir}/model.json`,
-        },
+        pathname: `/automl/api/v1/s3/files/${encodeURIComponent(`${baseDir}/model.json`)}`,
       },
       {
         body: model,
@@ -117,10 +136,7 @@ const initResultsIntercepts = () => {
     cy.intercept(
       {
         method: 'GET',
-        pathname: '/automl/api/v1/s3/file',
-        query: {
-          key: `${baseDir}/metrics/feature_importance.json`,
-        },
+        pathname: `/automl/api/v1/s3/files/${encodeURIComponent(`${baseDir}/metrics/feature_importance.json`)}`,
       },
       {
         body: mockTabularFeatureImportances[modelName],
@@ -132,10 +148,7 @@ const initResultsIntercepts = () => {
     cy.intercept(
       {
         method: 'GET',
-        pathname: '/automl/api/v1/s3/file',
-        query: {
-          key: `${baseDir}/metrics/confusion_matrix.json`,
-        },
+        pathname: `/automl/api/v1/s3/files/${encodeURIComponent(`${baseDir}/metrics/confusion_matrix.json`)}`,
       },
       {
         body: mockTabularConfusionMatrices[modelName],
