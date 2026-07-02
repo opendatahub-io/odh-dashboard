@@ -766,9 +766,7 @@ class CreateSpawnerPage {
   }
 
   toggleFeatureStoreInModal(namespace: string, projectName: string) {
-    this.findSelectFeatureStoresModalRow(namespace, projectName)
-      .find('input[type="checkbox"]')
-      .click({ force: true });
+    this.findSelectFeatureStoresModalRow(namespace, projectName).findByRole('checkbox').click();
     return this;
   }
 
@@ -820,7 +818,7 @@ class CreateSpawnerPage {
 
   shouldHaveFeatureStoreConnectedInModal(namespace: string, projectName: string) {
     this.findSelectFeatureStoresModalRow(namespace, projectName)
-      .find('input[type="checkbox"]')
+      .findByRole('checkbox')
       .should('be.checked')
       .and('be.enabled');
     return this;
