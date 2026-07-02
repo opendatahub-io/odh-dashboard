@@ -1283,6 +1283,69 @@ describe('AutomlLeaderboard component', () => {
       const restoredOrder = headersRestored.map((h) => h.getAttribute('data-testid'));
       expect(restoredOrder).toEqual(originalOrder);
     });
+
+    it('should discard dirty state when modal is cancelled and reopened', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      // Open modal and uncheck rank
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const rankCheckbox = screen.getByTestId('column-check-rank');
+      expect((rankCheckbox as HTMLInputElement).checked).toBe(true);
+      fireEvent.click(rankCheckbox);
+      expect((rankCheckbox as HTMLInputElement).checked).toBe(false);
+
+      // Cancel
+      fireEvent.click(screen.getByText('Cancel'));
+
+      // Reopen — rank should be checked again
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const rankCheckboxAfterReopen = screen.getByTestId('column-check-rank');
+      expect((rankCheckboxAfterReopen as HTMLInputElement).checked).toBe(true);
+    });
+
+    it('should disable save button when no changes are made', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+
+    it('should enable save button after toggling a column', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
+    });
+
+    it('should disable save button when all columns are unchecked', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+
+      const checkboxes = screen.getAllByTestId(/^column-check-/);
+      checkboxes.forEach((cb) => {
+        if ((cb as HTMLInputElement).checked) {
+          fireEvent.click(cb);
+        }
+      });
+
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
   });
 
   // ========================================================================

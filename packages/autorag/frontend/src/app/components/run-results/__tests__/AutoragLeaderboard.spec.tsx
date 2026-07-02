@@ -1701,5 +1701,70 @@ describe('AutoragLeaderboard component', () => {
         'metric-header-faithfulness',
       ]);
     });
+
+    it('should discard dirty state when modal is cancelled and reopened', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Open modal and uncheck rank
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const rankCheckbox = screen.getByTestId('column-check-rank');
+      expect((rankCheckbox as HTMLInputElement).checked).toBe(true);
+      fireEvent.click(rankCheckbox);
+      expect((rankCheckbox as HTMLInputElement).checked).toBe(false);
+
+      // Cancel
+      fireEvent.click(screen.getByText('Cancel'));
+
+      // Reopen — rank should be checked again (dirty state discarded)
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const rankCheckboxAfterReopen = screen.getByTestId('column-check-rank');
+      expect((rankCheckboxAfterReopen as HTMLInputElement).checked).toBe(true);
+    });
+
+    it('should disable save button when no changes are made', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const saveButton = screen.getByRole('button', { name: 'Save' });
+      expect(saveButton).toBeDisabled();
+    });
+
+    it('should enable save button after toggling a column', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+      fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+      expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
+    });
+
+    it('should disable save button when all columns are unchecked', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+
+      // Uncheck all currently checked columns
+      const checkboxes = screen.getAllByTestId(/^column-check-/);
+      checkboxes.forEach((cb) => {
+        if ((cb as HTMLInputElement).checked) {
+          fireEvent.click(cb);
+        }
+      });
+
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
   });
 });
