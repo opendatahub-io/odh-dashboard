@@ -854,7 +854,7 @@ func TestEnforceWritePermissionBypassedWhenAuthDisabled(t *testing.T) {
 	}
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	rr := httptest.NewRecorder()
-	result := app.enforceWritePermission(context.Background(), rr, req, "my-ns", nil, "create")
+	result := app.enforceWritePermission(context.Background(), rr, req, "my-ns", "create")
 	assert.True(t, result)
 	// ResponseRecorder initializes with implicit 200, but no error response was written
 	// Verify the body is empty to confirm no error handler was called

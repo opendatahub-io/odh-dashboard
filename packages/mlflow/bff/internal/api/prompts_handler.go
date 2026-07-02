@@ -190,20 +190,19 @@ func (app *App) enforceWritePermission(
 	w http.ResponseWriter,
 	r *http.Request,
 	workspace string,
-	identity *k8s.RequestIdentity,
 	verb string,
 ) bool {
 	if app.config.AuthMethod == config.AuthMethodDisabled {
 		app.logger.Warn("Skipping permission check (auth disabled)",
-			"workspace", workspace)
+			slog.String("workspace", workspace))
 		return true
 	}
 
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.logger.Error("Failed to get Kubernetes client",
-			"workspace", workspace,
-			"error", err)
+			slog.String("workspace", workspace),
+			slog.Any("error", err))
 		app.serverErrorResponse(w, r, err)
 		return false
 	}
@@ -211,16 +210,22 @@ func (app *App) enforceWritePermission(
 	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, workspace, verb)
 	if err != nil {
 		app.logger.Error("Failed to check write permissions",
-			"workspace", workspace,
-			"error", err)
+			slog.String("workspace", workspace),
+			slog.Any("error", err))
 		app.serverErrorResponse(w, r, err)
 		return false
 	}
 
 	if !canWrite {
-		app.forbiddenResponse(w, r, fmt.Errorf(
-			"insufficient permissions to write prompts in namespace %s: requires mlflow-edit role",
-			workspace))
+		err := errors.New("insufficient permissions to write prompts: requires mlflow-edit role")
+		app.logger.Warn("Permission denied",
+			slog.String("workspace", workspace),
+			slog.String("verb", verb))
+		httpError := &HTTPError{
+			StatusCode: http.StatusForbidden,
+			Error:      ErrorPayload{Code: "403", Message: err.Error()},
+		}
+		app.errorResponse(w, r, httpError)
 		return false
 	}
 
@@ -267,9 +272,7 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-
-	if !app.enforceWritePermission(ctx, w, r, workspace, identity, "create") {
+	if !app.enforceWritePermission(ctx, w, r, workspace, "create") {
 		return
 	}
 
@@ -392,9 +395,7 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-
-	if !app.enforceWritePermission(ctx, w, r, workspace, identity, "delete") {
+	if !app.enforceWritePermission(ctx, w, r, workspace, "delete") {
 		return
 	}
 
@@ -432,9 +433,7 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-
-	if !app.enforceWritePermission(ctx, w, r, workspace, identity, "delete") {
+	if !app.enforceWritePermission(ctx, w, r, workspace, "delete") {
 		return
 	}
 
