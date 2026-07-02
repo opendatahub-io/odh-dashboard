@@ -2,7 +2,10 @@ import { appChrome } from '../appChrome';
 
 class AutomlExperimentsPage {
   visit(namespace: string) {
-    cy.visitWithLogin(`/develop-train/automl/experiments/${namespace}`);
+    cy.visitWithLogin('/');
+    cy.reload();
+    this.findNavItem().should('exist');
+    cy.visit(`/develop-train/automl/experiments/${namespace}`);
     this.wait();
   }
 

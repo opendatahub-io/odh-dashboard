@@ -44,7 +44,10 @@ describe('AutoML Multiclass Classification E2E', { testIsolation: false }, () =>
 
   it(
     'Can create and submit an AutoML multiclass classification run',
-    { tags: ['@AutoML', '@AutoMLRegression'], retries: { runMode: 0, openMode: 0 } },
+    {
+      tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'],
+      retries: { runMode: 0, openMode: 0 },
+    },
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
@@ -76,7 +79,7 @@ describe('AutoML Multiclass Classification E2E', { testIsolation: false }, () =>
 
   it(
     'Can interact with results page (leaderboard, model details, download)',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       automlResultsPage.verifyResultsInteraction('multiclass');
     },

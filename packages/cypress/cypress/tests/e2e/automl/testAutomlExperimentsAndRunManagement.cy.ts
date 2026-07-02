@@ -49,7 +49,7 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
 
   it(
     'Shows empty state and create run button on experiments page',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       cy.step('Login and wait for pipeline server');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -71,7 +71,7 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
 
   it(
     'Can submit a run and verify it appears in the experiments list',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
@@ -94,7 +94,7 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
 
   it(
     'Can stop a running experiment from the results page',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       cy.step('Click on the run to go to results page');
       automlResultsPage.findRunsTable().contains(testData.runName).click();
