@@ -169,3 +169,53 @@ Checks that the PR description follows the template.
 6. If PR touches `.tsx`/`.css`/`.scss` files, check for image/gif links → ⚠️ if missing
 
 Empty Description → ❌. Other missing sections → ⚠️.
+
+## Downstream Dockerfile Sync
+
+Checks whether Dockerfile.workspace changes require corresponding updates to downstream `Dockerfile.konflux.*` files (in `red-hat-data-services/odh-dashboard`).
+
+**Background:** Downstream Konflux Dockerfiles are structurally derived from the upstream `Dockerfile.workspace` files but diverge in three ways: (1) base image tags are SHA-pinned, (2) Go toolchain versions are normalized with SHA pins, (3) Red Hat metadata (`LABEL`, `USER` directives) is appended. Changes to the upstream "skeleton" — COPY commands, base image versions, Go versions, build stages, RUN commands — must be manually replicated downstream or builds break.
+
+**Gate:** Only evaluate when the diff includes files matching `**/Dockerfile.workspace`. If no Dockerfile.workspace files are in the changed-files list from Step 1, report ➖ and skip — do not run any commands for this check.
+
+| Context | How to check |
+|---|---|
+| PR (any) | Filter `gh pr diff "$pr_number"` to Dockerfile.workspace hunks (see below), then parse for change classes. If `gh pr diff` fails with `too_large`, fall back to `git diff origin/$base_branch -- '**/Dockerfile.workspace'` locally. |
+| No PR | `git diff origin/$base_branch -- '**/Dockerfile.workspace'` — parse for change classes below |
+
+**Filtering `gh pr diff` to Dockerfile.workspace hunks** — `gh pr diff` does not support pathspec arguments. Pipe through awk to extract only Dockerfile.workspace sections:
+
+```bash
+gh pr diff "$pr_number" | awk '
+  /^diff --git.*Dockerfile\.workspace/ { capture=1 }
+  /^diff --git/ && !/Dockerfile\.workspace/ { capture=0 }
+  capture { print }
+'
+```
+
+### Change classes to detect
+
+Parse the diff for each class of change that requires downstream replication:
+
+**1. New package COPY lines (High risk — breaks builds)**
+Lines matching `^+COPY.*packages/`. Extract the package directory name (e.g., `packages/k8s-core/`). Cross-reference against removed lines (`^-COPY.*packages/`) to find net-new dependencies. This is the class that caused the 2026-06-18 Konflux outage.
+
+**2. Base image version changes (Medium risk — breaks builds)**
+Lines matching `^[+-]ARG (NODE_BASE_IMAGE|GOLANG_BASE_IMAGE|DISTROLESS_BASE_IMAGE)=`. If the image tag version changed (e.g., `nodejs-22` → `nodejs-24`, or `go-toolset:1.24` → `go-toolset:1.26`), downstream SHA pins must be updated to match the new version.
+
+**3. Structural changes (Medium risk — may break builds)**
+Any other added/removed `RUN`, `FROM`, `ENV`, `ARG`, `WORKDIR`, `EXPOSE`, or `ENTRYPOINT` lines that alter the build flow. These may need to be carried over to the downstream Dockerfile.
+
+### Status mapping
+
+| Scenario | Status |
+|---|---|
+| No Dockerfile.workspace in diff | ➖ "no Dockerfile changes" |
+| Changes detected but only comments, whitespace, or no actionable diff | ✅ "no downstream-impacting changes" |
+| New package COPY lines found | ⚠️ "new package COPY: `<list>` — add to downstream `Dockerfile.konflux.*` in `red-hat-data-services/odh-dashboard`" |
+| Base image version changed | ⚠️ "base image version changed: `<details>` — update downstream SHA pins" |
+| Structural changes found | ⚠️ "Dockerfile structure changed — review downstream `Dockerfile.konflux.*` for needed updates" |
+
+Multiple classes can trigger simultaneously — combine into a single ⚠️ listing all findings.
+
+**No `--fix` behavior.** This check is advisory only — the fix requires a PR in the downstream repo (`red-hat-data-services/odh-dashboard`). Step 4 should skip this check entirely.
