@@ -336,7 +336,10 @@ export const ManageConnectionModal: React.FC<Props> = ({
             </Form>
           </StackItem>
 
-          {/* Test result inline alerts — placed after form content, above footer */}
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
+        <Stack hasGutter className="pf-v6-u-flex-grow-1">
           {testStatus === ConnectionTestStatus.VERIFIED && testResult ? (
             <StackItem>
               <Alert
@@ -362,10 +365,6 @@ export const ManageConnectionModal: React.FC<Props> = ({
               </Alert>
             </StackItem>
           ) : null}
-        </Stack>
-      </ModalBody>
-      <ModalFooter>
-        <Stack hasGutter className="pf-v6-u-flex-grow-1">
           {submitError ? (
             <StackItem>
               <Alert data-testid="error-message-alert" isInline variant="danger" title="">
