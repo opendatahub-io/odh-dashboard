@@ -172,7 +172,7 @@ func (app *App) registerOpenShiftRoutes(r *httprouter.Router) {
 
 func (app *App) registerConnectionTypeRoutes(r *httprouter.Router) {
 	// Connection test — any authenticated user
-	r.POST(ConnectionTestPath, app.TestConnectionHandler)
+	r.POST(ConnectionTestPath, app.secureRoute(app.TestConnectionHandler))
 
 	// Authenticated
 	r.GET(ConnectionTypesPath, app.secureRoute(app.ListConnectionTypesHandler))
