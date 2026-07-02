@@ -156,6 +156,15 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
 
   const selectedCount = currentColumns.filter((c) => c.isShown).length;
 
+  const hasChanges = React.useMemo(() => {
+    if (currentColumns.length !== appliedColumns.length) {
+      return true;
+    }
+    return currentColumns.some(
+      (col, i) => col.key !== appliedColumns[i].key || col.isShown !== appliedColumns[i].isShown,
+    );
+  }, [currentColumns, appliedColumns]);
+
   const renderDataListItem = (col: ColumnState, index: number) => (
     <DataListItemRow key={col.key}>
       <DataListCheck
@@ -284,7 +293,7 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
                   <Button
                     variant={ButtonVariant.primary}
                     onClick={handleSave}
-                    isDisabled={selectedCount === 0}
+                    isDisabled={selectedCount === 0 || !hasChanges}
                   >
                     Save
                   </Button>
