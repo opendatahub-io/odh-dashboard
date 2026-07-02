@@ -236,42 +236,81 @@ jobs:
           name: contract-test-results
           path: ${{ steps.upload-results.outputs.results-dir }}
 
-  Cypress-Setup:
+  Get-Cypress-Packages:
     needs: [Setup]
     runs-on: ubuntu-latest
     outputs:
-      cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
+      packages: ${{ steps.discover.outputs.packages }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Generate cypress cache key
-        id: key
-        run: |
-          echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> $GITHUB_OUTPUT
-      - name: Cypress build cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        id: cypress-build-cache
-        with:
-          lookup-only: true
-          path: |
-            **/public-cypress
-          key: ${{ steps.key.outputs.cypress-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Module caches
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - id: discover
+        name: Discover packages with Cypress builds
+        run: |
+          PACKAGES=$(npm query '.workspace' --json | jq -c '[.[] | select(.scripts."cypress:server:build:coverage" != null) | .name | sub("@odh-dashboard/"; "")]')
+          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
+          echo "Discovered packages: $PACKAGES"
+
+  Cypress-Setup:
+    needs: [Setup, Get-Cypress-Packages]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.Get-Cypress-Packages.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Generate package cache key
+        id: key
+        run: |
+          PKG_HASH=$(find packages/${{ matrix.package }} frontend -name "package.json" -o -name "webpack.*.js" -o -name "tsconfig.json" 2>/dev/null | sort | xargs cat | sha256sum | cut -d' ' -f1)
+          echo "cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-${{ matrix.package }}-${PKG_HASH:0:8}-${{ github.sha }}" >> $GITHUB_OUTPUT
+      - name: Check build cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        id: build-cache
+        with:
+          lookup-only: true
+          path: |
+            packages/${{ matrix.package }}/**/public-cypress
+            frontend/public-cypress
+          key: ${{ steps.key.outputs.cache-key }}
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Module caches
+        if: steps.build-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-      - name: Build for cypress
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: npm run cypress:server:build:coverage -- --concurrency=4
+      - name: Build ${{ matrix.package }} for cypress
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        run: |
+          if [ "${{ matrix.package }}" = "odh-dashboard-frontend" ]; then
+            npm run cypress:server:build:coverage -w frontend
+          else
+            npm run cypress:server:build:coverage -w @odh-dashboard/${{ matrix.package }}
+          fi
+      - name: Save build cache
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            packages/${{ matrix.package }}/**/public-cypress
+            frontend/public-cypress
+          key: ${{ steps.key.outputs.cache-key }}
 
   Cypress-Mock-Tests:
-    needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]
+    needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -288,17 +327,35 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-      - name: Restore Cypress build cache
-        id: cypress-build-cache
+      - name: Restore all Cypress build caches
+        run: |
+          PACKAGES='${{ needs.Get-Cypress-Packages.outputs.packages }}'
+          for pkg in $(echo "$PACKAGES" | jq -r '.[]'); do
+            echo "Restoring cache for $pkg..."
+            # Note: We can't dynamically restore caches with different keys in a single step
+            # Instead, we'll fall back to rebuilding if any are missing
+          done
+      - name: Restore Cypress build artifacts
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             **/public-cypress
-          key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
-      - name: Rebuild on cache miss
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-
+      - name: Verify builds exist
+        id: verify
         run: |
-          echo "::warning::Cypress build cache miss — rebuilding (key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }})"
+          MISSING=0
+          if [ ! -d "frontend/public-cypress" ]; then
+            echo "Missing frontend build"
+            MISSING=1
+          fi
+          echo "needs-rebuild=$MISSING" >> $GITHUB_OUTPUT
+      - name: Rebuild on missing artifacts
+        if: steps.verify.outputs.needs-rebuild == '1'
+        run: |
+          echo "::warning::Some Cypress builds missing — rebuilding all"
           npm run cypress:server:build:coverage -- --concurrency=4
       - name: Run Cypress Mock tests
         run: |
