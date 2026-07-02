@@ -3,7 +3,7 @@ import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireFormTrackingEvent } from '@odh-dashboard/analytics';
 import {
   AIModel,
   ExternalVectorStoreSummary,
@@ -18,10 +18,6 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-}));
 
 jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
 jest.mock('~/app/hooks/useGenAiAPI');

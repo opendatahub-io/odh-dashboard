@@ -2,12 +2,12 @@ import * as React from 'react';
 import { Card, CardBody, PageSection, Content, ContentVariants } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import { fireLinkTrackingEvent } from '@odh-dashboard/analytics';
 import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
 import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '#~/concepts/design/utils';
 import DividedGallery from '#~/concepts/design/DividedGallery';
 import { useUser } from '#~/redux/selectors';
 import InfoGalleryItem from '#~/concepts/design/InfoGalleryItem';
-import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 export const useEnableTeamSection = (): React.ReactNode => {
   const [resourcesOpen, setResourcesOpen] = useBrowserStorage<boolean>(

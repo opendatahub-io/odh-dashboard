@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContextValues } from '@patternfly/quickstarts';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { OdhDocument, OdhDocumentType } from '#~/types';
 import {
   getLaunchStatus,
@@ -20,7 +21,6 @@ import {
   launchQuickStart,
   LaunchStatusEnum,
 } from '#~/utilities/quickStartUtils';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';

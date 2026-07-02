@@ -1,9 +1,6 @@
 /* eslint-disable camelcase */
 import { act } from '@testing-library/react';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireFormTrackingEvent, fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { FlatBenchmark, Collection, InferenceServiceItem } from '~/app/types';
@@ -12,7 +9,8 @@ import {
   EXTERNAL_ENDPOINT_VALUE,
 } from '~/app/pages/useStartEvaluationRunForm';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+jest.mock('@odh-dashboard/analytics', () => ({
+  ...jest.requireActual('@odh-dashboard/analytics'),
   fireFormTrackingEvent: jest.fn(),
   fireMiscTrackingEvent: jest.fn(),
 }));

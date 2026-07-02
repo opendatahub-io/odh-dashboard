@@ -15,7 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
 import { genAiAiAssetsRoute, genAiAiAssetsTabRoute } from '~/app/utilities/routes';
 import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';

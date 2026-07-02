@@ -1,8 +1,7 @@
 /* eslint-disable camelcase */
 import { renderHook, act, waitFor } from '@testing-library/react';
 import * as React from 'react';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome, fireFormTrackingEvent } from '@odh-dashboard/analytics';
 import useFileManagement, { DELETE_EVENT_NAME } from '~/app/Chatbot/hooks/useFileManagement';
 import {
   deleteVectorStoreFile,
@@ -20,7 +19,6 @@ import {
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('react', () => ({
   ...jest.requireActual('react'),

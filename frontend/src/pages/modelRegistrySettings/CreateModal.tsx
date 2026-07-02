@@ -18,6 +18,7 @@ import {
   kindApiVersion,
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import ContentModal from '#~/components/modals/ContentModal';
 import { ModelRegistryKind } from '#~/k8sTypes';
@@ -43,8 +44,7 @@ import {
   isValidPort,
 } from '#~/pages/modelRegistrySettings/utils';
 import { RecursivePartial } from '#~/typeHelpers';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { CreateMRSecureDBSection, SecureDBInfo } from './CreateMRSecureDBSection';

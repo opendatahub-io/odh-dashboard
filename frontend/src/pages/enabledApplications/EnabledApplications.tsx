@@ -1,11 +1,11 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
 import { Gallery, PageSection } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { useWatchComponents } from '#~/utilities/useWatchComponents';
 import { OdhApplication } from '#~/types';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import OdhAppCard from '#~/components/OdhAppCard';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { useWatchIntegrationComponents } from '#~/utilities/useWatchIntegrationComponents';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';

@@ -22,10 +22,6 @@ jest.mock('~/app/Chatbot/store', () => ({
   ...jest.requireActual('~/app/Chatbot/store'),
   useChatbotConfigStore: jest.fn(),
 }));
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireSimpleTrackingEvent: jest.fn(),
-}));
 jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
   __esModule: true,
   default: () => true,

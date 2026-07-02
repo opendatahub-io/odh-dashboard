@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
+import {
+  fireFormTrackingEvent,
+  FormTrackingEventProperties,
+  TrackingOutcome,
+} from '@odh-dashboard/analytics';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import useDeleteStatuses from '#~/concepts/pipelines/content/useDeleteStatuses';
 import DeletePipelineModalExpandableSection from '#~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
 import { getPipelineAndVersionDeleteString } from '#~/concepts/pipelines/content/utils';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import {
-  FormTrackingEventProperties,
-  TrackingOutcome,
-} from '#~/concepts/analyticsTracking/trackingProperties';
 
 type DeletePipelinesModalProps = {
   toDeletePipelines?: PipelineKF[];

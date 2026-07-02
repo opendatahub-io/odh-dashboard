@@ -2,8 +2,8 @@ import * as React from 'react';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+  TrackingOutcome,
+} from '@odh-dashboard/analytics';
 import { GenAiAPIs, MCPServer, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 

@@ -1,6 +1,6 @@
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import { NotebookKind } from '#~/k8sTypes';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+
 import {
   HardwarePodSpecOptionsState,
   HardwarePodSpecOptions,

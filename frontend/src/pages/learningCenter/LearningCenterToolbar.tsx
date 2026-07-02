@@ -22,8 +22,8 @@ import {
   PficonSortCommonAscIcon,
   PficonSortCommonDescIcon,
 } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import {
   SEARCH_FILTER_KEY,

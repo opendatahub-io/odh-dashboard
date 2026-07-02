@@ -19,11 +19,6 @@ jest.mock('~/app/context/UserContext', () => ({
   UserContextProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireSimpleTrackingEvent: jest.fn(),
-}));
-
 jest.mock('~/app/Chatbot/ChatbotPlayground', () => ({
   __esModule: true,
   default: () => <div data-testid="chatbot-playground">Chatbot Playground</div>,

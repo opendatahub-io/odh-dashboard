@@ -17,11 +17,11 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { OdhApplication } from '#~/types';
 import MarkdownView from '#~/components/MarkdownView';
 import { markdownConverter } from '#~/utilities/markdown';
 import { useAppContext } from '#~/app/AppContext';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { useIntegratedAppStatus } from '#~/pages/exploreApplication/useIntegratedAppStatus';
 import { useUser } from '#~/redux/selectors';
 

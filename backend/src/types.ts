@@ -497,6 +497,7 @@ export type NotebookList = {
 
 export type ODHSegmentKey = {
   segmentKey: string;
+  amplitudeApiKey: string;
 };
 
 export type BYONImage = {

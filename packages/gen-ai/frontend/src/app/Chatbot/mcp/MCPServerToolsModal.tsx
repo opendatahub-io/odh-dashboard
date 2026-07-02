@@ -17,8 +17,8 @@ import { Table, useCheckboxTableBase } from 'mod-arch-shared';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+  TrackingOutcome,
+} from '@odh-dashboard/analytics';
 import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { MCPServer, MCPTool } from '~/app/types';

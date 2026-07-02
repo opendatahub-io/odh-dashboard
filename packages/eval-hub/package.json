@@ -45,6 +45,7 @@
     "type-check": "cd frontend && npm run test:type-check"
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*"

@@ -1,11 +1,13 @@
-import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from '#~/utilities/const';
 import {
   BaseTrackingEventProperties,
   FormTrackingEventProperties,
   IdentifyEventProperties,
   LinkTrackingEventProperties,
   MiscTrackingEventProperties,
-} from '#~/concepts/analyticsTracking/trackingProperties';
+} from './trackingProperties';
+
+const DEV_MODE = process.env.APP_ENV === 'development';
+const INTERNAL_DASHBOARD_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
 
 export const fireFormTrackingEvent = (
   eventName: string,

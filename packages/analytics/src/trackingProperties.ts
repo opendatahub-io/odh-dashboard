@@ -1,5 +1,6 @@
 export type ODHSegmentKey = {
   segmentKey: string;
+  amplitudeApiKey: string;
 };
 
 export type IdentifyEventProperties = {

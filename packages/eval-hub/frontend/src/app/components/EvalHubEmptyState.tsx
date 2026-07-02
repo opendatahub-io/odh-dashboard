@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireSimpleTrackingEvent } from '@odh-dashboard/analytics';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const EvalHubEmptyState: React.FC = () => {

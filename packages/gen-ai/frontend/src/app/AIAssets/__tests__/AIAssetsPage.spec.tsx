@@ -2,13 +2,9 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import * as PluginCore from '@odh-dashboard/plugin-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { isAIAssetsTabExtension } from '~/odh/extension-points';
 import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
 
 // Mock the plugin core hooks
 jest.mock('@odh-dashboard/plugin-core', () => ({

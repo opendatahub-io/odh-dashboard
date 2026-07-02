@@ -8,7 +8,7 @@ import {
   HelperTextItem,
   Switch,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import {
   useChatbotConfigStore,
   selectGuardrail,

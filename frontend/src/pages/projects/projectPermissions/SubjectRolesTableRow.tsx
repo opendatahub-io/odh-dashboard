@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { SubjectRoleRow } from './types';
 import RoleDetailsLink from './components/RoleDetailsLink';
 

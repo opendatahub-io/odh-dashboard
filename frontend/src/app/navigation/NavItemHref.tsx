@@ -5,7 +5,7 @@ import type {
   HrefNavItemExtension,
   StatusReport,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { fireLinkTrackingEvent } from '@odh-dashboard/analytics';
 import { StatusReportLoader } from '#~/app/status-provider/StatusReportLoader';
 import { StatusReportIcon } from '#~/app/status-provider/StatusReportIcon';
 import { NavItemTitle } from './NavItemTitle';

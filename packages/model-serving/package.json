@@ -28,6 +28,7 @@
     "./utils": "./src/concepts/utils.ts"
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-registry": "*",

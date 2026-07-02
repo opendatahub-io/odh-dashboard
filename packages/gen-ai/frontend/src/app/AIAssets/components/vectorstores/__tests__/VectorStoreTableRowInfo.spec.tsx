@@ -1,13 +1,9 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { ExternalVectorStoreSummary } from '~/app/types';
 import VectorStoreTableRowInfo from '~/app/AIAssets/components/vectorstores/VectorStoreTableRowInfo';
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
 
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
