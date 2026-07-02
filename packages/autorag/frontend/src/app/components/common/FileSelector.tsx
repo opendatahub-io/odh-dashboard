@@ -13,6 +13,7 @@ import {
 import { FileIcon, TimesIcon } from '@patternfly/react-icons';
 import type { DropEvent, DropzoneOptions, FileRejection } from 'react-dropzone';
 import React, { useCallback, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { resolveSingleFileDropOutcome } from '~/app/utilities/dropzoneFileUpload';
 
 /** Dropzone config for FileSelector — use `onDropRejected` on FileSelector, not here. */
@@ -37,6 +38,7 @@ interface FileSelectorProps {
     dropzoneProps?: FileSelectorDropzoneProps;
   };
   fileUploadHelperText?: string;
+  extraButtons?: React.ReactNode;
 }
 
 function FileSelector(props: FileSelectorProps): React.JSX.Element {
@@ -49,12 +51,22 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
     selected,
     placeholder,
     fileUploadHelperText,
+    extraButtons,
     id,
   } = props;
 
   const [uploadedFile, setUploadedFile] = useState<File>();
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'success' | 'danger'>();
+  const [inputGroupEl, setInputGroupEl] = useState<Element | null>(null);
+
+  const fileUploadRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      setInputGroupEl(node.querySelector('.pf-v6-c-input-group'));
+    } else {
+      setInputGroupEl(null);
+    }
+  }, []);
 
   const dropzoneConfig = fileUploadProps?.dropzoneProps;
 
@@ -111,55 +123,61 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
           </TextInputGroupUtilities>
         )}
       </TextInputGroup>
-      <FileUpload
-        className="pf-v6-u-mt-sm"
-        onClearClick={() => setUploadedFile(undefined)}
-        {...fileUploadProps}
-        id={id}
-        style={{
-          maxHeight: hideUpload ? '0' : '6rem',
-          padding: hideUpload ? '0' : undefined,
-          margin: hideUpload ? '0' : undefined,
-          border: hideUpload ? '0' : undefined,
+      <div ref={fileUploadRef}>
+        <FileUpload
+          className="pf-v6-u-mt-sm"
+          onClearClick={() => setUploadedFile(undefined)}
+          {...fileUploadProps}
+          id={id}
+          style={{
+            maxHeight: hideUpload ? '0' : '6rem',
+            padding: hideUpload ? '0' : undefined,
+            margin: hideUpload ? '0' : undefined,
+            border: hideUpload ? '0' : undefined,
 
-          translate: hideUpload ? '0 -2rem' : '0 0',
-          opacity: hideUpload ? '0' : '1',
-          visibility: hideUpload ? 'hidden' : 'visible',
+            translate: hideUpload ? '0 -2rem' : '0 0',
+            opacity: hideUpload ? '0' : '1',
+            visibility: hideUpload ? 'hidden' : 'visible',
 
-          transitionProperty: 'max-height, padding, margin, border, translate, opacity, visibility',
-          transitionDuration: hideUpload
-            ? 'var(--pf-t--global--motion--duration--slide-out--default)'
-            : 'var(--pf-t--global--motion--duration--slide-in--default)',
-          transitionTimingFunction: 'cubic-bezier(.4, 0, .2, 1)',
-        }}
-        onTransitionEnd={(event) => {
-          if (
-            event.propertyName === 'visibility' &&
-            event.currentTarget.style.visibility === 'hidden'
-          ) {
-            setUploadedFile(undefined);
-          }
-        }}
-        hidden={hideUpload}
-        isDisabled={isDisabled || (!!uploadedFile && !uploadStatus)}
-        filename={uploadedFile?.name}
-        dropzoneProps={dropzoneProps}
-      >
-        {uploadedFile ? (
-          <FileUploadHelperText>
-            <Progress
-              value={uploadProgress}
-              variant={uploadStatus}
-              measureLocation={ProgressMeasureLocation.outside}
-              aria-label="File upload progress"
-            />
-          </FileUploadHelperText>
-        ) : (
-          <FileUploadHelperText>
-            <HelperText>{fileUploadHelperText}</HelperText>
-          </FileUploadHelperText>
-        )}
-      </FileUpload>
+            transitionProperty:
+              'max-height, padding, margin, border, translate, opacity, visibility',
+            transitionDuration: hideUpload
+              ? 'var(--pf-t--global--motion--duration--slide-out--default)'
+              : 'var(--pf-t--global--motion--duration--slide-in--default)',
+            transitionTimingFunction: 'cubic-bezier(.4, 0, .2, 1)',
+          }}
+          onTransitionEnd={(event) => {
+            if (
+              event.propertyName === 'visibility' &&
+              event.currentTarget.style.visibility === 'hidden'
+            ) {
+              setUploadedFile(undefined);
+            }
+          }}
+          hidden={hideUpload}
+          isDisabled={isDisabled || (!!uploadedFile && !uploadStatus)}
+          filename={uploadedFile?.name}
+          dropzoneProps={dropzoneProps}
+        >
+          {uploadedFile ? (
+            <FileUploadHelperText>
+              <Progress
+                value={uploadProgress}
+                variant={uploadStatus}
+                measureLocation={ProgressMeasureLocation.outside}
+                aria-label="File upload progress"
+              />
+            </FileUploadHelperText>
+          ) : (
+            <FileUploadHelperText>
+              <HelperText>{fileUploadHelperText}</HelperText>
+            </FileUploadHelperText>
+          )}
+        </FileUpload>
+      </div>
+      {inputGroupEl &&
+        extraButtons &&
+        createPortal(<div className="pf-v6-c-input-group__item">{extraButtons}</div>, inputGroupEl)}
     </div>
   );
 }

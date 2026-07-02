@@ -84,6 +84,15 @@ interface S3FileExplorerProps {
 
   /** The reason displayed beside a file that cannot be selected. Example: "Only JSON and HTML files can be selected" */
   unselectableReason?: string;
+
+  /** When provided, the explorer opens at this path and prevents navigating above it. Must start with "/". */
+  rootPath?: string;
+
+  /** The file selection mode: "radio" for single selection, "checkbox" for multi-select. Defaults to "radio". */
+  selection?: 'radio' | 'checkbox';
+
+  /** Absolute folder paths that should be disabled (unselectable and unnavigable). Example: `["/pipeline-output"]` disables the `pipeline-output` folder at the bucket root. */
+  disabledPaths?: string[];
 }
 const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   id,
@@ -97,7 +106,16 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   allowFolderSelection = true,
   selectableExtensions,
   unselectableReason,
+  rootPath,
+  selection: selectionProp = 'radio',
+  disabledPaths,
 }) => {
+  const effectiveRoot = rootPath && rootPath !== '/' ? rootPath : '/';
+  const rootFolderName =
+    effectiveRoot !== '/'
+      ? effectiveRoot.split('/').filter(Boolean).pop() ?? effectiveRoot
+      : undefined;
+
   // State -------------------------------------------------------------------->
 
   // TODO [ Gustavo ] From self-review:
@@ -159,13 +177,13 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     setHasNextPage(false);
     setPageToRender(1);
     setPerPageToRender(DEFAULT_PER_PAGE);
-    setCurrentPath('/');
+    setCurrentPath(effectiveRoot);
     setSelectedFolder(null);
     continuationTokensRef.current = new Map();
     lastResultRef.current = null;
     appliedSearchRef.current = '';
     connectionKeyRef.current = null;
-  }, []);
+  }, [effectiveRoot]);
 
   const fetchPath = useCallback(
     (path: string, perPage: number, page: number, search?: string, continuationToken?: string) => {
@@ -232,13 +250,19 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const navigateTo = useCallback(
     (path: string, perPage: number) => {
       setCurrentPath(path);
-      setFoldersToRender(getBreadcrumbTrail(path));
+      const trail = getBreadcrumbTrail(path);
+      if (effectiveRoot !== '/') {
+        const rootTrailLength = getBreadcrumbTrail(effectiveRoot).length;
+        setFoldersToRender(trail.slice(rootTrailLength));
+      } else {
+        setFoldersToRender(trail);
+      }
       appliedSearchRef.current = '';
       setPageToRender(1);
       continuationTokensRef.current = new Map();
       fetchPath(path, perPage, 1);
     },
-    [fetchPath],
+    [fetchPath, effectiveRoot],
   );
 
   // Effects ------------------------------------------------------------------>
@@ -269,8 +293,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     resetState();
     connectionKeyRef.current = connectionKey;
 
-    fetchPath('/', DEFAULT_PER_PAGE, 1);
-  }, [apiPath, isOpen, s3SecretName, namespace, bucket, fetchPath, resetState]);
+    fetchPath(effectiveRoot, DEFAULT_PER_PAGE, 1);
+  }, [apiPath, isOpen, s3SecretName, namespace, bucket, fetchPath, resetState, effectiveRoot]);
 
   const debouncedSearch = useMemo(
     () =>
@@ -292,17 +316,24 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   // Derived state -------------------------------------------------------------->
 
   const filesWithSelection = useMemo(() => {
-    if (!selectedFolder) {
-      return filesToRender;
-    }
-    const folderPrefix = selectedFolder.path.endsWith('/')
-      ? selectedFolder.path
-      : `${selectedFolder.path}/`;
+    const disabledSet = disabledPaths ? new Set(disabledPaths) : undefined;
+    const folderPrefix = selectedFolder
+      ? selectedFolder.path.endsWith('/')
+        ? selectedFolder.path
+        : `${selectedFolder.path}/`
+      : undefined;
+
     return filesToRender.map((file) => {
-      const isChild = file.path.startsWith(folderPrefix);
-      return isChild ? { ...file, forceShowAsSelected: true, selectable: false } : file;
+      let result = file;
+      if (folderPrefix && file.path.startsWith(folderPrefix)) {
+        result = { ...result, forceShowAsSelected: true, selectable: false };
+      }
+      if (disabledSet?.has(file.path) && isFolder(file)) {
+        result = { ...result, selectable: false, disabled: true };
+      }
+      return result;
     });
-  }, [filesToRender, selectedFolder]);
+  }, [filesToRender, selectedFolder, disabledPaths]);
 
   // Rendering ---------------------------------------------------------------->
 
@@ -424,14 +455,17 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const handleNavigate = useCallback(
     (folder: Folder) => {
+      if (disabledPaths?.includes(folder.path)) {
+        return;
+      }
       navigateTo(folder.path, perPageToRender);
     },
-    [navigateTo, perPageToRender],
+    [navigateTo, perPageToRender, disabledPaths],
   );
 
   const handleNavigateRoot = useCallback(() => {
-    navigateTo('/', perPageToRender);
-  }, [navigateTo, perPageToRender]);
+    navigateTo(effectiveRoot, perPageToRender);
+  }, [navigateTo, perPageToRender, effectiveRoot]);
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -490,7 +524,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       perPage={perPageToRender}
       hasNextPage={hasNextPage}
       unselectableReason={unselectableReasonToRender}
-      selection={viewingASelectedFoldersChildren ? 'checkbox' : 'radio'}
+      selection={viewingASelectedFoldersChildren ? 'checkbox' : selectionProp}
       isOpen={isOpen}
       onClose={onClose}
       onSelectFile={handleSelectFile}
@@ -501,6 +535,10 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       onSetPage={handleSetPage}
       onPerPageSelect={handlePerPageSelect}
       onPrimary={onSelectFiles}
+      {...(rootFolderName &&
+        foldersToRender.length === 0 && {
+          searchPlaceholder: `Search within '${rootFolderName}'`,
+        })}
       allowedSearchCharacters={/[^/]/}
       allowedSearchCharactersLabel="Searches are case-sensitive and must match the beginning of the term. Slashes (/) are automatically removed."
     />
