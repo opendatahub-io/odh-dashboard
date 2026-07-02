@@ -43,7 +43,7 @@ export const useFeatureStoreSearch = (): {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const convertedSearchData = useMemo(() => {
-    if (allResults.length === 0 || !Array.isArray(allResults)) {
+    if (!Array.isArray(allResults) || allResults.length === 0) {
       return [];
     }
 
@@ -73,6 +73,7 @@ export const useFeatureStoreSearch = (): {
         setCurrentPage(1);
         setHasMorePages(false);
         setTotalCount(0);
+        setIsSearching(false);
         setSearchErrors([]);
         return;
       }

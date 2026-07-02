@@ -60,7 +60,7 @@ const makeProjectsState = (overrides?: Partial<{ projects: ProjectList; loaded: 
 
 describe('useFeatureStoreSearch', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     mockUseGlobalSearch.mockReturnValue({ search: mockSearch, apiAvailable: true });
     mockUseFeatureStoreProjects.mockReturnValue(makeProjectsState());
   });
