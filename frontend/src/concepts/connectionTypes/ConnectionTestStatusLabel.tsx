@@ -20,14 +20,13 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
   switch (status) {
     case ConnectionTestStatus.NOT_TESTED:
       return (
-        <Label variant="filled" color="grey" data-testid="connection-test-label-not-tested">
+        <Label color="grey" data-testid="connection-test-label-not-tested">
           Not tested
         </Label>
       );
     case ConnectionTestStatus.TESTING:
       return (
         <Label
-          variant="filled"
           color="grey"
           icon={<Spinner size="sm" aria-label="Testing connection" />}
           data-testid="connection-test-label-testing"
@@ -38,7 +37,6 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
     case ConnectionTestStatus.VERIFIED: {
       const label = (
         <Label
-          variant="filled"
           color="green"
           icon={<CheckCircleIcon />}
           data-testid="connection-test-label-verified"
@@ -55,7 +53,6 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
     case ConnectionTestStatus.FAILED: {
       const label = (
         <Label
-          variant="filled"
           color="red"
           icon={<ExclamationCircleIcon />}
           data-testid="connection-test-label-failed"
