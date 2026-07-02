@@ -80,19 +80,17 @@ const initIntercepts = ({
       },
     }),
   );
-  cy.interceptOdh(
-    'GET /api/config',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockDashboardConfig({
-      disableNIMModelServing: true,
-      disableKServe: false,
-      genAiStudio: true,
-      modelAsService: true,
-      disableLLMd: false,
-      llmdTopologyConfigs: llmdTopologyConfigsEnabled,
-      vLLMDeploymentOnMaaS: true,
-    } as any),
-  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dashboardConfig = {
+    disableNIMModelServing: true,
+    disableKServe: false,
+    genAiStudio: true,
+    modelAsService: true,
+    disableLLMd: false,
+    llmdTopologyConfigs: llmdTopologyConfigsEnabled,
+    vLLMDeploymentOnMaaS: true,
+  } as any;
+  cy.interceptOdh('GET /api/config', mockDashboardConfig(dashboardConfig));
   cy.interceptOdh('GET /api/components', null, []);
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
