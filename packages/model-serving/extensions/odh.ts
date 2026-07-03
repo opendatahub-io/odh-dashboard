@@ -5,9 +5,7 @@ import type {
   RouteExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-// Allow this import as it consists of types and enums only.
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { WizardFieldExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { DeploymentMethodSelectFieldType } from '../src/components/deploymentWizard/fields/DeploymentMethodSelectField';
 
@@ -76,6 +74,7 @@ const extensions: (
       pageId: 'models-tab-page',
       id: 'deployments',
       title: 'Deployments',
+      singleTabTitle: 'Model deployments',
       component: () => import('../src/GlobalModelsRoutes'),
       group: '3_deployments',
     },

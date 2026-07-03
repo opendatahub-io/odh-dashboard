@@ -1,7 +1,7 @@
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SortableData } from '@odh-dashboard/ui-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { getProjectCreationTime } from '#~/concepts/projects/utils';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 export const columns: SortableData<ProjectKind>[] = [
   {

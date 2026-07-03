@@ -6,7 +6,7 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { KnownLabels, kindApiVersion, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { ImageStreamKind, K8sAPIOptions } from '#~/k8sTypes';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils.ts';
 import { ImageStreamModel } from '#~/api';
@@ -24,7 +24,6 @@ import {
   ImageStreamLabel,
   ImageStreamSpecTagAnnotation,
 } from '#~/types';
-import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils.ts';
 
 export const listImageStreams = async (
   namespace?: string,

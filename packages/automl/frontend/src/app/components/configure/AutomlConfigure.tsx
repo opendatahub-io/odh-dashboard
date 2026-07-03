@@ -51,30 +51,28 @@ import { findKey } from 'es-toolkit';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
+import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
+import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
-import type { File as S3ExplorerFile } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { SecretListItem } from '~/app/types';
 import {
-  ConfigureSchema,
+  DEFAULT_EVAL_METRIC_BY_TASK,
   MAX_TOP_N_TABULAR,
   MAX_TOP_N_TIMESERIES,
   MIN_TOP_N,
-  TASK_TYPES,
-} from '~/app/schemas/configure.schema';
-import { SecretListItem } from '~/app/types';
-import {
   PRESET_BETTER_QUALITY,
   PRESET_FASTER,
   PRESET_LABELS,
-  DEFAULT_EVAL_METRIC_BY_TASK,
-  TASK_TYPE_TIMESERIES,
   REQUIRED_CONNECTION_SECRET_KEYS,
+  TASK_TYPE_TIMESERIES,
+  TASK_TYPES,
 } from '~/app/utilities/const';
 import { getTypeAcronym, findTimestampColumn } from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
@@ -135,7 +133,7 @@ function AutomlConfigure({
     'select',
   );
   const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<
-    S3ExplorerFile | undefined
+    ExplorerFile | undefined
   >(() => {
     if (!initialFileKey) {
       return undefined;
@@ -964,8 +962,8 @@ function AutomlConfigure({
                                     label={PRESET_LABELS[preset]}
                                     description={
                                       preset === PRESET_FASTER
-                                        ? `${isTimeseries ? '4 vCPU, 16 GiB' : '8 vCPU, 32 GiB'} | A good default for most datasets.`
-                                        : `${isTimeseries ? '8 vCPU, 32 GiB' : '16 vCPU, 64 GiB'} | Prioritizes stronger accuracy, but requires longer training.`
+                                        ? '4 vCPU, 16 GiB | A good default for most datasets.'
+                                        : '8 vCPU, 32 GiB | Prioritizes stronger accuracy, but requires longer training.'
                                     }
                                     isChecked={field.value === preset}
                                     isDisabled={formIsSubmitting}
@@ -1102,8 +1100,9 @@ function AutomlConfigure({
       )}
       <S3FileExplorer
         id="AutoMLConfigure-S3FileExplorer"
+        apiPath="/automl/api/v1/s3"
         namespace={namespace}
-        s3Secret={selectedSecret}
+        s3SecretName={selectedSecret?.name}
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelectFiles={(files) => {

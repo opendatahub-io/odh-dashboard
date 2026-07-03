@@ -106,11 +106,13 @@ export const blankDashboardCR: DashboardConfig = {
       promptManagement: false,
       mySubscriptions: true,
       maasSettingsIaRedesign: false,
+      gpuaas: false,
     },
     notebookController: {
       enabled: true,
     },
     templateOrder: [],
+    globalMLflowNamespaces: [],
     genAiStudioConfig: {
       aiAssetCustomEndpoints: {
         externalProviders: false,

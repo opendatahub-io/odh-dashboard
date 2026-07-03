@@ -3,12 +3,8 @@ import { List, ListItem } from '@patternfly/react-core';
 import { SortableData } from '@odh-dashboard/ui-core';
 import { getRoleDescription, getRoleDisplayName } from '#~/concepts/permissions/utils';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { ROLE_NAME_HELP, DESCRIPTION_HELP, LABELS_HELP } from './const';
 import type { RoleListRow } from './types';
-
-export const ROLE_NAME_HELP = 'This is the name of the role in OpenShift.';
-
-export const DESCRIPTION_HELP =
-  "A brief summary of the role's purpose and the permissions it grants.";
 
 export const TypeHelpContent: React.FC = () => (
   <List>
@@ -31,7 +27,7 @@ export const columns: SortableData<RoleListRow>[] = [
   {
     field: 'name',
     label: 'Role name',
-    width: 35,
+    width: 25,
     sortable: (a, b) =>
       getRoleDisplayName(a.roleRef, a.role).localeCompare(getRoleDisplayName(b.roleRef, b.role)),
     info: {
@@ -42,7 +38,7 @@ export const columns: SortableData<RoleListRow>[] = [
   {
     field: 'description',
     label: 'Description',
-    width: 40,
+    width: 30,
     sortable: (a, b) =>
       (getRoleDescription(a.roleRef, a.role) ?? '').localeCompare(
         getRoleDescription(b.roleRef, b.role) ?? '',
@@ -50,6 +46,26 @@ export const columns: SortableData<RoleListRow>[] = [
     info: {
       popover: DESCRIPTION_HELP,
       ariaLabel: 'Description help',
+    },
+  },
+  {
+    field: 'labels',
+    label: 'Labels',
+    width: 20,
+    sortable: (a, b) =>
+      Object.entries(a.userLabels)
+        .toSorted(([ak], [bk]) => ak.localeCompare(bk))
+        .map(([k, v]: [string, string]) => `${k}=${v}`)
+        .join(',')
+        .localeCompare(
+          Object.entries(b.userLabels)
+            .toSorted(([ak], [bk]) => ak.localeCompare(bk))
+            .map(([k, v]: [string, string]) => `${k}=${v}`)
+            .join(','),
+        ),
+    info: {
+      popover: LABELS_HELP,
+      ariaLabel: 'Labels help',
     },
   },
   {

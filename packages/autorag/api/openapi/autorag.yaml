@@ -147,6 +147,57 @@ paths:
         - 'storage': Returns only secrets classified as storage types (currently: s3 via key-based classification, or any secret with connection-type annotation matching 'storage')
         - 'ogx': Returns only secrets classified as OGX type (via key-based classification or connection-type annotation)
         - No type: Returns all secrets with their detected type classification
+  /api/v1/secret/{name}:
+    summary: Path used to retrieve credential data from a named secret.
+    description: >-
+      The REST endpoint/path used to retrieve credential data from a single Kubernetes secret.
+      Only allowed credential keys are returned; other keys in the secret are omitted.
+      Currently returns OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY.
+      Values are base64-encoded in the response for transport safety.
+      The response includes Cache-Control: no-store to prevent credential caching.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: The name of the Kubernetes secret to retrieve
+          schema:
+            type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+          example: my-ogx-secret
+        - name: namespace
+          in: query
+          required: true
+          description: The namespace containing the secret
+          schema:
+            type: string
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          example: default
+      responses:
+        "200":
+          $ref: "#/components/responses/SecretDataResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getSecretByName
+      summary: Get credential data from a named secret
+      description: >-
+        Retrieves allowed credential keys from a single Kubernetes secret by name.
+        Only permitted keys (currently OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
+        are returned; all other keys are omitted. Values are base64-encoded.
+        The caller must decode values with base64 decoding before use.
+
   # =============================================================================
   # S3 Endpoints
   # =============================================================================
@@ -1725,6 +1776,30 @@ components:
               value:
                 data: []
       description: A response containing a list of filtered secret items
+
+    SecretDataResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                type: object
+                additionalProperties:
+                  type: string
+                description: >-
+                  Key-value map of the secret's data. All values are base64-encoded.
+                  The caller must decode values before use.
+          example:
+            data:
+              OGX_CLIENT_BASE_URL: "aHR0cHM6Ly9vZ3guZXhhbXBsZS5jb20="
+              OGX_CLIENT_API_KEY: "UkVQTEFDRS1XSVRILUFQSS1LRVk="
+      description: A response containing a single secret's base64-encoded key-value data
 
     PipelineRunsResponse:
       description: Successful response containing pipeline runs

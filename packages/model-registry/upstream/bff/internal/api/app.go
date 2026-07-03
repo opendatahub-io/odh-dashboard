@@ -92,6 +92,10 @@ const (
 	McpServersToolListPath        = McpServerPath + "/tools"
 	MCPServerConverterPath        = McpServerPath + "/mcpserver"
 
+	// Swagger UI (interactive API docs)
+	SwaggerPath    = ApiPathPrefix + "/swagger"
+	SwaggerDocPath = SwaggerPath + "/doc.json"
+
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
 
@@ -309,6 +313,11 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.POST(CheckNamespaceRegistryAccessPath, app.CheckNamespaceRegistryAccessHandler)
 	apiRouter.GET(ModelRegistryListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetAllModelRegistriesHandler)))
+
+	// Swagger UI (interactive API docs) — only in dev mode
+	if app.config.DevMode {
+		apiRouter.GET(SwaggerPath+"/*filepath", app.GetSwaggerHandler)
+	}
 
 	// Enable these routes in all cases except Kubeflow integration mode
 	// (Kubeflow integration mode is when DeploymentMode is kubeflow)

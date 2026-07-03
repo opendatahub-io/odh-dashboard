@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   Alert,
   Button,
-  capitalize,
   Form,
   FormGroup,
   FormHelperText,
@@ -10,7 +9,6 @@ import {
   HelperTextItem,
   InputGroup,
   InputGroupItem,
-  Label,
   Modal,
   ModalBody,
   ModalFooter,
@@ -25,7 +23,9 @@ import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { searchApiKeys, bulkRevokeApiKeys } from '~/app/api/api-keys';
 import { useNotification } from '~/app/hooks/useNotification';
-import type { APIKey } from '~/app/types/api-key';
+import { isKeyInactive } from '~/app/utilities/apiKeys';
+import type { APIKey, SubscriptionDetail } from '~/app/types/api-key';
+import ApiKeyStatusLabel from '~/app/pages/keys-and-subs/apiKeys/ApiKeyStatusLabel';
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -45,6 +45,9 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
   const [username, setUsername] = React.useState('');
   const [searchedUsername, setSearchedUsername] = React.useState('');
   const [apiKeys, setApiKeys] = React.useState<APIKey[]>([]);
+  const [subscriptionDetails, setSubscriptionDetails] = React.useState<
+    Record<string, SubscriptionDetail> | undefined
+  >();
   const [searching, setSearching] = React.useState(false);
   const [searchError, setSearchError] = React.useState<Error | undefined>();
   const [revoking, setRevoking] = React.useState(false);
@@ -68,9 +71,11 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
     try {
       const response = await searchApiKeys()({}, { filters: { username: trimmed } });
       setApiKeys(response.data);
+      setSubscriptionDetails(response.subscriptionDetails);
     } catch (err) {
       setSearchError(err instanceof Error ? err : new Error('Failed to search API keys'));
       setApiKeys([]);
+      setSubscriptionDetails(undefined);
     } finally {
       setSearching(false);
     }
@@ -194,20 +199,23 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {activeKeys.map((key) => (
-                        <Tr key={key.id}>
-                          <Td dataLabel="Name">{key.name}</Td>
-                          <Td dataLabel="Status">
-                            <Label color="green">{capitalize(key.status)}</Label>
-                          </Td>
-                          <Td dataLabel="Last used">
-                            {key.lastUsedAt ? formatDate(key.lastUsedAt) : 'Never'}
-                          </Td>
-                          <Td dataLabel="Expiration">
-                            {key.expirationDate ? formatDate(key.expirationDate) : 'Never'}
-                          </Td>
-                        </Tr>
-                      ))}
+                      {activeKeys.map((key) => {
+                        const inactive = isKeyInactive(key, subscriptionDetails);
+                        return (
+                          <Tr key={key.id}>
+                            <Td dataLabel="Name">{key.name}</Td>
+                            <Td dataLabel="Status">
+                              <ApiKeyStatusLabel status={inactive ? 'inactive' : key.status} />
+                            </Td>
+                            <Td dataLabel="Last used">
+                              {key.lastUsedAt ? formatDate(key.lastUsedAt) : 'Never'}
+                            </Td>
+                            <Td dataLabel="Expiration">
+                              {key.expirationDate ? formatDate(key.expirationDate) : 'Never'}
+                            </Td>
+                          </Tr>
+                        );
+                      })}
                     </Tbody>
                   </Table>
                 </StackItem>

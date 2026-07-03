@@ -1,4 +1,4 @@
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { MetricsTabKeys } from './types';
 
 const useMetricsPageEnabledTabs = (): MetricsTabKeys[] => {

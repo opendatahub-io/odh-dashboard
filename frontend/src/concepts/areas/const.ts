@@ -1,5 +1,9 @@
 import type { DashboardCommonConfig } from '@odh-dashboard/k8s-core';
-import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from './types';
+import {
+  SupportedArea,
+  type SupportedAreasState,
+  DataScienceStackComponent,
+} from '@odh-dashboard/plugin-core/areas';
 
 export const techPreviewFlags = {
   genAiStudio: false,
@@ -81,6 +85,7 @@ export const advancedAIMLFlags = {
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
+  gpuaas: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -269,6 +274,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
     featureFlags: ['maasSettingsIaRedesign'],
+  },
+  [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
+    featureFlags: ['gpuaas'],
+    requiredComponents: [DataScienceStackComponent.KUEUE],
   },
 };
 

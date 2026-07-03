@@ -16,6 +16,8 @@ export type MaaSSubscription = {
 export type ModelSubscriptionRef = {
   name: string;
   namespace: string;
+  displayName?: string;
+  description?: string;
   tokenRateLimits: TokenRateLimit[];
   billingRate?: BillingRate;
 };
@@ -51,6 +53,8 @@ export type MaaSSubscriptionListResponse = {
 export type ModelRef = {
   name: string;
   namespace: string;
+  displayName?: string;
+  description?: string;
 };
 
 export type ModelReference = {
@@ -164,4 +168,32 @@ export type RateLimit = {
   count: number;
   time: number;
   unit: 'hour' | 'minute' | 'second';
+};
+
+export type ModelOverviewSubscription = {
+  name: string;
+  displayName?: string;
+  phase?: string;
+  groups?: string[];
+  tokenRateLimits?: TokenRateLimit[];
+};
+
+export type ModelOverviewPolicy = {
+  name: string;
+  displayName?: string;
+  phase?: string;
+  groups?: string[];
+};
+
+export type ModelOverviewDetails = {
+  displayName?: string;
+  description?: string;
+  phase?: string;
+};
+
+export type ModelOverviewItem = {
+  id: string;
+  modelDetails: ModelOverviewDetails;
+  subscriptions: ModelOverviewSubscription[];
+  authPolicies: ModelOverviewPolicy[];
 };

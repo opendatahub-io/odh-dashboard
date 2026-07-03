@@ -195,6 +195,9 @@ spec:
                     llmGatewayField:
                       type: boolean
                       description: 'When true, shows the LLM gateway configuration field on LLMd serving forms.'
+                    gpuaas:
+                      type: boolean
+                      description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'
@@ -345,6 +348,15 @@ spec:
                     isLLMdDefault:
                       description: 'When true, sets LLMd as the default serving platform for new model deployments.'
                       type: boolean
+                globalMLflowNamespaces:
+                  description: >-
+                    List of namespaces designated as global MLflow workspaces for shared
+                    resources. Currently limited to a single namespace.
+                  type: array
+                  maxItems: 1
+                  items:
+                    type: string
+                    minLength: 1
                 genAiStudioConfig:
                   description: 'Configuration options for Gen AI Studio features'
                   type: object

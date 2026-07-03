@@ -121,6 +121,7 @@ describe('Agent Deployments', () => {
       .findEmptyState()
       .should('be.visible')
       .and('contain.text', 'No agent deployments');
+    cy.findByTestId('deploy-agent-button').should('be.visible').and('be.enabled');
   });
 
   it('should show select-project state when no namespace is selected and no projects exist', () => {
@@ -219,6 +220,51 @@ describe('Agent Deployments', () => {
       .should('contain.text', 'pending-agent');
 
     agentDeploymentsPage.findFilterInput().clear().type('nonexistent-xyz');
+    agentDeploymentsPage.findTableRows().should('have.length', 0);
+  });
+
+  it('should filter deployments by status', () => {
+    initIntercepts();
+    agentDeploymentsPage.visit(TEST_NAMESPACE);
+    agentDeploymentsPage.findTable().should('be.visible');
+
+    agentDeploymentsPage.selectStatusFilter('Pending');
+    agentDeploymentsPage.expectSingleStatusFilterChip('Pending');
+    agentDeploymentsPage.findTableRows().should('have.length', 1);
+    agentDeploymentsPage
+      .getRow(TEST_NAMESPACE, 'pending-agent')
+      .findStatusLabel()
+      .should('contain.text', 'Pending');
+
+    agentDeploymentsPage.expectSingleStatusFilterChip('Pending');
+    agentDeploymentsPage.selectStatusFilter('Failed');
+    agentDeploymentsPage.expectSingleStatusFilterChip('Failed');
+    agentDeploymentsPage.findTableRows().should('have.length', 1);
+    agentDeploymentsPage
+      .getRow(TEST_NAMESPACE, 'failed-agent')
+      .findStatusLabel()
+      .should('contain.text', 'Failed');
+
+    agentDeploymentsPage.expectSingleStatusFilterChip('Failed');
+    agentDeploymentsPage.selectStatusFilter('Ready');
+    agentDeploymentsPage.expectSingleStatusFilterChip('Ready');
+    agentDeploymentsPage.findTableRows().should('have.length', 1);
+    agentDeploymentsPage
+      .getRow(TEST_NAMESPACE, 'sample-support-agent')
+      .findStatusLabel()
+      .should('contain.text', 'Ready');
+  });
+
+  it('should filter deployments by project', () => {
+    initIntercepts();
+    agentDeploymentsPage.visit(TEST_NAMESPACE);
+    agentDeploymentsPage.findTable().should('be.visible');
+
+    agentDeploymentsPage.selectFilterOption('project');
+    agentDeploymentsPage.findProjectFilterInput().type(TEST_NAMESPACE);
+    agentDeploymentsPage.findTableRows().should('have.length', 4);
+
+    agentDeploymentsPage.findProjectFilterInput().clear().type('nonexistent-project');
     agentDeploymentsPage.findTableRows().should('have.length', 0);
   });
 

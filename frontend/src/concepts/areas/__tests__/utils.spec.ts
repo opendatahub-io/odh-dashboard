@@ -1,6 +1,6 @@
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
-import { DataScienceStackComponent, SupportedArea } from '#~/concepts/areas/types';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import { isAreaAvailable } from '#~/concepts/areas/utils';

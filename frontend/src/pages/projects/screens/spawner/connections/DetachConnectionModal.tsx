@@ -1,6 +1,6 @@
 import React from 'react';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal.tsx';
 
 type Props = {
