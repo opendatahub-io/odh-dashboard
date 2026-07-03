@@ -2,21 +2,22 @@ import * as React from 'react';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
 
 type ConfigYAMLEditorProps = {
-  value: string;
-  onChange: (value: string) => void;
-  isReadOnly?: boolean;
+  code: string;
+  onCodeChange: (code: string) => void;
 };
 
-const ConfigYAMLEditor: React.FC<ConfigYAMLEditorProps> = ({ value, onChange, isReadOnly }) => (
-  <div data-testid="config-yaml-editor">
+const ConfigYAMLEditor: React.FC<ConfigYAMLEditorProps> = ({ code, onCodeChange }) => (
+  <div data-testid="config-yaml-editor" style={{ minHeight: '400px', height: '100%' }}>
     <CodeEditor
-      code={value}
-      onChange={(val) => onChange(val)}
-      language={Language.yaml}
-      isReadOnly={isReadOnly}
-      isCopyEnabled
+      code={code}
+      isUploadEnabled
       isLanguageLabelVisible
+      language={Language.yaml}
       height="400px"
+      emptyStateTitle="Add a topology configuration"
+      emptyStateBody="Drag a file here, upload files, or start from scratch."
+      emptyStateButton="Upload files"
+      onCodeChange={onCodeChange}
       options={{ tabSize: 2 }}
     />
   </div>

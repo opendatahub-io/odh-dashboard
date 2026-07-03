@@ -12,7 +12,6 @@ const TopologyConfigurationsRoutes: React.FC = () => (
       <Route index element={<TopologyConfigurationsView />} />
       <Route path="add/:topologyType" element={<TopologyConfigurationCreateEdit />} />
       <Route path="edit/:configName" element={<TopologyConfigurationCreateEdit />} />
-      <Route path="duplicate/:configName" element={<TopologyConfigurationCreateEdit />} />
       <Route path="*" element={<Navigate to="." />} />
     </Routes>
   </React.Suspense>

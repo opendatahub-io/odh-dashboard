@@ -7,11 +7,8 @@ import {
   BreadcrumbItem,
   Button,
   Form,
-  FormGroup,
   Stack,
   StackItem,
-  TextArea,
-  TextInput,
 } from '@patternfly/react-core';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
@@ -20,10 +17,12 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import {
   getDisplayNameFromK8sResource,
-  getDescriptionFromK8sResource,
+  isK8sNameDescriptionDataValid,
 } from '@odh-dashboard/k8s-core';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
-import ConfigSourceSelect from './ConfigSourceSelect';
 import ConfigYAMLEditor from './ConfigYAMLEditor';
 import {
   type LLMInferenceServiceConfigKind,
@@ -39,28 +38,8 @@ import {
   useWatchTopologyConfigs,
 } from '../api/LLMInferenceServiceConfigs';
 
-const getSampleYaml = (topoType: TopologyType): string => {
-  const comments: Record<TopologyType, string> = {
-    [TopologyType.SINGLE_NODE]: 'Single-node topology — single replica, no scheduler.',
-    [TopologyType.MULTI_NODE]:
-      'Multi-node topology — distributed data-parallel groups for large dense models.',
-    [TopologyType.SINGLE_NODE_DISAGGREGATED]:
-      'Single-node disaggregated — prefill/decode split for TTFT-sensitive and long-context workloads.',
-    [TopologyType.MULTI_NODE_DISAGGREGATED]:
-      'Multi-node disaggregated — distributed prefill/decode across distributed node groups.',
-  };
-
-  return [
-    'apiVersion: serving.kserve.io/v1alpha1',
-    'kind: LLMInferenceServiceConfig',
-    'metadata:',
-    '  name: my-topology-configuration',
-    'spec:',
-    `  # ${comments[topoType]}`,
-    '  templateRef: kserve-config-llm-template',
-    '',
-  ].join('\n');
-};
+const isConfigObject = (value: unknown): value is LLMInferenceServiceConfigKind =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const TopologyConfigurationCreateEdit: React.FC = () => {
   const { topologyType, configName } = useParams<{
@@ -68,57 +47,128 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
     configName?: string;
   }>();
   const navigate = useNavigate();
-  const location = useLocation();
+  const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
   const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
 
-  const isDuplicateMode = location.pathname.includes('/duplicate/');
+  const isDuplicateMode = !!state?.sourceConfig;
   const isEditMode = !!configName && !isDuplicateMode;
   const [configs] = useWatchTopologyConfigs(dashboardNamespace);
-  const sourceConfig = React.useMemo(
+  const existingConfig = React.useMemo(
     () => (configName ? configs.find((c) => c.metadata.name === configName) : undefined),
     [configs, configName],
   );
 
   const resolvedTopologyType = React.useMemo((): TopologyType | undefined => {
-    if (sourceConfig) {
-      const label = sourceConfig.metadata.labels?.[CONFIG_TYPE_LABEL];
+    if (existingConfig) {
+      const label = existingConfig.metadata.labels?.[CONFIG_TYPE_LABEL];
+      return Object.values(TopologyType).find((t) => t === label);
+    }
+    if (state?.sourceConfig) {
+      const label = state.sourceConfig.metadata.labels?.[CONFIG_TYPE_LABEL];
       return Object.values(TopologyType).find((t) => t === label);
     }
     return Object.values(TopologyType).find((t) => t === topologyType);
-  }, [sourceConfig, topologyType]);
+  }, [existingConfig, state?.sourceConfig, topologyType]);
 
-  const [displayName, setDisplayName] = React.useState('');
-  const [description, setDescription] = React.useState('');
-  const [yamlValue, setYamlValue] = React.useState('');
-  const [configSource, setConfigSource] = React.useState<'sample' | 'upload' | 'blank' | undefined>(
-    undefined,
-  );
+  const initialResource = React.useMemo(() => {
+    if (existingConfig) {
+      return existingConfig;
+    }
+    if (state?.sourceConfig) {
+      return {
+        ...state.sourceConfig,
+        metadata: {
+          ...state.sourceConfig.metadata,
+          name: `${state.sourceConfig.metadata.name}-copy`,
+          annotations: {
+            ...state.sourceConfig.metadata.annotations,
+            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
+              state.sourceConfig,
+            )}`,
+          },
+        },
+      };
+    }
+    return undefined;
+  }, [existingConfig, state?.sourceConfig]);
+
+  const k8sNameDesc = useK8sNameDescriptionFieldData({
+    initialData: initialResource,
+  });
+
+  const stringifiedConfig = React.useMemo(() => {
+    if (existingConfig) {
+      return YAML.stringify(existingConfig);
+    }
+    if (state?.sourceConfig) {
+      return YAML.stringify({
+        ...state.sourceConfig,
+        metadata: {
+          ...state.sourceConfig.metadata,
+          name: `${state.sourceConfig.metadata.name}-copy`,
+          annotations: {
+            ...state.sourceConfig.metadata.annotations,
+            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
+              state.sourceConfig,
+            )}`,
+          },
+        },
+      });
+    }
+    return '';
+  }, [existingConfig, state?.sourceConfig]);
+
+  const [yamlCode, setYamlCode] = React.useState(stringifiedConfig);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
   React.useEffect(() => {
-    if (sourceConfig) {
-      setDisplayName(getDisplayNameFromK8sResource(sourceConfig));
-      setDescription(getDescriptionFromK8sResource(sourceConfig));
-      setYamlValue(sourceConfig.spec ? YAML.stringify(sourceConfig.spec) : '');
+    if (stringifiedConfig) {
+      setYamlCode(stringifiedConfig);
     }
-  }, [sourceConfig]);
+  }, [stringifiedConfig]);
+
+  const handleNameDescChange: typeof k8sNameDesc.onDataChange = React.useCallback(
+    (key, value) => {
+      k8sNameDesc.onDataChange(key, value);
+
+      setYamlCode((prevYaml) => {
+        if (!prevYaml) {
+          return prevYaml;
+        }
+        try {
+          const doc = YAML.parseDocument(prevYaml);
+          if (key === 'name') {
+            doc.setIn(['metadata', 'annotations', 'openshift.io/display-name'], value);
+          } else if (key === 'description') {
+            doc.setIn(['metadata', 'annotations', 'openshift.io/description'], value);
+          }
+          return doc.toString();
+        } catch {
+          return prevYaml;
+        }
+      });
+    },
+    [k8sNameDesc],
+  );
 
   const topologyTypeLabel = resolvedTopologyType
     ? TopologyTypeLabels[resolvedTopologyType]
     : 'Unknown';
 
-  const sourceName = sourceConfig ? getDisplayNameFromK8sResource(sourceConfig) : configName ?? '';
+  const sourceDisplayName = state?.sourceConfig
+    ? getDisplayNameFromK8sResource(state.sourceConfig)
+    : '';
 
-  const title = isDuplicateMode
+  const pageTitle = isDuplicateMode
     ? 'Duplicate llm-d topology configuration'
     : isEditMode
-    ? `Edit ${displayName || configName}`
+    ? `Edit ${k8sNameDesc.data.name || configName}`
     : `Add ${topologyTypeLabel} configuration`;
 
   const pageDescription = isDuplicateMode
-    ? `Create a copy based on ${sourceName}. Update the configuration before saving.`
+    ? `Create a copy based on ${sourceDisplayName}. Update the configuration before saving.`
     : !isEditMode
     ? 'Add a new topology configuration that will be available for users on this cluster.'
     : undefined;
@@ -131,23 +181,20 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
     setLoading(true);
     setError(undefined);
 
-    let spec: LLMInferenceServiceConfigKind['spec'];
+    let parsedConfig: LLMInferenceServiceConfigKind;
     try {
-      const parsed: unknown = yamlValue ? YAML.parse(yamlValue) : undefined;
-      spec = parsed as LLMInferenceServiceConfigKind['spec']; // eslint-disable-line @typescript-eslint/consistent-type-assertions
+      const parsed: unknown = YAML.parse(yamlCode);
+      if (!isConfigObject(parsed)) {
+        throw new Error('YAML must represent a valid object');
+      }
+      parsedConfig = parsed;
     } catch (e) {
       setError(e instanceof Error ? e : new Error('Invalid YAML'));
       setLoading(false);
       return;
     }
 
-    const slug = displayName
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-    const resourceName = isEditMode && configName ? configName : slug;
-
+    const resourceName = isEditMode && configName ? configName : k8sNameDesc.data.k8sName.value;
     if (!resourceName) {
       setError(new Error('Name must contain at least one alphanumeric character'));
       setLoading(false);
@@ -157,26 +204,29 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
     const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
     const apiVer = LLMInferenceServiceConfigModel.apiVersion;
     const newConfig: LLMInferenceServiceConfigKind = {
+      ...parsedConfig,
       apiVersion: `${apiGroup}/${apiVer}`,
       kind: 'LLMInferenceServiceConfig',
       metadata: {
+        ...parsedConfig.metadata,
         name: resourceName,
         namespace: dashboardNamespace,
         labels: {
+          ...parsedConfig.metadata.labels,
           [CONFIG_TYPE_LABEL]: resolvedTopologyType,
           [DASHBOARD_RESOURCE_LABEL]: 'true',
         },
         annotations: {
-          'openshift.io/display-name': displayName,
-          'openshift.io/description': description,
+          ...parsedConfig.metadata.annotations,
+          'openshift.io/display-name': k8sNameDesc.data.name,
+          'openshift.io/description': k8sNameDesc.data.description,
         },
       },
-      spec,
     };
 
     try {
-      if (isEditMode && sourceConfig) {
-        await patchLLMInferenceServiceConfig(sourceConfig, newConfig);
+      if (isEditMode && existingConfig) {
+        await patchLLMInferenceServiceConfig(existingConfig, newConfig);
       } else {
         await createLLMInferenceServiceConfig(newConfig);
       }
@@ -195,12 +245,12 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={title}
+      title={pageTitle}
       description={pageDescription}
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="..">llm-d topology configurations</Link>} />
-          <BreadcrumbItem isActive>{title}</BreadcrumbItem>
+          <BreadcrumbItem isActive>{pageTitle}</BreadcrumbItem>
         </Breadcrumb>
       }
       loaded
@@ -208,56 +258,18 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       provideChildrenPadding
       data-testid="topology-config-create-edit-page"
     >
-      <Form>
+      <Form style={{ height: '100%' }}>
         <Stack hasGutter>
           <StackItem>
-            <FormGroup label="Name" isRequired fieldId="config-name">
-              <TextInput
-                id="config-name"
-                data-testid="config-name-input"
-                value={displayName}
-                onChange={(_e, value) => setDisplayName(value)}
-                isDisabled={isEditMode && !isDuplicateMode}
-                isRequired
-              />
-            </FormGroup>
+            <K8sNameDescriptionField
+              data={k8sNameDesc.data}
+              dataTestId="topology-config"
+              onDataChange={handleNameDescChange}
+            />
           </StackItem>
-          <StackItem>
-            <FormGroup label="Description" fieldId="config-description">
-              <TextArea
-                id="config-description"
-                data-testid="config-description-input"
-                value={description}
-                onChange={(_e, value) => setDescription(value)}
-              />
-            </FormGroup>
+          <StackItem isFilled>
+            <ConfigYAMLEditor code={yamlCode} onCodeChange={setYamlCode} />
           </StackItem>
-          {!isEditMode && !isDuplicateMode && (
-            <StackItem>
-              <ConfigSourceSelect
-                value={configSource}
-                onChange={(value, fileContent) => {
-                  setConfigSource(value);
-                  if (value === 'sample' && resolvedTopologyType) {
-                    setYamlValue(getSampleYaml(resolvedTopologyType));
-                  } else if (value === 'upload') {
-                    setYamlValue(fileContent ?? '');
-                  } else if (value === 'blank') {
-                    setYamlValue('');
-                  }
-                }}
-              />
-            </StackItem>
-          )}
-          {(isEditMode ||
-            isDuplicateMode ||
-            (configSource != null && configSource !== 'upload')) && (
-            <StackItem isFilled>
-              <FormGroup label="LLMInferenceServiceConfig YAML" isRequired fieldId="config-yaml">
-                <ConfigYAMLEditor value={yamlValue} onChange={setYamlValue} isReadOnly={false} />
-              </FormGroup>
-            </StackItem>
-          )}
           {error && (
             <StackItem>
               <Alert
@@ -276,10 +288,7 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
                 variant="primary"
                 data-testid="submit-topology-config-button"
                 isDisabled={
-                  !displayName ||
-                  !yamlValue.trim() ||
-                  loading ||
-                  (!isEditMode && !isDuplicateMode && !configSource)
+                  !isK8sNameDescriptionDataValid(k8sNameDesc.data) || !yamlCode.trim() || loading
                 }
                 isLoading={loading}
                 onClick={handleSubmit}

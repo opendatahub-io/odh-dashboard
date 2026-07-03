@@ -1,11 +1,6 @@
 import * as React from 'react';
 import {
   Button,
-  Content,
-  Label,
-  Stack,
-  StackItem,
-  Switch,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -18,24 +13,19 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
-import { ActionsColumn, Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import { Table, Thead, Tr, Th, Tbody } from '@patternfly/react-table';
 import { useNavigate } from 'react-router';
-import {
-  getDisplayNameFromK8sResource,
-  getDescriptionFromK8sResource,
-} from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
+import TopologyConfigurationRow from './TopologyConfigurationRow';
 import {
   type LLMInferenceServiceConfigKind,
   LLMInferenceServiceConfigModel,
   TopologyType,
   TopologyTypeLabels,
-  DASHBOARD_RESOURCE_LABEL,
-  isConfigPreInstalled,
   isConfigEnabled,
-  getConfigTopologyType,
 } from '../types';
 import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfigs';
 
@@ -178,82 +168,15 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
           </Tr>
         </Thead>
         <Tbody>
-          {configs.map((config) => {
-            const configName = config.metadata.name;
-            const displayName = getDisplayNameFromK8sResource(config);
-            const description = getDescriptionFromK8sResource(config);
-            const preInstalled = isConfigPreInstalled(config);
-            const enabled = isConfigEnabled(config);
-            const topologyType = getConfigTopologyType(config);
-            const isDashboardCreated =
-              config.metadata.labels?.[DASHBOARD_RESOURCE_LABEL] === 'true' && !preInstalled;
-
-            return (
-              <Tr key={configName} data-testid={`topology-config-row-${configName}`}>
-                <Td dataLabel="Name">
-                  <Stack>
-                    <StackItem>
-                      <Content>
-                        <Content component="p" className="pf-v6-u-mb-0">
-                          <strong>{displayName}</strong>
-                        </Content>
-                        {description && <Content component="small">{description}</Content>}
-                      </Content>
-                    </StackItem>
-                    {preInstalled && (
-                      <StackItem>
-                        <Label data-testid="pre-installed-label" isCompact>
-                          Pre-installed
-                        </Label>
-                      </StackItem>
-                    )}
-                  </Stack>
-                </Td>
-                <Td dataLabel="Enabled">
-                  <Switch
-                    id={`topology-config-toggle-${configName}`}
-                    aria-label={`${configName}-enabled-toggle`}
-                    data-testid="topology-config-enabled-toggle"
-                    isChecked={enabled}
-                    isDisabled={!!togglingConfigs[configName]}
-                    onChange={() => handleToggleEnabled(config)}
-                  />
-                </Td>
-                <Td dataLabel="Topology type">
-                  {topologyType ? TopologyTypeLabels[topologyType] : '-'}
-                </Td>
-                <Td isActionCell>
-                  <ActionsColumn
-                    items={
-                      isDashboardCreated
-                        ? [
-                            {
-                              title: 'Duplicate',
-                              onClick: () => navigate(`duplicate/${configName}`),
-                            },
-                            {
-                              title: 'Edit',
-                              onClick: () => navigate(`edit/${configName}`),
-                            },
-                            { isSeparator: true } as const,
-                            {
-                              title: 'Delete',
-                              onClick: () => setDeleteConfig(config),
-                              isDanger: true,
-                            },
-                          ]
-                        : [
-                            {
-                              title: 'Duplicate',
-                              onClick: () => navigate(`duplicate/${configName}`),
-                            },
-                          ]
-                    }
-                  />
-                </Td>
-              </Tr>
-            );
-          })}
+          {configs.map((config) => (
+            <TopologyConfigurationRow
+              key={config.metadata.name}
+              config={config}
+              onToggleEnabled={handleToggleEnabled}
+              onDelete={setDeleteConfig}
+              isToggling={!!togglingConfigs[config.metadata.name]}
+            />
+          ))}
         </Tbody>
       </Table>
       {deleteConfig && (
