@@ -83,6 +83,12 @@ func main() {
 	flag.StringVar(&cfg.MFRemotesConfig, "mf-remotes-config",
 		getEnvAsString("MF_REMOTES_CONFIG", ""),
 		"Path to module federation remotes config file")
+	flag.StringVar(&cfg.DevUser, "dev-user",
+		getEnvAsString("DEV_USER", "developer"),
+		"Username for dev-mode identity fallback")
+	flag.StringVar(&cfg.DevGroups, "dev-groups",
+		getEnvAsString("DEV_GROUPS", ""),
+		"Comma-separated groups for dev-mode identity fallback")
 
 	flag.Parse()
 

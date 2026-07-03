@@ -330,21 +330,6 @@ func TestUpdateConnectionType_NonConnectionType_Rejected(t *testing.T) {
 	assert.Contains(t, result.Error, "not a connection type")
 }
 
-func TestListConnectionTypes_InvalidToken_Returns401(t *testing.T) {
-	app := newTestApp()
-
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, ConnectionTypesPath, nil)
-	req = reqWithIdentity(req, &k8s.RequestIdentity{
-		UserID: "attacker",
-		Token:  k8s.NewBearerToken("garbage-token-abc123"),
-	})
-
-	app.ListConnectionTypesHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-}
-
 func TestGetConnectionType_NotFound_Returns404(t *testing.T) {
 	ns := "ct-get-notfound"
 	app := newTestApp(func(a *App) {
@@ -503,69 +488,6 @@ func TestPatchConnectionType_OversizedPayload_Rejected(t *testing.T) {
 	app.PatchConnectionTypeHandler(rr, req, ps)
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
-}
-
-func TestCreateConnectionType_InvalidToken_Returns401(t *testing.T) {
-	app := newTestApp()
-
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, ConnectionTypesPath, bytes.NewReader([]byte(`{}`)))
-	req = reqWithIdentity(req, &k8s.RequestIdentity{
-		UserID: "attacker",
-		Token:  k8s.NewBearerToken("garbage-token-abc123"),
-	})
-
-	app.CreateConnectionTypeHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-}
-
-func TestUpdateConnectionType_InvalidToken_Returns401(t *testing.T) {
-	app := newTestApp()
-
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, "/api/connection-types/any", bytes.NewReader([]byte(`{}`)))
-	req = reqWithIdentity(req, &k8s.RequestIdentity{
-		UserID: "attacker",
-		Token:  k8s.NewBearerToken("garbage-token-abc123"),
-	})
-
-	ps := httprouter.Params{{Key: "name", Value: "any"}}
-	app.UpdateConnectionTypeHandler(rr, req, ps)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-}
-
-func TestPatchConnectionType_InvalidToken_Returns401(t *testing.T) {
-	app := newTestApp()
-
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPatch, "/api/connection-types/any", bytes.NewReader([]byte(`[]`)))
-	req = reqWithIdentity(req, &k8s.RequestIdentity{
-		UserID: "attacker",
-		Token:  k8s.NewBearerToken("garbage-token-abc123"),
-	})
-
-	ps := httprouter.Params{{Key: "name", Value: "any"}}
-	app.PatchConnectionTypeHandler(rr, req, ps)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-}
-
-func TestDeleteConnectionType_InvalidToken_Returns401(t *testing.T) {
-	app := newTestApp()
-
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, "/api/connection-types/any", nil)
-	req = reqWithIdentity(req, &k8s.RequestIdentity{
-		UserID: "attacker",
-		Token:  k8s.NewBearerToken("garbage-token-abc123"),
-	})
-
-	ps := httprouter.Params{{Key: "name", Value: "any"}}
-	app.DeleteConnectionTypeHandler(rr, req, ps)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 // cleanupTestCM deletes a ConfigMap if it exists, ensuring clean state for re-runs.

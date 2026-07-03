@@ -62,6 +62,10 @@ export const useSearchHandlers = (
       setSearchValue(trimmedValue);
 
       if (trimmedValue === '') {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = undefined;
+        }
         if (onClear) {
           onClear();
         }
@@ -99,6 +103,10 @@ export const useSearchHandlers = (
   );
 
   const handleSearchClear = React.useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
     setSearchValue('');
     setIsSearching(false);
     if (onClear) {
@@ -109,6 +117,10 @@ export const useSearchHandlers = (
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && (state.isSearchOpen || state.searchValue.trim() !== '')) {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = undefined;
+        }
         setSearchValue('');
         setIsSearchOpen(false);
         setIsSearching(false);
@@ -138,6 +150,10 @@ export const useSearchHandlers = (
         !searchInputRef.current.contains(target) &&
         !searchMenuRef.current.contains(target)
       ) {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = undefined;
+        }
         setSearchValue('');
         setIsSearchOpen(false);
         setIsSearching(false);

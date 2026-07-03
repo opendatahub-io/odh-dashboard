@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -52,6 +53,30 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, _ *RequestI
 	}
 
 	return true, nil
+}
+
+// NewKubeconfigKubernetesClient creates a Kubernetes client using the kubeconfig's native auth
+func NewKubeconfigKubernetesClient(logger *slog.Logger) (KubernetesClientInterface, error) {
+	cfg, err := helpers.GetKubeconfig()
+	if err != nil {
+		logger.Error("failed to get kubeconfig", "error", err)
+		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		logger.Error("failed to create kubeconfig-based Kubernetes client", "error", err)
+		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+
+	return &TokenKubernetesClient{
+		SharedClientLogic: SharedClientLogic{
+			Client:     clientset,
+			Logger:     logger,
+			RestConfig: cfg,
+			Token:      NewBearerToken(""),
+		},
+	}, nil
 }
 
 // NewTokenKubernetesClient creates a Kubernetes client using a user bearer token.
@@ -201,7 +226,12 @@ func (kc *TokenKubernetesClient) GetUser(ctx context.Context, _ *RequestIdentity
 	return username, nil
 }
 
-// IsUserAdmin checks if the user can patch the auths/default-auth singleton,
+// IsUserAdmin checks if the user can patch the auths/default-auth singleton
+// (services.platform.opendatahub.io). This is NOT generic cluster-admin detection -
+// it checks SSAR for "patch" on "auths/default-auth" specifically.
+// Parity: mirrors Fastify's adminUtils.ts isUserAdmin(), which performs the same
+// SSAR check against auths/default-auth to determine dashboard admin status.
+// See also: IsClusterAdmin() for the generic wildcard SSAR check.
 func (kc *TokenKubernetesClient) IsUserAdmin(ctx context.Context, _ *RequestIdentity) (bool, error) {
 	return kc.checkAuthSingletonAccess(ctx, "patch")
 }
@@ -220,7 +250,7 @@ func (kc *TokenKubernetesClient) checkAuthSingletonAccess(ctx context.Context, v
 			ResourceAttributes: &authv1.ResourceAttributes{
 				Group:    "services.platform.opendatahub.io",
 				Resource: "auths",
-				Name:     "default-auth",
+				Name:     models.DefaultAuthName,
 				Verb:     verb,
 			},
 		},

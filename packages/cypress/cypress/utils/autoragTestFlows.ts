@@ -196,6 +196,96 @@ export const verifyAutoragResultsInteraction = (): void => {
 };
 
 /**
+ * Verify "Try this pattern" playground drawer interaction:
+ * - Open from pattern details modal actions dropdown
+ * - Verify playground drawer panel elements
+ * - Submit a query and verify a bot response is received
+ * - Close and reopen from leaderboard row actions
+ */
+export const verifyTryThisPatternInteraction = (): void => {
+  cy.step('Open pattern details modal for top-ranked pattern');
+  autoragResultsPage.findPatternLink(1).click();
+  autoragResultsPage.findPatternDetailsModal().should('be.visible');
+
+  cy.step('Open Actions dropdown and click "Try this pattern"');
+  autoragResultsPage.findPatternDetailsActionsToggle().click();
+  autoragResultsPage.findTryPatternAction().should('be.visible').click();
+
+  cy.step('Verify pattern details modal closes and playground drawer opens');
+  autoragResultsPage.findPatternDetailsModal().should('not.exist');
+  autoragResultsPage.findPlaygroundDrawerPanel().should('be.visible');
+
+  cy.step('Verify playground drawer panel elements');
+  autoragResultsPage.findPlaygroundPatternSelect().should('be.visible');
+  autoragResultsPage.findPlaygroundViewCodeButton().should('be.visible');
+
+  cy.step('Type a query into the chatbot message bar');
+  autoragResultsPage
+    .findPlaygroundDrawerPanel()
+    .find('textarea')
+    .should('be.visible')
+    .type('What is this document about?');
+
+  cy.step('Send the query');
+  autoragResultsPage.findPlaygroundDrawerPanel().findByTestId('chatbot-send-button').click();
+
+  cy.step('Verify user message appears');
+  autoragResultsPage
+    .findPlaygroundDrawerPanel()
+    .findByTestId('chatbot-message-user')
+    .should('exist');
+
+  cy.step('Wait for bot response to complete');
+  autoragResultsPage
+    .findPlaygroundDrawerPanel()
+    .findByTestId('chatbot-message-bot', { timeout: 120000 })
+    .should('exist')
+    .find('.pf-chatbot__message-loading')
+    .should('not.exist');
+
+  cy.step('Switch pattern via the pattern selector dropdown (if multiple patterns exist)');
+  autoragResultsPage.findPlaygroundPatternSelect().then(($toggle) => {
+    const currentPattern = $toggle.text().trim();
+    $toggle.trigger('click');
+    cy.get('[role="option"]').then(($options) => {
+      const otherOptions = $options.filter((_i, el) => !el.textContent.includes(currentPattern));
+      if (otherOptions.length === 0) {
+        cy.log('Only one pattern available — skipping pattern switch test');
+        cy.get('body').type('{esc}');
+        return;
+      }
+      cy.wrap(otherOptions.first()).click();
+
+      cy.step('Verify chat messages are cleared after pattern switch');
+      autoragResultsPage
+        .findPlaygroundDrawerPanel()
+        .findByTestId('chatbot-message-user')
+        .should('not.exist');
+      autoragResultsPage
+        .findPlaygroundDrawerPanel()
+        .findByTestId('chatbot-message-bot')
+        .should('not.exist');
+    });
+  });
+
+  cy.step('Close playground drawer');
+  autoragResultsPage.findPlaygroundDrawerClose().click();
+  autoragResultsPage.findPlaygroundDrawerPanel().should('not.exist');
+
+  cy.step('Open "Try this pattern" from leaderboard row actions');
+  autoragResultsPage.findLeaderboardActions(1).find('button').click();
+  cy.findByRole('menuitem', { name: 'Try this pattern' }).click();
+
+  cy.step('Verify playground drawer opens again from leaderboard');
+  autoragResultsPage.findPlaygroundDrawerPanel().should('be.visible');
+  autoragResultsPage.findPlaygroundPatternSelect().should('be.visible');
+
+  cy.step('Close playground drawer');
+  autoragResultsPage.findPlaygroundDrawerClose().click();
+  autoragResultsPage.findPlaygroundDrawerPanel().should('not.exist');
+};
+
+/**
  * Verify that the AutoRAG run was submitted by checking that the results page
  * loaded and the run appears in the experiments list.
  * AutoRAG runs are managed by the KFP pipeline server (not direct K8s PipelineRun CRs),
