@@ -714,6 +714,42 @@ func TestPromptHandlerPermissions(t *testing.T) {
 			wantStatus:      http.StatusInternalServerError,
 			assertNotCalled: "DeletePromptVersion",
 		},
+		{
+			name:            "RegisterPrompt invalid verb error",
+			handler:         "register",
+			verb:            "delete",
+			canWrite:        false,
+			method:          http.MethodPost,
+			path:            "/api/v1/prompts?workspace=my-ns",
+			body:            `{"name":"test-prompt","messages":[{"role":"user","content":"Hello"}]}`,
+			wantStatus:      http.StatusInternalServerError,
+			assertNotCalled: "RegisterChatPrompt",
+		},
+		{
+			name:            "DeletePrompt invalid verb error",
+			handler:         "delete",
+			verb:            "create",
+			canWrite:        false,
+			method:          http.MethodDelete,
+			path:            "/api/v1/prompts/test-prompt?workspace=my-ns",
+			params:          httprouter.Params{{Key: "name", Value: "test-prompt"}},
+			wantStatus:      http.StatusInternalServerError,
+			assertNotCalled: "DeletePrompt",
+		},
+		{
+			name:            "DeletePromptVersion invalid verb error",
+			handler:         "deleteVersion",
+			verb:            "create",
+			canWrite:        false,
+			method:          http.MethodDelete,
+			path:            "/api/v1/prompts/test-prompt/versions/1?workspace=my-ns",
+			params: httprouter.Params{
+				{Key: "name", Value: "test-prompt"},
+				{Key: "version", Value: "1"},
+			},
+			wantStatus:      http.StatusInternalServerError,
+			assertNotCalled: "DeletePromptVersion",
+		},
 	}
 
 	for _, tt := range tests {
