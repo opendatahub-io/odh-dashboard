@@ -204,6 +204,48 @@ describe('Model Serving LLMD Topology & Routing', () => {
     });
   });
 
+  describe('hardware profile visibility', () => {
+    it('should show hardware profile for single node topology', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      cy.findByTestId('hardware-profile-select').should('exist');
+    });
+
+    it('should hide hardware profile for multi-node topology', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
+
+      cy.findByTestId('hardware-profile-select').should('not.exist');
+    });
+
+    it('should show hardware profile when switching back to single node', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
+      cy.findByTestId('hardware-profile-select').should('not.exist');
+
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).click();
+      cy.findByTestId('hardware-profile-select').should('exist');
+    });
+  });
+
   describe('custom topology config field', () => {
     it('should show configs matching the selected topology type', () => {
       initIntercepts();

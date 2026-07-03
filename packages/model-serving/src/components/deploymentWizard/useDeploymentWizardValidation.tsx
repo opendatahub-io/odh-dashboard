@@ -19,6 +19,17 @@ import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { isValidProjectName } from './fields/ProjectSection';
 import { getStateKey } from './dynamicFormUtils';
 
+const SINGLE_NODE_TOPOLOGY = 'workload-single-node';
+
+const isHardwareProfileHidden = (state: Record<string, unknown>): boolean => {
+  const topologyData: unknown = state['llmd-serving/topology-type'];
+  if (topologyData != null && typeof topologyData === 'object' && 'topologyType' in topologyData) {
+    const { topologyType } = topologyData as Record<string, unknown>; // eslint-disable-line @typescript-eslint/consistent-type-assertions
+    return topologyType !== SINGLE_NODE_TOPOLOGY;
+  }
+  return false;
+};
+
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   hardwareProfile: ReturnType<typeof useValidation>;
@@ -124,12 +135,13 @@ export const useModelDeploymentWizardValidation = (
     isValidProjectName(state.project.initialProjectName ?? state.project.projectName ?? undefined);
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
+  const hwpHidden = isHardwareProfileHidden(state);
   const isModelDeploymentStepValid =
     isValidProjectName(
       state.project.initialProjectName ?? state.project.projectName ?? undefined,
     ) &&
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
-    Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
+    (hwpHidden || Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0) &&
     modelDeploymentStepValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     advancedOptionsValidation.getFieldValidation(undefined, true).length === 0;

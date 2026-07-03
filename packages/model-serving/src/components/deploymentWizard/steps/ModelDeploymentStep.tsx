@@ -21,12 +21,25 @@ type ModelDeploymentStepProps = {
   hideProjectSection?: boolean;
 };
 
+const SINGLE_NODE_TOPOLOGY = 'workload-single-node';
+
+const isHardwareProfileHidden = (state: Record<string, unknown>): boolean => {
+  const topologyData: unknown = state['llmd-serving/topology-type'];
+  if (topologyData != null && typeof topologyData === 'object' && 'topologyType' in topologyData) {
+    const { topologyType } = topologyData as Record<string, unknown>; // eslint-disable-line @typescript-eslint/consistent-type-assertions
+    return topologyType !== SINGLE_NODE_TOPOLOGY;
+  }
+  return false;
+};
+
 export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   projectName,
   wizardState,
   externalData,
   hideProjectSection,
 }) => {
+  const hideHwp = isHardwareProfileHidden(wizardState.state);
+
   const modelDeploymentExtensionFields = React.useMemo(
     () =>
       wizardState.fields.filter(
@@ -79,11 +92,13 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           externalData={externalData}
           isEditing={wizardState.initialData?.isEditing}
         />
-        <ModelServingHardwareProfileSection
-          project={projectName}
-          hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
-          isEditing={wizardState.initialData?.isEditing}
-        />
+        {!hideHwp && (
+          <ModelServingHardwareProfileSection
+            project={projectName}
+            hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
+            isEditing={wizardState.initialData?.isEditing}
+          />
+        )}
         {wizardState.state.modelFormatState.isVisible && (
           <ModelFormatField
             modelFormatState={wizardState.state.modelFormatState}
