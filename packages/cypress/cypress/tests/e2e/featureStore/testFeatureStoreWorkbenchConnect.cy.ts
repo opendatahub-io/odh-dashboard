@@ -152,21 +152,6 @@ describe('Verify user can connect Feature Stores to Workbenches', () => {
       notebookRow.findExpansionButton().click();
       notebookRow.shouldHaveFeatureStoreTitle();
       notebookRow.shouldHaveFeatureStoreItems([testData.feastCreditScoringProject]);
-    },
-  );
-
-  it(
-    'View connected workbenches from the Feature Store Overview page',
-    {
-      tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@Sanity', '@SanitySet1'],
-    },
-    () => {
-      if (shouldSkip()) {
-        return;
-      }
-
-      cy.step('Log in as admin user');
-      cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step('Navigate to Feature Store Overview page');
       featureStoreGlobal.navigateToOverview();
