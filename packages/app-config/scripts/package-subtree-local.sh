@@ -553,54 +553,35 @@ This commit should NOT be merged. It exists only to test changes from a local re
   echo ""
 fi
 
-apply_patch_based_update() {
+_git_upstream_cmd() {
+  git -C "$LOCAL_REPO_RESOLVED" "$@"
+}
+
+_filter_rev_list() {
   local from_commit="$1"
   local to_commit="$2"
   local upstream_subdir="$3"
-  local target_dir="$4"
-  local single_commit_mode="${5:-false}"
-
-  if [ "$single_commit_mode" = true ]; then
-    info_msg "Applying single commit: $to_commit"
+  if [ -n "$upstream_subdir" ]; then
+    git -C "$LOCAL_REPO_RESOLVED" rev-list --no-merges --reverse "$from_commit..$to_commit" -- "$upstream_subdir"
   else
-    echo "Applying patch-based update from $from_commit to $to_commit"
+    git -C "$LOCAL_REPO_RESOLVED" rev-list --no-merges --reverse "$from_commit..$to_commit"
   fi
+}
 
-  if [ "$single_commit_mode" != true ]; then
-    if [ -z "$from_commit" ] || [ "$from_commit" = "null" ] || [ "$from_commit" = "" ]; then
-      clean_exit 1 "No starting commit provided for patch-based update"
-    fi
+_get_commit_url() {
+  local commit="$1"
+  get_repo_commit_url "$LOCAL_REPO_RESOLVED" "$commit"
+}
 
-    if ! git -C "$LOCAL_REPO_RESOLVED" rev-parse --quiet --verify "$from_commit" >/dev/null; then
-      warning_msg "Current commit $from_commit not found in local repository"
-      clean_exit 1 "Cannot perform patch-based update - starting commit does not exist."
-    fi
+_get_continue_cmd() {
+  local continue_cmd="npm run update-subtree-local -w $WORKSPACE_LOCATION -- --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH"
+  if [ -n "$COMMIT_SHA" ]; then
+    continue_cmd="$continue_cmd --commit=$COMMIT_SHA"
   fi
+  echo "$continue_cmd --continue"
+}
 
-  local commits
-  if [ "$single_commit_mode" = true ]; then
-    commits="$to_commit"
-  else
-    if [ -n "$upstream_subdir" ]; then
-      commits=$(git -C "$LOCAL_REPO_RESOLVED" rev-list --no-merges --reverse "$from_commit..$to_commit" -- "$upstream_subdir")
-    else
-      commits=$(git -C "$LOCAL_REPO_RESOLVED" rev-list --no-merges --reverse "$from_commit..$to_commit")
-    fi
-  fi
-
-  if [ -z "$commits" ]; then
-    if [ "$single_commit_mode" = true ]; then
-      echo "Commit $to_commit has no relevant changes for the subtree"
-    else
-      echo "No commits to apply between $from_commit and $to_commit"
-    fi
-    return 0
-  fi
-
-  local total_commits
-  total_commits=$(echo "$commits" | wc -l | tr -d ' ')
-  echo -e "Found ${YELLOW}$total_commits${NC} commit(s) to apply"
-
+_pre_apply_hook() {
   progress_msg "Fetching git objects from local repository for three-way merge support..."
   cleanup_temp_remote
   git remote add "$TEMP_REMOTE_NAME" "$LOCAL_REPO_RESOLVED"
@@ -609,88 +590,15 @@ apply_patch_based_update() {
   else
     success_msg "Git objects fetched — three-way merge enabled"
   fi
+}
 
-  local commit_count=0
-  for commit in $commits; do
-    commit_count=$((commit_count + 1))
-    progress_msg "Applying commit $commit_count/$total_commits: $commit"
+_before_apply_hook() {
+  local filtered_patch="$1"
+  ensure_base_blobs_in_index "$filtered_patch" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
+}
 
-    local commit_msg
-    commit_msg=$(git -C "$LOCAL_REPO_RESOLVED" log -1 --format="%s" "$commit")
-
-    local patch_file="$TMP_DIR/patch_${commit}.patch"
-    git -C "$LOCAL_REPO_RESOLVED" format-patch -1 "$commit" --stdout > "$patch_file"
-
-    local filtered_patch="$TMP_DIR/filtered_${commit}.patch"
-    filter_and_transform_patch "$patch_file" "$upstream_subdir" "$filtered_patch"
-
-    if [ -s "$filtered_patch" ]; then
-      cd "$MONOREPO_ROOT"
-
-      ensure_base_blobs_in_index "$filtered_patch" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
-
-      if ! git apply --directory="$WORKSPACE_LOCATION/$TARGET_RELATIVE" --3way --index "$filtered_patch" 2>"$TMP_DIR/apply_error.log"; then
-        local commit_url
-        commit_url=$(get_repo_commit_url "$LOCAL_REPO_RESOLVED" "$commit")
-        local continue_cmd="npm run update-subtree-local -w $WORKSPACE_LOCATION -- --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH"
-        if [ -n "$COMMIT_SHA" ]; then
-          continue_cmd="$continue_cmd --commit=$COMMIT_SHA"
-        fi
-        continue_cmd="$continue_cmd --continue"
-        handle_apply_conflict "$commit_count" "$total_commits" "$commit" "$commit_msg" "$filtered_patch" "$continue_cmd" "$commit_url"
-      fi
-
-      set +e
-      safe_git_commit_if_changes "${COMMIT_PREFIX}Update $PACKAGE_NAME: $commit_msg
-
-Upstream commit: $commit" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
-      local commit_exit_code=$?
-      set -e
-
-      if [ $commit_exit_code -eq 0 ]; then
-        if update_package_json_commit "$commit"; then
-          git add "$PACKAGE_JSON"
-          git commit -q --amend --no-edit
-          success_msg "Applied commit $commit_count/$total_commits: $commit_msg"
-        else
-          warning_msg "Committed changes but failed to update package.json tracking"
-        fi
-      elif [ $commit_exit_code -eq 2 ]; then
-        if update_package_json_commit "$commit"; then
-          local tracking_msg="${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $commit (no file changes)"
-          set +e
-          safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null
-          local tracking_exit_code=$?
-          set -e
-          if [ $tracking_exit_code -ne 0 ] && [ $tracking_exit_code -ne 2 ]; then
-            clean_exit 1 "Failed to commit tracking update for commit $commit_count/$total_commits"
-          fi
-          info_msg "No changes from commit $commit_count/$total_commits"
-        else
-          warning_msg "Failed to update package.json tracking for commit $commit_count/$total_commits"
-        fi
-      else
-        clean_exit 1 "Failed to commit changes for commit $commit_count/$total_commits"
-      fi
-
-    else
-      info_msg "No relevant changes in commit $commit_count/$total_commits for subtree"
-
-      cd "$MONOREPO_ROOT"
-      if update_package_json_commit "$commit"; then
-        local tracking_msg="${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $commit (no file changes)"
-        set +e
-        safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null
-        local tracking_exit_code=$?
-        set -e
-        if [ $tracking_exit_code -ne 0 ] && [ $tracking_exit_code -ne 2 ]; then
-          clean_exit 1 "Failed to commit tracking update for commit $commit_count/$total_commits"
-        fi
-      else
-        warning_msg "Failed to update package.json tracking for commit $commit_count/$total_commits"
-      fi
-    fi
-  done
+_post_iteration_hook() {
+  :
 }
 
 if [ ! -d "$TARGET_DIR" ]; then

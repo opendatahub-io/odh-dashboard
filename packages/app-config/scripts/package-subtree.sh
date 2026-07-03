@@ -368,102 +368,36 @@ if [ "$CURRENT_COMMIT" = "$TARGET_COMMIT" ] && [ -d "$TARGET_DIR" ]; then
   exit 0
 fi
 
-apply_patch_based_update() {
+_git_upstream_cmd() {
+  git "$@"
+}
+
+_filter_rev_list() {
   local from_commit="$1"
   local to_commit="$2"
-  local upstream_subdir="$3"
-  local target_dir="$4"
+  git rev-list --no-merges --reverse "$from_commit..$to_commit"
+}
 
-  echo "Applying patch-based update from $from_commit to $to_commit"
+_get_commit_url() {
+  local commit="$1"
+  local repo_base="${UPSTREAM_REPO%.git}"
+  echo "  $repo_base/commit/$commit"
+}
 
-  if [ -z "$from_commit" ] || [ "$from_commit" = "null" ] || [ "$from_commit" = "" ]; then
-    clean_exit 1 "No starting commit provided for patch-based update - this should be handled at the main script level"
-  fi
+_get_continue_cmd() {
+  echo "npm run update-subtree -w $WORKSPACE_LOCATION -- --continue"
+}
 
-  if ! git rev-parse --quiet --verify "$from_commit" >/dev/null; then
-    warning_msg "Current commit $from_commit not found in upstream repository"
-    clean_exit 1 "Cannot perform patch-based update - starting commit does not exist. Consider running with no package.json commit to force initial setup."
-  fi
+_pre_apply_hook() {
+  :
+}
 
-  local commits
-  commits=$(git rev-list --no-merges --reverse "$from_commit..$to_commit")
+_before_apply_hook() {
+  :
+}
 
-  if [ -z "$commits" ]; then
-    echo "No commits to apply between $from_commit and $to_commit"
-    return 0
-  fi
-
-  local total_commits
-  total_commits=$(echo "$commits" | wc -l | tr -d ' ')
-  echo -e "Found ${YELLOW}$total_commits${NC} commits to apply"
-
-  local commit_count=0
-  for commit in $commits; do
-    commit_count=$((commit_count + 1))
-    progress_msg "Applying commit $commit_count/$total_commits: $commit"
-
-    local commit_msg
-    commit_msg=$(git log -1 --format="%s" "$commit")
-
-    local patch_file="$TMP_DIR/patch_${commit}.patch"
-    git format-patch -1 "$commit" --stdout > "$patch_file"
-
-    local filtered_patch="$TMP_DIR/filtered_${commit}.patch"
-    filter_and_transform_patch "$patch_file" "$upstream_subdir" "$filtered_patch"
-
-    if [ -s "$filtered_patch" ]; then
-      cd "$MONOREPO_ROOT"
-
-      if ! git apply --directory="$WORKSPACE_LOCATION/$TARGET_RELATIVE" --3way --index "$filtered_patch" 2>"$TMP_DIR/apply_error.log"; then
-        local repo_base="${UPSTREAM_REPO%.git}"
-        local commit_url="  $repo_base/commit/$commit"
-        local continue_cmd="npm run update-subtree -w $WORKSPACE_LOCATION -- --continue"
-        handle_apply_conflict "$commit_count" "$total_commits" "$commit" "$commit_msg" "$filtered_patch" "$continue_cmd" "$commit_url"
-      fi
-
-      set +e
-      safe_git_commit_if_changes "${COMMIT_PREFIX}Update $PACKAGE_NAME: $commit_msg
-
-Upstream commit: $commit" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
-      local commit_exit_code=$?
-      set -e
-
-      if [ $commit_exit_code -eq 0 ]; then
-        if update_package_json_commit "$commit"; then
-          git add "$PACKAGE_JSON"
-          git commit -q --amend --no-edit
-          success_msg "Applied commit $commit_count/$total_commits: $commit_msg"
-        else
-          warning_msg "Committed changes but failed to update package.json tracking"
-        fi
-      elif [ $commit_exit_code -eq 2 ]; then
-        if update_package_json_commit "$commit"; then
-          local tracking_msg="${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $commit (no file changes)"
-          if safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null; then
-            info_msg "No changes from commit $commit_count/$total_commits"
-          fi
-        else
-          warning_msg "Failed to update package.json tracking for commit $commit_count/$total_commits"
-        fi
-      else
-        clean_exit 1 "Failed to commit changes for commit $commit_count/$total_commits"
-      fi
-
-      cd "$TMP_DIR/repo"
-    else
-      info_msg "No relevant changes in commit $commit_count/$total_commits for subtree"
-
-      cd "$MONOREPO_ROOT"
-      if update_package_json_commit "$commit"; then
-        local tracking_msg="${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $commit (no file changes)"
-        safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null
-      else
-        warning_msg "Failed to update package.json tracking for commit $commit_count/$total_commits"
-      fi
-
-      cd "$TMP_DIR/repo"
-    fi
-  done
+_post_iteration_hook() {
+  cd "$TMP_DIR/repo"
 }
 
 if [ ! -d "$TARGET_DIR" ]; then
