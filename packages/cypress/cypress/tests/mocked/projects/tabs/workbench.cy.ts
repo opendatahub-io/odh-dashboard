@@ -67,6 +67,7 @@ import {
   initFeatureStoreSpawnerIntercepts,
   mockEmptyWorkbenchIntegrationResponse,
   mockNotebookWithFeastConfig,
+  mockWorkbenchIntegrationResponse,
 } from '../../../../utils/featureStoreSpawnerMocks';
 
 const configYamlPath = './cypress/fixtures/resources/yaml/mock-upload-configmap.yaml';
@@ -2178,6 +2179,44 @@ describe('Workbench page', () => {
       notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
     });
+
+    it('renders available store names as links when workbench integration is loaded', () => {
+      initIntercepts({
+        notebooks: [
+          mockNotebookK8sResource({
+            lastImageSelection: 'test-imagestream:1.2',
+            opts: {
+              metadata: {
+                name: 'test-notebook',
+                labels: { 'opendatahub.io/notebook-image': 'true' },
+                annotations: {
+                  'opendatahub.io/image-display-name': 'Test image',
+                  'opendatahub.io/feast-config': `${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName},${FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName}`,
+                },
+              },
+            },
+          }),
+        ],
+      });
+      enableFeatureStoreArea();
+      cy.interceptOdh(
+        'GET /api/featurestores/workbench-integration',
+        mockWorkbenchIntegrationResponse,
+      );
+      workbenchPage.visit('test-project');
+      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+      notebookRow.findExpansionButton().click();
+      notebookRow.shouldHaveFeatureStoreLinks([
+        {
+          name: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+          href: `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName}`,
+        },
+        {
+          name: FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+          href: `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName}`,
+        },
+      ]);
+    });
   });
 
   it('Delete Workbench', () => {
@@ -2452,7 +2491,7 @@ describe('Workbench page', () => {
         );
       });
 
-      it('should display code block when feature stores are selected', () => {
+      it('should render the selected store as a link and show the code block', () => {
         initIntercepts({ isEmpty: true });
         initFeatureStoreSpawnerIntercepts();
 
@@ -2462,16 +2501,12 @@ describe('Workbench page', () => {
           FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
         );
 
+        createSpawnerPage.shouldHaveFeatureStoreLink(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+          `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName}`,
+        );
         createSpawnerPage.shouldHaveFeatureStoreCodeBlock();
         createSpawnerPage.findFeatureStoreCodeBlockInstructionText().should('exist');
-      });
-
-      it('should not display code block when no feature stores are selected', () => {
-        initIntercepts({ isEmpty: true });
-        initFeatureStoreSpawnerIntercepts();
-
-        visitCreateSpawner();
-        createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
       });
 
       it('should keep the select button enabled when all available feature stores are connected', () => {
