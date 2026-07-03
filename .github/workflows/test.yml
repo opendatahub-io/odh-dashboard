@@ -271,7 +271,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: cypress-build-${{ matrix.package.name }}
+          name: cypress-build-${{ matrix.package.workspace }}
           path: ${{ matrix.package.workspace }}/**/public-cypress
           retention-days: 1
 
