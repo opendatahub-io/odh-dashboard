@@ -196,6 +196,26 @@ func (app *App) fetchGlobalPrompts(r *http.Request, globalNamespaces []string, n
 	return all, failed
 }
 
+// extractAndValidateWorkspace extracts the workspace from context, validates it,
+// and writes an error response if validation fails. Returns the workspace and true
+// if valid, empty string and false if invalid (response already written).
+func (app *App) extractAndValidateWorkspace(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+) (string, bool) {
+	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
+	if strings.TrimSpace(workspace) == "" {
+		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
+		return "", false
+	}
+	if err := validateNamespace(workspace); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid workspace: %w", err))
+		return "", false
+	}
+	return workspace, true
+}
+
 // enforceWritePermission checks if the user has write permissions in the namespace.
 // Returns true if allowed, false if denied or error occurred (response already written).
 // The verb parameter should be "create" for save operations or "delete" for delete operations.
@@ -288,13 +308,8 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
-	if strings.TrimSpace(workspace) == "" {
-		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
-		return
-	}
-	if err := validateNamespace(workspace); err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid workspace: %w", err))
+	workspace, ok := app.extractAndValidateWorkspace(ctx, w, r)
+	if !ok {
 		return
 	}
 
@@ -415,13 +430,8 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
-	if strings.TrimSpace(workspace) == "" {
-		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
-		return
-	}
-	if err := validateNamespace(workspace); err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid workspace: %w", err))
+	workspace, ok := app.extractAndValidateWorkspace(ctx, w, r)
+	if !ok {
 		return
 	}
 
@@ -457,13 +467,8 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
-	if strings.TrimSpace(workspace) == "" {
-		app.badRequestResponse(w, r, errors.New("workspace query parameter is required"))
-		return
-	}
-	if err := validateNamespace(workspace); err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid workspace: %w", err))
+	workspace, ok := app.extractAndValidateWorkspace(ctx, w, r)
+	if !ok {
 		return
 	}
 
