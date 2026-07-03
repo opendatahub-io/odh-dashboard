@@ -340,9 +340,13 @@ jobs:
             workspace=$(echo "$pkg_json" | jq -r '.workspace')
             name=$(echo "$pkg_json" | jq -r '.name')
 
-            if [ ! -d "$workspace/public-cypress" ]; then
-              echo "Missing build for $name at $workspace/public-cypress"
+            # Look for public-cypress at any depth within the workspace (matches upload pattern)
+            if ! find "$workspace" -type d -name "public-cypress" -print -quit | grep -q .; then
+              echo "Missing build for $name in $workspace/**/public-cypress"
               MISSING=1
+            else
+              BUILD_PATH=$(find "$workspace" -type d -name "public-cypress" -print -quit)
+              echo "✅ Found build for $name at $BUILD_PATH"
             fi
           done
 
