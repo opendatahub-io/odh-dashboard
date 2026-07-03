@@ -2,24 +2,20 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // ListConnectionTypesHandler lists connection-type ConfigMaps.
 func (app *App) ListConnectionTypesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	if err := app.validateCallerToken(r.Context()); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
-
 	items, err := app.repositories.ConnectionType.List(r.Context(), app.config.Namespace)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -36,16 +32,11 @@ func (app *App) ListConnectionTypesHandler(w http.ResponseWriter, r *http.Reques
 
 // GetConnectionTypeHandler gets a single connection-type ConfigMap by name.
 func (app *App) GetConnectionTypeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	if err := app.validateCallerToken(r.Context()); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
-
 	name := ps.ByName("name")
 
 	cm, err := app.repositories.ConnectionType.Get(r.Context(), app.config.Namespace, name)
 	if err != nil {
-		if k8serrors.IsNotFound(err) || strings.Contains(err.Error(), "is not a connection type") {
+		if k8serrors.IsNotFound(err) || errors.Is(err, repositories.ErrNotConnectionType) {
 			app.notFoundResponse(w, r)
 		} else {
 			app.serverErrorResponse(w, r, err)
@@ -60,11 +51,6 @@ func (app *App) GetConnectionTypeHandler(w http.ResponseWriter, r *http.Request,
 
 // CreateConnectionTypeHandler creates a connection-type ConfigMap.
 func (app *App) CreateConnectionTypeHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	if err := app.validateCallerToken(r.Context()); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
-
 	var cm corev1.ConfigMap
 	if err := app.ReadJSON(w, r, &cm); err != nil {
 		app.badRequestResponse(w, r, err)
@@ -84,11 +70,6 @@ func (app *App) CreateConnectionTypeHandler(w http.ResponseWriter, r *http.Reque
 
 // UpdateConnectionTypeHandler replaces a connection-type ConfigMap.
 func (app *App) UpdateConnectionTypeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	if err := app.validateCallerToken(r.Context()); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
-
 	name := ps.ByName("name")
 
 	var cm corev1.ConfigMap
@@ -110,11 +91,6 @@ func (app *App) UpdateConnectionTypeHandler(w http.ResponseWriter, r *http.Reque
 
 // PatchConnectionTypeHandler partially updates a connection-type ConfigMap.
 func (app *App) PatchConnectionTypeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	if err := app.validateCallerToken(r.Context()); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
-
 	name := ps.ByName("name")
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1_048_576)
@@ -140,11 +116,6 @@ func (app *App) PatchConnectionTypeHandler(w http.ResponseWriter, r *http.Reques
 
 // DeleteConnectionTypeHandler deletes a connection-type ConfigMap.
 func (app *App) DeleteConnectionTypeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	if err := app.validateCallerToken(r.Context()); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
-
 	name := ps.ByName("name")
 
 	result, err := app.repositories.ConnectionType.Delete(r.Context(), app.config.Namespace, name)

@@ -20,9 +20,18 @@ import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
 import { useNavigateToDeployAgentWizard } from '~/app/deployWizard/useNavigateToDeployAgentWizard';
 import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
+import {
+  filterAgentRuntimes,
+  hasActiveAgentRuntimesFilters,
+} from '~/app/utilities/filterAgentRuntimes';
 import AgentDeploymentsEmptyState from './AgentDeploymentsEmptyState';
 import AgentRuntimesTable from './agentRuntimes/AgentRuntimesTable';
 import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
+import {
+  AgentRuntimeStatusFilterOption,
+  AgentRuntimesFilterOption,
+  emptyAgentRuntimesFilterData,
+} from './agentRuntimes/const';
 
 const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -57,7 +66,10 @@ const AgentDeploymentListPage: React.FC = () => {
   const safeNamespaces = React.useMemo(
     () =>
       namespaces.filter(
-        (ns): ns is { name: string } => typeof ns.name === 'string' && ns.name.length > 0,
+        (ns): ns is { name: string; displayName?: string } =>
+          typeof ns.name === 'string' &&
+          ns.name.length > 0 &&
+          (ns.displayName === undefined || typeof ns.displayName === 'string'),
       ),
     [namespaces],
   );
@@ -74,16 +86,39 @@ const AgentDeploymentListPage: React.FC = () => {
     }
   }, [namespace, namespacesLoaded, safeNamespaces, preferredNamespace, navigate]);
 
-  const [filterText, setFilterText] = React.useState('');
-  const clearFilters = React.useCallback(() => setFilterText(''), []);
+  const [filterData, setFilterData] = React.useState(emptyAgentRuntimesFilterData);
 
-  const filteredRuntimes = React.useMemo(() => {
-    if (!filterText) {
-      return safeRuntimes;
-    }
-    const lower = filterText.toLowerCase();
-    return safeRuntimes.filter((runtime) => runtime.name.toLowerCase().includes(lower));
-  }, [safeRuntimes, filterText]);
+  const projectDisplayNames = React.useMemo(
+    () =>
+      Object.fromEntries(safeNamespaces.map((ns) => [ns.name, ns.displayName ?? ns.name] as const)),
+    [safeNamespaces],
+  );
+
+  const onFilterUpdate = React.useCallback(
+    (key: AgentRuntimesFilterOption, value?: string | AgentRuntimeStatusFilterOption) => {
+      setFilterData((prev) => {
+        if (typeof value === 'string') {
+          return { ...prev, [key]: value || undefined };
+        }
+        if (value?.value) {
+          return { ...prev, [key]: value };
+        }
+        return { ...prev, [key]: undefined };
+      });
+    },
+    [],
+  );
+
+  const clearFilters = React.useCallback(() => {
+    setFilterData(emptyAgentRuntimesFilterData);
+  }, []);
+
+  const filteredRuntimes = React.useMemo(
+    () => filterAgentRuntimes(safeRuntimes, filterData, projectDisplayNames),
+    [safeRuntimes, filterData, projectDisplayNames],
+  );
+
+  const isFiltered = hasActiveAgentRuntimesFilters(filterData);
 
   const noProjectSelected = !namespace;
   const isAccessDenied = !!loadError && getGenericErrorCode(loadError) === 403;
@@ -134,15 +169,15 @@ const AgentDeploymentListPage: React.FC = () => {
         continueToken={continueToken}
         page={page}
         pageSize={pageSize}
-        isFiltered={!!filterText}
+        isFiltered={isFiltered}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
         onClearFilters={clearFilters}
         toolbarContent={
           <AgentRuntimesToolbar
             namespace={namespace}
-            filterText={filterText}
-            onFilterChange={setFilterText}
+            filterData={filterData}
+            onFilterUpdate={onFilterUpdate}
             onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
           />
         }

@@ -108,7 +108,7 @@ jest.mock('~/app/components/common/AutomlHeader/AutomlHeader', () => ({
 }));
 
 // Mock S3FileExplorer used by AutomlConfigure
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
+jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,

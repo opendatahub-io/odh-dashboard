@@ -38,7 +38,7 @@ class ModelServingGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-tab-page-title').should('have.text', 'Models');
+    cy.findByTestId('app-tab-page-title').should('have.text', 'Model deployments');
     cy.testA11y();
   }
 
@@ -1466,6 +1466,13 @@ class ModelServingWizard extends Wizard {
 
   findYAMLEditFallbackAlert() {
     return cy.findByTestId('yaml-fallback-alert');
+  }
+
+  navigateToAdvancedSettings() {
+    this.findModelDeploymentNameInput().type('test-model');
+    this.selectDeploymentMethodByKey('llm-inference-service-llmd');
+    cy.findByTestId('hardware-profile-select').should('contain.text', 'Small');
+    this.findNextButton().should('be.enabled').click();
   }
 }
 

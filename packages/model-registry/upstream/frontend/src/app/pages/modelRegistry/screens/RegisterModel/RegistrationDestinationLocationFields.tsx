@@ -1,8 +1,7 @@
 import React from 'react';
-import { FormGroup, TextInput } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
+import { TextInput } from '@patternfly/react-core';
+import { UpdateObjectAtPropAndValue, ThemeAwareFormGroupWrapper } from 'mod-arch-shared';
 import PasswordInput from '~/app/shared/components/PasswordInput';
-import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
 import { RegistrationCommonFormData } from './useRegisterModelData';
 
 type RegistrationDestinationLocationFieldsProps<D extends RegistrationCommonFormData> = {
@@ -67,18 +66,18 @@ const RegistrationDestinationLocationFields = <D extends RegistrationCommonFormD
 
   return (
     <>
-      <FormGroup label="Registry" isRequired fieldId="destination-oci-registry">
-        <FormFieldset component={ociRegistryInput} field="Registry" />
-      </FormGroup>
-      <FormGroup label="URI" isRequired fieldId="destination-oci-uri">
-        <FormFieldset component={ociUriInput} field="URI" />
-      </FormGroup>
-      <FormGroup label="Username" isRequired fieldId="destination-oci-username">
-        <FormFieldset component={ociUsernameInput} field="Username" />
-      </FormGroup>
-      <FormGroup label="Password" isRequired fieldId="destination-oci-password">
-        <FormFieldset component={ociPasswordInput} field="Password" />
-      </FormGroup>
+      <ThemeAwareFormGroupWrapper label="Registry" fieldId="destination-oci-registry" isRequired>
+        {ociRegistryInput}
+      </ThemeAwareFormGroupWrapper>
+      <ThemeAwareFormGroupWrapper label="URI" fieldId="destination-oci-uri" isRequired>
+        {ociUriInput}
+      </ThemeAwareFormGroupWrapper>
+      <ThemeAwareFormGroupWrapper label="Username" fieldId="destination-oci-username" isRequired>
+        {ociUsernameInput}
+      </ThemeAwareFormGroupWrapper>
+      <ThemeAwareFormGroupWrapper label="Password" fieldId="destination-oci-password" isRequired>
+        {ociPasswordInput}
+      </ThemeAwareFormGroupWrapper>
     </>
   );
 };

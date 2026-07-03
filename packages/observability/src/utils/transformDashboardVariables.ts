@@ -4,7 +4,7 @@ export const NAMESPACE_URL_PARAM = 'var-namespace';
 
 /**
  * Transforms a dashboard resource by replacing the namespace variable's plugin
- * from PrometheusLabelValuesVariable to StaticListVariable with the given project names.
+ * with a StaticListVariable for the given project names.
  *
  * This prevents Perses from running a Prometheus query when we have project names
  * to inject, eliminating race conditions between the query and our manual options.
@@ -19,7 +19,7 @@ export function transformNamespaceVariable(
   projectNames: string[],
   initialNamespaceValue?: string | string[],
 ): DashboardResource {
-  // If no project names provided, return dashboard unchanged (will use Prometheus query)
+  // If no project names provided, return dashboard unchanged
   if (projectNames.length === 0) {
     return dashboard;
   }
@@ -33,20 +33,22 @@ export function transformNamespaceVariable(
 
   // Find and transform the namespace variable
   const transformedVariables = variables.map((variable) => {
-    // Check if this is the namespace variable (ListVariable with name 'namespace')
-    if (
-      variable.kind === 'ListVariable' &&
-      'name' in variable.spec &&
-      variable.spec.name === 'namespace'
-    ) {
+    // Check if this is the namespace variable with name 'namespace'
+    if ('name' in variable.spec && variable.spec.name === 'namespace') {
       // Create a StaticListVariable with the project names
       return {
         kind: 'ListVariable' as const,
         spec: {
-          ...variable.spec,
+          name: 'namespace',
+          display: {
+            name: 'Project',
+            description: 'Filter by project',
+          },
+          allowMultiple: true,
+          allowAllValue: true,
           customAllValue: `(${projectNames.join('|')})`,
           // Use the initial value from URL if provided, otherwise keep the original default
-          defaultValue: initialNamespaceValue ?? variable.spec.defaultValue,
+          defaultValue: initialNamespaceValue ?? '$__all',
           plugin: {
             kind: 'StaticListVariable',
             spec: {

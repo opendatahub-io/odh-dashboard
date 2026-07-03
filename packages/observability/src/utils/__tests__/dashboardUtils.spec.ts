@@ -1,7 +1,6 @@
 import type { DashboardResource } from '@perses-dev/core';
 import {
   filterDashboards,
-  filterDashboardsByThanosNonTenancyAccess,
   buildDashboardUrl,
   getDashboardDisplayName,
   hasClusterDetailsVariables,
@@ -241,28 +240,6 @@ describe('dashboardUtils', () => {
           'dashboard-zebra',
         ]);
       });
-    });
-  });
-
-  describe('filterDashboardsByThanosNonTenancyAccess', () => {
-    it('should leave dashboards unchanged when non-tenancy access is allowed', () => {
-      const dashboards = [
-        createMockDashboard('dashboard-0-cluster-admin'),
-        createMockDashboard('dashboard-1-model'),
-        createMockDashboard('dashboard-other'),
-      ];
-      expect(filterDashboardsByThanosNonTenancyAccess(dashboards, true)).toEqual(dashboards);
-    });
-
-    it('should remove gated dashboards when non-tenancy access is denied', () => {
-      const dashboards = [
-        createMockDashboard('dashboard-0-cluster-admin'),
-        createMockDashboard('dashboard-1-model'),
-        createMockDashboard('dashboard-other'),
-      ];
-      expect(
-        filterDashboardsByThanosNonTenancyAccess(dashboards, false).map((d) => d.metadata.name),
-      ).toEqual(['dashboard-other']);
     });
   });
 

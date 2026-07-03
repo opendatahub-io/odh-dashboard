@@ -280,6 +280,7 @@ export type DashboardCommonConfig = {
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
+  gpuaas?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -325,7 +326,6 @@ export enum DataScienceStackComponent {
   TRAINING_OPERATOR = 'trainingoperator',
   TRUSTY_AI = 'trustyai',
   WORKBENCHES = 'workbenches',
-  LLAMA_STACK_OPERATOR = 'llamastackoperator',
   OGX_OPERATOR = 'ogx',
   TRAINER = 'trainer',
   MLFLOW = 'mlflowoperator',
